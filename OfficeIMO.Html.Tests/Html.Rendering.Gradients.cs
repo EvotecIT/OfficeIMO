@@ -372,6 +372,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(endY, gradient.EndY, 3);
     }
 
+    [Theory]
+    [InlineData("linear-gradient(135deg,red,blue)")]
+    [InlineData("repeating-linear-gradient(135deg,red 0 10px,blue 10px 20px)")]
+    public void HtmlLinearGradient_ExplicitAnglesPreservePhysicalDirectionOnNonSquareBoxes(string background) {
+        string html = "<div style='width:200px;height:100px;background:" + background + "'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        double physicalX = (gradient.EndX - gradient.StartX) * 200D;
+        double physicalY = (gradient.EndY - gradient.StartY) * 100D;
+        Assert.Equal(physicalX, physicalY, 6);
+        Assert.True(physicalX > 0D);
+    }
+
+    [Fact]
+    public void HtmlLinearGradient_DirectionalCornerKeywordsKeepMagicCornerGeometry() {
+        const string html = "<div style='width:200px;height:100px;background:linear-gradient(to bottom right,red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        Assert.Equal(0D, gradient.StartX, 3);
+        Assert.Equal(0D, gradient.StartY, 3);
+        Assert.Equal(1D, gradient.EndX, 3);
+        Assert.Equal(1D, gradient.EndY, 3);
+    }
+
     [Fact]
     public void HtmlLinearGradient_DistributesImplicitStopsAndExtendsEndpointColors() {
         const string html = "<div style='width:40px;height:20px;background:linear-gradient(red 20%,lime,blue 80%)'></div>";

@@ -6,6 +6,16 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlComputedStyles_RejectInvalidHyphensValuesWithoutOverwritingInheritanceOrSupports() {
+        var document = HtmlConversionDocument.Parse("<div style='hyphens:auto'><span style='hyphens:banana'>Typography</span></div>").CreateDocumentForRendering();
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("span")!];
+
+        Assert.Equal("auto", style.GetValue("hyphens"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphens:auto)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphens:banana)"));
+    }
+
+    [Fact]
     public void HtmlRendering_DefaultWordBreaking_DoesNotSplitAnUnbreakableWord() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<div style='width:60px'>Availability</div>",

@@ -255,6 +255,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_AppliesNamedAndPseudoPageRulesInsideNestedActiveGroups() {
+        const string html = "<style>@media print{@supports (display:block){@page report:first{margin:0}}}p{page:report}</style><p>SupportedPageMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("SupportedPageMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, -0.1D, 0.1D);
+    }
+
+    [Fact]
     public void HtmlRender_DisplayContentsSuppressesTheElementBox() {
         const string html = "<div id='contents' style='display:contents;background:#ff0000;padding:20px'><div id='child' style='background:#0000ff'>ContentsMarker</div></div>";
 

@@ -32,19 +32,21 @@ internal static class HtmlCssLinearGradientParser {
         if (arguments.Count < 2) return false;
 
         double officeAngle = 90D;
+        bool explicitAngle = false;
         int stopStart = 0;
-        if (TryParseDirection(arguments[0], out double parsedAngle)) {
+        if (TryParseDirection(arguments[0], out double parsedAngle, out explicitAngle)) {
             officeAngle = parsedAngle;
             stopStart = 1;
         }
 
         if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded) || stops == null) return false;
-        definition = new HtmlCssLinearGradientDefinition(officeAngle, stops, repeating);
+        definition = new HtmlCssLinearGradientDefinition(officeAngle, stops, repeating, explicitAngle);
         return true;
     }
 
-    private static bool TryParseDirection(string value, out double officeAngle) {
+    private static bool TryParseDirection(string value, out double officeAngle, out bool explicitAngle) {
         officeAngle = 0D;
+        explicitAngle = false;
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.StartsWith("to ", StringComparison.Ordinal)) {
             bool top = false;
@@ -113,6 +115,7 @@ internal static class HtmlCssLinearGradientParser {
         }
 
         officeAngle = NormalizeDegrees((cssAngle * multiplier) - 90D);
+        explicitAngle = true;
         return true;
     }
 

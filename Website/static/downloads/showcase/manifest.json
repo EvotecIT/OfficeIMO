@@ -69,24 +69,24 @@
     {
       "id": "html-renderer-gallery-pdf",
       "path": "/downloads/showcase/html/managed-renderer-gallery.pdf",
-      "bytes": 498826,
-      "sha256": "7906568006e3f6ef6e4af9919bbe3474f71f222370081c694865d553c58077ec",
+      "bytes": 498833,
+      "sha256": "175b4ef2d31f3d7750e872cd8b533912f5775deb9c6fd09dcf51ffc7e76d2779",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Searchable managed PDF with native AcroForm controls and page-margin content."
     },
     {
       "id": "html-renderer-gallery-png",
       "path": "/downloads/showcase/html/managed-renderer-gallery.png",
-      "bytes": 106194,
-      "sha256": "82b37fc78cae1ac44dee5f088a6464edfc656c2c57b354abee3c87311718a9b4",
+      "bytes": 90855,
+      "sha256": "21979561a6d0d91d7bac9c750c7e1745571cc630db3e6a2c63937d51763585de",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Deterministic first-page PNG generated from the same managed scene as the PDF."
     },
     {
       "id": "html-renderer-gallery-svg",
       "path": "/downloads/showcase/html/managed-renderer-gallery.svg",
-      "bytes": 51574,
-      "sha256": "9c7edc03f4136e4eaee9c7d073cfff58bd9b3b4537516f6f5d31db1db45c3cf7",
+      "bytes": 51584,
+      "sha256": "1b77443a1279eef621636833da522ae0ebe14d10ae8700141271e6184c0c1f01",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Vector SVG generated from the shared backend-neutral scene."
     },

@@ -214,6 +214,10 @@ internal static class HtmlCssPageSettingsResolver {
                 if (IsApplicablePrintMedia(prelude, options)) {
                     ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
                 }
+            } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {
+                if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) {
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
+                }
             } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
                 string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
                 ApplyRawPageRule(prelude, body, options, diagnostics, pageRules);

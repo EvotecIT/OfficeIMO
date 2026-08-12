@@ -306,6 +306,8 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "ltr", "rtl");
             case "white-space":
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
+            case "hyphens":
+                return IsKnownKeyword(normalized, "none", "manual", "auto");
             case "tab-size":
                 return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
