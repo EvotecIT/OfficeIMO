@@ -27,6 +27,10 @@ public sealed class OfficeIccColorProfile {
     private const int TagTableHeaderLength = 4;
     private const int TagEntryLength = 12;
     private const int MaximumCurveEntries = 65536;
+    private const double D50X = 0.9642D;
+    private const double D50Y = 1D;
+    private const double D50Z = 0.8249D;
+    private const double IlluminantTolerance = 0.001D;
 
     private readonly ToneCurve _redCurve;
     private readonly ToneCurve _greenCurve;
@@ -65,7 +69,7 @@ public sealed class OfficeIccColorProfile {
             !IsSupportedProfileClass(ReadUInt32(profileBytes, 12)) ||
             ReadUInt32(profileBytes, 20) != XyzSignature ||
             !TryReadXyz(profileBytes, 68, profileBytes.Length - 68, requireTypeHeader: false, out XyzValue whitePoint) ||
-            !whitePoint.IsPositive) {
+            !whitePoint.IsPositive || !IsD50Illuminant(whitePoint)) {
             return false;
         }
 
@@ -219,6 +223,7 @@ public sealed class OfficeIccColorProfile {
         var samples = new double[count];
         for (int index = 0; index < count; index++) {
             samples[index] = ReadUInt16(bytes, range.Offset + 12 + index * 2) / 65535D;
+            if (index > 0 && samples[index] < samples[index - 1]) return false;
         }
         curve = ToneCurve.FromSamples(samples);
         return true;
@@ -236,8 +241,9 @@ public sealed class OfficeIccColorProfile {
             if (!IsFinite(parameters[index])) return false;
         }
         if (parameters[0] <= 0D ||
-            (functionType > 0 && parameters[1] == 0D) ||
-            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters)) return false;
+            (functionType > 0 && parameters[1] <= 0D) ||
+            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters) ||
+            !IsParametricCurveMonotonic(functionType, parameters)) return false;
         curve = ToneCurve.FromParameters(functionType, parameters);
         return true;
     }
@@ -269,6 +275,26 @@ public sealed class OfficeIccColorProfile {
         double end = Math.Pow(endBase, gamma) + offset;
         return IsFinite(start) && IsFinite(end);
     }
+
+    private static bool IsParametricCurveMonotonic(int functionType, double[] parameters) {
+        if (functionType <= 2) return true;
+        double slope = parameters[3];
+        double boundary = parameters[4];
+        if (slope < 0D) return false;
+        if (boundary <= 0D || boundary >= 1D) return true;
+        double high = Math.Pow(parameters[1] * boundary + parameters[2], parameters[0]);
+        double low = slope * boundary;
+        if (functionType == 4) {
+            high += parameters[5];
+            low += parameters[6];
+        }
+        return IsFinite(high) && IsFinite(low) && high >= low;
+    }
+
+    private static bool IsD50Illuminant(XyzValue value) =>
+        Math.Abs(value.X - D50X) <= IlluminantTolerance &&
+        Math.Abs(value.Y - D50Y) <= IlluminantTolerance &&
+        Math.Abs(value.Z - D50Z) <= IlluminantTolerance;
 
     private static ushort ReadUInt16(byte[] bytes, int offset) =>
         unchecked((ushort)((bytes[offset] << 8) | bytes[offset + 1]));

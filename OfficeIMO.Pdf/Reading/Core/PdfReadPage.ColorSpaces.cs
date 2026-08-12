@@ -53,7 +53,7 @@ public sealed partial class PdfReadPage {
     private bool TryReadIccColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 2) return false;
-        PdfObject? resolvedProfile = ResolveObject(array.Items[1]);
+        PdfObject? resolvedProfile = ResolveIccDeclaration(array.Items[1]);
         PdfDictionary? profile = resolvedProfile switch {
             PdfStream stream => stream.Dictionary,
             PdfDictionary dictionary => dictionary,
