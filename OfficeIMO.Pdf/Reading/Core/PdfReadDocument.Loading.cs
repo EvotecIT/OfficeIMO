@@ -5,11 +5,12 @@ public sealed partial class PdfReadDocument {
     public static PdfReadDocument Open(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveOptions);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
+            pdf,
+            effectiveOptions,
+            includeParsedDetails: false);
         var (map, trailer) = PdfSyntax.ParseObjects(pdf, effectiveOptions, out PdfRepairReport repairReport);
-        if (effectiveOptions.Password is not null && security.HasEncryption) {
-            security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security);
-        }
+        security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, effectiveOptions);
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions);
     }

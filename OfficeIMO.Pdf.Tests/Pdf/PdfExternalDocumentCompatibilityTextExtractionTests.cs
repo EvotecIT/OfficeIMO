@@ -38,6 +38,24 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesCompactType0ToUnicodeBfRangeCMap() {
+        byte[] pdf = BuildExternalCompactType0ToUnicodePdf();
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Benchmark Report 001", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_PreservesNarrowGlyphsWhenTextMatrixCarriesFontScale() {
+        byte[] pdf = BuildExternalScaledSequentialToUnicodePdf();
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Table", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToUnicodeCMap_TryEncodeTextGreedilyMatchesMultiScalarEntries() {
         const string cmap = "beginbfchar\n<01> <0066>\n<02> <00660069>\n<03> <0069>\nendbfchar";
 

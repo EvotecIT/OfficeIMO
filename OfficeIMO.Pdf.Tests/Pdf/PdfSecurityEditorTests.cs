@@ -116,4 +116,47 @@ public class PdfSecurityEditorTests {
             Assert.False(output.Security.HasIncrementalUpdates);
         }
     }
+
+    [Fact]
+    public void EncryptAllowsValidatedOutputToGrowBeyondExactSourceInputLimit() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
+        var sourceOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+        };
+
+        PdfSecurityMutationResult result = PdfSecurityEditor.Encrypt(
+            source,
+            new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" },
+            sourceOptions);
+
+        Assert.True(result.Pdf.LongLength > source.LongLength);
+        Assert.True(PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "owner" }).Security.HasEncryption);
+    }
+
+    [Fact]
+    public void SecurityRewritesPreserveNonPasswordReadOptionsInReturnedDocuments() {
+        byte[] source = PdfReaderAndFooterRegressionTests.BuildSingleStreamPdf(
+            "/Artifact BMC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Visible artifact header) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+        var readOptions = new PdfReadOptions { IncludeArtifactText = true };
+        var firstEncryption = new PdfStandardEncryptionOptions("first-open") { OwnerPassword = "first-owner" };
+        var secondEncryption = new PdfStandardEncryptionOptions("second-open") { OwnerPassword = "second-owner" };
+
+        PdfDocument encrypted = PdfDocument.Open(source, readOptions)
+            .Encrypt(firstEncryption)
+            .ToDocument();
+        PdfDocument reencrypted = encrypted
+            .Reencrypt("first-owner", secondEncryption)
+            .ToDocument();
+        PdfDocument decrypted = reencrypted
+            .Decrypt("second-owner")
+            .ToDocument();
+
+        Assert.Contains("Visible artifact header", encrypted.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Visible artifact header", reencrypted.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Visible artifact header", decrypted.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Body text", decrypted.Read.Text(), StringComparison.Ordinal);
+    }
 }

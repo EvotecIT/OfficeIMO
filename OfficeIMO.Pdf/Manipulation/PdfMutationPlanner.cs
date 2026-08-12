@@ -25,6 +25,70 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
+    /// <summary>
+    /// Requires a full rewrite while sharing the canonical parse used by preflight with the mutation implementation.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) =>
+        RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory: null);
+
+    /// <summary>
+    /// Requires a full rewrite while reusing a canonical parse already owned by the caller.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadDocument document,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(document, nameof(document));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, () => document);
+    }
+
+    /// <summary>
+    /// Requires a full rewrite while lazily reusing a canonical parse owned by the caller.
+    /// The factory executes inside preflight so parser failures retain the standard mutation diagnostics.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        Func<PdfReadDocument> documentFactory,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(documentFactory, nameof(documentFactory));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory);
+    }
+
+    private static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocumentCore(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options,
+        IEnumerable<string>? fieldNames,
+        Func<PdfReadDocument>? documentFactory) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfReadDocument? document = null;
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(
+            pdf,
+            effectiveOptions,
+            () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+        PdfMutationPlan plan = Plan(
+            preflight,
+            pdf,
+            operation,
+            fieldNames,
+            PdfMutationExecutionPreference.RequireFullRewrite,
+            effectiveOptions);
+        if (!plan.CanExecute) {
+            throw new PdfMutationBlockedException(plan);
+        }
+
+        return (plan, document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+    }
+
     /// <summary>Requires the shared planner to prove an append-only path for an existing-document editor.</summary>
     public static PdfMutationPlan RequireAppendOnly(
         byte[] pdf,
