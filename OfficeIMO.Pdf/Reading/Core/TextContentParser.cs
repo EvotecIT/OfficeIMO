@@ -626,7 +626,6 @@ internal static class TextContentParser {
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             var decodedAdvances = new List<double>();
             double advTotal = 0;
-            char prevChar = '\0';
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
             for (int idx = 0; idx < bytes.Length;) {
@@ -644,23 +643,10 @@ internal static class TextContentParser {
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
-                // Drop thin spaces between letters/digits (visual join) but still advance
-                double thinSpacePt = Math.Max(1.0, size * 0.12);
-                bool dropSpace = false;
-                if (ch == ' ') {
-                    // Keep explicit space glyphs; rely on higher-level normalization to fix accidental splits
-                } else if (advGlyph <= thinSpacePt && prevChar != '\0') {
-                    // Drop non-space thin separators
-                    dropSpace = true;
-                }
-                if (dropSpace) {
-                    // Preserve the omitted glyph's geometry on the preceding decoded character.
-                    if (decodedAdvances.Count > 0) decodedAdvances[decodedAdvances.Count - 1] += advGlyph;
-                } else if (ch != '\0') {
+                if (ch != '\0') {
                     sbOut.Append(t);
                     double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
                     for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
-                    prevChar = t[t.Length - 1];
                 }
                 advTotal += advGlyph;
                 idx += step;
