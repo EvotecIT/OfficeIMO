@@ -567,6 +567,38 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void IccProfile_RejectsParametricCurveThatDropsAtUnitBoundary() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, int length) = FindTag(profile, "rTRC");
+        Assert.True(length >= 32);
+        WriteUInt32(profile, offset, 0x70617261U);
+        profile[offset + 8] = 0;
+        profile[offset + 9] = 3;
+        profile[offset + 10] = 0;
+        profile[offset + 11] = 0;
+        WriteS15Fixed16(profile, offset + 12, 1D);
+        WriteS15Fixed16(profile, offset + 16, 0.1D);
+        WriteS15Fixed16(profile, offset + 20, 0D);
+        WriteS15Fixed16(profile, offset + 24, 0.8D);
+        WriteS15Fixed16(profile, offset + 28, 1D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void IccProfile_RejectsSingularRgbColorantMatrix() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        foreach (string tag in new[] { "rXYZ", "gXYZ", "bXYZ" }) {
+            (int offset, _) = FindTag(profile, tag);
+            WriteS15Fixed16(profile, offset + 8, 0D);
+            WriteS15Fixed16(profile, offset + 12, 0D);
+            WriteS15Fixed16(profile, offset + 16, 0D);
+        }
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
     public void ExtractImages_ClipsImplicitCmykFallbackToIccRangeAfterExplicitDecode() {
         byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
         unsupportedProfile[16] = (byte)'C';
@@ -854,6 +886,41 @@ public class PdfIccColorRenderingTests {
         Assert.True(pixel.B > 240);
         Assert.True(pixel.R < 40);
         Assert.Equal(128, pixel.A);
+    }
+
+    [Fact]
+    public void ExtractImages_ResolvesMultiHopSoftMaskStream() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 255, 0, 0 },
+            "/N 3",
+            imageEntries: "/SMask 8 0 R",
+            softMaskSample: 128,
+            extraObjects: "8 0 obj\n7 0 R\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(128, raster!.GetPixel(0, 0).A);
+        Assert.Equal("soft-mask", image.TransparencyMaskKind);
+        Assert.True(image.TransparencyMaskResolved);
+    }
+
+    [Fact]
+    public void ExtractImages_TreatsMultiHopNullSoftMaskAsNoMask() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 0 },
+            "/N 3",
+            imageEntries: "/SMask 8 0 R",
+            imageColorSpace: "[/Indexed /DeviceRGB 0 <FF0000>]",
+            extraObjects: "8 0 obj\n9 0 R\nendobj\n9 0 obj\nnull\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(OfficeColor.Red, raster!.GetPixel(0, 0));
+        Assert.Null(image.TransparencyMaskKind);
     }
 
     [Fact]
@@ -1664,6 +1731,38 @@ public class PdfIccColorRenderingTests {
             "/N 3",
             operation,
             colorSpaceResources: "/CsIcc " + colorSpace);
+
+        Assert.Contains(
+            PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Theory]
+    [InlineData("[/CalGray << /WhitePoint [0.9505 2 1.089] >>]", "0.5 scn")]
+    [InlineData("[/CalRGB << /WhitePoint [0.9505 2 1.089] >>]", "0.5 0.5 0.5 scn")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 2 1.089] >>]", "50 0 0 scn")]
+    public void RenderPage_RejectsNonUnitCalibratedWhitePointForContent(string colorSpace, string operation) {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            operation,
+            colorSpaceResources: "/CsIcc " + colorSpace);
+
+        Assert.Contains(
+            PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Theory]
+    [InlineData("[/CalGray << /WhitePoint [0.9505 2 1.089] >>]")]
+    [InlineData("[/CalRGB << /WhitePoint [0.9505 2 1.089] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 2 1.089] >>]")]
+    public void RenderPage_RejectsNonUnitCalibratedWhitePointForImages(string colorSpace) {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 128, 128, 128 },
+            "/N 3",
+            imageColorSpace: colorSpace);
 
         Assert.Contains(
             PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),

@@ -323,7 +323,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
             !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
-            whitePoint.Any(value => value <= 0D)) return false;
+            !PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
 
         if (!TryResolveOptionalEntry(calibration, "Gamma", objects, out PdfObject? gammaObject, out bool hasGamma)) return false;
         double[]? gamma = null;
@@ -423,7 +423,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
             !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
-            whitePoint.Any(value => value <= 0D)) return false;
+            !PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
         if (!TryResolveOptionalEntry(calibration, "Gamma", objects, out PdfObject? gammaObject, out bool hasGamma)) return false;
         double gamma = 1D;
         if (hasGamma) {
@@ -446,7 +446,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
             !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
-            whitePoint.Any(value => value <= 0D)) return false;
+            !PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
         if (!TryResolveOptionalEntry(calibration, "Range", objects, out PdfObject? rangeObject, out bool hasRange)) return false;
         double[] abRange = { -100D, 100D, -100D, 100D };
         if (hasRange &&

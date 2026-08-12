@@ -479,8 +479,9 @@ internal static class PdfIndexedImageNormalizer {
     }
 
     private static PdfStream? ResolveStream(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        var resolved = ResolveObject(obj, objects);
-        return resolved as PdfStream;
+        return PdfObjectLookup.TryResolveReferenceChain(objects, obj, out PdfObject? resolved)
+            ? resolved as PdfStream
+            : null;
     }
 
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
