@@ -137,8 +137,12 @@ public static class PdfProvenance {
         if (catalog == null) return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
         AddReferencesFromArray(document.Objects, catalog.Items.TryGetValue("AF", out PdfObject? catalogAf) ? catalogAf : null, documentLevel);
         CollectEmbeddedFilesNameTreeReferences(document.Objects, catalog, secondaryDocumentReferences);
+        PdfIndirectObject catalogObject = document.Objects.Values.First(item => ReferenceEquals(item.Value, catalog));
+        var collector = new PdfPageExtractor.ObjectCollector(document.Objects);
+        collector.CollectObjectGraph(new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
+        HashSet<int> reachableObjectNumbers = collector.ObjectIds.ToHashSet();
         var visited = new HashSet<PdfObject>();
-        foreach (PdfIndirectObject item in document.Objects.Values) {
+        foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, secondaryDocumentReferences, visited);
         }
         return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);

@@ -168,6 +168,29 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void OrphanFileAttachmentAnnotationDoesNotSatisfyTheDocumentProfile() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] orphanReferenced = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            names.Items.Remove("EmbeddedFiles");
+            var orphanAnnotation = new PdfDictionary();
+            orphanAnnotation.Items["Type"] = new PdfName("Annot");
+            orphanAnnotation.Items["Subtype"] = new PdfName("FileAttachment");
+            orphanAnnotation.Items["FS"] = candidate;
+            int orphanNumber = objects.Keys.Max() + 1;
+            objects[orphanNumber] = new PdfIndirectObject(orphanNumber, 0, orphanAnnotation);
+            return orphanNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(orphanReferenced);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
     public void RemovalPreservesUnrelatedObjectLevelAssociationSites() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] objectAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -192,6 +215,52 @@ public sealed class PdfProvenanceTests {
         PdfArray retainedAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rewrittenContent.Dictionary.Items["AF"]));
         Assert.Single(retainedAssociations.Items);
         Assert.Equal("keep.txt", GetFileSpecName(parsed.Map, Assert.IsType<PdfReference>(retainedAssociations.Items[0])));
+    }
+
+    [Fact]
+    public void RemovalFlattensHierarchicalEmbeddedFilesNameTreeWithoutStaleLimits() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] hierarchical = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary rootTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray flatNames = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, rootTree.Items["Names"]));
+            PdfObject[] pairs = flatNames.Items.ToArray();
+            rootTree.Items.Remove("Names");
+            var kids = new PdfArray();
+            int nextNumber = objects.Keys.Max() + 1;
+            for (int index = 0; index + 1 < pairs.Length; index += 2) {
+                var childNames = new PdfArray();
+                childNames.Items.Add(pairs[index]);
+                childNames.Items.Add(pairs[index + 1]);
+                var limits = new PdfArray();
+                limits.Items.Add(pairs[index]);
+                limits.Items.Add(pairs[index]);
+                var child = new PdfDictionary();
+                child.Items["Names"] = childNames;
+                child.Items["Limits"] = limits;
+                objects[nextNumber] = new PdfIndirectObject(nextNumber, 0, child);
+                kids.Items.Add(new PdfReference(nextNumber++, 0));
+            }
+            rootTree.Items["Kids"] = kids;
+            var rootLimits = new PdfArray();
+            rootLimits.Items.Add(pairs[0]);
+            rootLimits.Items.Add(pairs[pairs.Length - 2]);
+            rootTree.Items["Limits"] = rootLimits;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(hierarchical);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(PdfSyntax.FindCatalog(parsed.Map, parsed.TrailerRaw));
+        PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, catalog.Items["Names"]));
+        PdfDictionary rootTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, names.Items["EmbeddedFiles"]));
+
+        Assert.False(rootTree.Items.ContainsKey("Kids"));
+        Assert.False(rootTree.Items.ContainsKey("Limits"));
+        PdfArray retainedNames = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rootTree.Items["Names"]));
+        Assert.Equal(2, retainedNames.Items.Count);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(retainedNames.Items[0]).Value);
     }
 
     [Fact]
