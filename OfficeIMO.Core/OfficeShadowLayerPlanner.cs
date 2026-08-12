@@ -39,6 +39,9 @@ internal static class OfficeShadowLayerPlanner {
 
         int layerCount = Math.Max(MinimumBlurLayers, Math.Min(MaximumBlurLayers, (int)Math.Ceiling(blurRadius / 2D)));
         if (canExpand && paintsFill) {
+            // Expanded fill geometry represents the complete painted silhouette. A source
+            // stroke extends half its width beyond the fill edge, including at the core.
+            double silhouetteExpansion = hasStroke ? strokeWidth * 0.5D : 0D;
             // Reserve part of the opacity for the unexpanded core. This keeps a fully opaque
             // source opaque at its center without turning every expanded blur layer opaque.
             double blurCompositeOpacity = clampedOpacity * 0.5D;
@@ -51,7 +54,7 @@ internal static class OfficeShadowLayerPlanner {
                     : 1D - Math.Pow(1D - blurCompositeOpacity, weight / totalWeight);
                 expandedLayers.Add(new OfficeShadowLayer(
                     0D,
-                    blurRadius * index / layerCount,
+                    silhouetteExpansion + blurRadius * index / layerCount,
                     expandedLayerOpacity,
                     hasFill: true,
                     hasStroke: false));
@@ -59,7 +62,7 @@ internal static class OfficeShadowLayerPlanner {
             double coreOpacity = clampedOpacity >= 1D
                 ? 1D
                 : 1D - (1D - clampedOpacity) / Math.Max(0.000001D, 1D - blurCompositeOpacity);
-            expandedLayers.Add(new OfficeShadowLayer(0D, 0D, Math.Max(0D, Math.Min(1D, coreOpacity)), hasFill: true, hasStroke: false));
+            expandedLayers.Add(new OfficeShadowLayer(0D, silhouetteExpansion, Math.Max(0D, Math.Min(1D, coreOpacity)), hasFill: true, hasStroke: false));
             return expandedLayers;
         }
 

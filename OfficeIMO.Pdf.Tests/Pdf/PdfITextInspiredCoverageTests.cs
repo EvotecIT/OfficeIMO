@@ -431,6 +431,7 @@ public class PdfITextInspiredCoverageTests {
         PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
 
         Assert.Equal(new[] { "Germany", "United States" }, field.Values);
+        Assert.Equal(new[] { 1, 2 }, field.SelectedIndices);
         Assert.Equal(new[] { "Germany", "United States" }, field.SelectedOptions.Select(option => option.DisplayText).ToArray());
         Assert.Contains("/V [", appended, StringComparison.Ordinal);
         Assert.Contains("<4765726D616E79> Tj", appended, StringComparison.Ordinal);

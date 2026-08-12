@@ -556,6 +556,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> values = Array.Empty<string>();
         IReadOnlyList<string> options = Array.Empty<string>();
         IReadOnlyList<string> optionValues = Array.Empty<string>();
+        IReadOnlyList<int> selectedOptionIndices = Array.Empty<int>();
         string? radioOption = null;
         bool selected = fieldKind == HtmlRenderFormFieldKind.CheckBox || fieldKind == HtmlRenderFormFieldKind.RadioButton
             ? HtmlFormControlSemantics.IsEffectivelyChecked(element)
@@ -567,12 +568,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ReportDisabledChoiceOptionFallback(source);
                 return false;
             }
-            ResolveChoiceFieldValues(element, out options, out optionValues, out values, out bool hasDuplicateSelectedValues);
+            ResolveChoiceFieldValues(element, out options, out optionValues, out values, out selectedOptionIndices, out bool hasDuplicateSelectedValues, out bool hasAmbiguousSelectedValue);
             if (options.Any(label => label.Length == 0)) {
                 ReportBlankChoiceLabelFallback(source);
                 return false;
             }
             if (multiple && hasDuplicateSelectedValues) {
+                ReportDuplicateSelectedChoiceValueFallback(source);
+                return false;
+            }
+            if (!multiple && HtmlFormControlSemantics.GetSelectDisplaySize(element) == 1 && hasAmbiguousSelectedValue) {
                 ReportDuplicateSelectedChoiceValueFallback(source);
                 return false;
             }
@@ -609,6 +614,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && !readOnly;
         string alternateName = ResolveFormFieldAccessibleName(element, name);
         OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
+        HtmlResolvedBorderRadii resolvedRadii = ResolveBoxRadii(style, width, height, element, source);
+        if (!resolvedRadii.IsZero && !resolvedRadii.IsUniformCircular) {
+            ReportNonUniformFormFieldRadiusFallback(source);
+            return false;
+        }
         formField = new HtmlRenderFormField(
             fieldKind,
             name,
@@ -618,6 +628,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             values,
             options,
             optionValues,
+            selectedOptionIndices,
             radioOption,
             selected,
             disabled,
@@ -637,6 +648,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.BackgroundColor,
             borderColor,
             style.BorderWidth,
+            resolvedRadii.UniformRadius,
             x,
             y,
             width,
@@ -781,34 +793,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             default:
                 return false;
         }
-    }
-
-    private static void ResolveChoiceFieldValues(
-        IElement select,
-        out IReadOnlyList<string> options,
-        out IReadOnlyList<string> optionValues,
-        out IReadOnlyList<string> values,
-        out bool hasDuplicateSelectedValues) {
-        IElement[] optionElements = select.QuerySelectorAll("option").ToArray();
-        var labels = new List<string>(optionElements.Length);
-        var exports = new List<string>(optionElements.Length);
-        var selectedExports = new List<string>();
-        hasDuplicateSelectedValues = false;
-        IReadOnlyList<IElement> selectedOptions = HtmlFormControlSemantics.GetEffectiveSelectedOptions(select);
-        for (int index = 0; index < optionElements.Length; index++) {
-            IElement option = optionElements[index];
-            string label = NormalizeControlText(HtmlFormControlSemantics.GetOptionLabel(option));
-            string export = HtmlFormControlSemantics.GetOptionValue(option);
-            labels.Add(label);
-            exports.Add(export);
-            if (selectedOptions.Contains(option)) {
-                if (selectedExports.Contains(export, StringComparer.Ordinal)) hasDuplicateSelectedValues = true;
-                selectedExports.Add(export);
-            }
-        }
-        options = labels;
-        optionValues = exports;
-        values = selectedExports;
     }
 
     private static string ResolveRadioOptionToken(string value, int nodeId) {

@@ -154,6 +154,71 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_ListBoxAppearanceShowsAuthoredRowsAndSelection() {
+        const string html = "<select name='letters' multiple size='3'><option value='a'>Alpha</option><option value='b' selected>Beta</option><option value='g'>Gamma</option></select>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string appearance = GetFieldAppearanceContent(pdf, "letters");
+
+        Assert.Contains("<416C706861> Tj", appearance, StringComparison.Ordinal);
+        Assert.Contains("<42657461> Tj", appearance, StringComparison.Ordinal);
+        Assert.Contains("<47616D6D61> Tj", appearance, StringComparison.Ordinal);
+        Assert.Contains("0.153 0.392 0.8 rg", appearance, StringComparison.Ordinal);
+        Assert.Contains("1 1 1 rg", appearance, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ListBoxSelectedIndexDisambiguatesDuplicateExportValues() {
+        const string html = "<select name='choice' size='2'><option value='x'>First</option><option value='x' selected>Second</option></select>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string syntax = Encoding.ASCII.GetString(pdf);
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.Contains("/I [1]", syntax, StringComparison.Ordinal);
+        Assert.Equal(new[] { 1 }, field.SelectedIndices);
+        Assert.Equal("Second", Assert.Single(field.SelectedOptions).DisplayText);
+        Assert.Contains("<4669727374> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
+        Assert.Contains("<5365636F6E64> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_ComboWithAmbiguousDuplicateExportUsesTruthfulStaticFallback() {
+        const string html = "<select name='choice'><option value='x'>First</option><option value='x' selected>Second</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDuplicateSelectedValueStaticFallback);
+        Assert.Contains("Second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_UniformRoundedControlUsesRoundedWidgetAppearance() {
+        const string html = "<input name='rounded' value='Rounded' style='width:120px;height:28px;border:2px solid #123456;border-radius:10px;background:#ffffff'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string appearance = GetFieldAppearanceContent(pdf, "rounded");
+
+        Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains(" c h f", appearance, StringComparison.Ordinal);
+        Assert.Contains(" c h S", appearance, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_NonUniformRoundedControlUsesTruthfulStaticFallback() {
+        const string html = "<input name='rounded' value='Static rounded' style='width:120px;height:28px;border-radius:10px 2px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldNonUniformRadiusStaticFallback);
+        Assert.Contains("Static rounded", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_BlankChoiceLabelsUseTruthfulStaticFallback() {
         const string html = "<select name='choice'><option value='' selected></option><option value='one'>One</option></select>";
 
@@ -1344,6 +1409,17 @@ public sealed class HtmlPdfTests {
         }
 
         return count;
+    }
+
+    private static string GetFieldAppearanceContent(byte[] pdf, string fieldName) {
+        var (objects, _) = PdfCore.PdfSyntax.ParseObjects(pdf);
+        PdfCore.PdfDictionary fieldObject = Assert.IsType<PdfCore.PdfDictionary>(objects.Values
+            .Select(item => item.Value)
+            .Single(item => item is PdfCore.PdfDictionary dictionary && dictionary.Get<PdfCore.PdfStringObj>("T")?.Value == fieldName));
+        PdfCore.PdfDictionary appearance = Assert.IsType<PdfCore.PdfDictionary>(fieldObject.Items["AP"]);
+        PdfCore.PdfReference normalAppearance = Assert.IsType<PdfCore.PdfReference>(appearance.Items["N"]);
+        PdfCore.PdfStream stream = Assert.IsType<PdfCore.PdfStream>(objects[normalAppearance.ObjectNumber].Value);
+        return Encoding.ASCII.GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
     }
 
     private static IEnumerable<HtmlRenderVisual> EnumeratePdfSceneVisuals(IEnumerable<HtmlRenderVisual> visuals) {

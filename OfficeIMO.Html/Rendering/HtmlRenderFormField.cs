@@ -23,6 +23,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     private readonly ReadOnlyCollection<HtmlRenderVisual> _visuals;
     private readonly ReadOnlyCollection<string> _options;
     private readonly ReadOnlyCollection<string> _optionValues;
+    private readonly ReadOnlyCollection<int> _selectedOptionIndices;
     private readonly ReadOnlyCollection<string> _values;
 
     internal HtmlRenderFormField(
@@ -34,6 +35,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         IEnumerable<string>? values,
         IEnumerable<string>? options,
         IEnumerable<string>? optionValues,
+        IEnumerable<int>? selectedOptionIndices,
         string? radioOption,
         bool isSelected,
         bool isDisabled,
@@ -53,6 +55,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         OfficeColor? backgroundColor,
         OfficeColor? borderColor,
         double borderWidth,
+        double cornerRadius,
         double x,
         double y,
         double width,
@@ -86,9 +89,11 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         BackgroundColor = backgroundColor;
         BorderColor = borderColor;
         BorderWidth = Math.Max(0D, borderWidth);
+        CornerRadius = Math.Max(0D, cornerRadius);
         _values = new List<string>(values ?? Array.Empty<string>()).AsReadOnly();
         _options = new List<string>(options ?? Array.Empty<string>()).AsReadOnly();
         _optionValues = new List<string>(optionValues ?? Array.Empty<string>()).AsReadOnly();
+        _selectedOptionIndices = new List<int>(selectedOptionIndices ?? Array.Empty<int>()).AsReadOnly();
         _visuals = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
             .ToList()
@@ -111,6 +116,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public IReadOnlyList<string> Options => _options;
     /// <summary>Export values corresponding by index to <see cref="Options"/>.</summary>
     public IReadOnlyList<string> OptionValues => _optionValues;
+    /// <summary>Zero-based option identities selected by the HTML control.</summary>
+    public IReadOnlyList<int> SelectedOptionIndices => _selectedOptionIndices;
     /// <summary>PDF-safe appearance-state token for a check box or radio widget.</summary>
     public string? RadioOption { get; }
     /// <summary>Whether a check box or radio widget is selected.</summary>
@@ -149,6 +156,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public OfficeColor? BorderColor { get; }
     /// <summary>Resolved border width in CSS pixels.</summary>
     public double BorderWidth { get; }
+    /// <summary>Resolved uniform circular corner radius in CSS pixels.</summary>
+    public double CornerRadius { get; }
     /// <summary>Ordered static fallback paint used by non-interactive backends.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
@@ -159,5 +168,5 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
-        new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
+        new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, _selectedOptionIndices, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, CornerRadius, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
 }

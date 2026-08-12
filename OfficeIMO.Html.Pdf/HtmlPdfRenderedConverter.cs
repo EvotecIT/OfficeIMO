@@ -234,6 +234,7 @@ internal static partial class HtmlPdfRenderedConverter {
             BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
             BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
             BorderWidth = field.BorderWidth * PointsPerCssPixel,
+            CornerRadius = field.CornerRadius * PointsPerCssPixel,
             TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             IsReadOnly = field.IsReadOnly,
@@ -272,7 +273,8 @@ internal static partial class HtmlPdfRenderedConverter {
                     label))
                 .ToList();
             IReadOnlyList<string>? selectedValues = !field.AllowsMultipleSelection && field.Values.Count == 0 ? null : field.Values;
-            canvas.ChoiceField(field.Name, choiceOptions, selectedValues, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
+            IReadOnlyList<int> selectedIndices = field.IsComboBox ? Array.Empty<int>() : field.SelectedOptionIndices;
+            canvas.ChoiceFieldWithSelectedIndices(field.Name, choiceOptions, selectedValues, selectedIndices, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
             string searchableValue = string.Join(" ", field.Values
                 .Select(value => choiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value)
                 .Where(value => !string.IsNullOrWhiteSpace(value)));

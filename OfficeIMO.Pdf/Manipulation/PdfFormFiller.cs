@@ -9,6 +9,7 @@ internal static partial class PdfFormFiller {
     private const int MultilineFlag = 4096;
     private const int PasswordFlag = 8192;
     private const int RadioButtonFlag = 32768;
+    private const int ComboChoiceFlag = 131072;
     private const int EditableChoiceFlag = 262144;
     private const int MultiSelectChoiceFlag = 2097152;
     private const int CombFlag = 16777216;

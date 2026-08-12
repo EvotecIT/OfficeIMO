@@ -332,6 +332,7 @@ public class PdfFormCreationTests {
             BackgroundColor = PdfColor.FromRgb(238, 242, 255),
             BorderColor = PdfColor.FromRgb(30, 64, 175),
             BorderWidth = 2,
+            CornerRadius = 5,
             BorderDashPattern = new[] { 6D, 2D },
             TextColor = PdfColor.FromRgb(127, 29, 29),
             MarkColor = PdfColor.FromRgb(22, 101, 52),
@@ -369,6 +370,10 @@ public class PdfFormCreationTests {
         Assert.Contains("<46696C6C6564> Tj", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.118 0.251 0.686 RG 2 w [6 2] 0 d", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.498 0.114 0.114 rg", filledRaw, StringComparison.Ordinal);
+
+        PdfFormFieldStyle clone = style.Clone();
+        style.CornerRadius = 0;
+        Assert.Equal(5, clone.CornerRadius);
     }
 
     [Fact]
@@ -821,6 +826,7 @@ public class PdfFormCreationTests {
         Assert.False(field.IsCombo);
         Assert.True(field.AllowsMultipleSelection);
         Assert.Equal(new[] { "Poland", "United States" }, field.Values);
+        Assert.Equal(new[] { 0, 2 }, field.SelectedIndices);
         Assert.Equal(new[] { "Poland", "United States" }, field.SelectedOptions.Select(option => option.DisplayText).ToArray());
         PdfFormWidget widget = Assert.Single(field.Widgets);
         Assert.True(widget.Width > 180);
@@ -842,6 +848,7 @@ public class PdfFormCreationTests {
         PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
         Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
+        Assert.Equal(new[] { 1, 2 }, filledField.SelectedIndices);
         Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
         string filledRaw = Encoding.ASCII.GetString(filled);
         Assert.Contains("<4765726D616E79> Tj", filledRaw, StringComparison.Ordinal);
@@ -855,6 +862,7 @@ public class PdfFormCreationTests {
         PdfFormField scalarField = Assert.Single(PdfInspector.Inspect(scalarFilled).FormFields);
 
         Assert.Equal(new[] { "Germany" }, scalarField.Values);
+        Assert.Equal(new[] { 1 }, scalarField.SelectedIndices);
         Assert.Contains("/V [", scalarRaw, StringComparison.Ordinal);
         Assert.Contains("<4765726D616E79>", scalarRaw, StringComparison.Ordinal);
 
@@ -985,6 +993,8 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = double.NaN });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>() });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D } });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D } });

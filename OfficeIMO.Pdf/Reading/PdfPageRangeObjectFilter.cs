@@ -154,6 +154,7 @@ internal static class PdfPageRangeObjectFilter {
                 field.DefaultAppearance,
                 field.Quadding,
                 field.Options,
+                field.SelectedIndices,
                 selectedWidgets.AsReadOnly()));
         }
 

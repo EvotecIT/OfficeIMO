@@ -210,6 +210,7 @@ internal static partial class PdfWriter {
         public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
         public string[] ExportValues { get; set; } = Array.Empty<string>();
         public IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; set; } = Array.Empty<PdfFormFieldOption>();
+        public IReadOnlyList<int> SelectedIndices { get; set; } = Array.Empty<int>();
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
@@ -221,6 +222,10 @@ internal static partial class PdfWriter {
     private static string ResolveChoiceAppearanceValue(FormFieldAnnotation field) {
         IReadOnlyList<string> selectedValues = field.Values.Count > 0 ? field.Values : new[] { field.Value };
         if (field.ChoiceOptions.Count == 0) return string.Join(", ", selectedValues);
+        if (field.SelectedIndices.Count == selectedValues.Count && field.SelectedIndices.Count > 0) {
+            return string.Join(", ", field.SelectedIndices.Select(index =>
+                index >= 0 && index < field.ChoiceOptions.Count ? field.ChoiceOptions[index].DisplayText : selectedValues[0]));
+        }
         return string.Join(", ", selectedValues.Select(value =>
             field.ChoiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value));
     }

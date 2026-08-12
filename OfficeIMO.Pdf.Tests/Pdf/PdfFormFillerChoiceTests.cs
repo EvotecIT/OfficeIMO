@@ -80,7 +80,8 @@ public partial class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
         Assert.Equal("C", filledField.Value);
-        Assert.Equal(new[] { "First C", "Second C" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Equal(new[] { 2 }, filledField.SelectedIndices);
+        Assert.Equal("First C", Assert.Single(filledField.SelectedOptions).DisplayText);
         Assert.Contains("<46697273742043> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
     }
 

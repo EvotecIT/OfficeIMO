@@ -108,6 +108,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldRepeatedNameStaticFallback = "HtmlRenderFormFieldRepeatedNameStaticFallback";
     /// <summary>A select containing a blank option label used static rendering because PDF choice fields require non-empty display labels.</summary>
     public const string ChoiceBlankLabelStaticFallback = "HtmlRenderChoiceBlankLabelStaticFallback";
+    /// <summary>A form control with non-uniform or elliptical corner radii used truthful static rendering.</summary>
+    public const string FormFieldNonUniformRadiusStaticFallback = "HtmlRenderFormFieldNonUniformRadiusStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -226,6 +228,7 @@ public static class HtmlRenderDiagnosticCodes {
         ChoiceDisabledOptionStaticFallback,
         FormFieldRepeatedNameStaticFallback,
         ChoiceBlankLabelStaticFallback,
+        FormFieldNonUniformRadiusStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

@@ -26,6 +26,35 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
+    internal PdfPageCanvas ChoiceFieldWithSelectedIndices(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, IEnumerable<int>? selectedIndices, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) {
+        ValidateFormFieldBox(name, x, y, width, height);
+        Guard.NotNull(options, nameof(options));
+        Guard.Positive(fontSize, nameof(fontSize));
+        var optionSnapshot = options.ToList();
+        if (optionSnapshot.Count == 0 || optionSnapshot.Any(option => option == null || string.IsNullOrWhiteSpace(option.DisplayText))) {
+            throw new ArgumentException("Canvas choice fields require at least one option with non-empty display text.", nameof(options));
+        }
+        var valueSnapshot = values?.ToList() ?? new List<string>();
+        var indexSnapshot = selectedIndices?.ToList() ?? new List<int>();
+        if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
+            throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
+        }
+        if (!allowsMultipleSelection && indexSnapshot.Count > 1) {
+            throw new ArgumentException("A single-select canvas choice field accepts at most one selected index.", nameof(selectedIndices));
+        }
+        if (indexSnapshot.Any(index => index < 0 || index >= optionSnapshot.Count) || indexSnapshot.Distinct().Count() != indexSnapshot.Count) {
+            throw new ArgumentException("Canvas choice field selected indices must be unique and refer to provided options.", nameof(selectedIndices));
+        }
+        if (valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
+            throw new ArgumentException("Canvas choice field values must match provided export values.", nameof(values));
+        }
+        if (indexSnapshot.Count > 0 && (indexSnapshot.Count != valueSnapshot.Count || indexSnapshot.Where((index, valueIndex) => !string.Equals(optionSnapshot[index].ExportValue, valueSnapshot[valueIndex], StringComparison.Ordinal)).Any())) {
+            throw new ArgumentException("Canvas choice field selected indices must identify the selected export values in the same order.", nameof(selectedIndices));
+        }
+        _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, indexSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));
+        return this;
+    }
+
     /// <summary>Adds an interactive check box at fixed top-left page coordinates.</summary>
     public PdfPageCanvas CheckBox(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
@@ -155,6 +184,9 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { ChoiceOptions = options, Values = values, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
 
+    internal static PdfCanvasFormFieldItem Choice(string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, IReadOnlyList<int> selectedIndices, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) =>
+        new(PdfCanvasFormFieldKind.Choice, name, x, y, width, height, style) { ChoiceOptions = options, Values = values, SelectedIndices = selectedIndices, Value = values.Count == 0 ? string.Empty : values[0], FontSize = fontSize, IsComboBox = isComboBox, AllowsMultipleSelection = allowsMultipleSelection };
+
     internal static PdfCanvasFormFieldItem RadioButton(string name, string option, string exportValue, bool isSelected, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.RadioButton, name, x, y, width, height, style) { Option = option, ExportValue = exportValue, Value = option, IsSelected = isSelected };
 
@@ -166,6 +198,7 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal IReadOnlyList<string> Values { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<string> Options { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; private set; } = Array.Empty<PdfFormFieldOption>();
+    internal IReadOnlyList<int> SelectedIndices { get; private set; } = Array.Empty<int>();
     internal string Option { get; private set; } = string.Empty;
     internal string ExportValue { get; private set; } = string.Empty;
     internal bool IsSelected { get; private set; }

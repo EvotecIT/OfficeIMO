@@ -117,6 +117,7 @@ internal static partial class PdfWriter {
                 ExportValue = item.ExportValue,
                 Options = item.Options,
                 ChoiceOptions = item.ChoiceOptions,
+                SelectedIndices = item.SelectedIndices,
                 IsComboBox = item.IsComboBox,
                 AllowsMultipleSelection = item.AllowsMultipleSelection,
                 Style = item.Style

@@ -786,22 +786,28 @@ internal static partial class PdfWriter {
 
                         formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex, field.ExportValue);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
-                        string appearanceValue = ResolveChoiceAppearanceValue(field);
-                        string appearanceContent = BuildFormFieldTextAppearanceContent(
+                        string appearanceContent = BuildChoiceFieldAppearanceContent(
                             appearanceWidth,
                             appearanceHeight,
-                            appearanceValue,
-                            field.FontSize,
-                            field.Style,
+                            field,
                             pageOpts,
                             EnsureFont,
-                            out IReadOnlyList<(string Name, int Id)> appearanceFontResources);
+                            out IReadOnlyList<(string Name, int Id)> appearanceFontResources,
+                            out IReadOnlyList<PdfFormFieldOption> appearanceOptions,
+                            out IReadOnlyList<int> selectedIndices,
+                            out int? topIndex);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceFontResources, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = field.ChoiceOptions.Count > 0
-                            ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.ChoiceOptions, field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex)
-                            : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex);
+                            ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, field.Values, field.FontSize,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex)
+                            : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values, field.FontSize,
+                                appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
+                                formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex);
                     } else {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
                             appearanceWidth,

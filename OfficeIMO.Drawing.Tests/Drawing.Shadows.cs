@@ -66,4 +66,25 @@ public partial class DrawingTests {
         Assert.Equal(outerBlur.R, outerBlur.G);
         Assert.Equal(outerBlur.G, outerBlur.B);
     }
+
+    [Fact]
+    public void OfficeShadowLayerPlanner_ExpandedBlurIncludesPaintedStrokeSilhouette() {
+        OfficeShape rectangle = OfficeShape.Rectangle(80D, 30D);
+
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            opacity: 0.4D,
+            blurRadius: 12D,
+            baseStrokeWidth: 10D,
+            hasFill: true,
+            hasStroke: true,
+            canExpand: OfficeShadowLayerPlanner.CanExpand(rectangle));
+
+        Assert.True(layers.Count > 1);
+        Assert.Equal(17D, layers[0].Expansion, 6);
+        Assert.Equal(5D, layers[layers.Count - 1].Expansion, 6);
+        Assert.All(layers, layer => {
+            Assert.True(layer.HasFill);
+            Assert.False(layer.HasStroke);
+        });
+    }
 }

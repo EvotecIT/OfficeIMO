@@ -194,16 +194,16 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox, PdfFormFieldStyle? style = null) =>
         BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false, style);
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) {
         Guard.NotNull(options, nameof(options));
         var pairedOptions = options.Select(option => new PdfFormFieldOption(option, option)).ToList();
-        return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false);
+        return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false, selectedIndices, topIndex);
     }
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) =>
-        BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, options, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: false, emitPairedOptions: true);
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) =>
+        BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, options, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: false, emitPairedOptions: true, selectedIndices, topIndex);
 
-    private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions) {
+    private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
@@ -261,14 +261,38 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
         }
 
+        IReadOnlyList<int> effectiveSelectedIndices = selectedIndices ?? Array.Empty<int>();
+        if (effectiveSelectedIndices.Count > 0) {
+            if (isComboBox || effectiveSelectedIndices.Count != values.Count) {
+                throw new ArgumentException("PDF list-box selected indices must correspond one-to-one with selected values.", nameof(selectedIndices));
+            }
+            var seenIndices = new HashSet<int>();
+            for (int i = 0; i < effectiveSelectedIndices.Count; i++) {
+                int selectedIndex = effectiveSelectedIndices[i];
+                if (selectedIndex < 0 || selectedIndex >= options.Count || !seenIndices.Add(selectedIndex) ||
+                    !string.Equals(options[selectedIndex].ExportValue, values[i], StringComparison.Ordinal)) {
+                    throw new ArgumentException("PDF list-box selected indices must uniquely identify selected option values in order.", nameof(selectedIndices));
+                }
+            }
+        }
+        if (topIndex.HasValue && (isComboBox || topIndex.Value < 0 || topIndex.Value >= options.Count)) {
+            throw new ArgumentOutOfRangeException(nameof(topIndex), topIndex, "PDF list-box top index must refer to a provided option.");
+        }
+
         int flags = BuildChoiceFieldFlags(style, (isComboBox ? FieldFlagCombo : 0) | (allowsMultipleSelection ? 2097152 : 0), isComboBox);
         string valueEntries = !allowsMultipleSelection && values.Count == 0
             ? string.Empty
             : " /V " + BuildChoiceValue(values, allowsMultipleSelection) + " /DV " + BuildChoiceValue(values, allowsMultipleSelection);
+        string indexEntries = effectiveSelectedIndices.Count == 0
+            ? string.Empty
+            : " /I [" + string.Join(" ", effectiveSelectedIndices.Select(index => index.ToString(CultureInfo.InvariantCulture))) + "]";
+        string topIndexEntry = topIndex.HasValue ? " /TI " + topIndex.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
             valueEntries +
+            indexEntries +
+            topIndexEntry +
             " /Opt [" +
             optionBuilder +
             " ]" +
