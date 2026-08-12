@@ -46,6 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, string> _mixedDisabledRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _staticRepeatedControlGroupKeys = new Dictionary<IElement, string>();
     private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<IElement, string> _formFieldNamesByElement = new Dictionary<IElement, string>();
     private readonly Dictionary<string, string> _radioFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
@@ -210,6 +211,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
         _formFieldNames.Clear();
+        _formFieldNamesByElement.Clear();
         _radioFieldNames.Clear();
         _registeredFixedElements.Clear();
         _registeredAbsoluteElements.Clear();
@@ -482,7 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderFlowBlock RelayoutTopLevelBlockForPage(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
-        if (Math.Abs(block.Width - geometry.ContentWidth) <= 0.0001D) return block;
+        if (!RequiresPageRelayout(block, geometry)) return block;
         if (block.OwnerElement == null) {
             ReportPageContinuationReflowPending(block, geometry);
             return block;
@@ -497,8 +499,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return LayoutElement(block.OwnerElement, geometry.ContentWidth, style, rootStyle, 1);
     }
 
+    private static bool RequiresPageRelayout(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) =>
+        Math.Abs(block.Width - geometry.ContentWidth) > 0.0001D
+        || double.IsNaN(block.LayoutViewportWidth)
+        || double.IsNaN(block.LayoutViewportHeight)
+        || Math.Abs(block.LayoutViewportWidth - geometry.Width) > 0.0001D
+        || Math.Abs(block.LayoutViewportHeight - geometry.Height) > 0.0001D;
+
     private void ReportPageContinuationReflowPending(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
-        string key = block.Source + "|" + geometry.ContentWidth.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        string key = block.Source
+            + "|" + geometry.ContentWidth.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + geometry.Width.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + geometry.Height.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
         if (!_reportedPageContinuationReflow.Add(key)) return;
         _diagnostics.Add(
             ComponentName,

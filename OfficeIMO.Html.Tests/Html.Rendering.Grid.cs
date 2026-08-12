@@ -159,6 +159,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_IntrinsicTracksIgnoreHiddenAndOutOfFlowDescendantText() {
+        const string html = """
+            <div style="display:grid;width:240px;grid-template-columns:max-content 20px;justify-content:start">
+              <div id="wrapper" style="background:red">A<span style="display:none">hidden-unbreakable-intrinsic-content</span><span style="position:absolute">positioned-unbreakable-intrinsic-content</span></div>
+              <span id="after" style="background:blue">B</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 260D);
+        HtmlRenderShape wrapper = FindGridShape(rendered, "div#wrapper");
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+
+        Assert.InRange(wrapper.Width, 1D, 30D);
+        Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_DoesNotLeakSubgridTracksThroughANonGridWrapper() {
         const string html = """
             <div style="display:grid;width:200px;grid-template-columns:60px 140px">

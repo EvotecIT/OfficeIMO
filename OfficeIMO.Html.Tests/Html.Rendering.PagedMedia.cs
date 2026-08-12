@@ -136,6 +136,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_RelayoutsViewportUnitsWhenPageWidthsDifferButContentWidthsMatch() {
+        const string html = """
+            <style>
+              @page { size:300px 180px; margin:50px; }
+              @page report { size:400px 180px; margin-left:100px; margin-right:100px; margin-top:50px; margin-bottom:50px; }
+              section { height:20px; margin:0; background:#ff0000; }
+            </style>
+            <section id="opening" style="width:50vw">Opening</section>
+            <section id="report" style="page:report;break-before:page;width:50vw">Report</section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderPage reportPage = Assert.Single(rendered.Pages, page => page.PageName == "report");
+        HtmlRenderShape report = Assert.Single(
+            reportPage.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "section#report" && shape.Shape.FillColor.HasValue);
+
+        Assert.Equal(400D, reportPage.Width);
+        Assert.Equal(200D, report.Width, 3);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ResolvesRunningStringsFromPageLocalAssignments() {
         const string html = """
             <style>

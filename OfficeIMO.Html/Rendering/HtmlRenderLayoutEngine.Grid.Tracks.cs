@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using AngleSharp.Dom;
 
 namespace OfficeIMO.Html;
@@ -305,7 +306,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
 
-        string content = CollapseFlexText(item.TextContent);
+        string content = CollapseFlexText(ResolveGridInFlowText(item, availableSize));
         double measured;
         if (content.Length == 0) {
             measured = 1D;
@@ -328,7 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
 
-        string content = CollapseFlexText(item.TextContent);
+        string content = CollapseFlexText(ResolveGridInFlowText(item, availableSize));
         double measured = content.Length == 0
             ? 1D
             : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
@@ -342,6 +343,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (end <= start || end > token.Length) continue;
             yield return token.Substring(start, end - start);
             start = end;
+        }
+    }
+
+    private string ResolveGridInFlowText(FlexItem item, double availableSize) {
+        if (item.Element == null) return item.TextContent;
+        var result = new StringBuilder();
+        AppendGridInFlowText(item.Element, item.Style, availableSize, 1, result);
+        return result.ToString();
+    }
+
+    private void AppendGridInFlowText(
+        IElement parent,
+        HtmlRenderBoxStyle parentStyle,
+        double availableSize,
+        int depth,
+        StringBuilder result) {
+        foreach (INode node in parent.ChildNodes) {
+            if (node is IText text) {
+                result.Append(text.Data);
+                continue;
+            }
+            if (node is not IElement child || ShouldSkipElement(child)) continue;
+            EnsureDepth(depth, child);
+            HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            AppendGridInFlowText(child, childStyle, availableSize, depth + 1, result);
         }
     }
 

@@ -545,7 +545,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (mappingName.Length == 0) mappingName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
         string name = fieldKind == HtmlRenderFormFieldKind.RadioButton
             ? ResolveRadioFieldName(element, mappingName, nodeId)
-            : ResolveUniqueFormFieldName(mappingName, nodeId);
+            : ResolveUniqueFormFieldName(element, mappingName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
         IReadOnlyList<string> values = Array.Empty<string>();
@@ -865,7 +865,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string owner = ResolveFormOwnerKey(element);
         string key = owner + "\n" + mappingName;
         if (_radioFieldNames.TryGetValue(key, out string? name)) return name;
-        name = ResolveUniqueFormFieldName(mappingName, nodeId);
+        name = ResolveUniqueFormFieldName(element, mappingName, nodeId);
         _radioFieldNames[key] = name;
         return name;
     }
@@ -877,10 +877,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return id.Length > 0 ? "id:" + id : "node:" + GetSemanticNodeId(owner).ToString(CultureInfo.InvariantCulture);
     }
 
-    private string ResolveUniqueFormFieldName(string name, int nodeId) {
-        if (_formFieldNames.Add(name)) return name;
+    private string ResolveUniqueFormFieldName(IElement element, string name, int nodeId) {
+        if (_formFieldNamesByElement.TryGetValue(element, out string? existing)) return existing;
+        if (_formFieldNames.Add(name)) {
+            _formFieldNamesByElement[element] = name;
+            return name;
+        }
         string candidate = name + "-" + nodeId.ToString(CultureInfo.InvariantCulture);
         while (!_formFieldNames.Add(candidate)) candidate += "-field";
+        _formFieldNamesByElement[element] = candidate;
         return candidate;
     }
 

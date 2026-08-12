@@ -64,6 +64,25 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_PageRelayoutPreservesInteractiveFieldNameIdentity() {
+        const string html = """
+            <style>
+              @page { size:300px 180px; margin:50px; }
+              @page report { size:400px 180px; margin-left:100px; margin-right:100px; margin-top:50px; margin-bottom:50px; }
+            </style>
+            <p style="margin:0">Opening page</p>
+            <input name="contact" value="Ada" style="page:report;break-before:page;width:50vw">
+            """;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.Equal("contact", field.Name);
+        Assert.Equal("contact", field.MappingName);
+        Assert.Equal("Ada", field.Value);
+    }
+
+    [Fact]
     public void HtmlToPdf_ChoiceFieldsPreserveExportValuesAndDuplicateDisplayLabels() {
         const string html = """
             <select name="country">
