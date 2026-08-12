@@ -76,10 +76,10 @@ public sealed class ProvenanceReviewRegressionContracts {
         using (var stream = new MemoryStream()) {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
                 ZipArchiveEntry manifest = archive.CreateEntry("META-INF/content_credential.c2pa");
-                using (Stream target = manifest.Open()) target.Write(CreateManifestStore());
+                using (Stream target = manifest.Open()) WriteAll(target, CreateManifestStore());
                 ZipArchiveEntry script = archive.CreateEntry("bin/run.sh");
                 script.ExternalAttributes = unchecked((int)0x81ED0000);
-                using (Stream target = script.Open()) target.Write(Encoding.UTF8.GetBytes("#!/bin/sh\n"));
+                using (Stream target = script.Open()) WriteAll(target, Encoding.UTF8.GetBytes("#!/bin/sh\n"));
             }
             package = stream.ToArray();
         }
@@ -88,6 +88,36 @@ public sealed class ProvenanceReviewRegressionContracts {
         using var rewritten = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
 
         Assert.Equal(unchecked((int)0x81ED0000), rewritten.GetEntry("bin/run.sh")!.ExternalAttributes);
+    }
+
+    [Fact]
+    public void ZipEmbeddedAssetsShareTheTopLevelCarrierLimit() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream first = archive.CreateEntry("media/first.png").Open()) WriteAll(first, image);
+                using (Stream second = archive.CreateEntry("media/second.png").Open()) WriteAll(second, image);
+            }
+            package = stream.ToArray();
+        }
+        var inspectionOptions = new OfficeProvenanceOptions { MaxCarriers = 1 };
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxCarriers = 1;
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(package, "fixture.zip", inspectionOptions));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(package, "fixture.zip", removalOptions));
+    }
+
+    [Fact]
+    public void TiffIfdEntriesShareTheConfiguredContainerEntryLimit() {
+        byte[] tiff = CreateTiffWithTwoIfds(entriesPerIfd: 2);
+        var options = new OfficeProvenanceOptions { MaxContainerEntries = 3 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(tiff, "fixture.tiff", options));
+
+        Assert.Contains("container-entry limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -124,6 +154,8 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.True(result.WasChanged);
         Assert.Single(result.Changes);
     }
+
+    private static void WriteAll(Stream stream, byte[] data) => stream.Write(data, 0, data.Length);
 
     private static byte[] CreateManifestStore() {
         byte[] uuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
@@ -215,6 +247,19 @@ public sealed class ProvenanceReviewRegressionContracts {
         return package;
     }
 
+    private static byte[] CreateTiffWithTwoIfds(int entriesPerIfd) {
+        int ifdSize = 2 + entriesPerIfd * 12 + 4;
+        byte[] data = new byte[8 + ifdSize * 2];
+        data[0] = (byte)'I';
+        data[1] = (byte)'I';
+        data[2] = 42;
+        WriteLittleEndian(data, 4, 8U);
+        WriteLittleEndian16(data, 8, (ushort)entriesPerIfd);
+        WriteLittleEndian(data, 8 + 2 + entriesPerIfd * 12, (uint)(8 + ifdSize));
+        WriteLittleEndian16(data, 8 + ifdSize, (ushort)entriesPerIfd);
+        return data;
+    }
+
     private static byte[] BigEndian(int value) {
         byte[] bytes = new byte[4];
         WriteBigEndian(bytes, 0, value);
@@ -233,6 +278,11 @@ public sealed class ProvenanceReviewRegressionContracts {
         data[offset + 1] = (byte)(value >> 8);
         data[offset + 2] = (byte)(value >> 16);
         data[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static void WriteLittleEndian16(byte[] data, int offset, ushort value) {
+        data[offset] = (byte)value;
+        data[offset + 1] = (byte)(value >> 8);
     }
 
     private static void WriteLittleEndian64(byte[] data, int offset, ulong value) {

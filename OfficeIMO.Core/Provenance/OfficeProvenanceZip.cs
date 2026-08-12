@@ -43,13 +43,15 @@ internal static class OfficeProvenanceZip {
             }
             ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
+            OfficeProvenanceReport nested;
             try {
-                OfficeProvenanceReport nested = OfficeProvenanceInspector.InspectCore(asset, entry.FullName, CreateNestedOptions(options));
-                foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entry.FullName, evidence));
-                foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entry.FullName}: {diagnostic}");
+                nested = OfficeProvenanceInspector.InspectCore(asset, entry.FullName, CreateNestedOptions(options));
             } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
                 context.Diagnostics.Add($"ZIP/{entry.FullName}: embedded asset was preserved because inspection failed: {exception.Message}");
+                continue;
             }
+            foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entry.FullName, evidence));
+            foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entry.FullName}: {diagnostic}");
         }
         if (index > 1) context.Diagnostics.Add("The ZIP package contains multiple C2PA manifest entries.");
     }
@@ -88,17 +90,22 @@ internal static class OfficeProvenanceZip {
             if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
             ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
+            OfficeProvenanceRemovalResult nested;
             try {
-                OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(asset, entry.FullName, CreateNestedRemovalOptions(options));
-                if (!nested.WasChanged) continue;
-                embeddedRewrites.Add(entry, nested.ToArray());
-                foreach (OfficeProvenanceChange change in nested.Changes) {
-                    changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", change.RemovedBytes));
-                }
-                if (nested.WasReserialized) reserialized = true;
+                nested = OfficeProvenanceRemover.Remove(asset, entry.FullName, CreateNestedRemovalOptions(options));
             } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
+                continue;
             }
+            if (!nested.WasChanged) continue;
+            if (nested.Changes.Count > options.Limits.MaxCarriers - changes.Count) {
+                throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.Limits.MaxCarriers}.");
+            }
+            embeddedRewrites.Add(entry, nested.ToArray());
+            foreach (OfficeProvenanceChange change in nested.Changes) {
+                changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", change.RemovedBytes));
+            }
+            if (nested.WasReserialized) reserialized = true;
         }
         if (changes.Count == 0) return (byte[])data.Clone();
 

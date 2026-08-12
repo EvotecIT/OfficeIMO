@@ -120,6 +120,13 @@ internal static class OfficeProvenanceJpeg {
             options.MaxManifestBytes,
             out declaredManifestLength);
 
+        byte[]? reassembled = !completeFirstFragment && hasDeclaredLength && firstFragmentLength <= declaredManifestLength
+            ? new byte[declaredManifestLength]
+            : null;
+        if (reassembled != null) {
+            Buffer.BlockCopy(data, payloadOffset + 8, reassembled, 0, firstFragmentLength);
+        }
+
         long collected = firstFragmentLength;
         int current = payloadOffset + payloadLength;
         byte instanceHigh = data[payloadOffset + 2];
@@ -131,13 +138,20 @@ internal static class OfficeProvenanceJpeg {
                 data[nextPayloadOffset] != 0x4A || data[nextPayloadOffset + 1] != 0x50 ||
                 data[nextPayloadOffset + 2] != instanceHigh || data[nextPayloadOffset + 3] != instanceLow ||
                 OfficeProvenanceBinary.ReadUInt32(data, nextPayloadOffset + 4, littleEndian: false) != expectedSequence) break;
-            collected += nextPayloadLength - 8L;
+            int fragmentLength = nextPayloadLength - 8;
+            if (reassembled != null && collected <= declaredManifestLength - fragmentLength) {
+                Buffer.BlockCopy(data, nextPayloadOffset + 8, reassembled, (int)collected, fragmentLength);
+            } else {
+                reassembled = null;
+            }
+            collected += fragmentLength;
             current = nextEnd;
             expectedSequence++;
         }
         sequenceEnd = current;
         manifestLength = hasDeclaredLength ? declaredManifestLength : checked((int)Math.Min(collected, int.MaxValue));
-        structurallyValid = hasDeclaredLength && collected == declaredManifestLength;
+        structurallyValid = completeFirstFragment || reassembled != null && collected == declaredManifestLength &&
+            OfficeC2paManifestStore.IsValid(reassembled, 0, reassembled.Length, options.MaxManifestBytes, out _);
         return true;
     }
 

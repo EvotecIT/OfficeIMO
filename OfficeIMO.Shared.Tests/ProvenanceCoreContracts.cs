@@ -94,6 +94,23 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void JpegRejectsFragmentedJumbfWithMalformedChildTail() {
+        byte[] manifest = CreateManifestStore(42);
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegApp11(manifest, 0, 40, instance: 9, sequence: 1),
+            CreateJpegApp11(manifest, 40, manifest.Length - 40, instance: 9, sequence: 2),
+            new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+        Assert.Equal(jpeg, result.ToArray());
+    }
+
+    [Fact]
     public void PngRemovesCabxAndPreservesEveryOtherChunkByteForByte() {
         byte[] manifest = CreateManifestStore();
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
