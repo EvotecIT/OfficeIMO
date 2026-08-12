@@ -117,11 +117,14 @@ internal static partial class PdfTextEditor {
             .ThenByDescending(static item => item.Key.Span.Y)
             .ThenBy(static item => item.Key.Span.X)) {
             PdfTextSpan sourceSpan = rewrite.Key.Span;
-            string rewritten = ApplySpanEdits(sourceSpan.Text, rewrite.Value);
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
-            PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
-            warnings.AddRange(BuildSubstitutionWarnings(detected, style.Font));
-            positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, rewritten, style));
+            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected);
+            PdfResolvedTextStyle replacementStyle = ResolveStyle(snapshot, detected);
+            PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan.Text, rewrite.Value, sourceStyle, replacementStyle);
+            for (int fragmentIndex = 0; fragmentIndex < fragments.Length; fragmentIndex++) {
+                warnings.AddRange(BuildSubstitutionWarnings(detected, fragments[fragmentIndex].Style.Font));
+            }
+            positioned.Add(new PositionedRewrite(rewrite.Key.PageNumber, sourceSpan, fragments));
         }
 
         AddReflowedRewriteRequests(rewrittenRequests, positioned);
@@ -261,7 +264,7 @@ internal static partial class PdfTextEditor {
                     PositionedRewrite previous = line[line.Count - 1];
                     double gap = BaselinePosition(rewrite.Source) -
                         (BaselinePosition(previous.Source) + Math.Abs(previous.Source.Advance));
-                    startsIndependentFlow = gap >= 24D;
+                    startsIndependentFlow = IsIndependentFlowGap(gap, previous.Source, rewrite.Source);
                 }
                 if (line.Count > 0 && (Math.Abs(rewriteNormal - normal) > tolerance || startsIndependentFlow)) {
                     AddReflowedLineRequests(requests, line);
@@ -305,10 +308,15 @@ internal static partial class PdfTextEditor {
             double uy = Math.Sin(radians);
             double x = rewrite.Source.X + ux * cumulativeShift;
             double y = rewrite.Source.Y + uy * cumulativeShift;
-            if (rewrite.Text.Length > 0) AddStampLines(requests, rewrite.PageNumber, x, y, rewrite.Text, rewrite.Style, rewrite.Source.PaintOrder);
-            double replacementAdvance = rewrite.Text.Length == 0
-                ? 0D
-                : PdfWriter.EstimateSimpleTextWidth(rewrite.Text, rewrite.Style.Font, rewrite.Style.FontSize);
+            double replacementAdvance = 0D;
+            for (int fragmentIndex = 0; fragmentIndex < rewrite.Fragments.Length; fragmentIndex++) {
+                PositionedTextFragment fragment = rewrite.Fragments[fragmentIndex];
+                if (fragment.Text.Length == 0) continue;
+                double fragmentX = x + ux * replacementAdvance;
+                double fragmentY = y + uy * replacementAdvance;
+                AddStampLines(requests, rewrite.PageNumber, fragmentX, fragmentY, fragment.Text, fragment.Style, rewrite.Source.PaintOrder + (fragmentIndex * 0.00000001D));
+                replacementAdvance += PdfWriter.EstimateSimpleTextWidth(fragment.Text, fragment.Style.Font, fragment.Style.FontSize);
+            }
             cumulativeShift += replacementAdvance - Math.Abs(rewrite.Source.Advance);
         }
     }
@@ -442,19 +450,33 @@ internal static partial class PdfTextEditor {
         return true;
     }
 
-    private static string ApplySpanEdits(string source, IReadOnlyList<SpanTextEdit> edits) {
+    private static PositionedTextFragment[] BuildPositionedFragments(
+        string source,
+        IReadOnlyList<SpanTextEdit> edits,
+        PdfResolvedTextStyle sourceStyle,
+        PdfResolvedTextStyle replacementStyle) {
         SpanTextEdit[] ordered = edits.OrderBy(static edit => edit.Start).ToArray();
-        var builder = new System.Text.StringBuilder(source.Length);
+        var fragments = new List<PositionedTextFragment>();
         int cursor = 0;
         for (int index = 0; index < ordered.Length; index++) {
             SpanTextEdit edit = ordered[index];
             if (edit.Start < cursor) continue;
-            builder.Append(source, cursor, edit.Start - cursor);
-            builder.Append(edit.Replacement);
+            if (edit.Start > cursor) AddPositionedFragment(fragments, source.Substring(cursor, edit.Start - cursor), sourceStyle);
+            if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement, replacementStyle);
             cursor = edit.Start + edit.Length;
         }
-        builder.Append(source, cursor, source.Length - cursor);
-        return builder.ToString();
+        if (cursor < source.Length) AddPositionedFragment(fragments, source.Substring(cursor), sourceStyle);
+        return fragments.ToArray();
+    }
+
+    private static void AddPositionedFragment(List<PositionedTextFragment> fragments, string text, PdfResolvedTextStyle style) {
+        if (text.Length == 0) return;
+        if (fragments.Count > 0 && fragments[fragments.Count - 1].Style.Equals(style)) {
+            PositionedTextFragment previous = fragments[fragments.Count - 1];
+            fragments[fragments.Count - 1] = new PositionedTextFragment(previous.Text + text, style);
+            return;
+        }
+        fragments.Add(new PositionedTextFragment(text, style));
     }
 
     private static bool IsSafelyEditableSpan(PdfTextSpan span) =>
@@ -557,12 +579,15 @@ internal static partial class PdfTextEditor {
         internal IReadOnlyList<string> Warnings { get; }
     }
 
-    private readonly struct PdfResolvedTextStyle {
+    private readonly struct PdfResolvedTextStyle : IEquatable<PdfResolvedTextStyle> {
         internal PdfResolvedTextStyle(PdfStandardFont font, double fontSize, PdfColor color, double rotationDegrees) { Font = font; FontSize = fontSize; Color = color; RotationDegrees = rotationDegrees; }
         internal PdfStandardFont Font { get; }
         internal double FontSize { get; }
         internal PdfColor Color { get; }
         internal double RotationDegrees { get; }
+        public bool Equals(PdfResolvedTextStyle other) => Font == other.Font && FontSize.Equals(other.FontSize) && Color.Equals(other.Color) && RotationDegrees.Equals(other.RotationDegrees);
+        public override bool Equals(object? obj) => obj is PdfResolvedTextStyle other && Equals(other);
+        public override int GetHashCode() { unchecked { int hash = (int)Font; hash = (hash * 397) ^ FontSize.GetHashCode(); hash = (hash * 397) ^ Color.GetHashCode(); return (hash * 397) ^ RotationDegrees.GetHashCode(); } }
     }
 
     private readonly struct SpanBounds {
@@ -599,9 +624,14 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct PositionedRewrite {
-        internal PositionedRewrite(int pageNumber, PdfTextSpan source, string text, PdfResolvedTextStyle style) { PageNumber = pageNumber; Source = source; Text = text; Style = style; }
+        internal PositionedRewrite(int pageNumber, PdfTextSpan source, PositionedTextFragment[] fragments) { PageNumber = pageNumber; Source = source; Fragments = fragments; }
         internal int PageNumber { get; }
         internal PdfTextSpan Source { get; }
+        internal PositionedTextFragment[] Fragments { get; }
+    }
+
+    private readonly struct PositionedTextFragment {
+        internal PositionedTextFragment(string text, PdfResolvedTextStyle style) { Text = text; Style = style; }
         internal string Text { get; }
         internal PdfResolvedTextStyle Style { get; }
     }

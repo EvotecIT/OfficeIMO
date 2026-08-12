@@ -153,9 +153,12 @@ public class PdfTextEditorTests {
             "cat",
             "longer-fox",
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true });
-        PdfTextSpan rewritten = Assert.Single(PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(), static span => span.Text.Contains("longer-fox", StringComparison.Ordinal));
+        string rewritten = string.Concat(PdfReadDocument.Open(result.Document.ToBytes()).Pages[0]
+            .GetTextSpans()
+            .OrderBy(static span => span.X)
+            .Select(static span => span.Text));
 
-        Assert.Equal(decodedSource.Replace("cat", "longer-fox", StringComparison.Ordinal), rewritten.Text);
+        Assert.Equal(decodedSource.Replace("cat", "longer-fox", StringComparison.Ordinal), rewritten);
         Assert.Equal(2, result.AffectedCount);
     }
 
@@ -420,6 +423,65 @@ public class PdfTextEditorTests {
         Assert.Single(PdfDocument.Open(source).Text.Find(
             decomposed,
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
+    }
+
+    [Fact]
+    public void WholeWordSearchDoesNotSplitBeforeASupplementaryPlaneLetter() {
+        const string text = "cat\U00010400";
+        byte[] source = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF006300610074D801DC00> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (catX) Tj ET EMC\n");
+
+        Assert.Empty(PdfDocument.Open(source).Text.Find(
+            "cat",
+            new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
+        Assert.Single(PdfDocument.Open(source).Text.Find(
+            text,
+            new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
+    }
+
+    [Fact]
+    public void SearchExcludesInferredSpacesAtMatchBoundaries() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta) Tj ET\n");
+
+        Assert.Empty(PdfDocument.Open(source).Text.Find(" ", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Open(source).Text.Find(" beta", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
+    public void ReplaceAllAppliesOverridesOnlyToReplacementFragments() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 1 0 0 rg 50 700 Td (cat tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "cat",
+            "a much wider replacement",
+            new PdfTextSearchOptions { MatchCase = true },
+            new PdfTextEditOptions { Color = PdfColor.FromRgb(0, 0, 255) });
+        PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("a much wider replacement", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.True(replacement.Color.B > replacement.Color.R);
+        Assert.True(tail.Color.R > tail.Color.B);
+        Assert.True(tail.X >= replacement.X + replacement.Width - 1D);
+    }
+
+    [Fact]
+    public void SearchAndReflowUseAFontRelativeIndependentFlowCutoff() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F2 72 Tf 50 700 Td (alpha) Tj ET\n" +
+            "BT /F2 72 Tf 310 700 Td (beta) Tj ET\n");
+
+        Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "alpha",
+            "a",
+            new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch beta = Assert.Single(result.Document.Text.Find("beta", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.True(beta.X < 310D);
     }
 
     [Fact]
