@@ -11,7 +11,10 @@ internal static partial class PdfSyntax {
     private static readonly Regex ObjectHeaderTemplateRegex = new Regex(@"^\s*(\d+)\s+(\d+)\s+obj\b", RegexOptions.Compiled, RegexTimeout);
 #endif
 
-    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(byte[] pdf, PdfReadOptions? options = null) {
+    internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
+        byte[] pdf,
+        PdfReadOptions? options = null,
+        bool includeParsedDetails = true) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
@@ -22,7 +25,9 @@ internal static partial class PdfSyntax {
         string text = PdfEncoding.Latin1GetString(pdf);
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;
-        bool hasSignatures = HasSignatureMarkers(pdf);
+        bool hasSignatures = includeParsedDetails
+            ? HasSignatureMarkers(pdf)
+            : ContainsAnyPdfName(text, "ByteRange", "SigFlags", "Sig");
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
@@ -76,120 +81,125 @@ internal static partial class PdfSyntax {
         var usageRightsObjectNumbers = new List<int>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
 
-        try {
-            var (objects, trailerRaw) = ParseObjects(pdf, options);
-            rootReference = TryReadFirstReference(trailerRaw, "Root");
-            if (rootReference is not null) {
-                rootObjectNumber = rootReference.ObjectNumber;
-                rootObjectGeneration = rootReference.Generation;
-            }
-
-            infoReference = TryReadFirstReference(trailerRaw, "Info");
-            if (infoReference is not null) {
-                infoObjectNumber = infoReference.ObjectNumber;
-                infoObjectGeneration = infoReference.Generation;
-            }
-
-            PdfReference? encryptReference = TryReadFirstReference(trailerRaw, "Encrypt");
-            encryptObjectNumber = encryptReference?.ObjectNumber;
-            hasEncryption = encryptReference is not null;
-            encryptionFilter = null;
-            encryptionSubFilter = null;
-            encryptionVersion = null;
-            encryptionRevision = null;
-            encryptionLengthBits = null;
-            encryptionPermissions = null;
-            encryptMetadata = null;
-            if (encryptReference is not null &&
-                PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
-                encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
-                encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
-                encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-                encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
-                encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
-                encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-                encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
-                encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
-                if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
-                    authenticatedHandler is not null) {
-                    passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
-                }
-            }
-
-            PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
-            if (catalog is not null) {
-                documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);
-                ReadCatalogSecurityState(
-                    objects,
-                    catalog,
-                    out acroFormSignatureFlags,
-                    out hasDocMDPPermissions,
-                    out docMDPSignatureObjectNumber,
-                    out docMDPTransformMethod,
-                    out docMDPTransformVersion,
-                    out docMDPPermissionLevel,
-                    out hasUsageRights,
-                    usageRightsObjectNumbers);
-            }
-
-            foreach (var entry in objects.OrderBy(static item => item.Key)) {
-                PdfDictionary? dictionary = entry.Value.Value switch {
-                    PdfDictionary directDictionary => directDictionary,
-                    PdfStream stream => stream.Dictionary,
-                    _ => null
-                };
-
-                if (dictionary is null) {
-                    continue;
+        if (includeParsedDetails) {
+            try {
+                var (objects, trailerRaw) = ParseObjects(pdf, options);
+                rootReference = TryReadFirstReference(trailerRaw, "Root");
+                if (rootReference is not null) {
+                    rootObjectNumber = rootReference.ObjectNumber;
+                    rootObjectGeneration = rootReference.Generation;
                 }
 
-                if (TryReadName(objects, dictionary, "FT") == "Sig") {
-                    signatureFieldObjectNumbers.Add(entry.Key);
-                    string? fieldName = TryReadText(objects, dictionary, "T");
-                    if (!string.IsNullOrEmpty(fieldName) && !signatureFieldNames.Contains(fieldName!)) {
-                        signatureFieldNames.Add(fieldName!);
-                    }
+                infoReference = TryReadFirstReference(trailerRaw, "Info");
+                if (infoReference is not null) {
+                    infoObjectNumber = infoReference.ObjectNumber;
+                    infoObjectGeneration = infoReference.Generation;
+                }
 
-                    if (dictionary.Items.TryGetValue("V", out PdfObject? valueObject) &&
-                        valueObject is PdfReference valueReference) {
-                        signatureFieldsByValue[valueReference.ObjectNumber] = new SignatureFieldState(
-                            entry.Key,
-                            fieldName,
-                            ReadSignatureFieldLockInfo(objects, dictionary),
-                            ReadSignatureSeedValueInfo(objects, dictionary));
+                PdfReference? encryptReference = TryReadFirstReference(trailerRaw, "Encrypt");
+                encryptObjectNumber = encryptReference?.ObjectNumber;
+                hasEncryption = encryptReference is not null;
+                encryptionFilter = null;
+                encryptionSubFilter = null;
+                encryptionVersion = null;
+                encryptionRevision = null;
+                encryptionLengthBits = null;
+                encryptionPermissions = null;
+                encryptMetadata = null;
+                if (encryptReference is not null &&
+                    PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
+                    encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
+                    encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
+                    encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
+                    encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
+                    encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
+                    encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
+                    encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
+                    encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+                    if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler) &&
+                        authenticatedHandler is not null) {
+                        passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
                     }
                 }
-            }
 
-            foreach (var entry in objects.OrderBy(static item => item.Key)) {
-                PdfDictionary? dictionary = entry.Value.Value switch {
-                    PdfDictionary directDictionary => directDictionary,
-                    PdfStream stream => stream.Dictionary,
-                    _ => null
-                };
-
-                if (dictionary is null) {
-                    continue;
-                }
-
-                bool isSignatureValue = TryReadName(objects, dictionary, "Type") == "Sig";
-                if (TryReadByteRangeValues(objects, dictionary, out IReadOnlyList<long> currentByteRangeValues)) {
-                    isSignatureValue = true;
-                    byteRangeValueCount += currentByteRangeValues.Count;
-                }
-
-                if (isSignatureValue) {
-                    signatureValueCount++;
-                    signatureFieldsByValue.TryGetValue(entry.Key, out var field);
-                    signatures.Add(ReadSignatureInfo(
+                PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
+                if (catalog is not null) {
+                    documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);
+                    ReadCatalogSecurityState(
                         objects,
-                        entry.Key,
-                        dictionary,
-                        field,
-                        currentByteRangeValues));
+                        catalog,
+                        out acroFormSignatureFlags,
+                        out hasDocMDPPermissions,
+                        out docMDPSignatureObjectNumber,
+                        out docMDPTransformMethod,
+                        out docMDPTransformVersion,
+                        out docMDPPermissionLevel,
+                        out hasUsageRights,
+                        usageRightsObjectNumbers);
                 }
+
+                foreach (var entry in objects.OrderBy(static item => item.Key)) {
+                    PdfDictionary? dictionary = entry.Value.Value switch {
+                        PdfDictionary directDictionary => directDictionary,
+                        PdfStream stream => stream.Dictionary,
+                        _ => null
+                    };
+
+                    if (dictionary is null) {
+                        continue;
+                    }
+
+                    if (TryReadName(objects, dictionary, "FT") == "Sig") {
+                        signatureFieldObjectNumbers.Add(entry.Key);
+                        string? fieldName = TryReadText(objects, dictionary, "T");
+                        if (!string.IsNullOrEmpty(fieldName) && !signatureFieldNames.Contains(fieldName!)) {
+                            signatureFieldNames.Add(fieldName!);
+                        }
+
+                        if (dictionary.Items.TryGetValue("V", out PdfObject? valueObject) &&
+                            valueObject is PdfReference valueReference) {
+                            signatureFieldsByValue[valueReference.ObjectNumber] = new SignatureFieldState(
+                                entry.Key,
+                                fieldName,
+                                ReadSignatureFieldLockInfo(objects, dictionary),
+                                ReadSignatureSeedValueInfo(objects, dictionary));
+                        }
+                    }
+                }
+
+                foreach (var entry in objects.OrderBy(static item => item.Key)) {
+                    PdfDictionary? dictionary = entry.Value.Value switch {
+                        PdfDictionary directDictionary => directDictionary,
+                        PdfStream stream => stream.Dictionary,
+                        _ => null
+                    };
+
+                    if (dictionary is null) {
+                        continue;
+                    }
+
+                    bool isSignatureValue = TryReadName(objects, dictionary, "Type") == "Sig";
+                    if (TryReadByteRangeValues(objects, dictionary, out IReadOnlyList<long> currentByteRangeValues)) {
+                        isSignatureValue = true;
+                        byteRangeValueCount += currentByteRangeValues.Count;
+                    }
+
+                    if (isSignatureValue) {
+                        signatureValueCount++;
+                        signatureFieldsByValue.TryGetValue(entry.Key, out var field);
+                        signatures.Add(ReadSignatureInfo(
+                            objects,
+                            entry.Key,
+                            dictionary,
+                            field,
+                            currentByteRangeValues));
+                    }
+                }
+            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
+                byteRangeValueCount = 0;
             }
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } else {
             signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
             byteRangeValueCount = 0;
         }
@@ -467,19 +477,16 @@ internal static partial class PdfSyntax {
     }
 
     private static IReadOnlyList<int> ReadIntegerNameValues(string text, string key, int maxValues) {
-#if NET8_0_OR_GREATER
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-#else
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)", RegexOptions.Compiled, RegexTimeout);
-#endif
         var values = new List<int>();
-        foreach (Match match in regex.Matches(text)) {
-            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)) {
-                values.Add(value);
-                if (values.Count > maxValues) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
-                }
+        string token = "/" + key;
+        int searchIndex = 0;
+        while (TryFindIntegerNameValue(text, token, searchIndex, out int value, out int nextIndex)) {
+            values.Add(value);
+            if (values.Count > maxValues) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
             }
+
+            searchIndex = nextIndex;
         }
 
         return values.Count == 0 ? Array.Empty<int>() : values.AsReadOnly();
@@ -514,36 +521,101 @@ internal static partial class PdfSyntax {
     }
 
     private static PdfReference? TryReadFirstReference(string text, string key) {
-#if NET8_0_OR_GREATER
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-#else
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
-#endif
-        Match match = regex.Match(text);
-        if (match.Success
-            && int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber)
-            && int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
-            return new PdfReference(objectNumber, generation);
-        }
-
-        return null;
+        return TryFindReference(text, "/" + key, 0, out PdfReference? reference, out _)
+            ? reference
+            : null;
     }
 
     private static PdfReference? TryReadLastReference(string text, string key) {
-#if NET8_0_OR_GREATER
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled | RegexOptions.NonBacktracking, RegexTimeout);
-#else
-        var regex = new Regex(@"/" + Regex.Escape(key) + @"\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
-#endif
         PdfReference? reference = null;
-        foreach (Match match in regex.Matches(text)) {
-            if (int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int objectNumber) &&
-                int.TryParse(match.Groups[2].Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int generation)) {
-                reference = new PdfReference(objectNumber, generation);
-            }
+        string token = "/" + key;
+        int searchIndex = 0;
+        while (TryFindReference(text, token, searchIndex, out PdfReference? candidate, out int nextIndex)) {
+            reference = candidate;
+            searchIndex = nextIndex;
         }
 
         return reference;
+    }
+
+    private static bool TryFindIntegerNameValue(
+        string text,
+        string token,
+        int searchIndex,
+        out int value,
+        out int nextIndex) {
+        value = 0;
+        nextIndex = text.Length;
+        while (searchIndex < text.Length) {
+            int tokenIndex = text.IndexOf(token, searchIndex, StringComparison.Ordinal);
+            if (tokenIndex < 0) return false;
+
+            int cursor = tokenIndex + token.Length;
+            if (TrySkipRequiredWhitespace(text, ref cursor) &&
+                TryReadNonNegativeInteger(text, ref cursor, out value)) {
+                nextIndex = cursor;
+                return true;
+            }
+
+            searchIndex = tokenIndex + token.Length;
+        }
+
+        return false;
+    }
+
+    private static bool TryFindReference(
+        string text,
+        string token,
+        int searchIndex,
+        out PdfReference? reference,
+        out int nextIndex) {
+        reference = null;
+        nextIndex = text.Length;
+        while (searchIndex < text.Length) {
+            int tokenIndex = text.IndexOf(token, searchIndex, StringComparison.Ordinal);
+            if (tokenIndex < 0) return false;
+
+            int cursor = tokenIndex + token.Length;
+            if (TrySkipRequiredWhitespace(text, ref cursor) &&
+                TryReadNonNegativeInteger(text, ref cursor, out int objectNumber) &&
+                TrySkipRequiredWhitespace(text, ref cursor) &&
+                TryReadNonNegativeInteger(text, ref cursor, out int generation) &&
+                TrySkipRequiredWhitespace(text, ref cursor) &&
+                cursor < text.Length &&
+                text[cursor] == 'R') {
+                reference = new PdfReference(objectNumber, generation);
+                nextIndex = cursor + 1;
+                return true;
+            }
+
+            searchIndex = tokenIndex + token.Length;
+        }
+
+        return false;
+    }
+
+    private static bool TrySkipRequiredWhitespace(string text, ref int index) {
+        int start = index;
+        while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+        return index > start;
+    }
+
+    private static bool TryReadNonNegativeInteger(string text, ref int index, out int value) {
+        value = 0;
+        int start = index;
+        while (index < text.Length) {
+            int digit = text[index] - '0';
+            if ((uint)digit > 9U) break;
+            if (value > (int.MaxValue - digit) / 10) {
+                while (index < text.Length && text[index] >= '0' && text[index] <= '9') index++;
+                return false;
+            }
+
+            value = (value * 10) + digit;
+            index++;
+        }
+
+        return index > start;
     }
 
     private static int CountPdfNameOccurrences(string text, string name) {

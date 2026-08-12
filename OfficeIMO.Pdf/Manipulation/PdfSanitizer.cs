@@ -70,8 +70,11 @@ internal static partial class PdfSanitizer {
             if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
         }
         foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
-        if (!before.Any(finding => finding.Kind == PdfSanitizationFindingKind.UnsafeUri)) {
-            preservationOptions.PreservedActionTypes.Add("URI");
+        preservationOptions.PreservedActionTypes.Add("URI");
+        for (int i = 0; i < before.Count; i++) {
+            if (before[i].Kind == PdfSanitizationFindingKind.UnsafeUri) {
+                preservationOptions.ExcludedActionUris.Add(before[i].Detail);
+            }
         }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 

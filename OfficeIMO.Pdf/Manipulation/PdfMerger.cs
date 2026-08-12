@@ -40,6 +40,20 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
     }
 
+    internal static PdfMergeResult MergeOwned(
+        IReadOnlyList<byte[]> pdfs,
+        IReadOnlyList<PdfReadOptions> readOptions,
+        IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories) {
+        Guard.NotNull(readOptions, nameof(readOptions));
+        Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
+        return MergeCore(
+            pdfs,
+            primarySourceIndex: 0,
+            options: null,
+            readOptions,
+            readDocumentFactories);
+    }
+
     internal static PdfMergeResult MergeWithReport(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfReadOptions> readOptions) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(readOptions, nameof(readOptions));
@@ -89,10 +103,10 @@ internal static partial class PdfMerger {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
-        _ = PdfMutationPlanner.RequireFullRewrite(primaryPdf, PdfMutationOperation.ModifyPageTree, primaryReadOptions);
-        _ = PdfMutationPlanner.RequireFullRewrite(insertedPdf, PdfMutationOperation.ExtractPages);
-
-        var primaryDocument = PdfReadDocument.Open(primaryPdf, primaryReadOptions);
+        var (_, primaryDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+            primaryPdf,
+            PdfMutationOperation.ModifyPageTree,
+            primaryReadOptions);
         if (primaryDocument.Pages.Count == 0) {
             throw new ArgumentException("Primary PDF does not contain any pages.", nameof(primaryPdf));
         }
@@ -101,7 +115,9 @@ internal static partial class PdfMerger {
             throw new ArgumentOutOfRangeException(nameof(insertBeforePageNumber), "Insert-before page must be in the primary document page range.");
         }
 
-        var insertedDocument = PdfReadDocument.Open(insertedPdf);
+        var (_, insertedDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+            insertedPdf,
+            PdfMutationOperation.ExtractPages);
         if (insertedDocument.Pages.Count == 0) {
             throw new ArgumentException("Inserted PDF does not contain any pages.", nameof(insertedPdf));
         }
@@ -126,8 +142,8 @@ internal static partial class PdfMerger {
         }
 
         var importedSources = new[] {
-            ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap, PdfMutationOperation.ModifyPageTree, primaryReadOptions),
-            ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null)
+            ImportSource(primaryPdf, 0, primaryPageObjectNumbers, 0, primaryPageIndexMap, primaryReadOptions, primaryDocument),
+            ImportSource(insertedPdf, 1, insertedPageObjectNumbers, insertBeforePageNumber - 1, null, plannedDocument: insertedDocument)
         };
         return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);
     }
@@ -136,7 +152,8 @@ internal static partial class PdfMerger {
         IEnumerable<byte[]> pdfs,
         int primarySourceIndex,
         PdfMergeOptions? options,
-        IReadOnlyList<PdfReadOptions>? readOptions = null) {
+        IReadOnlyList<PdfReadOptions>? readOptions = null,
+        IReadOnlyList<Func<PdfReadDocument>?>? readDocumentFactories = null) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
         var sources = pdfs.ToArray();
@@ -151,7 +168,9 @@ internal static partial class PdfMerger {
         if (readOptions is not null && readOptions.Count != sources.Length) {
             throw new ArgumentException("Read options must contain one entry for every PDF input.", nameof(readOptions));
         }
-
+        if (readDocumentFactories is not null && readDocumentFactories.Count != sources.Length) {
+            throw new ArgumentException("Read-document factories must contain one entry for every PDF input.", nameof(readDocumentFactories));
+        }
         var importedSources = new List<ImportedSource>(sources.Length);
         int mergedPageOffset = 0;
         for (int i = 0; i < sources.Length; i++) {
@@ -161,12 +180,20 @@ internal static partial class PdfMerger {
             }
 
             PdfReadOptions? sourceReadOptions = readOptions?[i];
-            PdfMutationPlan sourceMergePlan = PdfMutationPlanner.RequireFullRewrite(
-                source,
-                PdfMutationOperation.MergeDocuments,
-                sourceReadOptions);
+            Func<PdfReadDocument>? readDocumentFactory = readDocumentFactories?[i];
+            (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) = readDocumentFactory is null
+                ? PdfMutationPlanner.RequireFullRewriteDocument(
+                    source,
+                    PdfMutationOperation.MergeDocuments,
+                    sourceReadOptions)
+                : PdfMutationPlanner.RequireFullRewriteDocument(
+                    source,
+                    PdfMutationOperation.MergeDocuments,
+                    readDocumentFactory,
+                    sourceReadOptions);
             PdfDocumentSecurityInfo sourceSecurity = sourceMergePlan.Preflight.Probe.Security;
             PdfPermissionPolicy sourcePermissionPolicy = sourceMergePlan.Preflight.PermissionPolicy;
+            byte[] plannedSource = source;
             source = PrepareMergeSource(source, options, sourceReadOptions);
             importedSources.Add(ImportSource(
                 source,
@@ -174,15 +201,18 @@ internal static partial class PdfMerger {
                 null,
                 mergedPageOffset,
                 null,
-                PdfMutationOperation.MergeDocuments,
                 sourceReadOptions,
-                sourceSecurity,
-                sourcePermissionPolicy));
+                plannedDocument: ReferenceEquals(source, plannedSource) ? plannedDocument : null,
+                sourceSecurity: sourceSecurity,
+                sourcePermissionPolicy: sourcePermissionPolicy));
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
 
         byte[] merged = WriteMerged(importedSources, primarySourceIndex);
-        return ApplyMergePolicy(merged, importedSources, primarySourceIndex, options);
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            readOptions?[primarySourceIndex] ?? PdfReadOptions.Default,
+            merged.LongLength);
+        return ApplyMergePolicy(merged, importedSources, primarySourceIndex, options, outputReadOptions);
     }
 
     /// <summary>
@@ -452,14 +482,22 @@ internal static partial class PdfMerger {
         int[]? knownPageObjectNumbers,
         int mergedPageOffset,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
-        PdfMutationOperation mutationOperation = PdfMutationOperation.ExtractPages,
         PdfReadOptions? readOptions = null,
+        PdfReadDocument? plannedDocument = null,
         PdfDocumentSecurityInfo? sourceSecurity = null,
         PdfPermissionPolicy? sourcePermissionPolicy = null) {
-        _ = PdfMutationPlanner.RequireFullRewrite(source, mutationOperation, readOptions);
+        PdfReadDocument document;
+        if (plannedDocument is null) {
+            (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
+                source,
+                PdfMutationOperation.MergeDocuments,
+                readOptions);
+        } else {
+            document = plannedDocument;
+        }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(source, readOptions);
-        var document = PdfReadDocument.Open(source, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF input " + sourceIndex.ToString(CultureInfo.InvariantCulture) + " does not contain any pages.", nameof(source));
         }

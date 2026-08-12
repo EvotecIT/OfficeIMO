@@ -1,6 +1,6 @@
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Text;
-using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -217,6 +217,7 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
+        bool includeArtifactText = false,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
@@ -669,7 +670,7 @@ internal static class TextContentParser {
                 decodedAdvances.Clear();
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool isArtifact = useLogicalTextFilters && HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && HasActiveArtifact();
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;

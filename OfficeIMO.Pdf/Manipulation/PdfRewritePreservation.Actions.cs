@@ -48,14 +48,14 @@ public static partial class PdfRewritePreservation {
         if (!options.PreserveCatalogActions) {
             return;
         }
-        IReadOnlyList<PdfCatalogAction> expected = FilterPreservedActions(original, options);
-        IReadOnlyList<PdfCatalogAction> actual = FilterPreservedActions(rewritten, options);
-        if (expected.Count != actual.Count) {
-            issues.Add(CreateIssue("CatalogActions.Count", expected.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), actual.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        PdfCatalogAction[] expected = FilterPreservedActions(original, options);
+        PdfCatalogAction[] actual = FilterPreservedActions(rewritten, options);
+        if (expected.Length != actual.Length) {
+            issues.Add(CreateIssue("CatalogActions.Count", expected.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), actual.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             return;
         }
 
-        for (int i = 0; i < expected.Count; i++) {
+        for (int i = 0; i < expected.Length; i++) {
             PdfCatalogAction before = expected[i];
             PdfCatalogAction after = actual[i];
             string prefix = "CatalogActions[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
@@ -64,6 +64,7 @@ public static partial class PdfRewritePreservation {
             CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
             CompareString(issues, prefix + ".Source", before.Source, after.Source);
             CompareString(issues, prefix + ".TriggerName", before.TriggerName, after.TriggerName);
+            CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
         }
     }
 
@@ -73,17 +74,17 @@ public static partial class PdfRewritePreservation {
         }
 
         for (int i = 0; i < originalPages.Count; i++) {
-            IReadOnlyList<PdfPageAction> original = FilterPreservedActions(originalPages[i].PageActions, options);
-            IReadOnlyList<PdfPageAction> rewritten = FilterPreservedActions(rewrittenPages[i].PageActions, options);
-            if (original.Count != rewritten.Count) {
+            PdfPageAction[] original = FilterPreservedActions(originalPages[i].PageActions, options);
+            PdfPageAction[] rewritten = FilterPreservedActions(rewrittenPages[i].PageActions, options);
+            if (original.Length != rewritten.Length) {
                 issues.Add(CreateIssue(
                     "PageActions[" + originalPages[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "].Count",
-                    original.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    rewritten.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    original.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    rewritten.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 continue;
             }
 
-            for (int j = 0; j < original.Count; j++) {
+            for (int j = 0; j < original.Length; j++) {
                 PdfPageAction before = original[j];
                 PdfPageAction after = rewritten[j];
                 string prefix = "PageActions[" + originalPages[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + j.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
@@ -92,6 +93,7 @@ public static partial class PdfRewritePreservation {
                 CompareString(issues, prefix + ".TriggerName", before.TriggerName, after.TriggerName);
                 CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
                 CompareString(issues, prefix + ".ActionPath", before.ActionPath, after.ActionPath);
+                CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
             }
         }
     }
@@ -99,11 +101,15 @@ public static partial class PdfRewritePreservation {
     private static bool IsPreservedActionType(PdfRewritePreservationOptions options, string? actionType) =>
         actionType is null || (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0) || options.PreservedActionTypes.Contains(actionType);
 
-    private static IReadOnlyList<PdfCatalogAction> FilterPreservedActions(IReadOnlyList<PdfCatalogAction> actions, PdfRewritePreservationOptions options) =>
-        !options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
+    private static PdfCatalogAction[] FilterPreservedActions(IReadOnlyList<PdfCatalogAction> actions, PdfRewritePreservationOptions options) =>
+        actions.Where(action =>
+            (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(action.ActionType)) &&
+            (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri))).ToArray();
 
-    private static IReadOnlyList<PdfPageAction> FilterPreservedActions(IReadOnlyList<PdfPageAction> actions, PdfRewritePreservationOptions options) =>
-        !options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
+    private static PdfPageAction[] FilterPreservedActions(IReadOnlyList<PdfPageAction> actions, PdfRewritePreservationOptions options) =>
+        actions.Where(action =>
+            (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(action.ActionType)) &&
+            (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri))).ToArray();
 
     private static void CompareNullablePresence(List<PdfRewritePreservationIssue> issues, string feature, bool expectedPresent, bool actualPresent) {
         if (expectedPresent == actualPresent) {

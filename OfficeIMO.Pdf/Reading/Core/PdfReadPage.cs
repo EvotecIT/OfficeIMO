@@ -12,23 +12,29 @@ public sealed partial class PdfReadPage {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfReadLimits _limits;
+    private readonly PdfFontResourceCache _fontResourceCache;
+    private readonly bool _includeArtifactText;
     private readonly Action? _demandTextExtraction;
     private readonly Action<string>? _demandContentExtraction;
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
-        : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
+        : this(objectNumber, pageDict, objects, new PdfReadLimits(), new PdfFontResourceCache()) { }
 
     internal PdfReadPage(
         int objectNumber,
         PdfDictionary pageDict,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
+        PdfFontResourceCache fontResourceCache,
         Action? demandTextExtraction = null,
-        Action<string>? demandContentExtraction = null) {
+        Action<string>? demandContentExtraction = null,
+        bool includeArtifactText = false) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
         _objects = objects;
         _limits = limits;
+        _fontResourceCache = fontResourceCache;
+        _includeArtifactText = includeArtifactText;
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         _demandTextExtraction = demandTextExtraction;
         _demandContentExtraction = demandContentExtraction;
@@ -107,9 +113,10 @@ public sealed partial class PdfReadPage {
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
-        var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        var pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
+        PdfFontResourceSet pageFontResources = _fontResourceCache.GetOrCreate(pageResources, _objects);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = pageFontResources.Decoders;
+        Dictionary<string, Func<byte[], double>> pageWidthProviders = pageFontResources.WidthProviders;
+        Dictionary<string, PdfFontResource> pageFonts = pageFontResources.Fonts;
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
         var pageContentBudget = new PageContentBudget(this);
@@ -125,6 +132,7 @@ public sealed partial class PdfReadPage {
                 spans,
                 activeForms,
                 pageHeight,
+                includeArtifactText: _includeArtifactText,
                 pageContentBudget: pageContentBudget);
         }
 
@@ -391,8 +399,9 @@ public sealed partial class PdfReadPage {
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
-        var content = new System.Text.StringBuilder();
-        bool canInspectFormInvocations = true;
+        bool mayContainForms = MayContainFormXObjects(pageResources);
+        System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
+        bool canInspectFormInvocations = mayContainForms;
         foreach (var stream in GetContentStreamObjects()) {
             AddUnsupportedFilters(stream, unsupported);
             if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
@@ -400,14 +409,51 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            content.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)));
+            byte[] decoded = pageContentBudget.Decode(stream);
+            if (content is not null) {
+                content.Append(PdfEncoding.Latin1GetString(decoded));
+            }
         }
 
-        if (canInspectFormInvocations && content.Length > 0) {
+        if (canInspectFormInvocations && content is { Length: > 0 }) {
             CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms, pageContentBudget);
         }
 
         return unsupported;
+    }
+
+    private bool MayContainFormXObjects(PdfDictionary? resources) {
+        if (resources is null || !resources.Items.TryGetValue("XObject", out var xObjectValue)) {
+            return false;
+        }
+
+        var xObjects = ResolveDictionary(xObjectValue);
+        if (xObjects is null) {
+            return true;
+        }
+
+        foreach (var value in xObjects.Items.Values) {
+            PdfStream? stream;
+            if (value is PdfReference reference) {
+                if (!PdfObjectLookup.TryGet(_objects, reference, out var indirectObject) ||
+                    indirectObject.Value is not PdfStream referencedStream) {
+                    return true;
+                }
+
+                stream = referencedStream;
+            } else if (value is PdfStream directStream) {
+                stream = directStream;
+            } else {
+                return true;
+            }
+
+            string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
+            if (subtype is null || string.Equals(subtype, "Form", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void CollectUnsupportedFormFilters(
@@ -475,6 +521,7 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? initialClipPath = null,
         bool initialUnsupportedTextEffect = false,
         bool useLogicalTextFilters = true,
+        bool includeArtifactText = false,
         int contentNestingDepth = 0,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null) {
@@ -521,6 +568,7 @@ public sealed partial class PdfReadPage {
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
+            includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
@@ -562,9 +610,10 @@ public sealed partial class PdfReadPage {
             try {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetBudgetedFontDecodersForForm(formDict, _objects));
-                var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
-                var formFonts = MergeFonts(fonts, ResourceResolver.GetFontsForResources(formResources, _objects));
+                PdfFontResourceSet formFontResources = _fontResourceCache.GetOrCreate(formResources, _objects);
+                var formDecoders = MergeDecoders(decoders, formFontResources.Decoders);
+                var formWidths = MergeWidthProviders(widthProviders, formFontResources.WidthProviders);
+                var formFonts = MergeFonts(fonts, formFontResources.Fonts);
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
 
@@ -590,6 +639,7 @@ public sealed partial class PdfReadPage {
                     invocation.ClipPath,
                     invocation.HasUnsupportedEffect,
                     useLogicalTextFilters,
+                    includeArtifactText,
                     contentNestingDepth + 1,
                     textOutputBudget,
                     pageContentBudget);

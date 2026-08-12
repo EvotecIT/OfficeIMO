@@ -108,12 +108,25 @@ internal static class PdfInspector {
         PdfReadOptions? options,
         Func<PdfReadDocument>? readDocumentFactory) {
         PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
-        PdfDocumentProbe probe = Probe(pdf, effectiveOptions);
+        PdfReadDocument? readDocument = null;
+        Exception? readDocumentException = null;
+        PdfDocumentProbe probe;
+        if (readDocumentFactory is null) {
+            probe = Probe(pdf, effectiveOptions);
+        } else {
+            try {
+                readDocument = readDocumentFactory();
+                probe = Probe(pdf, readDocument);
+            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                readDocumentException = ex;
+                probe = Probe(pdf, effectiveOptions);
+            }
+        }
+
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
         PdfDocumentInfo? info = null;
-        PdfReadDocument? readDocument = null;
 
         if (probe.HeaderVersion is null) {
             AddReadBlocker(PdfReadBlockerKind.MissingHeader, "PDF header was not found.");
@@ -126,7 +139,11 @@ internal static class PdfInspector {
         bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
-                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions);
+                if (readDocumentException is not null) {
+                    throw readDocumentException;
+                }
+
+                readDocument ??= PdfReadDocument.Open(pdf, effectiveOptions);
                 probe = Probe(pdf, readDocument);
                 info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {
@@ -503,7 +520,7 @@ internal static class PdfInspector {
             pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, geometry, links, formWidgets, annotations, actions));
         }
 
-        return new PdfDocumentInfo(pages.AsReadOnly(), document.UncheckedMetadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.UncheckedAcroFormDefaultAppearance, document.UncheckedAcroFormQuadding, document.UncheckedAcroFormXfa, document.UncheckedAcroFormNeedAppearances, document.UncheckedAcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.UncheckedAcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
+        return new PdfDocumentInfo(pages.AsReadOnly(), document.UncheckedMetadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.UncheckedAcroFormDefaultAppearance, document.UncheckedAcroFormQuadding, document.UncheckedAcroFormXfa, document.UncheckedAcroFormNeedAppearances, document.UncheckedAcroFormSignatureFlags, document.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, document.Security.HasSignatures || probe.HasSignatures, probe.HasForms || document.UncheckedAcroFormXfa is not null, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent, useDocumentWideObjects && document.HasOnlyWidgetOwnedActiveContent());
     }
 
     private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {

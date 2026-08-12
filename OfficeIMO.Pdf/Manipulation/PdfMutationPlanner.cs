@@ -25,6 +25,70 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
+    /// <summary>
+    /// Requires a full rewrite while sharing the canonical parse used by preflight with the mutation implementation.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) =>
+        RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory: null);
+
+    /// <summary>
+    /// Requires a full rewrite while reusing a canonical parse already owned by the caller.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadDocument document,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(document, nameof(document));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, () => document);
+    }
+
+    /// <summary>
+    /// Requires a full rewrite while lazily reusing a canonical parse owned by the caller.
+    /// The factory executes inside preflight so parser failures retain the standard mutation diagnostics.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        Func<PdfReadDocument> documentFactory,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(documentFactory, nameof(documentFactory));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory);
+    }
+
+    private static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocumentCore(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options,
+        IEnumerable<string>? fieldNames,
+        Func<PdfReadDocument>? documentFactory) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfReadDocument? document = null;
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(
+            pdf,
+            effectiveOptions,
+            () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+        PdfMutationPlan plan = Plan(
+            preflight,
+            pdf,
+            operation,
+            fieldNames,
+            PdfMutationExecutionPreference.RequireFullRewrite,
+            effectiveOptions);
+        if (!plan.CanExecute) {
+            throw new PdfMutationBlockedException(plan);
+        }
+
+        return (plan, document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+    }
+
     /// <summary>Requires the shared planner to prove an append-only path for an existing-document editor.</summary>
     public static PdfMutationPlan RequireAppendOnly(
         byte[] pdf,
@@ -764,33 +828,9 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool HasOnlyFormWidgetActiveContent(PdfDocumentInfo? info) {
-        if (info is null || info.AcroFormXfa is not null || info.CatalogActions.Count > 0 || info.PageActionCount > 0) {
-            return false;
-        }
-
-        var actionWidgetObjectNumbers = new HashSet<int>();
-        for (int i = 0; i < info.FormFields.Count; i++) {
-            IReadOnlyList<PdfFormWidget> widgets = info.FormFields[i].Widgets;
-            for (int j = 0; j < widgets.Count; j++) {
-                if (widgets[j].HasActions && widgets[j].ObjectNumber.HasValue) {
-                    actionWidgetObjectNumbers.Add(widgets[j].ObjectNumber!.Value);
-                }
-            }
-        }
-        if (actionWidgetObjectNumbers.Count == 0) return false;
-
-        int activeAnnotationCount = 0;
-        for (int i = 0; i < info.Annotations.Count; i++) {
-            PdfAnnotation annotation = info.Annotations[i];
-            if (!annotation.HasAction && !annotation.HasAdditionalActions && !annotation.HasChainedActions) continue;
-            activeAnnotationCount++;
-            if (!string.Equals(annotation.Subtype, "Widget", StringComparison.Ordinal) ||
-                !annotation.ObjectNumber.HasValue ||
-                !actionWidgetObjectNumbers.Contains(annotation.ObjectNumber.Value)) {
-                return false;
-            }
-        }
-        return activeAnnotationCount > 0;
+        return info is not null &&
+            info.AcroFormXfa is null &&
+            info.HasOnlyWidgetOwnedActiveContent;
     }
 
     private static bool CanOptimize(PdfDocumentPreflight preflight) {
