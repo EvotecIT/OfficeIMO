@@ -47,6 +47,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' == '' Or !Exists('$(ChartForgeXProjectPath)')">
-    <PackageReference Include="ChartForgeX" Version="[1.5.0,2.0.0)" />
+    <PackageReference Include="ChartForgeX" Version="[1.6.0,2.0.0)" />
   </ItemGroup>
 </Project>
