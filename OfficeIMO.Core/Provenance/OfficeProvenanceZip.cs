@@ -140,9 +140,8 @@ internal static class OfficeProvenanceZip {
 
     private static bool IsSignatureEntry(ZipArchiveEntry entry) =>
         entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase) ||
-        entry.FullName.Equals("META-INF/documentsignatures.xml", StringComparison.OrdinalIgnoreCase) ||
-        entry.FullName.Equals("META-INF/macrosignatures.xml", StringComparison.OrdinalIgnoreCase) ||
-        entry.FullName.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase);
+        entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
+        entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSupportedEmbeddedAsset(string name) {
         string extension = Path.GetExtension(name).ToLowerInvariant();

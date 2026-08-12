@@ -274,6 +274,18 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void ZipBlocksProducerSpecificOdfSignatureMutationByDefault() {
+        byte[] package = CreateZip(
+            ("META-INF/customsignatures.xml", Encoding.UTF8.GetBytes("<signature/>")),
+            ("META-INF/content_credential.c2pa", CreateManifestStore()));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OfficeProvenanceRemover.Remove(package, "signed.odt"));
+
+        Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ZipInspectsAndSanitizesSupportedEmbeddedImages() {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         byte[] image = Join(header, CreatePngChunk("caBX", CreateManifestStore()), CreatePngChunk("IEND", Array.Empty<byte>()));
