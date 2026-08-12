@@ -249,6 +249,7 @@ internal static class PdfPageContentVisualParser {
                         GetPaintOrder(operation.OperatorOffset),
                         operation.HasInvalidOperands);
                 },
+                inlineImageComponentCount: ResolveInlineImageComponentCount,
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands);
 
@@ -266,6 +267,11 @@ internal static class PdfPageContentVisualParser {
         }
 
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
+
+        private int ResolveInlineImageComponentCount(string colorSpaceName) =>
+            _colorSpaces != null && _colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)
+                ? colorSpace.ComponentCount
+                : 1;
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
             switch (op) {

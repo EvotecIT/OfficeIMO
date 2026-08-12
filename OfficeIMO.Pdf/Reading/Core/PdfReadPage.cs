@@ -439,7 +439,8 @@ public sealed partial class PdfReadPage {
                      content,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands)) {
+                     maxOperands: _limits.MaxContentOperands,
+                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -576,7 +577,8 @@ public sealed partial class PdfReadPage {
                      initialRenderingIntent: initialRenderingIntent,
                      initialFillColorSelection: initialFillColorSelection,
                      initialStrokeColorSelection: initialStrokeColorSelection,
-                     outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }

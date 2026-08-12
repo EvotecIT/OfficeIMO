@@ -106,7 +106,8 @@ public sealed partial class PdfReadPage {
             paintOrderOffset,
             _limits.MaxContentOperations,
             _limits.MaxContentNestingDepth,
-            _limits.MaxContentOperands);
+            _limits.MaxContentOperands,
+            name => GetDeclaredColorSpaceComponentCount(resources, name));
         transitions.AddRange(local);
 
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
