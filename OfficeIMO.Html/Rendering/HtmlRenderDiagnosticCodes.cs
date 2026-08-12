@@ -110,6 +110,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ChoiceBlankLabelStaticFallback = "HtmlRenderChoiceBlankLabelStaticFallback";
     /// <summary>A form control with non-uniform or elliptical corner radii used truthful static rendering.</summary>
     public const string FormFieldNonUniformRadiusStaticFallback = "HtmlRenderFormFieldNonUniformRadiusStaticFallback";
+    /// <summary>A form control with translucent widget paint used truthful static rendering.</summary>
+    public const string FormFieldColorTransparencyStaticFallback = "HtmlRenderFormFieldColorTransparencyStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -229,6 +231,7 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldRepeatedNameStaticFallback,
         ChoiceBlankLabelStaticFallback,
         FormFieldNonUniformRadiusStaticFallback,
+        FormFieldColorTransparencyStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

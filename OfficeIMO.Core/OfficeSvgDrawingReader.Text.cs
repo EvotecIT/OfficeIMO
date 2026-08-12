@@ -67,7 +67,10 @@ public static partial class OfficeSvgDrawingReader {
             else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
             else unsupported++;
         }
-        double baselineShift = inheritedBaselineShift + ResolveOwnBaselineShift(element, style.FontSize);
+        double baselineShift = inheritedBaselineShift + ResolveOwnBaselineShift(
+            element,
+            style.FontSize,
+            style.LineHeight.Resolve(style.FontSize));
         ApplyTextPosition(element, viewX, viewY, viewportWidth, viewportHeight, ref cursor, ref unsupported);
         int firstRun = runs.Count;
         double lengthOrigin = cursor.X;
@@ -100,7 +103,7 @@ public static partial class OfficeSvgDrawingReader {
         if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
     }
 
-    private static double ResolveOwnBaselineShift(XElement element, double fontSize) {
+    private static double ResolveOwnBaselineShift(XElement element, double fontSize, double lineHeight) {
         string? value = element.Attribute("baseline-shift")?.Value;
         string? styleText = element.Attribute("style")?.Value;
         if (!string.IsNullOrWhiteSpace(styleText)) {
@@ -111,7 +114,7 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
         if (string.IsNullOrWhiteSpace(value) || value!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) return 0D;
-        return TryParseBaselineShift(value.Trim(), out SvgBaselineShift shift) ? shift.Resolve(fontSize) : 0D;
+        return TryParseBaselineShift(value.Trim(), out SvgBaselineShift shift) ? shift.Resolve(fontSize, lineHeight) : 0D;
     }
 
     private static bool TryReadTextLengthAdjustment(XElement element, out double textLength, ref int unsupported) {

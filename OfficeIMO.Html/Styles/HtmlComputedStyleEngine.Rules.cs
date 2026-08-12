@@ -115,7 +115,7 @@ public static partial class HtmlComputedStyleEngine {
         if (styleRule != null) {
             IReadOnlyList<string> resolvedSelectors = ResolveNestedSelectors(styleRule.SelectorText ?? string.Empty, parentSelectors);
             AddStyleRule(styleRule, resolvedSelectors, rules, parsedRuleMatches, budget, currentLayer == null ? null : layers.GetOrder(currentLayer), containerConditions);
-            foreach (var childRule in GetNestedStyleRules(styleRule)) {
+            foreach (var childRule in styleRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, resolvedSelectors, containerConditions);
             }
             return;
@@ -329,16 +329,6 @@ public static partial class HtmlComputedStyleEngine {
             while (after < css.Length && char.IsWhiteSpace(css[after])) after++;
         }
         return after < css.Length && (css[after] == ';' || css[after] == '}');
-    }
-
-    private static IEnumerable<AngleSharp.Css.Dom.ICssRule> GetNestedStyleRules(AngleSharp.Css.Dom.ICssStyleRule styleRule) {
-        // AngleSharp 1.0.1 retains CSS-nesting children on its concrete style-rule type,
-        // but the public ICssStyleRule contract predates the Rules member.
-        System.Reflection.PropertyInfo? property = styleRule.GetType().GetProperty("Rules");
-        var nested = property?.GetValue(styleRule, null) as AngleSharp.Css.Dom.ICssRuleList;
-        return nested != null
-            ? nested.Cast<AngleSharp.Css.Dom.ICssRule>()
-            : Array.Empty<AngleSharp.Css.Dom.ICssRule>();
     }
 
     private static string ExpandNestedConditionalRules(string css) {

@@ -84,6 +84,12 @@ internal sealed class HtmlCssPageRuleSet {
             sides = Array.Empty<string>();
             return false;
         }
+        for (int index = 0; index < parts.Count; index++) {
+            if (!IsValidPageMarginComponent(parts[index])) {
+                sides = Array.Empty<string>();
+                return false;
+            }
+        }
         string top = parts[0];
         string right = parts.Count > 1 ? parts[1] : top;
         string bottom = parts.Count > 2 ? parts[2] : top;
@@ -97,10 +103,24 @@ internal sealed class HtmlCssPageRuleSet {
         if (string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value.Value, "unset", StringComparison.OrdinalIgnoreCase)) {
             target = 0D;
-        } else if (HtmlRenderCssValues.TryLength(value.Value, width, fontSize, fontSize, width, height, out double parsed)) {
+        } else if (HasPageMarginLengthSyntax(value.Value)
+            && HtmlRenderCssValues.TryLength(value.Value, width, fontSize, fontSize, width, height, out double parsed)) {
             target = Math.Max(0D, parsed);
         }
     }
+
+    private static bool IsValidPageMarginComponent(string value) {
+        if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "initial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+        return HasPageMarginLengthSyntax(value)
+            && HtmlRenderCssValues.TryLength(value, 1D, 1D, 1D, 1D, 1D, out _);
+    }
+
+    private static bool HasPageMarginLengthSyntax(string value) =>
+        HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true);
 
     private static bool MatchesName(string? ruleName, string? pageName) =>
         ruleName != null && string.Equals(ruleName, pageName, StringComparison.Ordinal);

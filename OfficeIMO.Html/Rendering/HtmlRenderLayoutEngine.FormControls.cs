@@ -538,6 +538,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportMixedDisabledRadioGroupFallback(source, staticGroupKey);
             return false;
         }
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _transparentRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
+            ReportTransparentFormFieldPaintFallback(source, staticGroupKey);
+            return false;
+        }
 
         int nodeId = GetSemanticNodeId(element);
         string mappingName = authoredName is { Length: > 0 } ? authoredName : string.Empty;
@@ -615,6 +619,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && !readOnly;
         string alternateName = ResolveFormFieldAccessibleName(element, name);
         OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
+        if (HasUnsupportedInteractiveFieldTransparency(style.Color, style.BackgroundColor, borderColor)) {
+            ReportTransparentFormFieldPaintFallback(source, null);
+            return false;
+        }
         HtmlResolvedBorderRadii resolvedRadii = ResolveBoxRadii(style, width, height, element, source);
         if (!resolvedRadii.IsZero && !resolvedRadii.IsUniformCircular) {
             ReportNonUniformFormFieldRadiusFallback(source);
@@ -775,6 +783,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportTransparentFormFieldPaintFallback(string source, string? groupKey) {
+        if (groupKey != null && !_reportedStaticRadioGroups.Add("transparent\n" + groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldColorTransparencyStaticFallback,
+            "An HTML form control with translucent paint was rendered as static content because generated PDF widget appearances cannot preserve color alpha.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            groupKey == null
+                ? "translucent form-control paint"
+                : "translucent radio-group paint; group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private static bool HasUnsupportedInteractiveFieldTransparency(
+        OfficeColor textColor,
+        OfficeColor? backgroundColor,
+        OfficeColor? borderColor) =>
+        textColor.A < byte.MaxValue
+        || HasPartialAlpha(backgroundColor)
+        || HasPartialAlpha(borderColor);
+
+    private static bool HasPartialAlpha(OfficeColor? color) =>
+        color.HasValue && color.Value.A > 0 && color.Value.A < byte.MaxValue;
+
     private static bool IsInteractiveTextInputType(string type) {
         switch (type) {
             case "date":
@@ -806,6 +839,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _staticRadioGroupKeys.Clear();
         _blankValueRadioGroupKeys.Clear();
         _mixedDisabledRadioGroupKeys.Clear();
+        _transparentRadioGroupKeys.Clear();
         _staticRepeatedControlGroupKeys.Clear();
         IElement[] radios = _document.QuerySelectorAll("input")
             .Where(element => NormalizeInputType(element) == "radio")
@@ -823,12 +857,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Any(values => values.Skip(1).Any());
                 bool hasDisabled = members.Any(HtmlFormControlSemantics.IsEffectivelyDisabled);
                 bool hasEnabled = members.Any(element => !HtmlFormControlSemantics.IsEffectivelyDisabled(element));
-                if (!hasBlankValue && !hasDuplicateValue && !(hasDisabled && hasEnabled)) continue;
+                bool hasTransparentPaint = members.Any(element => {
+                    HtmlRenderBoxStyle authoredStyle = _styleResolver.Resolve(element, _options.PageWidth);
+                    HtmlRenderBoxStyle controlStyle = CreateFormControlStyle(element, authoredStyle);
+                    OfficeColor? borderColor = controlStyle.BorderWidth > 0D && controlStyle.BorderStyle != "none"
+                        ? controlStyle.BorderColor
+                        : null;
+                    return HasUnsupportedInteractiveFieldTransparency(controlStyle.Color, controlStyle.BackgroundColor, borderColor);
+                });
+                if (!hasBlankValue && !hasDuplicateValue && !(hasDisabled && hasEnabled) && !hasTransparentPaint) continue;
                 string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
                 foreach (IElement element in members) {
                     if (hasBlankValue) _blankValueRadioGroupKeys[element] = key;
                     if (hasDuplicateValue) _staticRadioGroupKeys[element] = key;
                     if (hasDisabled && hasEnabled) _mixedDisabledRadioGroupKeys[element] = key;
+                    if (hasTransparentPaint) _transparentRadioGroupKeys[element] = key;
                 }
             }
         }

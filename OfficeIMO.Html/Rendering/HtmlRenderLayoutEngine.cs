@@ -44,6 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _blankValueRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _mixedDisabledRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _transparentRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _staticRepeatedControlGroupKeys = new Dictionary<IElement, string>();
     private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<IElement, string> _formFieldNamesByElement = new Dictionary<IElement, string>();

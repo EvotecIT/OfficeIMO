@@ -59,6 +59,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_RejectsInvalidMarginShorthandsAtomically() {
+        const string html = "<style>@page{size:200px 100px;margin:12px}@page{margin:10px bogus}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((12D, 12D, 12D, 12D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
     public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
         const string html = """
             <style>

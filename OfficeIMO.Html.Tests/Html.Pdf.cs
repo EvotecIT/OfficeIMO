@@ -234,6 +234,34 @@ public sealed class HtmlPdfTests {
         Assert.Contains("Static rounded", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("background:rgba(0,0,255,.2)")]
+    [InlineData("border:2px solid rgba(255,0,0,.4)")]
+    [InlineData("color:rgba(0,128,0,.6)")]
+    public void HtmlToPdf_TranslucentControlPaintUsesTruthfulStaticFallback(string style) {
+        string html = "<input name='styled' value='Static alpha' style='" + style + "'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldColorTransparencyStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Static alpha", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_TranslucentRadioPaintMakesTheEntireGroupStatic() {
+        const string html = "<input type='radio' name='choice' value='one'><input type='radio' name='choice' value='two' checked style='background:rgba(0,0,255,.2)'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldColorTransparencyStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
     [Fact]
     public void HtmlToPdf_BlankChoiceLabelsUseTruthfulStaticFallback() {
         const string html = "<select name='choice'><option value='' selected></option><option value='one'>One</option></select>";
