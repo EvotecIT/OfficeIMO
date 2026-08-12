@@ -12,6 +12,8 @@ internal static class PdfColorSpaceFunctionResolver {
     private const int MaxSampledInputs = 4;
     private const int MaxStitchingFunctions = 32;
     private const int MaxSuggestedSampleBreakpoints = 128;
+    private static readonly double[] DefaultC0 = { 0D };
+    private static readonly double[] DefaultC1 = { 1D };
     [ThreadStatic]
     private static double[]? _scalarInput;
 
@@ -199,13 +201,13 @@ internal static class PdfColorSpaceFunctionResolver {
             TryReadInteger(bitsObject, objects) is not int bitsPerSample ||
             !IsSupportedSampleWidth(bitsPerSample)) return false;
 
-        int order = dictionary.Items.TryGetValue("Order", out PdfObject? orderObject)
-            ? TryReadInteger(orderObject, objects) ?? 0
-            : 1;
+        if (!TryResolveOptionalEntry(dictionary, "Order", objects, out PdfObject? orderObject, out bool hasOrder)) return false;
+        int order = hasOrder ? TryReadInteger(orderObject, objects) ?? 0 : 1;
         if (order != 1) return false;
 
         double[] encode;
-        if (dictionary.Items.TryGetValue("Encode", out PdfObject? encodeObject)) {
+        if (!TryResolveOptionalEntry(dictionary, "Encode", objects, out PdfObject? encodeObject, out bool hasEncode)) return false;
+        if (hasEncode) {
             encode = ReadNumberArray(encodeObject, objects);
             if (!HasFinitePairs(encode, inputCount)) return false;
         } else {
@@ -213,9 +215,8 @@ internal static class PdfColorSpaceFunctionResolver {
             for (int index = 0; index < inputCount; index++) encode[index * 2 + 1] = sizes[index] - 1D;
         }
 
-        double[] decode = dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject)
-            ? ReadNumberArray(decodeObject, objects)
-            : (double[])range.Clone();
+        if (!TryResolveOptionalEntry(dictionary, "Decode", objects, out PdfObject? decodeObject, out bool hasDecode)) return false;
+        double[] decode = hasDecode ? ReadNumberArray(decodeObject, objects) : (double[])range.Clone();
         if (!HasFinitePairs(decode, outputCount)) return false;
 
         long samplePointCount = 1;
@@ -286,13 +287,9 @@ internal static class PdfColorSpaceFunctionResolver {
             !TryReadIntervals(dictionary, "Domain", 1, objects, allowEqual: true, required: true, out double[] domain) ||
             !TryReadOptionalRange(dictionary, outputCount, objects, out double[]? range)) return false;
 
-        double[] c0 = dictionary.Items.TryGetValue("C0", out PdfObject? c0Value)
-            ? ReadNumberArray(c0Value, objects)
-            : new[] { 0D };
-        double[] c1 = dictionary.Items.TryGetValue("C1", out PdfObject? c1Value)
-            ? ReadNumberArray(c1Value, objects)
-            : new[] { 1D };
-        if (!dictionary.Items.TryGetValue("N", out PdfObject? exponentValue) ||
+        if (!TryReadOptionalNumberArray(dictionary, "C0", DefaultC0, objects, out double[] c0) ||
+            !TryReadOptionalNumberArray(dictionary, "C1", DefaultC1, objects, out double[] c1) ||
+            !dictionary.Items.TryGetValue("N", out PdfObject? exponentValue) ||
             TryReadNumber(exponentValue, objects) is not double exponent ||
             c0.Length != outputCount || c1.Length != outputCount ||
             c0.Any(static value => !IsFinite(value)) || c1.Any(static value => !IsFinite(value)) ||
@@ -702,8 +699,15 @@ internal static class PdfColorSpaceFunctionResolver {
         Dictionary<int, PdfIndirectObject> objects,
         out double[]? range) {
         range = null;
-        if (!dictionary.Items.ContainsKey("Range")) return true;
-        if (!TryReadIntervals(dictionary, "Range", outputCount, objects, allowEqual: true, required: true, out double[] values)) return false;
+        if (!TryResolveOptionalEntry(dictionary, "Range", objects, out PdfObject? rangeObject, out bool hasRange)) return false;
+        if (!hasRange) return true;
+        double[] values = ReadNumberArray(rangeObject, objects);
+        if (values.Length != outputCount * 2) return false;
+        for (int index = 0; index < outputCount; index++) {
+            double minimum = values[index * 2];
+            double maximum = values[index * 2 + 1];
+            if (!IsFinite(minimum) || !IsFinite(maximum) || maximum < minimum) return false;
+        }
         range = values;
         return true;
     }
@@ -780,6 +784,32 @@ internal static class PdfColorSpaceFunctionResolver {
         return resolved is not PdfReference;
     }
 
+    private static bool TryReadOptionalNumberArray(
+        PdfDictionary dictionary,
+        string key,
+        double[] defaultValue,
+        Dictionary<int, PdfIndirectObject> objects,
+        out double[] values) {
+        values = defaultValue;
+        if (!TryResolveOptionalEntry(dictionary, key, objects, out PdfObject? resolved, out bool hasValue)) return false;
+        if (!hasValue) return true;
+        values = ReadNumberArray(resolved, objects);
+        return true;
+    }
+
+    private static bool TryResolveOptionalEntry(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfObject? resolved,
+        out bool hasValue) {
+        resolved = null;
+        hasValue = false;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return true;
+        if (!TryResolveObject(value, objects, out resolved) || resolved == null) return false;
+        hasValue = resolved is not PdfNull;
+        return true;
+    }
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private sealed class PdfObjectReferenceComparer : IEqualityComparer<PdfObject> {

@@ -11,7 +11,8 @@ internal static partial class ResourceResolver {
         int maxDecodedStreamBytes) {
         if (image.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
             ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
-            return true;
+            return CanAllocateDecodedImageBuffer(image, components: 1, bitsPerComponent: 1, maxDecodedStreamBytes) &&
+                CanAllocateProjectedImageBuffer(image, channels: 2, maxDecodedStreamBytes);
         }
 
         PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
@@ -48,6 +49,10 @@ internal static partial class ResourceResolver {
             return CanPassThroughDctImage(image, normalization, objects);
         }
 
+        if (!CanAllocateDecodedImageBuffer(image, normalization.SourceColorCount, bitsPerComponent, maxDecodedStreamBytes)) {
+            return false;
+        }
+
         int baseChannels = normalization.RequiresColorConversion || normalization.SourceColorCount == 4
             ? 3
             : normalization.SourceColorCount;
@@ -79,6 +84,19 @@ internal static partial class ResourceResolver {
             maxDecodedStreamBytes,
             out _,
             out _);
+    }
+
+    private static bool CanAllocateDecodedImageBuffer(
+        PdfDictionary image,
+        int components,
+        int bitsPerComponent,
+        int maxDecodedStreamBytes) {
+        int width = (int)(image.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(image.Get<PdfNumber>("Height")?.Value ?? 0);
+        if (width <= 0 || height <= 0 || components <= 0 || bitsPerComponent <= 0 || maxDecodedStreamBytes <= 0) return false;
+        long rowBytes = ((long)width * components * bitsPerComponent + 7L) / 8L;
+        long totalBytes = rowBytes * height;
+        return rowBytes <= int.MaxValue && totalBytes <= maxDecodedStreamBytes;
     }
 
     private static DctFilterDeclaration ClassifyDctFilter(
@@ -136,12 +154,21 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor? imageMaskColor,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         if (imageMaskColor.HasValue) {
-            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor.Value, out pngBytes);
+            return TryBuildPngFileFromImageMask(
+                stream,
+                width,
+                height,
+                bitsPerComponent,
+                objects,
+                imageMaskColor.Value,
+                maxDecodedStreamBytes,
+                out pngBytes);
         }
 
-        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, out pngBytes);
+        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maxDecodedStreamBytes, out pngBytes);
     }
 
     private static bool TryBuildPngFileFromImageMask(
@@ -151,16 +178,23 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor imageMaskColor,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (bitsPerComponent is not (0 or 1)) {
             return false;
         }
-        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 4, out int pixelCount, out int scanlineBytes)) {
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                4,
+                maxDecodedStreamBytes,
+                out int pixelCount,
+                out int scanlineBytes)) {
             return false;
         }
 
-        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maxDecodedStreamBytes)) {
             return false;
         }
         byte[] scanlines = new byte[scanlineBytes];
@@ -435,8 +469,9 @@ internal static partial class ResourceResolver {
     private static bool TryDecodeImageStream(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        out byte[] decoded) =>
-        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded);
+        out byte[] decoded,
+        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maxDecodedBytes);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;

@@ -851,7 +851,8 @@ public sealed partial class PdfReadPage {
 
     private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
+            !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 

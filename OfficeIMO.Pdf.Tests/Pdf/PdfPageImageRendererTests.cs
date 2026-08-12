@@ -2724,7 +2724,13 @@ public class PdfPageImageRendererTests {
         indexedColorSpace.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 255, 255, 255 }));
         var objects = new Dictionary<int, PdfIndirectObject>();
 
-        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
+        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(
+            8,
+            1,
+            maskStream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
         Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out _));
     }
 
