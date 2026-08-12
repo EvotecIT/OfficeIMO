@@ -12,15 +12,15 @@ public sealed class PdfProvenanceTests {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("PDF provenance"))
             .AttachFile(new PdfEmbeddedFile(
-                "content-credential.c2pa",
-                manifest,
-                "application/c2pa",
-                PdfAssociatedFileRelationship.C2paManifest))
-            .AttachFile(new PdfEmbeddedFile(
                 "keep.txt",
                 Encoding.UTF8.GetBytes("keep"),
                 "text/plain",
                 PdfAssociatedFileRelationship.Supplement))
+            .AttachFile(new PdfEmbeddedFile(
+                "content-credential.c2pa",
+                manifest,
+                "application/c2pa",
+                PdfAssociatedFileRelationship.C2paManifest))
             .ToBytes();
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf);
@@ -84,6 +84,57 @@ public sealed class PdfProvenanceTests {
                 MaxAssetBytes = pdf.Length - 1,
                 MaxManifestBytes = Math.Min(64, pdf.Length - 1)
             }));
+    }
+
+    [Fact]
+    public void CandidateWithoutAnAssociatedFileReferenceIsNotStructurallyValid() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Detached PDF provenance"))
+            .AttachFile(new PdfEmbeddedFile(
+                "content-credential.c2pa",
+                CreateManifestStore(),
+                "application/c2pa",
+                PdfAssociatedFileRelationship.C2paManifest))
+            .ToBytes();
+        byte[] detached = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            catalog.Items.Remove("AF");
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(detached);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.False(result.Before.Evidence[0].IsStructurallyValid);
+        Assert.False(result.WasChanged);
+        Assert.Equal(detached, result.ToArray());
+    }
+
+    [Fact]
+    public void InspectionDoesNotDecodeUnrelatedAttachmentsAgainstTheProvenanceBudget() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Bounded provenance"))
+            .AttachFile(new PdfEmbeddedFile(
+                "unrelated.bin",
+                new byte[1024 * 1024],
+                "application/octet-stream",
+                PdfAssociatedFileRelationship.Supplement))
+            .AttachFile(new PdfEmbeddedFile(
+                "content-credential.c2pa",
+                CreateManifestStore(),
+                "application/c2pa",
+                PdfAssociatedFileRelationship.C2paManifest))
+            .ToBytes();
+        var options = new OfficeProvenanceOptions {
+            MaxAssetBytes = pdf.Length + 1L,
+            MaxManifestBytes = 64,
+            MaxExpandedContainerBytes = 64
+        };
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, options);
+
+        Assert.Single(report.Evidence);
+        Assert.True(report.Evidence[0].IsStructurallyValid);
     }
 
     private static byte[] CreateManifestStore() {

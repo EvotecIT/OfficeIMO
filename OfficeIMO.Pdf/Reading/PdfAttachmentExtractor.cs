@@ -91,6 +91,28 @@ internal static class PdfAttachmentExtractor {
         return attachments.AsReadOnly();
     }
 
+    internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(
+        PdfReadDocument document,
+        Func<PdfAttachmentInfo, bool> predicate,
+        long maxDecodedBytes) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(predicate, nameof(predicate));
+        Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
+        document.DemandContentExtraction("attachment");
+        IReadOnlyList<AttachmentDescriptor> descriptors = CollectAttachmentDescriptors(
+            document.Objects,
+            document.TrailerRaw,
+            document.ReadOptions.Limits,
+            out AttachmentExtractionBudget budget,
+            maxDecodedBytes);
+        var attachments = new List<PdfExtractedAttachment>();
+        foreach (AttachmentDescriptor descriptor in descriptors) {
+            if (!predicate(descriptor.ToAttachmentInfo())) continue;
+            attachments.Add(descriptor.ToExtractedAttachment(budget.GetDecodedBytes(descriptor.Stream, document.Objects)));
+        }
+        return attachments.AsReadOnly();
+    }
+
     internal static IReadOnlyList<PdfAttachmentInfo> InspectAttachments(
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
@@ -107,11 +129,12 @@ internal static class PdfAttachmentExtractor {
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfReadLimits? limits,
-        out AttachmentExtractionBudget budget) {
+        out AttachmentExtractionBudget budget,
+        long? maxDecodedBytes = null) {
         Guard.NotNull(objects, nameof(objects));
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         effectiveLimits.Validate();
-        budget = new AttachmentExtractionBudget(effectiveLimits);
+        budget = new AttachmentExtractionBudget(effectiveLimits, maxDecodedBytes);
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         if (catalog is null) {
             return Array.Empty<AttachmentDescriptor>();
@@ -434,12 +457,14 @@ internal static class PdfAttachmentExtractor {
 
     private sealed class AttachmentExtractionBudget {
         private readonly PdfReadLimits _limits;
+        private readonly long _maxTotalAttachmentBytes;
         private readonly Dictionary<PdfStream, byte[]> _decodedEmbeddedStreams = new();
         private int _attachmentCount;
         private long _decodedAttachmentBytes;
 
-        internal AttachmentExtractionBudget(PdfReadLimits limits) {
+        internal AttachmentExtractionBudget(PdfReadLimits limits, long? maxDecodedBytes = null) {
             _limits = limits;
+            _maxTotalAttachmentBytes = Math.Min(limits.MaxTotalAttachmentBytes, maxDecodedBytes ?? long.MaxValue);
         }
 
         internal void ReserveAttachment() {
@@ -456,12 +481,12 @@ internal static class PdfAttachmentExtractor {
                 return cachedBytes;
             }
 
-            long remainingBytes = _limits.MaxTotalAttachmentBytes - _decodedAttachmentBytes;
+            long remainingBytes = _maxTotalAttachmentBytes - _decodedAttachmentBytes;
             if (remainingBytes <= 0L) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.AttachmentBytes,
-                    _limits.MaxTotalAttachmentBytes,
-                    _limits.MaxTotalAttachmentBytes + 1L);
+                    _maxTotalAttachmentBytes,
+                    _maxTotalAttachmentBytes + 1L);
             }
 
             int decodeLimit = (int)Math.Min(_limits.MaxDecodedStreamBytes, remainingBytes);
@@ -473,7 +498,7 @@ internal static class PdfAttachmentExtractor {
                 remainingBytes < _limits.MaxDecodedStreamBytes) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.AttachmentBytes,
-                    _limits.MaxTotalAttachmentBytes,
+                    _maxTotalAttachmentBytes,
                     _decodedAttachmentBytes + exception.Actual);
             }
 

@@ -17,8 +17,12 @@ public static class PdfProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
-        IReadOnlyList<PdfExtractedAttachment> attachments =
-            PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
+            document,
+            IsCandidate,
+            Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)));
+        HashSet<int> associatedFileSpecifications = CollectAssociatedFileSpecifications(document.Objects);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -26,6 +30,8 @@ public static class PdfProvenance {
             if (manifest.LongLength > options.MaxManifestBytes) throw new InvalidDataException("A PDF provenance manifest exceeds the configured manifest limit.");
             bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
                 string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
+                attachment.FileSpecObjectNumber > 0 &&
+                associatedFileSpecifications.Contains(attachment.FileSpecObjectNumber) &&
                 OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
             if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
             evidence.Add(new OfficeProvenanceEvidence(
@@ -60,8 +66,12 @@ public static class PdfProvenance {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
         }
 
-        IReadOnlyList<PdfExtractedAttachment> attachments =
-            PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
+            document,
+            IsCandidate,
+            Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)));
+        IReadOnlyList<PdfAttachmentInfo> allAttachments = document.Attachments;
         var removeIndices = new List<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
@@ -70,7 +80,9 @@ public static class PdfProvenance {
             if (!IsCandidate(attachment)) continue;
             OfficeProvenanceEvidence evidence = before.Evidence[evidenceIndex++];
             if (!evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
-            removeIndices.Add(index);
+            int attachmentIndex = FindAttachmentIndex(allAttachments, attachment);
+            if (attachmentIndex < 0) throw new InvalidDataException("A PDF provenance attachment could not be matched to its descriptor.");
+            removeIndices.Add(attachmentIndex);
             changes.Add(new OfficeProvenanceChange(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 evidence.Location,
@@ -90,7 +102,7 @@ public static class PdfProvenance {
 
         PdfAttachmentEditResult edit = PdfAttachmentEditor.Edit(pdf, session => {
             for (int index = removeIndices.Count - 1; index >= 0; index--) session.RemoveAt(removeIndices[index]);
-        }, readOptions);
+        }, readOptions, options.Limits.MaxExpandedContainerBytes);
         byte[] output = edit.ToBytes();
         OfficeProvenanceReport after = Inspect(output, options.Limits, readOptions: null);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
@@ -114,6 +126,32 @@ public static class PdfProvenance {
     private static bool IsCandidate(PdfExtractedAttachment attachment) =>
         attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
         string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCandidate(PdfAttachmentInfo attachment) =>
+        attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
+        string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
+
+    private static HashSet<int> CollectAssociatedFileSpecifications(Dictionary<int, PdfIndirectObject> objects) {
+        var result = new HashSet<int>();
+        foreach (PdfArray array in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
+            foreach (PdfObject item in array.Items) {
+                if (item is PdfReference reference) result.Add(reference.ObjectNumber);
+            }
+        }
+        return result;
+    }
+
+    private static long MultiplySaturating(long value, int multiplier) =>
+        value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
+
+    private static int FindAttachmentIndex(IReadOnlyList<PdfAttachmentInfo> attachments, PdfExtractedAttachment target) {
+        for (int index = 0; index < attachments.Count; index++) {
+            PdfAttachmentInfo candidate = attachments[index];
+            if (candidate.FileSpecObjectNumber == target.FileSpecObjectNumber &&
+                candidate.EmbeddedFileObjectNumber == target.EmbeddedFileObjectNumber) return index;
+        }
+        return -1;
+    }
 
     private static byte[] ReadBounded(string filePath, long maximumBytes) {
         using var stream = File.OpenRead(Path.GetFullPath(filePath));
