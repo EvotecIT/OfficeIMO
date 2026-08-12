@@ -32,7 +32,14 @@ public sealed class PdfAcroFormEditSession {
     /// <summary>Replaces AcroForm calculation order with exact named fields.</summary>
     public PdfAcroFormEditSession SetCalculationOrder(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.CalculationOrder, names: fieldNames.ToArray())); return this; }
     /// <summary>Sets a page /Tabs order hint.</summary>
-    public PdfAcroFormEditSession SetTabOrder(int pageNumber, PdfPageTabOrder order) { _commands.Add(new EditCommand(EditKind.TabOrder, pageNumber: pageNumber, number: (int)order)); return this; }
+    public PdfAcroFormEditSession SetTabOrder(int pageNumber, PdfPageTabOrder order) {
+        if (order != PdfPageTabOrder.Row &&
+            order != PdfPageTabOrder.Column &&
+            order != PdfPageTabOrder.Structure &&
+            order != PdfPageTabOrder.Annotations) throw new ArgumentOutOfRangeException(nameof(order));
+        _commands.Add(new EditCommand(EditKind.TabOrder, pageNumber: pageNumber, number: (int)order));
+        return this;
+    }
     /// <summary>Marks exact fields for visual flattening after tree edits.</summary>
     public PdfAcroFormEditSession Flatten(params string[] fieldNames) { Guard.NotNull(fieldNames, nameof(fieldNames)); _commands.Add(new EditCommand(EditKind.Flatten, names: fieldNames.ToArray())); return this; }
     internal IReadOnlyList<EditCommand> Commands => _commands.AsReadOnly();

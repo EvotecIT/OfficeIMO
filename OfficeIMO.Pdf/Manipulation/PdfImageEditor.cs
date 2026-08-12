@@ -9,7 +9,12 @@ internal static partial class PdfImageEditor {
 
     internal static IReadOnlyList<PdfImagePlacement> Placements(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return BindSourceIdentity(PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(pdf, readOptions)), pdf);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        return BindSourceIdentity(
+            PdfImageExtractor.ExtractImagePlacements(document)
+                .Select(placement => NormalizePlacement(document, placement))
+                .ToArray(),
+            pdf);
     }
 
     internal static IReadOnlyList<PdfImagePlacement> Find(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
@@ -18,9 +23,13 @@ internal static partial class PdfImageEditor {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         document.DemandContentExtraction("image placement");
-        return BindSourceIdentity(document.Pages[region.PageNumber - 1]
+        PdfReadPage page = document.Pages[region.PageNumber - 1];
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        var sourceRegion = new PdfPageRegion(region.PageNumber, region.X + originX, region.Y + originY, region.Width, region.Height);
+        return BindSourceIdentity(page
             .GetImagePlacements(region.PageNumber)
-            .Where(placement => Intersects(region, placement))
+            .Where(placement => Intersects(sourceRegion, placement))
+            .Select(placement => NormalizePlacement(placement, originX, originY))
             .ToArray(), pdf);
     }
 
@@ -30,8 +39,9 @@ internal static partial class PdfImageEditor {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePage(target.PageNumber, document.Pages.Count, nameof(target));
+        (double originX, double originY) = document.Pages[target.PageNumber - 1].GetPageBoundaryOrigin();
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
-        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, target.X, target.Y, target.Width, target.Height, 0D, snapshot), readOptions);
+        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, target.X + originX, target.Y + originY, target.Width, target.Height, 0D, snapshot), readOptions);
         return new ImageMutationResult(output, 1);
     }
 
@@ -92,8 +102,9 @@ internal static partial class PdfImageEditor {
         if (!string.Equals(placement.SourceDocumentIdentity, sourceIdentity, StringComparison.Ordinal)) {
             throw new InvalidOperationException("The selected image placement does not originate from the current PDF document.");
         }
-        PdfImagePlacement[] matches = Placements(pdf, readOptions)
-            .Where(candidate => SamePlacementIdentity(candidate, placement))
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfImagePlacement[] matches = PdfImageExtractor.ExtractImagePlacements(document)
+            .Where(candidate => SamePlacementIdentity(NormalizePlacement(document, candidate), placement))
             .ToArray();
         if (matches.Length == 0) {
             throw new InvalidOperationException("The selected image placement does not exist in the current PDF document.");
@@ -186,7 +197,8 @@ internal static partial class PdfImageEditor {
     }
 
     private static void EnsurePlacementRemoved(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
-        if (Placements(pdf, readOptions).Any(candidate => SamePlacementIdentity(candidate, placement))) {
+        if (PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(pdf, readOptions))
+            .Any(candidate => SamePlacementIdentity(candidate, placement))) {
             throw new InvalidOperationException("The selected image placement could not be removed safely; no successful edit result was produced.");
         }
     }
@@ -218,6 +230,36 @@ internal static partial class PdfImageEditor {
         region.Right > placement.X + CoordinateTolerance &&
         region.Y < placement.Y + placement.Height - CoordinateTolerance &&
         region.Top > placement.Y + CoordinateTolerance;
+
+    private static PdfImagePlacement NormalizePlacement(PdfReadDocument document, PdfImagePlacement placement) {
+        (double originX, double originY) = document.Pages[placement.PageNumber - 1].GetPageBoundaryOrigin();
+        return NormalizePlacement(placement, originX, originY);
+    }
+
+    private static PdfImagePlacement NormalizePlacement(PdfImagePlacement placement, double originX, double originY) =>
+        new PdfImagePlacement(
+            placement.PageNumber,
+            placement.ResourceName,
+            placement.ObjectNumber,
+            placement.DirectStreamIdentity,
+            placement.A,
+            placement.B,
+            placement.C,
+            placement.D,
+            placement.E - originX,
+            placement.F - originY,
+            placement.X - originX,
+            placement.Y - originY,
+            placement.Width,
+            placement.Height,
+            placement.ClipPath,
+            placement.ImageMaskColor,
+            placement.ImageOpacity,
+            placement.InlineImageStream,
+            placement.InlineImageResources,
+            placement.PaintOrder,
+            placement.BlendMode,
+            placement.HasSoftMask);
 
     private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= CoordinateTolerance;
 

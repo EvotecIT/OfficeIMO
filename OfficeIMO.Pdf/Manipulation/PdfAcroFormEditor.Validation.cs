@@ -24,7 +24,9 @@ internal static partial class PdfAcroFormEditor {
                         !string.Equals(defaultField.DefaultValue, command.Value, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm default-value readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.Flags:
-                    if (byName.TryGetValue(command.Name!, out PdfFormField? flagsField) && flagsField.Flags != command.Number) throw new InvalidOperationException("AcroForm flags readback validation failed for " + command.Name + ".");
+                    if (!HasLaterFlagsEdit(commands, i, command.Name!) &&
+                        byName.TryGetValue(command.Name!, out PdfFormField? flagsField) &&
+                        flagsField.Flags != command.Number) throw new InvalidOperationException("AcroForm flags readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.TabOrder:
                     if (!string.Equals(saved.Pages[command.PageNumber - 1].TabOrder, GetTabOrderName((PdfPageTabOrder)command.Number), StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm page tab-order readback validation failed.");

@@ -499,6 +499,9 @@ internal static class TextContentParser {
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
                         fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();
@@ -1369,6 +1372,9 @@ internal static class TextContentParser {
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
                         fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();

@@ -216,4 +216,22 @@ public class PdfAcroFormEditorTests {
 
         Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Edit_UsesTheLastFlagsAssignmentInOneTransaction() {
+        byte[] source = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetFlags("Name", 1)
+            .SetFlags("Name", 2));
+
+        Assert.Equal(2, Assert.Single(result.Fields).Flags);
+    }
+
+    [Fact]
+    public void Edit_RejectsUndefinedTabOrderValuesAtThePublicBoundary() {
+        var session = new PdfAcroFormEditSession();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => session.SetTabOrder(1, (PdfPageTabOrder)99));
+    }
 }

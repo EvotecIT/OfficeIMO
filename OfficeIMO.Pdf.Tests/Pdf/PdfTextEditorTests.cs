@@ -592,6 +592,16 @@ public class PdfTextEditorTests {
         Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
     }
 
+    [Fact]
+    public void MutationRejectsTextAfterAnUnresolvedFillColorSpaceSelection() {
+        byte[] source = BuildRawTextPdf(
+            "1 0 0 rg /Missing cs 0 1 0 scn BT /F1 12 Tf 50 700 Td (unknown color) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("unknown color", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
     [Theory]
     [InlineData("/Span << /MCID 0 >> BDC", "EMC")]
     [InlineData("/OC /Layer BDC", "EMC")]
