@@ -22,7 +22,7 @@ public static partial class OfficeSvgDrawingReader {
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
         AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY,
-            drawing.Width, drawing.Height, runs, 0D, 0, ref cursor, ref unsupported);
+            drawing.Width, drawing.Height, runs, 0D, 0D, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
         foreach (SvgTextRun run in runs) AddTextRun(drawing, run, ref unsupported);
@@ -41,6 +41,7 @@ public static partial class OfficeSvgDrawingReader {
         double viewportHeight,
         ICollection<SvgTextRun> runs,
         double inheritedBaselineShift,
+        double inheritedOwnBaselineShift,
         int depth,
         ref SvgTextCursor cursor,
         ref int unsupported) {
@@ -67,10 +68,12 @@ public static partial class OfficeSvgDrawingReader {
             else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
             else unsupported++;
         }
-        double baselineShift = inheritedBaselineShift + ResolveOwnBaselineShift(
+        double ownBaselineShift = ResolveOwnBaselineShift(
             element,
             style.FontSize,
-            style.LineHeight.Resolve(style.FontSize));
+            style.LineHeight.Resolve(style.FontSize),
+            inheritedOwnBaselineShift);
+        double baselineShift = inheritedBaselineShift + ownBaselineShift;
         ApplyTextPosition(element, viewX, viewY, viewportWidth, viewportHeight, ref cursor, ref unsupported);
         int firstRun = runs.Count;
         double lengthOrigin = cursor.X;
@@ -95,7 +98,7 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
                 AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY,
-                    viewportWidth, viewportHeight, runs, baselineShift, depth + 1, ref cursor, ref unsupported);
+                    viewportWidth, viewportHeight, runs, baselineShift, ownBaselineShift, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }
@@ -103,7 +106,11 @@ public static partial class OfficeSvgDrawingReader {
         if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
     }
 
-    private static double ResolveOwnBaselineShift(XElement element, double fontSize, double lineHeight) {
+    private static double ResolveOwnBaselineShift(
+        XElement element,
+        double fontSize,
+        double lineHeight,
+        double inheritedOwnBaselineShift) {
         string? value = element.Attribute("baseline-shift")?.Value;
         string? styleText = element.Attribute("style")?.Value;
         if (!string.IsNullOrWhiteSpace(styleText)) {
@@ -113,8 +120,12 @@ public static partial class OfficeSvgDrawingReader {
                 value = declaration.Substring(colon + 1).Trim();
             }
         }
-        if (string.IsNullOrWhiteSpace(value) || value!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) return 0D;
-        return TryParseBaselineShift(value.Trim(), out SvgBaselineShift shift) ? shift.Resolve(fontSize, lineHeight) : 0D;
+        if (string.IsNullOrWhiteSpace(value)) return 0D;
+        string normalized = value!.Trim();
+        if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) return inheritedOwnBaselineShift;
+        if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) return 0D;
+        return TryParseBaselineShift(normalized, out SvgBaselineShift shift) ? shift.Resolve(fontSize, lineHeight) : 0D;
     }
 
     private static bool TryReadTextLengthAdjustment(XElement element, out double textLength, ref int unsupported) {

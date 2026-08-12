@@ -61,32 +61,32 @@
     {
       "id": "html-renderer-gallery-source",
       "path": "/downloads/showcase/html/managed-renderer-gallery.source.txt",
-      "bytes": 10323,
-      "sha256": "cf460bd88707608ddde8c5dace7b7ed27d70a38bea9f15fae5f2ee26ad48b1b7",
+      "bytes": 10394,
+      "sha256": "643f0209aaa5215f7b649447b28ed9a24c56dd47f803318c8deb3b6485cfb03a",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Authored HTML and CSS source used for every managed renderer gallery output."
     },
     {
       "id": "html-renderer-gallery-pdf",
       "path": "/downloads/showcase/html/managed-renderer-gallery.pdf",
-      "bytes": 465079,
-      "sha256": "3a723eec1b4d49317fa5734da208027ef67c77e0ed8665cf29f8fcdd6df7a36e",
+      "bytes": 498826,
+      "sha256": "7906568006e3f6ef6e4af9919bbe3474f71f222370081c694865d553c58077ec",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Searchable managed PDF with native AcroForm controls and page-margin content."
     },
     {
       "id": "html-renderer-gallery-png",
       "path": "/downloads/showcase/html/managed-renderer-gallery.png",
-      "bytes": 107471,
-      "sha256": "5c92bd023e5c8d277c4fec5d92248de11b5bb02ef3de0df79596069fbc98ec79",
+      "bytes": 106194,
+      "sha256": "82b37fc78cae1ac44dee5f088a6464edfc656c2c57b354abee3c87311718a9b4",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Deterministic first-page PNG generated from the same managed scene as the PDF."
     },
     {
       "id": "html-renderer-gallery-svg",
       "path": "/downloads/showcase/html/managed-renderer-gallery.svg",
-      "bytes": 32314,
-      "sha256": "cc797a95ebb1650a0e2280cdb7a42ae51394c0150160e7c6fe215de21d4f46d8",
+      "bytes": 51574,
+      "sha256": "9c7edc03f4136e4eaee9c7d073cfff58bd9b3b4537516f6f5d31db1db45c3cf7",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Vector SVG generated from the shared backend-neutral scene."
     },

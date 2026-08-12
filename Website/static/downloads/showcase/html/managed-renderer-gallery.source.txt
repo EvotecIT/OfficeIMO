@@ -13,7 +13,7 @@
     @counter-style proof-steps {
       system: fixed;
       symbols: "01" "02" "03";
-      suffix: "";
+      suffix: ". ";
     }
     @layer reset {
       * { box-sizing:border-box; }
@@ -108,8 +108,8 @@
       }
       .step {
         display:grid;
-        grid-template-rows:subgrid;
-        grid-row:span 3;
+        grid-template-columns:subgrid;
+        grid-column:span 1;
         gap:5px;
         padding:10px;
         border:1px solid #d8e2f1;
@@ -143,6 +143,7 @@
       .proof-list strong { color:#172033; }
       .hyphen-proof {
         margin-top:8px;
+        max-width:150px;
         padding:8px;
         border-radius:9px;
         background:#fff7ed;
@@ -151,7 +152,7 @@
         hyphens:auto;
         hyphenate-limit-chars:6 3 3;
       }
-      .controls { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px; }
+      .controls { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:9px; }
       .controls label { color:#475569; font-size:8px; font-weight:700; }
       .controls > input[type=text],.controls > select {
         display:block;
@@ -215,7 +216,7 @@
           <li><strong>Unicode text:</strong> line breaking and fallback remain searchable.</li>
           <li><strong>Page semantics:</strong> named geometry and margin counters are resolved.</li>
         </ol>
-        <div class="hyphen-proof" lang="de">Donaudampfschifffahrtsgesellschaftskapitän demonstrates language-aware hyphenation in a deliberately narrow measure.</div>
+        <div id="hyphen-proof" class="hyphen-proof" lang="de">Donaudampfschifffahrtsgesellschaftskapitän demonstrates language-aware hyphenation in a deliberately narrow measure.</div>
         <form class="controls">
           <label for="gallery-reviewer">Reviewer</label>
           <label for="gallery-decision">Decision</label>

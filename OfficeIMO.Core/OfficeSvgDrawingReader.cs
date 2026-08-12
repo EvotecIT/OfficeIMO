@@ -695,6 +695,11 @@ public static partial class OfficeSvgDrawingReader {
                 break;
             case "baseline-shift":
                 if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                    style.BaselineShift = default;
+                    break;
+                }
                 if (!TryParseBaselineShift(normalized, out SvgBaselineShift baselineShift)) unsupported++;
                 else style.BaselineShift = baselineShift;
                 break;

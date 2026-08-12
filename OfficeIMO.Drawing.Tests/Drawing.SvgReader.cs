@@ -264,6 +264,25 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAppliesInheritedAndResetBaselineShiftsFromAttributesAndStyles() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'>"
+            + "<text x='2' y='30' font-size='10'>"
+            + "<tspan baseline-shift='4px'>A<tspan baseline-shift='inherit'>B</tspan><tspan baseline-shift='initial'>E</tspan></tspan>"
+            + "<tspan style='baseline-shift:50%;line-height:20px'>C"
+            + "<tspan style='baseline-shift:inherit;line-height:30px'>D</tspan>"
+            + "<tspan style='baseline-shift:unset'>F</tspan></tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "A", "B", "E", "C", "D", "F" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 16D, 12D, 16D, 10D, 0D, 10D }, runs.Select(run => run.Y));
+    }
+
+    [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
             + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"

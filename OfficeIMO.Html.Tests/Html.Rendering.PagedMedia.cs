@@ -102,6 +102,29 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((0D, 12D, 12D, 0D), (page.Margins.Left, page.Margins.Right, page.Margins.Bottom, page.Margins.Top));
     }
 
+    [Theory]
+    [InlineData("margin:auto", 0D, 0D, 0D, 0D)]
+    [InlineData("margin:7px auto 9px 11px", 11D, 7D, 0D, 9D)]
+    [InlineData("margin:12px;margin-top:auto;margin-left:auto", 0D, 0D, 12D, 12D)]
+    public void HtmlPagedMedia_AutomaticMarginsOverrideConfiguredPageMargins(
+        string declarations,
+        double expectedLeft,
+        double expectedTop,
+        double expectedRight,
+        double expectedBottom) {
+        string html = "<style>@page{size:200px 100px;" + declarations + "}</style><p>Body</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            Margins = HtmlRenderMargins.All(25D)
+        };
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, options).Pages);
+
+        Assert.Equal(
+            (expectedLeft, expectedTop, expectedRight, expectedBottom),
+            (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
     [Fact]
     public void HtmlPagedMedia_InvalidNamedSizeDoesNotOverrideEarlierValidDeclaration() {
         const string html = "<style>@page report { size:letter; } @page report { size:A4 bogus; }</style><section style='page:report'>Body</section>";

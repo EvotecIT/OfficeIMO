@@ -100,7 +100,8 @@ internal sealed class HtmlCssPageRuleSet {
 
     private static void ApplySide(HtmlCssPageCascadeValue value, double width, double height, double fontSize, ref double target) {
         if (!value.HasValue) return;
-        if (string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
+        if (string.Equals(value.Value, "auto", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value.Value, "unset", StringComparison.OrdinalIgnoreCase)) {
             target = 0D;
         } else if (HasPageMarginLengthSyntax(value.Value)
