@@ -223,6 +223,35 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void EditResult_RetainsRaisedWidgetJavaScriptLimit() {
+        byte[] source = BuildWidgetActionBudgetPdf(PdfReadLimits.DefaultMaxJavaScripts + 1);
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 1 }
+        };
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source, options).Forms.Edit(edit => edit.Rename("run", "renamed"));
+
+        PdfFormField field = Assert.Single(result.ToDocument().Inspect().FormFields);
+        Assert.Equal("renamed", field.Name);
+        Assert.Equal(PdfReadLimits.DefaultMaxJavaScripts + 2, Assert.Single(field.Widgets).Actions.Count);
+    }
+
+    [Fact]
+    public void WidgetOwnedActiveContentTraversalHonorsObjectDepthLimit() {
+        byte[] source = BuildDeepCatalogReferenceChainWithWidgetAction(chainLength: 12);
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfReadDocument.Open(source, options).HasOnlyWidgetOwnedActiveContent());
+
+        Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
+        Assert.Equal(8, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
@@ -806,6 +835,23 @@ public class PdfAcroFormAuthoringTests {
             WriteAscii(output, "15 0 obj\n<< /S /JavaScript /JS (app.alert\\('outline'\\);) >>\nendobj\n");
         }
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + (includeOutlineAction ? "16" : "13") + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildDeepCatalogReferenceChainWithWidgetAction(int chainLength) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /OfficeIMOChain 20 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A << /S /JavaScript /JS (x) >> >>\nendobj\n");
+        for (int index = 0; index < chainLength; index++) {
+            int objectNumber = 20 + index;
+            string next = index + 1 < chainLength ? " /Next " + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R" : string.Empty;
+            WriteAscii(output, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n<< /Value " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + next + " >>\nendobj\n");
+        }
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + (20 + chainLength).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\n%%EOF\n");
         return output.ToArray();
     }
 

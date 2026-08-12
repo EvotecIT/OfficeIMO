@@ -99,6 +99,17 @@ public class PdfAcroFormEditorTests {
         Assert.Equal("Created.Name", field.Name);
         Assert.Equal("Ada", field.Value);
         Assert.Equal(1, Assert.Single(field.Widgets).PageNumber);
+
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfIndirectObject parentObject = Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Created");
+        PdfDictionary parent = Assert.IsType<PdfDictionary>(parentObject.Value);
+        PdfReference childReference = Assert.IsType<PdfReference>(Assert.Single(Assert.IsType<PdfArray>(parent.Items["Kids"]).Items));
+        PdfDictionary child = Assert.IsType<PdfDictionary>(objects[childReference.ObjectNumber].Value);
+        Assert.Equal("Name", Assert.IsType<PdfStringObj>(child.Items["T"]).Value);
+        Assert.Equal(parentObject.ObjectNumber, Assert.IsType<PdfReference>(child.Items["Parent"]).ObjectNumber);
     }
 
     [Fact]

@@ -19,58 +19,51 @@ public sealed partial class PdfReadDocument {
         PdfDictionary? catalog = FindCatalog();
         return catalog is not null && !ContainsActiveContentOutsideWidgets(
             catalog,
-            widgetObjectNumbers,
-            new HashSet<int>());
+            widgetObjectNumbers);
     }
 
     private bool ContainsActiveContentOutsideWidgets(
         PdfObject value,
-        HashSet<int> widgetObjectNumbers,
-        HashSet<int> visitedReferences) {
-        if (value is PdfReference reference) {
-            if (widgetObjectNumbers.Contains(reference.ObjectNumber)) return false;
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
-                !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject? indirect)) {
-                return false;
+        HashSet<int> widgetObjectNumbers) {
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var pending = new Stack<(PdfObject Value, int Depth)>();
+        pending.Push((value, 0));
+        while (pending.Count > 0) {
+            (PdfObject current, int depth) = pending.Pop();
+            if (depth > _options.Limits.MaxObjectNestingDepth) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, _options.Limits.MaxObjectNestingDepth, depth);
             }
 
-            return ContainsActiveContentOutsideWidgets(indirect.Value, widgetObjectNumbers, visitedReferences);
-        }
-
-        if (value is PdfStream stream) {
-            return ContainsActiveContentOutsideWidgets(stream.Dictionary, widgetObjectNumbers, visitedReferences);
-        }
-
-        if (value is PdfArray array) {
-            for (int index = 0; index < array.Items.Count; index++) {
-                if (ContainsActiveContentOutsideWidgets(array.Items[index], widgetObjectNumbers, visitedReferences)) {
-                    return true;
+            if (current is PdfReference reference) {
+                if (widgetObjectNumbers.Contains(reference.ObjectNumber) ||
+                    !visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
+                    !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject? indirect)) {
+                    continue;
                 }
+                pending.Push((indirect.Value, depth + 1));
+                continue;
             }
-
-            return false;
-        }
-
-        if (value is not PdfDictionary dictionary) return false;
-        for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
-            string marker = PdfActiveContentPolicy.MarkerNames[index];
-            if (dictionary.Items.ContainsKey(marker)) return true;
-        }
-
-        foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
-            if (item.Value is PdfName name) {
-                for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
-                    if (string.Equals(name.Name, PdfActiveContentPolicy.MarkerNames[index], StringComparison.Ordinal)) {
-                        return true;
+            if (current is PdfStream stream) {
+                pending.Push((stream.Dictionary, depth + 1));
+                continue;
+            }
+            if (current is PdfArray array) {
+                for (int index = array.Items.Count - 1; index >= 0; index--) pending.Push((array.Items[index], depth + 1));
+                continue;
+            }
+            if (current is not PdfDictionary dictionary) continue;
+            for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
+                if (dictionary.Items.ContainsKey(PdfActiveContentPolicy.MarkerNames[index])) return true;
+            }
+            foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                if (item.Value is PdfName name) {
+                    for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
+                        if (string.Equals(name.Name, PdfActiveContentPolicy.MarkerNames[index], StringComparison.Ordinal)) return true;
                     }
                 }
-            }
-
-            if (ContainsActiveContentOutsideWidgets(item.Value, widgetObjectNumbers, visitedReferences)) {
-                return true;
+                pending.Push((item.Value, depth + 1));
             }
         }
-
         return false;
     }
 }

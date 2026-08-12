@@ -64,9 +64,10 @@ internal static partial class PdfAcroFormEditor {
     private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FindField(objects, fields, options.Name) is not null) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
+        (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
-            ApplyCreateRadioButtonGroup(objects, acroForm, fields, pages, options, appearanceFontName, refillValues, appearanceOptions, ref nextObjectNumber);
+            ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, appearanceFontName, refillValues, appearanceOptions, ref nextObjectNumber);
             if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
             return;
         }
@@ -75,7 +76,8 @@ internal static partial class PdfAcroFormEditor {
         int objectNumber = nextObjectNumber++;
         var field = new PdfDictionary();
         field.Items["Type"] = new PdfName("Annot"); field.Items["Subtype"] = new PdfName("Widget");
-        field.Items["FT"] = new PdfName(GetFieldType(options.Kind)); field.Items["T"] = new PdfStringObj(options.Name, true);
+        field.Items["FT"] = new PdfName(GetFieldType(options.Kind)); field.Items["T"] = new PdfStringObj(partialName, true);
+        if (parentReference is not null) field.Items["Parent"] = parentReference;
         field.Items["Rect"] = CreateRectangle(options.X, options.Y, options.X + options.Width, options.Y + options.Height);
         field.Items["P"] = CreateReference(objects, pages[options.PageNumber - 1]); field.Items["F"] = new PdfNumber(options.WidgetFlags);
         int fieldFlags = GetCreateFieldFlags(options);
@@ -95,7 +97,7 @@ internal static partial class PdfAcroFormEditor {
             AddTextWidgetAppearance(objects, acroForm, page, field, options, string.Empty, appearanceOptions, ref nextObjectNumber);
         }
         objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, field);
-        var reference = new PdfReference(objectNumber, 0); fields.Items.Add(reference); EnsureAnnotationArray(objects, page).Items.Add(reference);
+        var reference = new PdfReference(objectNumber, 0); fieldOwner.Items.Add(reference); EnsureAnnotationArray(objects, page).Items.Add(reference);
         if (options.Kind == PdfFormFieldCreationKind.PushButton) {
             AddPushButtonAppearance(objects, acroForm, page, field, options, appearanceOptions, ref nextObjectNumber);
         } else if (options.Kind != PdfFormFieldCreationKind.Signature) {

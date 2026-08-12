@@ -47,7 +47,7 @@ internal static partial class PdfAcroFormEditor {
             PreserveSecurityState = !session.Commands.Any(static command => command.Options?.Kind == PdfFormFieldCreationKind.Signature)
         };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
-        return new PdfAcroFormEditResult(output, plan, preservation, saved.FormFields, calculationOrder, operations.AsReadOnly());
+        return new PdfAcroFormEditResult(output, plan, preservation, saved.FormFields, calculationOrder, operations.AsReadOnly(), savedReadOptions);
     }
 
     private static IEnumerable<string> GetCommandFieldNames(PdfAcroFormEditSession.EditCommand command) {

@@ -98,7 +98,8 @@ public sealed class PdfFormFieldCreateOptions {
 /// <summary>Result and proof for a transactional AcroForm edit.</summary>
 public sealed class PdfAcroFormEditResult {
     private readonly byte[] _pdf;
-    internal PdfAcroFormEditResult(byte[] pdf, PdfMutationPlan plan, PdfRewritePreservationReport preservation, IReadOnlyList<PdfFormField> fields, IReadOnlyList<string> calculationOrder, IReadOnlyList<string> operations) { _pdf = (byte[])pdf.Clone(); MutationPlan = plan; PreservationReport = preservation; Fields = Array.AsReadOnly(fields.ToArray()); CalculationOrder = Array.AsReadOnly(calculationOrder.ToArray()); Operations = Array.AsReadOnly(operations.ToArray()); }
+    private readonly PdfReadOptions _readOptions;
+    internal PdfAcroFormEditResult(byte[] pdf, PdfMutationPlan plan, PdfRewritePreservationReport preservation, IReadOnlyList<PdfFormField> fields, IReadOnlyList<string> calculationOrder, IReadOnlyList<string> operations, PdfReadOptions readOptions) { _pdf = (byte[])pdf.Clone(); _readOptions = readOptions; MutationPlan = plan; PreservationReport = preservation; Fields = Array.AsReadOnly(fields.ToArray()); CalculationOrder = Array.AsReadOnly(calculationOrder.ToArray()); Operations = Array.AsReadOnly(operations.ToArray()); }
     /// <summary>Shared mutation plan.</summary>
     public PdfMutationPlan MutationPlan { get; }
     /// <summary>Non-form preservation proof.</summary>
@@ -112,5 +113,5 @@ public sealed class PdfAcroFormEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
 }

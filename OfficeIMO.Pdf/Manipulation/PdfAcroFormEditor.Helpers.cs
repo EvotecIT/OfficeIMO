@@ -120,6 +120,57 @@ internal static partial class PdfAcroFormEditor {
         return annots;
     }
 
+    private static (PdfArray Owner, PdfReference? Parent, string PartialName) EnsureCreatedFieldOwner(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string fullName,
+        ref int nextObjectNumber) {
+        string[] components = fullName.Split('.');
+        PdfArray owner = fields;
+        PdfReference? parentReference = null;
+        for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            string component = components[componentIndex];
+            PdfReference? matchingReference = null;
+            PdfDictionary? matchingDictionary = null;
+            for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
+                }
+                PdfDictionary candidate = RequireDictionary(objects, candidateReference.ObjectNumber);
+                if (!string.Equals(ReadText(candidate, "T"), component, StringComparison.Ordinal)) continue;
+                if (matchingReference is not null) throw new InvalidOperationException("PDF contains duplicate partial form field names: " + component);
+                matchingReference = candidateReference;
+                matchingDictionary = candidate;
+            }
+
+            if (matchingReference is null || matchingDictionary is null) {
+                int objectNumber = nextObjectNumber++;
+                matchingReference = new PdfReference(objectNumber, 0);
+                var parent = new PdfDictionary();
+                parent.Items["T"] = new PdfStringObj(component, true);
+                parent.Items["Kids"] = new PdfArray();
+                if (parentReference is not null) parent.Items["Parent"] = parentReference;
+                objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, parent);
+                owner.Items.Add(matchingReference);
+                matchingDictionary = parent;
+            } else if (matchingDictionary.Items.ContainsKey("FT") ||
+                       string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal)) {
+                throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
+            }
+
+            PdfArray? kids = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)
+                ? ResolveArray(objects, kidsObject)
+                : null;
+            if (kids is null) {
+                kids = new PdfArray();
+                matchingDictionary.Items["Kids"] = kids;
+            }
+            owner = kids;
+            parentReference = matchingReference;
+        }
+        return (owner, parentReference, components[components.Length - 1]);
+    }
+
     private static void RemoveWidgetReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> widgetNumbers) {
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfDictionary page || !string.Equals(ReadName(page, "Type"), "Page", StringComparison.Ordinal) || !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) || ResolveArray(objects, annotsObject) is not PdfArray annots) continue;
@@ -174,7 +225,8 @@ internal static partial class PdfAcroFormEditor {
         if (options.Kind < PdfFormFieldCreationKind.Text || options.Kind > PdfFormFieldCreationKind.PushButton) throw new ArgumentOutOfRangeException(nameof(options), "Field kind is not supported.");
         if (options.PageNumber < 1 || options.PageNumber > pageCount) throw new ArgumentOutOfRangeException(nameof(options), "Page number is outside the document.");
         if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) || options.Width <= 0D || options.Height <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates and positive dimensions.");
-        if (options.Name[0] == '.' || options.Name[options.Name.Length - 1] == '.') throw new ArgumentException("Field name cannot start or end with a period.", nameof(options));
+        string[] nameComponents = options.Name.Split('.');
+        if (nameComponents.Any(static component => component.Length == 0)) throw new ArgumentException("Field names cannot contain empty path components.", nameof(options));
         if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
         if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));

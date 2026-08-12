@@ -67,7 +67,9 @@ internal static partial class PdfAcroFormEditor {
     private static void ApplyCreateRadioButtonGroup(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary acroForm,
-        PdfArray fields,
+        PdfArray fieldOwner,
+        PdfReference? parentReference,
+        string partialName,
         int[] pages,
         PdfFormFieldCreateOptions options,
         string appearanceFontName,
@@ -79,7 +81,8 @@ internal static partial class PdfAcroFormEditor {
         string selectedValue = ResolveInitialValue(options);
         var parent = new PdfDictionary();
         parent.Items["FT"] = new PdfName("Btn");
-        parent.Items["T"] = new PdfStringObj(options.Name, true);
+        parent.Items["T"] = new PdfStringObj(partialName, true);
+        if (parentReference is not null) parent.Items["Parent"] = parentReference;
         parent.Items["Ff"] = new PdfNumber(GetCreateFieldFlags(options));
         parent.Items["V"] = new PdfName(selectedValue);
         if (options.DefaultValue is not null) parent.Items["DV"] = new PdfName(options.DefaultValue);
@@ -88,7 +91,7 @@ internal static partial class PdfAcroFormEditor {
         var kids = new PdfArray();
         parent.Items["Kids"] = kids;
         objects[parentObjectNumber] = new PdfIndirectObject(parentObjectNumber, 0, parent);
-        fields.Items.Add(new PdfReference(parentObjectNumber, 0));
+        fieldOwner.Items.Add(new PdfReference(parentObjectNumber, 0));
 
         PdfArray annotations = EnsureAnnotationArray(objects, page);
         double top = options.Y + options.Height;
