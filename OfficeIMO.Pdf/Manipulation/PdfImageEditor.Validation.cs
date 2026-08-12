@@ -67,6 +67,9 @@ internal static partial class PdfImageEditor {
         }
 
         HashSet<string> structurallyUnsafeNames = ReadStructurallyUnsafeResourceNames(objects, decodedStreams, placement);
+        if (InvokesImageInsideMarkedContentAcrossPageStreams(objects, decodedStreams, structurallyUnsafeNames)) {
+            throw new NotSupportedException("Editing an image inside tagged, artifact, or optional marked content is not supported because its structural context cannot be preserved safely.");
+        }
         for (int i = 0; i < decodedStreams.Count; i++) {
             if (InvokesImageInsideMarkedContent(decodedStreams[i].Content, structurallyUnsafeNames)) {
                 throw new NotSupportedException("Editing an image inside tagged, artifact, or optional marked content is not supported because its structural context cannot be preserved safely.");
@@ -78,17 +81,22 @@ internal static partial class PdfImageEditor {
 
     private static bool InvokesImageInsideMarkedContent(string content, HashSet<string> resourceNames) {
         int markedContentDepth = 0;
+        return InvokesImageInsideMarkedContent(content, resourceNames, ref markedContentDepth);
+    }
+
+    private static bool InvokesImageInsideMarkedContent(string content, HashSet<string> resourceNames, ref int markedContentDepth) {
         bool found = false;
+        int depth = markedContentDepth;
         PdfContentStreamInterpreter.Interpret(
             content,
             PdfReadLimits.DefaultMaxContentOperations,
             operation => {
                 if (string.Equals(operation.Name, "BDC", StringComparison.Ordinal) ||
                     string.Equals(operation.Name, "BMC", StringComparison.Ordinal)) {
-                    markedContentDepth++;
+                    depth++;
                 } else if (string.Equals(operation.Name, "EMC", StringComparison.Ordinal)) {
-                    if (markedContentDepth > 0) markedContentDepth--;
-                } else if (markedContentDepth > 0 &&
+                    if (depth > 0) depth--;
+                } else if (depth > 0 &&
                            string.Equals(operation.Name, "Do", StringComparison.Ordinal) &&
                            operation.Operands.Count > 0 &&
                            operation.Operands[operation.Operands.Count - 1] is string name &&
@@ -96,7 +104,44 @@ internal static partial class PdfImageEditor {
                     found = true;
                 }
             });
+        markedContentDepth = depth;
         return found;
+    }
+
+    private static bool InvokesImageInsideMarkedContentAcrossPageStreams(
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyList<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        HashSet<string> resourceNames) {
+        var contentByObjectNumber = decodedStreams.ToDictionary(static item => item.ObjectNumber, static item => item.Content);
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary page ||
+                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            int markedContentDepth = 0;
+            foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) {
+                if (contentByObjectNumber.TryGetValue(reference.ObjectNumber, out string? content) &&
+                    InvokesImageInsideMarkedContent(content, resourceNames, ref markedContentDepth)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static IEnumerable<PdfReference> EnumeratePageContentReferences(
+        PdfObject contents,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (contents is PdfReference reference) {
+            if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfArray array) {
+                for (int i = 0; i < array.Items.Count; i++) {
+                    foreach (PdfReference item in EnumeratePageContentReferences(array.Items[i], objects)) yield return item;
+                }
+            } else {
+                yield return reference;
+            }
+        } else if (contents is PdfArray directArray) {
+            for (int i = 0; i < directArray.Items.Count; i++) {
+                foreach (PdfReference item in EnumeratePageContentReferences(directArray.Items[i], objects)) yield return item;
+            }
+        }
     }
 
     private static HashSet<string> ReadStructurallyUnsafeResourceNames(

@@ -146,6 +146,9 @@ internal static partial class PdfImageEditor {
         if (image.HasUnresolvedTransparencyMask) {
             throw new NotSupportedException("Moving this image is not supported because its PDF transparency mask could not be represented in the extracted image payload.");
         }
+        if (image.Interpolate) {
+            throw new NotSupportedException("Moving this image is not supported because its interpolation setting cannot be preserved during restamping.");
+        }
         if (string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) {
             if (image.HasExplicitDecode || image.HasDecodeParameters) {
                 throw new NotSupportedException("Moving this JPEG image is not supported because PDF Decode or DecodeParms semantics would be lost during restamping.");

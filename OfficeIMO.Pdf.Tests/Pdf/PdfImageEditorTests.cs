@@ -181,6 +181,16 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void DestructiveEditsCarryMarkedContentAcrossContentStreamArray() {
+        PdfDocument document = PdfDocument.Open(BuildSplitMarkedContentImagePdf());
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Remove(Assert.Single(document.Images.Placements())));
+
+        Assert.Contains("marked content", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ReplaceRejectsNonNormalBlendModeAndMoveRejectsJpegDecodeSemantics() {
         byte[] blended = BuildRawImagePdf(
             "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
@@ -199,6 +209,18 @@ public class PdfImageEditorTests {
             Assert.Single(jpegDocument.Images.Placements()),
             10D,
             0D));
+    }
+
+    [Fact]
+    public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
+        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true"));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("interpolation", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -481,6 +503,22 @@ public class PdfImageEditorTests {
     private static byte[] BuildSplitContentImagePdf() {
         const string first = "q 40 0 0 20 20 30 cm\n";
         const string second = "/Im0 Do Q\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /Im0 6 0 R >> >> /Contents [4 0 R 5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(first).ToString(CultureInfo.InvariantCulture) + " >>", "stream", first.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(second).ToString(CultureInfo.InvariantCulture) + " >>", "stream", second.TrimEnd('\n'), "endstream", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSplitMarkedContentImagePdf() {
+        const string first = "/Figure << /MCID 0 >> BDC\n";
+        const string second = "q 40 0 0 20 20 30 cm /Im0 Do Q EMC\n";
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",

@@ -21,7 +21,7 @@ internal static partial class PdfAcroFormEditor {
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
-                    ApplyRename(objects, fields, command.Name!, command.Value!, refillValues);
+                    ApplyRename(objects, fields, command.Name!, command.Value!, refillValues, flattenNames);
                     operations.Add("Rename " + command.Name + " -> " + command.Value);
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
@@ -108,7 +108,7 @@ internal static partial class PdfAcroFormEditor {
         if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
     }
 
-    private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues) {
+    private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues, List<string> flattenNames) {
         if (FieldPathExists(objects, fields, newName)) throw new ArgumentException("PDF form field already exists: " + newName, nameof(newName));
         EditableField field = RequireField(objects, fields, name);
         string oldParent = ParentName(name); string newParent = ParentName(newName);
@@ -117,6 +117,13 @@ internal static partial class PdfAcroFormEditor {
         field.Dictionary.Items["T"] = new PdfStringObj(string.Equals(partialName, field.FullName, StringComparison.Ordinal) ? newName : LeafName(newName), true);
         string? value = ReadSimpleValue(field.Dictionary);
         refillValues.Remove(name); QueueRefillValue(refillValues, newName, field.FieldType, value);
+        for (int i = 0; i < flattenNames.Count; i++) {
+            if (string.Equals(flattenNames[i], name, StringComparison.Ordinal)) {
+                flattenNames[i] = newName;
+            } else if (flattenNames[i].StartsWith(name + ".", StringComparison.Ordinal)) {
+                flattenNames[i] = newName + flattenNames[i].Remove(0, name.Length);
+            }
+        }
     }
 
     private static void ApplyRemove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string name) {

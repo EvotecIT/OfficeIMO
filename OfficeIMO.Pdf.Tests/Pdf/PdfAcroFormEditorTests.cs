@@ -23,6 +23,25 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_RetargetsDeferredFlatteningAndCalculationOrderThroughLaterTreeEdits() {
+        byte[] source = PdfDocument.Create()
+            .TextField("FlattenMe", value: "one")
+            .TextField("RenameMe", value: "two")
+            .TextField("RemoveMe", value: "three")
+            .ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetCalculationOrder("RenameMe", "RemoveMe")
+            .Flatten("FlattenMe")
+            .Rename("FlattenMe", "FlattenedName")
+            .Rename("RenameMe", "Renamed")
+            .Remove("RemoveMe"));
+
+        Assert.Equal(new[] { "Renamed" }, result.CalculationOrder);
+        Assert.Equal(new[] { "Renamed" }, result.Fields.Select(static field => field.Name).ToArray());
+    }
+
+    [Fact]
     public void Edit_AppliesFieldTreeWidgetOrderAndSelectiveFlattenTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("Person.Name", value: "Ada")

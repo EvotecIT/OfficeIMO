@@ -390,11 +390,11 @@ internal static partial class PdfRedactionApplier {
         }
 
         operand = args[args.Count - 1];
-        int invocationObjectNumber = ResolveImageInvocationObjectNumber(operand.Name!, xObjects, objects);
+        (int ObjectNumber, int DirectStreamIdentity) invocationIdentity = ResolveImageInvocationIdentity(operand.Name!, xObjects, objects);
         GetUnitRectangleBounds(ctm, out double x, out double y, out double width, out double height);
         for (int i = 0; i < targets.Length; i++) {
             if (string.Equals(targets[i].ResourceName, operand.Name, StringComparison.Ordinal) &&
-                targets[i].MatchesObjectNumber(invocationObjectNumber) &&
+                targets[i].MatchesIdentity(invocationIdentity.ObjectNumber, invocationIdentity.DirectStreamIdentity) &&
                 targets[i].MatchesTransform(ctm) &&
                 AreCloseImageCoordinate(targets[i].X, x) &&
                 AreCloseImageCoordinate(targets[i].Y, y) &&
@@ -407,7 +407,7 @@ internal static partial class PdfRedactionApplier {
 
         for (int i = 0; i < targets.Length; i++) {
             if (string.Equals(targets[i].ResourceName, operand.Name, StringComparison.Ordinal) &&
-                targets[i].MatchesObjectNumber(invocationObjectNumber) &&
+                targets[i].MatchesIdentity(invocationIdentity.ObjectNumber, invocationIdentity.DirectStreamIdentity) &&
                 targets[i].MatchesTransform(ctm) &&
                 RedactionAreaCoversRectangle(targets[i].Match.Area, x, y, width, height)) {
                 target = targets[i];
@@ -418,18 +418,18 @@ internal static partial class PdfRedactionApplier {
         return false;
     }
 
-    private static int ResolveImageInvocationObjectNumber(string resourceName, PdfDictionary? xObjects, Dictionary<int, PdfIndirectObject> objects) {
-        if (xObjects is null || !xObjects.Items.TryGetValue(resourceName, out PdfObject? value)) return 0;
+    private static (int ObjectNumber, int DirectStreamIdentity) ResolveImageInvocationIdentity(string resourceName, PdfDictionary? xObjects, Dictionary<int, PdfIndirectObject> objects) {
+        if (xObjects is null || !xObjects.Items.TryGetValue(resourceName, out PdfObject? value)) return (0, 0);
         if (value is PdfReference reference &&
             PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
             indirect.Value is PdfStream stream &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)) {
-            return reference.ObjectNumber;
+            return (reference.ObjectNumber, 0);
         }
         return value is PdfStream directStream &&
             string.Equals(directStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)
-                ? 0
-                : int.MinValue;
+                ? (0, PdfDirectStreamIdentity.Compute(directStream))
+                : (int.MinValue, 0);
     }
 
     private static bool RedactionAreaCoversRectangle(PdfRedactionArea area, double x, double y, double width, double height) =>
@@ -772,6 +772,10 @@ internal static partial class PdfRedactionApplier {
         private PdfImagePlacement? Placement { get; }
 
         public bool MatchesObjectNumber(int objectNumber) => Placement is null || Placement.ObjectNumber == objectNumber;
+
+        public bool MatchesIdentity(int objectNumber, int directStreamIdentity) => Placement is null ||
+            (Placement.ObjectNumber == objectNumber &&
+             (objectNumber != 0 || Placement.DirectStreamIdentity == directStreamIdentity));
 
         public bool MatchesTransform(Matrix2D transform) => Placement is null ||
             (AreCloseImageCoordinate(Placement.A, transform.A) &&

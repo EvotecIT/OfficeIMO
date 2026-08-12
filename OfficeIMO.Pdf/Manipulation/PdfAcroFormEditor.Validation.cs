@@ -13,7 +13,9 @@ internal static partial class PdfAcroFormEditor {
                     }
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
-                    if (!IsRemovedLater(commands, i, command.Value!) && !byName.ContainsKey(command.Value!)) throw new InvalidOperationException("AcroForm rename readback validation failed for " + command.Value + ".");
+                    if (!IsRemovedLater(commands, i, command.Value!) &&
+                        !IsFlattenedInTransaction(commands, command.Value!) &&
+                        !byName.ContainsKey(command.Value!)) throw new InvalidOperationException("AcroForm rename readback validation failed for " + command.Value + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
                     if (byName.Keys.Any(candidate => IsFieldInSubtree(candidate, command.Name!) && !IsIntroducedLater(commands, i, candidate))) throw new InvalidOperationException("AcroForm remove readback validation failed for " + command.Name + ".");
@@ -33,7 +35,7 @@ internal static partial class PdfAcroFormEditor {
                         !string.Equals(saved.Pages[command.PageNumber - 1].TabOrder, GetTabOrderName((PdfPageTabOrder)command.Number), StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm page tab-order readback validation failed.");
                     break;
                 case PdfAcroFormEditSession.EditKind.CalculationOrder:
-                    string[] expectedOrder = command.Names!.Distinct(StringComparer.Ordinal).ToArray();
+                    string[] expectedOrder = ResolveFinalCalculationOrder(command.Names!, commands, i);
                     if (!HasLaterCalculationOrderEdit(commands, i) &&
                         !calculationOrder.SequenceEqual(expectedOrder, StringComparer.Ordinal)) throw new InvalidOperationException("AcroForm calculation-order readback validation failed.");
                     break;
@@ -60,6 +62,24 @@ internal static partial class PdfAcroFormEditor {
             PdfAcroFormEditSession.EditCommand command = commands[i];
             if (command.Kind == PdfAcroFormEditSession.EditKind.Create && string.Equals(command.Options!.Name, finalName, StringComparison.Ordinal)) return true;
             if (command.Kind == PdfAcroFormEditSession.EditKind.Rename && string.Equals(command.Value, finalName, StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsFlattenedInTransaction(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, string finalName) {
+        for (int index = 0; index < commands.Count; index++) {
+            PdfAcroFormEditSession.EditCommand command = commands[index];
+            if (command.Kind != PdfAcroFormEditSession.EditKind.Flatten) continue;
+            for (int nameIndex = 0; nameIndex < command.Names!.Length; nameIndex++) {
+                string current = command.Names[nameIndex];
+                for (int later = index + 1; later < commands.Count; later++) {
+                    PdfAcroFormEditSession.EditCommand laterCommand = commands[later];
+                    if (laterCommand.Kind == PdfAcroFormEditSession.EditKind.Rename && string.Equals(laterCommand.Name, current, StringComparison.Ordinal)) {
+                        current = laterCommand.Value!;
+                    }
+                }
+                if (string.Equals(current, finalName, StringComparison.Ordinal)) return true;
+            }
         }
         return false;
     }
@@ -111,6 +131,30 @@ internal static partial class PdfAcroFormEditor {
             if (commands[i].Kind == PdfAcroFormEditSession.EditKind.CalculationOrder) return true;
         }
         return false;
+    }
+
+    private static string[] ResolveFinalCalculationOrder(
+        IReadOnlyList<string> names,
+        IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands,
+        int index) {
+        var expected = names.Distinct(StringComparer.Ordinal).ToList();
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Rename) {
+                for (int nameIndex = 0; nameIndex < expected.Count; nameIndex++) {
+                    if (string.Equals(expected[nameIndex], command.Name, StringComparison.Ordinal)) {
+                        expected[nameIndex] = command.Value!;
+                    } else if (expected[nameIndex].StartsWith(command.Name + ".", StringComparison.Ordinal)) {
+                        expected[nameIndex] = command.Value + expected[nameIndex].Remove(0, command.Name!.Length);
+                    }
+                }
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Remove) {
+                expected.RemoveAll(name => IsFieldInSubtree(name, command.Name!));
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Flatten) {
+                expected.RemoveAll(name => command.Names!.Any(flattened => IsFieldInSubtree(name, flattened)));
+            }
+        }
+        return expected.Distinct(StringComparer.Ordinal).ToArray();
     }
 
     private static bool IsFieldInSubtree(string fieldName, string subtreeName) =>

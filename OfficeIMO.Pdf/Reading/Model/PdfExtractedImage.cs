@@ -27,7 +27,8 @@ public sealed class PdfExtractedImage {
         bool isImageMask = false,
         OfficeColor? imageMaskColor = null,
         bool hasExplicitDecode = false,
-        bool hasDecodeParameters = false) {
+        bool hasDecodeParameters = false,
+        bool interpolate = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -47,6 +48,7 @@ public sealed class PdfExtractedImage {
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
         HasExplicitDecode = hasExplicitDecode;
         HasDecodeParameters = hasDecodeParameters;
+        Interpolate = interpolate;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -108,6 +110,8 @@ public sealed class PdfExtractedImage {
     public bool IsImageMask { get; }
 
     internal OfficeColor ImageMaskColor { get; }
+
+    internal bool Interpolate { get; }
 
     internal bool HasExplicitDecode { get; }
 
