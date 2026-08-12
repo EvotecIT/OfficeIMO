@@ -8,7 +8,8 @@ namespace OfficeIMO.Excel.Fluent {
             int lastRow,
             ExcelTableStyle style,
             bool freezeHeaderRow,
-            Action<TableVisualOptions>? visuals) {
+            Action<TableVisualOptions>? visuals,
+            bool pathsRepresentFlattenedObjects = true) {
             _row = lastRow + 1;
             var visualOptions = new TableVisualOptions {
                 FreezeHeaderRow = freezeHeaderRow
@@ -56,7 +57,7 @@ namespace OfficeIMO.Excel.Fluent {
                 }
             }
 
-            if (visualOptions.AutoFormatDynamicCollections) {
+            if (pathsRepresentFlattenedObjects && visualOptions.AutoFormatDynamicCollections) {
                 for (int index = 0; index < paths.Count; index++) {
                     if (!paths[index].Contains('.')) continue;
                     var columnStyle = new ExcelColumnStyleByHeaderBuilder(

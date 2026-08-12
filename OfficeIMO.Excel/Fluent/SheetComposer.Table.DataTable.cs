@@ -95,7 +95,16 @@ namespace OfficeIMO.Excel.Fluent {
                 tableName: title ?? "Table",
                 style: style,
                 includeAutoFilter: autoFilter);
-            return CompleteTable(range, paths, headers, headerRow, lastRow, style, freezeHeaderRow, visuals);
+            return CompleteTable(
+                range,
+                paths,
+                headers,
+                headerRow,
+                lastRow,
+                style,
+                freezeHeaderRow,
+                visuals,
+                pathsRepresentFlattenedObjects: false);
         }
 
         private static List<string> ResolveExplicitDataTablePaths(
@@ -108,7 +117,7 @@ namespace OfficeIMO.Excel.Fluent {
             var selectedSourceColumnSet = new HashSet<string>(selectedSourceColumns, StringComparer.Ordinal);
             foreach (string candidate in options.Columns!) {
                 if (string.IsNullOrWhiteSpace(candidate)) continue;
-                string canonicalCandidate = ResolveDataTableRule(
+                string canonicalCandidate = ResolveExplicitDataTableColumn(
                     sourceColumnNames,
                     candidate,
                     nameof(options.Columns)) ?? candidate;
@@ -126,6 +135,24 @@ namespace OfficeIMO.Excel.Fluent {
                 paths.Add(canonicalCandidate);
             }
             return paths;
+        }
+
+        private static string? ResolveExplicitDataTableColumn(
+            IReadOnlyList<string> paths,
+            string candidate,
+            string optionName) {
+            string? exactPath = paths.FirstOrDefault(path =>
+                string.Equals(path, candidate, StringComparison.Ordinal));
+            if (exactPath != null) return exactPath;
+
+            List<string> insensitivePaths = paths
+                .Where(path => string.Equals(path, candidate, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (insensitivePaths.Count == 1) return insensitivePaths[0];
+            if (insensitivePaths.Count > 1) {
+                throw CreateAmbiguousDataTableRuleException(candidate, optionName);
+            }
+            return null;
         }
 
         private static List<string> ResolveProjectedDataTablePaths(

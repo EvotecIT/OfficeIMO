@@ -16,6 +16,7 @@ namespace OfficeIMO.Data {
             int headerRowCount,
             bool enforceEmptyProjectionLimits = true,
             int? renderedColumnCountForCellLimit = null,
+            Func<int, string?>? rowLimitGuidance = null,
             Func<int, string?>? columnLimitGuidance = null,
             Func<long, string?>? cellLimitGuidance = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -31,13 +32,25 @@ namespace OfficeIMO.Data {
                     "MaxRows must be greater than zero.");
             }
 
-            int knownRowCount = source is IReadOnlyCollection<T> readOnlyCollection
-                ? readOnlyCollection.Count
-                : source is ICollection<T> collection
-                    ? collection.Count
-                    : 0;
-            if (knownRowCount > options.MaxRows) {
-                throw CreateRowLimitException(knownRowCount, options.MaxRows, consumerName);
+            bool hasKnownRowCount;
+            int knownRowCount;
+            if (source is IReadOnlyCollection<T> readOnlyCollection) {
+                knownRowCount = readOnlyCollection.Count;
+                hasKnownRowCount = true;
+            } else if (source is ICollection<T> collection) {
+                knownRowCount = collection.Count;
+                hasKnownRowCount = true;
+            } else {
+                knownRowCount = 0;
+                hasKnownRowCount = false;
+            }
+            if (hasKnownRowCount && knownRowCount > options.MaxRows) {
+                throw CreateRowLimitException(knownRowCount, options.MaxRows, consumerName, rowLimitGuidance);
+            }
+            if (hasKnownRowCount && knownRowCount == 0 && !enforceEmptyProjectionLimits) {
+                return new ObjectTableProjection(
+                    new List<Dictionary<string, object?>>(),
+                    new List<string>());
             }
 
             var rows = knownRowCount > 0
@@ -71,7 +84,11 @@ namespace OfficeIMO.Data {
 
             void AddProjectedRow(T item) {
                 if (rows.Count >= options.MaxRows) {
-                    throw CreateRowLimitException(checked(rows.Count + 1), options.MaxRows, consumerName);
+                    throw CreateRowLimitException(
+                        checked(rows.Count + 1),
+                        options.MaxRows,
+                        consumerName,
+                        rowLimitGuidance);
                 }
                 Dictionary<string, object?> row;
                 try {
@@ -272,11 +289,15 @@ namespace OfficeIMO.Data {
                 + "-cell " + limitKind + " limit (MaxCells). " + overrideHint);
         }
 
-        private static InvalidDataException CreateRowLimitException(int requiredRows, int limit, string consumerName) {
+        private static InvalidDataException CreateRowLimitException(
+            int requiredRows,
+            int limit,
+            string consumerName,
+            Func<int, string?>? limitGuidance = null) {
             string required = requiredRows.ToString(CultureInfo.InvariantCulture);
-            string overrideHint = string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
+            string overrideHint = limitGuidance?.Invoke(requiredRows) ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
                 ? "If this materialization is intentional, raise the limit with configure: options => options.MaxRows = " + required + "."
-                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxRows to at least " + required + ".";
+                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxRows to at least " + required + ".");
             return new InvalidDataException(
                 consumerName + " requires at least " + FormatCount(requiredRows, "data row", "data rows")
                 + ", exceeding the " + limit.ToString(CultureInfo.InvariantCulture)

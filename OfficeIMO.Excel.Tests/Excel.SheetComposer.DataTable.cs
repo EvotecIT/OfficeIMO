@@ -108,6 +108,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_DataTableExplicitColumnsDoNotMatchLastPathSegments() {
+            var table = new DataTable("Members");
+            table.Columns.Add("Customer.Name", typeof(string));
+            table.Rows.Add("Alice");
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Members", composer => {
+                string range = composer.TableFrom(
+                    table,
+                    configure: options => options.Columns = new[] { "Name" },
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:A2", range);
+            });
+
+            ExcelSheet sheet = document["Members"];
+            Assert.True(sheet.TryGetCellText(1, 1, out string? header));
+            Assert.True(sheet.TryGetCellText(2, 1, out string? value));
+            Assert.Equal("Name", header);
+            Assert.True(string.IsNullOrEmpty(value));
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableTreatsDottedColumnNamesAsLiteralSchema() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                var table = new DataTable("Members");
+                table.Columns.Add("Customer.Name", typeof(string));
+                table.Rows.Add("Alice");
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    document.Compose("Members", composer =>
+                        composer.TableFrom(table, freezeHeaderRow: false));
+                    document.Save();
+                }
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                Assert.Empty(worksheet.Descendants<ConditionalFormatting>());
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void SheetComposer_EmptyObjectTableSkipsExemptProjectionLimits() {
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Data", composer => {
+                string range = composer.TableFrom(
+                    Array.Empty<object>(),
+                    configure: options => {
+                        options.Columns = new[] { "First", "Second" };
+                        options.MaxColumns = 1;
+                    },
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:A1", range);
+            });
+
+            Assert.True(document["Data"].TryGetCellText(1, 1, out string? text));
+            Assert.Equal("(no data)", text);
+        }
+
+        [Fact]
+        public void SheetComposer_ObjectTableExplainsHardExcelRowBoundary() {
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Data", composer => composer.TableFrom(
+                    new CountOnlyRows(A1.MaxRows),
+                    configure: options => options.MaxRows = int.MaxValue,
+                    freezeHeaderRow: false)));
+
+            Assert.Contains("room for at most 1048575 data rows", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("split the data across multiple worksheets", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("options.MaxRows = 1048576", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SheetComposer_DataTableFallsBackWhenLaterWorksheetContentExists() {
             DataTable members = CreateMembersTable();
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
@@ -355,6 +433,19 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("PC-01", true, "Disabled", "one");
             table.Rows.Add("PC-02", false, "Gone", "two");
             return table;
+        }
+
+        private sealed class CountOnlyRows : IReadOnlyCollection<int> {
+            internal CountOnlyRows(int count) {
+                Count = count;
+            }
+
+            public int Count { get; }
+
+            public IEnumerator<int> GetEnumerator() =>
+                throw new InvalidOperationException("The known row-count check must run before enumeration.");
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
