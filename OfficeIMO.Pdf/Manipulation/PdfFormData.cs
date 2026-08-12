@@ -6,7 +6,7 @@ internal static class PdfFormData {
     public static PdfFormDataSet Export(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf)); PdfReadDocument document = PdfReadDocument.Open(pdf, options); var fields = new List<PdfFormDataField>();
         foreach (PdfFormField field in document.FormFields) {
-            if (string.IsNullOrEmpty(field.Name)) continue;
+            if (field.IsNoExport || string.IsNullOrEmpty(field.Name)) continue;
             IReadOnlyList<string> values = ResolveExportValues(field);
             fields.Add(new PdfFormDataField(field.Name!, values));
         }

@@ -548,6 +548,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : ResolveUniqueFormFieldName(element, mappingName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+        string placeholder = value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)
+            ? tag == "textarea"
+                ? NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty)
+                : NormalizeControlText(element.GetAttribute("placeholder"))
+            : string.Empty;
         IReadOnlyList<string> values = Array.Empty<string>();
         IReadOnlyList<string> options = Array.Empty<string>();
         IReadOnlyList<string> optionValues = Array.Empty<string>();
@@ -606,6 +611,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             name,
             mappingName,
             value,
+            placeholder,
             values,
             options,
             optionValues,
@@ -623,6 +629,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             alternateName,
             style.Font,
             style.Color,
+            ControlPlaceholderColor,
             style.Alignment,
             style.BackgroundColor,
             borderColor,

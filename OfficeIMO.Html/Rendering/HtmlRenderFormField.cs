@@ -30,6 +30,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         string name,
         string mappingName,
         string value,
+        string? placeholder,
         IEnumerable<string>? values,
         IEnumerable<string>? options,
         IEnumerable<string>? optionValues,
@@ -47,6 +48,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         string? alternateName,
         OfficeFontInfo font,
         OfficeColor textColor,
+        OfficeColor placeholderTextColor,
         OfficeTextAlignment textAlignment,
         OfficeColor? backgroundColor,
         OfficeColor? borderColor,
@@ -64,6 +66,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         MappingName = mappingName ?? throw new ArgumentNullException(nameof(mappingName));
         Value = value ?? string.Empty;
+        Placeholder = placeholder ?? string.Empty;
         RadioOption = radioOption;
         IsSelected = isSelected;
         IsDisabled = isDisabled;
@@ -78,6 +81,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         AlternateName = alternateName;
         Font = font;
         TextColor = textColor;
+        PlaceholderTextColor = placeholderTextColor;
         TextAlignment = textAlignment;
         BackgroundColor = backgroundColor;
         BorderColor = borderColor;
@@ -99,6 +103,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public string MappingName { get; }
     /// <summary>Resolved scalar field value.</summary>
     public string Value { get; }
+    /// <summary>Placeholder text shown only by the initial appearance while <see cref="Value"/> is empty.</summary>
+    public string Placeholder { get; }
     /// <summary>Resolved selected values for a choice field.</summary>
     public IReadOnlyList<string> Values => _values;
     /// <summary>Resolved display options for a choice field.</summary>
@@ -133,6 +139,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public OfficeFontInfo Font { get; }
     /// <summary>Resolved text color.</summary>
     public OfficeColor TextColor { get; }
+    /// <summary>Resolved color used by the placeholder-only initial appearance.</summary>
+    public OfficeColor PlaceholderTextColor { get; }
     /// <summary>Resolved horizontal text alignment.</summary>
     public OfficeTextAlignment TextAlignment { get; }
     /// <summary>Resolved background color.</summary>
@@ -151,5 +159,5 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
-        new(FieldKind, Name, MappingName, Value, _values, _options, _optionValues, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
+        new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
 }

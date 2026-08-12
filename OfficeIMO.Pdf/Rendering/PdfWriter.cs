@@ -806,9 +806,9 @@ internal static partial class PdfWriter {
                         string appearanceContent = BuildFormFieldTextAppearanceContent(
                             appearanceWidth,
                             appearanceHeight,
-                            field.Value,
+                            field.AppearanceValue ?? field.Value,
                             field.FontSize,
-                            field.Style,
+                            field.AppearanceStyle ?? field.Style,
                             pageOpts,
                             EnsureFont,
                             out IReadOnlyList<(string Name, int Id)> appearanceFontResources);

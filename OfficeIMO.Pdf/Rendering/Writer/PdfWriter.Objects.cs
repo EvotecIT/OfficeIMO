@@ -200,6 +200,8 @@ internal static partial class PdfWriter {
         public FormFieldAnnotationKind Kind { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
+        public string? AppearanceValue { get; set; }
+        public PdfFormFieldStyle? AppearanceStyle { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
         public bool IsChecked { get; set; }

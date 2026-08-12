@@ -56,6 +56,22 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void TaggedTextField_CanBeFlattenedWithoutDanglingStructureReferences() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
+            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace")
+            .ToBytes();
+
+        byte[] flattened = PdfFormFiller.FlattenFields(pdf);
+        string raw = Encoding.ASCII.GetString(flattened);
+        PdfDocumentInfo info = PdfInspector.Inspect(flattened);
+
+        Assert.False(info.HasReadableFormFields);
+        Assert.DoesNotContain("/Subtype /Widget", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Type /OBJR /Obj", raw, StringComparison.Ordinal);
+        Assert.Contains("Ada Lovelace", PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AcroFormDefaultTextAlignment_RoundTripsThroughCatalogAndFields() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Center

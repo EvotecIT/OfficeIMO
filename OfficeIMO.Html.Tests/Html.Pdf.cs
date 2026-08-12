@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Pdf.Filters;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
@@ -80,6 +81,34 @@ public sealed class HtmlPdfTests {
         Assert.Equal("contact", field.Name);
         Assert.Equal("contact", field.MappingName);
         Assert.Equal("Ada", field.Value);
+    }
+
+    [Fact]
+    public void HtmlToPdf_EmptyInteractiveTextFieldPreservesPlaceholderAsItsInitialAppearance() {
+        const string html = "<input name='email' placeholder='Email address'>";
+
+        HtmlRenderFormField renderedField = Assert.Single(
+            EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.Equal("Email address", renderedField.Placeholder);
+        Assert.Equal("email", field.Name);
+        Assert.Equal(string.Empty, field.Value);
+        var (objects, _) = PdfCore.PdfSyntax.ParseObjects(pdf);
+        PdfCore.PdfDictionary fieldObject = Assert.IsType<PdfCore.PdfDictionary>(objects.Values
+            .Select(item => item.Value)
+            .Single(item => item is PdfCore.PdfDictionary dictionary && dictionary.Get<PdfCore.PdfStringObj>("T")?.Value == "email"));
+        PdfCore.PdfDictionary appearance = Assert.IsType<PdfCore.PdfDictionary>(fieldObject.Items["AP"]);
+        PdfCore.PdfReference normalAppearance = Assert.IsType<PdfCore.PdfReference>(appearance.Items["N"]);
+        PdfCore.PdfStream stream = Assert.IsType<PdfCore.PdfStream>(objects[normalAppearance.ObjectNumber].Value);
+        string appearanceContent = Encoding.ASCII.GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+        Assert.Contains("BT", appearanceContent, StringComparison.Ordinal);
+        Assert.Contains("Tj", appearanceContent, StringComparison.Ordinal);
+
+        byte[] flattened = PdfCore.PdfFormFiller.FlattenFields(pdf);
+        Assert.False(PdfCore.PdfInspector.Inspect(flattened).HasReadableFormFields);
+        Assert.Contains("Email address", PdfCore.PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

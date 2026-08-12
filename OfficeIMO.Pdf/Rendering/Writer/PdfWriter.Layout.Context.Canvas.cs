@@ -108,6 +108,8 @@ internal static partial class PdfWriter {
                         : FormFieldAnnotationKind.Choice,
                 Name = item.Name,
                 Value = item.Value,
+                AppearanceValue = item.AppearanceValue,
+                AppearanceStyle = item.AppearanceStyle,
                 Values = item.Values,
                 FontSize = item.FontSize,
                 IsChecked = item.IsSelected,

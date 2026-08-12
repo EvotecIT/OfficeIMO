@@ -41,6 +41,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_BreakAllUsesRemainingSpaceBeforeMovingAWordThatFitsAnEmptyLine() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:40px;font-size:12px;word-break:break-all'>A WWW</div>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D });
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(fragment => fragment.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text)))
+            .ToArray();
+
+        Assert.True(lines.Length > 1);
+        Assert.StartsWith("A ", lines[0], StringComparison.Ordinal);
+        Assert.Contains("W", lines[0], StringComparison.Ordinal);
+        Assert.Equal("A WWW", string.Concat(lines));
+    }
+
+    [Fact]
     public void HtmlRendering_EmergencyWrappingRunsWhenNoAuthoredHyphenationPointFits() {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,

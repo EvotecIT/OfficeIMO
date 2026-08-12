@@ -12,6 +12,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasFormDataExportOmitsNoExportFields() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .TextField("enabled", "included", 20D, 20D, 120D, 20D)
+                .TextField("disabled", "excluded", 20D, 50D, 120D, 20D, style: new PdfFormFieldStyle { IsNoExport = true }))
+            .ToBytes();
+
+        PdfFormDataSet data = PdfDocument.Open(bytes).Forms.ExportData();
+
+        Assert.Contains(data.Fields, field => field.Name == "enabled" && field.Values.SequenceEqual(new[] { "included" }));
+        Assert.DoesNotContain(data.Fields, field => field.Name == "disabled");
+    }
+
+    [Fact]
     public void CanvasFormFields_CreatePositionedInspectableAcroFormWidgets() {
         var textStyle = new PdfFormFieldStyle {
             IsRequired = true,

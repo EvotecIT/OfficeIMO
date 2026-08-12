@@ -176,6 +176,57 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_IntrinsicTracksMeasureRenderableTextWithDescendantStyles() {
+        const string html = """
+            <div style="display:grid;width:400px;grid-template-columns:max-content 20px;justify-content:start">
+              <div id="wrapper" style="background:red"><span style="font-size:80px">WWW</span></div>
+              <span id="after" style="background:blue">B</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 420D);
+        HtmlRenderShape wrapper = FindGridShape(rendered, "div#wrapper");
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+
+        Assert.True(wrapper.Width > 150D);
+        Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_MaxContentUsesTheWidestBlockLineInsteadOfConcatenatingBlocks() {
+        const string html = """
+            <div style="display:grid;width:400px;grid-template-columns:max-content max-content;justify-content:start">
+              <div id="wrapper" style="background:red"><div>WWWW</div><div>iiii</div></div>
+              <span id="reference" style="background:blue">WWWW</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 420D);
+        HtmlRenderShape wrapper = FindGridShape(rendered, "div#wrapper");
+        HtmlRenderShape reference = FindGridShape(rendered, "span#reference");
+
+        Assert.Equal(reference.Width, wrapper.Width, 3);
+        Assert.Equal(wrapper.X + wrapper.Width, reference.X, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_MaxContentPreservesAuthoredWhitespaceWhenTheDescendantStyleRequiresIt() {
+        const string html = """
+            <div style="display:grid;width:400px;grid-template-columns:max-content max-content;justify-content:start">
+              <span id="preserved" style="white-space:pre;background:red">A     B</span>
+              <span id="collapsed" style="background:blue">A     B</span>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 420D);
+        HtmlRenderShape preserved = FindGridShape(rendered, "span#preserved");
+        HtmlRenderShape collapsed = FindGridShape(rendered, "span#collapsed");
+
+        Assert.True(preserved.Width > collapsed.Width + 20D);
+        Assert.Equal(preserved.X + preserved.Width, collapsed.X, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_DoesNotLeakSubgridTracksThroughANonGridWrapper() {
         const string html = """
             <div style="display:grid;width:200px;grid-template-columns:60px 140px">

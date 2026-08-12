@@ -306,19 +306,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
 
-        string content = CollapseFlexText(ResolveGridInFlowText(item, availableSize));
+        IReadOnlyList<GridIntrinsicTextRun> textRuns = ResolveGridInFlowTextRuns(item, availableSize);
         double measured;
-        if (content.Length == 0) {
+        if (textRuns.Count == 0) {
             measured = 1D;
-        } else if (style.PreventTextWrapping) {
-            measured = MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         } else {
-            measured = content
-                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                .SelectMany(token => SplitGridMinContentSegments(token, style.WordBreak != "keep-all"))
-                .Select(segment => MeasureInlineText(ApplyTextTransform(segment, style.TextTransform), style))
-                .DefaultIfEmpty(1D)
-                .Max();
+            measured = MeasureGridMinContentRuns(textRuns);
         }
         measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
 
@@ -329,47 +322,198 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return definite;
 
-        string content = CollapseFlexText(ResolveGridInFlowText(item, availableSize));
-        double measured = content.Length == 0
+        IReadOnlyList<GridIntrinsicTextRun> textRuns = ResolveGridInFlowTextRuns(item, availableSize);
+        double measured = textRuns.Count == 0
             ? 1D
-            : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
+            : MeasureGridMaxContentRuns(textRuns);
         measured = Math.Max(measured, ResolveDescendantReplacedGridContribution(item, availableSize));
         return ResolveGridMeasuredContribution(style, measured);
     }
 
-    private static IEnumerable<string> SplitGridMinContentSegments(string token, bool allowCjkBreaks) {
-        int start = 0;
-        foreach (int end in OfficeTextLineBreaks.GetBreakPositions(token, allowCjkBreaks).Concat(new[] { token.Length })) {
-            if (end <= start || end > token.Length) continue;
-            yield return token.Substring(start, end - start);
-            start = end;
+    private double MeasureGridMinContentRuns(IReadOnlyList<GridIntrinsicTextRun> runs) {
+        double maximum = 1D;
+        double current = 0D;
+        foreach (GridIntrinsicTextRun run in runs) {
+            if (run.IsForcedBreak) {
+                maximum = Math.Max(maximum, current);
+                current = 0D;
+                continue;
+            }
+            if (run.Style.PreventTextWrapping) {
+                current += MeasureInlineText(run.Text, run.Style);
+                maximum = Math.Max(maximum, current);
+                continue;
+            }
+
+            int start = 0;
+            for (int index = 0; index <= run.Text.Length; index++) {
+                bool atEnd = index == run.Text.Length;
+                if (!atEnd && !char.IsWhiteSpace(run.Text[index])) continue;
+                if (index > start) {
+                    string token = run.Text.Substring(start, index - start);
+                    bool breakEverywhere = run.Style.WordBreak == "break-all" || run.Style.OverflowWrap == "anywhere";
+                    if (breakEverywhere) {
+                        foreach (string element in OfficeTextElements.Split(token)) {
+                            current += MeasureInlineText(element, run.Style);
+                            maximum = Math.Max(maximum, current);
+                            current = 0D;
+                        }
+                    } else {
+                        int segmentStart = 0;
+                        foreach (int end in OfficeTextLineBreaks.GetBreakPositions(token, run.Style.WordBreak != "keep-all")) {
+                            if (end <= segmentStart || end > token.Length) continue;
+                            current += MeasureInlineText(token.Substring(segmentStart, end - segmentStart), run.Style);
+                            maximum = Math.Max(maximum, current);
+                            current = 0D;
+                            segmentStart = end;
+                        }
+                        if (segmentStart < token.Length) current += MeasureInlineText(token.Substring(segmentStart), run.Style);
+                        maximum = Math.Max(maximum, current);
+                    }
+                }
+                if (!atEnd) {
+                    if (run.Style.BreakSpaces) {
+                        current += MeasureInlineText(run.Text[index].ToString(), run.Style);
+                    }
+                    maximum = Math.Max(maximum, current);
+                    current = 0D;
+                    start = index + 1;
+                }
+            }
+        }
+        return Math.Max(maximum, current);
+    }
+
+    private double MeasureGridMaxContentRuns(IReadOnlyList<GridIntrinsicTextRun> runs) {
+        double maximum = 1D;
+        double current = 0D;
+        foreach (GridIntrinsicTextRun run in runs) {
+            if (run.IsForcedBreak) {
+                maximum = Math.Max(maximum, current);
+                current = 0D;
+                continue;
+            }
+            current += MeasureInlineText(run.Text, run.Style);
+        }
+        return Math.Max(maximum, current);
+    }
+
+    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize) {
+        var rawRuns = new List<GridIntrinsicTextRun>();
+        if (item.Element == null) {
+            rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
+        } else {
+            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, 1, rawRuns);
+        }
+
+        var normalized = new List<GridIntrinsicTextRun>();
+        bool pendingWhitespace = false;
+        foreach (GridIntrinsicTextRun run in rawRuns) {
+            if (run.IsForcedBreak) {
+                pendingWhitespace = false;
+                if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
+                    normalized.Add(run);
+                }
+                continue;
+            }
+            string transformed = ApplyTextTransform(run.Text, run.Style.TextTransform);
+            if (run.Style.PreserveWhitespace) {
+                if (pendingWhitespace) {
+                    AppendNormalizedGridIntrinsicText(normalized, " ", run.Style);
+                    pendingWhitespace = false;
+                }
+
+                int segmentStart = 0;
+                for (int index = 0; index <= transformed.Length; index++) {
+                    bool atEnd = index == transformed.Length;
+                    bool atLineBreak = !atEnd && (transformed[index] == '\r' || transformed[index] == '\n');
+                    if (!atEnd && !atLineBreak) continue;
+                    if (index > segmentStart) {
+                        AppendNormalizedGridIntrinsicText(normalized, transformed.Substring(segmentStart, index - segmentStart), run.Style);
+                    }
+                    if (atLineBreak) {
+                        if (transformed[index] == '\r' && index + 1 < transformed.Length && transformed[index + 1] == '\n') index++;
+                        if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
+                            normalized.Add(GridIntrinsicTextRun.ForcedBreak(run.Style));
+                        }
+                        segmentStart = index + 1;
+                    }
+                }
+                continue;
+            }
+
+            var text = new StringBuilder();
+            foreach (char current in transformed) {
+                if (char.IsWhiteSpace(current)) {
+                    pendingWhitespace = normalized.Count > 0 || text.Length > 0;
+                    continue;
+                }
+                if (pendingWhitespace) {
+                    text.Append(' ');
+                    pendingWhitespace = false;
+                }
+                text.Append(current);
+            }
+            if (text.Length == 0) continue;
+            AppendNormalizedGridIntrinsicText(normalized, text.ToString(), run.Style);
+        }
+        return normalized;
+    }
+
+    private static void AppendNormalizedGridIntrinsicText(List<GridIntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
+        if (text.Length == 0) return;
+        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
+            GridIntrinsicTextRun previous = runs[runs.Count - 1];
+            runs[runs.Count - 1] = new GridIntrinsicTextRun(previous.Text + text, style);
+        } else {
+            runs.Add(new GridIntrinsicTextRun(text, style));
         }
     }
 
-    private string ResolveGridInFlowText(FlexItem item, double availableSize) {
-        if (item.Element == null) return item.TextContent;
-        var result = new StringBuilder();
-        AppendGridInFlowText(item.Element, item.Style, availableSize, 1, result);
-        return result.ToString();
-    }
-
-    private void AppendGridInFlowText(
+    private void AppendGridInFlowTextRuns(
         IElement parent,
         HtmlRenderBoxStyle parentStyle,
         double availableSize,
         int depth,
-        StringBuilder result) {
+        ICollection<GridIntrinsicTextRun> result) {
+        AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {
-                result.Append(text.Data);
+                if (text.Data.Length > 0) result.Add(new GridIntrinsicTextRun(text.Data, parentStyle));
                 continue;
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
             EnsureDepth(depth, child);
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
-            AppendGridInFlowText(child, childStyle, availableSize, depth + 1, result);
+            if (string.Equals(child.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                continue;
+            }
+            bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
+            if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+            AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
+            if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
         }
+        AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.After, parentStyle, availableSize, result);
+    }
+
+    private void AppendGeneratedGridIntrinsicText(
+        IElement element,
+        HtmlPseudoElementKind kind,
+        HtmlRenderBoxStyle parentStyle,
+        double availableSize,
+        ICollection<GridIntrinsicTextRun> result) {
+        if (!_generatedContent.TryGet(element, kind, out string content)
+            || content.Length == 0
+            || !_styleResolver.TryResolvePseudo(element, kind, availableSize, parentStyle, out HtmlRenderBoxStyle style)
+            || style.Display == "none"
+            || style.Position == "absolute"
+            || style.Position == "fixed") return;
+        bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
+        if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
+        result.Add(new GridIntrinsicTextRun(content, style));
+        if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
     }
 
     private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize) {
@@ -424,6 +568,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         double outer = boxBasis + style.MarginLeft + style.MarginRight;
         return Math.Max(1D, outer);
+    }
+
+    private sealed class GridIntrinsicTextRun {
+        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false) {
+            Text = text;
+            Style = style;
+            IsForcedBreak = isForcedBreak;
+        }
+
+        internal static GridIntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
+
+        internal string Text { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal bool IsForcedBreak { get; }
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {

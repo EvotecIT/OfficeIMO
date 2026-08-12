@@ -13,7 +13,16 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas TextField(string name, string? value, double x, double y, double width, double height, double fontSize = 10D, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
         Guard.Positive(fontSize, nameof(fontSize));
-        _items.Add(PdfCanvasFormFieldItem.Text(name, value ?? string.Empty, x, y, width, height, fontSize, style));
+        string resolvedValue = value ?? string.Empty;
+        _items.Add(PdfCanvasFormFieldItem.Text(name, resolvedValue, resolvedValue, x, y, width, height, fontSize, style, style));
+        return this;
+    }
+
+    internal PdfPageCanvas TextFieldWithInitialAppearance(string name, string? value, string appearanceValue, double x, double y, double width, double height, double fontSize, PdfFormFieldStyle? style, PdfFormFieldStyle? appearanceStyle) {
+        ValidateFormFieldBox(name, x, y, width, height);
+        Guard.NotNull(appearanceValue, nameof(appearanceValue));
+        Guard.Positive(fontSize, nameof(fontSize));
+        _items.Add(PdfCanvasFormFieldItem.Text(name, value ?? string.Empty, appearanceValue, x, y, width, height, fontSize, style, appearanceStyle));
         return this;
     }
 
@@ -134,8 +143,8 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
         Style = style?.Clone() ?? new PdfFormFieldStyle();
     }
 
-    internal static PdfCanvasFormFieldItem Text(string name, string value, double x, double y, double width, double height, double fontSize, PdfFormFieldStyle? style) =>
-        new(PdfCanvasFormFieldKind.Text, name, x, y, width, height, style) { Value = value, FontSize = fontSize };
+    internal static PdfCanvasFormFieldItem Text(string name, string value, string appearanceValue, double x, double y, double width, double height, double fontSize, PdfFormFieldStyle? style, PdfFormFieldStyle? appearanceStyle) =>
+        new(PdfCanvasFormFieldKind.Text, name, x, y, width, height, style) { Value = value, AppearanceValue = appearanceValue, AppearanceStyle = appearanceStyle?.Clone() ?? style?.Clone() ?? new PdfFormFieldStyle(), FontSize = fontSize };
 
     internal static PdfCanvasFormFieldItem CheckBox(string name, bool isChecked, string checkedValueName, string exportValue, double x, double y, double width, double height, PdfFormFieldStyle? style) =>
         new(PdfCanvasFormFieldKind.CheckBox, name, x, y, width, height, style) { IsSelected = isChecked, Option = checkedValueName, ExportValue = exportValue, Value = isChecked ? checkedValueName : "Off" };
@@ -152,6 +161,8 @@ internal sealed class PdfCanvasFormFieldItem : PdfCanvasItem {
     internal PdfCanvasFormFieldKind Kind { get; }
     internal string Name { get; }
     internal string Value { get; private set; } = string.Empty;
+    internal string AppearanceValue { get; private set; } = string.Empty;
+    internal PdfFormFieldStyle AppearanceStyle { get; private set; } = new PdfFormFieldStyle();
     internal IReadOnlyList<string> Values { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<string> Options { get; private set; } = Array.Empty<string>();
     internal IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; private set; } = Array.Empty<PdfFormFieldOption>();

@@ -371,7 +371,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         visibleTokenStart)) {
                     continue;
                 }
-                if (!paragraphStyle.PreventTextWrapping && !whitespace && measured > width && AllowsEmergencyTokenBreak(run.Style)) {
+                bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
+                    && line.HasFlowContent
+                    && measured > Math.Max(0D, width - line.Width);
+                if (!paragraphStyle.PreventTextWrapping
+                    && !whitespace
+                    && AllowsEmergencyTokenBreak(run.Style)
+                    && (measured > width || breakAllIntoRemainingSpace)) {
                     AddBrokenToken(lines, ref line, run, paintToken, logicalPaintToken, width, visibleTokenStart);
                     continue;
                 }
@@ -760,17 +766,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int partLogicalLength = 0;
         IReadOnlyList<string> paintElements = OfficeTextElements.Split(token);
         IReadOnlyList<string> logicalElements = OfficeTextElements.Split(logicalToken);
+        double partLimit = line.HasFlowContent ? Math.Max(0D, width - line.Width) : width;
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
             double charWidth = MeasureInlineText(value, run.Style);
-            if (part.Length > 0 && partWidth + charWidth > width) {
-                if (line.HasFlowContent) {
-                    TrimTrailingWhitespace(line);
-                    lines.Add(line);
-                    line = new InlineLine();
-                }
-
+            if (part.Length > 0 && partWidth + charWidth > partLimit) {
                 line.Add(new InlineSegment(
                     part.ToString(),
                     partWidth,
@@ -782,6 +783,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 part.Clear();
                 logicalPart.Clear();
                 partWidth = 0D;
+                partLimit = width;
+            } else if (part.Length == 0 && line.HasFlowContent && charWidth > partLimit) {
+                TrimTrailingWhitespace(line);
+                lines.Add(line);
+                line = new InlineLine();
+                partLimit = width;
             }
 
             part.Append(value);
