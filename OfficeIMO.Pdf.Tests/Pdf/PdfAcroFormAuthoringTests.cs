@@ -159,6 +159,50 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Preflight_DoesNotAdvertisePushButtonsAsFillableValueFields() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button preflight")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate"
+        })).ToBytes();
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(authored);
+
+        Assert.False(preflight.CanFillSimpleFormFields);
+        Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+    }
+
+    [Fact]
+    public void Create_AllowsEscapableSpacesInRadioOptionNames() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Radio names")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "size",
+            Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+            ChoiceOptions = new[] { "Extra Large" },
+            Value = "Extra Large",
+            Width = 150,
+            Height = 24
+        }));
+
+        Assert.Equal("Extra Large", result.ToDocument().Inspect().FormFieldsByName["size"].Value);
+    }
+
+    [Fact]
+    public void Create_RejectsMultiSelectComboChoiceFlags() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Choice flags")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "choice",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "One", "Two" },
+            IsComboBox = true,
+            FieldFlags = 2097152
+        })));
+    }
+
+    [Fact]
     public void Edit_AllowsSubsequentEditsWhenActiveContentBelongsOnlyToFormWidgets() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Repeated scripted edits")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {

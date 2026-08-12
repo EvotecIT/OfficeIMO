@@ -199,6 +199,7 @@ internal static partial class PdfAcroFormEditor {
             bool isComboBox = IsChoiceComboBox(options);
             bool isEditableChoice = IsEditableChoice(options);
             if (isEditableChoice && !isComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
+            if (isComboBox && (options.FieldFlags & FieldFlagMultiSelect) != 0) throw new ArgumentException("Combo-box choice fields cannot also be multi-select fields.", nameof(options));
             if (!string.IsNullOrEmpty(options.Value) && !isEditableChoice && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
             if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
         }
@@ -226,7 +227,7 @@ internal static partial class PdfAcroFormEditor {
     private static void ValidateButtonStateName(string value, string description) {
         Guard.NotNullOrWhiteSpace(value, nameof(value));
         if (string.Equals(value, "Off", StringComparison.Ordinal)) throw new ArgumentException(description + " cannot be Off.", nameof(value));
-        for (int i = 0; i < value.Length; i++) if (value[i] < 0x21 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
+        for (int i = 0; i < value.Length; i++) if (value[i] < 0x20 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

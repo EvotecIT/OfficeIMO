@@ -84,6 +84,19 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_PreservationIncludesSafeUriActionsAndOpeningDestinations() {
+        byte[] source = BuildSafeViewerActionPdf();
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal("Destination", info.OpenAction!.ActionType);
+        Assert.Contains(info.Pages[0].PageActions, action => action.ActionType == "URI");
+    }
+
+    [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
@@ -218,6 +231,16 @@ public class PdfSanitizerTests {
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
             "5 0 obj\n" + annotation + "\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSafeViewerActionPdf() {
+        string pdf = "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /AA << /O << /S /URI /URI (https://example.com/safe) >> >> >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n";
         return Encoding.ASCII.GetBytes(pdf);
     }
 }

@@ -263,7 +263,7 @@ public sealed partial class PdfDocumentPreflight {
         return !string.IsNullOrEmpty(field.Name) &&
             (field.Kind == PdfFormFieldKind.Text ||
             field.Kind == PdfFormFieldKind.Choice ||
-            field.Kind == PdfFormFieldKind.Button);
+            field.Kind == PdfFormFieldKind.Button && !field.IsPushButton);
     }
 
     private static bool IsNamedSimpleFlattenField(PdfFormField field) {
