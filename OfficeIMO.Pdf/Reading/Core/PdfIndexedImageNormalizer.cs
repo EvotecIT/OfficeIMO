@@ -154,6 +154,7 @@ internal static class PdfIndexedImageNormalizer {
             !PdfImageColorKeyMask.TryCreateDeclaration(
                 stream.Dictionary,
                 componentCount: 1,
+                bitsPerComponent,
                 objects,
                 out PdfImageColorKeyMask? colorKeyMask)) {
             return false;

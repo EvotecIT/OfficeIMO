@@ -1458,6 +1458,67 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void ExtractImages_ReportsMalformedMultiHopColorKeyMaskAsUnresolved() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 255, 0, 0 },
+            "/N 3",
+            imageEntries: "/Mask 7 0 R",
+            extraObjects: "7 0 obj\n8 0 R\nendobj\n8 0 obj\n[255 /Bad 0 0 0 0]\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.False(image.IsImageFile);
+        Assert.Equal("color-key-mask", image.TransparencyMaskKind);
+        Assert.True(image.HasUnresolvedTransparencyMask);
+    }
+
+    [Theory]
+    [InlineData(new double[] { 0, 0, 0, 0, 0, 0, 0 })]
+    [InlineData(new double[] { 0.5, 1, 0, 0, 0, 0 })]
+    [InlineData(new double[] { -1, 0, 0, 0, 0, 0 })]
+    [InlineData(new double[] { 0, 256, 0, 0, 0, 0 })]
+    [InlineData(new double[] { 2, 1, 0, 0, 0, 0 })]
+    public void ColorKeyMask_RejectsMalformedNumericRanges(double[] values) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Mask"] = NumberArray(values);
+
+        Assert.Null(PdfImageColorKeyMask.Create(dictionary, 3, 8, new Dictionary<int, PdfIndirectObject>()));
+    }
+
+    [Fact]
+    public void RenderPage_AdaptivelySamplesIccShadingBeforeSrgbInterpolation() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        OfficeLinearGradient gradient = Assert.Single(
+            PdfPageImageRenderer.RenderPage(BuildIccShadingPdf(profile)).Shapes,
+            item => item.Shape.FillGradient != null).Shape.FillGradient!;
+
+        Assert.True(gradient.Stops.Count > 2);
+        OfficeGradientStop midpoint = Assert.Single(
+            gradient.Stops,
+            stop => Math.Abs(stop.Offset - 0.5D) < 0.000001D);
+        Assert.True(OfficeIccColorProfile.TryCreate(profile, out OfficeIccColorProfile? parsedProfile));
+        Assert.True(parsedProfile!.TryConvert(new[] { 0.5D, 0.5D, 0.5D }, out OfficeColor expected));
+        Assert.Equal(expected, midpoint.Color);
+        Assert.NotEqual((byte)128, midpoint.Color.R);
+    }
+
+    [Fact]
+    public void RenderPage_AdaptivelySamplesEveryIccStitchingSubfunction() {
+        const string function = "<< /FunctionType 3 /Domain [0 1] /Functions [" +
+            "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >> " +
+            "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>] " +
+            "/Bounds [0.5] /Encode [0 1 0 1] >>";
+        OfficeLinearGradient gradient = Assert.Single(
+            PdfPageImageRenderer.RenderPage(BuildIccShadingPdf(PdfIccProfiles.SrgbIec6196621, function)).Shapes,
+            item => item.Shape.FillGradient != null).Shape.FillGradient!;
+
+        Assert.True(gradient.Stops.Count > 4);
+        Assert.Contains(gradient.Stops, stop => stop.Offset > 0D && stop.Offset < 0.5D);
+        Assert.Contains(gradient.Stops, stop => stop.Offset > 0.5D && stop.Offset < 1D);
+    }
+
+    [Fact]
     public void CalculatorTintFunctionRejectsUndecodableFilteredPayload() {
         var dictionary = new PdfDictionary();
         dictionary.Items["FunctionType"] = new PdfNumber(4);
@@ -2552,6 +2613,24 @@ public class PdfIccColorRenderingTests {
         output.WriteByte(0x80);
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< " + profileEntries + " /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(profile, 0, profile.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildIccShadingPdf(byte[] profile, string? function = null) {
+        function ??= "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>";
+        byte[] contentBytes = Encoding.ASCII.GetBytes("20 80 120 40 re\nW\nn\n/Sh1 sh");
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.4\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Shading << /Sh1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 6 0 R] /Coords [20 80 140 80] /Function " + function + " /Extend [true true] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /N 3 /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(profile, 0, profile.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();

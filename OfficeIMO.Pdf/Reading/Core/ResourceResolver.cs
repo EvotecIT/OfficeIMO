@@ -976,7 +976,14 @@ internal static partial class ResourceResolver {
                 extension = "png";
                 mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
                 isImageFile = true;
-                transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(transparencyMaskKind);
+                transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(
+                    transparencyMaskKind,
+                    stream.Dictionary,
+                    effectiveColorSpaceObject,
+                    colorSpace,
+                    bitsPerComponent,
+                    objects,
+                    maxDecodedStreamBytes);
             } else if (!hasSupportedOutputIntent &&
                        CanPassThroughDctPayload(stream.Dictionary, colorSpace, objects) &&
                        TryGetDctPayload(stream, objects, maxDecodedStreamBytes, out byte[] passThroughJpeg)) {
@@ -1235,6 +1242,7 @@ internal static partial class ResourceResolver {
             !PdfImageColorKeyMask.TryCreateDeclaration(
                 stream.Dictionary,
                 colorNormalization.SourceColorCount,
+                bitsPerComponent,
                 objects,
                 out PdfImageColorKeyMask? colorKeyMask)) {
             return false;

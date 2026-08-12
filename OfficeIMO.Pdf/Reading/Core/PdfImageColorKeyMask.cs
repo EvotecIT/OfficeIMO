@@ -47,6 +47,14 @@ internal sealed class PdfImageColorKeyMask {
         PdfDictionary dictionary,
         int componentCount,
         Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageColorKeyMask? mask) =>
+        TryCreateDeclaration(dictionary, componentCount, bitsPerComponent: 8, objects, out mask);
+
+    internal static bool TryCreateDeclaration(
+        PdfDictionary dictionary,
+        int componentCount,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
         out PdfImageColorKeyMask? mask) {
         mask = null;
         if (!dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject)) return true;
@@ -62,30 +70,8 @@ internal sealed class PdfImageColorKeyMask {
             return false;
         }
 
-        var minimums = new int[componentCount];
-        var maximums = new int[componentCount];
-        for (int component = 0; component < componentCount; component++) {
-            if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2], out PdfObject? resolvedMinimum) ||
-                resolvedMinimum is not PdfNumber minimum ||
-                !PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2 + 1], out PdfObject? resolvedMaximum) ||
-                resolvedMaximum is not PdfNumber maximum ||
-                double.IsNaN(minimum.Value) ||
-                double.IsInfinity(minimum.Value) ||
-                double.IsNaN(maximum.Value) ||
-                double.IsInfinity(maximum.Value) ||
-                minimum.Value != Math.Truncate(minimum.Value) ||
-                maximum.Value != Math.Truncate(maximum.Value) ||
-                minimum.Value < int.MinValue ||
-                minimum.Value > int.MaxValue ||
-                maximum.Value < int.MinValue ||
-                maximum.Value > int.MaxValue) {
-                return false;
-            }
-            minimums[component] = ClampSample((int)minimum.Value);
-            maximums[component] = ClampSample((int)maximum.Value);
-        }
-        mask = new PdfImageColorKeyMask(minimums, maximums);
-        return true;
+        mask = Create(dictionary, componentCount, bitsPerComponent, objects);
+        return mask is not null;
     }
 
     internal bool IsTransparent(byte[] samples, int sampleOffset) {

@@ -717,7 +717,80 @@ public sealed partial class PdfReadPage {
         }
 
         if (result.Count < 2) return false;
+        if (colorSpace.RequiresColorManagedGradientSampling &&
+            !TryRefineColorManagedShadingStops(
+                function,
+                colorSpace,
+                domainStart,
+                domainEnd,
+                renderingIntent,
+                result,
+                out result)) return false;
         stops = result.AsReadOnly();
+        return true;
+    }
+
+    private bool TryRefineColorManagedShadingStops(
+        PdfColorFunction function,
+        PdfPageColorSpace colorSpace,
+        double domainStart,
+        double domainEnd,
+        OfficeIccRenderingIntent renderingIntent,
+        List<OfficeGradientStop> source,
+        out List<OfficeGradientStop> refined) {
+        const int MaximumDepth = 12;
+        const int MaximumChannelError = 1;
+        const int MaximumStops = 16384;
+        var target = new List<OfficeGradientStop>(Math.Min(MaximumStops, source.Count * 2));
+        refined = target;
+        if (source.Count == 0) return false;
+        target.Add(source[0]);
+
+        bool IsWithinError(OfficeColor actual, OfficeColor start, OfficeColor end, double fraction) {
+            int expectedRed = (int)Math.Round(start.R + (end.R - start.R) * fraction);
+            int expectedGreen = (int)Math.Round(start.G + (end.G - start.G) * fraction);
+            int expectedBlue = (int)Math.Round(start.B + (end.B - start.B) * fraction);
+            return Math.Abs(actual.R - expectedRed) <= MaximumChannelError &&
+                Math.Abs(actual.G - expectedGreen) <= MaximumChannelError &&
+                Math.Abs(actual.B - expectedBlue) <= MaximumChannelError;
+        }
+
+        bool TryEvaluateOffset(double offset, out OfficeColor color) {
+            double input = PdfColorFunction.Interpolate(offset, 0D, 1D, domainStart, domainEnd);
+            return TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out color);
+        }
+
+        bool AppendAdaptive(double startOffset, OfficeColor startColor, double endOffset, OfficeColor endColor, int depth) {
+            if (target.Count >= MaximumStops || endOffset <= startOffset) {
+                if (endOffset == startOffset && target.Count < MaximumStops) {
+                    target.Add(new OfficeGradientStop(endOffset, endColor));
+                    return true;
+                }
+                return false;
+            }
+
+            double quarterOffset = startOffset + (endOffset - startOffset) * 0.25D;
+            double midpointOffset = startOffset + (endOffset - startOffset) * 0.5D;
+            double threeQuarterOffset = startOffset + (endOffset - startOffset) * 0.75D;
+            if (!TryEvaluateOffset(quarterOffset, out OfficeColor quarterColor) ||
+                !TryEvaluateOffset(midpointOffset, out OfficeColor midpointColor) ||
+                !TryEvaluateOffset(threeQuarterOffset, out OfficeColor threeQuarterColor)) return false;
+            if (IsWithinError(quarterColor, startColor, endColor, 0.25D) &&
+                IsWithinError(midpointColor, startColor, endColor, 0.5D) &&
+                IsWithinError(threeQuarterColor, startColor, endColor, 0.75D)) {
+                target.Add(new OfficeGradientStop(endOffset, endColor));
+                return true;
+            }
+            if (depth >= MaximumDepth) return false;
+            return AppendAdaptive(startOffset, startColor, midpointOffset, midpointColor, depth + 1) &&
+                AppendAdaptive(midpointOffset, midpointColor, endOffset, endColor, depth + 1);
+        }
+
+        for (int index = 1; index < source.Count; index++) {
+            OfficeGradientStop previous = source[index - 1];
+            OfficeGradientStop current = source[index];
+            if (!AppendAdaptive(previous.Offset, previous.Color, current.Offset, current.Color, depth: 0)) return false;
+        }
         return true;
     }
 

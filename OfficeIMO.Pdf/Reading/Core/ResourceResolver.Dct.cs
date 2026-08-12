@@ -68,6 +68,7 @@ internal static partial class ResourceResolver {
             !PdfImageColorKeyMask.TryCreateDeclaration(
                 imageDictionary,
                 componentCount,
+                bitsPerComponent: 8,
                 objects,
                 out _)) return false;
 

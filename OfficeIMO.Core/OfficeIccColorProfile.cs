@@ -577,7 +577,7 @@ public sealed partial class OfficeIccColorProfile {
         internal double Y { get; }
         internal double Z { get; }
         internal bool IsPositive => X > 0D && Y > 0D && Z > 0D;
-        internal bool IsNormalizedMediaWhitePoint => IsPositive && Math.Abs(Y - 1D) <= 1D / 65536D;
+        internal bool IsNormalizedMediaWhitePoint => IsPositive && Y <= 1D + 1D / 65536D;
     }
 
     private interface IDeviceToPcsTransform {

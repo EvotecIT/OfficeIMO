@@ -60,7 +60,7 @@ internal static partial class ResourceResolver {
         }
         if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
             if (!PdfImageDecodeTransform.TryCreateIndexedDeclaration(dictionary, objects, out _) ||
-                !PdfImageColorKeyMask.TryCreateDeclaration(dictionary, 1, objects, out _)) {
+                !PdfImageColorKeyMask.TryCreateDeclaration(dictionary, 1, bitsPerComponent, objects, out _)) {
                 return false;
             }
             int indexedChannels = PdfImageMaskSemantics.HasSoftMask(dictionary, objects) ||
@@ -104,6 +104,7 @@ internal static partial class ResourceResolver {
             !PdfImageColorKeyMask.TryCreateDeclaration(
                 dictionary,
                 normalization.SourceColorCount,
+                bitsPerComponent,
                 objects,
                 out _)) {
             return false;
