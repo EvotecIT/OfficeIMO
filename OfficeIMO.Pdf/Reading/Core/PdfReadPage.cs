@@ -544,12 +544,15 @@ public sealed partial class PdfReadPage {
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
+        bool ResolveMarkedContentMcid(string propertyName) =>
+            MarkedContentPropertyHasMcid(resources, propertyName);
 
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
             SumWidth1000,
             actualTextForProperty: ResolveActualTextProperty,
+            hasMcidForProperty: ResolveMarkedContentMcid,
             graphicsStates: GetGraphicsStateResources(resources),
             colorSpaces: GetColorSpaceResources(resources),
             baseFontForResource: ResolveBaseFont,
@@ -596,6 +599,7 @@ public sealed partial class PdfReadPage {
                      initialTextRenderingMode,
                      initialClipPath,
                      initialUnsupportedTextEffect,
+                     hasMcidForProperty: ResolveMarkedContentMcid,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands)) {
@@ -637,7 +641,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
-                    invocation.HasUnsupportedEffect,
+                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved,
                     useLogicalTextFilters,
                     includeArtifactText,
                     contentNestingDepth + 1,
@@ -872,6 +876,14 @@ public sealed partial class PdfReadPage {
         }
 
         return actualText.RawBytes;
+    }
+
+    private bool MarkedContentPropertyHasMcid(PdfDictionary? resources, string propertyName) {
+        if (resources is null || !resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject)) return false;
+        PdfDictionary? properties = ResolveDictionary(propertiesObject);
+        return properties is not null &&
+            properties.Items.TryGetValue(propertyName, out PdfObject? propertyObject) &&
+            ResolveDictionary(propertyObject)?.Items.ContainsKey("MCID") == true;
     }
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
