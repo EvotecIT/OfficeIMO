@@ -35,7 +35,7 @@ public sealed partial class PdfReadPage {
         var glyphPrimitives = new List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)>();
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image, PdfPageDrawingEffect Effect)>();
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
-        var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
+        var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext), PdfExtractedImage>();
         Type3SoftMaskValidationContext softMaskValidation =
             type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
         double nextPaintOrder = invocation.PaintOrder;
@@ -205,25 +205,27 @@ public sealed partial class PdfReadPage {
 
                 if (localImagePlacements.Count > 0) {
                     var pendingPlacements = new List<PdfImagePlacement>();
-                    var pendingKeys = new HashSet<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor)>();
+                    var pendingKeys = new HashSet<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext)>();
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
                         var key = GetType3ImageCacheKey(placement);
                         if (!extractedImageCache.ContainsKey(key) && pendingKeys.Add(key)) pendingPlacements.Add(placement);
                     }
                     if (pendingPlacements.Count > 0) {
-                        IReadOnlyList<PdfExtractedImage> images;
-                        try {
-                            images = GetImagesForResources(type3.Resources, 0, pendingPlacements, colorizeImageMasks: true);
-                        } catch (IOException exception) when (exception is not PdfReadLimitException) {
-                            return false;
-                        } catch (NotSupportedException) {
-                            return false;
-                        }
                         for (int imageIndex = 0; imageIndex < pendingPlacements.Count; imageIndex++) {
-                            PdfExtractedImage? image = FindImage(images, pendingPlacements[imageIndex]);
-                            if (image == null || !IsSupportedType3Image(pendingPlacements[imageIndex], image, type3.Resources)) return false;
-                            extractedImageCache[GetType3ImageCacheKey(pendingPlacements[imageIndex])] = image;
+                            PdfImagePlacement placement = pendingPlacements[imageIndex];
+                            PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? type3.Resources;
+                            IReadOnlyList<PdfExtractedImage> images;
+                            try {
+                                images = GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks: true);
+                            } catch (IOException exception) when (exception is not PdfReadLimitException) {
+                                return false;
+                            } catch (NotSupportedException) {
+                                return false;
+                            }
+                            PdfExtractedImage? image = FindImage(images, placement);
+                            if (image == null || !IsSupportedType3Image(placement, image, type3.Resources)) return false;
+                            extractedImageCache[GetType3ImageCacheKey(placement)] = image;
                         }
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
@@ -706,8 +708,8 @@ public sealed partial class PdfReadPage {
         exception is not PdfReadLimitException &&
         (exception is IOException || exception is InvalidDataException || exception is NotSupportedException);
 
-    private static (int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
-        (placement.ObjectNumber, placement.DirectStreamIdentity, placement.ResourceName, placement.ImageMaskColor);
+    private static (int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext) GetType3ImageCacheKey(PdfImagePlacement placement) =>
+        (placement.ObjectNumber, placement.DirectStreamIdentity, placement.ResourceName, placement.ImageMaskColor, placement.EffectiveResources ?? placement.InlineImageResources);
 
     private static bool TryPublishType3GlyphContent(
         List<(PdfPageVisualPrimitive Primitive, PdfPageDrawingEffect Effect)> localPrimitives,
@@ -795,7 +797,7 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         int depth = 0) {
         EnsureContentNestingBudget(depth);
-        if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity)) {
+        if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream)) {
             PdfImagePlacement placement = BuildImagePlacement(
                 0,
                 name,
@@ -808,7 +810,9 @@ public sealed partial class PdfReadPage {
                 paintOrder: 0D);
             return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
                 ? PdfType3PaintChannels.None
-                : PdfType3PaintChannels.Fill;
+                : imageStream != null && PdfImageMaskNormalizer.IsImageMask(imageStream, _objects)
+                    ? PdfType3PaintChannels.Fill
+                    : PdfType3PaintChannels.Visible;
         }
         if (resources == null || !TryGetFormStream(resources, name, out PdfStream form)) {
             return PdfType3PaintChannels.Both;

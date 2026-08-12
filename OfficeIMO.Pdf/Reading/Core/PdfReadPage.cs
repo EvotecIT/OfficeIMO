@@ -797,8 +797,13 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity) {
+        return TryGetImageXObject(resources, name, out objectNumber, out directStreamIdentity, out _);
+    }
+
+    private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream) {
         objectNumber = 0;
         directStreamIdentity = 0;
+        imageStream = null;
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             return false;
         }
@@ -819,8 +824,10 @@ public sealed partial class PdfReadPage {
             directStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(directStream);
         }
 
-        return stream is not null &&
+        bool isImage = stream is not null &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal);
+        if (isImage) imageStream = stream;
+        return isImage;
     }
 
     private static PdfImagePlacement BuildImagePlacement(

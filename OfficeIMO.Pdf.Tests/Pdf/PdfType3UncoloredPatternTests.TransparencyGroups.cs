@@ -61,6 +61,22 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("[3 1] 2 d")]
+    [InlineData("[8 3] 0 d")]
+    public void RenderPage_FailsClosedForInexactDirectType3DashStyle(string dashOperator) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 " + dashOperator + " 20 w 0 0 m 500 700 l S");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_UsesOuterTilingPatternThroughNestedTransparencyGroups() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
@@ -219,6 +235,29 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Empty(drawing.Images);
         Assert.Empty(drawing.Shapes);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForUnresolvedImageMaskInsideType3TransparencyGroup() {
+        byte[] jpeg = CreateType3TestJpeg(1, 1);
+        string marker = new string('J', jpeg.Length);
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 9 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /SMask 10 0 R", marker),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Im1 8 0 R >> >>", "q 500 0 0 700 0 0 cm /Im1 Do Q"),
+                StreamObject(10, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x")
+            });
+        ReplaceType3AsciiPayload(pdf, marker, jpeg);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
@@ -867,5 +906,30 @@ public partial class PdfType3UncoloredPatternTests {
         OfficeDrawing drawing = document.Pages[0].ToDrawing();
 
         Assert.Empty(drawing.Elements);
+    }
+
+    private static byte[] CreateType3TestJpeg(int width, int height) => new byte[] {
+        0xFF, 0xD8, 0xFF, 0xC0, 0x00, 0x11, 0x08,
+        (byte)(height >> 8), (byte)height,
+        (byte)(width >> 8), (byte)width,
+        0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x00, 0x03, 0x11, 0x00,
+        0xFF, 0xD9
+    };
+
+    private static void ReplaceType3AsciiPayload(byte[] pdf, string marker, byte[] replacement) {
+        byte[] markerBytes = Encoding.ASCII.GetBytes(marker);
+        Assert.Equal(markerBytes.Length, replacement.Length);
+        for (int offset = 0; offset <= pdf.Length - markerBytes.Length; offset++) {
+            bool matches = true;
+            for (int index = 0; index < markerBytes.Length; index++) {
+                if (pdf[offset + index] == markerBytes[index]) continue;
+                matches = false;
+                break;
+            }
+            if (!matches) continue;
+            Buffer.BlockCopy(replacement, 0, pdf, offset, replacement.Length);
+            return;
+        }
+        throw new InvalidOperationException("Marker payload was not found.");
     }
 }

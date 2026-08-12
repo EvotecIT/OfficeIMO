@@ -456,8 +456,15 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "d":
-                    if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray) {
-                        _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                    if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray && _args[_args.Count - 1] is double dashPhase) {
+                        if (TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
+                            _state = _state.WithStrokeDashStyle(exactStyle);
+                        } else {
+                            _unsupportedOperatorVisitor?.Invoke("d");
+                            _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                        }
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("d");
                     }
 
                     break;
@@ -1001,7 +1008,7 @@ internal static class PdfPageContentVisualParser {
             CreateShadingGradients(pattern.Shading, x, y, width, height, combined, _pageHeight, out linearGradient, out radialGradient);
         }
 
-        internal static void CreateShadingGradients(
+    internal static void CreateShadingGradients(
             PdfPageShadingResource shading,
             double x,
             double y,
@@ -1722,6 +1729,26 @@ internal static class PdfPageContentVisualParser {
         private static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;
+    }
+
+    internal static bool TryReadExactDashStyle(double[] dashArray, double phase, out OfficeStrokeDashStyle style) {
+        style = OfficeStrokeDashStyle.Solid;
+        if (double.IsNaN(phase) || double.IsInfinity(phase) || phase != 0D ||
+            dashArray.Any(static value => double.IsNaN(value) || double.IsInfinity(value) || value < 0D)) return false;
+        if (dashArray.Length == 0) return true;
+        if (MatchesDash(dashArray, 1D, 1D)) { style = OfficeStrokeDashStyle.Dot; return true; }
+        if (MatchesDash(dashArray, 3D, 1D)) { style = OfficeStrokeDashStyle.Dash; return true; }
+        if (MatchesDash(dashArray, 3D, 1D, 1D, 1D)) { style = OfficeStrokeDashStyle.DashDot; return true; }
+        if (MatchesDash(dashArray, 3D, 1D, 1D, 1D, 1D, 1D)) { style = OfficeStrokeDashStyle.DashDotDot; return true; }
+        return false;
+    }
+
+    private static bool MatchesDash(double[] actual, params double[] expected) {
+        if (actual.Length != expected.Length) return false;
+        for (int i = 0; i < expected.Length; i++) {
+            if (Math.Abs(actual[i] - expected[i]) > 0.000000001D) return false;
+        }
+        return true;
     }
 
     private readonly struct GraphicsState {

@@ -228,7 +228,17 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 PdfExtractedImage? image = FindImage(images, placement);
-                if (image == null || !image.IsImageFile) {
+                if (image == null ||
+                    !image.IsImageFile ||
+                    !IsSupportedType3Image(placement, image, resources) ||
+                    image.HasUnresolvedTransparencyMask ||
+                    !TryCreateImageProjection(
+                        placement,
+                        localPageHeight,
+                        localPageWidth,
+                        localPageHeight,
+                        out _,
+                        allowAxisAlignedFallback: false)) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }

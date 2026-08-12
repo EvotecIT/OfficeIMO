@@ -79,6 +79,46 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ColorImageDoesNotConsumeUnusedCallerFillPattern() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "rgb");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs /Missing scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            type3Font,
+            glyph,
+            image);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.NotEmpty(drawing.Images);
+    }
+
+    [Fact]
+    public void RenderPage_SeparatesType3ImageCacheByEffectiveResourceContext() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /F1 7 0 R /F2 8 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /F1 Do q 1 0 0 1 250 0 cm /F2 Do Q");
+        string firstForm = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /ColorSpace << /CS1 [/Indexed /DeviceRGB 0 <FF0000>] >> /XObject << /Im1 9 0 R >> >>", "q 250 0 0 700 0 0 cm /Im1 Do Q");
+        string secondForm = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /ColorSpace << /CS1 [/Indexed /DeviceRGB 0 <00FF00>] >> /XObject << /Im1 9 0 R >> >>", "q 250 0 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CS1 /BitsPerComponent 8 /Filter /ASCIIHexDecode", "00>");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, firstForm, secondForm, image);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        byte[][] scanlines = EnumerateImages(drawing)
+            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+            .ToArray();
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(2, scanlines.Length);
+        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
+        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedDctImageInsideType3Glyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
@@ -439,6 +479,26 @@ public partial class PdfPageImageRendererTests {
             return;
         }
         throw new InvalidOperationException("Marker payload was not found.");
+    }
+
+    private static IEnumerable<OfficeDrawingImage> EnumerateImages(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingImage image) {
+                yield return image;
+            } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                foreach (OfficeDrawingImage nestedImage in EnumerateImages(effectGroup.Drawing)) {
+                    yield return nestedImage;
+                }
+            } else if (element is OfficeDrawingGroup group) {
+                foreach (OfficeDrawingImage nestedImage in EnumerateImages(group.Drawing)) {
+                    yield return nestedImage;
+                }
+            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+                foreach (OfficeDrawingImage nestedImage in EnumerateImages(tilingPattern.Tile)) {
+                    yield return nestedImage;
+                }
+            }
+        }
     }
 
     private static void ReplaceJpegStartOfFrameMarker(byte[] jpeg, byte replacement) {

@@ -636,8 +636,17 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "d":
-                    if (_args.Count >= 2 && TryGetNumberArray(_args[_args.Count - 2], out double[] dashArray)) {
-                        _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                    if (_args.Count >= 2 &&
+                        TryGetNumberArray(_args[_args.Count - 2], out double[] dashArray) &&
+                        _args[_args.Count - 1] is double dashPhase) {
+                        if (PdfPageContentVisualParser.TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
+                            _state = _state.WithStrokeDashStyle(exactStyle);
+                        } else {
+                            _unsupportedGraphicsEffectVisitor?.Invoke();
+                            _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                        }
+                    } else {
+                        _unsupportedGraphicsEffectVisitor?.Invoke();
                     }
 
                     break;

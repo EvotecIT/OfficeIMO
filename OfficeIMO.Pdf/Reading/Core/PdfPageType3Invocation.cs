@@ -7,7 +7,8 @@ internal enum PdfType3PaintChannels {
     None = 0,
     Fill = 1,
     Stroke = 2,
-    Both = Fill | Stroke
+    Both = Fill | Stroke,
+    Visible = 4
 }
 
 internal readonly struct PdfPagePatternSelection {
