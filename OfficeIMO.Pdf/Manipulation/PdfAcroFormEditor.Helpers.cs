@@ -178,6 +178,9 @@ internal static partial class PdfAcroFormEditor {
         if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
         if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox && (options.FieldFlags & (FieldFlagRadio | FieldFlagPushButton)) != 0) throw new ArgumentException("Check-box fields cannot declare radio or push-button flags.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (options.FieldFlags & FieldFlagPushButton) != 0) throw new ArgumentException("Radio-button fields cannot declare the push-button flag.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && (options.FieldFlags & FieldFlagRadio) != 0) throw new ArgumentException("Push-button fields cannot declare the radio-button flag.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.CheckBox) ValidateButtonStateName(options.CheckedValueName, "Check-box selected value");
         if (options.Kind == PdfFormFieldCreationKind.Choice || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
             ValidateCreateOptionsList(options);

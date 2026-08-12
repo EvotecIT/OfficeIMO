@@ -7,6 +7,8 @@ public sealed class PdfRewritePreservationOptions {
     private readonly List<string> _requiredTextMarkers = new List<string>();
     private readonly HashSet<string> _allowedMetadataChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _preservedActionTypes = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _excludedAnnotationSubtypes = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _excludedLinkAnnotationUris = new HashSet<string>(StringComparer.Ordinal);
 
     /// <summary>Read options used to inspect the original document, including its password when encrypted.</summary>
     public PdfReadOptions? OriginalReadOptions { get; set; }
@@ -37,6 +39,12 @@ public sealed class PdfRewritePreservationOptions {
 
     /// <summary>True when generic annotation count must not be lost.</summary>
     public bool PreserveAnnotations { get; set; } = true;
+
+    /// <summary>Annotation subtypes excluded from generic annotation-count preservation.</summary>
+    public ISet<string> ExcludedAnnotationSubtypes => _excludedAnnotationSubtypes;
+
+    /// <summary>URI targets excluded from simple link-annotation preservation.</summary>
+    public ISet<string> ExcludedLinkAnnotationUris => _excludedLinkAnnotationUris;
 
     /// <summary>True when simple AcroForm field count and form markers must not be lost.</summary>
     public bool PreserveForms { get; set; } = true;

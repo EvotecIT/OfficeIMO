@@ -51,8 +51,8 @@ internal static partial class PdfSanitizer {
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
             RewrittenReadOptions = rewrittenReadOptions,
-            PreserveLinkAnnotations = false,
-            PreserveAnnotations = !policy.RemoveRichMedia,
+            PreserveLinkAnnotations = true,
+            PreserveAnnotations = true,
             PreserveEmbeddedFiles = false,
             PreserveCatalogActions = policy.AllowedActionTypes.Count > 0,
             PreservePageActions = policy.AllowedActionTypes.Count > 0,
@@ -60,6 +60,12 @@ internal static partial class PdfSanitizer {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
         };
+        if (policy.RemoveRichMedia) preservationOptions.ExcludedAnnotationSubtypes.Add("RichMedia");
+        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, readOptions);
+        for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
+            string? uri = originalInfo.LinkAnnotations[i].Uri;
+            if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
+        }
         foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 

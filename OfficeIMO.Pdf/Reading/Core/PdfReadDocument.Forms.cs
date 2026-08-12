@@ -462,7 +462,9 @@ public sealed partial class PdfReadDocument {
                     depth + 1);
             }
         } else if (resolved is PdfDictionary) {
-            AddWidgetAction(actionPath, actionObject, actions, budget, pathReferences, depth + 1);
+            // The /Next reference is already present in this path's cycle guard. Pass the
+            // resolved dictionary so AddWidgetAction does not reject the same reference twice.
+            AddWidgetAction(actionPath, resolved, actions, budget, pathReferences, depth + 1);
         }
     }
 

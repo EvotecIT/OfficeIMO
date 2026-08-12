@@ -140,6 +140,24 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Edit_AllowsSubsequentEditsWhenActiveContentBelongsOnlyToFormWidgets() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Repeated scripted edits")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate",
+            JavaScript = "app.alert('kept');"
+        })).ToBytes();
+
+        PdfAcroFormEditResult renamed = PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("calculate", "recalculate"));
+
+        PdfFormField field = Assert.Single(renamed.Fields);
+        Assert.Equal("recalculate", field.Name);
+        Assert.Equal("app.alert('kept');", field.JavaScript);
+        Assert.True(renamed.PreservationReport.IsPreserved);
+    }
+
+    [Fact]
     public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
@@ -230,6 +248,17 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Reader_TraversesSingleIndirectNextWidgetAction() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false, useSingleIndirectNext: true);
+
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets);
+
+        Assert.Equal(new[] { "A", "A.Next" }, widget.Actions.Select(static action => action.TriggerName));
+        Assert.Equal(new[] { "GoTo", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
+        Assert.Equal("app.alert('one');", widget.JavaScript);
+    }
+
+    [Fact]
     public void Flatten_PrunesIndirectWidgetActionGraphButKeepsPublicRedactionAnalysisClean() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
@@ -251,6 +280,11 @@ public class PdfAcroFormAuthoringTests {
         Assert.False(preflight.CanFlattenSimpleFormFields);
         Assert.Contains(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields), message => message.Contains("open action", StringComparison.OrdinalIgnoreCase));
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
+
+        byte[] nonWidgetAction = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx", StringComparison.Ordinal));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
     [Fact]
@@ -406,6 +440,26 @@ public class PdfAcroFormAuthoringTests {
         })));
     }
 
+    [Theory]
+    [InlineData(PdfFormFieldCreationKind.CheckBox, 32768)]
+    [InlineData(PdfFormFieldCreationKind.CheckBox, 65536)]
+    [InlineData(PdfFormFieldCreationKind.RadioButtonGroup, 65536)]
+    [InlineData(PdfFormFieldCreationKind.PushButton, 32768)]
+    public void Create_RejectsConflictingRawButtonKindFlags(PdfFormFieldCreationKind kind, int fieldFlags) {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button flag validation")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "button",
+            Kind = kind,
+            Caption = kind == PdfFormFieldCreationKind.PushButton ? "Run" : null,
+            FieldFlags = fieldFlags,
+            ChoiceOptions = kind == PdfFormFieldCreationKind.RadioButtonGroup ? new[] { "One" } : Array.Empty<string>(),
+            Value = kind == PdfFormFieldCreationKind.RadioButtonGroup ? "One" : string.Empty,
+            Width = kind == PdfFormFieldCreationKind.RadioButtonGroup ? 120D : 100D,
+            Height = 24D
+        })));
+    }
+
     [Fact]
     public void Reader_AccountsWidgetActionsEvenWhenWidgetGeometryIsUnreadable() {
         byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
@@ -489,16 +543,17 @@ public class PdfAcroFormAuthoringTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction) {
+    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction, bool useSingleIndirectNext = false) {
         using var output = new MemoryStream();
         string openAction = includeOpenAction ? " /OpenAction 11 0 R" : string.Empty;
+        string nextAction = useSingleIndirectNext ? "9 0 R" : "[9 0 R 10 0 R]";
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R" + openAction + " >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /Helv 12 0 R >> >> /Annots [6 0 R] >>\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 12 0 R >> >> >>\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (run) /V (before) /DA (/Helv 10 Tf 0 g) /Rect [20 20 160 48] /P 3 0 R /A 8 0 R >>\nendobj\n");
-        WriteAscii(output, "8 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next [9 0 R 10 0 R] >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next " + nextAction + " >>\nendobj\n");
         WriteAscii(output, "9 0 obj\n<< /S /JavaScript /JS (app.alert\\('one'\\);) >>\nendobj\n");
         WriteAscii(output, "10 0 obj\n<< /S /JavaScript /JS (app.alert\\('two'\\);) /Next 8 0 R >>\nendobj\n");
         WriteAscii(output, "11 0 obj\n<< /S /JavaScript /JS (app.alert\\('open'\\);) >>\nendobj\n");
