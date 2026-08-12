@@ -156,16 +156,22 @@ public class CsvMappingTests
     public void Transient_Record_Projection_Preserves_StringAccessAfterPreHeaderCommentFallback(
         int degreeOfParallelism)
     {
+        CsvSchema schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Done()
+            .Build();
+
         string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
-            "# generated export\nName\nAda\n",
-            _ => record => record.GetString(0),
+            "# generated export\nId\n42\n",
+            _ => record => $"{record.GetString(0)}:{record.GetSpan(0).ToString()}",
+            readerOptions: new CsvDataReaderOptions { Schema = schema },
             parallelOptions: new ParallelRowMappingOptions
             {
                 MaxDegreeOfParallelism = degreeOfParallelism,
                 BatchSize = 1
             }).ToArray();
 
-        Assert.Equal(new[] { "Ada" }, rows);
+        Assert.Equal(new[] { "42:42" }, rows);
     }
 
     [Theory]

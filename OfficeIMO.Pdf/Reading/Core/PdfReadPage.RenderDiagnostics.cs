@@ -64,7 +64,7 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands);
 
         if (resources == null) return;
-        HashSet<string> failedType3Fonts = CollectType3FontFailures(content, resources, pageContentBudget, type3GlyphBudget, invokedFonts, invokedPatterns, invokedSoftMasks);
+        HashSet<string> failedType3Fonts = CollectType3FontFailures(content, resources, pageContentBudget, type3GlyphBudget, invokedFonts, invokedPatterns, invokedSoftMasks, depth);
         CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
@@ -93,7 +93,8 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         HashSet<string> invokedFonts,
         HashSet<string> invokedPatterns,
-        HashSet<PdfStream> invokedSoftMasks) {
+        HashSet<PdfStream> invokedSoftMasks,
+        int contentNestingDepth) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -122,7 +123,7 @@ public sealed partial class PdfReadPage {
                             pageContentBudget,
                             type3GlyphBudget,
                             activeStreams,
-                            0)) {
+                            contentNestingDepth + 1)) {
                         failures.Add(glyph.Font.ResourceName);
                         supported = false;
                     }

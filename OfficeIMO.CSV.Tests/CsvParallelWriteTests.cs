@@ -211,6 +211,30 @@ public class CsvParallelWriteTests
         Assert.Equal(string.Empty, writer.ToString());
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void WriteDataReaderParallel_InvalidCellBudgetIsRejectedOnSequentialPath(int maximumBufferedCells)
+    {
+        using DataTable table = CreateMixedTable(rowCount: 1);
+        using DataTableReader reader = table.CreateDataReader();
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CsvDocument.WriteDataReaderParallel(
+                writer,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                new CsvWriteParallelOptions
+                {
+                    MaxDegreeOfParallelism = 1,
+                    MaximumBufferedCellsPerBatch = maximumBufferedCells
+                }));
+
+        Assert.Equal(nameof(CsvWriteParallelOptions.MaximumBufferedCellsPerBatch), exception.ParamName);
+        Assert.Equal(string.Empty, writer.ToString());
+    }
+
     [Fact]
     public void WriteDataReaderParallel_UnwrapsSingleFormattingFailure()
     {

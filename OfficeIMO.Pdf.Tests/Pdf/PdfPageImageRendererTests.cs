@@ -512,8 +512,16 @@ public class PdfPageImageRendererTests {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         });
 
+        PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(pdf).AssessRenderCompatibility(new PdfReadOptions
+            {
+                Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
+            }));
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, diagnosticException.Kind);
+        Assert.Equal(1, diagnosticException.Limit);
+        Assert.Equal(2, diagnosticException.Actual);
         Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
         Assert.Equal(1, exception.Limit);
         Assert.Equal(2, exception.Actual);

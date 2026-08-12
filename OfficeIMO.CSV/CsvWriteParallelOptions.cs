@@ -42,6 +42,12 @@ public sealed class CsvWriteParallelOptions
         {
             throw new ArgumentOutOfRangeException(nameof(BatchSize), "BatchSize must be greater than zero.");
         }
+        if (MaximumBufferedCellsPerBatch <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaximumBufferedCellsPerBatch),
+                "MaximumBufferedCellsPerBatch must be greater than zero.");
+        }
 
         return BatchSize;
     }
@@ -49,12 +55,6 @@ public sealed class CsvWriteParallelOptions
     internal int GetBatchSize(int fieldCount)
     {
         int requestedBatchSize = GetBatchSize();
-        if (MaximumBufferedCellsPerBatch <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(MaximumBufferedCellsPerBatch),
-                "MaximumBufferedCellsPerBatch must be greater than zero.");
-        }
         if (fieldCount <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(fieldCount), "Field count must be greater than zero.");
