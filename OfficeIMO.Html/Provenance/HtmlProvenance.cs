@@ -360,13 +360,40 @@ public static class HtmlProvenance {
     }
 
     private static byte[] EncodeHtml(string html, Encoding encoding, bool includePreamble) {
-        byte[] body = encoding.GetBytes(html);
+        Encoding strictEncoding = (Encoding)encoding.Clone();
+        strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+        string encodableHtml = EscapeUnencodableCharacters(html, strictEncoding);
+        byte[] body = strictEncoding.GetBytes(encodableHtml);
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
         if (preamble.Length == 0) return body;
         byte[] output = new byte[preamble.Length + body.Length];
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);
         Buffer.BlockCopy(body, 0, output, preamble.Length, body.Length);
         return output;
+    }
+
+    private static string EscapeUnencodableCharacters(string value, Encoding encoding) {
+        var builder = new StringBuilder(value.Length);
+        for (int index = 0; index < value.Length;) {
+            int codePoint;
+            int characterCount;
+            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) {
+                codePoint = char.ConvertToUtf32(value[index], value[index + 1]);
+                characterCount = 2;
+            } else {
+                codePoint = value[index];
+                characterCount = 1;
+            }
+            string character = value.Substring(index, characterCount);
+            try {
+                _ = encoding.GetByteCount(character);
+                builder.Append(character);
+            } catch (EncoderFallbackException) {
+                builder.Append("&#x").Append(codePoint.ToString("X", System.Globalization.CultureInfo.InvariantCulture)).Append(';');
+            }
+            index += characterCount;
+        }
+        return builder.ToString();
     }
 
     private sealed class EmbeddedImageReference {

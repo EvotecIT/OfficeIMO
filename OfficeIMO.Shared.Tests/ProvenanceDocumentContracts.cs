@@ -116,6 +116,27 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlFileRemovalEscapesCharactersOutsideTheLegacyEncoding() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string html = "<!doctype html><html><head><meta charset=\"windows-1252\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>&#x2603;</body></html>";
+        string inputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        try {
+            File.WriteAllBytes(inputPath, windows1252.GetBytes(html));
+
+            HtmlProvenance.RemoveFile(inputPath, outputPath);
+            string output = windows1252.GetString(File.ReadAllBytes(outputPath));
+
+            Assert.Contains("&#x2603;", output, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("?", output, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
     public void HtmlFileInspectionUsesTheBoundedSourceEncodingSize() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);
