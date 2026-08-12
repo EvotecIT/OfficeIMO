@@ -116,6 +116,8 @@ internal static class OfficeProvenanceSvg {
             .Where(ContainsDirectIptcDeclaration)
             .Where(element => !element.Ancestors().Any(ancestor => ancestor.Name == XmpNamespace + "xmpmeta"))
             .Where(element => element.Ancestors().Any(IsSvgMetadataElement))
+            .Select(GetDirectIptcScope)
+            .Distinct()
             .ToArray();
         roots.AddRange(directIptcScopes.Where(element =>
             !element.Ancestors().Any(ancestor => directIptcScopes.Contains(ancestor))));
@@ -125,6 +127,11 @@ internal static class OfficeProvenanceSvg {
     private static bool ContainsDirectIptcDeclaration(XElement element) =>
         element.Name.NamespaceName == IptcNamespace ||
         element.Attributes().Any(attribute => attribute.Name.NamespaceName == IptcNamespace);
+
+    private static XElement GetDirectIptcScope(XElement element) =>
+        element.Name.NamespaceName == IptcNamespace && element.Parent != null
+            ? element.Parent
+            : element;
 
     private static bool IsSvgMetadataElement(XElement element) =>
         element.Name.LocalName == "metadata" &&

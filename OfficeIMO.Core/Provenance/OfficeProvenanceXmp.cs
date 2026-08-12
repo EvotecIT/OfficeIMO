@@ -70,12 +70,16 @@ internal static class OfficeProvenanceXmp {
         string normalized = value.Trim();
         if (normalized.StartsWith(VocabularyPrefix, StringComparison.Ordinal)) normalized = normalized.Substring(VocabularyPrefix.Length);
         return normalized switch {
-            "digitalCapture" => OfficeProvenanceDigitalSourceKind.DigitalCapture,
+            "digitalCapture" or "computationalCapture" => OfficeProvenanceDigitalSourceKind.DigitalCapture,
             "algorithmicMedia" => OfficeProvenanceDigitalSourceKind.AlgorithmicMedia,
             "trainedAlgorithmicMedia" => OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia,
-            "compositeWithTrainedAlgorithmicMedia" => OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia,
+            "compositeWithTrainedAlgorithmicMedia" or "compositeSynthetic" => OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia,
             "compositeCapture" => OfficeProvenanceDigitalSourceKind.CompositeCapture,
-            "digitalCreation" or "humanEdits" or "algorithmicallyEnhanced" or "dataDrivenMedia" or "virtualRecording" or "screenCapture" => OfficeProvenanceDigitalSourceKind.Other,
+            "negativeFilm" or "positiveFilm" or "print" or
+            "minorHumanEdits" or "humanEdits" or
+            "softwareImage" or "digitalArt" or "digitalCreation" or
+            "algorithmicallyEnhanced" or "dataDrivenMedia" or
+            "virtualRecording" or "screenCapture" or "composite" => OfficeProvenanceDigitalSourceKind.Other,
             _ => OfficeProvenanceDigitalSourceKind.Unknown
         };
     }

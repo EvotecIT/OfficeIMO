@@ -257,6 +257,17 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void JpegPreservesTrailingDataWithAnIncompleteIncidentalStartMarker() {
+        byte[] suffix = { 0x44, 0x55, 0xFF, 0xD8, 0x01, 0x02, 0x03 };
+        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, suffix);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+
+        Assert.Equal(jpeg, result.ToArray());
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void GifRemovesOnlyTheExactC2paApplicationExtension() {
         byte[] manifest = CreateManifestStore();
         byte[] exact = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, manifest);
@@ -348,6 +359,45 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void SvgDirectIptcElementRemovalKeepsItsContainingMetadataScope() {
+        string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><metadata><rdf:RDF><rdf:Description>" +
+            "<iptc:DigitalSourceType rdf:resource=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
+            "</rdf:Description></rdf:RDF></metadata></svg>";
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(Encoding.UTF8.GetBytes(svg), "fixture.svg");
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.True(result.WasChanged);
+        Assert.DoesNotContain("trainedAlgorithmicMedia", output, StringComparison.Ordinal);
+        Assert.Contains("<metadata>", output, StringComparison.Ordinal);
+        Assert.Contains("<rdf:Description", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IptcVocabularyValuesAreReportedAsStructurallyValid() {
+        string[] values = {
+            "computationalCapture", "negativeFilm", "positiveFilm", "print", "minorHumanEdits",
+            "softwareImage", "digitalArt", "composite", "compositeSynthetic"
+        };
+        string declarations = string.Join(string.Empty, values.Select(value =>
+            $"<iptc:DigitalSourceType rdf:resource=\"http://cv.iptc.org/newscodes/digitalsourcetype/{value}\"/>"));
+        string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><metadata><x:xmpmeta xmlns:x=\"adobe:ns:meta/\">" +
+            "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\">" + declarations +
+            "</rdf:Description></rdf:RDF></x:xmpmeta></metadata></svg>";
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(svg), "fixture.svg");
+
+        Assert.Equal(values.Length, report.Evidence.Count);
+        Assert.All(report.Evidence, item => Assert.True(item.IsStructurallyValid));
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.DigitalCapture, report.Evidence[0].DigitalSourceKind);
+        Assert.Equal(
+            OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia,
+            report.Evidence[report.Evidence.Count - 1].DigitalSourceKind);
+    }
+
+    [Fact]
     public void ZipRemovesOnlyTheExactCaseSensitiveManifestEntry() {
         byte[] package = CreateZip(
             ("word/document.xml", Encoding.UTF8.GetBytes("<document/>")),
@@ -361,6 +411,7 @@ public sealed class ProvenanceCoreContracts {
         Assert.NotNull(archive.GetEntry("META-INF/CONTENT_CREDENTIAL.C2PA"));
         Assert.NotNull(archive.GetEntry("word/document.xml"));
         Assert.True(result.WasReserialized);
+        Assert.All(result.Changes, change => Assert.Equal(0, change.RemovedBytes));
     }
 
     [Fact]
@@ -407,6 +458,7 @@ public sealed class ProvenanceCoreContracts {
         Assert.StartsWith("ZIP/word/media/image1.png/PNG/caBX", report.Evidence[0].Location, StringComparison.Ordinal);
         Assert.Empty(OfficeProvenanceInspector.Inspect(cleanedImage, "image1.png").Evidence);
         Assert.Contains(result.Changes, item => item.Location.StartsWith("ZIP/word/media/image1.png/", StringComparison.Ordinal));
+        Assert.All(result.Changes, change => Assert.Equal(0, change.RemovedBytes));
     }
 
     [Fact]
@@ -493,6 +545,38 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.Equal("before\nafter\n", Encoding.UTF8.GetString(result.ToArray()));
         Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void GenericRemovalRecognizesPdfBeforeStructuredTextCarriers() {
+        string block = "-----BEGIN C2PA MANIFEST-----\n" +
+            "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
+            "-----END C2PA MANIFEST-----\n";
+        byte[] pdf = Encoding.ASCII.GetBytes("%PDF-1.7\n" + block + "%%EOF\n");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(pdf, "renamed.txt");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(pdf, "renamed.txt");
+
+        Assert.Equal(OfficeProvenanceAssetFormat.Pdf, report.Format);
+        Assert.Empty(report.Evidence);
+        Assert.Equal(pdf, result.ToArray());
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void ProvenanceReportSnapshotsCallerOwnedCollections() {
+        var evidence = new List<OfficeProvenanceEvidence> {
+            new(OfficeProvenanceCarrierKind.C2paManifest, "test", true)
+        };
+        var diagnostics = new List<string> { "first" };
+        var report = new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Png, evidence, diagnostics);
+
+        evidence.Clear();
+        diagnostics.Add("second");
+
+        Assert.Single(report.Evidence);
+        Assert.Single(report.Diagnostics);
+        Assert.True(report.HasC2paManifest);
     }
 
     [Fact]

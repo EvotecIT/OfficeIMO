@@ -29,7 +29,9 @@ internal static class OfficeProvenanceJpeg {
         int searchOffset = 0;
         int imageIndex = 0;
         while (searchOffset < data.Length) {
-            int imageStart = FindNextStart(data, searchOffset);
+            int imageStart = imageIndex == 0
+                ? FindNextStart(data, searchOffset)
+                : FindNextCompleteStart(data, searchOffset);
             if (imageStart < 0) {
                 if (output != null && searchOffset < data.Length) output.Write(data, searchOffset, data.Length - searchOffset);
                 return reserialized;
@@ -219,6 +221,52 @@ internal static class OfficeProvenanceJpeg {
             if (data[index] == 0xFF && data[index + 1] == 0xD8) return index;
         }
         return -1;
+    }
+
+    private static int FindNextCompleteStart(byte[] data, int offset) {
+        int candidate = FindNextStart(data, offset);
+        while (candidate >= 0) {
+            if (TryFindCompleteImageEnd(data, candidate, out _)) return candidate;
+            candidate = FindNextStart(data, candidate + 2);
+        }
+        return -1;
+    }
+
+    private static bool TryFindCompleteImageEnd(byte[] data, int imageStart, out int imageEnd) {
+        imageEnd = imageStart;
+        int offset = imageStart + 2;
+        while (offset < data.Length) {
+            if (!TryReadMarker(data, offset, out byte marker, out _, out _, out int segmentEnd)) return false;
+            if (marker == 0xD8) return false;
+            if (marker == 0xD9) {
+                imageEnd = segmentEnd;
+                return true;
+            }
+            if (marker == 0xDA) return TryFindCompleteScanEnd(data, offset, out imageEnd);
+            offset = segmentEnd;
+        }
+        return false;
+    }
+
+    private static bool TryFindCompleteScanEnd(byte[] data, int scanStart, out int imageEnd) {
+        imageEnd = scanStart;
+        if (!TryReadMarker(data, scanStart, out byte marker, out _, out _, out int offset) || marker != 0xDA) return false;
+        while (offset < data.Length - 1) {
+            if (data[offset] != 0xFF) { offset++; continue; }
+            while (offset < data.Length && data[offset] == 0xFF) offset++;
+            if (offset >= data.Length) return false;
+            byte value = data[offset++];
+            if (value == 0x00 || value == 0x01 || (value >= 0xD0 && value <= 0xD7)) continue;
+            if (value == 0xD9) {
+                imageEnd = offset;
+                return true;
+            }
+            if (value == 0xD8 || data.Length - offset < 2) return false;
+            int length = (data[offset] << 8) | data[offset + 1];
+            if (length < 2 || length > data.Length - offset) return false;
+            offset += length;
+        }
+        return false;
     }
 
     private static int FindEnd(byte[] data, int scanStart) {

@@ -88,6 +88,10 @@ public static class OfficeProvenanceInspector {
             if (version == 42 || version == 43) return OfficeProvenanceAssetFormat.Tiff;
         }
         if (OfficeProvenanceZip.HasSignature(data)) return OfficeProvenanceAssetFormat.ZipPackage;
+        if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-") ||
+            Path.GetExtension(fileName ?? string.Empty).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) {
+            return OfficeProvenanceAssetFormat.Pdf;
+        }
         if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (LooksLikeSvg(data, fileName)) return OfficeProvenanceAssetFormat.Svg;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;

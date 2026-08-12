@@ -79,7 +79,7 @@ internal static class OfficeProvenanceZip {
                 bool valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     removable.Add(entry.FullName + "\0" + occurrence);
-                    changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, $"ZIP/{ManifestPath}[{occurrence}]", entry.Length));
+                    changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, $"ZIP/{ManifestPath}[{occurrence}]", 0));
                 }
                 occurrence++;
                 continue;
@@ -103,7 +103,7 @@ internal static class OfficeProvenanceZip {
             }
             embeddedRewrites.Add(entry, nested.ToArray());
             foreach (OfficeProvenanceChange change in nested.Changes) {
-                changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", change.RemovedBytes));
+                changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", 0));
             }
             if (nested.WasReserialized) reserialized = true;
         }
@@ -117,38 +117,46 @@ internal static class OfficeProvenanceZip {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
         }
 
-        using var outputStream = new MemoryStream(data.Length);
-        using (var output = new ZipArchive(outputStream, ZipArchiveMode.Create, leaveOpen: true)) {
-            long expandedBytes = 0;
-            occurrence = 0;
-            IEnumerable<ZipArchiveEntry> orderedEntries = input.Entries
-                .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal));
-            foreach (ZipArchiveEntry entry in orderedEntries) {
-                bool isManifest = entry.FullName.Equals(ManifestPath, StringComparison.Ordinal);
-                string key = entry.FullName + "\0" + occurrence;
-                if (isManifest) occurrence++;
-                if (isManifest && removable.Contains(key)) continue;
-                bool isMimetype = entry.FullName.Equals("mimetype", StringComparison.Ordinal);
-                ZipArchiveEntry target = output.CreateEntry(entry.FullName, isMimetype ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                CopyExternalAttributes(entry, target);
-                if (!isMimetype) target.LastWriteTime = entry.LastWriteTime;
-                using Stream destination = target.Open();
-                if (embeddedRewrites.TryGetValue(entry, out byte[]? rewritten)) {
-                    ReserveExpandedBytes(ref expandedBytes, rewritten.LongLength, options.Limits.MaxExpandedContainerBytes);
-                    destination.Write(rewritten, 0, rewritten.Length);
-                } else {
-                    using Stream source = entry.Open();
-                    CopyBounded(source, destination, options.Limits.MaxExpandedContainerBytes, ref expandedBytes);
-                }
-            }
+        var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
+        occurrence = 0;
+        IEnumerable<ZipArchiveEntry> orderedEntries = input.Entries
+            .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal));
+        foreach (ZipArchiveEntry entry in orderedEntries) {
+            bool isManifest = entry.FullName.Equals(ManifestPath, StringComparison.Ordinal);
+            string key = entry.FullName + "\0" + occurrence;
+            if (isManifest) occurrence++;
+            if (isManifest && removable.Contains(key)) continue;
+            embeddedRewrites.TryGetValue(entry, out byte[]? rewritten);
+            outputEntries.Add(CreateWriteEntry(entry, rewritten));
         }
         reserialized = true;
-        return outputStream.ToArray();
+        return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes);
     }
 
-    private static void CopyExternalAttributes(ZipArchiveEntry source, ZipArchiveEntry target) {
+    private static uint GetExternalAttributes(ZipArchiveEntry source) {
         System.Reflection.PropertyInfo? property = typeof(ZipArchiveEntry).GetProperty("ExternalAttributes");
-        if (property?.CanRead == true && property.CanWrite) property.SetValue(target, property.GetValue(source, null), null);
+        object? value = property?.CanRead == true ? property.GetValue(source, null) : null;
+        return value is int signed ? unchecked((uint)signed) : value is uint unsigned ? unsigned : 0u;
+    }
+
+    private static OfficeProvenanceZipWriteEntry CreateWriteEntry(ZipArchiveEntry entry, byte[]? replacement = null) {
+        bool isMimetype = entry.FullName.Equals("mimetype", StringComparison.Ordinal);
+        if (replacement != null) {
+            return new OfficeProvenanceZipWriteEntry(
+                entry.FullName,
+                replacement.LongLength,
+                compress: !isMimetype,
+                entry.LastWriteTime,
+                GetExternalAttributes(entry),
+                () => new MemoryStream(replacement, writable: false));
+        }
+        return new OfficeProvenanceZipWriteEntry(
+            entry.FullName,
+            entry.Length,
+            compress: !isMimetype,
+            entry.LastWriteTime,
+            GetExternalAttributes(entry),
+            entry.Open);
     }
 
     private static void ValidateEntryCount(byte[] data, int maximumEntries) {

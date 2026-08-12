@@ -101,8 +101,8 @@ public sealed class OfficeProvenanceReport {
         IReadOnlyList<OfficeProvenanceEvidence> evidence,
         IReadOnlyList<string>? diagnostics = null) {
         Format = format;
-        Evidence = evidence ?? throw new ArgumentNullException(nameof(evidence));
-        Diagnostics = diagnostics ?? Array.Empty<string>();
+        Evidence = new List<OfficeProvenanceEvidence>(evidence ?? throw new ArgumentNullException(nameof(evidence))).AsReadOnly();
+        Diagnostics = new List<string>(diagnostics ?? Array.Empty<string>()).AsReadOnly();
     }
 
     /// <summary>Gets the identified asset format.</summary>
