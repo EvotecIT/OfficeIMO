@@ -355,7 +355,7 @@ namespace OfficeIMO.Excel.Fluent {
 
         private static void EnsureDataTableColumnLimit(int requiredColumns, int configuredMaxColumns) {
             if (requiredColumns <= configuredMaxColumns && requiredColumns <= A1.MaxColumns) return;
-            if (requiredColumns > A1.MaxColumns && configuredMaxColumns >= A1.MaxColumns) {
+            if (requiredColumns > A1.MaxColumns) {
                 throw CreateExcelColumnLimitException(requiredColumns);
             }
 

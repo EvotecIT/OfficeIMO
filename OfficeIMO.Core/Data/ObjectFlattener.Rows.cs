@@ -60,7 +60,7 @@ namespace OfficeIMO.Data {
             var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             List<string>? explicitColumns = null;
             bool hasExplicitColumns = options.Columns != null && options.Columns.Length > 0;
-            if (hasExplicitColumns) {
+            if (hasExplicitColumns && hasKnownRowCount) {
                 explicitColumns = ResolveExplicitColumns(options, consumerName, columnLimitGuidance);
                 if (knownRowCount > 0) {
                     EnsureTableCellLimit(
@@ -83,6 +83,9 @@ namespace OfficeIMO.Data {
             }
 
             void AddProjectedRow(T item) {
+                if (hasExplicitColumns && explicitColumns == null) {
+                    explicitColumns = ResolveExplicitColumns(options, consumerName, columnLimitGuidance);
+                }
                 if (rows.Count >= options.MaxRows) {
                     throw CreateRowLimitException(
                         checked(rows.Count + 1),

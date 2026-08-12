@@ -170,6 +170,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_EmptyIteratorSkipsExemptProjectionLimits() {
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Data", composer => {
+                string range = composer.TableFrom(
+                    EmptyRows(),
+                    configure: options => {
+                        options.Columns = new[] { "First", "Second" };
+                        options.MaxColumns = 1;
+                    },
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:A1", range);
+            });
+
+            Assert.True(document["Data"].TryGetCellText(1, 1, out string? text));
+            Assert.Equal("(no data)", text);
+        }
+
+        [Fact]
         public void SheetComposer_ObjectTableExplainsHardExcelRowBoundary() {
             using ExcelDocument document = ExcelDocument.Create();
 
@@ -422,6 +441,31 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
             Assert.DoesNotContain("options.MaxColumns = 16385", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SheetComposer_DataTablePrefersHardExcelColumnBoundaryOverLowerConfiguredLimit() {
+            var table = new DataTable("Wide");
+            for (int index = 0; index <= A1.MaxColumns; index++) {
+                table.Columns.Add("Column" + index, typeof(string));
+            }
+            table.Rows.Add(table.NewRow());
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Data", composer => composer.TableFrom(
+                    table,
+                    configure: options => options.MaxColumns = 10,
+                    freezeHeaderRow: false)));
+
+            Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("options.MaxColumns = 16385", exception.Message, StringComparison.Ordinal);
+        }
+
+        private static IEnumerable<object> EmptyRows() {
+            yield break;
         }
 
         private static DataTable CreateMembersTable() {
