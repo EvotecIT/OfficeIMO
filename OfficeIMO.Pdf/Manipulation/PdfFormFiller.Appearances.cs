@@ -210,11 +210,12 @@ internal static partial class PdfFormFiller {
         PdfFormFieldStyle style,
         double fontSize,
         string fieldName,
+        PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber) {
         PdfDictionary? defaultResources = ResolveDictionary(objects, acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) ? resourcesObject : null);
         PdfDictionary? pageResources = ResolveDictionary(objects, page.Items.TryGetValue("Resources", out PdfObject? pageResourcesObject) ? pageResourcesObject : null);
         string? defaultAppearance = TryReadText(objects, widget, "DA");
-        return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, null, fieldName, ref nextObjectNumber);
+        return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, appearanceOptions, fieldName, ref nextObjectNumber);
     }
 
     private static PdfStream CreateRichTextAppearanceStream(IReadOnlyList<PdfFreeTextRichTextRun> richRuns, double width, double height, PdfFormFieldStyle style, double fontSize) {
@@ -268,6 +269,9 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
+    internal static PdfStream CreateAuthoredButtonWidgetAppearance(double width, double height, bool selected, bool isRadioButton, PdfFormFieldStyle style) =>
+        CreateButtonAppearanceStream(width, height, selected, isRadioButton, style);
+
     internal static PdfStream CreateAuthoredLabeledRadioWidgetAppearance(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary acroForm,
@@ -280,6 +284,7 @@ internal static partial class PdfFormFiller {
         double requestedFontSize,
         string fieldName,
         bool selected,
+        PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber) {
         double labelX = buttonSize + PdfRadioButtonLayout.GetLabelGap(buttonSize);
         PdfFormFieldStyle labelStyle = PdfAcroFormEditor.CreateButtonCaptionStyle(style);
@@ -298,6 +303,7 @@ internal static partial class PdfFormFiller {
             labelStyle,
             PdfRadioButtonLayout.GetLabelFontSize(requestedFontSize, buttonSize),
             fieldName,
+            appearanceOptions,
             ref nextObjectNumber);
         string radioContent = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(buttonSize, buttonSize, selected, style);
         string labelContent = PdfEncoding.Latin1GetString(labelAppearance.Data);

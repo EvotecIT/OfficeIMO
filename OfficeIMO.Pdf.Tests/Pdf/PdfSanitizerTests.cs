@@ -125,6 +125,24 @@ public class PdfSanitizerTests {
         Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.UnsafeUri);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Sanitize_PreservesNextActionsWhenRemovedSiblingsShiftTheirIndices(bool catalogAction) {
+        byte[] source = BuildMixedNextActionPdf(catalogAction);
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
+        if (catalogAction) {
+            Assert.Equal(2, info.CatalogActions.Count(static action => action.ActionType == "URI"));
+        } else {
+            Assert.Equal(2, info.Pages[0].PageActions.Count(static action => action.ActionType == "URI"));
+        }
+    }
+
     [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
@@ -249,6 +267,20 @@ public class PdfSanitizerTests {
         }) + "\n";
 
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMixedNextActionPdf(bool catalogAction) {
+        string action = "<< /S /URI /URI (https://example.com/one) /Next [<< /S /JavaScript /JS (app.alert\\('remove'\\);) >> << /S /URI /URI (https://example.com/two) >>] >>";
+        string catalogEntry = catalogAction ? " /AA << /WC " + action + " >>" : string.Empty;
+        string pageEntry = catalogAction ? string.Empty : " /AA << /O " + action + " >>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R" + catalogEntry + " >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R" + pageEntry + " >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildSingleAnnotationPdf(string subtype) {
