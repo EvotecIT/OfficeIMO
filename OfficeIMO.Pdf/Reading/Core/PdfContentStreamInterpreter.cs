@@ -607,10 +607,16 @@ internal static class PdfContentStreamInterpreter {
         }
 
         private int GetInlineImageComponentCount(PdfDictionary dictionary) {
-            string colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? value) &&
-                                value is PdfName name
-                ? name.Name
-                : "DeviceGray";
+            if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? value)) {
+                return 1;
+            }
+            if (value is PdfArray array) {
+                return GetInlineImageArrayComponentCount(array);
+            }
+            if (value is not PdfName name) {
+                return 0;
+            }
+            string colorSpace = name.Name;
             switch (colorSpace) {
                 case "DeviceRGB":
                     return 3;
@@ -621,6 +627,32 @@ internal static class PdfContentStreamInterpreter {
             }
         }
 
+        private static int GetInlineImageArrayComponentCount(PdfArray array) {
+            if (array.Items.Count == 0 || array.Items[0] is not PdfName kind) {
+                return 0;
+            }
+
+            switch (kind.Name) {
+                case "DeviceGray":
+                case "CalGray":
+                case "Indexed":
+                case "Separation":
+                    return 1;
+                case "DeviceRGB":
+                case "CalRGB":
+                case "Lab":
+                    return 3;
+                case "DeviceCMYK":
+                    return 4;
+                case "DeviceN":
+                case "NChannel":
+                    return array.Items.Count > 1 && array.Items[1] is PdfArray colorants && colorants.Items.Count > 0
+                        ? colorants.Items.Count
+                        : 0;
+                default:
+                    return 0;
+            }
+        }
         private static int ReadPositiveInteger(PdfDictionary dictionary, string key) =>
             dictionary.Items.TryGetValue(key, out PdfObject? value) &&
             value is PdfNumber number &&

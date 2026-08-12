@@ -10,13 +10,13 @@ public sealed partial class PdfReadPage {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (depth > MaxColorSpaceNesting) return false;
 
-        PdfObject? resolved = ResolveObject(value);
+        PdfObject? resolved = ResolveColorSpaceDeclaration(value);
         if (resolved is PdfName directName) {
             return TryReadStandardColorSpaceName(directName.Name, out colorSpace);
         }
 
         if (resolved is not PdfArray { Items.Count: > 0 } array ||
-            ResolveObject(array.Items[0]) is not PdfName arrayName) {
+            ResolveColorSpaceDeclaration(array.Items[0]) is not PdfName arrayName) {
             return false;
         }
 
@@ -119,6 +119,21 @@ public sealed partial class PdfReadPage {
             resolved = indirect.Value;
         }
         return resolved;
+    }
+
+    private double[] ReadColorSpaceNumberArray(PdfObject? value) {
+        if (ResolveColorSpaceDeclaration(value) is not PdfArray { Items.Count: > 0 } array) {
+            return Array.Empty<double>();
+        }
+
+        var values = new double[array.Items.Count];
+        for (int index = 0; index < values.Length; index++) {
+            if (ResolveColorSpaceDeclaration(array.Items[index]) is not PdfNumber number) {
+                return Array.Empty<double>();
+            }
+            values[index] = number.Value;
+        }
+        return values;
     }
 
     private bool TryReadIccRange(PdfObject value, int componentCount, out IReadOnlyList<double> ranges) {
