@@ -31,6 +31,7 @@ internal static partial class PdfTextEditor {
                     if (found < 0) break;
                     start = found + Math.Max(1, text.Length);
                     if (snapshot.WholeWords && !HasWordBoundaries(unit.Text, found, text.Length)) continue;
+                    if (unit.HasUnmappedBoundary(found, text.Length)) continue;
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(found, text.Length);
                     if (segments.Count == 0) continue;
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
@@ -60,7 +61,7 @@ internal static partial class PdfTextEditor {
                 if (!newLine && current.Count > 0) {
                     PdfTextSpan previous = current[current.Count - 1];
                     double gap = BaselinePosition(span) - (BaselinePosition(previous) + Math.Abs(previous.Advance));
-                    newLine = gap >= 24D;
+                    newLine = IsIndependentFlowGap(gap, previous, span);
                 }
                 if (newLine) {
                     lines.Add(BuildSearchLine(current));
@@ -92,19 +93,23 @@ internal static partial class PdfTextEditor {
     }
 
     private static bool HasWordBoundaries(string text, int start, int length) {
-        bool left = start == 0 || !IsWordCharacter(text[start - 1]);
+        bool left = start == 0 || !IsWordCharacter(text, start - 1);
         int end = start + length;
-        bool right = end == text.Length || !IsWordCharacter(text[end]);
+        bool right = end == text.Length || !IsWordCharacter(text, end);
         return left && right;
     }
 
-    private static bool IsWordCharacter(char value) {
-        if (char.IsLetterOrDigit(value) || value == '_') return true;
-        System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(value);
+    private static bool IsWordCharacter(string text, int index) {
+        if (index > 0 && char.IsLowSurrogate(text[index]) && char.IsHighSurrogate(text[index - 1])) index--;
+        if (text[index] == '_' || char.IsLetterOrDigit(text, index)) return true;
+        System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(text, index);
         return category is System.Globalization.UnicodeCategory.NonSpacingMark or
             System.Globalization.UnicodeCategory.SpacingCombiningMark or
             System.Globalization.UnicodeCategory.EnclosingMark;
     }
+
+    private static bool IsIndependentFlowGap(double gap, PdfTextSpan previous, PdfTextSpan current) =>
+        gap >= Math.Max(24D, Math.Max(EffectiveFontSize(previous), EffectiveFontSize(current)) * 1.5D);
 
     private sealed class TextSearchUnit {
         private readonly TextCharacterSource?[] _sources;
@@ -131,6 +136,11 @@ internal static partial class PdfTextEditor {
         }
 
         internal string Text { get; }
+
+        internal bool HasUnmappedBoundary(int start, int length) {
+            if (length <= 0 || start < 0 || start + length > _sources.Length) return true;
+            return !_sources[start].HasValue || !_sources[start + length - 1].HasValue;
+        }
 
         internal List<TextSourceSegment> GetSourceSegments(int start, int length) {
             var segments = new List<TextSourceSegment>();
