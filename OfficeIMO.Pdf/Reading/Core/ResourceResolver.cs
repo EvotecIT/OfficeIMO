@@ -88,6 +88,11 @@ internal static partial class ResourceResolver {
         return GetFontWidthProviders(dict, objects, fonts);
     }
 
+    internal static Dictionary<string, System.Func<byte[], double>> GetFontWidthProvidersForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(resources, objects);
+        return GetFontWidthProviders(resources, objects, fonts);
+    }
+
     private static Dictionary<string, System.Func<byte[], double>> GetFontWidthProviders(
         PdfDictionary resources,
         Dictionary<int, PdfIndirectObject> objects,
@@ -103,6 +108,10 @@ internal static partial class ResourceResolver {
                 ? cachedFont
                 : CreateFontResource(kv.Key, fontVal, objects);
             var subtype = fontVal.Get<PdfName>("Subtype")?.Name ?? string.Empty;
+            if (fontResource.Type3 is PdfType3FontResource type3) {
+                map[kv.Key] = type3.SumNormalizedWidths;
+                continue;
+            }
             if (string.Equals(subtype, "Type0", System.StringComparison.Ordinal)) {
                 if (TryBuildCidWidthMap(fontVal, objects, out var cidMap)) {
                     var localMap = cidMap!;
@@ -499,6 +508,9 @@ internal static partial class ResourceResolver {
         }
 
         byte[]? embeddedTrueTypeFont = TryReadEmbeddedTrueTypeFont(fontVal, objects, out string? embeddedProgramSubtype);
+        PdfType3FontResource? type3 = string.Equals(fontVal.Get<PdfName>("Subtype")?.Name, "Type3", System.StringComparison.Ordinal)
+            ? TryCreateType3FontResource(fontVal, objects)
+            : null;
         return new PdfFontResource(
             resourceName,
             baseFont,
@@ -508,7 +520,103 @@ internal static partial class ResourceResolver {
             differences,
             embeddedTrueTypeFont,
             fontVal.Get<PdfName>("Subtype")?.Name,
-            embeddedProgramSubtype);
+            embeddedProgramSubtype,
+            type3);
+    }
+
+    private static PdfType3FontResource? TryCreateType3FontResource(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects) {
+        if (!font.Items.TryGetValue("FontMatrix", out PdfObject? matrixObject) ||
+            !TryReadType3Matrix(matrixObject, objects, out Matrix2D fontMatrix) ||
+            !font.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
+            ResolveDict(charProcsObject, objects) is not PdfDictionary charProcs ||
+            charProcs.Items.Count > 256) return null;
+
+        if (!TryReadType3Integer(font, "FirstChar", objects, out int firstCharacter) ||
+            !TryReadType3Integer(font, "LastChar", objects, out int lastCharacter) ||
+            firstCharacter < 0 || lastCharacter < firstCharacter || lastCharacter > 255 ||
+            !font.Items.TryGetValue("Widths", out PdfObject? widthsObject) ||
+            ResolveArray(widthsObject, objects) is not PdfArray widthArray ||
+            widthArray.Items.Count < lastCharacter - firstCharacter + 1) return null;
+        var widths = new double[lastCharacter - firstCharacter + 1];
+        for (int index = 0; index < widths.Length; index++) {
+            if (ResolveObject(widthArray.Items[index], objects) is not PdfNumber width ||
+                double.IsNaN(width.Value) || double.IsInfinity(width.Value)) return null;
+            widths[index] = width.Value;
+        }
+
+        var glyphStreams = new Dictionary<string, PdfStream>(System.StringComparer.Ordinal);
+        foreach (KeyValuePair<string, PdfObject> entry in charProcs.Items) {
+            if (ResolveObject(entry.Value, objects) is PdfStream stream) glyphStreams[entry.Key] = stream;
+        }
+        if (glyphStreams.Count == 0) return null;
+
+        if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return null;
+        string baseEncoding = "StandardEncoding";
+        PdfObject? resolvedEncoding = ResolveObject(encodingObject, objects);
+        PdfDictionary? encoding = resolvedEncoding as PdfDictionary;
+        if (resolvedEncoding is PdfName encodingName) {
+            baseEncoding = encodingName.Name;
+        } else if (encoding == null) {
+            return null;
+        }
+        if (encoding?.Items.TryGetValue("BaseEncoding", out PdfObject? baseEncodingObject) == true) {
+            if (ResolveObject(baseEncodingObject, objects) is not PdfName baseEncodingName) return null;
+            baseEncoding = baseEncodingName.Name;
+        }
+        if (!PdfType3GlyphEncoding.TryCreate(baseEncoding, out Dictionary<int, string> glyphNames)) return null;
+        PdfArray? differences = null;
+        if (encoding != null && encoding.Items.TryGetValue("Differences", out PdfObject? differencesObject)) {
+            differences = ResolveArray(differencesObject, objects);
+            if (differences == null) return null;
+        }
+        if (differences != null) {
+            int code = -1;
+            foreach (PdfObject item in differences.Items) {
+                PdfObject? resolved = ResolveObject(item, objects);
+                if (resolved is PdfNumber number) {
+                    if (double.IsNaN(number.Value) || double.IsInfinity(number.Value) ||
+                        number.Value != Math.Truncate(number.Value) || number.Value < 0D || number.Value > 255D) return null;
+                    code = (int)number.Value;
+                } else if (resolved is PdfName name && code >= 0 && code <= 255) {
+                    glyphNames[code] = name.Name;
+                    code++;
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        PdfDictionary resources = font.Items.TryGetValue("Resources", out PdfObject? resourcesObject)
+            ? ResolveDict(resourcesObject, objects) ?? new PdfDictionary()
+            : new PdfDictionary();
+        int paintType = TryReadType3Integer(font, "PaintType", objects, out int resolvedPaintType) ? resolvedPaintType : 1;
+        if (paintType is not 1 and not 2) return null;
+        return new PdfType3FontResource(fontMatrix, resources, paintType == 2, glyphNames, glyphStreams, firstCharacter, widths);
+    }
+
+    private static bool TryReadType3Integer(PdfDictionary dictionary, string key, Dictionary<int, PdfIndirectObject> objects, out int value) {
+        value = 0;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? item) ||
+            ResolveObject(item, objects) is not PdfNumber number ||
+            double.IsNaN(number.Value) || double.IsInfinity(number.Value) ||
+            number.Value != Math.Truncate(number.Value) ||
+            number.Value < int.MinValue || number.Value > int.MaxValue) return false;
+        value = (int)number.Value;
+        return true;
+    }
+
+    private static bool TryReadType3Matrix(PdfObject? value, Dictionary<int, PdfIndirectObject> objects, out Matrix2D matrix) {
+        matrix = default;
+        PdfArray? array = ResolveArray(value, objects);
+        if (array == null || array.Items.Count < 6) return false;
+        var values = new double[6];
+        for (int index = 0; index < values.Length; index++) {
+            if (ResolveObject(array.Items[index], objects) is not PdfNumber number ||
+                double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return false;
+            values[index] = number.Value;
+        }
+        matrix = new Matrix2D(values[0], values[1], values[2], values[3], values[4], values[5]);
+        return Math.Abs((matrix.A * matrix.D) - (matrix.B * matrix.C)) > 0.000000000001D;
     }
 
     private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {

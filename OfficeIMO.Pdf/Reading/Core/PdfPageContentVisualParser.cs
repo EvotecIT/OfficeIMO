@@ -3,7 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfPageContentVisualParser {
-    private const double HairlineStrokeWidth = 0.25D;
+    private const double HairlineStrokeWidth = double.PositiveInfinity;
+    private const double RenderedHairlineStrokeWidth = 0.25D;
 
     public static IReadOnlyList<PdfPageVisualPrimitive> Parse(string content, double pageHeight) {
         return Parse(content, pageHeight, null);
@@ -51,12 +52,13 @@ internal static class PdfPageContentVisualParser {
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         Action<PdfPageVisualPrimitive>? primitiveVisitor = null,
-        bool retainPrimitiveData = true) {
+        bool retainPrimitiveData = true,
+        bool scaleStrokeWidthWithTransform = false) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform);
         return parser.Parse();
     }
 
@@ -85,6 +87,7 @@ internal static class PdfPageContentVisualParser {
         private readonly List<PdfPageVisualPrimitive>? _primitives;
         private readonly Action<PdfPageVisualPrimitive>? _primitiveVisitor;
         private readonly bool _retainPrimitiveData;
+        private readonly bool _scaleStrokeWidthWithTransform;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
@@ -134,7 +137,8 @@ internal static class PdfPageContentVisualParser {
             int maxNestingDepth,
             int maxOperands,
             Action<PdfPageVisualPrimitive>? primitiveVisitor,
-            bool retainPrimitiveData) {
+            bool retainPrimitiveData,
+            bool scaleStrokeWidthWithTransform) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -153,6 +157,7 @@ internal static class PdfPageContentVisualParser {
             _maxOperands = maxOperands;
             _primitiveVisitor = primitiveVisitor;
             _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
+            _scaleStrokeWidthWithTransform = scaleStrokeWidthWithTransform;
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -594,7 +599,7 @@ internal static class PdfPageContentVisualParser {
                     stroke && _state.StrokeWidth > 0D && strokeGradient == null && strokeRadialGradient == null && _strokeTilingPattern == null ? _state.StrokeColor : null,
                     strokeGradient,
                     strokeRadialGradient,
-                    _state.StrokeWidth,
+                    GetRenderedStrokeWidth(),
                     _state.StrokeDashStyle,
                     _state.StrokeLineCap,
                     _state.StrokeLineJoin,
@@ -634,7 +639,7 @@ internal static class PdfPageContentVisualParser {
                     stroke && _state.StrokeWidth > 0D && strokeGradient == null && strokeRadialGradient == null && _strokeTilingPattern == null ? _state.StrokeColor : null,
                     strokeGradient,
                     strokeRadialGradient,
-                    _state.StrokeWidth,
+                    GetRenderedStrokeWidth(),
                     _state.StrokeDashStyle,
                     _state.StrokeLineCap,
                     _state.StrokeLineJoin,
@@ -1058,7 +1063,7 @@ internal static class PdfPageContentVisualParser {
                 strokeGradient == null && strokeRadialGradient == null && _strokeTilingPattern == null ? _state.StrokeColor : null,
                 strokeGradient,
                 strokeRadialGradient,
-                _state.StrokeWidth,
+                GetRenderedStrokeWidth(),
                 _state.StrokeDashStyle,
                 _state.StrokeLineCap,
                 _state.StrokeLineJoin,
@@ -1066,6 +1071,23 @@ internal static class PdfPageContentVisualParser {
                 _state.ClipPath,
                 paintOrder,
                 _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null));
+        }
+
+        private double GetRenderedStrokeWidth() {
+            double strokeWidth = _state.StrokeWidth;
+            if (double.IsPositiveInfinity(strokeWidth)) return RenderedHairlineStrokeWidth;
+            if (!_scaleStrokeWidthWithTransform || strokeWidth <= 0D) {
+                return strokeWidth;
+            }
+
+            Matrix2D transform = _state.Transform;
+            double squaredScale = ((transform.A * transform.A) +
+                                   (transform.B * transform.B) +
+                                   (transform.C * transform.C) +
+                                   (transform.D * transform.D)) / 2D;
+            return squaredScale > 0D && !double.IsNaN(squaredScale) && !double.IsInfinity(squaredScale)
+                ? strokeWidth * Math.Sqrt(squaredScale)
+                : strokeWidth;
         }
 
         private void AddStrokedPathSegments(IReadOnlyList<OfficePathCommand> pathCommands, double paintOrder) {

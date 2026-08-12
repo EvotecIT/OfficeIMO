@@ -13,17 +13,18 @@ public sealed partial class PdfReadPage {
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
         var pageContentBudget = new PageContentBudget(this);
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
-        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask>();
         for (int i = 0; i < pageElements.Count; i++) {
             PdfPageDrawingElement element = pageElements[i].WithEffect(ResolveDrawingEffect(effects, pageElements[i].PaintOrder));
-            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, textOutputBudget, pageContentBudget);
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         }
 
-        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
 
         return drawing;
     }
@@ -58,15 +59,18 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         var elements = new List<PdfPageDrawingElement>();
-        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(pageWidth, pageHeight, pageTransform, textOutputBudget, pageContentBudget);
+        var renderedType3PaintOrders = new HashSet<double>();
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(pageWidth, pageHeight, pageTransform, textOutputBudget, pageContentBudget, renderedType3PaintOrders, type3GlyphBudget);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
 
         IReadOnlyList<PdfTextSpan> spans = GetVisualTextSpans(pageHeight, pageTransform, textOutputBudget, pageContentBudget);
         for (int i = 0; i < spans.Count; i++) {
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 
@@ -100,7 +104,8 @@ public sealed partial class PdfReadPage {
         PdfPageDrawingElement element,
         Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> softMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         if (element.Effect.IsDefault) {
             AddDrawingElementCore(drawing, pageHeight, element);
             return;
@@ -111,7 +116,7 @@ public sealed partial class PdfReadPage {
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
-            : GetOrCreateSoftMask(element.Effect.SoftMask, drawing.Width, drawing.Height, pageTransform, softMasks, textOutputBudget, pageContentBudget);
+            : GetOrCreateSoftMask(element.Effect.SoftMask, drawing.Width, drawing.Height, pageTransform, softMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
     }
 
@@ -340,12 +345,17 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        HashSet<double>? renderedType3PaintOrders = null,
+        Type3GlyphBudget? type3GlyphBudget = null) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var activeType3Glyphs = new HashSet<PdfStream>();
+        renderedType3PaintOrders ??= new HashSet<double>();
+        type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var tilingPatternResourceCache =
             new Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>();
         string content = GetContentStreamContent(pageContentBudget);
@@ -358,6 +368,9 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 primitives.Add,
                 activeForms,
+                activeType3Glyphs: activeType3Glyphs,
+                renderedType3PaintOrders: renderedType3PaintOrders,
+                type3GlyphBudget: type3GlyphBudget,
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);
@@ -374,6 +387,9 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
+        HashSet<PdfStream>? activeType3Glyphs = null,
+        HashSet<double>? renderedType3PaintOrders = null,
+        Type3GlyphBudget? type3GlyphBudget = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
@@ -391,11 +407,47 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth = 0,
         bool includeTilingPatterns = true,
         bool retainPrimitiveData = true,
+        bool requireVectorOnly = false,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        activeType3Glyphs ??= new HashSet<PdfStream>();
+        renderedType3PaintOrders ??= new HashSet<double>();
+        type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, Func<byte[], double>> widthProviders = resources == null
+            ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
+            : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        if (includeTilingPatterns) {
+            _ = PdfPageXObjectInvocationParser.Parse(
+                content,
+                baseTransform,
+                pageHeight,
+                GetGraphicsStateResources(resources),
+                GetColorSpaceResources(resources),
+                GetOptionalContentVisibility(resources),
+                paintOrderBase: paintOrderBase,
+                paintOrderScale: paintOrderScale,
+                paintOrderOffset: paintOrderOffset,
+                initialClipPath: initialClipPath,
+                initialFillColor: initialFillColor,
+                initialFillColorSpace: initialFillColorSpace,
+                initialFillOpacity: initialFillOpacity,
+                initialStrokeColor: initialStrokeColor,
+                initialStrokeColorSpace: initialStrokeColorSpace,
+                initialStrokeOpacity: initialStrokeOpacity,
+                initialStrokeWidth: initialStrokeWidth,
+                initialStrokeDashStyle: initialStrokeDashStyle,
+                initialStrokeLineCap: initialStrokeLineCap,
+                initialStrokeLineJoin: initialStrokeLineJoin,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                patternInvocationVisitor: name => invokedPatternNames.Add(name));
+        }
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -406,7 +458,7 @@ public sealed partial class PdfReadPage {
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
             includeTilingPatterns
-                ? GetTilingPatternResources(resources, tilingPatternResourceCache, textOutputBudget, pageContentBudget)
+                ? GetTilingPatternResources(resources, invokedPatternNames, tilingPatternResourceCache, textOutputBudget, pageContentBudget, type3GlyphBudget)
                 : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
@@ -428,7 +480,8 @@ public sealed partial class PdfReadPage {
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: primitiveVisitor,
-            retainPrimitiveData: retainPrimitiveData);
+            retainPrimitiveData: retainPrimitiveData,
+            scaleStrokeWidthWithTransform: requireVectorOnly);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -453,30 +506,68 @@ public sealed partial class PdfReadPage {
                       initialStrokeLineJoin: initialStrokeLineJoin,
                       maxOperations: _limits.MaxContentOperations,
                       maxNestingDepth: _limits.MaxContentNestingDepth,
-                      maxOperands: _limits.MaxContentOperands)) {
+                      maxOperands: _limits.MaxContentOperands,
+                      fonts: fonts,
+                      fontWidthProviders: widthProviders,
+                      type3TextVisitor: invocation => {
+                          bool rendered = RenderType3TextInvocation(
+                              invocation,
+                              pageWidth,
+                              pageHeight,
+                              primitiveVisitor,
+                              activeForms,
+                              activeType3Glyphs,
+                              type3GlyphBudget,
+                              paintOrderScale,
+                              includeTilingPatterns,
+                              retainPrimitiveData,
+                              tilingPatternResourceCache,
+                              textOutputBudget,
+                              pageContentBudget,
+                              contentNestingDepth);
+                          if (!rendered) type3GlyphBudget.RecordFailure();
+                          return rendered;
+                      },
+                      renderedType3PaintOrders: renderedType3PaintOrders,
+                      type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
+                      unsupportedTextVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedGraphicsEffectVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedPatternVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedColorVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
+                if (requireVectorOnly) type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             if (!activeForms.Add(formStream)) {
+                if (requireVectorOnly) type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
+                if (requireVectorOnly && HasUnsupportedType3FormGroup(formDictionary)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
+                var localPrimitives = requireVectorOnly ? new List<PdfPageVisualPrimitive>() : null;
+                var localRenderedType3PaintOrders = requireVectorOnly ? new HashSet<double>() : renderedType3PaintOrders;
                 CollectVisualPrimitivesAndForms(
                     formContent,
                     formResources,
                     formTransform,
                     pageWidth,
                     pageHeight,
-                    primitiveVisitor,
+                    localPrimitives is null ? primitiveVisitor : localPrimitives.Add,
                     activeForms,
-                    invocation.PaintOrder,
-                    paintOrderScale * 0.000000001D,
+                    activeType3Glyphs,
+                    localRenderedType3PaintOrders,
+                    type3GlyphBudget,
+                    requireVectorOnly ? 0D : invocation.PaintOrder,
+                    requireVectorOnly ? 1D : paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     initialFillColor: invocation.FillColor,
                     initialFillColorSpace: invocation.FillColorSpace,
@@ -491,14 +582,22 @@ public sealed partial class PdfReadPage {
                     contentNestingDepth: contentNestingDepth + 1,
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
+                    requireVectorOnly: requireVectorOnly,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget);
+                if (localPrimitives is not null &&
+                    !TryPublishType3LocalPrimitives(localPrimitives, invocation.PaintOrder, paintOrderScale, primitiveVisitor)) {
+                    type3GlyphBudget.RecordFailure();
+                }
             } finally {
                 activeForms.Remove(formStream);
             }
         }
     }
+
+    private static bool HasUnsupportedType3FormGroup(PdfDictionary formDictionary) =>
+        formDictionary.Items.ContainsKey("Group");
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);
@@ -757,8 +856,12 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
+            bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
             bool hasSoftMask = state.Items.ContainsKey("SMask");
             PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
+            bool clearsSoftMask = hasSoftMask &&
+                state.Items.TryGetValue("SMask", out PdfObject? authoredSoftMask) &&
+                ResolveObject(authoredSoftMask) is PdfName { Name: "None" };
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
@@ -766,8 +869,9 @@ public sealed partial class PdfReadPage {
                 strokeLineCap.HasValue ||
                 strokeLineJoin.HasValue ||
                 blendMode.HasValue ||
+                hasUnsupportedBlendMode ||
                 hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask);
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, hasSoftMask && !clearsSoftMask && softMask == null, hasUnsupportedBlendMode);
             }
         }
 
@@ -965,7 +1069,8 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject)) {
             return;
         }
@@ -999,6 +1104,7 @@ public sealed partial class PdfReadPage {
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
+            var renderedType3PaintOrders = new HashSet<double>();
             CollectVisualPrimitivesAndForms(
                 appearanceContent,
                 appearanceResources,
@@ -1007,6 +1113,8 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 primitives.Add,
                 activeForms,
+                renderedType3PaintOrders: renderedType3PaintOrders,
+                type3GlyphBudget: type3GlyphBudget,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
@@ -1034,6 +1142,7 @@ public sealed partial class PdfReadPage {
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
+                if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder)) continue;
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }
 
@@ -1830,4 +1939,5 @@ public sealed partial class PdfReadPage {
         public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
             new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, effect);
     }
+
 }
