@@ -140,6 +140,25 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Fill_RejectsAuthoredPushButtonsWithoutReplacingTheirCaptionAppearance() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button fill guard")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Calculate"
+        })).ToBytes();
+
+        PdfDocument opened = PdfDocument.Open(authored);
+        Assert.Throws<ArgumentException>(() => opened.Forms.Fill(new Dictionary<string, string> {
+            ["calculate"] = "On"
+        }));
+
+        PdfFormField button = PdfInspector.Inspect(authored).FormFieldsByName["calculate"];
+        Assert.True(button.IsPushButton);
+        Assert.Equal(authored, opened.ToBytes());
+    }
+
+    [Fact]
     public void Edit_AllowsSubsequentEditsWhenActiveContentBelongsOnlyToFormWidgets() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Repeated scripted edits")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {

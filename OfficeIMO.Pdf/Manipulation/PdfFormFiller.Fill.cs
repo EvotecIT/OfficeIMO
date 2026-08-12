@@ -53,6 +53,9 @@ internal static partial class PdfFormFiller {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            if ((fieldFlags & PushButtonFlag) != 0) {
+                throw new ArgumentException("PDF push-button fields do not have fillable values.", nameof(value));
+            }
             string name = string.IsNullOrEmpty(firstValue) ? "Off" : firstValue;
             bool isRadioButtonGroup = (fieldFlags & RadioButtonFlag) != 0;
             if (isRadioButtonGroup) {
