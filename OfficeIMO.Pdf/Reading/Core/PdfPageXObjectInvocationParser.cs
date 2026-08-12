@@ -341,6 +341,9 @@ internal static class PdfPageXObjectInvocationParser {
             PdfType3PaintChannels type3PaintChannels = isVisible && usesType3GlyphProgram
                 ? ResolveType3PaintChannels(glyphs)
                 : PdfType3PaintChannels.None;
+            if (_hasInexactDash && (type3PaintChannels & PdfType3PaintChannels.Stroke) != 0) {
+                _unsupportedGraphicsEffectVisitor?.Invoke();
+            }
             if (type3PaintChannels != PdfType3PaintChannels.None) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram) {
                 AdvertiseInheritedType3Patterns(type3PaintChannels);
@@ -477,6 +480,9 @@ internal static class PdfPageXObjectInvocationParser {
                 isVisible && usesType3GlyphProgram && glyphCount > 0
                     ? ResolveType3PaintChannels(glyphs)
                     : PdfType3PaintChannels.None;
+            if (_hasInexactDash && (type3PaintChannels & PdfType3PaintChannels.Stroke) != 0) {
+                _unsupportedGraphicsEffectVisitor?.Invoke();
+            }
             if (type3PaintChannels != PdfType3PaintChannels.None) _visibleFontVisitor?.Invoke(_textFont);
             if (isVisible && usesType3GlyphProgram && glyphCount > 0) {
                 AdvertiseInheritedType3Patterns(type3PaintChannels);
@@ -913,44 +919,56 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "rg":
-                    if (_args.Count >= 3) {
+                    if (HasTrailingFiniteNumbers(3)) {
                         _state = _state.WithFillColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
                         _patternState = _patternState.WithFill(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "RG":
-                    if (_args.Count >= 3) {
+                    if (HasTrailingFiniteNumbers(3)) {
                         _state = _state.WithStrokeColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
                         _patternState = _patternState.WithStroke(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "g":
-                    if (_args.Count >= 1) {
+                    if (HasTrailingFiniteNumbers(1)) {
                         _state = _state.WithFillColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
                         _patternState = _patternState.WithFill(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "G":
-                    if (_args.Count >= 1) {
+                    if (HasTrailingFiniteNumbers(1)) {
                         _state = _state.WithStrokeColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
                         _patternState = _patternState.WithStroke(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "k":
-                    if (_args.Count >= 4) {
+                    if (HasTrailingFiniteNumbers(4)) {
                         _state = _state.WithFillColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
                         _patternState = _patternState.WithFill(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "K":
-                    if (_args.Count >= 4) {
+                    if (HasTrailingFiniteNumbers(4)) {
                         _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
                         _patternState = _patternState.WithStroke(null, null);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
@@ -1279,6 +1297,14 @@ internal static class PdfPageXObjectInvocationParser {
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
 
         private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+
+        private bool HasTrailingFiniteNumbers(int count) {
+            if (_args.Count < count) return false;
+            for (int index = _args.Count - count; index < _args.Count; index++) {
+                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+            }
+            return true;
+        }
 
         private void ApplyGraphicsStateResource(string name) {
             if (_graphicsStates == null || !_graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {

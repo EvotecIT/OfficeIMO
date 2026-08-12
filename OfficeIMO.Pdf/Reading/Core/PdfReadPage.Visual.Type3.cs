@@ -203,6 +203,12 @@ public sealed partial class PdfReadPage {
                     }
                 }
 
+                for (int imageIndex = localImagePlacements.Count - 1; imageIndex >= 0; imageIndex--) {
+                    if (IsInvisibleImagePlacement(localImagePlacements[imageIndex], pageHeight, pageWidth, pageHeight)) {
+                        localImagePlacements.RemoveAt(imageIndex);
+                    }
+                }
+
                 if (localImagePlacements.Count > 0) {
                     var pendingPlacements = new List<PdfImagePlacement>();
                     var pendingKeys = new HashSet<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext)>();
@@ -232,8 +238,7 @@ public sealed partial class PdfReadPage {
                         if (image.IsImageMask && localImagePlacements[imageIndex].FillPattern.HasValue) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
-                        if (!IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight) &&
-                            !TryCreateImageProjection(
+                        if (!TryCreateImageProjection(
                                 placement,
                                 pageHeight,
                                 pageWidth,
