@@ -1133,7 +1133,8 @@ internal static partial class PdfWriter {
             page.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
-                AlternativeText = image.AlternativeText!
+                AlternativeText = image.AlternativeText!,
+                ParentElementIndex = image.StructureParentElementIndex
             });
         }
     }

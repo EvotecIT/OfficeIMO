@@ -290,14 +290,10 @@ internal static partial class PdfWriter {
             pageImage.RotationCenterX = originX + projection.RotationCenterX;
             pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
+            pageImage.StructureParentElementIndex = _canvasStructureParentElementIndex;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
-            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
-                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
-                pageImage.MarkedContentId = markedContentId;
-                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
-            }
 
             pageDirty = true;
         }

@@ -392,17 +392,13 @@ internal static partial class PdfWriter {
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
+            pageImage.StructureParentElementIndex = _canvasStructureParentElementIndex;
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
-            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
-                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
-                pageImage.MarkedContentId = markedContentId;
-                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
-            }
 
             int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);

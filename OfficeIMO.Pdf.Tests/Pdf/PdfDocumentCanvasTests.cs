@@ -178,6 +178,52 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasStructure_RetainedImageKeepsFigureUnderDeclaredParent() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
+                .Image(CreateMinimalRgbPng(), 10D, 10D, 20D, 20D, alternativeText: "Nested image alternative text")))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo figure = Assert.Single(tagged.StructureElements, element => element.StructureType == "Figure");
+        Assert.Equal("Nested image alternative text", figure.AlternateText);
+        Assert.Contains(figure.ObjectNumber, section.ChildElementObjectNumbers);
+    }
+
+    [Fact]
+    public void CanvasClip_DropsStructureForAChildImageOutsideTheClip() {
+        OfficeDrawing drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
+                "Clipped image alternative text");
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 20D, clipped => clipped
+                .Image(CreateMinimalRgbPng(), 10D, 40D, 20D, 20D, alternativeText: "Direct clipped image alternative text")
+                .Drawing(drawing, 10D, 10D, 20D, 20D)))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Figure");
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("/Figure << /Alt", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Image", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
