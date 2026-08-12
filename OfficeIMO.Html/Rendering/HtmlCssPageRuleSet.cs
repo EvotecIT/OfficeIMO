@@ -103,7 +103,7 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     private static bool MatchesName(string? ruleName, string? pageName) =>
-        ruleName != null && string.Equals(ruleName, pageName, StringComparison.OrdinalIgnoreCase);
+        ruleName != null && string.Equals(ruleName, pageName, StringComparison.Ordinal);
 
     private static bool Matches(HtmlCssPageSelector selector, int pageNumber) {
         if (selector == HtmlCssPageSelector.First) return pageNumber == 1;

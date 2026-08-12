@@ -435,8 +435,8 @@ internal sealed class HtmlCounterStyleRegistry {
             second = defaultSecond;
             if (string.IsNullOrWhiteSpace(value)) return true;
             IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-            if (parts.Count is < 1 or > 2 || !TryParseSymbol(parts[0], out first)) return false;
-            if (parts.Count == 2 && !TryParseSymbol(parts[1], out second)) return false;
+            if (parts.Count is < 1 or > 2 || !TryParseAffix(parts[0], out first)) return false;
+            if (parts.Count == 2 && !TryParseAffix(parts[1], out second)) return false;
             return true;
         }
 
@@ -453,7 +453,17 @@ internal sealed class HtmlCounterStyleRegistry {
 
         private static bool TryParseSingleString(string? value, string defaultValue, out string parsed) {
             parsed = defaultValue;
-            return string.IsNullOrWhiteSpace(value) || TryParseSymbol(value!.Trim(), out parsed);
+            return string.IsNullOrWhiteSpace(value) || TryParseAffix(value!.Trim(), out parsed);
+        }
+
+        private static bool TryParseAffix(string value, out string affix) {
+            if (HtmlCounterStyleFormatter.TryUnquote(value, out affix)) {
+                affix = HtmlCssEscapeDecoder.Decode(affix);
+                return true;
+            }
+
+            affix = HtmlCssEscapeDecoder.Decode(value.Trim());
+            return affix.Length > 0 && affix.IndexOfAny(new[] { ' ', '\t', '\r', '\n' }) < 0;
         }
 
         private static bool TryParseSymbol(string value, out string symbol) {

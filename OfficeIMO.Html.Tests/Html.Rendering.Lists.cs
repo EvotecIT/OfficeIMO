@@ -158,6 +158,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_AllowsEmptyCounterStyleAffixes() {
+        const string html = "<style>@counter-style marks{system:cyclic;symbols:'X';prefix:'';suffix:'';negative:'' ''}</style><ul style='list-style-type:marks'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_AppliesCounterStyleConditionalRulesForTheActiveMedia() {
         const string html = """
             <style>

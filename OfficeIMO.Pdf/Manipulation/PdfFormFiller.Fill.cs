@@ -81,6 +81,9 @@ internal static partial class PdfFormFiller {
             }
 
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
+            if (isMultiSelectChoice && choiceValues.All(item => item.OptionIndex.HasValue)) {
+                choiceValues = choiceValues.OrderBy(item => item.OptionIndex!.Value).ToArray();
+            }
             SetChoiceSelectionIndices(field, fieldFlags, choiceValues);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));

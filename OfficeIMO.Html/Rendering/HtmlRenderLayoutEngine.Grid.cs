@@ -33,7 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             "grid-template-rows");
         IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
-        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns);
+        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns, usesColumnSubgrid ? columnTracks.Count + 1 : (int?)null);
         IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));

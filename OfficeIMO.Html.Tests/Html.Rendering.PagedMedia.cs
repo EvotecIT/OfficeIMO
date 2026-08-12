@@ -64,6 +64,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_MatchesNamedPageGeometryCaseSensitively() {
+        const string html = "<style>@page Invoice{size:200px 100px}@page invoice{size:300px 150px}</style><section style='page:invoice'>Body</section>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal("invoice", page.PageName);
+        Assert.Equal((300D, 150D), (page.Width, page.Height));
+    }
+
+    [Fact]
     public void HtmlPagedMedia_AppliesCssWideResetsToPageMarginSides() {
         const string html = "<style>@page report { size:200px 100px; margin:12px; margin-top:unset; margin-left:initial; }</style><section style='page:report'>Body</section>";
 

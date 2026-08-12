@@ -25,12 +25,13 @@ internal static class PdfStructureTreeAnnotationPruner {
         }
 
         var removedStructElements = new HashSet<int>();
+        var removedObjectReferences = new HashSet<int>();
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.ToArray()) {
             if (entry.Value.Value is not PdfDictionary dictionary || !IsStructureElement(dictionary)) {
                 continue;
             }
 
-            if (RemoveObjectReferenceKids(dictionary, annotations) && !HasStructureKids(dictionary)) {
+            if (RemoveObjectReferenceKids(objects, dictionary, annotations, removedObjectReferences) && !HasStructureKids(dictionary)) {
                 removedStructElements.Add(entry.Key);
             }
         }
@@ -67,6 +68,9 @@ internal static class PdfStructureTreeAnnotationPruner {
         foreach (int objectNumber in removedStructElements) {
             objects.Remove(objectNumber);
         }
+        foreach (int objectNumber in removedObjectReferences) {
+            objects.Remove(objectNumber);
+        }
     }
 
     private static bool IsStructureElement(PdfDictionary dictionary) =>
@@ -80,12 +84,16 @@ internal static class PdfStructureTreeAnnotationPruner {
         return kids is not PdfArray array || array.Items.Count > 0;
     }
 
-    private static bool RemoveObjectReferenceKids(PdfDictionary dictionary, HashSet<int> annotations) {
+    private static bool RemoveObjectReferenceKids(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        HashSet<int> annotations,
+        HashSet<int> removedObjectReferences) {
         if (!dictionary.Items.TryGetValue("K", out PdfObject? kids)) {
             return false;
         }
 
-        if (IsObjectReferenceTo(kids, annotations)) {
+        if (IsObjectReferenceTo(objects, kids, annotations, removedObjectReferences)) {
             dictionary.Items.Remove("K");
             return true;
         }
@@ -96,7 +104,7 @@ internal static class PdfStructureTreeAnnotationPruner {
 
         bool changed = false;
         for (int i = array.Items.Count - 1; i >= 0; i--) {
-            if (!IsObjectReferenceTo(array.Items[i], annotations)) {
+            if (!IsObjectReferenceTo(objects, array.Items[i], annotations, removedObjectReferences)) {
                 continue;
             }
 
@@ -111,12 +119,28 @@ internal static class PdfStructureTreeAnnotationPruner {
         return changed;
     }
 
-    private static bool IsObjectReferenceTo(PdfObject value, HashSet<int> annotations) =>
-        value is PdfDictionary dictionary &&
+    private static bool IsObjectReferenceTo(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<int> annotations,
+        HashSet<int> removedObjectReferences) {
+        PdfDictionary? dictionary = value as PdfDictionary;
+        if (value is PdfReference objectReference &&
+            objects.TryGetValue(objectReference.ObjectNumber, out PdfIndirectObject? indirect) &&
+            indirect.Value is PdfDictionary indirectDictionary) {
+            dictionary = indirectDictionary;
+        }
+
+        bool matches = dictionary is not null &&
         dictionary.Get<PdfName>("Type")?.Name == "OBJR" &&
         dictionary.Items.TryGetValue("Obj", out PdfObject? objectValue) &&
         objectValue is PdfReference reference &&
         annotations.Contains(reference.ObjectNumber);
+        if (matches && value is PdfReference matchedReference) {
+            removedObjectReferences.Add(matchedReference.ObjectNumber);
+        }
+        return matches;
+    }
 
     private static bool RemoveIndirectStructureKids(PdfDictionary dictionary, HashSet<int> removedStructElements) {
         if (removedStructElements.Count == 0 || !dictionary.Items.TryGetValue("K", out PdfObject? kids)) {

@@ -421,7 +421,7 @@ public class PdfITextInspiredCoverageTests {
             .ToBytes();
 
         byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, PdfFormFieldValue> {
-            ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")
+            ["Countries"] = PdfFormFieldValue.FromValues("United States", "Germany")
         }, new PdfIncrementalFormFieldUpdateOptions {
             GenerateAppearanceStreams = true,
             KeepNeedAppearances = false

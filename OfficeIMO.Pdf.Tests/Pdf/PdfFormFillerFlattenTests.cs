@@ -27,6 +27,19 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_RemovesIndirectObjectReferenceKidsForDeletedWidgets() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectObjectReferencePdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "OBJR");
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("Obj", out PdfObject? value) &&
+            value is PdfReference reference && reference.ObjectNumber == 7);
+    }
+
+    [Fact]
     public void FlattenFields_SynthesizesMaskedPasswordTextAppearanceWhenMissing() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildPasswordTextWidgetWithoutAppearancePdf());
 

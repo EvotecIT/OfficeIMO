@@ -112,6 +112,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_SquareSizeContainerUsesPortraitOrientation() {
+        const string html = "<style>@container (orientation:portrait){#item{background:red}}@container (orientation:landscape){#item{background:blue}}</style><section style='width:100px;height:100px;container-type:size'><div id='item' style='width:20px;height:20px;background:black'></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 200D, ViewportHeight = 200D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerQueryEmAndRemUnitsUseContainerAndRootFonts() {
         const string html = """
             <style>

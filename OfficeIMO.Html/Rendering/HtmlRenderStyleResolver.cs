@@ -198,8 +198,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             .ToArray();
         if (values.Length is < 1 or > 3 || values.Any(parsed => parsed < 1)) return;
         style.HyphenateMinimumWordLength = Math.Min(values[0], 10000);
-        style.HyphenateMinimumPrefixLength = Math.Min(values.Length >= 2 ? values[1] : values[0], 10000);
-        style.HyphenateMinimumSuffixLength = Math.Min(values.Length >= 3 ? values[2] : values.Length >= 2 ? values[1] : values[0], 10000);
+        if (values.Length >= 2) style.HyphenateMinimumPrefixLength = Math.Min(values[1], 10000);
+        if (values.Length >= 3) style.HyphenateMinimumSuffixLength = Math.Min(values[2], 10000);
     }
 
     private static int? ResolveHyphenateLimitLines(string value, int? inherited) {

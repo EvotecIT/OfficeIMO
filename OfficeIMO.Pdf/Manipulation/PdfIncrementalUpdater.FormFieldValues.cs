@@ -89,6 +89,9 @@ internal static partial class PdfIncrementalUpdater {
 
         IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {
+            if (choiceValues.All(item => item.OptionIndex.HasValue)) {
+                choiceValues = choiceValues.OrderBy(item => item.OptionIndex!.Value).ToArray();
+            }
             return IncrementalPreparedFieldValue.Choice(
                 choiceValues.Select(item => item.ExportValue).ToArray(),
                 string.Join("\n", choiceValues.Select(item => item.DisplayValue)),
@@ -129,20 +132,32 @@ internal static partial class PdfIncrementalUpdater {
                 TryReadOptionText(objects, pair.Items[0], out string? exportValue) &&
                 exportValue is not null &&
                 TryReadOptionText(objects, pair.Items[1], out string? displayValue) &&
-                displayValue is not null) {
-                if (string.Equals(value, exportValue, StringComparison.Ordinal) ||
-                    string.Equals(value, displayValue, StringComparison.Ordinal)) {
-                    return new IncrementalChoiceFillValue(exportValue, displayValue, i);
-                }
-
-                continue;
+                displayValue is not null &&
+                string.Equals(value, exportValue, StringComparison.Ordinal)) {
+                return new IncrementalChoiceFillValue(exportValue, displayValue, i);
             }
 
-            if (optionObject is not null &&
+            if (optionObject is not PdfArray && optionObject is not null &&
                 TryReadOptionText(objects, optionObject, out string? optionValue) &&
                 optionValue is not null &&
                 string.Equals(value, optionValue, StringComparison.Ordinal)) {
                 return new IncrementalChoiceFillValue(optionValue, optionValue, i);
+            }
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? exportValue) &&
+                exportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? displayValue) &&
+                displayValue is not null) {
+                if (string.Equals(value, displayValue, StringComparison.Ordinal)) {
+                    return new IncrementalChoiceFillValue(exportValue, displayValue, i);
+                }
+
+                continue;
             }
         }
 

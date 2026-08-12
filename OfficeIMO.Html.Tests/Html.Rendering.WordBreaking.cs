@@ -104,6 +104,21 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("typography", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
     }
 
+    [Theory]
+    [InlineData("10", 2)]
+    [InlineData("10 4", 4)]
+    public void HtmlRendering_HyphenateLimitCharsKeepsOmittedComponentsAutomatic(string limits, int expectedPrefix) {
+        var document = HtmlConversionDocument.Parse("<div style='hyphenate-limit-chars:" + limits + "'>typography</div>").CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+
+        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions()).Resolve(document.QuerySelector("div")!, 120D);
+
+        Assert.Equal(10, style.HyphenateMinimumWordLength);
+        Assert.Equal(expectedPrefix, style.HyphenateMinimumPrefixLength);
+        Assert.Equal(2, style.HyphenateMinimumSuffixLength);
+    }
+
     [Fact]
     public void HtmlRendering_HyphenateLimitLinesBoundsConsecutiveHyphenatedLineEnds() {
         var lexicon = new OfficeTextHyphenationLexicon(new[] { "ty-pog-ra-phy", "de-ter-min-is-tic" }, minimumPrefixLength: 1, minimumSuffixLength: 1);

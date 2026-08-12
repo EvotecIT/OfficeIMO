@@ -255,7 +255,7 @@ public static partial class HtmlComputedStyleEngine {
             string expectedText = feature.Substring(colon + 1).Trim();
             if (name == "orientation") {
                 if (!context.Height.HasValue) return false;
-                string actualOrientation = context.Width >= context.Height.Value ? "landscape" : "portrait";
+                string actualOrientation = context.Width > context.Height.Value ? "landscape" : "portrait";
                 return string.Equals(actualOrientation, expectedText, StringComparison.OrdinalIgnoreCase);
             }
             bool minimum = name.StartsWith("min-", StringComparison.Ordinal);
