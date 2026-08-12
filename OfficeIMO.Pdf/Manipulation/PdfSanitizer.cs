@@ -69,8 +69,7 @@ internal static partial class PdfSanitizer {
             string? uri = originalInfo.LinkAnnotations[i].Uri;
             if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
         }
-        foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
-        preservationOptions.PreservedActionTypes.Add("URI");
+        AddPolicyRetainedActionTypes(originalInfo, policy, preservationOptions.PreservedActionTypes);
         for (int i = 0; i < before.Count; i++) {
             if (before[i].Kind == PdfSanitizationFindingKind.UnsafeUri) {
                 preservationOptions.ExcludedActionUris.Add(before[i].Detail);
@@ -79,6 +78,20 @@ internal static partial class PdfSanitizer {
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);
+    }
+
+    internal static void AddPolicyRetainedActionTypes(PdfDocumentInfo info, PdfSanitizationOptions policy, ISet<string> preservedActionTypes) {
+        for (int i = 0; i < info.CatalogActions.Count; i++) AddPolicyRetainedActionType(info.CatalogActions[i].ActionType, policy, preservedActionTypes);
+        for (int i = 0; i < info.Pages.Count; i++) {
+            IReadOnlyList<PdfPageAction> actions = info.Pages[i].PageActions;
+            for (int j = 0; j < actions.Count; j++) AddPolicyRetainedActionType(actions[j].ActionType, policy, preservedActionTypes);
+        }
+        if (info.OpenAction is not null) AddPolicyRetainedActionType(info.OpenAction.ActionType, policy, preservedActionTypes);
+        foreach (string actionType in policy.AllowedActionTypes) preservedActionTypes.Add(actionType);
+    }
+
+    private static void AddPolicyRetainedActionType(string actionType, PdfSanitizationOptions policy, ISet<string> preservedActionTypes) {
+        if (!PdfActiveContentPolicy.IsUnsafeActionType(actionType) || policy.IsActionAllowed(actionType)) preservedActionTypes.Add(actionType);
     }
 
     /// <summary>Sanitizes a PDF from the current position of a readable stream.</summary>

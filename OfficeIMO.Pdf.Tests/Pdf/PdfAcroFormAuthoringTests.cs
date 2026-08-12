@@ -368,6 +368,10 @@ public class PdfAcroFormAuthoringTests {
         PdfDocumentInfo outlineInfo = PdfDocument.Open(outlineAction).Inspect();
         Assert.Empty(outlineInfo.CatalogActions);
         Assert.Equal(0, outlineInfo.PageActionCount);
+        Assert.False(PdfDocument.Open(outlineAction).Preflight().CanFillSimpleFormFields);
+        Assert.False(PdfDocument.Open(outlineAction).Preflight().CanFlattenSimpleFormFields);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Flatten());
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
@@ -432,6 +436,33 @@ public class PdfAcroFormAuthoringTests {
             })));
         Assert.Equal(PdfReadLimitKind.JavaScriptBytes, byteException.Kind);
         Assert.Equal(existingBytes + newBytes, byteException.Actual);
+    }
+
+    [Fact]
+    public void Edit_AppliesJavaScriptBudgetsToTheFinalCommandAdjustedFieldGraph() {
+        const string script = "app.alert('replacement');";
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Script replacement budget")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "run",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            JavaScript = script
+        })).ToBytes();
+        long scriptBytes = PdfJavaScriptStringEncoding.EncodeUnicode(script, nameof(script)).LongLength;
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxJavaScripts = 1, MaxTotalJavaScriptBytes = scriptBytes }
+        };
+
+        PdfAcroFormEditResult result = PdfDocument.Open(authored, readOptions).Forms.Edit(edit => edit
+            .Remove("run")
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "replacement",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                JavaScript = script
+            }));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("replacement", field.Name);
+        Assert.Equal(script, field.JavaScript);
     }
 
     [Fact]
@@ -525,7 +556,22 @@ public class PdfAcroFormAuthoringTests {
         Assert.Contains("/Helv1", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/Helv2", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /ZapfDingbats", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /Helvetica", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica /Encoding /WinAnsiEncoding", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_UsesWinAnsiForAllocatedHelveticaAppearanceResources() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("WinAnsi field appearance")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "caption",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Pay € now"
+        }));
+
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Contains("/BaseFont /Helvetica /Encoding /WinAnsiEncoding", raw, StringComparison.Ordinal);
+        Assert.Contains("<5061792080206E6F77> Tj", raw, StringComparison.Ordinal);
     }
 
     [Fact]
