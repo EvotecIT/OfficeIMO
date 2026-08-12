@@ -91,6 +91,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_TextAreaSoftWrapsStaticPaintUnlessWrapIsOff() {
+        const string content = "Alpha beta gamma delta epsilon";
+        string html = "<textarea id='soft' style='width:90px;height:100px;font:12px Arial'>" + content + "</textarea>"
+            + "<textarea id='off' wrap='off' style='width:90px;height:100px;font:12px Arial'>" + content + "</textarea>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 240D });
+        HtmlRenderText[] soft = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Where(text => text.Source == "textarea#soft").ToArray();
+        HtmlRenderText[] off = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Where(text => text.Source == "textarea#off").ToArray();
+
+        Assert.True(soft.Length > 1);
+        Assert.True(soft.Select(text => text.Y).Distinct().Count() > 1);
+        Assert.Equal(content, string.Concat(soft.Select(text => text.Text)));
+        Assert.Equal(content, Assert.Single(off).Text);
+    }
+
+    [Fact]
     public void HtmlRendering_GridAutoPlacementKeepsSpanningControlRowAfterPriorRows() {
         const string html = """
             <form style="display:grid;width:320px;grid-template-columns:1fr 1fr;gap:8px">

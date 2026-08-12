@@ -54,6 +54,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         OfficeTextAlignment textAlignment,
         OfficeColor? backgroundColor,
         OfficeColor? borderColor,
+        string borderStyle,
         double borderWidth,
         double cornerRadius,
         double x,
@@ -88,6 +89,7 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         TextAlignment = textAlignment;
         BackgroundColor = backgroundColor;
         BorderColor = borderColor;
+        BorderStyle = borderStyle ?? "none";
         BorderWidth = Math.Max(0D, borderWidth);
         CornerRadius = Math.Max(0D, cornerRadius);
         _values = new List<string>(values ?? Array.Empty<string>()).AsReadOnly();
@@ -154,6 +156,8 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
     public OfficeColor? BackgroundColor { get; }
     /// <summary>Resolved border color.</summary>
     public OfficeColor? BorderColor { get; }
+    /// <summary>Resolved uniform CSS border style retained for interactive backends.</summary>
+    public string BorderStyle { get; }
     /// <summary>Resolved border width in CSS pixels.</summary>
     public double BorderWidth { get; }
     /// <summary>Resolved uniform circular corner radius in CSS pixels.</summary>
@@ -168,5 +172,5 @@ public sealed class HtmlRenderFormField : HtmlRenderVisual {
         Clone(X + offsetX, Y + offsetY, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, LayoutY);
 
     private HtmlRenderFormField Clone(double x, double y, IEnumerable<HtmlRenderVisual> visuals, int paintOrder, double layoutY) =>
-        new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, _selectedOptionIndices, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderWidth, CornerRadius, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
+        new(FieldKind, Name, MappingName, Value, Placeholder, _values, _options, _optionValues, _selectedOptionIndices, RadioOption, IsSelected, IsDisabled, IsReadOnly, IsRequired, IsMultiline, IsPassword, IsFileSelect, IsComboBox, AllowsMultipleSelection, MaximumLength, AlternateName, Font, TextColor, PlaceholderTextColor, TextAlignment, BackgroundColor, BorderColor, BorderStyle, BorderWidth, CornerRadius, x, y, Width, Height, visuals, paintOrder, Source, layoutY);
 }

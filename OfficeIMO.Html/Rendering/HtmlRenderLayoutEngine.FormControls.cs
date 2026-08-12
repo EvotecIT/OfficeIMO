@@ -219,7 +219,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string text = NormalizeControlMultilineText(element.TextContent);
             bool placeholder = text.Length == 0;
             if (placeholder) text = NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty);
-            AddMultilineControlText(visuals, text, contentX, contentY, contentWidth, contentHeight, style, placeholder, source);
+            bool softWrap = !string.Equals(element.GetAttribute("wrap"), "off", StringComparison.OrdinalIgnoreCase);
+            AddMultilineControlText(visuals, text, contentX, contentY, contentWidth, contentHeight, style, placeholder, source, softWrap);
             return;
         }
 
@@ -409,7 +410,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(HtmlFormControlSemantics.GetOptionLabel)
                 .Where(value => value.Length > 0)
                 .ToArray();
-            AddMultilineControlText(visuals, string.Join("\n", values), x, y, width, height, style, false, source);
+            AddMultilineControlText(visuals, string.Join("\n", values), x, y, width, height, style, false, source, softWrap: false);
             return;
         }
 
@@ -459,7 +460,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             semanticRole: "form-control"));
     }
 
-    private static void AddMultilineControlText(
+    private void AddMultilineControlText(
         ICollection<HtmlRenderVisual> visuals,
         string text,
         double x,
@@ -468,12 +469,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         HtmlRenderBoxStyle style,
         bool placeholder,
-        string source) {
+        string source,
+        bool softWrap) {
         if (text.Length == 0 || width <= 0D || height <= 0D) return;
-        string[] lines = text.Split('\n');
+        IReadOnlyList<string> lines = WrapControlText(text, width, style, softWrap);
         double lineHeight = Math.Max(0.01D, style.LineHeight);
         int maximumLines = Math.Max(1, (int)Math.Floor(height / lineHeight));
-        for (int index = 0; index < Math.Min(lines.Length, maximumLines); index++) {
+        for (int index = 0; index < Math.Min(lines.Count, maximumLines); index++) {
             string line = lines[index];
             if (line.Length == 0) continue;
             visuals.Add(new HtmlRenderText(
@@ -490,6 +492,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source: source,
                 semanticRole: "form-control"));
         }
+    }
+
+    private IReadOnlyList<string> WrapControlText(string text, double width, HtmlRenderBoxStyle style, bool softWrap) {
+        var result = new List<string>();
+        foreach (string logicalLine in text.Split('\n')) {
+            if (!softWrap || logicalLine.Length == 0 || MeasureInlineText(logicalLine, style) <= width + 0.0001D) {
+                result.Add(logicalLine);
+                continue;
+            }
+
+            string remaining = logicalLine;
+            while (remaining.Length > 0) {
+                int fit = 0;
+                int lastWhitespace = -1;
+                TextElementEnumerator elements = StringInfo.GetTextElementEnumerator(remaining);
+                while (elements.MoveNext()) {
+                    int end = elements.ElementIndex + elements.GetTextElement().Length;
+                    if (MeasureInlineText(remaining.Substring(0, end), style) > width + 0.0001D) break;
+                    fit = end;
+                    if (char.IsWhiteSpace(remaining[end - 1])) lastWhitespace = end;
+                }
+                if (fit == 0) {
+                    elements = StringInfo.GetTextElementEnumerator(remaining);
+                    if (!elements.MoveNext()) break;
+                    fit = elements.GetTextElement().Length;
+                }
+                int take = lastWhitespace > 0 ? lastWhitespace : fit;
+                result.Add(remaining.Substring(0, take));
+                remaining = remaining.Substring(take);
+            }
+        }
+        return result;
     }
 
     private bool TryCreateFormFieldVisual(
@@ -619,6 +653,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && !readOnly;
         string alternateName = ResolveFormFieldAccessibleName(element, name);
         OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
+        if (borderColor.HasValue && style.BorderStyle != "solid" && style.BorderStyle != "dashed") {
+            ReportUnsupportedFormFieldBorderStyleFallback(source, style.BorderStyle);
+            return false;
+        }
         if (HasUnsupportedInteractiveFieldTransparency(style.Color, style.BackgroundColor, borderColor)) {
             ReportTransparentFormFieldPaintFallback(source, null);
             return false;
@@ -656,6 +694,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.Alignment,
             style.BackgroundColor,
             borderColor,
+            style.BorderStyle,
             style.BorderWidth,
             resolvedRadii.UniformRadius,
             x,
@@ -666,6 +705,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paintOrder: 0,
             source);
         return true;
+    }
+
+    private void ReportUnsupportedFormFieldBorderStyleFallback(string source, string borderStyle) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldBorderStyleStaticFallback,
+            "An HTML form control used faithful static rendering because its authored border style cannot be represented by a PDF widget appearance.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "border-style=" + borderStyle,
+            OfficeConversionLossKind.Approximation);
     }
 
     private void ReportTransformedFormFieldFallback(string source, string detail) {

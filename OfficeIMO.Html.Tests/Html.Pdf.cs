@@ -251,6 +251,33 @@ public sealed class HtmlPdfTests {
         Assert.Contains("Static rounded", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlToPdf_DashedControlBorderRemainsDashedInWidgetAndAppearance() {
+        const string html = "<input name='dashed' value='Dashed' style='width:120px;height:28px;border:2px dashed #ff0000'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string syntax = Encoding.ASCII.GetString(pdf);
+        string appearance = GetFieldAppearanceContent(pdf, "dashed");
+
+        Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("/BS << /S /D /W 1.5", syntax, StringComparison.Ordinal);
+        Assert.Contains("[3] 0 d", appearance, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("dotted")]
+    [InlineData("double")]
+    public void HtmlToPdf_UnrepresentableControlBorderUsesTruthfulStaticFallback(string borderStyle) {
+        string html = "<input name='styled' value='Static border' style='border:2px " + borderStyle + " red'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBorderStyleStaticFallback);
+        Assert.Contains("Static border", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("background:rgba(0,0,255,.2)")]
     [InlineData("border:2px solid rgba(255,0,0,.4)")]

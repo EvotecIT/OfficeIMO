@@ -53,6 +53,25 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_RebuildsNestedParentTreeLimitsAndPrunesEmptyKids() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithNestedParentTreeLimitsPdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+        PdfDictionary root = Assert.IsType<PdfDictionary>(objects.Values.Single(indirect =>
+            indirect.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "StructTreeRoot").Value);
+        PdfDictionary parentTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, root.Items["ParentTree"]));
+        PdfArray rootKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, parentTree.Items["Kids"]));
+        PdfDictionary leaf = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, Assert.Single(rootKids.Items)));
+        PdfArray nums = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, leaf.Items["Nums"]));
+
+        Assert.Equal(5D, Assert.IsType<PdfNumber>(nums.Items[0]).Value);
+        Assert.Equal("P", Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, nums.Items[1])).Get<PdfName>("S")?.Name);
+        foreach (PdfDictionary node in new[] { parentTree, leaf }) {
+            PdfArray limits = Assert.IsType<PdfArray>(node.Items["Limits"]);
+            Assert.All(limits.Items, item => Assert.Equal(5D, Assert.IsType<PdfNumber>(item).Value));
+        }
+    }
+
+    [Fact]
     public void FlattenFields_PrunesIndirectStructureKidArraysForDeletedWidgets() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectStructureKidArraysPdf());
         var (objects, _) = PdfSyntax.ParseObjects(flattened);

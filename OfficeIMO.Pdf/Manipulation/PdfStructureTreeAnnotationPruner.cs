@@ -61,7 +61,9 @@ internal static class PdfStructureTreeAnnotationPruner {
 
             RemoveIndirectStructureKids(objects, dictionary, removedStructElements);
             if (dictionary.Items.TryGetValue("ParentTree", out PdfObject? parentTree)) {
-                PruneParentTree(objects, parentTree, structParentIndexes, removedStructElements, new HashSet<int>());
+                if (!PruneParentTree(objects, parentTree, structParentIndexes, removedStructElements, new HashSet<int>(), out _, out _)) {
+                    dictionary.Items.Remove("ParentTree");
+                }
             }
             if (dictionary.Items.TryGetValue("IDTree", out PdfObject? idTree) &&
                 !PruneIdTree(objects, idTree, removedStructElements, new HashSet<int>(), out _, out _)) {
@@ -178,28 +180,33 @@ internal static class PdfStructureTreeAnnotationPruner {
         return changed;
     }
 
-    private static void PruneParentTree(
+    private static bool PruneParentTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> structParentIndexes,
         HashSet<int> removedStructElements,
-        HashSet<int> visited) {
+        HashSet<int> visited,
+        out PdfNumber? firstKey,
+        out PdfNumber? lastKey) {
+        firstKey = null;
+        lastKey = null;
         if (value is PdfReference reference) {
             if (!visited.Add(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
-                return;
+                return true;
             }
 
-            PruneParentTree(objects, indirect.Value, structParentIndexes, removedStructElements, visited);
-            return;
+            return PruneParentTree(objects, indirect.Value, structParentIndexes, removedStructElements, visited, out firstKey, out lastKey);
         }
 
         if (value is not PdfDictionary dictionary) {
-            return;
+            return true;
         }
 
+        bool hasEntries = false;
         if (dictionary.Items.TryGetValue("Nums", out PdfObject? numsObject) &&
             PdfObjectLookup.Resolve(objects, numsObject) is PdfArray nums) {
+            if (nums.Items.Count % 2 != 0) return true;
             for (int i = nums.Items.Count - 2; i >= 0; i -= 2) {
                 bool removePair = nums.Items[i] is PdfNumber key &&
                     key.Value >= 0D && key.Value <= int.MaxValue &&
@@ -214,14 +221,47 @@ internal static class PdfStructureTreeAnnotationPruner {
                     nums.Items.RemoveAt(i);
                 }
             }
+            if (nums.Items.Count == 0) {
+                dictionary.Items.Remove("Nums");
+            } else if (nums.Items[0] is PdfNumber first && nums.Items[nums.Items.Count - 2] is PdfNumber last) {
+                hasEntries = true;
+                firstKey = first;
+                lastKey = last;
+            } else {
+                hasEntries = true;
+            }
+        } else if (dictionary.Items.ContainsKey("Nums")) {
+            hasEntries = true;
         }
 
-        if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) &&
-            PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
-            foreach (PdfObject kid in kids.Items) {
-                PruneParentTree(objects, kid, structParentIndexes, removedStructElements, visited);
+        if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)) {
+            if (PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
+                for (int index = kids.Items.Count - 1; index >= 0; index--) {
+                    if (PruneParentTree(objects, kids.Items[index], structParentIndexes, removedStructElements, visited, out PdfNumber? childFirst, out PdfNumber? childLast)) {
+                        hasEntries = true;
+                        if (childFirst != null && (firstKey == null || childFirst.Value < firstKey.Value)) firstKey = childFirst;
+                        if (childLast != null && (lastKey == null || childLast.Value > lastKey.Value)) lastKey = childLast;
+                    } else {
+                        kids.Items.RemoveAt(index);
+                    }
+                }
+                if (kids.Items.Count == 0) dictionary.Items.Remove("Kids");
+            } else {
+                hasEntries = true;
             }
         }
+
+        if (!hasEntries) {
+            dictionary.Items.Remove("Limits");
+            return false;
+        }
+        if (firstKey != null && lastKey != null) {
+            var limits = new PdfArray();
+            limits.Items.Add(new PdfNumber(firstKey.Value));
+            limits.Items.Add(new PdfNumber(lastKey.Value));
+            dictionary.Items["Limits"] = limits;
+        }
+        return true;
     }
 
     private static bool PruneIdTree(

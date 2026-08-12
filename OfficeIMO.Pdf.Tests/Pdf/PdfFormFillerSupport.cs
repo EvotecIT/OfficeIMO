@@ -944,6 +944,28 @@ public partial class PdfFormFillerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildTaggedTextWidgetWithNestedParentTreeLimitsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /MarkInfo << /Marked true >> /StructTreeRoot 9 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources << >> /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /FT /Tx /T (Name) /V (Ada) /Kids [7 0 R] >>", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 100 180 120] /F 4 /StructParent 0 >>", "endobj",
+            "9 0 obj", "<< /Type /StructTreeRoot /K [11 0 R 14 0 R] /ParentTree 12 0 R /ParentTreeNextKey 10 >>", "endobj",
+            "11 0 obj", "<< /Type /StructElem /S /Form /P 9 0 R /K 13 0 R >>", "endobj",
+            "12 0 obj", "<< /Kids [15 0 R 16 0 R] /Limits [0 9] >>", "endobj",
+            "13 0 obj", "<< /Type /OBJR /Obj 7 0 R >>", "endobj",
+            "14 0 obj", "<< /Type /StructElem /S /P /P 9 0 R /K 0 >>", "endobj",
+            "15 0 obj", "<< /Nums [0 11 0 R 5 14 0 R] /Limits [0 5] >>", "endobj",
+            "16 0 obj", "<< /Nums [9 11 0 R] /Limits [9 9] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 17 >>", "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildTaggedTextWidgetWithIdTreePdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
