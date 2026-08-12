@@ -110,6 +110,10 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
+        return GetTextSpans(_includeArtifactText);
+    }
+
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(bool includeArtifactText) {
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
@@ -132,11 +136,16 @@ public sealed partial class PdfReadPage {
                 spans,
                 activeForms,
                 pageHeight,
-                includeArtifactText: _includeArtifactText,
+                includeArtifactText: includeArtifactText,
                 pageContentBudget: pageContentBudget);
         }
 
         return spans;
+    }
+
+    internal (double X, double Y) GetPageBoundaryOrigin() {
+        PdfPageBox box = GetPageBoundaryBox();
+        return (box.Left, box.Bottom);
     }
 
     /// <summary>Reads simple URI, named-destination, direct-destination, named-action, and remote GoTo link annotations from this page.</summary>
@@ -641,7 +650,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
-                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved,
+                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved || HasTransparencyGroupForTextEditing(formDict),
                     useLogicalTextFilters,
                     includeArtifactText,
                     contentNestingDepth + 1,
@@ -1027,6 +1036,29 @@ public sealed partial class PdfReadPage {
 
     private PdfObject? ResolveObject(PdfObject? obj) {
         return PdfObjectLookup.Resolve(_objects, obj);
+    }
+
+    private bool HasTransparencyGroupForTextEditing(PdfDictionary formDictionary) {
+        if (!formDictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ||
+            ResolveTextEditingObjectChain(groupObject) is not PdfDictionary group ||
+            !group.Items.TryGetValue("S", out PdfObject? subtypeObject)) {
+            return false;
+        }
+        return ResolveTextEditingObjectChain(subtypeObject) is PdfName subtype &&
+            string.Equals(subtype.Name, "Transparency", StringComparison.Ordinal);
+    }
+
+    private PdfObject? ResolveTextEditingObjectChain(PdfObject? value) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        int maximumDepth = Math.Max(1, _limits.MaxObjectNestingDepth);
+        for (int depth = 0; depth < maximumDepth && value is PdfReference reference; depth++) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject? indirect)) {
+                return null;
+            }
+            value = indirect.Value;
+        }
+        return value is PdfReference ? null : value;
     }
 
     private PdfArray? ResolveArray(PdfObject? obj) {

@@ -616,6 +616,105 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void SearchAndInspectOrderRightToLeftSpansAlongDecreasingBaselines() {
+        byte[] source = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF05E905DC05D505DD> >> BDC BT /F1 12 Tf 220 700 Td (x) Tj ET EMC\n" +
+            "/Span << /ActualText <FEFF05E205D505DC05DD> >> BDC BT /F1 12 Tf 205 700 Td (x) Tj ET EMC\n");
+        Assert.Equal(new[] { "שלום", "עולם" }, PdfReadDocument.Open(source).Pages[0].GetTextSpans().Select(static span => span.Text).ToArray());
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("שלום עולם", new PdfTextSearchOptions { MatchCase = true }));
+        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(new PdfPageRegion(1, 190, 680, 60, 40));
+
+        Assert.Equal("שלום עולם", match.Text);
+        Assert.Equal("שלום עולם", inspected.Text);
+    }
+
+    [Fact]
+    public void ReplaceAllContinuesSuffixFromTheFinalReplacementLine() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("cat", "foo\nbar", new PdfTextSearchOptions { MatchCase = true });
+
+        Assert.Single(result.Document.Text.Find("bar tail", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch bar = Assert.Single(result.Document.Text.Find("bar", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.InRange(tail.Y, bar.Y - 0.5D, bar.Y + 0.5D);
+        Assert.True(tail.X > bar.X);
+    }
+
+    [Fact]
+    public void ReplaceAllProjectsRotatedReplacementAdvanceOntoSourceFlow() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "cat",
+            "fox",
+            new PdfTextSearchOptions { MatchCase = true },
+            new PdfTextEditOptions { RotationDegrees = 90D });
+        PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("fox", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.InRange(replacement.RotationDegrees, 89.9D, 90.1D);
+        Assert.InRange(tail.X, 49D, 53D);
+        Assert.True(tail.Y > replacement.Y);
+    }
+
+    [Fact]
+    public void SearchAndMutationIncludeVisibleArtifactText() {
+        byte[] source = BuildRawTextPdf("/Artifact BMC BT /F1 12 Tf 50 700 Td (visible footer) Tj ET EMC\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.Replace(region, "updated footer");
+
+        Assert.Empty(result.Document.Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(result.Document.Text.Find("updated footer", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
+    public void MutationRejectsTextInheritedFromTransparencyGroupForm() {
+        const string formText = "BT /F1 12 Tf 50 700 Td (group text) Tj ET\n";
+        byte[] source = BuildRawTextPdf(
+            "/Fm Do\n",
+            "/XObject << /Fm 7 0 R >>",
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Group << /S /Transparency >> /Resources << /Font << /F1 5 0 R >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+            new PdfPageRegion(1, 45, 680, 100, 40),
+            "updated"));
+    }
+
+    [Fact]
+    public void TextEditorCoordinatesAreRelativeToNonzeroPageBoxOrigin() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 150 650 Td (existing) Tj ET\n",
+            pageEntries: "/CropBox [100 100 500 700]");
+
+        PdfTextMatch existing = Assert.Single(PdfDocument.Open(source).Text.Find("existing", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult replaced = PdfDocument.Open(source).Text.Replace(
+            new PdfPageRegion(1, existing.X, existing.Y, existing.Width, existing.Height),
+            "changed");
+        PdfTextEditResult added = PdfDocument.Open(source).Text.Add(new PdfPageRegion(1, 0, 0, 120, 40), "origin text");
+        PdfTextMatch addedMatch = Assert.Single(added.Document.Text.Find("origin text", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch changed = Assert.Single(replaced.Document.Text.Find("changed", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.InRange(existing.X, 49.9D, 50.1D);
+        Assert.InRange(existing.Y, 546D, 548D);
+        Assert.InRange(addedMatch.X, -0.1D, 0.1D);
+        Assert.InRange(addedMatch.Y, 24D, 26D);
+        Assert.InRange(changed.X, existing.X - 0.1D, existing.X + 0.1D);
+    }
+
+    [Theory]
+    [InlineData("\n")]
+    [InlineData("\r\n")]
+    [InlineData("\r\n\n")]
+    public void AddRejectsLineBreakOnlyText(string text) {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Text.Add(new PdfPageRegion(1, 20, 20, 100, 30), text));
+    }
+
+    [Fact]
     public void SearchOptionsSnapshotPagesAndRejectInvalidSelection() {
         int[] pages = { 1 };
         var options = new PdfTextSearchOptions { PageNumbers = pages };

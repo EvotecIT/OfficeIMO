@@ -67,4 +67,19 @@ public sealed class PdfReadOptions {
             IncludeArtifactText = effective.IncludeArtifactText
         };
     }
+
+    internal static PdfReadOptions WithArtifactText(PdfReadOptions? options) {
+        PdfReadOptions effective = Resolve(options);
+        if (effective.IncludeArtifactText) return effective;
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits,
+            Password = effective.Password,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = true
+        };
+    }
 }
