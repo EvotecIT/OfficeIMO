@@ -859,6 +859,11 @@ internal static class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
+                string paintedText = sbOut.ToString();
+                bool visibleGlyphsMatchLogicalText = string.Equals(
+                    NormalizeShatteredSpan(paintedText),
+                    normalizedText,
+                    StringComparison.Ordinal);
 
                 spans.Add(new PdfTextSpan(
                     normalizedText,
@@ -879,8 +884,9 @@ internal static class TextContentParser {
                     logicalTrailingSpace,
                     string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) ? transformedCharacterAdvances : null,
                     textRenderingMode,
-                    canRestamp,
-                    restampFontSize));
+                    canRestamp && visibleGlyphsMatchLogicalText,
+                    restampFontSize,
+                    paintedText));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1017,7 +1023,8 @@ internal static class TextContentParser {
                 }
                 hasUnsupportedEffect = hasUnsupportedEffect ||
                     resource.HasUnsupportedBlendMode ||
-                    resource.HasUnsupportedSoftMask;
+                    resource.HasUnsupportedSoftMask ||
+                    resource.HasUnsupportedTextRestampEffect;
             }
         }
         OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
@@ -1535,6 +1542,7 @@ internal static class TextContentParser {
             hasUnsupportedEffect = hasUnsupportedEffect ||
                 resource.HasUnsupportedBlendMode ||
                 resource.HasUnsupportedSoftMask ||
+                resource.HasUnsupportedTextRestampEffect ||
                 resource.BlendMode is OfficeBlendMode mode && mode != OfficeBlendMode.Normal ||
                 resource.SoftMask != null;
         }

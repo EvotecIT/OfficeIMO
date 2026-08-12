@@ -11,8 +11,8 @@ internal static partial class PdfStamper {
         Guard.NotNull(requests, nameof(requests));
         if (requests.Count == 0) return pdf;
 
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
 
@@ -30,37 +30,35 @@ internal static partial class PdfStamper {
         int[] pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
         PdfStandardFont[] fonts = requests.Select(static request => request.Font).Distinct().ToArray();
         string[] resourceNames = GetAvailableBatchFontResourceNames(objects, pageObjectNumbers, fonts.Length);
-        var fontResources = new Dictionary<PdfStandardFont, BatchFontResource>();
-        var additionalObjects = new List<PdfPageExtractor.AdditionalObject>();
-        int nextPseudoObjectNumber = -200000;
-        for (int index = 0; index < fonts.Length; index++) {
-            int pseudoObjectNumber = nextPseudoObjectNumber--;
-            fontResources.Add(fonts[index], new BatchFontResource(resourceNames[index], pseudoObjectNumber));
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(pseudoObjectNumber, BuildFontObject(fonts[index])));
-        }
+        return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (rewrittenObjects, security) => {
+            int nextObjectNumber = rewrittenObjects.Count == 0 ? 1 : rewrittenObjects.Keys.Max() + 1;
+            var fontResources = new Dictionary<PdfStandardFont, BatchFontResource>();
+            for (int index = 0; index < fonts.Length; index++) {
+                int fontObjectNumber = nextObjectNumber++;
+                fontResources.Add(fonts[index], new BatchFontResource(resourceNames[index], fontObjectNumber));
+                rewrittenObjects[fontObjectNumber] = new PdfIndirectObject(fontObjectNumber, 0, BuildFontObject(fonts[index]));
+            }
 
-        var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
-        foreach (IGrouping<int, TextStampRequest> pageRequests in requests.GroupBy(static request => request.PageNumber)) {
-            int pageNumber = pageRequests.Key;
-            PdfReadPage page = document.Pages[pageNumber - 1];
-            int stampPseudoObjectNumber = nextPseudoObjectNumber--;
-            PdfStream stampStream = BuildBatchTextStampStream(pageRequests.OrderBy(static request => request.PaintOrder), fontResources);
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoObjectNumber, stampStream));
-            overrides[page.ObjectNumber] = BuildBatchTextPageOverrides(
-                objects,
-                page.ObjectNumber,
-                fontResources.Values,
-                stampPseudoObjectNumber);
-        }
+            foreach (IGrouping<int, TextStampRequest> pageRequests in requests.GroupBy(static request => request.PageNumber)) {
+                int pageObjectNumber = pageObjectNumbers[pageRequests.Key - 1];
+                int stampObjectNumber = nextObjectNumber++;
+                rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
+                    stampObjectNumber,
+                    0,
+                    BuildBatchTextStampStream(pageRequests.OrderBy(static request => request.PaintOrder), fontResources));
+                Dictionary<string, PdfObject> overrides = BuildBatchTextPageOverrides(
+                    rewrittenObjects,
+                    pageObjectNumber,
+                    fontResources.Values,
+                    stampObjectNumber);
+                PdfDictionary pageDictionary = (PdfDictionary)rewrittenObjects[pageObjectNumber].Value;
+                foreach (KeyValuePair<string, PdfObject> item in overrides) pageDictionary.Items[item.Key] = item.Value;
+            }
 
-        return PdfPageExtractor.ExtractPages(
-            objects,
-            document.UncheckedMetadata,
-            pageObjectNumbers,
-            overrides,
-            additionalObjects,
-            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
-            PdfPageExtractor.GetSourceFileVersion(pdf));
+            return security.InfoObjectNumber.HasValue && rewrittenObjects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
     }
 
     private static PdfStream BuildBatchTextStampStream(

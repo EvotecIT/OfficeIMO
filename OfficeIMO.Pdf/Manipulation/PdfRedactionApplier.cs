@@ -82,7 +82,13 @@ internal static partial class PdfRedactionApplier {
         PdfMutationOperation mutationOperation) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions);
+        if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
+            mutationScope == RedactionMutationScope.Text &&
+            !paintMarks) {
+            PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
+        } else {
+            _ = PdfMutationPlanner.RequireFullRewrite(pdf, mutationOperation, readOptions);
+        }
 
         PdfRedactionArea[] areaArray = areas.ToArray();
         if (areaArray.Length == 0) {

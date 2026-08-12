@@ -715,6 +715,76 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void MutationRejectsUnmodeledNonstrokingOverprintState() {
+        byte[] source = BuildRawTextPdf(
+            "/GSOverprint gs BT /F1 12 Tf 50 700 Td (overprint) Tj ET\n",
+            "/ExtGState << /GSOverprint << /op true /OPM 1 >> >>");
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+            new PdfPageRegion(1, 45D, 680D, 160D, 45D),
+            "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsActualTextThatDiffersFromPaintedGlyphs() {
+        byte[] source = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF006600660069> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (x) Tj ET EMC\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("ffi", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(
+            new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
+            20D,
+            0D));
+    }
+
+    [Fact]
+    public void MovePreservesAuthoredEdgeWhitespace() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td ( tail ) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.Move(
+            new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
+            20D,
+            0D);
+
+        Assert.Contains("<207461696C20> Tj", PdfEncoding.Latin1GetString(result.Document.ToBytes()), StringComparison.Ordinal);
+        PdfTextSpan moved = Assert.Single(PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(), static span => span.Text == "tail");
+        Assert.Equal(" tail ", moved.RestampText);
+    }
+
+    [Fact]
+    public void TextMutationsPreserveAnExistingAcroFormCatalogGraph() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Form and text edit")).ToBytes();
+        byte[] form = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "customer.notes",
+            Kind = PdfFormFieldCreationKind.Text,
+            X = 72D,
+            Y = 600D,
+            Width = 180D,
+            Height = 24D,
+            Value = "kept"
+        })).ToBytes();
+
+        PdfTextEditResult added = PdfDocument.Open(form).Text.Add(new PdfPageRegion(1, 72D, 520D, 180D, 30D), "added text");
+        PdfTextMatch sourceMatch = Assert.Single(added.Document.Text.Find("Form and text edit", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult moved = added.Document.Text.Move(
+            new PdfPageRegion(1, sourceMatch.X, sourceMatch.Y, sourceMatch.Width, sourceMatch.Height),
+            20D,
+            -20D);
+        PdfTextMatch movedMatch = Assert.Single(moved.Document.Text.Find("Form and text edit", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = moved.Document.Text.Replace(
+            new PdfPageRegion(1, movedMatch.X, movedMatch.Y, movedMatch.Width, movedMatch.Height),
+            "updated text");
+
+        PdfFormField field = Assert.Single(result.Document.Inspect().FormFields);
+        Assert.Equal("customer.notes", field.Name);
+        Assert.Equal("kept", field.Value);
+        Assert.Single(result.Document.Text.Find("added text", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(result.Document.Text.Find("updated text", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
     public void SearchOptionsSnapshotPagesAndRejectInvalidSelection() {
         int[] pages = { 1 };
         var options = new PdfTextSearchOptions { PageNumbers = pages };

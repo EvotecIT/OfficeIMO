@@ -43,7 +43,7 @@ internal static partial class PdfTextEditor {
             : RemoveTextPreservingUnmatchedSpans(pdf, new[] { region.ToRedactionArea() }, readOptions);
         var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
         var replacementRequests = new List<PdfStamper.TextStampRequest>();
-        if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, text, style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
+        if (text.Length > 0) AddStampLines(replacementRequests, region.PageNumber, detected.Spans.Count == 0 ? region.X : detected.BaselineX, detected.Spans.Count == 0 ? region.Top - style.FontSize : detected.BaselineY, PreserveAuthoredEdgeWhitespace(detected.Spans, text), style, detected.Spans.Count == 0 ? double.MaxValue : detected.Spans.Min(static span => span.PaintOrder));
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions, replacementRequests);
         requests.AddRange(replacementRequests);
         byte[] output = ApplyStampRequests(removal.Bytes, requests, readOptions);
@@ -68,7 +68,7 @@ internal static partial class PdfTextEditor {
             PdfRegionText spanRegion = BuildRegionText(new[] { span });
             PdfResolvedTextStyle style = ResolveStyle(snapshot, spanRegion);
             warnings.AddRange(BuildSubstitutionWarnings(spanRegion, style.Font));
-            AddStampLines(movedRequests, source.PageNumber, span.X + deltaX, span.Y + deltaY, span.Text, style, span.PaintOrder);
+            AddStampLines(movedRequests, source.PageNumber, span.X + deltaX, span.Y + deltaY, span.RestampText, style, span.PaintOrder);
         }
         EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions, movedRequests);
         requests.AddRange(movedRequests);
@@ -121,7 +121,7 @@ internal static partial class PdfTextEditor {
             PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
             PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected);
             PdfResolvedTextStyle replacementStyle = ResolveStyle(snapshot, detected);
-            PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan.Text, rewrite.Value, sourceStyle, replacementStyle);
+            PositionedTextFragment[] fragments = BuildPositionedFragments(sourceSpan, rewrite.Value, sourceStyle, replacementStyle);
             for (int fragmentIndex = 0; fragmentIndex < fragments.Length; fragmentIndex++) {
                 warnings.AddRange(BuildSubstitutionWarnings(detected, fragments[fragmentIndex].Style.Font));
             }
@@ -195,7 +195,7 @@ internal static partial class PdfTextEditor {
             PdfRegionText detected = BuildRegionText(new[] { snapshot.Span });
             PdfResolvedTextStyle style = ResolveStyle(new PdfTextEditOptions(), detected);
             warnings.AddRange(BuildSubstitutionWarnings(detected, style.Font));
-            AddStampLines(restamps, snapshot.PageNumber, snapshot.Span.X, snapshot.Span.Y, snapshot.Span.Text, style, snapshot.Span.PaintOrder);
+            AddStampLines(restamps, snapshot.PageNumber, snapshot.Span.X, snapshot.Span.Y, snapshot.Span.RestampText, style, snapshot.Span.PaintOrder);
         }
         return new TextRemovalResult(removed, warnings, restamps);
     }
@@ -478,6 +478,7 @@ internal static partial class PdfTextEditor {
         left.IsVisible == right.IsVisible &&
         left.TextRenderingMode == right.TextRenderingMode &&
         left.CanRestamp == right.CanRestamp &&
+        string.Equals(left.RestampText, right.RestampText, StringComparison.Ordinal) &&
         Math.Abs(left.RestampFontSize - right.RestampFontSize) <= 0.2D &&
         SameAdvances(left.CharacterAdvances, right.CharacterAdvances);
 
@@ -491,12 +492,14 @@ internal static partial class PdfTextEditor {
     }
 
     private static PositionedTextFragment[] BuildPositionedFragments(
-        string source,
+        PdfTextSpan sourceSpan,
         IReadOnlyList<SpanTextEdit> edits,
         PdfResolvedTextStyle sourceStyle,
         PdfResolvedTextStyle replacementStyle) {
+        string source = sourceSpan.Text;
         SpanTextEdit[] ordered = edits.OrderBy(static edit => edit.Start).ToArray();
         var fragments = new List<PositionedTextFragment>();
+        AddPositionedFragment(fragments, GetLeadingWhitespace(sourceSpan.RestampText), sourceStyle);
         int cursor = 0;
         for (int index = 0; index < ordered.Length; index++) {
             SpanTextEdit edit = ordered[index];
@@ -506,7 +509,25 @@ internal static partial class PdfTextEditor {
             cursor = edit.Start + edit.Length;
         }
         if (cursor < source.Length) AddPositionedFragment(fragments, source.Substring(cursor), sourceStyle);
+        AddPositionedFragment(fragments, GetTrailingWhitespace(sourceSpan.RestampText), sourceStyle);
         return fragments.ToArray();
+    }
+
+    private static string PreserveAuthoredEdgeWhitespace(IReadOnlyList<PdfTextSpan> spans, string replacement) {
+        if (spans.Count == 0) return replacement;
+        return GetLeadingWhitespace(spans[0].RestampText) + replacement + GetTrailingWhitespace(spans[spans.Count - 1].RestampText);
+    }
+
+    private static string GetLeadingWhitespace(string value) {
+        int length = 0;
+        while (length < value.Length && char.IsWhiteSpace(value[length])) length++;
+        return length == 0 ? string.Empty : value.Substring(0, length);
+    }
+
+    private static string GetTrailingWhitespace(string value) {
+        int start = value.Length;
+        while (start > 0 && char.IsWhiteSpace(value[start - 1])) start--;
+        return start == value.Length ? string.Empty : value.Substring(start);
     }
 
     private static void AddPositionedFragment(List<PositionedTextFragment> fragments, string text, PdfResolvedTextStyle style) {

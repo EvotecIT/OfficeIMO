@@ -25,6 +25,28 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
+    /// <summary>Allows the canonical catalog-rooted page-content rewriter to preserve an existing AcroForm graph.</summary>
+    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfReadOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        bool supported = preflight.CanRead;
+        for (int index = 0; supported && index < preflight.RewriteBlockers.Count; index++) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[index].Kind;
+            if (blocker == PdfRewriteBlockerKind.Forms) continue;
+            if (blocker == PdfRewriteBlockerKind.Encryption &&
+                CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.ModifyPageContent)) continue;
+            supported = false;
+        }
+        if (!supported) {
+            throw new PdfMutationBlockedException(Plan(
+                preflight,
+                pdf,
+                PdfMutationOperation.ModifyPageContent,
+                executionPreference: PdfMutationExecutionPreference.RequireFullRewrite,
+                options: options));
+        }
+    }
+
     /// <summary>
     /// Requires a full rewrite while sharing the canonical parse used by preflight with the mutation implementation.
     /// </summary>

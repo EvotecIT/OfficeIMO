@@ -959,6 +959,8 @@ public sealed partial class PdfReadPage {
             bool clearsSoftMask = hasSoftMask &&
                 state.Items.TryGetValue("SMask", out PdfObject? authoredSoftMask) &&
                 ResolveObject(authoredSoftMask) is PdfName { Name: "None" };
+            bool unsupportedSoftMask = hasSoftMask && !clearsSoftMask && softMask == null;
+            bool unsupportedTextRestampEffect = HasUnsupportedTextRestampEffect(state);
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
@@ -967,12 +969,20 @@ public sealed partial class PdfReadPage {
                 strokeLineJoin.HasValue ||
                 blendMode.HasValue ||
                 hasUnsupportedBlendMode ||
+                unsupportedSoftMask ||
+                unsupportedTextRestampEffect ||
                 hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, hasSoftMask && !clearsSoftMask && softMask == null, hasUnsupportedBlendMode);
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, unsupportedSoftMask, hasUnsupportedBlendMode, unsupportedTextRestampEffect);
             }
         }
 
         return result;
+    }
+
+    private static bool HasUnsupportedTextRestampEffect(PdfDictionary state) {
+        string[] keys = { "op", "OPM", "RI", "Font", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
+        for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
+        return false;
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
