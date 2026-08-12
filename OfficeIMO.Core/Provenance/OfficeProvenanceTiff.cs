@@ -80,6 +80,7 @@ internal static class OfficeProvenanceTiff {
             }
             if (retained.Count == ifd.Entries.Count) continue;
             RewriteIfd(output, ifd, retained);
+            reserialized = true;
         }
         return output;
     }

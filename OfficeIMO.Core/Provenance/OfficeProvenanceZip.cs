@@ -134,7 +134,7 @@ internal static class OfficeProvenanceZip {
             outputEntries.Add(CreateWriteEntry(entry, entryComments[entry], rewritten));
         }
         reserialized = true;
-        return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes);
+        return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes, ReadArchiveComment(data));
     }
 
     private static uint GetExternalAttributes(ZipArchiveEntry source) {
@@ -185,7 +185,7 @@ internal static class OfficeProvenanceZip {
             .Select(entry => CreateWriteEntry(entry, entryComments[entry]))
             .ToList();
         return new OfficeProvenanceSignatureStripResult(
-            OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue),
+            OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue, ReadArchiveComment(data)),
             hadSignatures: true);
     }
 
@@ -251,19 +251,30 @@ internal static class OfficeProvenanceZip {
         return result;
     }
 
-    private static List<byte[]> ReadCentralDirectoryComments(byte[] data, int expectedEntries) {
+    private static byte[] ReadArchiveComment(byte[] data) {
+        int endOffset = FindEndOfCentralDirectory(data);
+        int commentLength = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 20, littleEndian: true);
+        byte[] comment = new byte[commentLength];
+        if (commentLength != 0) Buffer.BlockCopy(data, endOffset + 22, comment, 0, commentLength);
+        return comment;
+    }
+
+    private static int FindEndOfCentralDirectory(byte[] data) {
         const uint endSignature = 0x06054B50;
-        const uint zip64LocatorSignature = 0x07064B50;
-        const uint zip64EndSignature = 0x06064B50;
-        const uint centralHeaderSignature = 0x02014B50;
         int minimumOffset = Math.Max(0, data.Length - (22 + ushort.MaxValue));
-        int endOffset = -1;
         for (int offset = data.Length - 22; offset >= minimumOffset; offset--) {
             if (OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: true) != endSignature) continue;
             ushort commentLength = OfficeProvenanceBinary.ReadUInt16(data, offset + 20, littleEndian: true);
-            if (offset + 22 + commentLength == data.Length) { endOffset = offset; break; }
+            if (offset + 22 + commentLength == data.Length) return offset;
         }
-        if (endOffset < 0) throw new InvalidDataException("ZIP package does not contain a valid end-of-central-directory record.");
+        throw new InvalidDataException("ZIP package does not contain a valid end-of-central-directory record.");
+    }
+
+    private static List<byte[]> ReadCentralDirectoryComments(byte[] data, int expectedEntries) {
+        const uint zip64LocatorSignature = 0x07064B50;
+        const uint zip64EndSignature = 0x06064B50;
+        const uint centralHeaderSignature = 0x02014B50;
+        int endOffset = FindEndOfCentralDirectory(data);
         ulong centralOffset = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 16, littleEndian: true);
         ushort totalEntries = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 10, littleEndian: true);
         if (totalEntries == ushort.MaxValue && HasZip64Locator(data, endOffset, zip64LocatorSignature)) {

@@ -9,7 +9,7 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class ProvenanceCoreContracts {
     [Fact]
     public void JpegRemovesExactApp11SequenceAndPreservesOtherSegments() {
-        byte[] manifest = CreateManifestStore(96);
+        byte[] manifest = CreateManifestStore(160);
         byte[] unrelated = CreateJpegSegment(0xEB, Encoding.ASCII.GetBytes("not-c2pa"));
         byte[] first = CreateJpegApp11(manifest, 0, 40, instance: 7, sequence: 1);
         byte[] second = CreateJpegApp11(manifest, 40, manifest.Length - 40, instance: 7, sequence: 2);
@@ -28,7 +28,7 @@ public sealed class ProvenanceCoreContracts {
 
     [Fact]
     public void JpegPreservesMalformedOrNonContiguousApp11SequenceByDefault() {
-        byte[] manifest = CreateManifestStore(96);
+        byte[] manifest = CreateManifestStore(160);
         byte[] first = CreateJpegApp11(manifest, 0, 40, instance: 7, sequence: 1);
         byte[] intervening = CreateJpegSegment(0xE1, Encoding.ASCII.GetBytes("unrelated"));
         byte[] second = CreateJpegApp11(manifest, 40, manifest.Length - 40, instance: 7, sequence: 2);
@@ -78,7 +78,7 @@ public sealed class ProvenanceCoreContracts {
 
     [Fact]
     public void JpegAcceptsFragmentedExtendedLengthJumbf() {
-        byte[] manifest = CreateExtendedManifestStore(96);
+        byte[] manifest = CreateExtendedManifestStore(160);
         byte[] jpeg = Join(
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, 50, instance: 9, sequence: 1),
@@ -289,7 +289,7 @@ public sealed class ProvenanceCoreContracts {
         byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, c2pa, new byte[] { 0x3B });
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = gif.Length + 1L;
-        options.Limits.MaxManifestBytes = 96;
+        options.Limits.MaxManifestBytes = 160;
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif", options);
 
@@ -308,6 +308,7 @@ public sealed class ProvenanceCoreContracts {
         Assert.Equal((byte)0, output[8]);
         Assert.Equal((byte)0, output[9]);
         Assert.Equal(manifest, output.Skip(26).Take(manifest.Length).ToArray());
+        Assert.True(result.WasReserialized);
         Assert.Empty(result.After.Evidence);
     }
 
@@ -558,7 +559,7 @@ public sealed class ProvenanceCoreContracts {
             ("META-INF/content_credential.c2pa", CreateManifestStore()));
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = package.Length + 1L;
-        options.Limits.MaxManifestBytes = 96;
+        options.Limits.MaxManifestBytes = 160;
         options.Limits.MaxExpandedContainerBytes = 128 * 1024;
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.docx", options);
@@ -753,8 +754,8 @@ public sealed class ProvenanceCoreContracts {
         Assert.Contains(result.After.Evidence, item => item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.DigitalCapture);
     }
 
-    private static byte[] CreateManifestStore(int length = 73) {
-        if (length < 73) throw new ArgumentOutOfRangeException(nameof(length));
+    private static byte[] CreateManifestStore(int length = 126) {
+        if (length < 126) throw new ArgumentOutOfRangeException(nameof(length));
         byte[] data = new byte[length];
         WriteBigEndian(data, 0, length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
@@ -765,16 +766,25 @@ public sealed class ProvenanceCoreContracts {
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
         WriteBigEndian(data, 38, length - 38);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
-        WriteBigEndian(data, 46, length - 46);
+        WriteBigEndian(data, 46, 27);
         Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
         new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
         data[70] = 0x02;
         data[71] = (byte)'m';
+        WriteBigEndian(data, 73, length - 73);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 77);
+        WriteBigEndian(data, 81, 36);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 85);
+        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 89);
+        data[105] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 106);
+        WriteBigEndian(data, 117, length - 117);
+        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 121);
         return data;
     }
 
     private static byte[] CreateExtendedManifestStore(int length) {
-        if (length < 81) throw new ArgumentOutOfRangeException(nameof(length));
+        if (length < 134) throw new ArgumentOutOfRangeException(nameof(length));
         byte[] data = new byte[length];
         WriteBigEndian(data, 0, 1);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
@@ -786,11 +796,20 @@ public sealed class ProvenanceCoreContracts {
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 41);
         WriteBigEndian(data, 46, length - 46);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 50);
-        WriteBigEndian(data, 54, length - 54);
+        WriteBigEndian(data, 54, 27);
         Encoding.ASCII.GetBytes("jumd").CopyTo(data, 58);
         new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 62);
         data[78] = 0x02;
         data[79] = (byte)'m';
+        WriteBigEndian(data, 81, length - 81);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 85);
+        WriteBigEndian(data, 89, 36);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 93);
+        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 97);
+        data[113] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 114);
+        WriteBigEndian(data, 125, length - 125);
+        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 129);
         return data;
     }
 

@@ -32,7 +32,11 @@ internal static class OfficeProvenancePng {
         bool foundEnd = false;
         bool foundHeader = false;
         bool foundImageData = false;
+        int chunkCount = 0;
         while (offset < data.Length) {
+            if (++chunkCount > options.MaxContainerEntries) {
+                throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
+            }
             if (data.Length - offset < 12) throw new InvalidDataException("PNG contains a truncated chunk.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
             if (payloadValue > int.MaxValue || payloadValue > options.MaxManifestBytes && OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) {

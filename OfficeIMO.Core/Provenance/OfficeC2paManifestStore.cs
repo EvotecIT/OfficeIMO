@@ -15,6 +15,10 @@ internal static class OfficeC2paManifestStore {
         0x63, 0x32, 0x75, 0x6D, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
+    private static readonly byte[] ClaimUuid = {
+        0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
 
     internal static bool IsValid(byte[] data, int offset, int availableLength, long maximumBytes, out int storeLength) {
         storeLength = 0;
@@ -77,8 +81,57 @@ internal static class OfficeC2paManifestStore {
         if ((data[togglesOffset] & 0x02) == 0) return false;
         int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        return labelOffset < descriptionEnd && data[labelOffset] != 0 &&
-            Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset) >= 0;
+        if (labelOffset >= descriptionEnd || data[labelOffset] == 0 ||
+            Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset) < 0) return false;
+
+        int manifestEnd = offset + availableLength;
+        int cursor = descriptionEnd;
+        int claimCount = 0;
+        while (cursor < manifestEnd) {
+            int remaining = manifestEnd - cursor;
+            if (!TryReadBox(data, cursor, remaining, out _, out ulong childLength, out string childType) ||
+                childLength > int.MaxValue) return false;
+            if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
+                claimCount++;
+                if (!IsClaimSuperbox(data, cursor, (int)childLength)) return false;
+            }
+            cursor += (int)childLength;
+        }
+        return cursor == manifestEnd && claimCount == 1;
+    }
+
+    private static bool HasDescriptionUuid(byte[] data, int offset, int availableLength, byte[] uuid) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        return TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+            out ulong descriptionLength, out string descriptionType) && descriptionType == "jumd" &&
+            descriptionLength >= (ulong)(descriptionHeaderLength + uuid.Length) &&
+            Matches(data, descriptionOffset + descriptionHeaderLength, uuid);
+    }
+
+    private static bool IsClaimSuperbox(byte[] data, int offset, int availableLength) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        if (!TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+            out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + ClaimUuid.Length + 2)) return false;
+        int payloadOffset = descriptionOffset + descriptionHeaderLength;
+        if (!Matches(data, payloadOffset, ClaimUuid)) return false;
+        int togglesOffset = payloadOffset + ClaimUuid.Length;
+        if ((data[togglesOffset] & 0x02) == 0) return false;
+        int labelOffset = togglesOffset + 1;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
+        if (terminator < 0) return false;
+        string label = System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset);
+        if (label != "c2pa.claim" && label != "c2pa.claim.v2") return false;
+        int contentOffset = descriptionEnd;
+        int contentAvailable = offset + availableLength - contentOffset;
+        return TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength,
+            out ulong contentLength, out string contentType) && contentType == "cbor" &&
+            contentLength > (ulong)contentHeaderLength && contentLength == (ulong)contentAvailable;
     }
 
     private static bool TryReadBox(

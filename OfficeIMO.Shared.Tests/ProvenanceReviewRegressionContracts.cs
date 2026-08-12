@@ -34,6 +34,33 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void JumbfManifestSuperboxRequiresAClaimBox() {
+        byte[] storeUuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] storeDescription = CreateBox("jumd", Join(storeUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("manifest\0")));
+        byte[] descriptionOnlyManifest = CreateBox("jumb", manifestDescription);
+        byte[] png = CreatePngWithManifest(CreateBox("jumb", Join(storeDescription, descriptionOnlyManifest)));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "fixture.png");
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void PngChunkCountIsBoundedBeforeCarrierProcessing() {
+        byte[] png = Join(
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+            CreatePngChunk("IHDR", new byte[] { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 }),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            png,
+            "fixture.png",
+            new OfficeProvenanceOptions { MaxContainerEntries = 1 }));
+    }
+
+    [Fact]
     public void MalformedOversizedTextWrapperIsRemovedAsOneCompleteRun() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
         byte[] suffix = Encoding.UTF8.GetBytes("tail");
@@ -161,7 +188,10 @@ public sealed class ProvenanceReviewRegressionContracts {
                 using (Stream target = script.Open()) WriteAll(target, Encoding.UTF8.GetBytes("#!/bin/sh\n"));
             }
             package = AddCentralDirectoryComment(stream.ToArray(), "bin/run.sh", Encoding.UTF8.GetBytes("keep-comment"));
+            package = AddArchiveComment(package, Encoding.UTF8.GetBytes("keep-archive-comment"));
         }
+
+        Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(package)));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
         using var rewritten = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
@@ -170,6 +200,7 @@ public sealed class ProvenanceReviewRegressionContracts {
         int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "bin/run.sh");
         Assert.Equal(3, result.ToArray()[centralHeader + 5]);
         Assert.Equal("keep-comment", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
+        Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(result.ToArray())));
     }
 
     [Fact]
@@ -362,7 +393,10 @@ public sealed class ProvenanceReviewRegressionContracts {
         byte[] description = CreateBox("jumd", descriptionPayload);
         byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
-        return CreateBox("jumb", Join(description, CreateBox("jumb", manifestDescription)));
+        byte[] claimUuid = { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        return CreateBox("jumb", Join(description, CreateBox("jumb", Join(manifestDescription, claim))));
     }
 
     private static byte[] CreateBox(string type, byte[] payload) {
@@ -459,6 +493,30 @@ public sealed class ProvenanceReviewRegressionContracts {
         byte[] comment = new byte[commentLength];
         Buffer.BlockCopy(package, centralHeader + 46 + nameLength + extraLength, comment, 0, commentLength);
         return comment;
+    }
+
+    private static byte[] AddArchiveComment(byte[] package, byte[] comment) {
+        int endOffset = FindEndOfCentralDirectory(package);
+        Assert.Equal(0, BitConverter.ToUInt16(package, endOffset + 20));
+        byte[] updated = new byte[package.Length + comment.Length];
+        Buffer.BlockCopy(package, 0, updated, 0, package.Length);
+        WriteLittleEndian16(updated, endOffset + 20, checked((ushort)comment.Length));
+        Buffer.BlockCopy(comment, 0, updated, package.Length, comment.Length);
+        return updated;
+    }
+
+    private static byte[] ReadArchiveComment(byte[] package) {
+        int endOffset = FindEndOfCentralDirectory(package);
+        int length = BitConverter.ToUInt16(package, endOffset + 20);
+        return package.AsSpan(endOffset + 22, length).ToArray();
+    }
+
+    private static int FindEndOfCentralDirectory(byte[] package) {
+        for (int index = package.Length - 22; index >= Math.Max(0, package.Length - 22 - ushort.MaxValue); index--) {
+            if (BitConverter.ToUInt32(package, index) == 0x06054B50u &&
+                index + 22 + BitConverter.ToUInt16(package, index + 20) == package.Length) return index;
+        }
+        throw new InvalidDataException("ZIP end record was not found.");
     }
 
     private static byte[] CreateJpegSegment(byte marker, byte[] payload) {

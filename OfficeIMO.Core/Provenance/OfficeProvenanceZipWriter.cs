@@ -23,9 +23,11 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort DeflateMethod = 8;
     private static readonly uint[] CrcTable = CreateCrcTable();
 
-    internal static byte[] Write(IReadOnlyList<OfficeProvenanceZipWriteEntry> entries, long maximumExpandedBytes) {
+    internal static byte[] Write(IReadOnlyList<OfficeProvenanceZipWriteEntry> entries, long maximumExpandedBytes, byte[]? archiveComment = null) {
         if (entries == null) throw new ArgumentNullException(nameof(entries));
         if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
+        archiveComment ??= Array.Empty<byte>();
+        if (archiveComment.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(archiveComment));
         var records = new List<OfficeProvenanceZipRecord>(entries.Count);
         using var output = new MemoryStream();
         using var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true);
@@ -86,9 +88,9 @@ internal static class OfficeProvenanceZipWriter {
             ulong zip64Offset = (ulong)output.Position;
             WriteZip64EndOfCentralDirectory(writer, (ulong)records.Count, centralSize, centralOffset);
             WriteZip64Locator(writer, zip64Offset);
-            WriteEndOfCentralDirectory(writer, ushort.MaxValue, centralSize, centralOffset);
+            WriteEndOfCentralDirectory(writer, ushort.MaxValue, centralSize, centralOffset, archiveComment);
         } else {
-            WriteEndOfCentralDirectory(writer, (ushort)records.Count, centralSize, centralOffset);
+            WriteEndOfCentralDirectory(writer, (ushort)records.Count, centralSize, centralOffset, archiveComment);
         }
         writer.Flush();
         return output.ToArray();
@@ -169,7 +171,7 @@ internal static class OfficeProvenanceZipWriter {
         writer.Write(1u);
     }
 
-    private static void WriteEndOfCentralDirectory(BinaryWriter writer, ushort count, uint centralSize, uint centralOffset) {
+    private static void WriteEndOfCentralDirectory(BinaryWriter writer, ushort count, uint centralSize, uint centralOffset, byte[] archiveComment) {
         writer.Write(EndOfCentralDirectorySignature);
         writer.Write((ushort)0);
         writer.Write((ushort)0);
@@ -177,7 +179,8 @@ internal static class OfficeProvenanceZipWriter {
         writer.Write(count);
         writer.Write(centralSize);
         writer.Write(centralOffset);
-        writer.Write((ushort)0);
+        writer.Write((ushort)archiveComment.Length);
+        writer.Write(archiveComment);
     }
 
     private static void GetDosTimestamp(DateTimeOffset value, out ushort date, out ushort time) {
