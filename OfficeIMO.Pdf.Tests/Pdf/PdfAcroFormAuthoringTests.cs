@@ -365,6 +365,115 @@ public class PdfAcroFormAuthoringTests {
         Assert.Equal("Custom", editable.Value);
     }
 
+    [Fact]
+    public void ChoiceCreation_PreservesAnExplicitlyUnselectedValueWhenOptionsExist() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected choice")).ToBytes();
+
+        PdfFormField field = Assert.Single(PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "country",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "Poland", "Germany" },
+            Value = string.Empty
+        })).Fields);
+
+        Assert.Equal(string.Empty, field.Value);
+        Assert.Equal(new[] { "Poland", "Germany" }, field.Options.Select(static option => option.ExportValue));
+    }
+
+    [Fact]
+    public void Create_RejectsCombOutsideItsCompatibleTextFieldContract() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Comb validation")).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "multiline",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsMultiline = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "password",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsPassword = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "file",
+            Kind = PdfFormFieldCreationKind.Text,
+            Style = new PdfFormFieldStyle { IsComb = true, IsFileSelect = true, MaxLength = 4 }
+        })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "button",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Style = new PdfFormFieldStyle { IsComb = true, MaxLength = 4 }
+        })));
+    }
+
+    [Fact]
+    public void Reader_AccountsWidgetActionsEvenWhenWidgetGeometryIsUnreadable() {
+        byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace(" /Rect [20 20 160 48]", string.Empty, StringComparison.Ordinal));
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+
+        Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void CreateReadback_HonorsLaterFlagEditsInsteadOfRequiringTheInitialPresentation() {
+        const int comboFlag = 131072;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Final flags")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" },
+                IsComboBox = true
+            })
+            .SetFlags("country", 0));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.False(field.IsCombo);
+        Assert.Equal(0, field.Flags);
+
+        PdfAcroFormEditResult promoted = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" }
+            })
+            .SetFlags("country", comboFlag));
+        Assert.True(Assert.Single(promoted.Fields).IsCombo);
+    }
+
+    [Fact]
+    public void ButtonCaptionsIgnoreTextOnlyPasswordAndMultilineStyleFlags() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button captions")).ToBytes();
+
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "calculate",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                Caption = "Calculate",
+                Style = new PdfFormFieldStyle { IsPassword = true, IsMultiline = true }
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "size",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                Y = 100,
+                Width = 180,
+                Height = 60,
+                ChoiceOptions = new[] { "Small", "Large" },
+                Style = new PdfFormFieldStyle { IsPassword = true, IsMultiline = true }
+            })).ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(authored);
+        Assert.Contains("<43616C63756C617465> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<536D616C6C> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<4C61726765> Tj", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("••", raw, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildWidgetJavaScriptStreamPdf(string source) {
         byte[] script = PdfJavaScriptStringEncoding.EncodeUnicode(source, nameof(source));
         using var output = new MemoryStream();

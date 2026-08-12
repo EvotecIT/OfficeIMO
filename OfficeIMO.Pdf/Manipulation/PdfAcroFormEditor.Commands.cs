@@ -92,7 +92,7 @@ internal static partial class PdfAcroFormEditor {
         if (options.Kind == PdfFormFieldCreationKind.PushButton) {
             AddPushButtonAppearance(objects, acroForm, page, field, options, ref nextObjectNumber);
         } else if (options.Kind != PdfFormFieldCreationKind.Signature) {
-            refillValues[options.Name] = ReadSimpleValue(field) ?? string.Empty;
+            QueueRefillValue(refillValues, options.Name, GetFieldType(options.Kind), ReadSimpleValue(field));
         }
         if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
     }
@@ -105,7 +105,7 @@ internal static partial class PdfAcroFormEditor {
         string partialName = ReadText(field.Dictionary, "T") ?? string.Empty;
         field.Dictionary.Items["T"] = new PdfStringObj(string.Equals(partialName, field.FullName, StringComparison.Ordinal) ? newName : LeafName(newName), true);
         string? value = ReadSimpleValue(field.Dictionary);
-        refillValues.Remove(name); if (!string.Equals(field.FieldType, "Sig", StringComparison.Ordinal) && value is not null) refillValues[newName] = value;
+        refillValues.Remove(name); QueueRefillValue(refillValues, newName, field.FieldType, value);
     }
 
     private static void ApplyRemove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string name) {
@@ -126,7 +126,7 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
         EnsureAnnotationArray(objects, page).Items.Add(new PdfReference(field.WidgetObjectNumbers[0], 0));
-        string? value = ReadSimpleValue(field.Dictionary); if (!string.Equals(field.FieldType, "Sig", StringComparison.Ordinal) && value is not null) refillValues[name] = value;
+        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary));
     }
 
     private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
@@ -136,7 +136,15 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {
         EditableField field = RequireField(objects, fields, name); field.Dictionary.Items["Ff"] = new PdfNumber(flags);
-        string? value = ReadSimpleValue(field.Dictionary); if (!string.Equals(field.FieldType, "Sig", StringComparison.Ordinal) && value is not null) refillValues[name] = value;
+        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary));
+    }
+
+    private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value) {
+        if (value is null || string.Equals(fieldType, "Sig", StringComparison.Ordinal) ||
+            string.Equals(fieldType, "Ch", StringComparison.Ordinal) && value.Length == 0) {
+            return;
+        }
+        refillValues[name] = value;
     }
 
     private static void ApplyCalculationOrder(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string[] names) {

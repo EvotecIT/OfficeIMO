@@ -199,7 +199,14 @@ internal static partial class PdfAcroFormEditor {
             if (!string.IsNullOrEmpty(options.Value) && !isEditableChoice && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
             if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
         }
-        if (options.Style?.IsComb == true && !options.Style.MaxLength.HasValue) throw new ArgumentException("Comb text fields require a maximum length.", nameof(options));
+        int fieldFlags = GetCreateFieldFlags(options);
+        bool requestsComb = options.Style?.IsComb == true || (options.FieldFlags & FieldFlagComb) != 0;
+        if (requestsComb &&
+            (options.Kind != PdfFormFieldCreationKind.Text ||
+             options.Style?.MaxLength is null ||
+             (fieldFlags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
+            throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(options));
+        }
     }
 
     private static void ValidateCreateOptionsList(PdfFormFieldCreateOptions options) {

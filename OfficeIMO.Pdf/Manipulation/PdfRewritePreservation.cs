@@ -47,8 +47,6 @@ public static partial class PdfRewritePreservation {
         CompareCounts(issues, "FormFields", original.FormFields.Count, rewritten.FormFields.Count, options.PreserveForms);
         CompareCounts(issues, "EmbeddedFiles", original.Attachments.Count, rewritten.Attachments.Count, options.PreserveEmbeddedFiles);
         CompareCounts(issues, "OutputIntents", original.OutputIntents.Count, rewritten.OutputIntents.Count, options.PreserveOutputIntents);
-        CompareCounts(issues, "CatalogActions", original.CatalogActions.Count, rewritten.CatalogActions.Count, options.PreserveCatalogActions);
-        CompareCounts(issues, "PageActions", original.Pages.Sum(static page => page.PageActions.Count), rewritten.Pages.Sum(static page => page.PageActions.Count), options.PreservePageActions);
         CompareNavigationMetadata(issues, original, rewritten, options);
         CompareViewerActionState(issues, original, rewritten, options);
         CompareBooleanMarker(issues, "Forms", original.HasForms, rewritten.HasForms, options.PreserveForms);

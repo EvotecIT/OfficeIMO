@@ -74,9 +74,48 @@ public class PdfSanitizerTests {
 
         Assert.True(result.IsSanitized);
         Assert.Contains(info.CatalogActions, action => action.ActionType == "JavaScript");
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Contains(result.PreservationReport.Original.CatalogActions, action => action.ActionType == "JavaScript");
+        Assert.Contains(result.PreservationReport.Rewritten.CatalogActions, action => action.ActionType == "JavaScript");
         Assert.DoesNotContain(result.RemovedFindings, finding => finding.Detail == "JavaScript");
         Assert.Contains(result.RemovedFindings, finding => finding.Detail == "Launch");
         Assert.Contains(result.RemovedFindings, finding => finding.Detail == "SubmitForm");
+    }
+
+    [Fact]
+    public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
+        byte[] source = BuildActiveContentPdf();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+        };
+
+        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+
+        Assert.True(result.IsSanitized);
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Empty(result.RemainingFindings);
+    }
+
+    [Fact]
+    public void RewritePreservation_CanCompareOnlyAllowlistedActionTypes() {
+        byte[] source = BuildActiveContentPdf();
+        var policy = new PdfSanitizationOptions();
+        policy.AllowedActionTypes.Add("JavaScript");
+        byte[] sanitized = PdfSanitizer.Sanitize(source, policy).ToBytes();
+        var options = new PdfRewritePreservationOptions {
+            PreserveCatalogActions = true,
+            PreservePageActions = true,
+            PreserveOpenAction = true,
+            PreserveLinkAnnotations = false,
+            PreserveAnnotations = false,
+            PreserveEmbeddedFiles = false,
+            PreserveRevisionStructure = false
+        };
+        options.PreservedActionTypes.Add("JavaScript");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, sanitized, options);
+
+        Assert.True(report.IsPreserved, string.Join(Environment.NewLine, report.Issues.Select(static issue => issue.ToString())));
     }
 
     [Fact]
