@@ -88,6 +88,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_DataTableCanonicalizesUniqueExplicitColumnCasing() {
+            DataTable members = CreateMembersTable();
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Members", composer => {
+                string range = composer.TableFrom(
+                    members,
+                    configure: options => options.Columns = new[] { "adstate" },
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:A3", range);
+            });
+
+            ExcelSheet sheet = document["Members"];
+            Assert.True(sheet.TryGetCellText(1, 1, out string? header));
+            Assert.True(sheet.TryGetCellText(2, 1, out string? value));
+            Assert.Equal("AD State", header);
+            Assert.Equal("Disabled", value);
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableFallsBackWhenLaterWorksheetContentExists() {
+            DataTable members = CreateMembersTable();
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    document.Compose("Members", composer => {
+                        composer.Sheet.Cell(100, 1, "Footer");
+                        string range = composer.TableFrom(members, freezeHeaderRow: false);
+                        Assert.Equal("A1:D3", range);
+                    });
+                    document.Save();
+                }
+
+                using ExcelDocument reloaded = ExcelDocument.Load(
+                    filePath,
+                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+                ExcelSheet sheet = reloaded["Members"];
+                Assert.True(sheet.TryGetCellText(2, 1, out string? endpoint));
+                Assert.True(sheet.TryGetCellText(100, 1, out string? footer));
+                Assert.Equal("PC-01", endpoint);
+                Assert.Equal("Footer", footer);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void SheetComposer_DataTablePreservesCaseDistinctSchemaColumns() {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));

@@ -112,6 +112,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_ExplainsHardExcelColumnBoundaryForObjectRows() {
+            (string Key, object? Value)[] entries = Enumerable.Range(0, A1.MaxColumns + 1)
+                .Select(index => ("Column" + index, (object?)index))
+                .ToArray();
+            var rows = new[] { new ReadOnlyDictionaryRow(entries) };
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Data", composer => composer.TableFrom(
+                    rows,
+                    configure: options => options.MaxColumns = int.MaxValue,
+                    freezeHeaderRow: false)));
+
+            Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("options.MaxColumns = 16385", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SheetComposer_RendersDictionaryRowsAsRealColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             try {

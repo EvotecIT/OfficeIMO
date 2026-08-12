@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.Fluent {
                 EnsureDataTableColumnLimit(sourceColumnNames.Length, configuredMaxColumns);
                 paths = sourceColumnNames.ToList();
             } else if (hasExplicitColumns) {
-                paths = ResolveExplicitDataTablePaths(flattener, options);
+                paths = ResolveExplicitDataTablePaths(flattener, options, sourceColumnNames);
             } else {
                 paths = ResolveProjectedDataTablePaths(
                     flattener,
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel.Fluent {
             List<string> headers = BuildTransformedHeaders(paths, options);
             EnsureUniqueTableHeaders(headers);
             var source = new DataTableTabularRowSource(table, paths, headers);
-            string range = Sheet.InsertTabularRowSourceAsTableForDeferredMaterialization(
+            string range = Sheet.InsertTabularRowSourceAsTable(
                 source,
                 startRow: headerRow,
                 startColumn: 1,
@@ -96,26 +96,28 @@ namespace OfficeIMO.Excel.Fluent {
                 tableName: title ?? "Table",
                 style: style,
                 includeAutoFilter: autoFilter);
-            if (string.IsNullOrEmpty(range)) {
-                throw new InvalidOperationException("The fixed-schema DataTable could not be inserted into the target worksheet.");
-            }
-
             return CompleteTable(range, paths, headers, headerRow, lastRow, style, freezeHeaderRow, visuals);
         }
 
         private static List<string> ResolveExplicitDataTablePaths(
             ObjectFlattener flattener,
-            ObjectFlattenerOptions options) {
+            ObjectFlattenerOptions options,
+            IReadOnlyList<string> sourceColumnNames) {
             var paths = new List<string>();
             var added = new HashSet<string>(StringComparer.Ordinal);
             foreach (string candidate in options.Columns!) {
-                if (string.IsNullOrWhiteSpace(candidate) || !added.Add(candidate)) continue;
-                List<string> selected = flattener.ResolvePaths(new[] { candidate }, options);
+                if (string.IsNullOrWhiteSpace(candidate)) continue;
+                string canonicalCandidate = ResolveDataTableRule(
+                    sourceColumnNames,
+                    candidate,
+                    nameof(options.Columns)) ?? candidate;
+                if (!added.Add(canonicalCandidate)) continue;
+                List<string> selected = flattener.ResolvePaths(new[] { canonicalCandidate }, options);
                 if (selected.Count == 0) continue;
                 if (paths.Count >= options.MaxColumns) {
                     EnsureDataTableColumnLimit(checked(paths.Count + 1), options.MaxColumns);
                 }
-                paths.Add(selected[0]);
+                paths.Add(canonicalCandidate);
             }
             return paths;
         }
@@ -220,7 +222,7 @@ namespace OfficeIMO.Excel.Fluent {
         private static InvalidDataException CreateAmbiguousDataTableRuleException(string rule, string optionName) =>
             new InvalidDataException(
                 $"DataTable column rule '{rule}' in {optionName} is ambiguous because the schema contains case-distinct or repeated matches. "
-                + "Use the exact full column name and casing in the projection rule.");
+                + "Use the exact column casing by specifying the exact full column name and casing in the projection rule.");
 
         private static void EnsureDataTableColumnLimit(int requiredColumns, int configuredMaxColumns) {
             if (requiredColumns <= configuredMaxColumns && requiredColumns <= A1.MaxColumns) return;

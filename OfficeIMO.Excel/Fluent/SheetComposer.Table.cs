@@ -20,11 +20,19 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
+            string? maxColumnsGuidance = opts.MaxColumns >= A1.MaxColumns
+                ? $"Select fewer columns or split the data across multiple worksheets; Excel's {A1.MaxColumns}-column worksheet limit cannot be overridden."
+                : null;
             opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(
-                items, opts, "TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
+                items,
+                opts,
+                "TableFrom",
+                headerRowCount: 1,
+                enforceEmptyProjectionLimits: false,
+                columnLimitGuidance: maxColumnsGuidance);
             IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
                 Sheet.Cell(_row, 1, "(no data)");

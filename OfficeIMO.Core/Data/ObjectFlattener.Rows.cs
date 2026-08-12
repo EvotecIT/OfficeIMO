@@ -15,7 +15,9 @@ namespace OfficeIMO.Data {
             string consumerName,
             int headerRowCount,
             bool enforceEmptyProjectionLimits = true,
-            int? renderedColumnCountForCellLimit = null) {
+            int? renderedColumnCountForCellLimit = null,
+            string? columnLimitGuidance = null,
+            string? cellLimitGuidance = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
             options = options.CreateProjectionSnapshot();
@@ -46,21 +48,23 @@ namespace OfficeIMO.Data {
             List<string>? explicitColumns = null;
             bool hasExplicitColumns = options.Columns != null && options.Columns.Length > 0;
             if (hasExplicitColumns) {
-                explicitColumns = ResolveExplicitColumns(options, consumerName);
+                explicitColumns = ResolveExplicitColumns(options, consumerName, columnLimitGuidance);
                 if (knownRowCount > 0) {
                     EnsureTableCellLimit(
                         knownRowCount,
                         GetRenderedColumnCount(explicitColumns.Count, renderedColumnCountForCellLimit),
                         headerRowCount,
                         options,
-                        consumerName);
+                        consumerName,
+                        cellLimitGuidance);
                     if (renderedColumnCountForCellLimit.HasValue) {
                         EnsureIntermediateCellLimit(
                             knownRowCount,
                             explicitColumns.Count,
                             headerRowCount,
                             options,
-                            consumerName);
+                            consumerName,
+                            cellLimitGuidance);
                     }
                 }
             }
@@ -80,13 +84,18 @@ namespace OfficeIMO.Data {
                         requiredColumns,
                         columnLimit,
                         consumerName,
-                        exception);
+                        exception,
+                        columnLimitGuidance);
                 }
                 rows.Add(row);
                 foreach (string path in row.Keys) {
                     if (!string.IsNullOrWhiteSpace(path) && discoveredColumnSet.Add(path)) {
                         if (discoveredColumns.Count >= options.MaxColumns) {
-                            throw CreateColumnLimitException(checked(discoveredColumns.Count + 1), options.MaxColumns, consumerName);
+                            throw CreateColumnLimitException(
+                                checked(discoveredColumns.Count + 1),
+                                options.MaxColumns,
+                                consumerName,
+                                limitGuidance: columnLimitGuidance);
                         }
                         discoveredColumns.Add(path);
                     }
@@ -97,14 +106,16 @@ namespace OfficeIMO.Data {
                     GetRenderedColumnCount(materializedColumnCount, renderedColumnCountForCellLimit),
                     headerRowCount,
                     options,
-                    consumerName);
+                    consumerName,
+                    cellLimitGuidance);
                 if (renderedColumnCountForCellLimit.HasValue) {
                     EnsureIntermediateCellLimit(
                         rows.Count,
                         materializedColumnCount,
                         headerRowCount,
                         options,
-                        consumerName);
+                        consumerName,
+                        cellLimitGuidance);
                 }
             }
 
@@ -121,7 +132,7 @@ namespace OfficeIMO.Data {
                     return new ObjectTableProjection(rows, new List<string>());
                 }
                 if (hasExplicitColumns) {
-                    explicitColumns = ResolveExplicitColumns(options, consumerName);
+                    explicitColumns = ResolveExplicitColumns(options, consumerName, columnLimitGuidance);
                 } else if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
                     discoveredColumns.AddRange(GetPathsPrepared(typeof(T), options));
                 }
@@ -129,16 +140,27 @@ namespace OfficeIMO.Data {
 
             List<string> columns = explicitColumns ?? ResolvePathsPrepared(discoveredColumns, options);
             if (columns.Count > options.MaxColumns) {
-                throw CreateColumnLimitException(columns.Count, options.MaxColumns, consumerName);
+                throw CreateColumnLimitException(
+                    columns.Count,
+                    options.MaxColumns,
+                    consumerName,
+                    limitGuidance: columnLimitGuidance);
             }
             EnsureTableCellLimit(
                 rows.Count,
                 GetRenderedColumnCount(columns.Count, renderedColumnCountForCellLimit),
                 headerRowCount,
                 options,
-                consumerName);
+                consumerName,
+                cellLimitGuidance);
             if (renderedColumnCountForCellLimit.HasValue) {
-                EnsureIntermediateCellLimit(rows.Count, columns.Count, headerRowCount, options, consumerName);
+                EnsureIntermediateCellLimit(
+                    rows.Count,
+                    columns.Count,
+                    headerRowCount,
+                    options,
+                    consumerName,
+                    cellLimitGuidance);
             }
             return new ObjectTableProjection(rows, columns);
         }
@@ -153,7 +175,8 @@ namespace OfficeIMO.Data {
             int columnCount,
             int headerRowCount,
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            string? limitGuidance) {
             long maximumIntermediateCells = Math.Max(options.MaxCells, ObjectFlattenerOptions.DefaultMaxCells);
             long intermediateCells = ((long)rowCount + headerRowCount) * columnCount;
             if (intermediateCells > maximumIntermediateCells) {
@@ -164,22 +187,25 @@ namespace OfficeIMO.Data {
                     intermediateCells,
                     maximumIntermediateCells,
                     consumerName,
-                    "intermediate materialization");
+                    "intermediate materialization",
+                    limitGuidance);
             }
         }
 
         private List<string> ResolveExplicitColumns(
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            string? limitGuidance) {
             var explicitColumnCandidates = new List<string>(Math.Min(options.Columns!.Length, options.MaxColumns));
-            AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
+            AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName, limitGuidance);
             return ResolvePathsPrepared(explicitColumnCandidates, options);
         }
 
         private static void AddExplicitColumnsBounded(
             List<string> columns,
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            string? limitGuidance) {
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string column in options.Columns!) {
                 if (string.IsNullOrWhiteSpace(column) || !added.Add(column)) {
@@ -189,7 +215,11 @@ namespace OfficeIMO.Data {
                     continue;
                 }
                 if (columns.Count >= options.MaxColumns) {
-                    throw CreateColumnLimitException(checked(columns.Count + 1), options.MaxColumns, consumerName);
+                    throw CreateColumnLimitException(
+                        checked(columns.Count + 1),
+                        options.MaxColumns,
+                        consumerName,
+                        limitGuidance: limitGuidance);
                 }
                 columns.Add(column);
             }
@@ -200,7 +230,8 @@ namespace OfficeIMO.Data {
             int columnCount,
             int headerRowCount,
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            string? limitGuidance) {
             long projectedCells = ((long)rowCount + headerRowCount) * columnCount;
             if (projectedCells > options.MaxCells) {
                 throw CreateCellLimitException(
@@ -210,7 +241,8 @@ namespace OfficeIMO.Data {
                     projectedCells,
                     options.MaxCells,
                     consumerName,
-                    "materialization");
+                    "materialization",
+                    limitGuidance);
             }
         }
 
@@ -221,16 +253,17 @@ namespace OfficeIMO.Data {
             long projectedCells,
             long limit,
             string consumerName,
-            string limitKind) {
+            string limitKind,
+            string? limitGuidance = null) {
             string rows = headerRowCount == 0
                 ? FormatCount(rowCount, "row", "rows")
                 : FormatCount(rowCount, "data row", "data rows") + " + "
                     + FormatCount(headerRowCount, "header row", "header rows");
             string requiredCells = projectedCells.ToString(CultureInfo.InvariantCulture);
-            string overrideHint = string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
+            string overrideHint = limitGuidance ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
                 ? "For intentionally materialized object rows, raise the limit with configure: options => options.MaxCells = " + requiredCells + ". "
                     + "For fixed-schema data, use the TableFrom(DataTable) overload, which avoids generic object flattening."
-                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxCells to at least " + requiredCells + ".";
+                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxCells to at least " + requiredCells + ".");
 
             return new InvalidDataException(
                 consumerName + " requires at least " + requiredCells
@@ -254,11 +287,12 @@ namespace OfficeIMO.Data {
             int requiredColumns,
             int limit,
             string consumerName,
-            Exception? innerException = null) {
+            Exception? innerException = null,
+            string? limitGuidance = null) {
             string required = requiredColumns.ToString(CultureInfo.InvariantCulture);
-            string overrideHint = string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
+            string overrideHint = limitGuidance ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
                 ? "If this materialization is intentional, raise the limit with configure: options => options.MaxColumns = " + required + "."
-                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxColumns to at least " + required + ".";
+                : "If this materialization is intentional, set ObjectFlattenerOptions.MaxColumns to at least " + required + ".");
             string message = consumerName + " requires at least " + FormatCount(requiredColumns, "column", "columns")
                 + ", exceeding the " + limit.ToString(CultureInfo.InvariantCulture)
                 + "-column materialization limit (MaxColumns). " + overrideHint;

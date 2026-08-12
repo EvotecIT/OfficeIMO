@@ -8,6 +8,68 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        internal string InsertTabularRowSourceAsTable(
+            IExcelSheetTabularRowSource source,
+            int startRow = 1,
+            int startColumn = 1,
+            bool includeHeaders = true,
+            string? tableName = null,
+            ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
+            bool includeAutoFilter = true,
+            CancellationToken ct = default) {
+            string range = InsertTabularRowSourceAsTableForDeferredMaterialization(
+                source,
+                startRow,
+                startColumn,
+                includeHeaders,
+                tableName,
+                style,
+                includeAutoFilter,
+                ct);
+            if (!string.IsNullOrEmpty(range)) return range;
+
+            DataTable fallback = MaterializeTabularRowSource(source, ct);
+            return InsertDataTableAsTable(
+                fallback,
+                startRow,
+                startColumn,
+                includeHeaders,
+                tableName,
+                style,
+                includeAutoFilter,
+                mode: null,
+                ct);
+        }
+
+        private static DataTable MaterializeTabularRowSource(
+            IExcelSheetTabularRowSource source,
+            CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            var table = new DataTable {
+                Locale = CultureInfo.InvariantCulture
+            };
+            for (int columnIndex = 0; columnIndex < source.ColumnCount; columnIndex++) {
+                ct.ThrowIfCancellationRequested();
+                table.Columns.Add(source.GetColumnName(columnIndex), source.GetColumnType(columnIndex));
+            }
+
+            table.BeginLoadData();
+            try {
+                for (int rowIndex = 0; rowIndex < source.RowCount; rowIndex++) {
+                    ct.ThrowIfCancellationRequested();
+                    DataRow row = table.NewRow();
+                    for (int columnIndex = 0; columnIndex < source.ColumnCount; columnIndex++) {
+                        object? value = source.GetValue(rowIndex, columnIndex);
+                        row[columnIndex] = value ?? DBNull.Value;
+                    }
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+            return table;
+        }
+
         internal string InsertTabularRowSourceAsTableForDeferredMaterialization(
             IExcelSheetTabularRowSource source,
             int startRow = 1,
