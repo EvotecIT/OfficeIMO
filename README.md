@@ -342,6 +342,7 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or pars
 - [x] Schema inference and validation with required/optional typed columns, defaults, conversion delegates, and custom rules
 - [x] Reflection-free typed object mapping suitable for trimming and NativeAOT-sensitive consumers
 - [x] `DataTable`, `IDataReader`/`DbDataReader`, typed-reader, SQL/bulk-copy-shaped, reusable-row, field-span, and trusted-text paths
+- [x] Ordered bounded parallel row projection plus a .NET 8 span-backed transient-record path for decoded text
 - [x] Cancellation, progress, collected parse errors, quote normalization, field/input limits, string interning, and deterministic diagnostics
 - [x] Spreadsheet formula-injection escaping and explicit malformed-input policy for ingestion boundaries
 - [x] Cross-library BenchmarkDotNet coverage with row-count and payload checks so lanes cannot win by under-reading

@@ -9,12 +9,13 @@ namespace OfficeIMO.Excel {
         Automatic,
 
         /// <summary>
-        /// Force single-threaded execution with no locking.
+        /// Prefer single-threaded compute. Specialized single-pass paths may be used when they are faster.
         /// </summary>
         Sequential,
 
         /// <summary>
-        /// Compute work in parallel and apply results sequentially.
+        /// Permit eligible compute work to run in parallel and apply results in source order. A specialized
+        /// single-pass path may still be selected when parallel staging would only add overhead.
         /// </summary>
         Parallel
     }

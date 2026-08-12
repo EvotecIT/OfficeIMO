@@ -24,33 +24,33 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private sealed class LegacyXlsSharedStringTable {
             private readonly IReadOnlyList<LegacyXlsSharedStringEntry> _entries;
-            private readonly Dictionary<long, uint> _indexesByCell;
             private readonly uint _totalCount;
 
             private LegacyXlsSharedStringTable(
                 IReadOnlyList<LegacyXlsSharedStringEntry> entries,
-                Dictionary<long, uint> indexesByCell,
                 uint totalCount) {
                 _entries = entries;
-                _indexesByCell = indexesByCell;
                 _totalCount = totalCount;
             }
 
             internal static LegacyXlsSharedStringTable Create(IReadOnlyList<List<LegacyXlsCell>> worksheets) {
                 var entries = new List<LegacyXlsSharedStringEntry>();
                 var indexesByValue = new Dictionary<LegacyXlsSharedStringKey, uint>();
-                var indexesByCell = new Dictionary<long, uint>();
                 uint totalCount = 0;
 
                 for (int sheetIndex = 0; sheetIndex < worksheets.Count; sheetIndex++) {
-                    foreach (LegacyXlsCell cell in worksheets[sheetIndex]) {
+                    List<LegacyXlsCell> worksheet = worksheets[sheetIndex];
+                    for (int cellIndex = 0; cellIndex < worksheet.Count; cellIndex++) {
+                        LegacyXlsCell cell = worksheet[cellIndex];
                         if (cell.Kind != LegacyXlsCellKind.Text) {
                             continue;
                         }
 
                         totalCount = checked(totalCount + 1U);
                         string text = cell.TextValue ?? string.Empty;
-                        LegacyXlsTextFormattingRun[] formattingRuns = cell.TextFormattingRuns.ToArray();
+                        LegacyXlsTextFormattingRun[] formattingRuns = cell.TextFormattingRuns.Count == 0
+                            ? Array.Empty<LegacyXlsTextFormattingRun>()
+                            : cell.TextFormattingRuns.ToArray();
                         var key = new LegacyXlsSharedStringKey(text, formattingRuns);
                         if (!indexesByValue.TryGetValue(key, out uint index)) {
                             index = checked((uint)entries.Count);
@@ -58,16 +58,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                             entries.Add(new LegacyXlsSharedStringEntry(text, formattingRuns));
                         }
 
-                        indexesByCell.Add(GetCellKey(sheetIndex, cell.Row, cell.Column), index);
+                        worksheet[cellIndex] = cell.WithSharedStringIndex(index);
                     }
                 }
 
-                return new LegacyXlsSharedStringTable(entries, indexesByCell, totalCount);
+                return new LegacyXlsSharedStringTable(entries, totalCount);
             }
 
-            internal uint GetIndex(int sheetIndex, ushort row, ushort column) {
-                if (_indexesByCell.TryGetValue(GetCellKey(sheetIndex, row, column), out uint index)) {
-                    return index;
+            internal uint GetIndex(LegacyXlsCell cell) {
+                if (cell.SharedStringIndex != uint.MaxValue) {
+                    return cell.SharedStringIndex;
                 }
 
                 throw new InvalidOperationException("The native XLS shared-string table is missing a worksheet text cell.");
@@ -121,10 +121,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 WriteRecord(stream, 0x00ff, payload.ToArray());
-            }
-
-            private static long GetCellKey(int sheetIndex, ushort row, ushort column) {
-                return ((long)sheetIndex << 32) | ((long)row << 16) | column;
             }
         }
 

@@ -16,7 +16,7 @@ using OfficeIMO.Excel.Xlsb.Read;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Package-owned ADO.NET projection for XLSX, XLSM, XLSB, and BIFF8 XLS workbook worksheets.
+    /// Package-owned ADO.NET projection for XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS workbook worksheets.
     /// </summary>
     public sealed class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata {
         private readonly IReadOnlyList<SheetSelection> _sheets;
@@ -180,7 +180,6 @@ namespace OfficeIMO.Excel {
 
         private static bool CanUseLegacyFastPath(ExcelReadOptions options) =>
             string.IsNullOrWhiteSpace(options.A1Range)
-            && !options.InferSchema
             && options.CellValueConverter == null
             && options.UseCachedFormulaResult;
 

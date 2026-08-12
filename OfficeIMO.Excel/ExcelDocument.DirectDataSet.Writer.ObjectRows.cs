@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a date and time cell.</summary>
             public ExcelTabularRowWriter Write(DateTime value) {
                 BeginCell(DirectDataSetWorkbookWriter.GetDateStyleAttribute(_useCellValueNumberFormats));
-                DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, ExcelDateSystemConverter.ToSerial(value, _dateSystem));
+                DirectDataSetWorkbookWriter.WriteDateTimeSerialCell(_writer, value, _dateSystem);
                 return this;
             }
 

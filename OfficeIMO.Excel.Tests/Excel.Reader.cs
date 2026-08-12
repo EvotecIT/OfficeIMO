@@ -1577,7 +1577,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRange", decision.Operation);
                 Assert.Equal(2, decision.Items);
-                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Sequential, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1609,7 +1609,7 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadRangeStream", decision.Operation);
                 Assert.Equal(2, decision.Items);
-                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Sequential, decision.Mode);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1644,7 +1644,63 @@ namespace OfficeIMO.Tests {
                 var decision = Assert.Single(decisions);
                 Assert.Equal("ReadObjectsAs", decision.Operation);
                 Assert.Equal(4, decision.Items);
-                Assert.Equal(ExcelExecutionMode.Parallel, decision.Mode);
+                Assert.Equal(ExcelExecutionMode.Sequential, decision.Mode);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(ExcelExecutionMode.Sequential)]
+        [InlineData(ExcelExecutionMode.Parallel)]
+        public void Reader_ForcedModes_Report_The_Strategy_Actually_Used_Exactly_Once(ExcelExecutionMode requested) {
+            string filePath = Path.Combine(_directoryWithFiles, $"ReaderForcedDecision-{requested}.xlsx");
+            var decisions = new List<(string Operation, int Items, ExcelExecutionMode Mode)>();
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorksheet("Data");
+                    sheet.CellValue(1, 1, "Id");
+                    sheet.CellValue(1, 2, "Name");
+                    sheet.CellValue(2, 1, 1);
+                    sheet.CellValue(2, 2, "One");
+                    document.Save();
+                }
+
+                var options = new ExcelReadOptions();
+                options.Execution.OnDecision = (operation, items, actual) => decisions.Add((operation, items, actual));
+                using var reader = ExcelDocumentReader.Open(filePath, options);
+                var sheetReader = reader.GetSheet("Data");
+
+                _ = sheetReader.ReadRange("A1:B2", requested);
+                AssertDecision("ReadRange", 4, ExcelExecutionMode.Sequential);
+
+                _ = sheetReader.ReadRangeStream("A1:B2", mode: requested).ToList();
+                AssertDecision("ReadRangeStream", 2, ExcelExecutionMode.Sequential);
+
+                _ = sheetReader.ReadRangeAsDataTable("A1:B2", mode: requested);
+                AssertDecision("ReadRangeAsDataTable", 4, ExcelExecutionMode.Sequential);
+
+                _ = sheetReader.ReadObjects<ReaderDecisionRecord>("A1:B2", requested).ToList();
+                AssertDecision(
+                    "ReadObjectsAs",
+                    4,
+                    requested == ExcelExecutionMode.Parallel
+                        ? ExcelExecutionMode.Parallel
+                        : ExcelExecutionMode.Sequential);
+
+                _ = sheetReader.ReadObjects("A1:B2", requested).ToList();
+                AssertDecision("ReadObjects", 4, ExcelExecutionMode.Sequential);
+
+                void AssertDecision(string operation, int expectedItems, ExcelExecutionMode expected) {
+                    var decision = Assert.Single(decisions);
+                    Assert.Equal(operation, decision.Operation);
+                    Assert.Equal(expectedItems, decision.Items);
+                    Assert.Equal(expected, decision.Mode);
+                    decisions.Clear();
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

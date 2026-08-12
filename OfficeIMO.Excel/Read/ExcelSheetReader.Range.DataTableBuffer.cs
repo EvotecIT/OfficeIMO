@@ -37,37 +37,22 @@ namespace OfficeIMO.Excel {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             int workload = checked((int)cellCount);
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
-                if (CanUseAutomaticXmlReadFastPath(policy)) {
-                    if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)) {
-                        return dt;
-                    }
+            bool automaticDecision = decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic;
+            if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)
+                || TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)
+                || TryFillDataTableSequentialSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
+                policy.ReportDecision("ReadRangeAsDataTable", workload, OfficeIMO.Excel.ExcelExecutionMode.Sequential);
 
-                    if (TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
-                        return dt;
-                    }
+                return dt;
+            }
 
-                    if (TryFillDataTableSequentialSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
-                        return dt;
-                    }
-                }
-
+            if (automaticDecision) {
                 decided = policy.Decide("ReadRangeAsDataTable", workload);
+            } else {
+                policy.ReportDecision("ReadRangeAsDataTable", workload, decided);
             }
 
             if (decided == OfficeIMO.Excel.ExcelExecutionMode.Sequential) {
-                if (TryFillDataTableXmlBufferedSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, workload, ct)) {
-                    return dt;
-                }
-
-                if (TryFillDataTableXmlFast(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
-                    return dt;
-                }
-
-                if (TryFillDataTableSequentialSinglePass(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct)) {
-                    return dt;
-                }
-
                 FillDataTableSequential(dt, r1, c1, r2, c2, rows, cols, headersInFirstRow, ct);
                 return dt;
             }

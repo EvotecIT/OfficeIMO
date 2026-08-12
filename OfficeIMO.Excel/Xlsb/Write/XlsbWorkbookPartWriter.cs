@@ -36,6 +36,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return output.ToArray();
         }
 
+        internal static byte[] CreateDirectTabular(string sheetName, bool uses1904DateSystem) {
+            if (string.IsNullOrEmpty(sheetName)) throw new ArgumentException("Worksheet name is required.", nameof(sheetName));
+
+            using var output = new MemoryStream(256);
+            XlsbRecordWriter.Write(output, BrtBeginBook);
+            XlsbRecordWriter.Write(output, BrtWbProp, CreateWorkbookPropertiesPayload(uses1904DateSystem));
+            XlsbRecordWriter.Write(output, BrtBeginBundleShs);
+            XlsbRecordWriter.Write(output, BrtBundleSh, CreateBundleSheetPayload(sheetName, index: 0));
+            XlsbRecordWriter.Write(output, BrtEndBundleShs);
+            XlsbRecordWriter.Write(output, BrtEndBook);
+            return output.ToArray();
+        }
+
         private static byte[] CreateWorkbookPropertiesPayload(bool uses1904DateSystem) {
             var payload = new byte[12];
             if (uses1904DateSystem) payload[0] = 0x01;
@@ -43,12 +56,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static byte[] CreateBundleSheetPayload(ExcelSheet sheet, int index) {
+            uint state = sheet.VeryHidden ? 2U : sheet.Hidden ? 1U : 0U;
+            return CreateBundleSheetPayload(sheet.Name, index, state);
+        }
+
+        private static byte[] CreateBundleSheetPayload(string sheetName, int index, uint state = 0U) {
             string relationshipId = "rId" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            using var payload = new MemoryStream(32 + (relationshipId.Length + sheet.Name.Length) * 2);
-            WriteUInt32(payload, sheet.VeryHidden ? 2U : sheet.Hidden ? 1U : 0U);
+            using var payload = new MemoryStream(32 + (relationshipId.Length + sheetName.Length) * 2);
+            WriteUInt32(payload, state);
             WriteUInt32(payload, checked((uint)(index + 1)));
             WriteWideString(payload, relationshipId);
-            WriteWideString(payload, sheet.Name);
+            WriteWideString(payload, sheetName);
             return payload.ToArray();
         }
 

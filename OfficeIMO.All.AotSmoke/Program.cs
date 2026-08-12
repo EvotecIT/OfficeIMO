@@ -1,10 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using OfficeIMO.Adf;
 using OfficeIMO.CSV;
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
 using OfficeIMO.Reader;
 
@@ -56,7 +59,85 @@ if (!csvReader.Read() || csvReader.GetInt32(0) != 1 || csvReader.GetString(1) !=
     throw new InvalidOperationException("The canonical tabular reader did not read its NativeAOT CSV fixture.");
 }
 
-Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store and CSV reader contracts passed from NativeAOT.");
+using var parallelReader = CsvDocument.OpenTextDataReader("Id,Name\n1,Ada\n2,Grace\n");
+AotCsvRow[] parallelRows = parallelReader.RowsAsParallel<AotCsvRow>(map => map
+    .FromColumn<int>("Id", static (row, id) => { row.Id = id; return row; })
+    .FromColumn<string>("Name", static (row, name) => { row.Name = name; return row; }),
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 2,
+        BatchSize = 1
+    }).ToArray();
+if (parallelRows.Length != 2
+    || parallelRows[0].Id != 1
+    || parallelRows[0].Name != "Ada"
+    || parallelRows[1].Id != 2
+    || parallelRows[1].Name != "Grace") {
+    throw new InvalidOperationException("The explicit ordered-parallel CSV mapping did not survive NativeAOT.");
+}
+
+using var excelSourceStream = new System.IO.MemoryStream();
+ExcelDocument.WriteRows(
+    excelSourceStream,
+    new[] {
+        new AotExcelRow { Id = 1, Name = "Ada" },
+        new AotExcelRow { Id = 2, Name = "Grace" }
+    },
+    new[] { "Id", "Name" },
+    static (writer, row) => writer.Write(row.Id).Write(row.Name),
+    new ExcelTabularWriteOptions {
+        IncludeCellReferences = false,
+        UseSharedStrings = false
+    });
+excelSourceStream.Position = 0;
+using var excelSourceReader = ExcelDocument.OpenDataReader(
+    excelSourceStream,
+    new ExcelReadOptions {
+        SheetName = "Data",
+        InferSchema = true
+    });
+using var excelStream = new System.IO.MemoryStream();
+ExcelDocument.WriteDataReader(
+    excelStream,
+    excelSourceReader,
+    new ExcelTabularWriteOptions {
+        IncludeCellReferences = false,
+        UseSharedStrings = false
+    });
+excelStream.Position = 0;
+using var excelReader = ExcelDocument.OpenDataReader(
+    excelStream,
+    new ExcelReadOptions {
+        SheetName = "Data",
+        InferSchema = true
+    });
+AotExcelRow[] excelRows = excelReader.RowsAsParallel(
+    static record => new AotExcelRow {
+        Id = record.GetInt32(0),
+        Name = record.GetString(1)
+    },
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 2,
+        BatchSize = 1
+    }).ToArray();
+if (excelRows.Length != 2
+    || excelRows[0].Id != 1
+    || excelRows[0].Name != "Ada"
+    || excelRows[1].Id != 2
+    || excelRows[1].Name != "Grace") {
+    throw new InvalidOperationException("The IDataReader XLSX write fallback and ordered-parallel Excel mapping did not survive NativeAOT.");
+}
+
+Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store plus CSV and Excel read/write and ordered-parallel contracts passed from NativeAOT.");
+
+file sealed class AotCsvRow {
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+file sealed class AotExcelRow {
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
 
 file sealed class InMemoryTokenStore : IGoogleWorkspaceTokenStore {
     private readonly Dictionary<string, object?> _values = new(StringComparer.Ordinal);

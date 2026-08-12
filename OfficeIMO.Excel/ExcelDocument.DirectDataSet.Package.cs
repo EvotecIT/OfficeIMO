@@ -134,16 +134,19 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested();
             }
 
-            using FileStream? stagedPackage = CreateBoundedPackageStagingStream(destination, options);
-            Stream writeTarget = stagedPackage ?? destination;
+            using Stream? boundedOrStagedPackage = CreateBoundedPackageWriteStream(destination, options);
+            Stream writeTarget = boundedOrStagedPackage ?? destination;
             PrepareDestinationStreamForWrite(writeTarget);
-            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct);
+            bool disableSharedStrings = packageModel.Sheets.Count == 1
+                && !packageModel.Sheets[0].IncludeCellReferences;
+            DirectDataSetWorkbookWriter.Write(writeTarget, packageModel, ct, disableSharedStrings);
             try { writeTarget.Flush(); } catch (NotSupportedException) { }
-            if (stagedPackage != null) {
+            if (boundedOrStagedPackage is FileStream stagedPackage) {
                 CommitStagedPackageToStream(stagedPackage, destination, options);
             } else if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
             }
+            (boundedOrStagedPackage as ExcelBoundedSeekableStream)?.Complete();
 
             if (updateDocumentState) {
                 _packageDirty = false;

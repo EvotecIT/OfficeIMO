@@ -422,6 +422,35 @@ public class CsvDocumentFromObjectsTests
             writer.ToString());
     }
 
+#if NET6_0_OR_GREATER
+    [Fact]
+    public void WriteDataReader_UsesTypedGettersForSupportedScalarFields()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Count", "Amount", "Created", "Enabled", "Missing" },
+            new[]
+            {
+                new object?[]
+                {
+                    "Alpha",
+                    42,
+                    12.5m,
+                    new DateTime(2026, 8, 9, 10, 11, 12, DateTimeKind.Utc),
+                    true,
+                    DBNull.Value
+                }
+            });
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.Equal(
+            "Name,Count,Amount,Created,Enabled,Missing\nAlpha,42,12.5,08/09/2026 10:11:12,True,\n",
+            writer.ToString());
+        Assert.Equal(0, reader.GetValueCallCount);
+    }
+#endif
+
     [Fact]
     public void WriteDataReader_SchemaPlanStillEscapesCultureSpecificValues()
     {

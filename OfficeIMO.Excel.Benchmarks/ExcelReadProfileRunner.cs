@@ -22,7 +22,8 @@ internal static class ExcelReadProfileRunner {
         string outputPath,
         int rowCount = DefaultRowCount,
         int warmupIterations = DefaultWarmupIterations,
-        int measuredIterations = DefaultMeasuredIterations) {
+        int measuredIterations = DefaultMeasuredIterations,
+        string? processorAffinity = null) {
         if (string.IsNullOrWhiteSpace(outputPath)) {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
@@ -130,6 +131,9 @@ internal static class ExcelReadProfileRunner {
             Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
             MachineName = Environment.MachineName,
             BuildConfiguration = BuildConfiguration,
+            ProcessorAffinity = processorAffinity,
+            LogicalProcessorCount = Environment.ProcessorCount,
+            ServerGarbageCollection = System.Runtime.GCSettings.IsServerGC,
             RowCount = rowCount,
             WarmupIterations = warmupIterations,
             MeasuredIterations = measuredIterations,
@@ -685,6 +689,9 @@ internal static class ExcelReadProfileRunner {
         public string Framework { get; init; } = string.Empty;
         public string MachineName { get; init; } = string.Empty;
         public string BuildConfiguration { get; init; } = string.Empty;
+        public string? ProcessorAffinity { get; init; }
+        public int LogicalProcessorCount { get; init; }
+        public bool ServerGarbageCollection { get; init; }
         public int RowCount { get; init; }
         public int WarmupIterations { get; init; }
         public int MeasuredIterations { get; init; }

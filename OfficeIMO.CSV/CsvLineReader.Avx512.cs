@@ -108,7 +108,7 @@ internal sealed partial class CsvLineReader
                     out int firstFieldLength);
                 isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
                 _position = newlineIndex;
-                ConsumeLineSeparator(_buffer[newlineIndex], out separator);
+                ConsumeLineSeparator(_buffer[newlineIndex], out separator, deferLineFeedRead: true);
                 readResult = CsvLineReadResult.UnquotedRecord;
                 return true;
             }

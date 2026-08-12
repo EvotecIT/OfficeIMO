@@ -19,11 +19,11 @@ internal static class BenchmarkMeasurement {
         for (int i = 0; i < measuredIterations; i++) {
             PrepareForMeasurement();
 
-            long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
             long startTimestamp = Stopwatch.GetTimestamp();
             lastMetric = action();
             long endTimestamp = Stopwatch.GetTimestamp();
-            long allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
+            long allocatedAfter = GC.GetTotalAllocatedBytes(precise: true);
             elapsed.Add(ElapsedMilliseconds(startTimestamp, endTimestamp));
             allocated.Add(Math.Max(0, allocatedAfter - allocatedBefore));
         }
@@ -62,11 +62,11 @@ internal static class BenchmarkMeasurement {
             foreach (int index in GetRotatedOrder(actions.Count, iteration)) {
                 PrepareForMeasurement();
 
-                long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+                long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
                 long startTimestamp = Stopwatch.GetTimestamp();
                 outputMetrics[index] = actions[index]();
                 long endTimestamp = Stopwatch.GetTimestamp();
-                long allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
+                long allocatedAfter = GC.GetTotalAllocatedBytes(precise: true);
 
                 elapsed[index].Add(ElapsedMilliseconds(startTimestamp, endTimestamp));
                 allocated[index].Add(Math.Max(0, allocatedAfter - allocatedBefore));

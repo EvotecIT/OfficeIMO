@@ -560,6 +560,12 @@ inferred dates based on the target framework. Set
 `ExcelReadOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
 must omit source values and custom-converter details.
 
+Shared typed-row conversion now parses `DateTime` text with
+`DateTimeStyles.RoundtripKind`. ISO 8601 round-trip values therefore preserve
+their encoded UTC, local, or unspecified `DateTime.Kind` instead of being parsed
+with the previous `DateTimeStyles.None` behavior. Consumers that intentionally
+discard zone-kind information should normalize the mapped value explicitly.
+
 The low-level `CsvFile` compression helper is no longer public. Use
 `CsvDocument.Load`, `OpenDataReader`, `Save`, `WriteDataReader`, or caller-owned
 `TextReader` / `TextWriter` streams so file and compression behavior stays with

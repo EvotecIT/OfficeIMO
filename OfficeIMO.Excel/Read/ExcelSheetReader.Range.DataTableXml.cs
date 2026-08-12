@@ -389,25 +389,47 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<Dictionary<string, object?>>();
             }
 
+            var policy = _opt.Execution;
+            bool automaticDecision = (mode ?? policy.Mode) == OfficeIMO.Excel.ExcelExecutionMode.Automatic;
+            int workload = rows * cols;
+            bool decisionReported = false;
+            void ReportActual(OfficeIMO.Excel.ExcelExecutionMode actual) {
+                if (decisionReported) return;
+                policy.ReportDecision("ReadObjects", workload, actual);
+                decisionReported = true;
+            }
             if (CanUseReadObjectsXmlFastPath(mode)) {
                 if (TryReadObjectsDictionaryXmlStreamingFast(r1, c1, r2, c2, rows, cols, ct, out var streamingResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     return streamingResult;
                 }
 
                 if (TryReadObjectsDictionaryXmlFast(r1, c1, r2, c2, rows, cols, ct, out var xmlResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     return xmlResult;
                 }
             }
 
-            if (CanUseSequentialRangeFastPath("ReadObjects", rows * cols, mode)) {
+            if (CanUseReadObjectsMaterializedFastPath("ReadObjects", workload, mode)) {
                 if (TryReadObjectsSequentialSinglePass(r1, c1, r2, c2, rows, cols, ct, out var fastResult)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     return fastResult;
                 }
 
-                return ReadObjectsSequential(r1, c1, r2, c2, rows, cols, ct);
+                var sequentialResult = ReadObjectsSequential(r1, c1, r2, c2, rows, cols, ct);
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
+                return sequentialResult;
             }
 
-            var raw = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadObjects", mode, ct, rows * cols);
+            if (!automaticDecision) {
+                ReportActual(mode ?? policy.Mode);
+            }
+            var raw = SnapshotAndConvertRangeCells(r1, c1, r2, c2, "ReadObjects", mode, ct, workload);
+            decisionReported = true;
 
             var headerValues = new object?[cols];
             foreach (var cell in raw) {

@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
 
                 writer.Write("<c");
                 if (styleAttributes?[3] is string style3) writer.Write(style3);
-                if (values[offset + 3] is DateTime dateTimeValue3) WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTimeValue3, dateSystem));
+                if (values[offset + 3] is DateTime dateTimeValue3) WriteDateTimeSerialCell(writer, dateTimeValue3, dateSystem);
                 else WriteCellValue(writer, values[offset + 3], DirectCellValueKind.DateTime, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
 
                 writer.Write("<c");
@@ -278,7 +278,7 @@ namespace OfficeIMO.Excel {
                     writer.Write(rowReference);
                     writer.Write('"');
                     if (style3 != null) writer.Write(style3);
-                    if (values[offset + 3] is DateTime dateTimeValue3) WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTimeValue3, dateSystem));
+                    if (values[offset + 3] is DateTime dateTimeValue3) WriteDateTimeSerialCell(writer, dateTimeValue3, dateSystem);
                     else WriteCellValue(writer, values[offset + 3], DirectCellValueKind.DateTime, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
 
                     writer.Write(prefix4);
@@ -401,7 +401,7 @@ namespace OfficeIMO.Excel {
                     writer.Write('"');
                     if (style3 != null) writer.Write(style3);
                     if (values[3] is DateTime dateTimeValue3) {
-                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTimeValue3, dateSystem));
+                        WriteDateTimeSerialCell(writer, dateTimeValue3, dateSystem);
                     } else {
                         WriteCellValue(writer, values[3], DirectCellValueKind.DateTime, dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
                     }
