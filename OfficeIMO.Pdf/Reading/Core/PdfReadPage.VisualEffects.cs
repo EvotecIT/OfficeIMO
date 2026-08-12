@@ -58,7 +58,8 @@ public sealed partial class PdfReadPage {
         if (transparency.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
             ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false }) return null;
         PdfName? groupColorSpace = null;
-        if (transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject)) {
+        bool hasExplicitGroupColorSpace = transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject);
+        if (hasExplicitGroupColorSpace) {
             groupColorSpace = ResolveEffectObject(colorSpaceObject) as PdfName;
             if (groupColorSpace?.Name != "DeviceGray" && groupColorSpace?.Name != "DeviceRGB") return null;
         }
@@ -76,7 +77,7 @@ public sealed partial class PdfReadPage {
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, parentResources);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
     }
 
     private PdfObject? ResolveEffectObject(PdfObject? value) {
@@ -139,6 +140,7 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget textOutputBudget) {
         if (resource == null) return true;
         if (!resource.IsIsolated) return false;
+        if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);

@@ -444,8 +444,10 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "w":
-                    if (_args.Count >= 1) {
-                        _state = _state.WithStrokeWidth(ResolveStrokeWidth(NumberAt(_args.Count - 1)));
+                    if (HasExactFiniteNumbers(1) && NumberAt(0) >= 0D) {
+                        _state = _state.WithStrokeWidth(ResolveStrokeWidth(NumberAt(0)));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("w");
                     }
 
                     break;
@@ -751,7 +753,8 @@ internal static class PdfPageContentVisualParser {
                     if (_compatibilityDepth > 0) _compatibilityDepth--;
                     break;
                 default:
-                    if (_compatibilityDepth == 0 && !HasHiddenContent() && !IsKnownContentOperator(op)) {
+                    if (_compatibilityDepth == 0 && !HasHiddenContent() &&
+                        (!IsKnownContentOperator(op) || !HasValidTextStateOperands(op))) {
                         _unsupportedOperatorVisitor?.Invoke(op);
                     }
                     break;
@@ -958,6 +961,27 @@ internal static class PdfPageContentVisualParser {
                     return true;
                 default:
                     return false;
+            }
+        }
+
+        private bool HasValidTextStateOperands(string value) {
+            switch (value) {
+                case "Tc": case "Tw": case "Tz": case "TL": case "Ts":
+                    return HasExactFiniteNumbers(1);
+                case "Tf":
+                    return _args.Count == 2 && _args[0] is string &&
+                           _args[1] is double fontSize && !double.IsNaN(fontSize) && !double.IsInfinity(fontSize);
+                case "Tr":
+                    return HasExactFiniteNumbers(1) && NumberAt(0) >= 0D && NumberAt(0) <= 7D &&
+                           NumberAt(0) == Math.Truncate(NumberAt(0));
+                case "Td": case "TD": case "d0":
+                    return HasExactFiniteNumbers(2);
+                case "Tm": case "d1":
+                    return HasExactFiniteNumbers(6);
+                case "T*":
+                    return _args.Count == 0;
+                default:
+                    return true;
             }
         }
 
