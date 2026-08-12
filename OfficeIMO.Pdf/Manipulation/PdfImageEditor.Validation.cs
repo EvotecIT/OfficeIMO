@@ -148,28 +148,7 @@ internal static partial class PdfImageEditor {
         Dictionary<int, PdfIndirectObject> objects,
         List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
         PdfImagePlacement placement) {
-        var containingForms = new HashSet<int>();
-        for (int i = 0; i < decodedStreams.Count; i++) {
-            (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
-            if (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) &&
-                ResourceMapsToObject(objects, stream.Dictionary, placement.ResourceName, placement.ObjectNumber) &&
-                InvokesResource(content, placement.ResourceName)) containingForms.Add(objectNumber);
-        }
-
-        bool changed;
-        do {
-            changed = false;
-            for (int i = 0; i < decodedStreams.Count; i++) {
-                (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
-                if (containingForms.Contains(objectNumber) ||
-                    !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
-                foreach (string name in ReadInvokedResourceNames(content)) {
-                    if (!ResourceMapsToAnyObject(objects, stream.Dictionary, name, containingForms)) continue;
-                    changed = containingForms.Add(objectNumber) || changed;
-                    break;
-                }
-            }
-        } while (changed);
+        HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, placement);
 
         var names = new HashSet<string>(StringComparer.Ordinal) { placement.ResourceName };
         foreach (PdfIndirectObject indirect in objects.Values) {
@@ -186,14 +165,7 @@ internal static partial class PdfImageEditor {
         Dictionary<int, PdfIndirectObject> objects,
         List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
         PdfImagePlacement placement) {
-        var containingForms = new HashSet<int>();
-        for (int i = 0; i < decodedStreams.Count; i++) {
-            (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
-            if (!string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
-                !ResourceMapsToObject(objects, stream.Dictionary, placement.ResourceName, placement.ObjectNumber) ||
-                !InvokesResource(content, placement.ResourceName)) continue;
-            containingForms.Add(objectNumber);
-        }
+        HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, placement);
         if (containingForms.Count == 0) return;
 
         var streamsByForm = new Dictionary<int, HashSet<int>>();
@@ -217,6 +189,35 @@ internal static partial class PdfImageEditor {
                 throw new NotSupportedException("Editing an image inside a Form XObject invoked by shared page content is not supported because the selected invocation cannot be isolated safely.");
             }
         }
+    }
+
+    private static HashSet<int> CollectContainingForms(
+        Dictionary<int, PdfIndirectObject> objects,
+        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        PdfImagePlacement placement) {
+        var containingForms = new HashSet<int>();
+        for (int i = 0; i < decodedStreams.Count; i++) {
+            (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
+            if (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) &&
+                ResourceMapsToObject(objects, stream.Dictionary, placement.ResourceName, placement.ObjectNumber) &&
+                InvokesResource(content, placement.ResourceName)) containingForms.Add(objectNumber);
+        }
+
+        bool changed;
+        do {
+            changed = false;
+            for (int i = 0; i < decodedStreams.Count; i++) {
+                (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
+                if (containingForms.Contains(objectNumber) ||
+                    !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+                foreach (string name in ReadInvokedResourceNames(content)) {
+                    if (!ResourceMapsToAnyObject(objects, stream.Dictionary, name, containingForms)) continue;
+                    changed = containingForms.Add(objectNumber) || changed;
+                    break;
+                }
+            }
+        } while (changed);
+        return containingForms;
     }
 
     private static int CountContentStreamOwners(Dictionary<int, PdfIndirectObject> objects, int streamObjectNumber) {

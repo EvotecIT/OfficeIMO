@@ -268,6 +268,21 @@ internal static partial class PdfAcroFormEditor {
     private static string? ReadText(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfStringObj text ? text.Value : null;
     private static string? ReadName(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfName name ? name.Name : null;
     private static string? ReadSimpleValue(PdfDictionary dictionary) => dictionary.Items.TryGetValue("V", out PdfObject? value) ? value is PdfStringObj text ? text.Value : value is PdfName name ? name.Name : null : null;
+
+    private static string? ReadInheritedSimpleValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary) {
+        var visited = new HashSet<int>();
+        PdfDictionary? current = dictionary;
+        while (current != null) {
+            string? value = ReadSimpleValue(current);
+            if (value != null || current.Items.ContainsKey("V")) return value;
+            if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject)) return null;
+            if (parentObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return null;
+            current = PdfObjectLookup.Resolve(objects, parentObject) as PdfDictionary;
+        }
+        return null;
+    }
     private static string? CombineName(string? parent, string? partial) => string.IsNullOrEmpty(partial) ? parent : string.IsNullOrEmpty(parent) ? partial : parent + "." + partial;
     private static string ParentName(string name) { int index = name.LastIndexOf('.'); return index < 0 ? string.Empty : name.Substring(0, index); }
     private static string LeafName(string name) { int index = name.LastIndexOf('.'); return index < 0 ? name : name.Substring(index + 1); }

@@ -652,6 +652,22 @@ public class PdfTextEditorTests {
         Assert.True(tail.X > bar.X);
     }
 
+    [Theory]
+    [InlineData("foo\n")]
+    [InlineData("\n")]
+    public void ReplaceAllContinuesSuffixAfterTrailingEmptyReplacementLine(string replacement) {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "cat",
+            replacement,
+            new PdfTextSearchOptions { MatchCase = true });
+
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.True(tail.Y < 699D);
+        Assert.InRange(tail.X, 49D, 53D);
+    }
+
     [Fact]
     public void ReplaceAllProjectsRotatedReplacementAdvanceOntoSourceFlow() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// A catalog-level active action discovered from a supported PDF catalog action slot.
 /// </summary>
 public sealed class PdfCatalogAction {
-    internal PdfCatalogAction(string name, string actionType, string source, string? triggerName = null, string? actionPath = null, bool isChainedAction = false, string? uri = null) {
+    internal PdfCatalogAction(string name, string actionType, string source, string? triggerName = null, string? actionPath = null, bool isChainedAction = false, string? uri = null, string? payloadFingerprint = null) {
         Name = name;
         ActionType = actionType;
         Source = source;
@@ -12,6 +12,7 @@ public sealed class PdfCatalogAction {
         ActionPath = actionPath;
         IsChainedAction = isChainedAction;
         Uri = uri;
+        PayloadFingerprint = payloadFingerprint;
     }
 
     /// <summary>Name-tree key or catalog action slot associated with the action.</summary>
@@ -34,4 +35,6 @@ public sealed class PdfCatalogAction {
 
     /// <summary>URI target when this is a URI action.</summary>
     public string? Uri { get; }
+
+    internal string? PayloadFingerprint { get; }
 }

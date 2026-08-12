@@ -162,7 +162,7 @@ internal static partial class PdfAcroFormEditor {
             refillValues.Remove(name);
             return;
         }
-        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
+        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary), includeEmptyChoice: true);
     }
 
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>

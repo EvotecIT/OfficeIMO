@@ -56,7 +56,7 @@ public sealed partial class PdfReadPage {
                     ResolveObject(uriObject) is PdfStringObj uriText) {
                     uri = uriText.Value;
                 }
-                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath, uri));
+                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects)));
             }
 
             if (dictionary.Items.TryGetValue("Next", out var nextAction)) {

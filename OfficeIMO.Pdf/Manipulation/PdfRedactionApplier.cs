@@ -291,6 +291,8 @@ internal static partial class PdfRedactionApplier {
             match.PageNumber == target.PageNumber &&
             string.Equals(match.ResourceName, target.ResourceName, StringComparison.Ordinal) &&
             (target.ObjectNumber == 0 ? !match.ObjectNumber.HasValue : match.ObjectNumber == target.ObjectNumber) &&
+            (target.ObjectNumber != 0 ||
+             match.ImagePlacement?.DirectStreamIdentity == target.DirectStreamIdentity) &&
             (match.ImagePlacement is null ||
              (Math.Abs(match.ImagePlacement.A - target.A) <= tolerance &&
               Math.Abs(match.ImagePlacement.B - target.B) <= tolerance &&

@@ -229,6 +229,19 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void Assess_ReportsNonUriActionPayloadDrift() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildViewerActionPreservationProofPdf();
+        byte[] rewritten = ReplaceFirstAscii(source, "(page.exe)", "(evil.exe)");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten);
+
+        Assert.False(report.IsPreserved);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature.EndsWith(".Payload", StringComparison.Ordinal) &&
+            issue.Expected != issue.Actual);
+    }
+
+    [Fact]
     public void Assess_PreservesOnlyPubliclySelectedWidgetActionTypes() {
         byte[] source = BuildWidgetActionPreservationPdf("alpha");
         byte[] rewritten = BuildWidgetActionPreservationPdf("bravo");

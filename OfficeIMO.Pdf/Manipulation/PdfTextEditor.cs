@@ -347,9 +347,7 @@ internal static partial class PdfTextEditor {
 
     private static void AdvanceFragmentCursor(PositionedTextFragment fragment, ref double cursorX, ref double cursorY) {
         string[] lines = fragment.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-        int finalLineIndex = -1;
-        for (int index = 0; index < lines.Length; index++) if (lines[index].Length > 0) finalLineIndex = index;
-        if (finalLineIndex < 0) return;
+        int finalLineIndex = lines.Length - 1;
 
         double radians = fragment.Style.RotationDegrees * Math.PI / 180D;
         double ux = Math.Cos(radians);

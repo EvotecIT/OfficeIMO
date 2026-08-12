@@ -79,6 +79,7 @@ public static partial class PdfRewritePreservation {
             CompareString(issues, prefix + ".Source", before.Source, after.Source);
             CompareString(issues, prefix + ".TriggerName", NormalizeFilteredActionPath(before.TriggerName, options), NormalizeFilteredActionPath(after.TriggerName, options));
             CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
+            CompareString(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
         }
     }
 
@@ -122,6 +123,7 @@ public static partial class PdfRewritePreservation {
                 CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
                 CompareString(issues, prefix + ".ActionPath", NormalizeFilteredActionPath(before.ActionPath, options), NormalizeFilteredActionPath(after.ActionPath, options));
                 CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
+                CompareString(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
             }
         }
     }
@@ -143,7 +145,7 @@ public static partial class PdfRewritePreservation {
                 inventory.Add(pages[pageIndex].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
                               triggerName + "\u001f" + actionPath + "\u001f" +
                               retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                              action.ActionType + "\u001f" + (action.Uri ?? string.Empty));
+                              action.ActionType + "\u001f" + (action.Uri ?? string.Empty) + "\u001f" + (action.PayloadFingerprint ?? string.Empty));
             }
         }
         inventory.Sort(StringComparer.Ordinal);
@@ -190,7 +192,7 @@ public static partial class PdfRewritePreservation {
                                   widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
                                   triggerName + "\u001f" +
                                   retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty));
+                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty) + "\u001f" + (action.PayloadFingerprint ?? string.Empty));
                 }
             }
         }
