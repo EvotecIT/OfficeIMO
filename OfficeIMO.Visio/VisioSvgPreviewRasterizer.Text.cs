@@ -9,13 +9,14 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static bool RenderText(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
             SvgTextStyle style = context.CurrentTextStyle;
+            var countedTextElements = new HashSet<XElement>();
             double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
             double y = ReadLength(element, "y", style.FontSize, context, SvgLengthAxis.Y);
             var cursor = new SvgTextCursor(
                 x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X),
                 y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y));
-            cursor.X = ApplyTextAnchor(cursor.X, MeasureTextChunk(canvas, element, style, context, stopAtPositionedChild: true), style.Alignment);
-            return RenderTextNodes(canvas, element, paint, style, transform, context, ref cursor);
+            cursor.X = ApplyTextAnchor(cursor.X, MeasureTextChunk(canvas, element, style, context, countedTextElements, stopAtPositionedChild: true), style.Alignment);
+            return RenderTextNodes(canvas, element, paint, style, transform, context, countedTextElements, ref cursor);
         }
 
         private static bool RenderTextNodes(
@@ -25,60 +26,77 @@ namespace OfficeIMO.Visio {
             SvgTextStyle style,
             SvgTransform transform,
             SvgRenderContext context,
+            HashSet<XElement> countedTextElements,
             ref SvgTextCursor cursor) {
-            bool rendered = false;
+            if (!context.TryEnterAuxiliaryRecursion()) return false;
+            try {
+                bool rendered = false;
 
-            foreach (XNode node in element.Nodes()) {
-                if (node is XText textNode) {
-                    if (!context.IsVisible) {
+                foreach (XNode node in element.Nodes()) {
+                    if (node is XText textNode) {
+                        if (!context.IsVisible) {
+                            continue;
+                        }
+
+                        string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref cursor.PendingSpace, cursor.HasTextRun);
+                        rendered |= DrawSvgTextRun(canvas, value, cursor.X, cursor.Y, paint, style, transform, out double advance);
+                        cursor.X += advance;
+                        cursor.HasTextRun |= value.Length > 0;
                         continue;
                     }
 
-                    string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref cursor.PendingSpace, cursor.HasTextRun);
-                    rendered |= DrawSvgTextRun(canvas, value, cursor.X, cursor.Y, paint, style, transform, out double advance);
-                    cursor.X += advance;
-                    cursor.HasTextRun |= value.Length > 0;
-                    continue;
+                    if (node is XElement child) {
+                        if (!TryCountTextElement(child, context, countedTextElements)) return rendered;
+                        if (IsIgnoredTextChild(child.Name.LocalName)) continue;
+                        if (IsElementDisplayNone(child, context)) {
+                            continue;
+                        }
+
+                        using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
+                        if (!context.IsVisible) {
+                            continue;
+                        }
+
+                        if (!IsSupportedTextContainer(child.Name.LocalName)) {
+                            context.ReportUnsupportedFeature();
+                            continue;
+                        }
+
+                        if (context.StyleSheet.HasActiveVisualEffect(child)) {
+                            context.ReportUnsupportedFeature();
+                        }
+
+                        bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
+                        if (resetsTextFlow) {
+                            cursor.PendingSpace = false;
+                        }
+
+                        SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
+                        double childX = ReadLength(child, "x", cursor.X, context, SvgLengthAxis.X);
+                        double childY = ReadLength(child, "y", cursor.Y, context, SvgLengthAxis.Y);
+                        childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
+                        childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
+                        if (resetsTextFlow) {
+                            childX = ApplyTextAnchor(childX, MeasureTextChunk(canvas, child, childStyle, context, countedTextElements, stopAtPositionedChild: true), childStyle.Alignment);
+                        }
+
+                        SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
+                        var childCursor = new SvgTextCursor(childX, childY) {
+                            HasTextRun = cursor.HasTextRun && !resetsTextFlow,
+                            PendingSpace = cursor.PendingSpace
+                        };
+                        rendered |= RenderTextNodes(canvas, child, childPaint, childStyle, transform, context, countedTextElements, ref childCursor);
+                        cursor.X = childCursor.X;
+                        cursor.Y = childCursor.Y;
+                        cursor.PendingSpace = childCursor.PendingSpace;
+                        cursor.HasTextRun |= childCursor.HasTextRun;
+                    }
                 }
 
-                if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
-                    if (IsElementDisplayNone(child, context)) {
-                        continue;
-                    }
-
-                    using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
-                    if (!context.IsVisible) {
-                        continue;
-                    }
-
-                    bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
-                    if (resetsTextFlow) {
-                        cursor.PendingSpace = false;
-                    }
-
-                    SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    double childX = ReadLength(child, "x", cursor.X, context, SvgLengthAxis.X);
-                    double childY = ReadLength(child, "y", cursor.Y, context, SvgLengthAxis.Y);
-                    childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
-                    childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
-                    if (resetsTextFlow) {
-                        childX = ApplyTextAnchor(childX, MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true), childStyle.Alignment);
-                    }
-
-                    SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
-                    var childCursor = new SvgTextCursor(childX, childY) {
-                        HasTextRun = cursor.HasTextRun && !resetsTextFlow,
-                        PendingSpace = cursor.PendingSpace
-                    };
-                    rendered |= RenderTextNodes(canvas, child, childPaint, childStyle, transform, context, ref childCursor);
-                    cursor.X = childCursor.X;
-                    cursor.Y = childCursor.Y;
-                    cursor.PendingSpace = childCursor.PendingSpace;
-                    cursor.HasTextRun |= childCursor.HasTextRun;
-                }
+                return rendered;
+            } finally {
+                context.ExitAuxiliaryRecursion();
             }
-
-            return rendered;
         }
 
         private static bool DrawSvgTextRun(
@@ -115,50 +133,69 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild) {
+        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, HashSet<XElement> countedTextElements, bool stopAtPositionedChild) {
             var measureCursor = new SvgTextCursor(0D, 0D);
-            return MeasureTextChunk(canvas, element, style, context, stopAtPositionedChild, ref measureCursor);
+            return MeasureTextChunk(canvas, element, style, context, countedTextElements, stopAtPositionedChild, ref measureCursor);
         }
 
-        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild, ref SvgTextCursor measureCursor) {
-            double width = 0D;
-            foreach (XNode node in element.Nodes()) {
-                if (node is XText textNode) {
-                    if (!context.IsVisible) {
+        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, HashSet<XElement> countedTextElements, bool stopAtPositionedChild, ref SvgTextCursor measureCursor) {
+            if (!context.TryEnterAuxiliaryRecursion()) return 0D;
+            try {
+                double width = 0D;
+                foreach (XNode node in element.Nodes()) {
+                    if (node is XText textNode) {
+                        if (!context.IsVisible) {
+                            continue;
+                        }
+
+                        string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
+                        if (value.Length > 0) {
+                            width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
+                            measureCursor.HasTextRun = true;
+                        }
+
                         continue;
                     }
 
-                    string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
-                    if (value.Length > 0) {
-                        width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
-                        measureCursor.HasTextRun = true;
-                    }
+                    if (node is XElement child) {
+                        if (!TryCountTextElement(child, context, countedTextElements)) return width;
+                        if (IsIgnoredTextChild(child.Name.LocalName) || !IsSupportedTextContainer(child.Name.LocalName)) continue;
+                        if (IsElementDisplayNone(child, context)) {
+                            continue;
+                        }
 
-                    continue;
+                        using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
+                        if (!context.IsVisible) {
+                            continue;
+                        }
+
+                        bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
+                        if (resetsTextFlow && stopAtPositionedChild) {
+                            break;
+                        }
+
+                        SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
+                        width += MeasureTextChunk(canvas, child, childStyle, context, countedTextElements, stopAtPositionedChild: true, ref measureCursor);
+                    }
                 }
 
-                if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
-                    if (IsElementDisplayNone(child, context)) {
-                        continue;
-                    }
-
-                    using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
-                    if (!context.IsVisible) {
-                        continue;
-                    }
-
-                    bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
-                    if (resetsTextFlow && stopAtPositionedChild) {
-                        break;
-                    }
-
-                    SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    width += MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true, ref measureCursor);
-                }
+                return width;
+            } finally {
+                context.ExitAuxiliaryRecursion();
             }
-
-            return width;
         }
+
+        private static bool TryCountTextElement(XElement element, SvgRenderContext context, HashSet<XElement> countedTextElements) =>
+            !countedTextElements.Add(element) || context.TryCountRenderedElement();
+
+        private static bool IsSupportedTextContainer(string name) =>
+            string.Equals(name, "tspan", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "a", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsIgnoredTextChild(string name) =>
+            string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "metadata", StringComparison.OrdinalIgnoreCase);
 
         private static double ApplyTextAnchor(double x, double width, OfficeTextAlignment alignment) {
             if (width <= 0D) {

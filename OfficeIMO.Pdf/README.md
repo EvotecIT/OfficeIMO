@@ -78,6 +78,31 @@ enforces the same `PdfReadOptions` limits before buffering, snapshots caller
 input once, and reuses one parsed document across read, inspection, preflight,
 diagnostic, optimization, signature, and compliance operations.
 
+### Read and edit named document JavaScript
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument document = PdfDocument.Open("input.pdf");
+
+foreach (PdfJavaScript script in document.JavaScript.List()) {
+    Console.WriteLine(script.Name);
+}
+
+PdfJavaScriptEditResult edited = document.JavaScript.Edit(scripts => scripts
+    .AddOrReplace("Initialize", "this.zoom = 100;")
+    .Remove("Obsolete"));
+
+File.WriteAllBytes("output.pdf", edited.ToBytes());
+```
+
+Script names use exact, case-sensitive matching. Editing preserves untouched
+name-tree entries and action data, then reads the saved artifact back before
+returning it. Per-script, script-count, and aggregate-byte limits come from
+`PdfReadOptions.Limits`. Document JavaScript is active content: the default
+sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed
+inputs rather than weakening their security or revision contracts.
+
 For a single health and capability view:
 
 ```csharp
@@ -367,6 +392,19 @@ PdfOperationResult<IReadOnlyList<PdfFormField>> safeFormFields = pdf.Read.TryFor
 IReadOnlyList<PdfAttachmentInfo> attachmentMetadata = pdf.Read.AttachmentMetadata();
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
+```
+
+Text extraction excludes PDF artifact marked content by default, which is the
+logical-text behavior expected for decorative headers, footers, and chart
+labels. Opt into visual text when those marked artifacts are part of the
+required payload:
+
+```csharp
+PdfDocument visualTextPdf = PdfDocument.Open("spreadsheet-export.pdf", new PdfReadOptions {
+    IncludeArtifactText = true
+});
+
+IReadOnlyList<string> visualTextByPage = visualTextPdf.Read.TextByPage();
 ```
 
 ### Split and extract pages

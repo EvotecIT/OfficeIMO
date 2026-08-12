@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlEmailImageExportTests {
     private static readonly byte[] PixelPng = Convert.FromBase64String(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+X8m0WQAAAABJRU5ErkJggg==");
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==");
 
     [Fact]
     public void EmailFitWithinBoundsHighRequestedScaleBeforeHtmlSurfaceValidation() {

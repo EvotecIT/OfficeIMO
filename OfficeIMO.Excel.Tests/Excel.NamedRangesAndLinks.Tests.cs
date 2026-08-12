@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
                 s.AddTable("A1:B2", hasHeader: true, name: "T", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
 
                 // Add a tiny 1x1 PNG as drawing
-                var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+                var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
                 s.AddImageAt(1, 1, png, "image/png", widthPixels: 1, heightPixels: 1);
 
                 // Preflight should not remove valid references

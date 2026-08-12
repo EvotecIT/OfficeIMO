@@ -6,10 +6,18 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private sealed class SvgRenderContext {
+            // One SVG level crosses several renderer frames. Keep this well below the
+            // runtime stack limit so hostile nesting is rejected before recursion is risky.
+            private const int MaximumRenderDepth = 48;
+            private const int MaximumRenderedElements = 100000;
             private readonly Dictionary<string, XElement> _definitions;
             private readonly HashSet<string> _activeUseIds = new(StringComparer.Ordinal);
 
             private readonly Func<string, byte[]?>? _imageResolver;
+            private int _auxiliaryRecursionDepth;
+            private int _renderDepth;
+            private int _renderedElements;
+            private bool _renderBudgetExceeded;
 
             private SvgRenderContext(SvgStyleSheet styleSheet, Dictionary<string, XElement> definitions, Func<string, byte[]?>? imageResolver, SvgPaintBounds viewportBounds) {
                 StyleSheet = styleSheet;
@@ -30,8 +38,20 @@ namespace OfficeIMO.Visio {
 
             internal OfficeFillRule CurrentFillRule { get; private set; } = OfficeFillRule.NonZero;
 
-            internal static SvgRenderContext Create(XElement root, SvgPaintBounds viewportBounds, Func<string, byte[]?>? imageResolver = null) =>
-                new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver, viewportBounds);
+            internal bool RenderBudgetExceeded => _renderBudgetExceeded || StyleSheet.BudgetExceeded;
+
+            internal int UnsupportedFeatureCount { get; private set; }
+
+            internal static SvgRenderContext Create(
+                XElement root,
+                SvgPaintBounds viewportBounds,
+                Func<string, byte[]?>? imageResolver,
+                System.Threading.CancellationToken cancellationToken) =>
+                new(
+                    SvgStyleSheet.Parse(root, cancellationToken),
+                    ReadDefinitions(root, cancellationToken),
+                    imageResolver,
+                    viewportBounds);
 
             internal bool TryGetDefinition(string id, out XElement? definition) =>
                 _definitions.TryGetValue(id, out definition);
@@ -39,6 +59,46 @@ namespace OfficeIMO.Visio {
             internal bool TryEnterUse(string id) => _activeUseIds.Add(id);
 
             internal void ExitUse(string id) => _activeUseIds.Remove(id);
+
+            internal bool TryEnterRenderElement() {
+                if (_renderDepth >= MaximumRenderDepth) {
+                    _renderBudgetExceeded = true;
+                    return false;
+                }
+                if (!TryCountRenderedElement()) return false;
+                _renderDepth++;
+                return true;
+            }
+
+            internal bool TryCountRenderedElement() {
+                if (_renderedElements >= MaximumRenderedElements) {
+                    _renderBudgetExceeded = true;
+                    return false;
+                }
+
+                _renderedElements++;
+                return true;
+            }
+
+            internal void ExitRenderElement() {
+                if (_renderDepth > 0) _renderDepth--;
+            }
+
+            internal bool TryEnterAuxiliaryRecursion() {
+                if (_auxiliaryRecursionDepth >= MaximumRenderDepth) {
+                    _renderBudgetExceeded = true;
+                    return false;
+                }
+
+                _auxiliaryRecursionDepth++;
+                return true;
+            }
+
+            internal void ExitAuxiliaryRecursion() {
+                if (_auxiliaryRecursionDepth > 0) _auxiliaryRecursionDepth--;
+            }
+
+            internal void ReportUnsupportedFeature() => UnsupportedFeatureCount++;
 
             internal IDisposable PushPaintBounds(SvgPaintBounds? bounds) {
                 SvgPaintBounds? previous = CurrentPaintBounds;
@@ -78,9 +138,12 @@ namespace OfficeIMO.Visio {
                 return bytes != null && bytes.Length > 0;
             }
 
-            private static Dictionary<string, XElement> ReadDefinitions(XElement root) {
+            private static Dictionary<string, XElement> ReadDefinitions(
+                XElement root,
+                System.Threading.CancellationToken cancellationToken) {
                 Dictionary<string, XElement> definitions = new(StringComparer.Ordinal);
                 foreach (XElement element in root.Descendants()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string? id = element.Attribute("id")?.Value;
                     if (!string.IsNullOrWhiteSpace(id) && !definitions.ContainsKey(id!)) {
                         definitions[id!] = element;

@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Header-level image metadata used by Office Open XML packages.
+/// Bounded image metadata used by Office Open XML packages.
 /// </summary>
 public sealed class OfficeImageInfo {
     /// <summary>
@@ -148,8 +148,8 @@ public sealed class OfficeImageInfo {
             "image/svg+xml" or "image/svg" => OfficeImageFormat.Svg,
             "image/x-emf" or "image/emf" => OfficeImageFormat.Emf,
             "image/x-wmf" or "image/wmf" => OfficeImageFormat.Wmf,
-            "image/x-icon" or "image/vnd.microsoft.icon" => OfficeImageFormat.Icon,
-            "image/x-pcx" => OfficeImageFormat.Pcx,
+            "image/x-icon" or "image/vnd.microsoft.icon" or "image/ico" => OfficeImageFormat.Icon,
+            "image/x-pcx" or "image/pcx" => OfficeImageFormat.Pcx,
             "image/webp" => OfficeImageFormat.Webp,
             _ => OfficeImageFormat.Unknown
         };

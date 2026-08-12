@@ -20,8 +20,9 @@ public static partial class OfficeTiffCodec {
             case (int)OfficeTiffCompression.PackBits:
                 return TryDecodePackBits(input, inputOffset, inputCount, output, outputOffset, expectedCount);
             case (int)OfficeTiffCompression.Deflate:
+                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount, allowRawDeflate: false);
             case 32946:
-                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount);
+                return TryDecodeDeflate(input, inputOffset, inputCount, output, outputOffset, expectedCount, allowRawDeflate: true);
             default:
                 return false;
         }
@@ -33,7 +34,8 @@ public static partial class OfficeTiffCodec {
         int inputCount,
         byte[] output,
         int outputOffset,
-        int expectedCount) {
+        int expectedCount,
+        bool allowRawDeflate) {
         var compressed = new byte[inputCount];
         Buffer.BlockCopy(input, inputOffset, compressed, 0, inputCount);
         try {
@@ -43,9 +45,19 @@ public static partial class OfficeTiffCodec {
                 expectedCount);
             Buffer.BlockCopy(inflated, 0, output, outputOffset, expectedCount);
             return true;
-        } catch (InvalidDataException) {
+        } catch (Exception exception) when (
+            exception is InvalidDataException ||
+            exception is OfficeDecompressionSizeLimitException) {
             // Older TIFF writers used raw Deflate under compression tag 32946.
         } catch (NotSupportedException) {
+            return false;
+        }
+
+        if (!allowRawDeflate) {
+            return false;
+        }
+
+        if (!OfficeDeflateStreamValidator.TryValidateExact(compressed, 0, compressed.Length)) {
             return false;
         }
 

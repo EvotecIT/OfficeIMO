@@ -33,7 +33,7 @@
       <w:pPr />
       <w:r>
         <mc:AlternateContent>
-          <mc:Choice Requires="wps">
+          <mc:Choice xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" Requires="wps">
             <w:drawing>
               <wp:anchor xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" distT="91440" distB="91440" distL="114300" distR="114300" simplePos="0" relativeHeight="251659264" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1" wp14:editId="E00000001" wp14:anchorId="00000001">
                 <wp:simplePos x="0" y="0" />

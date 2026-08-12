@@ -68,7 +68,8 @@ public sealed partial class PdfDocumentPages {
 
     private PdfDocument[] Split(PdfReadOptions? options) {
         byte[] input = _document.GetBytesForOperation();
-        return AdoptSplitOutputs(input, PdfPageExtractor.SplitPages(input, options), options);
+        IReadOnlyList<byte[]> outputs = PdfPageExtractor.SplitPages(input, options);
+        return AdoptSplitOutputs(input, outputs, Enumerable.Repeat(1, outputs.Count).ToArray(), options);
     }
 
     /// <summary>
@@ -116,12 +117,14 @@ public sealed partial class PdfDocumentPages {
     private PdfDocument[] Split(PdfPageSelection[] selections, PdfReadOptions? options) {
         byte[] input = _document.GetBytesForOperation();
         var outputs = new byte[selections.Length][];
+        var outputPageCounts = new int[selections.Length];
         for (int i = 0; i < selections.Length; i++) {
             Guard.NotNull(selections[i], nameof(selections));
             outputs[i] = PdfPageExtractor.ExtractPageRanges(input, selections[i].ToRanges(), options);
+            outputPageCounts[i] = selections[i].PageCount;
         }
 
-        return AdoptSplitOutputs(input, outputs, options);
+        return AdoptSplitOutputs(input, outputs, outputPageCounts, options);
     }
 
     /// <summary>
@@ -145,18 +148,36 @@ public sealed partial class PdfDocumentPages {
         }
 
         byte[] input = _document.GetBytesForOperation();
-        return AdoptSplitOutputs(input, PdfPageExtractor.SplitPageRanges(input, ranges, options), options);
+        return AdoptSplitOutputs(
+            input,
+            PdfPageExtractor.SplitPageRanges(input, ranges, options),
+            ranges.Select(static range => range.PageCount).ToArray(),
+            options);
     }
 
     private PdfDocument[] AdoptSplitOutputs(
         byte[] input,
-        IEnumerable<byte[]> outputs,
+        IReadOnlyList<byte[]> outputs,
+        int[] outputPageCounts,
         PdfReadOptions? options) {
+        if (outputs.Count != outputPageCounts.Length) {
+            throw new InvalidOperationException("Split output count did not match the planned page-count evidence.");
+        }
+
         PdfArtifactSnapshot inputArtifact = _document.Pipeline.Output ??
             PdfArtifactSnapshot.Capture(input, _document.ReadOptions);
-        return outputs
-            .Select(output => _document.WithBytes(input, inputArtifact, output, options, "Split"))
-            .ToArray();
+        var documents = new PdfDocument[outputs.Count];
+        for (int i = 0; i < outputs.Count; i++) {
+            documents[i] = _document.WithBytesKnownPageCount(
+                input,
+                inputArtifact,
+                outputs[i],
+                outputPageCounts[i],
+                options,
+                "Split");
+        }
+
+        return documents;
     }
 
     /// <summary>

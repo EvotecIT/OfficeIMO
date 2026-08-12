@@ -45,15 +45,7 @@ public static class OdfImageExportDiagnostics {
             conversionDiagnostics.Count + result.Diagnostics.Count);
         diagnostics.AddRange(conversionDiagnostics);
         diagnostics.AddRange(result.Diagnostics);
-        return new OfficeImageExportResult(
-            result.Format,
-            result.Width,
-            result.Height,
-            result.Bytes,
-            result.Name,
-            result.Source,
-            diagnostics,
-            result.SavedPath);
+        return result.WithDiagnostics(diagnostics.AsReadOnly());
     }
 
     private static string CreateCode(OdfConversionMapping mapping) {

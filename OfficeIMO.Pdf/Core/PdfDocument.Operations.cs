@@ -320,10 +320,11 @@ public sealed partial class PdfDocument {
 
         byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
         PdfReadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        byte[] merged = PdfMerger.Merge(bytes, readOptions);
-        return Open(
-            merged,
-            PdfReadOptions.WithMinimumInputBytes(sources[0].ReadOptions, merged.LongLength));
+        Func<PdfReadDocument>?[] readDocumentFactories = sources
+            .Select(static document => document.GetOpenedReadDocumentFactory())
+            .ToArray();
+        PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories);
+        return OpenOwned(mergeResult.OwnedBytes, mergeResult.ReadOptions, mergeResult.ReadDocument);
     }
 
     /// <summary>

@@ -1048,7 +1048,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PackageStencilPreviewGalleryWritesBrowserRenderableThumbnailArtifacts() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
-            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lM9sWQAAAABJRU5ErkJggg==");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4z8BQDwAEgAF/posBPQAAAABJRU5ErkJggg==");
             const string displayName = "Fancy <Cloud> & \"QA\"";
             const string escapedDisplayName = "Fancy &lt;Cloud&gt; &amp; &quot;QA&quot;";
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", displayName, "png", png);

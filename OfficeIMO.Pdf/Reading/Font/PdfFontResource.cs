@@ -32,6 +32,25 @@ internal sealed class PdfFontResource {
         DrawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
     }
 
+    private PdfFontResource(string resourceName, PdfFontResource source) {
+        ResourceName = resourceName;
+        BaseFont = source.BaseFont;
+        Encoding = source.Encoding;
+        FontSubtype = source.FontSubtype;
+        EmbeddedProgramSubtype = source.EmbeddedProgramSubtype;
+        HasToUnicode = source.HasToUnicode;
+        CMap = source.CMap;
+        Differences = source.Differences;
+        EmbeddedTrueTypeFont = source.EmbeddedTrueTypeFont;
+        DrawingFontFamily = source.DrawingFontFamily;
+        Type3 = source.Type3;
+    }
+
+    internal PdfFontResource WithResourceName(string resourceName) =>
+        string.Equals(ResourceName, resourceName, StringComparison.Ordinal)
+            ? this
+            : new PdfFontResource(resourceName, this);
+
     private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData) {
         if (fontData == null || !HasSubsetPrefix(baseFont)) return null;
         using SHA256 sha256 = SHA256.Create();

@@ -74,7 +74,6 @@ namespace OfficeIMO.Excel {
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException("Row and column are 1-based and must be positive.");
             if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
             if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
-
             ExcelImage? image = null;
             WriteLock(() => {
                 // Ensure a drawing part exists and is referenced by the worksheet
@@ -223,7 +222,7 @@ namespace OfficeIMO.Excel {
                 remoteImageOptions,
                 cancellationToken).ConfigureAwait(false);
             byte[] bytes = remote.ToBytes();
-            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
+            OfficeImageInfo info = RequireImageContent(bytes, remote.FileName, nameof(url));
             return AddImage(row, column, bytes, contentType: ResolveImageContentType(remote.ContentType, info), widthPixels: widthPixels,
                 heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
                 lockAspectRatio: lockAspectRatio);

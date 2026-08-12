@@ -25,6 +25,70 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
+    /// <summary>
+    /// Requires a full rewrite while sharing the canonical parse used by preflight with the mutation implementation.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) =>
+        RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory: null);
+
+    /// <summary>
+    /// Requires a full rewrite while reusing a canonical parse already owned by the caller.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadDocument document,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(document, nameof(document));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, () => document);
+    }
+
+    /// <summary>
+    /// Requires a full rewrite while lazily reusing a canonical parse owned by the caller.
+    /// The factory executes inside preflight so parser failures retain the standard mutation diagnostics.
+    /// </summary>
+    internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        Func<PdfReadDocument> documentFactory,
+        PdfReadOptions? options = null,
+        IEnumerable<string>? fieldNames = null) {
+        Guard.NotNull(documentFactory, nameof(documentFactory));
+        return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory);
+    }
+
+    private static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocumentCore(
+        byte[] pdf,
+        PdfMutationOperation operation,
+        PdfReadOptions? options,
+        IEnumerable<string>? fieldNames,
+        Func<PdfReadDocument>? documentFactory) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfReadDocument? document = null;
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(
+            pdf,
+            effectiveOptions,
+            () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+        PdfMutationPlan plan = Plan(
+            preflight,
+            pdf,
+            operation,
+            fieldNames,
+            PdfMutationExecutionPreference.RequireFullRewrite,
+            effectiveOptions);
+        if (!plan.CanExecute) {
+            throw new PdfMutationBlockedException(plan);
+        }
+
+        return (plan, document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions));
+    }
+
     /// <summary>Requires the shared planner to prove an append-only path for an existing-document editor.</summary>
     public static PdfMutationPlan RequireAppendOnly(
         byte[] pdf,
@@ -227,6 +291,8 @@ internal static class PdfMutationPlanner {
                 return CanSynchronizeMetadata(preflight);
             case PdfMutationOperation.Sanitize:
                 return CanSanitize(preflight);
+            case PdfMutationOperation.ModifyJavaScript:
+                return CanModifyJavaScript(preflight);
             case PdfMutationOperation.ModifyAttachments:
                 return CanModifyAttachments(preflight);
             case PdfMutationOperation.FillFormFields:
@@ -327,7 +393,9 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.SynchronizeMetadata:
                 return ReadOnly(PdfMutationStructure.InfoDictionary, PdfMutationStructure.XmpMetadata);
             case PdfMutationOperation.Sanitize:
-                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments, PdfMutationStructure.AcroForm);
+                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph, PdfMutationStructure.ActiveContent, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments, PdfMutationStructure.AcroForm);
+            case PdfMutationOperation.ModifyJavaScript:
+                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ActiveContent, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.FillFormFields:
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations);
             case PdfMutationOperation.FlattenFormFields:
@@ -495,6 +563,9 @@ internal static class PdfMutationPlanner {
                 break;
             case PdfMutationOperation.Sanitize:
                 Add(proofs, PdfMutationProof.SanitizationReadback);
+                break;
+            case PdfMutationOperation.ModifyJavaScript:
+                Add(proofs, PdfMutationProof.JavaScriptReadback);
                 break;
         }
 
@@ -881,6 +952,11 @@ internal static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees;
         }
 
+        if (operation == PdfMutationOperation.ModifyJavaScript) {
+            return blocker != PdfRewriteBlockerKind.ActiveContent &&
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+        }
+
         if (operation == PdfMutationOperation.MergeDocuments) {
             return blocker != PdfRewriteBlockerKind.Forms;
         }
@@ -922,6 +998,15 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAttachments)) return false;
+        }
+        return true;
+    }
+
+    private static bool CanModifyJavaScript(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (IsFullRewriteBlockerForOperation(blocker, PdfMutationOperation.ModifyJavaScript)) return false;
         }
         return true;
     }
@@ -990,12 +1075,16 @@ internal static class PdfMutationPlanner {
                 return PdfMutationCapabilityKind.EncryptionChanges;
             case PdfMutationStructure.Signatures:
                 return PdfMutationCapabilityKind.SignatureChanges;
+            case PdfMutationStructure.ActiveContent:
+                return PdfMutationCapabilityKind.ActiveContentChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature || operation == PdfMutationOperation.FinalizeExternalSignature || operation == PdfMutationOperation.EnrichLongTermValidation:
                 return PdfMutationCapabilityKind.SignatureChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyAttachments:
                 return PdfMutationCapabilityKind.AttachmentChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ChangeEncryption:
                 return PdfMutationCapabilityKind.EncryptionChanges;
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyJavaScript:
+                return PdfMutationCapabilityKind.ActiveContentChanges;
             case PdfMutationStructure.ObjectGraph:
                 return PdfMutationCapabilityKind.ContentChanges;
             default:
@@ -1013,7 +1102,7 @@ internal static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.Sanitize) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ModifyJavaScript) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }

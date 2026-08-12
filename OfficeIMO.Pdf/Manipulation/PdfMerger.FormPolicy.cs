@@ -7,7 +7,8 @@ internal static partial class PdfMerger {
         int primarySourceIndex,
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
-        List<PdfMergeDecision> decisions) {
+        List<PdfMergeDecision> decisions,
+        PdfReadOptions readOptions) {
         int totalCount = sources.Sum(static source => source.Document.FormFields.Count);
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.Document.FormFields.Count);
         if (totalCount == 0) {
@@ -22,8 +23,8 @@ internal static partial class PdfMerger {
         var renamed = new List<string>();
         int dropped = 0;
         IReadOnlyList<string> expectedNames;
-        byte[] output = RewriteForms(merged, sources, primarySourceIndex, mode, collisionMode, renamed, ref dropped, out expectedNames);
-        ValidateFormReadback(output, expectedNames);
+        byte[] output = RewriteForms(merged, sources, primarySourceIndex, mode, collisionMode, renamed, ref dropped, out expectedNames, readOptions);
+        ValidateFormReadback(output, expectedNames, RefreshOwnedOutputReadOptions(readOptions, output));
         string action;
         int imported = 0;
         switch (mode) {
@@ -77,11 +78,12 @@ internal static partial class PdfMerger {
         PdfMergeCollisionMode collisionMode,
         List<string> renamed,
         ref int dropped,
-        out IReadOnlyList<string> expectedNames) {
-        PdfReadDocument document = PdfReadDocument.Open(merged);
+        out IReadOnlyList<string> expectedNames,
+        PdfReadOptions readOptions) {
+        PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
         var names = new List<string>();
         int localDropped = dropped;
-        byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, null, null, (objects, security) => {
+        byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
             List<MergedFormRoot> roots = FindFormRoots(objects, sources);
             var selected = new List<MergedFormRoot>();
@@ -328,8 +330,8 @@ internal static partial class PdfMerger {
         return acroForm;
     }
 
-    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames) {
-        string[] actual = PdfReadDocument.Open(output).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
+    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfReadOptions readOptions) {
+        string[] actual = PdfReadDocument.Open(output, readOptions).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
         if (!actual.SequenceEqual(expectedNames, StringComparer.Ordinal)) throw new InvalidOperationException("PDF AcroForm merge validation failed; the artifact was not returned.");
     }
 

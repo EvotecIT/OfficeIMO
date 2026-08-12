@@ -44,9 +44,7 @@ internal static partial class PdfSyntax {
                     }
 
                     string dictText = SafeSlice(body, dictStart + 2, dictionaryCharacters, effectiveLimits.MaxObjectCharacters);
-                    try { return ParseDictionary(dictText, effectiveLimits, trackEncodedStringSourceSpans); }
-                    catch (PdfReadLimitException) { throw; }
-                    catch { return null; }
+                    try { return ParseDictionary(dictText, effectiveLimits, trackEncodedStringSourceSpans); } catch (PdfReadLimitException) { throw; } catch { return null; }
                 }
             }
             return null;
@@ -223,8 +221,7 @@ internal static partial class PdfSyntax {
                 var sb = new StringBuilder();
                 while (i < s.Length && depth > 0) {
                     char ch = s[i++];
-                    if (esc) { sb.Append(ch); esc = false; } else if (ch == '\\') { sb.Append(ch); esc = true; }
-                    else if (ch == '(') {
+                    if (esc) { sb.Append(ch); esc = false; } else if (ch == '\\') { sb.Append(ch); esc = true; } else if (ch == '(') {
                         depth++;
                         if (depth > effectiveLimits.MaxObjectNestingDepth) {
                             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, effectiveLimits.MaxObjectNestingDepth, depth);
@@ -251,6 +248,13 @@ internal static partial class PdfSyntax {
             if (tok.Length == 0 && s[i] == '/') { // name starting here
                 j = i + 1; while (j < s.Length && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') j++;
                 tok = s.Substring(i, j - i);
+            }
+            if (tok.Length == 0) {
+                // A malformed or unexpected standalone delimiter must still consume input.
+                // Otherwise ')' and '>' repeatedly produce empty tokens until the token
+                // budget is exhausted, turning one bad byte into excessive CPU and memory use.
+                tok = s[i].ToString();
+                j = i + 1;
             }
             tokens.Add(new PdfToken(tok));
             if (tokens.Count > effectiveLimits.MaxTokensPerObject) {

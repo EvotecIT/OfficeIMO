@@ -46,7 +46,12 @@ internal static partial class PdfSyntax {
 
         ThrowIfParsingTimeExceeded(parseTimer, limits);
         Dictionary<(int ObjectNumber, int Generation), int> declaredLengthValues =
-            BuildDeclaredLengthValueIndex(text, matches, parseTimer, limits);
+            BuildDeclaredLengthValueIndex(
+                text,
+                matches,
+                parseTimer,
+                limits,
+                out Dictionary<int, PdfDictionary> preparsedDictionaries);
 
         for (int i = 0; i < matches.Count; i++) {
             if ((i & 127) == 0) {
@@ -107,10 +112,12 @@ internal static partial class PdfSyntax {
                         throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectCharacters, limits.MaxObjectCharacters, dictionaryCharacters);
                     }
 
-                    string dictText = SafeSlice(text, dictStart + 2, dictionaryCharacters, limits.MaxObjectCharacters);
                     PdfDictionary? dict;
-                    try { dict = ParseDictionary(dictText, limits); }
-                    catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
+                    if (!preparsedDictionaries.TryGetValue(start, out dict)) {
+                        string dictText = SafeSlice(text, dictStart + 2, dictionaryCharacters, limits.MaxObjectCharacters);
+                        try { dict = ParseDictionary(dictText, limits); }
+                        catch (Exception ex) when (ex is not OutOfMemoryException && ex is not PdfReadLimitException) { dict = null; }
+                    }
                     if (dict is null) {
                         continue;
                     }
@@ -195,7 +202,7 @@ internal static partial class PdfSyntax {
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
         var xrefScanBudget = new XrefObjectScanBudget(limits);
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, out bool appliedClassicEntries);
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, out bool appliedClassicEntries);
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {

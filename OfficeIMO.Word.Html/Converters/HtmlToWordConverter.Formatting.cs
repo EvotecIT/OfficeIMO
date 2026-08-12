@@ -74,10 +74,15 @@ namespace OfficeIMO.Word.Html {
 
         private static ICssStyleDeclaration ParseInlineDeclaration(string? styleText) {
             try {
-                return _inlineParser.ParseDeclaration(styleText ?? string.Empty);
+                var declaration = _inlineParser.ParseDeclaration(styleText ?? string.Empty);
+                if (declaration != null) {
+                    return declaration;
+                }
             } catch (Exception) {
-                return _inlineParser.ParseDeclaration(string.Empty);
             }
+
+            return _inlineParser.ParseDeclaration(string.Empty)
+                ?? throw new InvalidOperationException("Unable to create an empty CSS declaration.");
         }
 
         private static string GetInlinePropertyValue(ICssStyleDeclaration declaration, string? styleText, string propertyName) {
@@ -750,9 +755,8 @@ namespace OfficeIMO.Word.Html {
         }
 
         private string MergeStyles(string? parentStyle, IElement childElement) {
-            var parser = new CssParser();
-            var parent = parser.ParseDeclaration(parentStyle ?? string.Empty);
-            var child = parser.ParseDeclaration(childElement.GetAttribute("style") ?? string.Empty);
+            var parent = ParseInlineDeclaration(parentStyle);
+            var child = ParseInlineDeclaration(childElement.GetAttribute("style"));
             Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> direct =
                 CollectCssDeclarations(childElement, inheritedOnly: false);
             if (_injectedInheritedCssProperties.TryGetValue(childElement, out HashSet<string>? existingInjected)) {

@@ -25,6 +25,34 @@ internal static partial class ResourceResolver {
         return fonts;
     }
 
+    internal static PdfFontResourceSet CreateFontResourceSet(
+        PdfDictionary resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<string, PdfDictionary, Dictionary<int, PdfIndirectObject>, PdfFontResource>? fontFactory = null) {
+        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(resources, objects, fontFactory);
+        return new PdfFontResourceSet(
+            fonts,
+            GetBudgetedFontDecoders(fonts),
+            GetFontWidthProviders(resources, objects, fonts));
+    }
+
+    private static Dictionary<string, PdfFontResource> GetFontsForResources(
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<string, PdfDictionary, Dictionary<int, PdfIndirectObject>, PdfFontResource>? fontFactory) {
+        var fonts = new Dictionary<string, PdfFontResource>(StringComparer.Ordinal);
+        if (resources is null || !resources.Items.TryGetValue("Font", out PdfObject? fontDictionaryObject)) return fonts;
+        PdfDictionary? fontDictionary = ResolveDict(fontDictionaryObject, objects);
+        if (fontDictionary is null) return fonts;
+        foreach (KeyValuePair<string, PdfObject> fontEntry in fontDictionary.Items) {
+            string resourceName = fontEntry.Key;
+            PdfDictionary? font = ResolveDict(fontEntry.Value, objects);
+            if (font is null) continue;
+            fonts[resourceName] = fontFactory?.Invoke(resourceName, font, objects) ?? CreateFontResource(resourceName, font, objects);
+        }
+        return fonts;
+    }
+
     public static Dictionary<string, System.Func<byte[], string>> GetFontDecoders(
         PdfDictionary page,
         Dictionary<int, PdfIndirectObject> objects,
@@ -41,8 +69,13 @@ internal static partial class ResourceResolver {
     public static Dictionary<string, System.Func<byte[], int, string>> GetBudgetedFontDecoders(
         PdfDictionary page,
         Dictionary<int, PdfIndirectObject> objects) {
+        return GetBudgetedFontDecoders(GetFontsForPage(page, objects));
+    }
+
+    private static Dictionary<string, System.Func<byte[], int, string>> GetBudgetedFontDecoders(
+        Dictionary<string, PdfFontResource> fonts) {
         var map = new Dictionary<string, System.Func<byte[], int, string>>(System.StringComparer.Ordinal);
-        foreach (var kv in GetFontsForPage(page, objects)) {
+        foreach (var kv in fonts) {
             map[kv.Key] = BuildBudgetedDecoderForFont(kv.Value);
         }
         return map;
@@ -50,12 +83,20 @@ internal static partial class ResourceResolver {
 
     public static Dictionary<string, System.Func<byte[], double>> GetFontWidthProviders(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
         var dict = GetInheritedDictionary(page, "Resources", objects);
-        return dict == null
-            ? new Dictionary<string, System.Func<byte[], double>>(System.StringComparer.Ordinal)
-            : GetFontWidthProvidersForResources(dict, objects);
+        if (dict is null) return new Dictionary<string, System.Func<byte[], double>>(System.StringComparer.Ordinal);
+        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(dict, objects);
+        return GetFontWidthProviders(dict, objects, fonts);
     }
 
     internal static Dictionary<string, System.Func<byte[], double>> GetFontWidthProvidersForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<string, PdfFontResource> fonts = GetFontsForResources(resources, objects);
+        return GetFontWidthProviders(resources, objects, fonts);
+    }
+
+    private static Dictionary<string, System.Func<byte[], double>> GetFontWidthProviders(
+        PdfDictionary resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        Dictionary<string, PdfFontResource> fonts) {
         var map = new Dictionary<string, System.Func<byte[], double>>(System.StringComparer.Ordinal);
         if (!resources.Items.TryGetValue("Font", out var fontDictObj)) return map;
         var fontDict = ResolveDict(fontDictObj, objects);
@@ -63,7 +104,9 @@ internal static partial class ResourceResolver {
         foreach (var kv in fontDict.Items) {
             var fontVal = ResolveDict(kv.Value, objects);
             if (fontVal is null) continue;
-            var fontResource = CreateFontResource(kv.Key, fontVal, objects);
+            PdfFontResource fontResource = fonts.TryGetValue(kv.Key, out PdfFontResource? cachedFont)
+                ? cachedFont
+                : CreateFontResource(kv.Key, fontVal, objects);
             var subtype = fontVal.Get<PdfName>("Subtype")?.Name ?? string.Empty;
             if (fontResource.Type3 is PdfType3FontResource type3) {
                 map[kv.Key] = type3.SumNormalizedWidths;
@@ -439,7 +482,7 @@ internal static partial class ResourceResolver {
         return bytes => PdfWinAnsiEncoding.Decode(bytes, maxDecodedTextCharacters);
     }
 
-    private static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
+    internal static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
         string encoding = GetDefaultEncodingForBaseFont(baseFont);
         IReadOnlyDictionary<int, string>? differences = null;

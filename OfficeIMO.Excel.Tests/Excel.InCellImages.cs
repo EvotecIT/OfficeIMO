@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         private static readonly byte[] TinyPng = Convert.FromBase64String(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
         [Fact]
         public void Test_InCellImage_RoundTripsAndFollowsStructuralEdits() {

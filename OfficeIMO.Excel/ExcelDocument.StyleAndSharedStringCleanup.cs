@@ -81,6 +81,7 @@ namespace OfficeIMO.Excel {
             var sharedStringTable = sharedStringTablePart?.SharedStringTable;
             int itemCount = sharedStringTable?.Elements<SharedStringItem>().Count() ?? 0;
             int sharedStringCellCount = 0;
+            int remainingSharedStringRepairItems = MaximumSharedStringRepairItems;
             bool sharedStringTableChanged = false;
 
             foreach (var worksheetPart in workbookPart.WorksheetParts) {
@@ -95,29 +96,27 @@ namespace OfficeIMO.Excel {
                             }
 
                             string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
-                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)
-                                || sharedStringIndex >= MaximumSharedStringRepairItems) {
-                                cell.DataType = CellValues.InlineString;
-                                cell.RemoveAllChildren<CellValue>();
-                                cell.RemoveAllChildren<InlineString>();
-                                cell.AppendChild(new InlineString(new Text(rawValue)));
+                            if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
+                                ConvertSharedStringCellToInlineString(cell, rawValue);
                                 worksheetChanged = true;
                                 continue;
-                            }
-
-                            while (sharedStringTable != null && itemCount <= sharedStringIndex) {
-                                sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
-                                itemCount++;
-                                sharedStringTableChanged = true;
                             }
 
                             if (sharedStringIndex >= itemCount) {
-                                cell.DataType = CellValues.InlineString;
-                                cell.RemoveAllChildren<CellValue>();
-                                cell.RemoveAllChildren<InlineString>();
-                                cell.AppendChild(new InlineString(new Text(rawValue)));
-                                worksheetChanged = true;
-                                continue;
+                                long repairGap = (long)sharedStringIndex - itemCount + 1L;
+                                if (sharedStringTablePart == null || repairGap > remainingSharedStringRepairItems) {
+                                    ConvertSharedStringCellToInlineString(cell, rawValue);
+                                    worksheetChanged = true;
+                                    continue;
+                                }
+
+                                sharedStringTable ??= sharedStringTablePart.SharedStringTable = new SharedStringTable();
+                                remainingSharedStringRepairItems -= (int)repairGap;
+                                while (itemCount <= sharedStringIndex) {
+                                    sharedStringTable.AppendChild(new SharedStringItem(new Text(string.Empty)));
+                                    itemCount++;
+                                }
+                                sharedStringTableChanged = true;
                             }
 
                             sharedStringCellCount++;
@@ -179,6 +178,13 @@ namespace OfficeIMO.Excel {
             var dataType = cell.DataType;
             return dataType?.Value == CellValues.SharedString
                 || string.Equals(dataType?.InnerText, "s", StringComparison.Ordinal);
+        }
+
+        private static void ConvertSharedStringCellToInlineString(Cell cell, string rawValue) {
+            cell.DataType = CellValues.InlineString;
+            cell.RemoveAllChildren<CellValue>();
+            cell.RemoveAllChildren<InlineString>();
+            cell.AppendChild(new InlineString(new Text(rawValue)));
         }
 
         private static void EnsureStylesheetPrimitives(Stylesheet stylesheet) {

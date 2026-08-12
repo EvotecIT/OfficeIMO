@@ -230,7 +230,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
     [Fact]
     public void DocumentReader_ReadDocument_EmitsExcelWorksheetImageAssets() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
@@ -286,7 +286,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
     [Fact]
     public void DocumentReader_ReadDocument_EmitsPlainExcelImageAssetsWhenOpenPasswordOptionIsSet() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
@@ -310,7 +310,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
     [Fact]
     public void DocumentReader_ReadDocument_SharesPayloadForDuplicateExcelRelationshipPlacements() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
@@ -336,7 +336,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
     [Fact]
     public void DocumentReader_ReadDocument_RejectsDuplicateExcelRelationshipPlacementsAboveLimit() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
@@ -372,7 +372,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
     [Fact]
     public void DocumentReader_ReadDocument_FiltersExcelAssetsByCaseInsensitiveSheetAndRange() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");

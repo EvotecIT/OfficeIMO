@@ -78,11 +78,27 @@ public sealed class PdfMergeReport {
 /// <summary>Merged PDF bytes plus the policy decisions and readback evidence.</summary>
 public sealed class PdfMergeResult {
     private readonly byte[] _pdf;
-    internal PdfMergeResult(byte[] pdf, PdfMergeReport report) { _pdf = (byte[])pdf.Clone(); Report = report; }
+    private readonly PdfReadDocument _readDocument;
+    private readonly PdfReadOptions _readOptions;
+    internal PdfMergeResult(byte[] pdf, PdfMergeReport report, PdfReadDocument readDocument, PdfReadOptions readOptions) {
+        _pdf = pdf;
+        _readDocument = readDocument;
+        _readOptions = readOptions;
+        Report = report;
+    }
     /// <summary>Merge policy report.</summary>
     public PdfMergeReport Report { get; }
     /// <summary>Returns a defensive copy of the merged artifact.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the merged artifact through the OfficeIMO.Pdf document surface.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.OpenOwned(_pdf, _readOptions, _readDocument);
+
+    /// <summary>Returns the merge-owned artifact for an in-assembly document handoff.</summary>
+    internal byte[] OwnedBytes => _pdf;
+
+    /// <summary>Returns the canonical parse already used for merge readback validation.</summary>
+    internal PdfReadDocument ReadDocument => _readDocument;
+
+    /// <summary>Returns the read contract used for merge readback validation.</summary>
+    internal PdfReadOptions ReadOptions => _readOptions;
 }

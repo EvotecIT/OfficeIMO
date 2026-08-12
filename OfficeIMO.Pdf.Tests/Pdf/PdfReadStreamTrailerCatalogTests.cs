@@ -60,5 +60,31 @@ public partial class PdfReadStreamTests {
         Assert.Equal("Current", outline.Title);
     }
 
+    [Fact]
+    public void Open_PreservesActiveTrailerReferencePairsWhenTrailingDataContainsReferences() {
+        byte[] source = PdfDocument.Create()
+            .Meta(title: "Active trailer metadata")
+            .Paragraph(paragraph => paragraph.Text("Active trailer body"))
+            .ToBytes();
+        PdfDocumentSecurityInfo expected = PdfSyntax.ReadDocumentSecurityInfo(source);
+        Assert.NotNull(expected.RootObjectNumber);
+        Assert.NotNull(expected.RootObjectGeneration);
+        Assert.NotNull(expected.InfoObjectNumber);
+        Assert.NotNull(expected.InfoObjectGeneration);
+
+        byte[] trailingData = System.Text.Encoding.ASCII.GetBytes(
+            "\n% tolerated trailing references /Root 900 7 R /Info 901 8 R\n");
+        var crafted = new byte[source.Length + trailingData.Length];
+        Buffer.BlockCopy(source, 0, crafted, 0, source.Length);
+        Buffer.BlockCopy(trailingData, 0, crafted, source.Length, trailingData.Length);
+
+        PdfDocumentSecurityInfo actual = PdfReadDocument.Open(crafted).Security;
+
+        Assert.Equal(expected.RootObjectNumber, actual.RootObjectNumber);
+        Assert.Equal(expected.RootObjectGeneration, actual.RootObjectGeneration);
+        Assert.Equal(expected.InfoObjectNumber, actual.InfoObjectNumber);
+        Assert.Equal(expected.InfoObjectGeneration, actual.InfoObjectGeneration);
+    }
+
 
 }

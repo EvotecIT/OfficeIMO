@@ -11,6 +11,9 @@ public static class OfficeImageExportDiagnosticCodes {
     /// <summary>An embedded image could not be decoded and was represented by a visible fallback.</summary>
     public const string SourceImageDecodeFallback = "IMAGE_SOURCE_DECODE_FALLBACK";
 
+    /// <summary>An embedded SVG preview exceeded structural budgets or used unsupported visual features.</summary>
+    public const string SourceSvgPreviewLoss = "IMAGE_SOURCE_SVG_PREVIEW_LOSS";
+
     /// <summary>A requested font face was unavailable and a deterministic fallback was selected.</summary>
     public const string FontSubstituted = "IMAGE_FONT_SUBSTITUTED";
 

@@ -45,7 +45,10 @@ internal sealed class PdfType3FontResource {
         if (characterCodes == null) return 0D;
         double sum = 0D;
         for (int i = 0; i < characterCodes.Length; i++) {
-            sum += GetGlyphDisplacement(characterCodes[i]).X * 1000D;
+            int index = characterCodes[i] - _firstCharacter;
+            double width = index >= 0 && index < _widths.Count ? _widths[index] : 0D;
+            (double x, double y) = GetGlyphDisplacement(characterCodes[i]);
+            sum += Math.Sqrt((x * x) + (y * y)) * Math.Sign(width) * 1000D;
         }
         return sum;
     }

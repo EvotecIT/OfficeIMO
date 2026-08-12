@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfReaderAndFooterRegressionTests {
 
-    private static byte[] BuildSingleStreamPdf(string streamContent) {
+    internal static byte[] BuildSingleStreamPdf(string streamContent) {
         return BuildSingleStreamPdf(Encoding.ASCII.GetBytes(streamContent.TrimEnd('\n')));
     }
 

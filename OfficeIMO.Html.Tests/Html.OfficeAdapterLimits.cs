@@ -578,7 +578,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
     [Fact]
     public void WordHtml_PreparedDocumentPoliciesRemainAuthoritative() {
-        const string image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+        const string image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
         var hyperlinkPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         hyperlinkPolicy.AllowedUrlSchemes.Clear();
         hyperlinkPolicy.AllowedUrlSchemes.Add(Uri.UriSchemeHttps);

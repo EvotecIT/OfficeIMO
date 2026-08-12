@@ -270,6 +270,7 @@ public partial class WordRtfConverterTests {
     }
 
     private static byte[] CreateOnePixelPng() {
-        return Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+        return OfficeIMO.Drawing.OfficePngWriter.Encode(
+            new OfficeIMO.Drawing.OfficeRasterImage(1, 1, OfficeIMO.Drawing.OfficeColor.White));
     }
 }

@@ -184,7 +184,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRendering_ImageInputUsesItsImageSourceAndAlternativeText() {
-        const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
+        const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
         string html =
             "<form><input id='save-image' type='image' src='data:image/png;base64," +
             pixelPng +

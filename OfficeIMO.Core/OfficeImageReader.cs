@@ -7,7 +7,7 @@ using System.Xml;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Header-only image metadata reader used to avoid full image decoding dependencies.
+/// Bounded image metadata reader used to avoid full image decoding dependencies.
 /// </summary>
 public static partial class OfficeImageReader {
     /// <summary>
@@ -49,6 +49,25 @@ public static partial class OfficeImageReader {
         return TryIdentifyCore(stream, fileName, allowExtensionFallback: false, out info);
     }
 
+    /// <summary>
+    /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
+    /// </summary>
+    public static bool TryValidateContent(Stream stream, string? fileName, out OfficeImageInfo info) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        long originalPosition = stream.CanSeek ? stream.Position : 0L;
+        try {
+            if (!TryReadBoundedPayload(stream, out byte[] data)) {
+                info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+                return false;
+            }
+            return TryValidateContent(data, fileName, out info);
+        } finally {
+            if (stream.CanSeek) stream.Position = originalPosition;
+        }
+    }
+
     private static bool TryIdentifyCore(
         Stream stream,
         string? fileName,
@@ -58,18 +77,47 @@ public static partial class OfficeImageReader {
 
         var originalPosition = stream.CanSeek ? stream.Position : 0;
         try {
-            byte[] data;
-            using (var ms = new MemoryStream()) {
-                stream.CopyTo(ms);
-                data = ms.ToArray();
+            if (!TryReadBoundedPayload(stream, out byte[] data)) {
+                info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+                return false;
             }
-
             return TryIdentifyCore(data, fileName, allowExtensionFallback, out info);
         } finally {
             if (stream.CanSeek) {
                 stream.Position = originalPosition;
             }
         }
+    }
+
+    private static bool TryReadBoundedPayload(Stream stream, out byte[] data) {
+        data = Array.Empty<byte>();
+        if (stream.CanSeek) {
+            long remaining = stream.Length - stream.Position;
+            if (remaining <= 0L || remaining > OfficeRasterGuards.MaximumEncodedBytes || remaining > int.MaxValue) {
+                return false;
+            }
+
+            data = new byte[(int)remaining];
+            int offset = 0;
+            while (offset < data.Length) {
+                int read = stream.Read(data, offset, data.Length - offset);
+                if (read <= 0) return false;
+                offset += read;
+            }
+            return true;
+        }
+
+        using var buffer = new MemoryStream();
+        byte[] chunk = new byte[8192];
+        while (true) {
+            int read = stream.Read(chunk, 0, chunk.Length);
+            if (read <= 0) break;
+            if (buffer.Length > OfficeRasterGuards.MaximumEncodedBytes - read) return false;
+            buffer.Write(chunk, 0, read);
+        }
+        if (buffer.Length == 0L) return false;
+        data = buffer.ToArray();
+        return true;
     }
 
     /// <summary>
@@ -86,6 +134,39 @@ public static partial class OfficeImageReader {
     /// </summary>
     public static bool TryIdentifyByContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
         return TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info);
+    }
+
+    /// <summary>
+    /// Validates a complete bounded image payload and returns its metadata. Unlike metadata
+    /// identification, this decodes supported PNG, JPEG, GIF, BMP, TIFF, and WebP payloads and
+    /// validates every ICO entry so structurally plausible but incomplete image bodies are rejected.
+    /// </summary>
+    public static bool TryValidateContent(byte[]? data, string? fileName, out OfficeImageInfo info) {
+        if (data == null || !OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length)) {
+            info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+            return false;
+        }
+        if (!TryIdentifyCore(data, fileName, allowExtensionFallback: false, out info)) return false;
+        switch (info.Format) {
+            case OfficeImageFormat.Png:
+                return OfficePngReader.TryValidateDecodedPayload(data);
+            case OfficeImageFormat.Jpeg:
+                return HasCompleteJpegPayload(data) && OfficeJpegCodec.TryDecode(data, out _);
+            case OfficeImageFormat.Gif:
+                return data.Length >= 14 && data[data.Length - 1] == 0x3B && OfficeGifReader.TryValidateAllFrames(data);
+            case OfficeImageFormat.Bmp:
+                return OfficeBmpReader.TryDecode(data, out _);
+            case OfficeImageFormat.Tiff:
+                return OfficeTiffCodec.TryDecode(data, out _);
+            case OfficeImageFormat.Webp:
+                return OfficeWebpCodec.TryDecode(data, out OfficeRasterImage? webpImage) &&
+                       webpImage != null &&
+                       TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage);
+            case OfficeImageFormat.Icon:
+                return HasCompleteIconPayload(data);
+            default:
+                return true;
+        }
     }
 
     private static bool TryIdentifyCore(
@@ -288,7 +369,7 @@ public static partial class OfficeImageReader {
         bool validateCompleteDocument,
         out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        bool likelySvg = FromExtension(fileName) == OfficeImageFormat.Svg;
+        bool likelySvg = validateCompleteDocument || FromExtension(fileName) == OfficeImageFormat.Svg;
         if (!likelySvg) {
             likelySvg = HasSvgXmlPrefix(data);
         }
@@ -304,8 +385,14 @@ public static partial class OfficeImageReader {
                 XmlResolver = null
             };
             using var reader = XmlReader.Create(ms, settings);
-            if (reader.MoveToContent() != XmlNodeType.Element ||
-                !reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase)) {
+            if (reader.MoveToContent() != XmlNodeType.Element) {
+                return false;
+            }
+            bool isSvgRoot = validateCompleteDocument
+                ? reader.LocalName.Equals("svg", StringComparison.Ordinal) &&
+                  reader.NamespaceURI.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal)
+                : reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase);
+            if (!isSvgRoot) {
                 return false;
             }
 

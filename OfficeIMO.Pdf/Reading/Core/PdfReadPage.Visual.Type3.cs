@@ -86,7 +86,7 @@ public sealed partial class PdfReadPage {
                         initialStrokeDashStyle: glyph.StrokeDashStyle,
                         initialStrokeLineCap: glyph.StrokeLineCap,
                         initialStrokeLineJoin: glyph.StrokeLineJoin,
-                        contentNestingDepth: contentNestingDepth + 1,
+                        contentNestingDepth: contentNestingDepth,
                         includeTilingPatterns: includeTilingPatterns,
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,

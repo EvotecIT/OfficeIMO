@@ -398,7 +398,7 @@ namespace OfficeIMO.Word.Html {
             var inline = element.GetAttribute("style");
             if (!string.IsNullOrEmpty(inline)) {
                 try {
-                    var declaration = _cssParser.ParseDeclaration(inline);
+                    var declaration = ParseInlineDeclaration(inline);
                     foreach (var property in declaration) {
                         if (inheritedOnly && !_inheritedCssProperties.Contains(property.Name)) {
                             continue;

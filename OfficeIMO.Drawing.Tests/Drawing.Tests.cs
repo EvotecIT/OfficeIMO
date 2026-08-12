@@ -729,6 +729,8 @@ public partial class DrawingTests {
     [InlineData("image/pjpeg", OfficeImageFormat.Jpeg)]
     [InlineData("image/svg+xml; charset=utf-8", OfficeImageFormat.Svg)]
     [InlineData("image/x-emf", OfficeImageFormat.Emf)]
+    [InlineData("image/ico", OfficeImageFormat.Icon)]
+    [InlineData("image/pcx", OfficeImageFormat.Pcx)]
     [InlineData("image/webp", OfficeImageFormat.Webp)]
     [InlineData("application/octet-stream", OfficeImageFormat.Unknown)]
     public void OfficeImageInfoMapsMimeTypesToSharedFormats(string contentType, OfficeImageFormat expected) {

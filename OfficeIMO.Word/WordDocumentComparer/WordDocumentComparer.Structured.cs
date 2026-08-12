@@ -916,21 +916,9 @@ namespace OfficeIMO.Word {
         }
 
         private static IEnumerable<OpenXmlElement> GetActiveAlternateContentChildren(AlternateContent alternateContent) {
-            AlternateContentChoice? choice = alternateContent.Elements<AlternateContentChoice>().FirstOrDefault();
-            if (choice != null) {
-                foreach (OpenXmlElement child in choice.ChildElements) {
-                    yield return child;
-                }
-
-                yield break;
-            }
-
-            AlternateContentFallback? fallback = alternateContent.GetFirstChild<AlternateContentFallback>();
-            if (fallback == null) {
-                yield break;
-            }
-
-            foreach (OpenXmlElement child in fallback.ChildElements) {
+            OpenXmlCompositeElement? branch = WordAlternateContentResolver.SelectBranch(alternateContent);
+            if (branch == null) yield break;
+            foreach (OpenXmlElement child in branch.ChildElements) {
                 yield return child;
             }
         }
