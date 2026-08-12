@@ -96,12 +96,14 @@ internal static class PdfAttachmentExtractor {
         Func<PdfAttachmentInfo, bool> predicate,
         long maxDecodedBytes,
         long? maxDecodedBytesPerAttachment = null,
-        int? maxSelectedAttachments = null) {
+        int? maxSelectedAttachments = null,
+        int? maxStructuralEntries = null) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(predicate, nameof(predicate));
         Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
         if (maxDecodedBytesPerAttachment.HasValue) Guard.Positive(maxDecodedBytesPerAttachment.Value, nameof(maxDecodedBytesPerAttachment));
         if (maxSelectedAttachments.HasValue) Guard.Positive(maxSelectedAttachments.Value, nameof(maxSelectedAttachments));
+        if (maxStructuralEntries.HasValue) Guard.Positive(maxStructuralEntries.Value, nameof(maxStructuralEntries));
         document.DemandContentExtraction("attachment");
         IReadOnlyList<AttachmentDescriptor> descriptors = CollectAttachmentDescriptors(
             document.Objects,
@@ -109,7 +111,8 @@ internal static class PdfAttachmentExtractor {
             document.ReadOptions.Limits,
             out AttachmentExtractionBudget budget,
             maxDecodedBytes,
-            maxDecodedBytesPerAttachment);
+            maxDecodedBytesPerAttachment,
+            maxStructuralEntries);
         var attachments = new List<PdfExtractedAttachment>();
         foreach (AttachmentDescriptor descriptor in descriptors) {
             if (!predicate(descriptor.ToAttachmentInfo())) continue;
@@ -139,11 +142,13 @@ internal static class PdfAttachmentExtractor {
         PdfReadLimits? limits,
         out AttachmentExtractionBudget budget,
         long? maxDecodedBytes = null,
-        long? maxDecodedBytesPerAttachment = null) {
+        long? maxDecodedBytesPerAttachment = null,
+        int? maxStructuralEntries = null) {
         Guard.NotNull(objects, nameof(objects));
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         effectiveLimits.Validate();
-        budget = new AttachmentExtractionBudget(effectiveLimits, maxDecodedBytes, maxDecodedBytesPerAttachment);
+        budget = new AttachmentExtractionBudget(effectiveLimits, maxDecodedBytes, maxDecodedBytesPerAttachment, maxStructuralEntries);
+        budget.ValidateStructuralObjects(objects);
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         if (catalog is null) {
             return Array.Empty<AttachmentDescriptor>();
@@ -264,6 +269,7 @@ internal static class PdfAttachmentExtractor {
 
         if (ResolveObject(objects, tree.Items.TryGetValue("Names", out var namesObject) ? namesObject : null) is PdfArray names) {
             for (int i = 0; i + 1 < names.Items.Count; i += 2) {
+                budget.ReserveStructuralEntry();
                 if (ResolveObject(objects, names.Items[i]) is not PdfStringObj name) {
                     continue;
                 }
@@ -296,6 +302,7 @@ internal static class PdfAttachmentExtractor {
         }
 
         for (int i = 0; i < associatedFiles.Items.Count; i++) {
+            budget.ReserveStructuralEntry();
             PdfObject fileSpecObject = associatedFiles.Items[i];
             int fileSpecObjectNumber = fileSpecObject is PdfReference reference ? reference.ObjectNumber : 0;
             if (fileSpecObjectNumber > 0 && existingFileSpecs.Contains(fileSpecObjectNumber)) {
@@ -468,17 +475,53 @@ internal static class PdfAttachmentExtractor {
         private readonly PdfReadLimits _limits;
         private readonly long _maxTotalAttachmentBytes;
         private readonly long _maxSingleAttachmentBytes;
+        private readonly int? _maxStructuralEntries;
         private readonly Dictionary<PdfStream, byte[]> _decodedEmbeddedStreams = new();
         private int _attachmentCount;
+        private int _structuralEntryCount;
         private long _decodedAttachmentBytes;
 
         internal AttachmentExtractionBudget(
             PdfReadLimits limits,
             long? maxDecodedBytes = null,
-            long? maxDecodedBytesPerAttachment = null) {
+            long? maxDecodedBytesPerAttachment = null,
+            int? maxStructuralEntries = null) {
             _limits = limits;
             _maxTotalAttachmentBytes = Math.Min(limits.MaxTotalAttachmentBytes, maxDecodedBytes ?? long.MaxValue);
             _maxSingleAttachmentBytes = Math.Min(limits.MaxDecodedStreamBytes, maxDecodedBytesPerAttachment ?? long.MaxValue);
+            _maxStructuralEntries = maxStructuralEntries;
+        }
+
+        internal void ValidateStructuralObjects(Dictionary<int, PdfIndirectObject> objects) {
+            if (!_maxStructuralEntries.HasValue) return;
+            var visited = new HashSet<PdfObject>();
+            var pending = new Stack<PdfObject>(objects.Values.Select(static item => item.Value));
+            while (pending.Count > 0) {
+                PdfObject value = pending.Pop();
+                if (!visited.Add(value)) continue;
+                PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+                if (dictionary != null) {
+                    ReserveStructuralEntry();
+                    foreach (PdfObject child in dictionary.Items.Values) {
+                        if (child is not PdfReference) pending.Push(child);
+                    }
+                } else if (value is PdfArray array) {
+                    ReserveStructuralEntry();
+                    foreach (PdfObject child in array.Items) {
+                        if (child is not PdfReference) pending.Push(child);
+                    }
+                }
+            }
+        }
+
+        internal void ReserveStructuralEntry() {
+            if (!_maxStructuralEntries.HasValue) return;
+            int nextCount = _structuralEntryCount + 1;
+            if (nextCount > _maxStructuralEntries.Value) {
+                throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {_maxStructuralEntries.Value}.");
+            }
+
+            _structuralEntryCount = nextCount;
         }
 
         internal void ReserveAttachment() {

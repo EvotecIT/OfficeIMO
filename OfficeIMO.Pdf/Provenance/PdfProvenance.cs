@@ -17,14 +17,16 @@ public static class PdfProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(readOptions, options.MaxContainerEntries);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
             Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)),
             options.MaxManifestBytes,
-            options.MaxCarriers);
-        PdfC2paAssociationProfile associations = CollectAssociationProfile(document);
+            options.MaxCarriers,
+            options.MaxContainerEntries);
+        PdfC2paAssociationProfile associations = CollectAssociationProfile(document, options.MaxContainerEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -64,18 +66,20 @@ public static class PdfProvenance {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
-        OfficeProvenanceReport before = Inspect(pdf, options.Limits, readOptions);
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(readOptions, options.Limits.MaxContainerEntries);
+        OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
         }
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
             Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)),
             options.Limits.MaxManifestBytes,
-            options.Limits.MaxCarriers);
+            options.Limits.MaxCarriers,
+            options.Limits.MaxContainerEntries);
         var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
@@ -97,7 +101,7 @@ public static class PdfProvenance {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
         }
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveReadOptions);
         if (security.HasSignatures) {
             string detail = options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
                 ? "OfficeIMO.Pdf does not silently delete PDF signature revisions or fields; remove the signature through an explicit PDF signature workflow first."
@@ -108,9 +112,9 @@ public static class PdfProvenance {
         byte[] output = PdfProvenanceGraphEditor.RemoveFileSpecifications(
             pdf,
             removeFileSpecifications,
-            readOptions,
+            effectiveReadOptions,
             options.Limits.MaxExpandedContainerBytes);
-        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
         OfficeProvenanceReport after = Inspect(output, options.Limits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
@@ -138,7 +142,7 @@ public static class PdfProvenance {
         attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
         string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
 
-    private static PdfC2paAssociationProfile CollectAssociationProfile(PdfReadDocument document) {
+    private static PdfC2paAssociationProfile CollectAssociationProfile(PdfReadDocument document, int maximumContainerEntries) {
         var documentLevel = new HashSet<int>();
         var objectLevel = new HashSet<int>();
         var secondaryDocumentReferences = new HashSet<int>();
@@ -149,9 +153,10 @@ public static class PdfProvenance {
         PdfIndirectObject catalogObject = document.Objects.Values.First(item => ReferenceEquals(item.Value, catalog));
         HashSet<int> reachableObjectNumbers = CollectReachableObjectNumbers(
             document.Objects,
-            new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
-        HashSet<PdfObject> structuralAssociationSites = CollectEmbeddedFileStructuralDictionaries(
-            document.Objects, reachableObjectNumbers);
+            new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation),
+            maximumContainerEntries);
+        HashSet<PdfObject> structuralAssociationSites = CollectStructuralAssociationSites(
+            document.Objects, catalog, reachableObjectNumbers);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited, structuralAssociationSites);
@@ -166,9 +171,12 @@ public static class PdfProvenance {
 
     private static HashSet<int> CollectReachableObjectNumbers(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfReference root) {
+        PdfReference root,
+        int maximumContainerEntries) {
         var result = new HashSet<int>();
         var visitedDirectObjects = new HashSet<PdfObject>();
+        var indirectValues = new HashSet<PdfObject>(objects.Values.Select(static item => item.Value));
+        int directStructuralEntries = 0;
         var pending = new Stack<PdfObject>();
         pending.Push(root);
         while (pending.Count > 0) {
@@ -176,14 +184,23 @@ public static class PdfProvenance {
             if (value is PdfReference reference) {
                 if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                     !result.Add(reference.ObjectNumber)) continue;
+                if (result.Count > maximumContainerEntries - directStructuralEntries) {
+                    throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+                }
                 pending.Push(indirect.Value);
                 continue;
             }
             if (!visitedDirectObjects.Add(value)) continue;
             PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
             if (dictionary != null) {
+                if (!indirectValues.Contains(value) && ++directStructuralEntries > maximumContainerEntries - result.Count) {
+                    throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+                }
                 foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
             } else if (value is PdfArray array) {
+                if (!indirectValues.Contains(value) && ++directStructuralEntries > maximumContainerEntries - result.Count) {
+                    throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+                }
                 foreach (PdfObject child in array.Items) pending.Push(child);
             }
         }
@@ -236,19 +253,73 @@ public static class PdfProvenance {
         return string.Equals(type, "StructElem", StringComparison.Ordinal) || type == null;
     }
 
-    private static HashSet<PdfObject> CollectEmbeddedFileStructuralDictionaries(
+    private static HashSet<PdfObject> CollectStructuralAssociationSites(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
         HashSet<int> reachableObjectNumbers) {
         var result = new HashSet<PdfObject>();
+        foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo" }) {
+            AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
+        }
+        AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result);
+        AddNameTreeDictionaries(objects, catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null, result, new HashSet<PdfObject>());
+        var resourceSites = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
-            if (dictionary?.Get<PdfName>("Type")?.Name != "EmbeddedFile") continue;
-            PdfObject? parameters = PdfObjectLookup.Resolve(
-                objects,
-                dictionary.Items.TryGetValue("Params", out PdfObject? value) ? value : null);
-            if (parameters is PdfDictionary) result.Add(parameters);
+            if (dictionary == null) continue;
+            AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
+            AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
+            if (dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile") {
+                AddResolvedDictionary(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null, result);
+            }
         }
         return result;
+    }
+
+    private static void AddResolvedDictionary(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result) {
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
+        if (dictionary != null) result.Add(dictionary);
+    }
+
+    private static void AddCatalogNameTrees(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result) {
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary names) return;
+        result.Add(names);
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfObject tree in names.Items.Values) AddNameTreeDictionaries(objects, tree, result, visited);
+    }
+
+    private static void AddNameTreeDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result,
+        HashSet<PdfObject> visited) {
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        if (resolved is not PdfDictionary dictionary || !visited.Add(dictionary)) return;
+        result.Add(dictionary);
+        if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;
+        foreach (PdfObject child in kids.Items) AddNameTreeDictionaries(objects, child, result, visited);
+    }
+
+    private static void AddResourceDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result,
+        HashSet<PdfObject> visited) {
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        if (resolved == null || resolved is PdfStream || !visited.Add(resolved)) return;
+        if (resolved is PdfDictionary dictionary) {
+            result.Add(dictionary);
+            foreach (PdfObject child in dictionary.Items.Values) AddResourceDictionaries(objects, child, result, visited);
+        } else if (resolved is PdfArray array) {
+            foreach (PdfObject child in array.Items) AddResourceDictionaries(objects, child, result, visited);
+        }
     }
 
     private static void CollectPageAnnotationReferences(

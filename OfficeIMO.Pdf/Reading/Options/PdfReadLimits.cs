@@ -165,6 +165,45 @@ public sealed class PdfReadLimits {
         };
     }
 
+    internal PdfReadLimits WithMaximumContainerEntries(int maximumContainerEntries) {
+        if (maximumContainerEntries <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
+        }
+        return new PdfReadLimits {
+            MaxInputBytes = MaxInputBytes,
+            MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
+            MaxRawStreamBytes = MaxRawStreamBytes,
+            MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxPageContentBytes = MaxPageContentBytes,
+            MaxActualTextCharacters = MaxActualTextCharacters,
+            MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxObjectCharacters = MaxObjectCharacters,
+            MaxTokensPerObject = MaxTokensPerObject,
+            MaxObjectNestingDepth = MaxObjectNestingDepth,
+            MaxObjectParsingTime = MaxObjectParsingTime,
+            MaxRevisions = Math.Min(MaxRevisions, maximumContainerEntries),
+            MaxPageTreeNodes = Math.Min(MaxPageTreeNodes, maximumContainerEntries),
+            MaxPageTreeDepth = MaxPageTreeDepth,
+            MaxPages = Math.Min(MaxPages, maximumContainerEntries),
+            MaxFormFields = Math.Min(MaxFormFields, maximumContainerEntries),
+            MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxNameTreeNodes = Math.Min(MaxNameTreeNodes, maximumContainerEntries),
+            MaxNameTreeDepth = MaxNameTreeDepth,
+            MaxJavaScriptBytes = MaxJavaScriptBytes,
+            MaxJavaScripts = Math.Min(MaxJavaScripts, maximumContainerEntries),
+            MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
+            MaxAttachments = Math.Min(MaxAttachments, maximumContainerEntries),
+            MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
+            MaxFormFieldAppearanceStates = Math.Min(MaxFormFieldAppearanceStates, maximumContainerEntries),
+            MaxAnnotationsPerPage = Math.Min(MaxAnnotationsPerPage, maximumContainerEntries),
+            MaxColorSpaceResourcesPerPage = Math.Min(MaxColorSpaceResourcesPerPage, maximumContainerEntries),
+            MaxContentOperations = MaxContentOperations,
+            MaxContentOperands = MaxContentOperands,
+            MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+        };
+    }
+
     internal void Validate() {
         if (MaxInputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxInputBytes), MaxInputBytes, "Maximum input bytes must be positive.");

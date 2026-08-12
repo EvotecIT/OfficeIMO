@@ -707,6 +707,94 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void PageResourceDictionariesAreNotInformationResourceAssociationSites() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] resourcesAssociation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            catalog.Items.Remove("AF");
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values
+                .Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            var resources = new PdfDictionary();
+            var associations = new PdfArray();
+            associations.Items.Add(candidate);
+            resources.Items["AF"] = associations;
+            int resourceObjectNumber = objects.Keys.Max() + 1;
+            objects[resourceObjectNumber] = new PdfIndirectObject(resourceObjectNumber, 0, resources);
+            page.Items["Resources"] = new PdfReference(resourceObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(resourcesAssociation);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(resourcesAssociation);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void EmbeddedFilesNameTreeDictionariesAreNotInformationResourceAssociationSites() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] treeAssociation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            catalog.Items.Remove("AF");
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            var associations = new PdfArray();
+            associations.Items.Add(candidate);
+            embeddedFiles.Items["AF"] = associations;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(treeAssociation);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(treeAssociation);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void ProvenanceContainerEntryLimitCapsPdfStructuralParsing() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        var options = new OfficeProvenanceOptions { MaxContainerEntries = 1 };
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxIndirectObjects = 500_000 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfProvenance.Inspect(pdf, options, readOptions));
+
+        Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void ProvenanceContainerEntryLimitCapsMalformedNameTreeEntries() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] oversizedNameTree = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            for (int index = 0; index < 256; index++) {
+                entries.Items.Add(new PdfStringObj("invalid-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture), true));
+                entries.Items.Add(PdfNull.Instance);
+            }
+            return security.InfoObjectNumber;
+        });
+        var options = new OfficeProvenanceOptions { MaxContainerEntries = 128 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            PdfProvenance.Inspect(oversizedNameTree, options));
+
+        Assert.Contains("container entry limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RemovalPreservesDirectFileSpecificationsInTheEmbeddedFilesNameTree() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] directFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {

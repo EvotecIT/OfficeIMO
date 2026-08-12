@@ -54,6 +54,23 @@ public sealed class PdfReadOptions {
         };
     }
 
+    internal static PdfReadOptions WithMaximumContainerEntries(PdfReadOptions? options, int maximumContainerEntries) {
+        PdfReadOptions effective = Resolve(options);
+        if (maximumContainerEntries <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
+        }
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits.WithMaximumContainerEntries(maximumContainerEntries),
+            Password = effective.Password,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfReadOptions WithPassword(PdfReadOptions? options, string? password) {
         PdfReadOptions effective = Resolve(options);
         return new PdfReadOptions {
@@ -67,7 +84,6 @@ public sealed class PdfReadOptions {
             IncludeArtifactText = effective.IncludeArtifactText
         };
     }
-
     internal static PdfReadOptions WithArtifactText(PdfReadOptions? options) {
         PdfReadOptions effective = Resolve(options);
         if (effective.IncludeArtifactText) return effective;
