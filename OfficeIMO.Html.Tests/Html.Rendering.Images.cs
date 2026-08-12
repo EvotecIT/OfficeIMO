@@ -514,6 +514,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_ObjectPositionResolvesContainerUnitsAgainstTheActiveQueryContainer() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
+        string html = $"<div style='container-type:size;width:200px;height:120px'>"
+            + $"<img id='positioned' src='data:image/png;base64,{data}' style='display:block;width:100px;height:100px;object-fit:none;object-position:10cqw 10cqh'>"
+            + "</div>";
+
+        HtmlRenderImage image = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 800D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals.OfType<HtmlRenderImage>(), visual => visual.Source == "img#positioned");
+
+        Assert.Equal(20D, image.X, 3);
+        Assert.Equal(12D, image.Y, 3);
+    }
+
+    [Fact]
     public void HtmlImages_IntrinsicSizingFeedsFlexAndFloatPlanning() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<div style='display:flex;width:100px'><img id='flex-image' src='data:image/png;base64,{data}'><div id='flex-after' style='width:20px;height:10px;background:#0000ff'></div></div>"

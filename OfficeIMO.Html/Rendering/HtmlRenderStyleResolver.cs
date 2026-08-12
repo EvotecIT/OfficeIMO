@@ -222,7 +222,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static string ResolveHyphenateLimitLast(string value, string? inherited) {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited ?? "none";
-        return normalized == "none" || normalized == "always" || normalized == "column" || normalized == "page" || normalized == "spread"
+        return normalized == "none" || normalized == "always"
             ? normalized
             : inherited ?? "none";
     }

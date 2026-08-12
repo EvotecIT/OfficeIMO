@@ -103,13 +103,15 @@ internal static class HtmlCssReplacedElementParser {
         double rootFontSize,
         double viewportWidth,
         double viewportHeight,
+        double containerWidth,
+        double containerHeight,
         out double offsetX,
         out double offsetY) {
         offsetX = 0D;
         offsetY = 0D;
         if (!TryParsePosition(value, fontSize, rootFontSize, viewportWidth, viewportHeight, out AxisPosition horizontal, out AxisPosition vertical)) return false;
-        offsetX = horizontal.Resolve(areaWidth, areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight);
-        offsetY = vertical.Resolve(areaHeight, areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight);
+        offsetX = horizontal.Resolve(areaWidth, areaWidth - objectWidth, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
+        offsetY = vertical.Resolve(areaHeight, areaHeight - objectHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
         return !double.IsNaN(offsetX) && !double.IsInfinity(offsetX)
             && !double.IsNaN(offsetY) && !double.IsInfinity(offsetY);
     }
@@ -321,12 +323,20 @@ internal static class HtmlCssReplacedElementParser {
         private string? EdgeOffset { get; }
         private bool UsesAlignment { get; }
 
-        internal double Resolve(double areaLength, double freeSpace, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight) {
+        internal double Resolve(
+            double areaLength,
+            double freeSpace,
+            double fontSize,
+            double rootFontSize,
+            double viewportWidth,
+            double viewportHeight,
+            double containerWidth,
+            double containerHeight) {
             if (UsesAlignment) return freeSpace * Alignment;
             double offset = 0D;
             if (EdgeOffset != null) {
                 if (TryPercentage(EdgeOffset, out double percentage)) offset = areaLength * percentage;
-                else HtmlRenderCssValues.TryLength(EdgeOffset, areaLength, fontSize, rootFontSize, viewportWidth, viewportHeight, out offset);
+                else HtmlRenderCssValues.TryLength(EdgeOffset, areaLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out offset);
             }
             return End ? freeSpace - offset : offset;
         }

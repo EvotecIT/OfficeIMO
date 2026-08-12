@@ -111,6 +111,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _options.DefaultFontSize,
                 ActiveSurfaceWidth,
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+                style.ContainerUnitWidth ?? double.NaN,
+                style.ContainerUnitHeight ?? double.NaN,
                 out double objectX,
                 out double objectY)) {
             objectX = (contentWidth - objectWidth) / 2D;

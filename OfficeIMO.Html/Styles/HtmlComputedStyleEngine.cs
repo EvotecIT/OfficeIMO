@@ -358,7 +358,6 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties, out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties);
         var style = new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties);
         computed[element] = style;
-        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
         double rootFontSize = containerContexts.Count == 0 ? 16D : containerContexts[0].RootFontSize;
@@ -368,6 +367,7 @@ public static partial class HtmlComputedStyleEngine {
         double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, rootFontSize, containerContexts);
+        if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, childContainerContexts, environment);
 
         foreach (IElement child in element.Children) {
             ComputeElement(child, style, rules, computed, pseudoElements, includePseudoElements, budget, environment, elementWidth, elementHeight, childContainerContexts);

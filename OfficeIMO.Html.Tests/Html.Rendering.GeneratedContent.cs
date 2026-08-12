@@ -38,6 +38,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_ContainerQueriesSeeTheOriginatingElementContainer() {
+        const string html = """
+            <style>
+              .card { container-type:inline-size; width:160px; }
+              .outer { container-type:inline-size; width:80px; }
+              @container (width > 100px) { .card::before { content:"ContainerBefore"; color:red; } }
+            </style>
+            <section class="outer"><div class="card">Body</div></section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderText generated = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Source == "div.card::before");
+        Assert.Equal("ContainerBefore", generated.Text);
+        Assert.Equal(OfficeColor.Red, generated.Color);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_UsesCascadeSpecificityImportantAndLegacyPseudoSyntax() {
         const string html = """
             <style>

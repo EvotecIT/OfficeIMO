@@ -9,7 +9,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("hyphenate-character", "\"·\"")]
     [InlineData("hyphenate-limit-chars", "8 3 2")]
     [InlineData("hyphenate-limit-lines", "2")]
-    [InlineData("hyphenate-limit-last", "page")]
+    [InlineData("hyphenate-limit-last", "always")]
     [InlineData("hyphenate-limit-zone", "20px")]
     public void HtmlRendering_InvalidHyphenationControlsRetainInheritedValues(string property, string validValue) {
         string html = "<div style='" + property + ":" + validValue + "'><span style='" + property + ":banana'>Text</span></div>";
@@ -38,6 +38,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-zone:-1px)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-lines:initial)"));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-last:unset)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-last:column)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-last:page)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-last:spread)"));
     }
 
     [Fact]

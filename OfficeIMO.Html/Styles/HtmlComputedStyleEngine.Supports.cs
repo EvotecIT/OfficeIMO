@@ -321,7 +321,7 @@ public static partial class HtmlComputedStyleEngine {
                     || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int hyphenatedLines)
                     && hyphenatedLines > 0;
             case "hyphenate-limit-last":
-                return IsKnownKeyword(normalized, "none", "always", "column", "page", "spread");
+                return IsKnownKeyword(normalized, "none", "always");
             case "hyphenate-limit-zone":
                 return IsNonNegativeCssLengthOrPercentage(normalized);
             case "text-overflow":
