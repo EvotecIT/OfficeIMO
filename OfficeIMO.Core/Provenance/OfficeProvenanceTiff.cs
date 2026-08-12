@@ -163,7 +163,7 @@ internal static class OfficeProvenanceTiff {
             ulong countValue = bigTiff
                 ? OfficeProvenanceBinary.ReadUInt64(data, ifdOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt16(data, ifdOffset, littleEndian);
-            if (countValue > 65535) throw new InvalidDataException("TIFF IFD entry count exceeds the supported limit.");
+            if (countValue > int.MaxValue) throw new InvalidDataException("TIFF IFD entry count exceeds the supported limit.");
             int count = (int)countValue;
             if (count > options.MaxContainerEntries - totalEntryCount) {
                 throw new InvalidDataException("TIFF IFD entries exceed the configured container-entry limit.");

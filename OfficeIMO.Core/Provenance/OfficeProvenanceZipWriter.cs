@@ -74,6 +74,7 @@ internal static class OfficeProvenanceZipWriter {
                 ToUInt32(compressedLength, "compressed entry size"),
                 ToUInt32(uncompressedLength, "uncompressed entry size"),
                 localOffset,
+                entry.InternalAttributes,
                 entry.ExternalAttributes,
                 entry.CentralExtraField,
                 entry.Comment));
@@ -149,7 +150,7 @@ internal static class OfficeProvenanceZipWriter {
         writer.Write((ushort)record.CentralExtraField.Length);
         writer.Write((ushort)record.Comment.Length);
         writer.Write((ushort)0);
-        writer.Write((ushort)0);
+        writer.Write(record.InternalAttributes);
         writer.Write(record.ExternalAttributes);
         writer.Write(record.LocalOffset);
     }
@@ -211,7 +212,7 @@ internal static class OfficeProvenanceZipWriter {
 
     private sealed class OfficeProvenanceZipRecord {
         internal OfficeProvenanceZipRecord(byte[] name, ushort method, ushort time, ushort date, uint crc,
-            uint compressedLength, uint uncompressedLength, uint localOffset, uint externalAttributes,
+            uint compressedLength, uint uncompressedLength, uint localOffset, ushort internalAttributes, uint externalAttributes,
             byte[] centralExtraField, byte[] comment) {
             Name = name;
             Method = method;
@@ -221,6 +222,7 @@ internal static class OfficeProvenanceZipWriter {
             CompressedLength = compressedLength;
             UncompressedLength = uncompressedLength;
             LocalOffset = localOffset;
+            InternalAttributes = internalAttributes;
             ExternalAttributes = externalAttributes;
             CentralExtraField = centralExtraField;
             Comment = comment;
@@ -234,6 +236,7 @@ internal static class OfficeProvenanceZipWriter {
         internal uint CompressedLength { get; }
         internal uint UncompressedLength { get; }
         internal uint LocalOffset { get; }
+        internal ushort InternalAttributes { get; }
         internal uint ExternalAttributes { get; }
         internal byte[] CentralExtraField { get; }
         internal byte[] Comment { get; }
@@ -248,6 +251,7 @@ internal sealed class OfficeProvenanceZipWriteEntry {
         long expectedLength,
         bool compress,
         DateTimeOffset lastWriteTime,
+        ushort internalAttributes,
         uint externalAttributes,
         byte[] localExtraField,
         byte[] centralExtraField,
@@ -258,6 +262,7 @@ internal sealed class OfficeProvenanceZipWriteEntry {
         ExpectedLength = expectedLength;
         Compress = compress;
         LastWriteTime = lastWriteTime;
+        InternalAttributes = internalAttributes;
         ExternalAttributes = externalAttributes;
         LocalExtraField = localExtraField ?? throw new ArgumentNullException(nameof(localExtraField));
         CentralExtraField = centralExtraField ?? throw new ArgumentNullException(nameof(centralExtraField));
@@ -272,6 +277,7 @@ internal sealed class OfficeProvenanceZipWriteEntry {
     internal long ExpectedLength { get; }
     internal bool Compress { get; }
     internal DateTimeOffset LastWriteTime { get; }
+    internal ushort InternalAttributes { get; }
     internal uint ExternalAttributes { get; }
     internal byte[] LocalExtraField { get; }
     internal byte[] CentralExtraField { get; }

@@ -156,6 +156,7 @@ internal static class OfficeProvenanceZip {
                 replacement.LongLength,
                 compress: !isMimetype,
                 entry.LastWriteTime,
+                metadata.InternalAttributes,
                 GetExternalAttributes(entry),
                 metadata.LocalExtraField,
                 metadata.CentralExtraField,
@@ -167,6 +168,7 @@ internal static class OfficeProvenanceZip {
             entry.Length,
             compress: !isMimetype,
             entry.LastWriteTime,
+            metadata.InternalAttributes,
             GetExternalAttributes(entry),
             metadata.LocalExtraField,
             metadata.CentralExtraField,
@@ -307,14 +309,18 @@ internal static class OfficeProvenanceZip {
             int nameLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 28, littleEndian: true);
             int extraLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 30, littleEndian: true);
             int commentLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 32, littleEndian: true);
+            ushort internalAttributes = OfficeProvenanceBinary.ReadUInt16(data, cursor + 36, littleEndian: true);
             uint localHeaderOffset = OfficeProvenanceBinary.ReadUInt32(data, cursor + 42, littleEndian: true);
-            if (localHeaderOffset == uint.MaxValue || localHeaderOffset > int.MaxValue) {
-                throw new InvalidDataException("ZIP local-header offset exceeds the supported package bounds.");
-            }
             long recordEnd = (long)cursor + 46 + nameLength + extraLength + commentLength;
             if (recordEnd > data.Length) throw new InvalidDataException("ZIP central-directory entry exceeds the package bounds.");
             byte[] centralExtraField = new byte[extraLength];
             if (extraLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength, centralExtraField, 0, extraLength);
+            if (localHeaderOffset == uint.MaxValue) {
+                localHeaderOffset = ResolveZip64LocalHeaderOffset(data, cursor, centralExtraField);
+            }
+            if (localHeaderOffset > int.MaxValue) {
+                throw new InvalidDataException("ZIP local-header offset exceeds the supported package bounds.");
+            }
             byte[] comment = new byte[commentLength];
             if (commentLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength + extraLength, comment, 0, commentLength);
             int localOffset = (int)localHeaderOffset;
@@ -327,10 +333,42 @@ internal static class OfficeProvenanceZip {
             if (localHeaderEnd > data.Length) throw new InvalidDataException("ZIP local-file header exceeds the package bounds.");
             byte[] localExtraField = new byte[localExtraLength];
             if (localExtraLength != 0) Buffer.BlockCopy(data, localOffset + 30 + localNameLength, localExtraField, 0, localExtraLength);
-            metadata.Add(new OfficeProvenanceZipEntryMetadata(localExtraField, centralExtraField, comment));
+            metadata.Add(new OfficeProvenanceZipEntryMetadata(localExtraField, centralExtraField, comment, internalAttributes));
             cursor = (int)recordEnd;
         }
         return metadata;
+    }
+
+    private static uint ResolveZip64LocalHeaderOffset(byte[] data, int centralHeaderOffset, byte[] extraField) {
+        bool hasUncompressedSize = OfficeProvenanceBinary.ReadUInt32(data, centralHeaderOffset + 24, littleEndian: true) == uint.MaxValue;
+        bool hasCompressedSize = OfficeProvenanceBinary.ReadUInt32(data, centralHeaderOffset + 20, littleEndian: true) == uint.MaxValue;
+        int cursor = 0;
+        while (cursor <= extraField.Length - 4) {
+            ushort headerId = OfficeProvenanceBinary.ReadUInt16(extraField, cursor, littleEndian: true);
+            int dataLength = OfficeProvenanceBinary.ReadUInt16(extraField, cursor + 2, littleEndian: true);
+            cursor += 4;
+            if (dataLength > extraField.Length - cursor) break;
+            if (headerId == 0x0001) {
+                int valueOffset = cursor;
+                int remaining = dataLength;
+                if (hasUncompressedSize) SkipZip64Value(ref valueOffset, ref remaining);
+                if (hasCompressedSize) SkipZip64Value(ref valueOffset, ref remaining);
+                if (remaining < 8) break;
+                ulong resolved = OfficeProvenanceBinary.ReadUInt64(extraField, valueOffset, littleEndian: true);
+                if (resolved > uint.MaxValue) {
+                    throw new InvalidDataException("ZIP64 local-header offset exceeds the supported package bounds.");
+                }
+                return (uint)resolved;
+            }
+            cursor += dataLength;
+        }
+        throw new InvalidDataException("ZIP64 local-header offset metadata is missing or malformed.");
+    }
+
+    private static void SkipZip64Value(ref int offset, ref int remaining) {
+        if (remaining < 8) throw new InvalidDataException("ZIP64 entry metadata is truncated.");
+        offset += 8;
+        remaining -= 8;
     }
 
     private static bool HasZip64Locator(byte[] data, int endOffset, uint locatorSignature) {
@@ -492,14 +530,16 @@ internal static class OfficeProvenanceZip {
     }
 
     private sealed class OfficeProvenanceZipEntryMetadata {
-        internal OfficeProvenanceZipEntryMetadata(byte[] localExtraField, byte[] centralExtraField, byte[] comment) {
+        internal OfficeProvenanceZipEntryMetadata(byte[] localExtraField, byte[] centralExtraField, byte[] comment, ushort internalAttributes) {
             LocalExtraField = localExtraField;
             CentralExtraField = centralExtraField;
             Comment = comment;
+            InternalAttributes = internalAttributes;
         }
 
         internal byte[] LocalExtraField { get; }
         internal byte[] CentralExtraField { get; }
         internal byte[] Comment { get; }
+        internal ushort InternalAttributes { get; }
     }
 }

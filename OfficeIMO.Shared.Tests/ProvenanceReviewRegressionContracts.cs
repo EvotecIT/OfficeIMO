@@ -117,6 +117,28 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void FragmentedJpegAcceptsAnExtendedSizeStoreDescriptionBox() {
+        byte[] storeUuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] claimUuid = { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] storeDescription = CreateExtendedBox("jumd", Join(storeUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim))));
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegApp11(manifest, 0, 46, instance: 11, sequence: 1),
+            CreateJpegApp11(manifest, 46, manifest.Length - 46, instance: 11, sequence: 2),
+            new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+
+        Assert.True(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void JumbfChildBoxesShareTheContainerEntryLimit() {
         byte[] png = CreatePngWithManifest(CreateManifestStore());
 
@@ -319,6 +341,8 @@ public sealed class ProvenanceReviewRegressionContracts {
             package = AddEntryExtraFields(stream.ToArray(), "bin/run.sh", localExtraField, centralExtraField);
             package = AddCentralDirectoryComment(package, "bin/run.sh", Encoding.UTF8.GetBytes("keep-comment"));
             package = AddArchiveComment(package, Encoding.UTF8.GetBytes("keep-archive-comment"));
+            int sourceCentralHeader = FindSignature(package, 0x02014B50u, "bin/run.sh");
+            WriteLittleEndian16(package, sourceCentralHeader + 36, 1);
         }
 
         Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(package)));
@@ -333,6 +357,47 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.Equal(centralExtraField, ReadCentralExtraField(result.ToArray(), centralHeader));
         Assert.Equal("keep-comment", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
         Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(result.ToArray())));
+        Assert.Equal(1, BitConverter.ToUInt16(result.ToArray(), centralHeader + 36));
+    }
+
+    [Fact]
+    public void ZipRewriteResolvesAForcedZip64LocalHeaderOffset() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                ZipArchiveEntry manifest = archive.CreateEntry("META-INF/content_credential.c2pa");
+                using (Stream target = manifest.Open()) WriteAll(target, CreateManifestStore());
+                using Stream keep = archive.CreateEntry("keep.txt").Open();
+                WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = stream.ToArray();
+        }
+        int originalCentralHeader = FindSignature(package, 0x02014B50u, "keep.txt");
+        uint localHeaderOffset = BitConverter.ToUInt32(package, originalCentralHeader + 42);
+        byte[] zip64Extra = new byte[12];
+        WriteLittleEndian16(zip64Extra, 0, 0x0001);
+        WriteLittleEndian16(zip64Extra, 2, 8);
+        WriteLittleEndian64(zip64Extra, 4, localHeaderOffset);
+        package = AddEntryExtraFields(package, "keep.txt", Array.Empty<byte>(), zip64Extra);
+        int centralHeader = FindSignature(package, 0x02014B50u, "keep.txt");
+        WriteLittleEndian(package, centralHeader + 42, uint.MaxValue);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+
+        Assert.Equal("keep", Encoding.UTF8.GetString(ReadZipEntry(result.ToArray(), "keep.txt")));
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void BigTiffHonorsTheConfiguredMaximumEntryBoundary() {
+        byte[] tiff = CreateBigTiff(65536);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            tiff,
+            "fixture.tiff",
+            new OfficeProvenanceOptions { MaxContainerEntries = 65536 });
+
+        Assert.Empty(report.Evidence);
     }
 
     [Fact]
@@ -540,6 +605,24 @@ public sealed class ProvenanceReviewRegressionContracts {
         return box;
     }
 
+    private static byte[] ReadZipEntry(byte[] package, string name) {
+        using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+        ZipArchiveEntry entry = archive.GetEntry(name) ?? throw new InvalidDataException("ZIP fixture entry was not found.");
+        using Stream source = entry.Open();
+        using var output = new MemoryStream();
+        source.CopyTo(output);
+        return output.ToArray();
+    }
+
+    private static byte[] CreateExtendedBox(string type, byte[] payload) {
+        byte[] box = new byte[16 + payload.Length];
+        WriteBigEndian(box, 0, 1);
+        Encoding.ASCII.GetBytes(type, 0, 4, box, 4);
+        WriteBigEndian64(box, 8, (ulong)box.Length);
+        Buffer.BlockCopy(payload, 0, box, 16, payload.Length);
+        return box;
+    }
+
     private static byte[] CreatePngWithManifest(byte[] manifest) => Join(
         new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
         CreatePngChunk("IHDR", new byte[] { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 }),
@@ -724,6 +807,17 @@ public sealed class ProvenanceReviewRegressionContracts {
         return segment;
     }
 
+    private static byte[] CreateJpegApp11(byte[] manifest, int offset, int count, ushort instance, uint sequence) {
+        byte[] payload = new byte[count + 8];
+        payload[0] = 0x4A;
+        payload[1] = 0x50;
+        payload[2] = (byte)(instance >> 8);
+        payload[3] = (byte)instance;
+        WriteBigEndian(payload, 4, checked((int)sequence));
+        Buffer.BlockCopy(manifest, offset, payload, 8, count);
+        return CreateJpegSegment(0xEB, payload);
+    }
+
     private static string ComputeMd5(byte[] data) {
         using MD5 md5 = MD5.Create();
         return string.Concat(md5.ComputeHash(data).Select(value => value.ToString("X2")));
@@ -758,6 +852,17 @@ public sealed class ProvenanceReviewRegressionContracts {
         return data;
     }
 
+    private static byte[] CreateBigTiff(int entryCount) {
+        byte[] data = new byte[16 + 8 + checked(entryCount * 20) + 8];
+        data[0] = (byte)'I';
+        data[1] = (byte)'I';
+        WriteLittleEndian16(data, 2, 43);
+        WriteLittleEndian16(data, 4, 8);
+        WriteLittleEndian64(data, 8, 16);
+        WriteLittleEndian64(data, 16, (ulong)entryCount);
+        return data;
+    }
+
     private static byte[] BigEndian(int value) {
         byte[] bytes = new byte[4];
         WriteBigEndian(bytes, 0, value);
@@ -785,6 +890,10 @@ public sealed class ProvenanceReviewRegressionContracts {
 
     private static void WriteLittleEndian64(byte[] data, int offset, ulong value) {
         for (int index = 0; index < 8; index++) data[offset + index] = (byte)(value >> (index * 8));
+    }
+
+    private static void WriteBigEndian64(byte[] data, int offset, ulong value) {
+        for (int index = 0; index < 8; index++) data[offset + index] = (byte)(value >> ((7 - index) * 8));
     }
 
     private static byte[] Join(params byte[][] values) {

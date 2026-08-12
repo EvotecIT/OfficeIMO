@@ -190,11 +190,25 @@ internal static class OfficeProvenanceJpeg {
 
     private static bool HasC2paDescriptionPrefix(byte[] data, int offset, int available, int boxHeaderLength) {
         int descriptionOffset = offset + boxHeaderLength;
-        if (boxHeaderLength is not (8 or 16) || available < boxHeaderLength + 30 ||
+        if (boxHeaderLength is not (8 or 16) || available < boxHeaderLength + 8 ||
             !OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "jumb") ||
             !OfficeProvenanceBinary.MatchesAscii(data, descriptionOffset + 4, "jumd")) return false;
+        uint descriptionLength32 = OfficeProvenanceBinary.ReadUInt32(data, descriptionOffset, littleEndian: false);
+        int descriptionHeaderLength;
+        ulong descriptionLength;
+        if (descriptionLength32 == 1) {
+            if (available < boxHeaderLength + 16) return false;
+            descriptionHeaderLength = 16;
+            descriptionLength = OfficeProvenanceBinary.ReadUInt64(data, descriptionOffset + 8, littleEndian: false);
+        } else {
+            if (descriptionLength32 == 0) return false;
+            descriptionHeaderLength = 8;
+            descriptionLength = descriptionLength32;
+        }
+        if (descriptionLength < (ulong)(descriptionHeaderLength + 22) ||
+            available < boxHeaderLength + descriptionHeaderLength + 22) return false;
         byte[] uuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
-        int descriptionPayloadOffset = descriptionOffset + 8;
+        int descriptionPayloadOffset = descriptionOffset + descriptionHeaderLength;
         for (int index = 0; index < uuid.Length; index++) if (data[descriptionPayloadOffset + index] != uuid[index]) return false;
         int togglesOffset = descriptionPayloadOffset + uuid.Length;
         return (data[togglesOffset] & 0x02) != 0 &&
