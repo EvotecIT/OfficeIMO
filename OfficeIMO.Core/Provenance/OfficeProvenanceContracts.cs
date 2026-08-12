@@ -149,7 +149,7 @@ public sealed class OfficeProvenanceOptions {
     public long MaxManifestBytes { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum carriers accepted in one asset. Defaults to 128.</summary>
     public int MaxCarriers { get; set; } = 128;
-    /// <summary>Maximum entries accepted in a ZIP-based container. Defaults to 65,536.</summary>
+    /// <summary>Maximum structural entries or materialized XML nodes accepted in a container. Defaults to 65,536.</summary>
     public int MaxContainerEntries { get; set; } = 65536;
     /// <summary>Maximum cumulative expanded bytes copied while rewriting a container. Defaults to 1 GiB.</summary>
     public long MaxExpandedContainerBytes { get; set; } = 1024L * 1024L * 1024L;
@@ -205,12 +205,24 @@ public sealed class OfficeProvenanceRemovalResult {
         OfficeProvenanceReport before,
         OfficeProvenanceReport after,
         IReadOnlyList<OfficeProvenanceChange> changes,
-        bool wasReserialized) {
+        bool wasReserialized)
+        : this(data, before, after, changes, wasReserialized, wereInvalidatedSignaturesRemoved: false) {
+    }
+
+    /// <summary>Creates a provenance-removal result and records whether invalidated signatures were removed.</summary>
+    public OfficeProvenanceRemovalResult(
+        byte[] data,
+        OfficeProvenanceReport before,
+        OfficeProvenanceReport after,
+        IReadOnlyList<OfficeProvenanceChange> changes,
+        bool wasReserialized,
+        bool wereInvalidatedSignaturesRemoved) {
         _data = (byte[])(data ?? throw new ArgumentNullException(nameof(data))).Clone();
         Before = before ?? throw new ArgumentNullException(nameof(before));
         After = after ?? throw new ArgumentNullException(nameof(after));
         Changes = new List<OfficeProvenanceChange>(changes ?? throw new ArgumentNullException(nameof(changes))).AsReadOnly();
         WasReserialized = wasReserialized;
+        WereInvalidatedSignaturesRemoved = wereInvalidatedSignaturesRemoved;
     }
 
     /// <summary>Gets the inspection before removal.</summary>
@@ -223,6 +235,8 @@ public sealed class OfficeProvenanceRemovalResult {
     public bool WasChanged => Changes.Count != 0;
     /// <summary>Gets whether the container was serialized rather than copied byte-for-byte around removed carriers.</summary>
     public bool WasReserialized { get; }
+    /// <summary>Gets whether an owning document API removed signatures that the provenance mutation invalidated.</summary>
+    public bool WereInvalidatedSignaturesRemoved { get; }
     /// <summary>Returns an owned copy of the resulting asset.</summary>
     public byte[] ToArray() => (byte[])_data.Clone();
 }

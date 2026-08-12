@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Provenance;
+using OfficeIMO.Security;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -71,6 +72,17 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ClassicZipMayContainExactlyTheSentinelEntryCountWithoutZip64Metadata() {
+        byte[] endOfDirectory = new byte[22];
+        WriteLittleEndian(endOfDirectory, 0, 0x06054B50U);
+        WriteLittleEndian16(endOfDirectory, 8, ushort.MaxValue);
+        WriteLittleEndian16(endOfDirectory, 10, ushort.MaxValue);
+
+        OfficeProvenanceZip.ValidateEntryCount(endOfDirectory, ushort.MaxValue);
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceZip.ValidateEntryCount(endOfDirectory, ushort.MaxValue - 1));
+    }
+
+    [Fact]
     public void ZipRewritePreservesExternalAttributes() {
         byte[] package;
         using (var stream = new MemoryStream()) {
@@ -104,6 +116,46 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.Equal(new[] { "initial" }, result.Findings);
     }
 
+    [Fact]
+    public void SignatureDiscoveryEnforcesAggregatePartBytesWhenDigestVerificationIsDisabled() {
+        string contentTypes =
+            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+            "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
+            "<Override PartName=\"/_xmlsignatures/sig2.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
+            "</Types>";
+        string signature =
+            "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><Object>" +
+            new string('x', 2048) + "</Object></Signature>";
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteZipEntry(archive, "[Content_Types].xml", contentTypes);
+                WriteZipEntry(archive, "_xmlsignatures/sig1.xml", signature);
+                WriteZipEntry(archive, "_xmlsignatures/sig2.xml", signature);
+            }
+            package = output.ToArray();
+        }
+        int signatureBytes = Encoding.UTF8.GetByteCount(signature);
+        var bounded = new OfficePackageSignatureInspectionOptions {
+            VerifyDigests = false,
+            MaxSignatureBytes = signatureBytes + 1L,
+            MaxTotalDigestBytes = signatureBytes + 1L
+        };
+
+        OfficePackageSignatureInfo rejected = OfficePackageSignatureService.Inspect(package, bounded);
+        OfficePackageSignatureInfo accepted = OfficePackageSignatureService.Inspect(package,
+            new OfficePackageSignatureInspectionOptions {
+                VerifyDigests = false,
+                MaxSignatureBytes = signatureBytes + 1L,
+                MaxTotalDigestBytes = signatureBytes * 2L
+            });
+
+        Assert.Contains(rejected.SignatureParts, part =>
+            part.ParseError?.Contains("aggregate limit", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.DoesNotContain(accepted.SignatureParts, part =>
+            part.ParseError?.Contains("aggregate limit", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void IncompleteExtendedXmpDoesNotAllocateTheDeclaredPacketLength() {
@@ -121,6 +173,29 @@ public sealed class ProvenanceReviewRegressionContracts {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Empty(report.Evidence);
+        Assert.True(allocated < 8L * 1024L * 1024L, $"Inspection allocated {allocated} bytes.");
+    }
+
+
+    [Fact]
+    public void IncompleteApp11SequenceDoesNotAllocateTheDeclaredManifestLength() {
+        byte[] fragment = CreateManifestStore();
+        WriteBigEndian(fragment, 0, 64 * 1024 * 1024);
+        byte[] app11Payload = Join(
+            Encoding.ASCII.GetBytes("JP"),
+            new byte[] { 0x12, 0x34 },
+            BigEndian(1),
+            fragment);
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegSegment(0xEB, app11Payload),
+            new byte[] { 0xFF, 0xD9 });
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
         Assert.True(allocated < 8L * 1024L * 1024L, $"Inspection allocated {allocated} bytes.");
     }
 #endif
@@ -174,6 +249,22 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void SvgRejectsAValidDocumentBeforeMaterializingTooManyNodes() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"><g/><g/><g/><g/><g/></svg>");
+        var bounded = new OfficeProvenanceOptions { MaxContainerEntries = 5 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(svg, "fixture.svg", bounded));
+
+        Assert.Contains("XML node limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(OfficeProvenanceInspector.Inspect(
+            svg,
+            "fixture.svg",
+            new OfficeProvenanceOptions { MaxContainerEntries = 16 }).Evidence);
+    }
+
+    [Fact]
     public void RemovalResultSnapshotsMutableConstructorInputs() {
         byte[] data = { 1, 2, 3 };
         var changes = new List<OfficeProvenanceChange> {
@@ -191,6 +282,11 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     private static void WriteAll(Stream stream, byte[] data) => stream.Write(data, 0, data.Length);
+
+    private static void WriteZipEntry(ZipArchive archive, string name, string content) {
+        using Stream stream = archive.CreateEntry(name, CompressionLevel.Optimal).Open();
+        WriteAll(stream, Encoding.UTF8.GetBytes(content));
+    }
 
     private static byte[] CreateManifestStore() {
         byte[] uuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };

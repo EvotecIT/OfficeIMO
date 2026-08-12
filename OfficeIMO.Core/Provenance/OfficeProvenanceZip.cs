@@ -35,7 +35,8 @@ internal static class OfficeProvenanceZip {
                     manifest.Length));
                 continue;
             }
-            if (!options.ProcessEmbeddedAssets || !IsSupportedEmbeddedAsset(entry.FullName)) continue;
+            if (!options.ProcessEmbeddedAssets ||
+                !IsSupportedEmbeddedAsset(entry, options, ref expandedBytes)) continue;
             embeddedCount++;
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
@@ -84,7 +85,8 @@ internal static class OfficeProvenanceZip {
                 occurrence++;
                 continue;
             }
-            if (!options.ProcessEmbeddedAssets || !IsSupportedEmbeddedAsset(entry.FullName)) continue;
+            if (!options.ProcessEmbeddedAssets ||
+                !IsSupportedEmbeddedAsset(entry, options.Limits, ref inspectionBytes)) continue;
             embeddedCount++;
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
@@ -109,7 +111,8 @@ internal static class OfficeProvenanceZip {
         }
         if (changes.Count == 0) return (byte[])data.Clone();
 
-        bool hasSignature = input.Entries.Any(IsSignatureEntry);
+        bool hasSignature = options.SignatureMutationPolicy != OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup &&
+            HasPackageSignature(data, input, options);
         if (hasSignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) {
             throw new InvalidOperationException("Removing provenance would invalidate package signatures. Choose an explicit signature mutation policy.");
         }
@@ -159,7 +162,30 @@ internal static class OfficeProvenanceZip {
             entry.Open);
     }
 
-    private static void ValidateEntryCount(byte[] data, int maximumEntries) {
+    /// <summary>
+    /// Removes matching package entries while preserving the ODF/EPUB stored <c>mimetype</c> contract.
+    /// </summary>
+    internal static OfficeProvenanceSignatureStripResult RemoveEntries(
+        byte[] data,
+        Func<string, bool> shouldRemove) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
+        using var inputStream = new MemoryStream(data, writable: false);
+        using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
+        bool hadMatches = input.Entries.Any(entry => shouldRemove(entry.FullName));
+        if (!hadMatches) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
+
+        List<OfficeProvenanceZipWriteEntry> outputEntries = input.Entries
+            .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal))
+            .Where(entry => !shouldRemove(entry.FullName))
+            .Select(entry => CreateWriteEntry(entry))
+            .ToList();
+        return new OfficeProvenanceSignatureStripResult(
+            OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue),
+            hadSignatures: true);
+    }
+
+    internal static void ValidateEntryCount(byte[] data, int maximumEntries) {
         const uint endOfCentralDirectorySignature = 0x06054B50;
         const uint zip64LocatorSignature = 0x07064B50;
         const uint zip64EndOfCentralDirectorySignature = 0x06064B50;
@@ -183,11 +209,9 @@ internal static class OfficeProvenanceZip {
         }
 
         ulong entryCount = totalEntries;
-        if (totalEntries == ushort.MaxValue) {
+        if (totalEntries == ushort.MaxValue && HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
             int locatorOffset = endOffset - 20;
-            if (locatorOffset < 0 ||
-                OfficeProvenanceBinary.ReadUInt32(data, locatorOffset, littleEndian: true) != zip64LocatorSignature ||
-                OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 4, littleEndian: true) != 0 ||
+            if (OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 4, littleEndian: true) != 0 ||
                 OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 16, littleEndian: true) != 1) {
                 throw new InvalidDataException("ZIP64 package does not contain a valid locator.");
             }
@@ -208,14 +232,100 @@ internal static class OfficeProvenanceZip {
         if (entryCount > (ulong)maximumEntries) throw new InvalidDataException("ZIP package exceeds the configured entry limit.");
     }
 
+    private static bool HasZip64Locator(byte[] data, int endOffset, uint locatorSignature) {
+        int locatorOffset = endOffset - 20;
+        return locatorOffset >= 0 &&
+            OfficeProvenanceBinary.ReadUInt32(data, locatorOffset, littleEndian: true) == locatorSignature;
+    }
+
     private static bool IsSignatureEntry(ZipArchiveEntry entry) =>
         entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase) ||
         entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
         entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsSupportedEmbeddedAsset(string name) {
-        string extension = Path.GetExtension(name).ToLowerInvariant();
-        return extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".tif" or ".tiff" or ".svg";
+    internal static bool HasPackageSignature(byte[] data, OfficeProvenanceRemovalOptions options) {
+        ValidateEntryCount(data, options.Limits.MaxContainerEntries);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        return HasPackageSignature(data, archive, options);
+    }
+
+    internal static void ValidateForOwningPackageMutation(byte[] data, OfficeProvenanceOptions options) {
+        ValidateEntryCount(data, options.MaxContainerEntries);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        long expandedBytes = 0;
+        byte[] buffer = new byte[81920];
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (entry.Length > options.MaxAssetBytes) {
+                throw new InvalidDataException("A package part exceeds the configured asset limit.");
+            }
+            using Stream source = entry.Open();
+            long entryBytes = 0;
+            while (true) {
+                int read = source.Read(buffer, 0, buffer.Length);
+                if (read <= 0) break;
+                if (entryBytes > options.MaxAssetBytes - read) {
+                    throw new InvalidDataException("A package part exceeds the configured asset limit.");
+                }
+                entryBytes += read;
+                ReserveExpandedBytes(ref expandedBytes, read, options.MaxExpandedContainerBytes);
+            }
+            if (entryBytes != entry.Length) throw new InvalidDataException("A ZIP entry expanded to an unexpected length.");
+        }
+    }
+
+    private static bool HasPackageSignature(
+        byte[] data,
+        ZipArchive archive,
+        OfficeProvenanceRemovalOptions options) {
+        if (archive.Entries.Any(IsSignatureEntry)) return true;
+        if (archive.GetEntry("[Content_Types].xml") == null) return false;
+
+        var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
+            MaxPackageBytes = options.Limits.MaxAssetBytes,
+            MaxPackageParts = options.Limits.MaxContainerEntries,
+            MaxPartBytes = options.Limits.MaxAssetBytes,
+            MaxSignatureBytes = options.Limits.MaxAssetBytes,
+            MaxTotalDigestBytes = options.Limits.MaxExpandedContainerBytes,
+            VerifyDigests = false
+        };
+        OfficeIMO.Security.OfficePackageSignatureInfo signatureInfo =
+            OfficeIMO.Security.OfficePackageSignatureService.Inspect(data, inspectionOptions);
+        if (!signatureInfo.SignatureDiscoveryComplete) {
+            throw new InvalidDataException("The OPC package signature state could not be determined safely.");
+        }
+        return signatureInfo.HasSignatures;
+    }
+
+    private static bool IsSupportedEmbeddedAsset(
+        ZipArchiveEntry entry,
+        OfficeProvenanceOptions options,
+        ref long expandedBytes) {
+        string extension = Path.GetExtension(entry.FullName).ToLowerInvariant();
+        if (extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".tif" or ".tiff" or ".svg") {
+            return true;
+        }
+        if (entry.Length <= 0) return false;
+
+        const int maximumSniffBytes = 16 * 1024;
+        int sniffLength = (int)Math.Min(entry.Length, maximumSniffBytes);
+        byte[] prefix = new byte[sniffLength];
+        using Stream source = entry.Open();
+        int read = 0;
+        while (read < prefix.Length) {
+            int current = source.Read(prefix, read, prefix.Length - read);
+            if (current <= 0) break;
+            ReserveExpandedBytes(ref expandedBytes, current, options.MaxExpandedContainerBytes);
+            read += current;
+        }
+        if (read != prefix.Length) Array.Resize(ref prefix, read);
+        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(prefix, entry.FullName);
+        bool supported = format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
+            OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
+            OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
+        if (supported) expandedBytes -= read; // The complete entry is charged by the caller.
+        return supported;
     }
 
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {

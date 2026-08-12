@@ -184,8 +184,9 @@ public static class OfficePackageSignatureService {
         bool isReachableFromOrigin,
         OfficePackageSignatureInspectionOptions options,
         ref long totalDigestBytes) {
-        archive.TryGetPartLength(signatureUri, out long length);
+        bool hasLength = archive.TryGetPartLength(signatureUri, out long length);
         try {
+            if (hasLength) ReserveInspectionBytes(ref totalDigestBytes, length, options.MaxTotalDigestBytes);
             byte[] bytes = archive.ReadPart(signatureUri, options.MaxSignatureBytes);
             XDocument document = LoadXml(bytes);
             XElement? signature = document.Root;
@@ -223,10 +224,7 @@ public static class OfficePackageSignatureService {
                     .Select(algorithm => algorithm!)
                     .ToArray() ?? Array.Empty<string>();
                 if (options.VerifyDigests && target != null && archive.TryGetPartLength(target, out long targetLength)) {
-                    totalDigestBytes = checked(totalDigestBytes + targetLength);
-                    if (totalDigestBytes > options.MaxTotalDigestBytes) {
-                        throw new InvalidDataException("OPC package digest work exceeds the configured aggregate limit.");
-                    }
+                    ReserveInspectionBytes(ref totalDigestBytes, targetLength, options.MaxTotalDigestBytes);
                 }
                 OfficePackageDigestResult digest = options.VerifyDigests
                     ? archive.VerifyReference(reference, options.MaxPartBytes)
@@ -264,6 +262,13 @@ public static class OfficePackageSignatureService {
                 signatureUri, length, isReachableFromOrigin, null, Array.Empty<OfficePackageSignatureReferenceInfo>(),
                 Array.Empty<OfficePackageSignatureTimestampInfo>(), Array.Empty<string>(), Array.Empty<byte[]>(), exception.Message);
         }
+    }
+
+    private static void ReserveInspectionBytes(ref long totalBytes, long bytes, long maximumBytes) {
+        if (bytes < 0 || totalBytes > maximumBytes - bytes) {
+            throw new InvalidDataException("OPC package signature inspection exceeds the configured aggregate limit.");
+        }
+        totalBytes += bytes;
     }
 
     private static OfficePackageSignaturePartValidationResult ValidatePart(

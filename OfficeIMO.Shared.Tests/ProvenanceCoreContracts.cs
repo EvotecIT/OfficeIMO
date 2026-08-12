@@ -462,6 +462,24 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void ZipInspectsAndSanitizesExtensionlessImagesByBoundedContentSniffing() {
+        byte[] image = Join(
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("caBX", CreateManifestStore()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+        byte[] package = CreateZip(("media/cover", image));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(package, "publication.epub");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "publication.epub");
+        byte[] cleanedImage = ReadZipEntry(result.ToArray(), "media/cover");
+
+        Assert.Single(report.Evidence);
+        Assert.StartsWith("ZIP/media/cover/PNG/caBX", report.Evidence[0].Location, StringComparison.Ordinal);
+        Assert.Empty(OfficeProvenanceInspector.Inspect(cleanedImage, "cover.png").Evidence);
+    }
+
+    [Fact]
     public void ZipRemovalSkipsEmbeddedInspectionWhenDisabled() {
         byte[] image = Join(
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },

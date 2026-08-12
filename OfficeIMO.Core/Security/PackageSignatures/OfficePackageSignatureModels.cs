@@ -27,7 +27,7 @@ public sealed class OfficePackageSignatureInspectionOptions {
     public int MaxPackageParts { get; set; } = 10000;
     /// <summary>Maximum bytes read from one package part. Defaults to 256 MiB.</summary>
     public long MaxPartBytes { get; set; } = 256L * 1024L * 1024L;
-    /// <summary>Maximum aggregate bytes hashed across package references. Defaults to 512 MiB.</summary>
+    /// <summary>Maximum aggregate bytes read across signature parts and hashed package references. Defaults to 512 MiB.</summary>
     public long MaxTotalDigestBytes { get; set; } = 512L * 1024L * 1024L;
     /// <summary>Maximum XML signature parts. Defaults to 32.</summary>
     public int MaxSignatureParts { get; set; } = 32;
@@ -182,7 +182,7 @@ public sealed class OfficePackageSignatureInfo {
     /// <summary>Stable structural findings.</summary>
     public IReadOnlyList<string> Findings { get; }
     /// <summary>Whether any package signature carrier evidence exists.</summary>
-    public bool HasSignatures => HasDigitalSignatureOriginPart || HasApplicationSignatureMetadata || SignatureParts.Count > 0;
+    public bool HasSignatures => OriginRelationshipCount > 0 || HasDigitalSignatureOriginPart || HasApplicationSignatureMetadata || SignatureParts.Count > 0;
 }
 
 /// <summary>Caller policy for cryptographic OPC signature validation.</summary>

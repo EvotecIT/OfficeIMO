@@ -77,13 +77,8 @@ internal static class OfficeProvenanceSvg {
     }
 
     private static XDocument Load(byte[] data, OfficeProvenanceOptions options) {
-        var settings = new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersInDocument = options.MaxAssetBytes,
-            MaxCharactersFromEntities = 0,
-            IgnoreWhitespace = false
-        };
+        ValidateMaterializedNodeBudget(data, options);
+        XmlReaderSettings settings = CreateReaderSettings(options);
         using var stream = new MemoryStream(data, writable: false);
         using XmlReader reader = XmlReader.Create(stream, settings);
         XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
@@ -150,15 +145,48 @@ internal static class OfficeProvenanceSvg {
     }
 
     private static XElement LoadElement(byte[] data, OfficeProvenanceOptions options) {
-        var settings = new XmlReaderSettings {
+        ValidateMaterializedNodeBudget(data, options);
+        XmlReaderSettings settings = CreateReaderSettings(options);
+        using var stream = new MemoryStream(data, writable: false);
+        using XmlReader reader = XmlReader.Create(stream, settings);
+        return XElement.Load(reader, LoadOptions.PreserveWhitespace);
+    }
+
+    private static XmlReaderSettings CreateReaderSettings(OfficeProvenanceOptions options) =>
+        new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
             MaxCharactersInDocument = options.MaxAssetBytes,
             MaxCharactersFromEntities = 0,
             IgnoreWhitespace = false
         };
+
+    private static void ValidateMaterializedNodeBudget(byte[] data, OfficeProvenanceOptions options) {
         using var stream = new MemoryStream(data, writable: false);
-        using XmlReader reader = XmlReader.Create(stream, settings);
-        return XElement.Load(reader, LoadOptions.PreserveWhitespace);
+        using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
+        int materializedNodes = 0;
+        while (reader.Read()) {
+            if (reader.Depth > 256) throw new InvalidDataException("SVG exceeds the configured XML depth limit.");
+            switch (reader.NodeType) {
+                case XmlNodeType.Element:
+                    ReserveMaterializedNodes(ref materializedNodes, 1 + reader.AttributeCount, options.MaxContainerEntries);
+                    break;
+                case XmlNodeType.Text:
+                case XmlNodeType.CDATA:
+                case XmlNodeType.ProcessingInstruction:
+                case XmlNodeType.Comment:
+                case XmlNodeType.Whitespace:
+                case XmlNodeType.SignificantWhitespace:
+                    ReserveMaterializedNodes(ref materializedNodes, 1, options.MaxContainerEntries);
+                    break;
+            }
+        }
+    }
+
+    private static void ReserveMaterializedNodes(ref int total, int count, int maximum) {
+        if (count < 0 || total > maximum - count) {
+            throw new InvalidDataException("SVG exceeds the configured XML node limit.");
+        }
+        total += count;
     }
 }
