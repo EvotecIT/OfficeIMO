@@ -209,6 +209,22 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlRemovalHonorsTheNestedEmbeddedAssetSwitch() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body><img src=\"{dataUri}\"></body></html>";
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.ProcessEmbeddedAssets = false;
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html, options);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+        Assert.Contains(dataUri, output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +

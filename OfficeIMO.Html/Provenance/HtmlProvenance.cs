@@ -113,7 +113,7 @@ public static class HtmlProvenance {
             changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paExternalManifest, location, 0));
         }
 
-        if (options.ProcessEmbeddedAssets) RemoveEmbeddedImages(document, options, changes);
+        if (inspectionOptions.ProcessEmbeddedAssets) RemoveEmbeddedImages(document, options, changes);
         if (changes.Count == 0) {
             byte[] original = Encoding.UTF8.GetBytes(html);
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
@@ -188,13 +188,14 @@ public static class HtmlProvenance {
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes) {
         int count = 0;
+        int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         foreach (IElement element in document.QuerySelectorAll("img[src],source[src],img[srcset],source[srcset]")) {
             EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
-                if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
+                if (count > maxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
                 if (estimatedBytes > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 if (!dataUri.TryDecodeBytes(out byte[] image)) continue;
@@ -310,8 +311,8 @@ public static class HtmlProvenance {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
-        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
-        MaxEmbeddedAssets = source.MaxEmbeddedAssets
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
 
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
