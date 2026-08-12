@@ -65,6 +65,23 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_ZeroSelectSizeUsesAComboBoxAndTheFirstEnabledOption() {
+        const string html = "<select name='choice' size='0'><option value='first'>First</option><option value='second'>Second</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderFormField renderedField = Assert.Single(
+            EnumeratePdfSceneVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderFormField>());
+        PdfCore.PdfFormField pdfField = Assert.Single(
+            PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.True(renderedField.IsComboBox);
+        Assert.Equal("first", renderedField.Value);
+        Assert.Contains("First", rendered.Text, StringComparison.Ordinal);
+        Assert.True(pdfField.IsCombo);
+        Assert.Equal("first", pdfField.Value);
+    }
+
+    [Fact]
     public void HtmlToPdf_DisabledAndReadOnlyControlsAreExcludedFromRequiredConstraintValidation() {
         const string html = "<input name='enabled' required><input name='disabled' required disabled><textarea name='readonly' required readonly></textarea>";
 

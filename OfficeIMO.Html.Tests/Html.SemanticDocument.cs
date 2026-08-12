@@ -248,12 +248,12 @@ public partial class Html {
     }
 
     [Fact]
-    public void SemanticDocument_ZeroSelectSizeUsesTheParsedZeroDisplaySize() {
+    public void SemanticDocument_ZeroSelectSizeUsesTheSingleSelectDefault() {
         HtmlSemanticFormControl control = Assert.Single(HtmlConversionDocument.Parse(
             "<select size='0'><option>First</option><option>Second</option></select>")
             .SemanticDocument.Sections.SelectMany(section => section.Blocks)).FormControl!;
 
-        Assert.Empty(control.Values);
+        Assert.Equal(new[] { "First" }, control.Values);
     }
 
     [Fact]

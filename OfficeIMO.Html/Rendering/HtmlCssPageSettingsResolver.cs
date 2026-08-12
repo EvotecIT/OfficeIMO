@@ -117,7 +117,11 @@ internal static class HtmlCssPageSettingsResolver {
 
         var lengths = new List<double>();
         foreach (string part in parts) {
-            if (!HtmlRenderCssValues.TryLength(part, currentWidth, fontSize, fontSize, currentWidth, currentHeight, out double length) || length <= 0D) return false;
+            if (!HtmlRenderCssValues.HasExplicitLengthSyntax(part, allowPercentage: false, allowUnitlessZero: false)
+                || !HtmlRenderCssValues.TryLength(part, currentWidth, fontSize, fontSize, currentWidth, currentHeight, out double length)
+                || length <= 0D) {
+                return false;
+            }
             lengths.Add(length);
         }
 

@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace OfficeIMO.Html;
 
 public static partial class HtmlComputedStyleEngine {
@@ -358,14 +356,14 @@ public static partial class HtmlComputedStyleEngine {
         MediaEnvironment environment,
         out double value) {
         if (string.Equals(feature.Trim(), "aspect-ratio", StringComparison.OrdinalIgnoreCase)) {
-            IReadOnlyList<string> ratio = HtmlRenderCssValues.SplitTopLevel(text, '/');
-            if (ratio.Count == 2
-                && double.TryParse(ratio[0], NumberStyles.Float, CultureInfo.InvariantCulture, out double numerator)
-                && double.TryParse(ratio[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double denominator)
-                && numerator >= 0D && denominator > 0D) {
-                value = numerator / denominator;
+            if (HtmlCssReplacedElementParser.TryParseAspectRatio(text, out double? ratio, out bool prefersIntrinsic, out _)
+                && ratio.HasValue
+                && !prefersIntrinsic) {
+                value = ratio.Value;
                 return true;
             }
+            value = 0D;
+            return false;
         }
         return HtmlRenderCssValues.TryLength(
             text,

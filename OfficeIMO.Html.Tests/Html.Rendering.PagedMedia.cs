@@ -193,6 +193,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("A4 landscape portrait")]
     [InlineData("A4 bogus")]
     [InlineData("200px 100px landscape")]
+    [InlineData("50% 50%")]
+    [InlineData("calc(100px + 10%) 100px")]
+    [InlineData("200 100")]
     public void HtmlPagedMedia_RejectsExtraOrConflictingPageSizeTokens(string value) {
         Assert.False(HtmlCssPageSettingsResolver.TryResolvePageSize(value, 300D, 500D, 16D, out _, out _));
     }

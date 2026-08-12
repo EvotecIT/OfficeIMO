@@ -112,6 +112,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerAspectRatioQueriesAcceptRatiosOnly() {
+        const string html = "<style>@container (aspect-ratio:2){#ratio{background:red}}@container (aspect-ratio:2px){#length{background:red}}</style><section style='width:200px;height:100px;container-type:size'><div id='ratio' style='width:20px;height:20px;background:blue'></div><div id='length' style='width:20px;height:20px;background:blue'></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#ratio").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#length").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_SquareSizeContainerUsesPortraitOrientation() {
         const string html = "<style>@container (orientation:portrait){#item{background:red}}@container (orientation:landscape){#item{background:blue}}</style><section style='width:100px;height:100px;container-type:size'><div id='item' style='width:20px;height:20px;background:black'></div></section>";
 

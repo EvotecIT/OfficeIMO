@@ -263,7 +263,8 @@ internal static class HtmlFormControlSemantics {
 
     internal static int GetSelectDisplaySize(IElement select) {
         if (select.HasAttribute("size")
-            && HtmlIntegerSemantics.TryParseNonNegativeInteger(select.GetAttribute("size"), out int size)) {
+            && HtmlIntegerSemantics.TryParseNonNegativeInteger(select.GetAttribute("size"), out int size)
+            && size > 0) {
             return size;
         }
         return select.HasAttribute("multiple") ? 4 : 1;
