@@ -108,12 +108,25 @@ internal static class PdfInspector {
         PdfReadOptions? options,
         Func<PdfReadDocument>? readDocumentFactory) {
         PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
-        PdfDocumentProbe probe = Probe(pdf, effectiveOptions);
+        PdfReadDocument? readDocument = null;
+        Exception? readDocumentException = null;
+        PdfDocumentProbe probe;
+        if (readDocumentFactory is null) {
+            probe = Probe(pdf, effectiveOptions);
+        } else {
+            try {
+                readDocument = readDocumentFactory();
+                probe = Probe(pdf, readDocument);
+            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                readDocumentException = ex;
+                probe = Probe(pdf, effectiveOptions);
+            }
+        }
+
         var diagnostics = new List<string>();
         var readBlockers = new List<PdfReadBlocker>();
         var rewriteBlockers = new List<PdfRewriteBlocker>();
         PdfDocumentInfo? info = null;
-        PdfReadDocument? readDocument = null;
 
         if (probe.HeaderVersion is null) {
             AddReadBlocker(PdfReadBlockerKind.MissingHeader, "PDF header was not found.");
@@ -126,7 +139,11 @@ internal static class PdfInspector {
         bool canRead = readBlockers.Count == 0;
         if (canRead) {
             try {
-                readDocument = readDocumentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions);
+                if (readDocumentException is not null) {
+                    throw readDocumentException;
+                }
+
+                readDocument ??= PdfReadDocument.Open(pdf, effectiveOptions);
                 probe = Probe(pdf, readDocument);
                 info = FromReadDocument(readDocument, probe);
                 if (info.PageCount == 0) {

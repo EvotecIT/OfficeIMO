@@ -20,6 +20,14 @@ internal sealed class PdfDocumentSource {
             System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
+    private PdfDocumentSource(byte[] bytes, PdfReadOptions options, PdfReadDocument readDocument) {
+        _bytes = bytes;
+        Options = options;
+        _readDocument = new Lazy<PdfReadDocument>(
+            () => readDocument,
+            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+    }
+
     /// <summary>Immutable read settings captured when the source is opened.</summary>
     internal PdfReadOptions Options { get; }
 
@@ -43,6 +51,18 @@ internal sealed class PdfDocumentSource {
         PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions);
+    }
+
+    /// <summary>Adopts internal bytes together with the canonical parse that already validated them.</summary>
+    internal static PdfDocumentSource FromOwnedBytes(
+        byte[] bytes,
+        PdfReadOptions? options,
+        PdfReadDocument readDocument) {
+        Guard.NotNull(bytes, nameof(bytes));
+        Guard.NotNull(readDocument, nameof(readDocument));
+        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        ValidateLength(bytes.LongLength, effectiveOptions);
+        return new PdfDocumentSource(bytes, effectiveOptions, readDocument);
     }
 
     /// <summary>Reads and owns one bounded file snapshot.</summary>

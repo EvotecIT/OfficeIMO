@@ -1,6 +1,6 @@
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Text;
-using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -208,6 +208,7 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
+        bool includeArtifactText = false,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
@@ -603,7 +604,6 @@ internal static class TextContentParser {
             }
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             double advTotal = 0;
-            char prevChar = '\0';
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
             for (int idx = 0; idx < bytes.Length;) {
@@ -621,20 +621,8 @@ internal static class TextContentParser {
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
-                // Drop thin spaces between letters/digits (visual join) but still advance
-                double thinSpacePt = Math.Max(1.0, size * 0.12);
-                bool dropSpace = false;
-                if (ch == ' ') {
-                    // Keep explicit space glyphs; rely on higher-level normalization to fix accidental splits
-                } else if (advGlyph <= thinSpacePt && prevChar != '\0') {
-                    // Drop non-space thin separators
-                    dropSpace = true;
-                }
-                if (dropSpace) {
-                    // do not append, but keep advance
-                } else if (ch != '\0') {
+                if (ch != '\0') {
                     sbOut.Append(t);
-                    prevChar = t[t.Length - 1];
                 }
                 advTotal += advGlyph;
                 idx += step;
@@ -645,7 +633,7 @@ internal static class TextContentParser {
                 sbOut.Append(wholeDecoded);
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool isArtifact = useLogicalTextFilters && HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && HasActiveArtifact();
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
@@ -791,8 +779,7 @@ internal static class TextContentParser {
             if (list == null) return;
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b, paintOrder); }
-                else if (adjustKerningFromTJ && it is double num) {
+                if (it is byte[] b) { ShowTextRun(b, paintOrder); } else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space

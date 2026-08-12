@@ -10,17 +10,20 @@ internal static partial class PdfSyntax {
         int limit = Math.Min(text.Length, maximumIndex ?? text.Length);
         int searchFrom = start;
         while (searchFrom >= 0 && searchFrom < limit) {
-            int streamIdx = IndexOfKeywordOutsideLiteralString(text, "stream", searchFrom, limit);
-            int endObjIdx = IndexOfKeywordOutsideLiteralString(text, "endobj", searchFrom, limit);
-
-            if (streamIdx < 0) {
-                return endObjIdx < 0 ? -1 : endObjIdx + 6;
+            int boundaryIndex = IndexOfStreamOrEndObjectOutsideLiteralString(
+                text,
+                searchFrom,
+                limit,
+                out bool isStream);
+            if (boundaryIndex < 0) {
+                return -1;
             }
 
-            if (endObjIdx >= 0 && endObjIdx < streamIdx) {
-                return endObjIdx + 6;
+            if (!isStream) {
+                return boundaryIndex + 6;
             }
 
+            int streamIdx = boundaryIndex;
             int afterStream = SkipEOL(text, streamIdx + 6, limit);
             if (TryFindDeclaredStreamObjectEnd(
                     text,
@@ -63,6 +66,74 @@ internal static partial class PdfSyntax {
             }
         }
 
+        return -1;
+    }
+
+    /// <summary>
+    /// Finds the first structural stream or end-object token in one pass. Searching for
+    /// each token independently makes ordinary non-stream objects scan the remainder of
+    /// the file for a later stream before accepting their nearby endobj boundary.
+    /// </summary>
+    private static int IndexOfStreamOrEndObjectOutsideLiteralString(
+        string text,
+        int start,
+        int limit,
+        out bool isStream) {
+        if (start < 0) start = 0;
+        if (limit > text.Length) limit = text.Length;
+
+        int literalDepth = 0;
+        bool escaped = false;
+        for (int i = start; i < limit; i++) {
+            char c = text[i];
+            if (literalDepth > 0) {
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '(') {
+                    literalDepth++;
+                    continue;
+                }
+
+                if (c == ')') {
+                    literalDepth--;
+                }
+
+                continue;
+            }
+
+            if (c == '(') {
+                literalDepth = 1;
+                continue;
+            }
+
+            if (c == 's' &&
+                i + 6 <= limit &&
+                string.CompareOrdinal(text, i, "stream", 0, 6) == 0 &&
+                HasKeywordBoundary(text, i - 1, start, limit) &&
+                HasKeywordBoundary(text, i + 6, start, limit)) {
+                isStream = true;
+                return i;
+            }
+
+            if (c == 'e' &&
+                i + 6 <= limit &&
+                string.CompareOrdinal(text, i, "endobj", 0, 6) == 0 &&
+                HasKeywordBoundary(text, i - 1, start, limit) &&
+                HasKeywordBoundary(text, i + 6, start, limit)) {
+                isStream = false;
+                return i;
+            }
+        }
+
+        isStream = false;
         return -1;
     }
 
@@ -174,14 +245,17 @@ internal static partial class PdfSyntax {
         string text,
         IReadOnlyList<IndirectObjectHeader> objectMatches,
         System.Diagnostics.Stopwatch parseTimer,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        out Dictionary<int, PdfDictionary> preparsedDictionaries) {
         var streamRanges = new List<(int Start, int End)>();
         var knownStreamRanges = new HashSet<(int Start, int End)>();
+        preparsedDictionaries = new Dictionary<int, PdfDictionary>();
         DiscoverDeclaredStreamRanges(
             text,
             objectMatches,
             streamRanges,
             knownStreamRanges,
+            preparsedDictionaries,
             declaredLengthValues: null,
             parseTimer,
             limits);
@@ -199,6 +273,7 @@ internal static partial class PdfSyntax {
                 objectMatches,
                 streamRanges,
                 knownStreamRanges,
+                preparsedDictionaries,
                 values,
                 parseTimer,
                 limits);
@@ -220,6 +295,7 @@ internal static partial class PdfSyntax {
         IReadOnlyList<IndirectObjectHeader> objectMatches,
         List<(int Start, int End)> streamRanges,
         HashSet<(int Start, int End)> knownStreamRanges,
+        Dictionary<int, PdfDictionary> preparsedDictionaries,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
         System.Diagnostics.Stopwatch parseTimer,
         PdfReadLimits limits) {
@@ -234,7 +310,9 @@ internal static partial class PdfSyntax {
                 IsInsideStreamRange(match.Index, discoveredRanges) ||
                 !TryReadDeclaredStreamRange(
                     text,
+                    match.Index,
                     match.Index + match.Length,
+                    preparsedDictionaries,
                     declaredLengthValues,
                     limits,
                     out (int Start, int End) streamRange) ||
@@ -250,7 +328,9 @@ internal static partial class PdfSyntax {
 
     private static bool TryReadDeclaredStreamRange(
         string text,
+        int objectIndex,
         int bodyStart,
+        Dictionary<int, PdfDictionary> preparsedDictionaries,
         IReadOnlyDictionary<(int ObjectNumber, int Generation), int>? declaredLengthValues,
         PdfReadLimits limits,
         out (int Start, int End) streamRange) {
@@ -268,13 +348,15 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        PdfDictionary? dictionary;
-        try {
-            dictionary = ParseDictionary(text.Substring(
-                dictionaryStart + 2,
-                dictionaryEnd - dictionaryStart - 2), limits);
-        } catch (Exception exception) when (exception is not OutOfMemoryException) {
-            return false;
+        if (!preparsedDictionaries.TryGetValue(objectIndex, out PdfDictionary? dictionary)) {
+            try {
+                dictionary = ParseDictionary(text.Substring(
+                    dictionaryStart + 2,
+                    dictionaryEnd - dictionaryStart - 2), limits);
+                preparsedDictionaries[objectIndex] = dictionary;
+            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+                return false;
+            }
         }
 
         int streamIndex = SkipWhitespaceAndComments(text, dictionaryEnd, text.Length);

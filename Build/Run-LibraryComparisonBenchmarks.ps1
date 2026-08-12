@@ -15,8 +15,16 @@ param(
         'wordcreate',
         'wordreport',
         'wordread',
-        'wordreplace')]
+        'wordreplace',
+        'pdfgenerate',
+        'pdfhtml',
+        'pdfread',
+        'pdfcorpusread',
+        'pdfsplit',
+        'pdfmerge',
+        'pdfselect')]
     [string] $Workload = 'all',
+    [string] $PdfCorpusRoot,
     [string] $OutputRoot = (Join-Path ([System.IO.Path]::GetTempPath()) 'OfficeIMO\Benchmarks\Runs'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [ValidateSet('net8.0', 'net10.0')]
@@ -119,6 +127,115 @@ $definitions = [ordered]@{
         IdentityVariables = @()
         ExpectedCases = @('OfficeIMO', 'Sylvan', 'ExcelDataReader')
     }
+    pdfgenerate = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfGenerationBenchmarks*'
+        ComparisonId = "pdf-structured-generation-$Framework"
+        Suite = 'OfficeIMO.Pdf.StructuredGeneration'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($engine in @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'IText')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    pdfhtml = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfHtmlBenchmarks*'
+        ComparisonId = "pdf-html-generation-$Framework"
+        Suite = 'OfficeIMO.Pdf.HtmlGeneration'
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($engine in @('OfficeIMO', 'PeachPDF')) {
+                    "$engine|Scale=$scale"
+                }
+            }
+        )
+    }
+    pdfread = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfReadBenchmarks*'
+        ComparisonId = "pdf-text-extraction-$Framework"
+        Suite = 'OfficeIMO.Pdf.TextExtraction'
+        IdentityVariables = @('producer', 'scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
+                    foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
+                        "$engine|Producer=$producer&Scale=$scale"
+                    }
+                }
+            }
+        )
+    }
+    pdfcorpusread = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfCorpusReadBenchmarks*'
+        ComparisonId = "pdf-corpus-text-extraction-$Framework"
+        Suite = 'OfficeIMO.Pdf.CorpusTextExtraction'
+        Default = $false
+        IdentityVariables = @('document')
+        ExpectedCases = @(
+            foreach ($document in @('OfficeIMO-500p', 'NIST-492p', 'Type3-85p', 'PDFA-258p-12MB')) {
+                foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
+                    "$engine|Document=$document"
+                }
+            }
+        )
+    }
+    pdfsplit = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfSplitBenchmarks*'
+        ComparisonId = "pdf-split-$Framework"
+        Suite = 'OfficeIMO.Pdf.Split'
+        IdentityVariables = @('producer', 'scale', 'workflow')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($producer in @('OfficeIMO', 'IText')) {
+                    foreach ($workflow in @('EveryPage', 'Bundles')) {
+                        foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                            "$engine|Producer=$producer&Scale=$scale&Workflow=$workflow"
+                        }
+                    }
+                }
+            }
+        )
+    }
+    pdfmerge = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfMergeBenchmarks*'
+        ComparisonId = "pdf-merge-$Framework"
+        Suite = 'OfficeIMO.Pdf.Merge'
+        IdentityVariables = @('producer', 'scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($producer in @('OfficeIMO', 'IText')) {
+                    foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                        "$engine|Producer=$producer&Scale=$scale"
+                    }
+                }
+            }
+        )
+    }
+    pdfselect = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfPageSelectionBenchmarks*'
+        ComparisonId = "pdf-page-selection-$Framework"
+        Suite = 'OfficeIMO.Pdf.PageSelection'
+        IdentityVariables = @('producer', 'scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($producer in @('OfficeIMO', 'IText')) {
+                    foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                        "$engine|Producer=$producer&Scale=$scale"
+                    }
+                }
+            }
+        )
+    }
     wordcreate = [pscustomobject]@{
         Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
         Filter = '*WordCreateParagraphComparisonBenchmarks*'
@@ -190,11 +307,19 @@ $definitions = [ordered]@{
 }
 
 $selected = if ($Workload -eq 'all') {
-    @($definitions.Keys | Where-Object { $_ -notlike 'word*' })
+    @(
+        $definitions.GetEnumerator() |
+            Where-Object { $_.Key -notlike 'word*' -and $_.Value.Default -ne $false } |
+            ForEach-Object { $_.Key }
+    )
 } elseif ($Workload -eq 'word') {
     @('wordcreate', 'wordreport', 'wordread', 'wordreplace')
 } else {
     @($Workload)
+}
+
+if ($Workload -eq 'pdfcorpusread' -and [string]::IsNullOrWhiteSpace($PdfCorpusRoot)) {
+    throw 'PdfCorpusRoot is required for the pdfcorpusread workload. Prepare the corpus first.'
 }
 
 $containsWordWorkload = @($selected | Where-Object { $_ -like 'word*' }).Count -gt 0
@@ -265,10 +390,15 @@ foreach ($name in $selected) {
     }
 
     Push-Location -LiteralPath $repositoryRoot
+    $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
     try {
+        if ($name -eq 'pdfcorpusread') {
+            $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
+        }
         & dotnet @arguments
         $benchmarkExitCode = $LASTEXITCODE
     } finally {
+        $env:OFFICEIMO_PDF_CORPUS_ROOT = $previousPdfCorpusRoot
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {

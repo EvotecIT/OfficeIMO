@@ -6,6 +6,69 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMergerPolicyTests {
     [Fact]
+    public void MergeWithReport_ToBytesReturnsDefensiveCopies() {
+        byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();
+
+        PdfMergeResult result = PdfMerger.MergeWithReport(new PdfMergeOptions(), first, second);
+        byte[] firstCopy = result.ToBytes();
+        byte originalFirstByte = firstCopy[0];
+        firstCopy[0] = (byte)(originalFirstByte ^ 0xFF);
+
+        byte[] secondCopy = result.ToBytes();
+
+        Assert.NotSame(firstCopy, secondCopy);
+        Assert.Equal(originalFirstByte, secondCopy[0]);
+        Assert.Equal(2, PdfInspector.Inspect(secondCopy).PageCount);
+    }
+
+    [Fact]
+    public void PolicyMergeResult_ToDocumentPreservesPrimaryContentReadOptions() {
+        byte[] first = PdfReaderAndFooterRegressionTests.BuildSingleStreamPdf(
+            "/Artifact BMC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Merged artifact header) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Primary body) Tj\nET\n");
+        byte[] second = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Secondary body"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions { IncludeArtifactText = true };
+
+        PdfMergeResult result = PdfDocument.MergeWithReport(
+            new PdfMergeOptions(),
+            PdfDocument.Open(first, readOptions),
+            PdfDocument.Open(second));
+
+        string text = result.ToDocument().Read.Text();
+        Assert.Contains("Merged artifact header", text, StringComparison.Ordinal);
+        Assert.Contains("Primary body", text, StringComparison.Ordinal);
+        Assert.Contains("Secondary body", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PolicyMergeEnforcesPrimaryStructuralLimitsDuringRewrites() {
+        byte[] first = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("First")).ToBytes();
+        byte[] second = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Second")).ToBytes();
+        int sourceObjectLimit = Math.Max(
+            PdfSyntax.ParseObjects(first).Map.Count,
+            PdfSyntax.ParseObjects(second).Map.Count);
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxIndirectObjects = sourceObjectLimit }
+        };
+        var mergeOptions = new PdfMergeOptions {
+            Policy = new PdfMergePolicy { CatalogState = PdfMergeStructureMode.Drop }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.MergeWithReport(
+                mergeOptions,
+                PdfDocument.Open(first, readOptions),
+                PdfDocument.Open(second)));
+
+        Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
+    }
+
+    [Fact]
     public void MergeWithReport_CombinesMetadataOutlinesAndAttachmentsWithDeterministicRenames() {
         byte[] first = BuildStructuredPdf("Primary", "Primary author", null, "Primary heading", "primary payload");
         byte[] second = BuildStructuredPdf("Secondary", null, "Imported subject", "Secondary heading", "secondary payload");

@@ -40,15 +40,18 @@ internal static partial class PdfPageExtractor {
     public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ExtractPages, options);
 
         var selected = pageNumbers.ToArray();
         if (selected.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Open(pdf, options);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.ExtractPages,
+            options);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
@@ -227,15 +230,18 @@ internal static partial class PdfPageExtractor {
     public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ExtractPages, options);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Open(pdf, options);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.ExtractPages,
+            options);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
 
         var pageObjectNumbers = new List<int>(ranges.Sum(range => range.PageCount));
@@ -321,10 +327,12 @@ internal static partial class PdfPageExtractor {
     /// </summary>
     public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ExtractPages, options);
-
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Open(pdf, options);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.ExtractPages,
+            options);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
         var result = new List<byte[]>(document.Pages.Count);
@@ -370,15 +378,18 @@ internal static partial class PdfPageExtractor {
     public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ExtractPages, options);
 
         var ranges = pageRanges.ToArray();
         if (ranges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", nameof(pageRanges));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-        var document = PdfReadDocument.Open(pdf, options);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.ExtractPages,
+            options);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
         PdfFileVersion fileVersion = GetSourceFileVersion(pdf);

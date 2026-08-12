@@ -37,8 +37,8 @@ internal static class PdfBookmarkEditor {
         return EditCore(pdf, edit, readOptions, allowBrokenSourceDestinations: false);
     }
 
-    internal static PdfBookmarkEditResult EditAllowingBrokenSourceDestinations(byte[] pdf, Action<PdfBookmarkEditSession> edit) {
-        return EditCore(pdf, edit, readOptions: null, allowBrokenSourceDestinations: true);
+    internal static PdfBookmarkEditResult EditAllowingBrokenSourceDestinations(byte[] pdf, Action<PdfBookmarkEditSession> edit, PdfReadOptions? readOptions = null) {
+        return EditCore(pdf, edit, readOptions, allowBrokenSourceDestinations: true);
     }
 
     private static PdfBookmarkEditResult EditCore(byte[] pdf, Action<PdfBookmarkEditSession> edit, PdfReadOptions? readOptions, bool allowBrokenSourceDestinations) {
@@ -49,7 +49,10 @@ internal static class PdfBookmarkEditor {
         if (!allowBrokenSourceDestinations && sourceIssues.Count > 0) throw new InvalidOperationException("PDF bookmark editing requires broken destinations to be repaired or removed first: " + string.Join(" ", sourceIssues.Select(static issue => issue.Message)));
         var session = new PdfBookmarkEditSession(logical); edit(session); IReadOnlyList<PdfBookmarkNode> target = session.Snapshot();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => { RewriteOutlines(objects, security, read, target); return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null; });
-        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output).Outlines;
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            PdfReadOptions.Resolve(readOptions),
+            output.LongLength);
+        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output, outputReadOptions).Outlines;
         if (!Matches(target, actual)) throw new InvalidOperationException("PDF bookmark post-save validation failed; the artifact was not returned.");
         return new PdfBookmarkEditResult(output, plan, actual);
     }
