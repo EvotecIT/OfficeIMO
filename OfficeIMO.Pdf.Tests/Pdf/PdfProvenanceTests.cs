@@ -153,6 +153,27 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void EmbeddedFilePayloadStreamCannotServeAsAnInformationResource() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] embeddedPayloadAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            catalog.Items.Remove("AF");
+            PdfStream embeddedFile = objects.Values.Select(item => item.Value).OfType<PdfStream>()
+                .First(stream => stream.Dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile");
+            var associated = new PdfArray();
+            associated.Items.Add(candidate);
+            embeddedFile.Dictionary.Items["AF"] = associated;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(embeddedPayloadAssociated);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
     public void UntypedFileSpecificationSelfAssociationIsStructurallyInvalid() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] selfAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -279,6 +300,28 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void CatalogExtensionFileAttachmentDoesNotSatisfyTheDocumentProfile() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] extensionReferenced = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            names.Items.Remove("EmbeddedFiles");
+            var extensionAnnotation = new PdfDictionary();
+            extensionAnnotation.Items["Type"] = new PdfName("Annot");
+            extensionAnnotation.Items["Subtype"] = new PdfName("FileAttachment");
+            extensionAnnotation.Items["FS"] = candidate;
+            catalog.Items["OfficeIMOExtension"] = extensionAnnotation;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(extensionReferenced);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
     public void RemovalPreservesUnrelatedObjectLevelAssociationSites() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] objectAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -353,6 +396,30 @@ public sealed class PdfProvenanceTests {
         PdfArray limits = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rootTree.Items["Limits"]));
         Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(limits.Items[0]).Value);
         Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(limits.Items[1]).Value);
+    }
+
+    [Fact]
+    public void RemovalPreservesCompleteNameTreePairsBeforeADanglingKey() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] danglingKey = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            entries.Items.Add(new PdfStringObj("dangling", true));
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(danglingKey);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(PdfSyntax.FindCatalog(parsed.Map, parsed.TrailerRaw));
+        PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, catalog.Items["Names"]));
+        PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, names.Items["EmbeddedFiles"]));
+        PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, embeddedFiles.Items["Names"]));
+
+        Assert.Equal(3, entries.Items.Count);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(entries.Items[0]).Value);
+        Assert.Equal("dangling", Assert.IsType<PdfStringObj>(entries.Items[2]).Value);
     }
 
     [Fact]
@@ -493,6 +560,20 @@ public sealed class PdfProvenanceTests {
         options.Limits.MaxExpandedContainerBytes = 128;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
+
+        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void GraphRewritePreflightsLargeStreamBodiesBeforeSerialization() {
+        var stream = new PdfStream(new PdfDictionary(), new byte[8 * 1024 * 1024]);
+        var context = new PdfPageExtractor.SerializationContext(
+            new Dictionary<int, int>(),
+            0,
+            new Dictionary<int, Dictionary<string, PdfObject>>());
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            PdfPageExtractor.EnsureSerializedObjectWithinLimit(stream, context, 1024 * 1024));
 
         Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

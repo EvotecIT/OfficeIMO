@@ -151,8 +151,9 @@ public static class PdfProvenance {
         var reachableObjectNumbers = new HashSet<int>(collector.ObjectIds);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
-            CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, secondaryDocumentReferences, visited);
+            CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited);
         }
+        CollectPageAnnotationReferences(document.Objects, catalog, secondaryDocumentReferences);
         return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
     }
 
@@ -164,7 +165,6 @@ public static class PdfProvenance {
         PdfObject value,
         PdfDictionary catalog,
         HashSet<int> objectLevel,
-        HashSet<int> annotationReferences,
         HashSet<PdfObject> visited) {
         if (!visited.Add(value)) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
@@ -172,18 +172,14 @@ public static class PdfProvenance {
             if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(value, dictionary)) {
                 AddReferencesFromArray(objects, dictionary.Items.TryGetValue("AF", out PdfObject? associated) ? associated : null, objectLevel);
             }
-            if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) &&
-                dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecification) && fileSpecification is PdfReference reference) {
-                annotationReferences.Add(reference.ObjectNumber);
-            }
             foreach (PdfObject child in dictionary.Items.Values) {
-                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, annotationReferences, visited);
+                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, visited);
             }
             return;
         }
         if (value is PdfArray array) {
             foreach (PdfObject child in array.Items) {
-                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, annotationReferences, visited);
+                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, visited);
             }
         }
     }
@@ -191,13 +187,41 @@ public static class PdfProvenance {
     private static bool IsInformationResource(PdfObject owner, PdfDictionary dictionary) {
         string? type = dictionary.Get<PdfName>("Type")?.Name;
         string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
-        if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "XRef" or "ObjStm") return false;
+        if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "EmbeddedFile" or "XRef" or "ObjStm") return false;
         if (subtype is "FileAttachment" or "Popup" ||
             subtype != null && dictionary.Items.ContainsKey("Rect")) return false;
         if (dictionary.Items.ContainsKey("EF") &&
             (dictionary.Items.ContainsKey("F") || dictionary.Items.ContainsKey("UF"))) return false;
         if (owner is PdfStream) return true;
         return string.Equals(type, "StructElem", StringComparison.Ordinal) || type == null;
+    }
+
+    private static void CollectPageAnnotationReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
+        HashSet<int> result) {
+        if (!catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return;
+        var pending = new Stack<PdfObject>();
+        var visited = new HashSet<PdfObject>();
+        pending.Push(pages);
+        while (pending.Count > 0) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
+            string? type = dictionary.Get<PdfName>("Type")?.Name;
+            if (type == "Pages") {
+                if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
+                    foreach (PdfObject child in kids.Items) pending.Push(child);
+                }
+                continue;
+            }
+            if (type != "Page" || PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) continue;
+            foreach (PdfObject annotationValue in annotations.Items) {
+                if (PdfObjectLookup.Resolve(objects, annotationValue) is not PdfDictionary annotation ||
+                    !string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) ||
+                    !annotation.Items.TryGetValue("FS", out PdfObject? fileSpecification) || fileSpecification is not PdfReference reference) continue;
+                result.Add(reference.ObjectNumber);
+            }
+        }
     }
 
     private static void AddReferencesFromArray(

@@ -65,6 +65,75 @@ internal static partial class PdfPageExtractor {
         sb.Append('\n');
         return PdfEncoding.Latin1GetBytes(sb.ToString());
     }
+
+    internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
+        if (maximumBytes < 0 || EstimateSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
+    }
+
+    private static long EstimateSerializedObjectBytes(PdfObject value, SerializationContext context, long maximumBytes) {
+        long total = EstimateValueBytes(value, context, maximumBytes);
+        return AddEstimated(total, 1L, maximumBytes);
+    }
+
+    private static long EstimateValueBytes(PdfObject value, SerializationContext context, long maximumBytes) {
+        switch (value) {
+            case PdfStream stream:
+                long streamBytes = EstimateDictionaryBytes(stream.Dictionary, context, maximumBytes, excludeLength: true);
+                streamBytes = AddEstimated(streamBytes, 48L, maximumBytes);
+                return AddEstimated(streamBytes, stream.Data.LongLength, maximumBytes);
+            case PdfNumber:
+                return 32L;
+            case PdfBoolean boolean:
+                return boolean.Value ? 4L : 5L;
+            case PdfName name:
+                return AddEstimated(1L, MultiplyEstimated(name.Name.Length, 5L, maximumBytes), maximumBytes);
+            case PdfStringObj text:
+                return context.PreserveRawStringBytes
+                    ? AddEstimated(MultiplyEstimated(text.RawBytes.LongLength, 2L, maximumBytes), 2L, maximumBytes)
+                    : AddEstimated(MultiplyEstimated(text.Value.Length, 4L, maximumBytes), 6L, maximumBytes);
+            case PdfNull:
+                return 4L;
+            case PdfReference reference:
+                ValidateReferenceGeneration(reference, context);
+                if (!context.NumberMap.ContainsKey(reference.ObjectNumber)) {
+                    throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
+                }
+                return 32L;
+            case PdfArray array:
+                long arrayBytes = 3L;
+                foreach (PdfObject item in array.Items) {
+                    arrayBytes = AddEstimated(arrayBytes, EstimateValueBytes(item, context, maximumBytes), maximumBytes);
+                    arrayBytes = AddEstimated(arrayBytes, 1L, maximumBytes);
+                }
+                return AddEstimated(arrayBytes, 1L, maximumBytes);
+            case PdfDictionary dictionary:
+                return EstimateDictionaryBytes(dictionary, context, maximumBytes, excludeLength: false);
+            default:
+                throw new NotSupportedException("Unsupported PDF object type: " + value.GetType().Name);
+        }
+    }
+
+    private static long EstimateDictionaryBytes(PdfDictionary dictionary, SerializationContext context, long maximumBytes, bool excludeLength) {
+        long total = 3L;
+        foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
+            if (excludeLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
+            total = AddEstimated(total, AddEstimated(2L, MultiplyEstimated(entry.Key.Length, 5L, maximumBytes), maximumBytes), maximumBytes);
+            total = AddEstimated(total, EstimateValueBytes(entry.Value, context, maximumBytes), maximumBytes);
+            total = AddEstimated(total, 1L, maximumBytes);
+        }
+        return AddEstimated(total, 2L, maximumBytes);
+    }
+
+    private static long MultiplyEstimated(long value, long multiplier, long maximumBytes) =>
+        value > maximumBytes / multiplier ? ExceededEstimate(maximumBytes) : value * multiplier;
+
+    private static long AddEstimated(long current, long added, long maximumBytes) =>
+        current > maximumBytes || added > maximumBytes - current ? ExceededEstimate(maximumBytes) : current + added;
+
+    private static long ExceededEstimate(long maximumBytes) =>
+        maximumBytes == long.MaxValue ? long.MaxValue : maximumBytes + 1L;
     
     private static byte[] SerializeStream(PdfStream stream, SerializationContext context) {
         string dictionary = BuildStreamDictionary(stream, context);
