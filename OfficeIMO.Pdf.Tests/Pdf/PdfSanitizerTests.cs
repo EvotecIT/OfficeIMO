@@ -247,6 +247,19 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_CountsEachRetainedNextActionOnce() {
+        byte[] source = BuildLinearRetainedActionChainPdf(actionCount: 5);
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 5 } };
+
+        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+        PdfPageAction[] actions = result.ToDocument().Inspect().Pages[0].PageActions.ToArray();
+        Assert.Equal(5, actions.Length);
+        Assert.All(actions, static action => Assert.Equal("URI", action.ActionType));
+    }
+
+    [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
@@ -458,6 +471,21 @@ public class PdfSanitizerTests {
         lines.Add("<< /Root 1 0 R /Size " + (7 + depth).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
         lines.Add("%%EOF");
         return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildLinearRetainedActionChainPdf(int actionCount) {
+        string action = "<< /S /URI /URI (https://example.test/" + actionCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") >>";
+        for (int index = actionCount - 1; index > 0; index--) {
+            action = "<< /S /URI /URI (https://example.test/" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") /Next [" + action + "] >>";
+        }
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O " + action + " >> >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildForbiddenOpenActionWithRetainedNextPdf() {

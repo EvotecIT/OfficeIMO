@@ -67,9 +67,16 @@ public class PdfAcroFormEditorTests {
             .Flatten("f")
             .Remove("f")
             .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flatten replacement" }));
+        PdfAcroFormEditResult afterDefaultValue = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetDefaultValue("f", "old default")
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "default replacement", DefaultValue = "new default" }));
 
         Assert.Equal("flags replacement", Assert.Single(afterFlags.Fields).Value);
         Assert.Equal("flatten replacement", Assert.Single(afterFlatten.Fields).Value);
+        PdfFormField defaultReplacement = Assert.Single(afterDefaultValue.Fields);
+        Assert.Equal("default replacement", defaultReplacement.Value);
+        Assert.Equal("new default", defaultReplacement.DefaultValue);
     }
 
     [Fact]

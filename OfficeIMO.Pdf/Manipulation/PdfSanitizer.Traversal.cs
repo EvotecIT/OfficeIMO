@@ -145,6 +145,8 @@ internal static partial class PdfSanitizer {
 
             if (key == "Next" && resolved is PdfArray nextActions) {
                 FilterActions(objects, nextActions, policy, maximumActionDepth, actionBudget);
+                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget);
+                continue;
             }
 
             if (key == "URI" && resolved is PdfDictionary uriDictionary &&
@@ -155,6 +157,39 @@ internal static partial class PdfSanitizer {
             if (item is not PdfReference) {
                 SanitizeObject(objects, item, policy, maximumActionDepth, actionBudget);
             }
+        }
+    }
+
+    private static void SanitizeNormalizedActionArray(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray actions,
+        PdfSanitizationOptions policy,
+        int maximumActionDepth,
+        PdfSanitizerActionBudget actionBudget) {
+        for (int i = 0; i < actions.Items.Count; i++) {
+            if (actions.Items[i] is PdfDictionary action) {
+                SanitizeNormalizedActionDictionary(objects, action, policy, maximumActionDepth, actionBudget);
+            }
+        }
+    }
+
+    private static void SanitizeNormalizedActionDictionary(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary action,
+        PdfSanitizationOptions policy,
+        int maximumActionDepth,
+        PdfSanitizerActionBudget actionBudget) {
+        if (action.Items.TryGetValue("Next", out PdfObject? nextObject)) {
+            if (nextObject is PdfDictionary nextAction) {
+                SanitizeNormalizedActionDictionary(objects, nextAction, policy, maximumActionDepth, actionBudget);
+            } else if (nextObject is PdfArray nextActions) {
+                SanitizeNormalizedActionArray(objects, nextActions, policy, maximumActionDepth, actionBudget);
+            }
+        }
+
+        foreach (KeyValuePair<string, PdfObject> item in action.Items.ToArray()) {
+            if (string.Equals(item.Key, "Next", StringComparison.Ordinal) || item.Value is PdfReference) continue;
+            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
         }
     }
 

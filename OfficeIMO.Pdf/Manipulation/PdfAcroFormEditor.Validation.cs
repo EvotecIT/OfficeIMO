@@ -22,6 +22,7 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.DefaultValue:
                     if (!HasLaterDefaultValueEdit(commands, i, command.Name!) &&
+                        !IsFieldIdentityEndedLater(commands, i, command.Name!) &&
                         byName.TryGetValue(command.Name!, out PdfFormField? defaultField) &&
                         !string.Equals(defaultField.DefaultValue, command.Value, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm default-value readback validation failed for " + command.Name + ".");
                     break;
