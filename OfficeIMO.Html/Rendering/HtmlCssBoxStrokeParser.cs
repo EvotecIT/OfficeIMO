@@ -27,6 +27,20 @@ internal static class HtmlCssBoxStrokeParser {
         double viewportHeight,
         OfficeColor currentColor,
         out HtmlRenderBorderEdges borders,
+        out string detail) =>
+        TryParseBorder(computed, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, currentColor, out borders, out detail);
+
+    internal static bool TryParseBorder(
+        HtmlComputedStyle computed,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        OfficeColor currentColor,
+        out HtmlRenderBorderEdges borders,
         out string detail) {
         string shorthand = computed.GetValue("border").Trim();
         string widthValue = computed.GetValue("border-width").Trim();
@@ -46,14 +60,14 @@ internal static class HtmlCssBoxStrokeParser {
             double width = 3D;
             string style = "none";
             OfficeColor color = currentColor;
-            if (!TryParseStrokeShorthand(shorthand, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, currentColor, ref width, ref style, ref color)) {
+            if (!TryParseStrokeShorthand(shorthand, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, currentColor, ref width, ref style, ref color)) {
                 detail = "border=" + shorthand;
                 return false;
             }
             for (int index = 0; index < sides.Length; index++) sides[index] = new HtmlRenderBorderSide(width, style, color);
         }
         if (widthValue.Length > 0) {
-            if (!TryParseWidths(widthValue, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out double[] widths)) {
+            if (!TryParseWidths(widthValue, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double[] widths)) {
                 detail = "border-width=" + widthValue;
                 return false;
             }
@@ -81,7 +95,7 @@ internal static class HtmlCssBoxStrokeParser {
                 double width = 3D;
                 string style = "none";
                 OfficeColor color = currentColor;
-                if (!TryParseStrokeShorthand(sideShorthand, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, currentColor, ref width, ref style, ref color)) {
+                if (!TryParseStrokeShorthand(sideShorthand, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, currentColor, ref width, ref style, ref color)) {
                     detail = prefix + "=" + sideShorthand;
                     return false;
                 }
@@ -90,7 +104,7 @@ internal static class HtmlCssBoxStrokeParser {
 
             string sideWidth = computed.GetValue(prefix + "-width").Trim();
             if (sideWidth.Length > 0) {
-                if (!TryStrokeWidth(sideWidth, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out double width)) {
+                if (!TryStrokeWidth(sideWidth, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double width)) {
                     detail = prefix + "-width=" + sideWidth;
                     return false;
                 }
@@ -204,6 +218,21 @@ internal static class HtmlCssBoxStrokeParser {
         OfficeColor currentColor,
         ref double width,
         ref string style,
+        ref OfficeColor color) =>
+        TryParseStrokeShorthand(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, currentColor, ref width, ref style, ref color);
+
+    private static bool TryParseStrokeShorthand(
+        string value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        OfficeColor currentColor,
+        ref double width,
+        ref string style,
         ref OfficeColor color) {
         bool widthSet = false;
         bool styleSet = false;
@@ -211,7 +240,7 @@ internal static class HtmlCssBoxStrokeParser {
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value.Trim().ToLowerInvariant());
         if (tokens.Count < 1 || tokens.Count > 3) return false;
         foreach (string token in tokens) {
-            if (!widthSet && TryStrokeWidth(token, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out double parsedWidth)) {
+            if (!widthSet && TryStrokeWidth(token, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double parsedWidth)) {
                 width = parsedWidth;
                 widthSet = true;
             } else if (!styleSet && TryStrokeStyle(token, out string parsedStyle)) {
@@ -227,13 +256,16 @@ internal static class HtmlCssBoxStrokeParser {
         return true;
     }
 
-    private static bool TryParseWidths(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out double[] widths) {
+    private static bool TryParseWidths(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out double[] widths) =>
+        TryParseWidths(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out widths);
+
+    private static bool TryParseWidths(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double[] widths) {
         widths = new double[4];
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(value);
         if (tokens.Count < 1 || tokens.Count > 4) return false;
         var parsed = new double[tokens.Count];
         for (int index = 0; index < tokens.Count; index++)
-            if (!TryStrokeWidth(tokens[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out parsed[index])) return false;
+            if (!TryStrokeWidth(tokens[index], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out parsed[index])) return false;
         ExpandFour(parsed, widths);
         return true;
     }
@@ -267,7 +299,10 @@ internal static class HtmlCssBoxStrokeParser {
         target[3] = source.Count > 3 ? source[3] : target[1];
     }
 
-    private static bool TryStrokeWidth(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out double width) {
+    private static bool TryStrokeWidth(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out double width) =>
+        TryStrokeWidth(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out width);
+
+    private static bool TryStrokeWidth(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double width) {
         width = 0D;
         switch (value.Trim().ToLowerInvariant()) {
             case "thin": width = 1D; return true;
@@ -275,7 +310,7 @@ internal static class HtmlCssBoxStrokeParser {
             case "thick": width = 5D; return true;
         }
         return !value.EndsWith("%", StringComparison.Ordinal)
-            && HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out width)
+            && HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out width)
             && width >= 0D;
     }
 

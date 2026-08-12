@@ -550,6 +550,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (tag == "input" && type == "radio") fieldKind = HtmlRenderFormFieldKind.RadioButton;
         else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
         else return false;
+        if (tag == "input" && type == "file" && element.HasAttribute("multiple")) {
+            ReportMultipleFileSelectionFallback(source);
+            return false;
+        }
 
         string? authoredName = element.GetAttribute("name");
         if (authoredName != null && authoredName.Length > 0 && string.IsNullOrWhiteSpace(authoredName)) {
@@ -762,6 +766,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "maxlength=0",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportMultipleFileSelectionFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FileMultipleSelectionStaticFallback,
+            "An HTML multiple-file input was rendered as static content because PDF file-select fields cannot preserve multiple-file selection semantics.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "input[type=file][multiple]",
             OfficeConversionLossKind.Approximation);
     }
 

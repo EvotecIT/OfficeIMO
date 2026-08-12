@@ -362,10 +362,11 @@ public static partial class HtmlComputedStyleEngine {
 
         double inheritedFontSize = containerContexts.Count == 0 ? 16D : containerContexts[containerContexts.Count - 1].FontSize;
         double rootFontSize = containerContexts.Count == 0 ? 16D : containerContexts[0].RootFontSize;
-        double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize);
+        ResolveContainerUnitDimensions(containerContexts, out double containerUnitWidth, out double containerUnitHeight);
+        double elementFontSize = ResolveContainerFontSize(style, environment, inheritedFontSize, rootFontSize, containerUnitWidth, containerUnitHeight);
         if (containerContexts.Count == 0) rootFontSize = elementFontSize;
-        double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment);
-        double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment);
+        double elementWidth = ResolveContainerElementWidth(style, containingWidth, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
+        double? elementHeight = ResolveContainerElementHeight(style, elementWidth, containingWidth, containingHeight, elementFontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight);
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, rootFontSize, containerContexts);
 
         foreach (IElement child in element.Children) {

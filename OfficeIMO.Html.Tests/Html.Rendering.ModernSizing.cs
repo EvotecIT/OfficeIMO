@@ -123,6 +123,31 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_NestedContainerUnitsUseTheNearestEligibleAncestorForGeometryAndFont() {
+        const string html = "<style>@container (width:96px) and (height:36px) and (width > 4em){#item{background:red}}</style>"
+            + "<section style='width:200px;height:100px;container-type:size'>"
+            + "<div style='box-sizing:border-box;width:75cqw;height:80cqh;padding:5cqw 10cqw;border:1cqw solid black;min-width:60cqw;max-width:70cqw;min-height:50cqh;max-height:60cqh;font-size:10cqw;container-type:size'>"
+            + "<div id='item' style='width:20px;height:20px;background:blue'></div></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRendering_ContainerUnitsSelectTheNearestEligibleAncestorPerAxis() {
+        const string html = "<style>@container (width:50px) and (height:50px){#axis-item{background:red}}</style>"
+            + "<section style='width:200px;height:100px;container-type:size'>"
+            + "<div style='width:100px;container-type:inline-size'>"
+            + "<div style='width:50cqw;height:50cqh;container-type:size'>"
+            + "<div id='axis-item' style='width:20px;height:20px;background:blue'></div></div></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 1000D, ViewportHeight = 500D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#axis-item").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerAspectRatioQueriesAcceptRatiosOnly() {
         const string html = "<style>@container (aspect-ratio:2){#ratio{background:red}}@container (aspect-ratio:2px){#length{background:red}}</style><section style='width:200px;height:100px;container-type:size'><div id='ratio' style='width:20px;height:20px;background:blue'></div><div id='length' style='width:20px;height:20px;background:blue'></div></section>";
 

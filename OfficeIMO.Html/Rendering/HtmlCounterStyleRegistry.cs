@@ -36,7 +36,7 @@ internal sealed class HtmlCounterStyleRegistry {
         TryFormat(value, styleName, out formatted, out _);
 
     internal bool TryFormat(int value, string styleName, out string formatted, out bool representationLimited) =>
-        TryFormat(value, styleName, new HashSet<string>(StringComparer.Ordinal), 0, out formatted, out representationLimited);
+        TryFormat(value, styleName, new HashSet<string>(StringComparer.Ordinal), 0, out formatted, out representationLimited, out _);
 
     internal bool TryFormatMarker(int value, string styleName, out string marker) =>
         TryFormatMarker(value, styleName, out marker, out _);
@@ -45,9 +45,11 @@ internal sealed class HtmlCounterStyleRegistry {
         marker = string.Empty;
         representationLimited = false;
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
-        if (!_definitions.TryGetValue(decodedName, out Definition? definition)) return false;
-        if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation, out representationLimited)) return false;
-        marker = definition.Prefix + representation + definition.Suffix;
+        if (!_definitions.ContainsKey(decodedName)) return false;
+        if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation, out representationLimited, out string effectiveStyle)) return false;
+        marker = _definitions.TryGetValue(effectiveStyle, out Definition? effectiveDefinition)
+            ? effectiveDefinition.Prefix + representation + effectiveDefinition.Suffix
+            : representation + HtmlCounterStyleFormatter.MarkerSuffix(effectiveStyle, ordered: true);
         if (marker.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
             marker = value.ToString(CultureInfo.InvariantCulture) + ". ";
             representationLimited = true;
@@ -61,24 +63,35 @@ internal sealed class HtmlCounterStyleRegistry {
         ISet<string> active,
         int depth,
         out string formatted,
-        out bool representationLimited) {
+        out bool representationLimited,
+        out string effectiveStyle) {
         formatted = string.Empty;
         representationLimited = false;
+        effectiveStyle = string.Empty;
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
         if (!_definitions.TryGetValue(decodedName, out Definition? definition)) return false;
         if (depth >= MaximumFallbackDepth || !active.Add(decodedName)) {
-            return HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted, out representationLimited);
+            effectiveStyle = "decimal";
+            return HtmlCounterStyleFormatter.TryFormat(value, effectiveStyle, out formatted, out representationLimited);
         }
         try {
-            if (definition.IsInRange(value) && definition.TryFormat(value, out formatted, out representationLimited)) return true;
+            if (definition.IsInRange(value) && definition.TryFormat(value, out formatted, out representationLimited)) {
+                effectiveStyle = decodedName;
+                return true;
+            }
             if (representationLimited) {
+                effectiveStyle = "decimal";
                 HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted);
                 return true;
             }
             string fallback = definition.Fallback.Length == 0 ? "decimal" : definition.Fallback;
-            if (_definitions.ContainsKey(fallback)) return TryFormat(value, fallback, active, depth + 1, out formatted, out representationLimited);
-            return HtmlCounterStyleFormatter.TryFormat(value, fallback, out formatted, out representationLimited)
-                || HtmlCounterStyleFormatter.TryFormat(value, "decimal", out formatted);
+            if (_definitions.ContainsKey(fallback)) return TryFormat(value, fallback, active, depth + 1, out formatted, out representationLimited, out effectiveStyle);
+            if (HtmlCounterStyleFormatter.TryFormat(value, fallback, out formatted, out representationLimited)) {
+                effectiveStyle = fallback;
+                return true;
+            }
+            effectiveStyle = "decimal";
+            return HtmlCounterStyleFormatter.TryFormat(value, effectiveStyle, out formatted);
         } finally {
             active.Remove(decodedName);
         }

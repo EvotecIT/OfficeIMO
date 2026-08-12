@@ -104,6 +104,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_CounterFallbackUsesTheEffectiveStylesAffixes() {
+        const string html = "<style>"
+            + "@counter-style base{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';prefix:'<';suffix:'> '}"
+            + "@counter-style builtin-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:decimal}"
+            + "@counter-style custom-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:base}"
+            + "</style><ol start='2' style='list-style-type:builtin-fallback'><li>Built in</li></ol>"
+            + "<ol start='2' style='list-style-type:custom-fallback'><li>Custom</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "2. ", "Built in", "<2> ", "Custom" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_FormatsAuthorDefinedCounterStyleMarkers() {
         const string html = """
             <style>

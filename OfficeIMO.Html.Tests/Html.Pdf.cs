@@ -571,6 +571,23 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_MultipleFileInputUsesTruthfulStaticAppearance() {
+        const string html = "<input type='file' name='attachment'><input type='file' name='attachments' multiple>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        HtmlRenderFormField renderedField = Assert.Single(
+            rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).OfType<HtmlRenderFormField>());
+        Assert.Equal("attachment", renderedField.Name);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FileMultipleSelectionStaticFallback);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Equal("attachment", pdfField.Name);
+        Assert.True(pdfField.IsFileSelect);
+        Assert.Contains("Choose file", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_RepeatedNonRadioNamesUseTruthfulStaticFallback() {
         const string html = """
             <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>
