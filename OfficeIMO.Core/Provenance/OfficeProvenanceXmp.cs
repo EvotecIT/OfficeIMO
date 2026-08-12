@@ -13,14 +13,15 @@ internal static class OfficeProvenanceXmp {
     private static readonly XNamespace RdfNamespace = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string VocabularyPrefix = "http://cv.iptc.org/newscodes/digitalsourcetype/";
 
-    internal static void Inspect(byte[] packet, OfficeProvenanceOptions options, OfficeProvenanceContext context, string location) {
+    internal static void Inspect(byte[] packet, OfficeProvenanceOptions options, OfficeProvenanceContext context, string location,
+        bool carrierIsStructurallyValid = true) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return;
         int index = 0;
         foreach (XmpValue value in FindValues(document)) {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.IptcDigitalSourceType,
                 $"{location}/DigitalSourceType[{index++}]",
-                isStructurallyValid: value.Kind != OfficeProvenanceDigitalSourceKind.Unknown,
+                isStructurallyValid: carrierIsStructurallyValid && value.Kind != OfficeProvenanceDigitalSourceKind.Unknown,
                 value: value.Value,
                 digitalSourceKind: value.Kind));
         }
@@ -41,8 +42,8 @@ internal static class OfficeProvenanceXmp {
             bool remove = value.Kind == OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia ||
                 value.Kind == OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia;
             if (remove) {
-                if (value.Attribute != null) value.Attribute.Remove();
-                else value.Element?.Remove();
+                if (value.Element != null) value.Element.Remove();
+                else value.Attribute?.Remove();
                 changes.Add(new OfficeProvenanceChange(
                     OfficeProvenanceCarrierKind.IptcDigitalSourceType,
                     $"{location}/DigitalSourceType[{index}]",
@@ -84,7 +85,7 @@ internal static class OfficeProvenanceXmp {
             if (element.Name.NamespaceName == IptcNamespace && element.Name.LocalName == "DigitalSourceType") {
                 XAttribute? resource = element.Attribute(RdfNamespace + "resource");
                 string value = resource?.Value ?? element.Value;
-                yield return new XmpValue(value, Classify(value), resource, resource == null ? element : null);
+                yield return new XmpValue(value, Classify(value), resource, element);
             }
             foreach (XAttribute attribute in element.Attributes()) {
                 if (attribute.Name.NamespaceName == IptcNamespace && attribute.Name.LocalName == "DigitalSourceType") {

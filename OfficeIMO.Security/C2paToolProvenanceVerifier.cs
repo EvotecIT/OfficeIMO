@@ -88,6 +88,14 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             var findings = new List<string>();
             CollectValidationFindings(document.RootElement, findings);
             if (string.IsNullOrWhiteSpace(activeManifest)) {
+                if (findings.Count > 0) {
+                    bool onlyNoManifestTrustFailures = findings.All(IsTrustFinding);
+                    return Result(
+                        onlyNoManifestTrustFailures ? OfficeProvenanceVerificationStatus.Untrusted : OfficeProvenanceVerificationStatus.Invalid,
+                        findings,
+                        process.StandardOutput,
+                        options);
+                }
                 if (process.ExitCode != 0 && findings.Count == 0) {
                     findings.Add(string.IsNullOrWhiteSpace(process.StandardError)
                         ? $"c2patool exited with code {process.ExitCode}."

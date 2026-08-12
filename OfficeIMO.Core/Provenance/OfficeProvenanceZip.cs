@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 
 namespace OfficeIMO.Provenance;
 
@@ -46,7 +47,7 @@ internal static class OfficeProvenanceZip {
                 OfficeProvenanceReport nested = OfficeProvenanceInspector.InspectCore(asset, entry.FullName, CreateNestedOptions(options));
                 foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entry.FullName, evidence));
                 foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entry.FullName}: {diagnostic}");
-            } catch (InvalidDataException exception) {
+            } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
                 context.Diagnostics.Add($"ZIP/{entry.FullName}: embedded asset was preserved because inspection failed: {exception.Message}");
             }
         }
@@ -95,7 +96,7 @@ internal static class OfficeProvenanceZip {
                     changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", change.RemovedBytes));
                 }
                 if (nested.WasReserialized) reserialized = true;
-            } catch (InvalidDataException) {
+            } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
             }
         }

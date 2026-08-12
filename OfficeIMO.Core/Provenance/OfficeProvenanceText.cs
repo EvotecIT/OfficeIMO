@@ -219,12 +219,14 @@ internal static class OfficeProvenanceText {
 
     private static bool IsAsciiWhitespace(byte value) => value is 0x09 or 0x0A or 0x0D or 0x20;
     private static int FindLineStart(byte[] data, int offset) {
-        while (offset > 0 && data[offset - 1] != 0x0A) offset--;
+        while (offset > 0 && data[offset - 1] != 0x0A && data[offset - 1] != 0x0D) offset--;
         return offset;
     }
     private static int FindLineEndIncludingTerminator(byte[] data, int offset) {
-        while (offset < data.Length && data[offset] != 0x0A) offset++;
-        return offset < data.Length ? offset + 1 : offset;
+        while (offset < data.Length && data[offset] != 0x0A && data[offset] != 0x0D) offset++;
+        if (offset >= data.Length) return offset;
+        if (data[offset] == 0x0D && offset + 1 < data.Length && data[offset + 1] == 0x0A) return offset + 2;
+        return offset + 1;
     }
     private static bool IsStandaloneDelimiter(byte[] data, int offset, int length) {
         int lineStart = FindLineStart(data, offset);

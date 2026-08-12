@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Xml;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Provenance;
@@ -87,21 +88,33 @@ public static class OfficeProvenanceInspector {
             if (version == 42 || version == 43) return OfficeProvenanceAssetFormat.Tiff;
         }
         if (OfficeProvenanceZip.HasSignature(data)) return OfficeProvenanceAssetFormat.ZipPackage;
+        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (LooksLikeSvg(data, fileName)) return OfficeProvenanceAssetFormat.Svg;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;
-        if (OfficeProvenanceText.HasStructuredDelimiter(data) || HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
+        if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
         return OfficeProvenanceAssetFormat.Unknown;
     }
 
     private static bool LooksLikeSvg(byte[] data, string? fileName) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return true;
-        int length = Math.Min(data.Length, 4096);
-        if (length == 0) return false;
+        if (data.Length == 0) return false;
         try {
-            string prefix = System.Text.Encoding.UTF8.GetString(data, 0, length);
-            return prefix.IndexOf("<svg", StringComparison.OrdinalIgnoreCase) >= 0;
-        } catch (ArgumentException) {
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = data.LongLength,
+                MaxCharactersFromEntities = 0
+            };
+            using var stream = new MemoryStream(data, writable: false);
+            using XmlReader reader = XmlReader.Create(stream, settings);
+            while (reader.Read()) {
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                return reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase) &&
+                    reader.NamespaceURI.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal);
+            }
+            return false;
+        } catch (XmlException) {
             return false;
         }
     }

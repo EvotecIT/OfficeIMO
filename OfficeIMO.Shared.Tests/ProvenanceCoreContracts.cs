@@ -41,6 +41,24 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void JpegCanRemoveRecognizableMalformedApp11SequenceWhenExplicitlyRequested() {
+        byte[] malformedPayload = { 0x4A, 0x50, 0, 7, 0, 0, 0, 1, 1, 2, 3 };
+        byte[] app11 = CreateJpegSegment(0xEB, malformedPayload);
+        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, app11, new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        OfficeProvenanceRemovalResult preserved = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+        OfficeProvenanceRemovalResult removed = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg", new OfficeProvenanceRemovalOptions {
+            RequireStructurallyValidCarrier = false
+        });
+
+        Assert.Single(report.Evidence);
+        Assert.False(report.Evidence[0].IsStructurallyValid);
+        Assert.Equal(jpeg, preserved.ToArray());
+        Assert.Equal(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, removed.ToArray());
+    }
+
+    [Fact]
     public void PngRemovesCabxAndPreservesEveryOtherChunkByteForByte() {
         byte[] manifest = CreateManifestStore();
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
@@ -73,6 +91,19 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void PngPreservesManifestStoreWithTrailingCarrierBytesByDefault() {
+        byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] cabx = CreatePngChunk("caBX", Join(CreateManifestStore(), new byte[] { 1, 2, 3 }));
+        byte[] png = Join(header, cabx, CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
+
+        Assert.Single(result.Before.Evidence);
+        Assert.False(result.Before.Evidence[0].IsStructurallyValid);
+        Assert.Equal(png, result.ToArray());
+    }
+
+    [Fact]
     public void WebpRemovesC2paChunkAndRecomputesRiffLength() {
         byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
         byte[] c2pa = CreateRiffChunk("C2PA", CreateManifestStore());
@@ -83,6 +114,21 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.Equal(expected, result.ToArray());
         Assert.Equal(expected.Length - 8, BitConverter.ToInt32(expected, 4));
+    }
+
+    [Fact]
+    public void WebpRiffLengthExcludesPreservedSuffixAfterRemoval() {
+        byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
+        byte[] suffix = Encoding.ASCII.GetBytes("suffix");
+        byte[] webp = Join(CreateWebp(keep, CreateRiffChunk("C2PA", CreateManifestStore())), suffix);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");
+        byte[] expectedContainer = CreateWebp(keep);
+        byte[] output = result.ToArray();
+
+        Assert.Equal(Join(expectedContainer, suffix), output);
+        Assert.Equal(expectedContainer.Length - 8, BitConverter.ToInt32(output, 4));
+        Assert.Empty(result.After.Evidence);
     }
 
     [Fact]
@@ -228,6 +274,18 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void ZipPreservesMalformedEmbeddedSvgAndReportsADiagnostic() {
+        byte[] malformedSvg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><broken></svg>");
+        byte[] package = CreateZip(("word/media/image1.svg", malformedSvg));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(package, "fixture.docx");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.docx");
+
+        Assert.Contains(report.Diagnostics, item => item.Contains("embedded asset was preserved", StringComparison.Ordinal));
+        Assert.Equal(package, result.ToArray());
+    }
+
+    [Fact]
     public void ZipSignedPackageBlocksOnlyWhenARequestedMutationExists() {
         byte[] signedClean = CreateZip(
             ("_xmlsignatures/sig1.xml", Encoding.UTF8.GetBytes("<signature/>")),
@@ -263,6 +321,20 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.Equal("before\nafter\n", Encoding.UTF8.GetString(result.ToArray()));
         Assert.Single(result.Changes);
+    }
+
+    [Fact]
+    public void StructuredTextExtensionWinsOverSvgTextAndHandlesLoneCarriageReturns() {
+        string block = "-----BEGIN C2PA MANIFEST-----\r" +
+            "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\r" +
+            "-----END C2PA MANIFEST-----\r";
+        byte[] text = Encoding.UTF8.GetBytes("literal <svg example\r" + block + "after\r");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(text, "fixture.md");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(text, "fixture.md");
+
+        Assert.Equal(OfficeProvenanceAssetFormat.StructuredText, report.Format);
+        Assert.Equal("literal <svg example\rafter\r", Encoding.UTF8.GetString(result.ToArray()));
     }
 
     [Fact]
@@ -321,6 +393,7 @@ public sealed class ProvenanceCoreContracts {
         Assert.Contains(result.After.Evidence, item => item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.DigitalCapture);
         Assert.Contains(result.Changes, item => item.Carrier == OfficeProvenanceCarrierKind.IptcDigitalSourceType);
         Assert.True(result.WasReserialized);
+        Assert.Single(result.After.Evidence);
     }
 
     [Fact]
@@ -335,6 +408,21 @@ public sealed class ProvenanceCoreContracts {
         Assert.False(result.After.HasGenerativeAiDeclaration);
         Assert.True(result.WasReserialized);
         Assert.Contains(result.After.Evidence, item => item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.DigitalCapture);
+    }
+
+    [Fact]
+    public void PngXmpWithInvalidCrcIsReportedAndPreservedByDefault() {
+        byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] prefix = Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"), new byte[] { 0, 0, 0, 0, 0 });
+        byte[] xmp = CreatePngChunk("iTXt", Join(prefix, CreateXmpPacket()));
+        xmp[xmp.Length - 1] ^= 0x01;
+        byte[] png = Join(header, xmp, CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
+
+        Assert.Contains(result.Before.Evidence, item => !item.IsStructurallyValid);
+        Assert.Equal(png, result.ToArray());
+        Assert.False(result.WasChanged);
     }
 
     [Fact]

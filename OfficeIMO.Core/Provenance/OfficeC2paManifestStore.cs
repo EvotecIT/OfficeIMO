@@ -12,7 +12,7 @@ internal static class OfficeC2paManifestStore {
         storeLength = 0;
         if (offset < 0 || availableLength < 0 || offset > data.Length - availableLength || availableLength < 38) return false;
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
-            type != "jumb" || declaredLength > (ulong)maximumBytes || declaredLength > (ulong)availableLength || declaredLength > int.MaxValue) {
+            type != "jumb" || declaredLength > (ulong)maximumBytes || declaredLength != (ulong)availableLength || declaredLength > int.MaxValue) {
             return false;
         }
 

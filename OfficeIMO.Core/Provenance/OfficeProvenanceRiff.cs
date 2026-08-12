@@ -15,8 +15,11 @@ internal static class OfficeProvenanceRiff {
         using var output = new MemoryStream(data.Length);
         output.Write(data, 0, 12);
         reserialized = Walk(data, options.Limits, context: null, output, options, changes);
+        int sourceDeclaredEnd = checked((int)(8L + OfficeProvenanceBinary.ReadUInt32(data, 4, littleEndian: true)));
+        int suffixLength = data.Length - sourceDeclaredEnd;
         byte[] result = output.ToArray();
-        OfficeProvenanceBinary.WriteUInt32(result, 4, (uint)(result.Length - 8), littleEndian: true);
+        int rewrittenDeclaredEnd = result.Length - suffixLength;
+        OfficeProvenanceBinary.WriteUInt32(result, 4, (uint)(rewrittenDeclaredEnd - 8), littleEndian: true);
         return result;
     }
 

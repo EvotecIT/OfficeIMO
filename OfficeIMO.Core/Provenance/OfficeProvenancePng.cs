@@ -52,11 +52,13 @@ internal static class OfficeProvenancePng {
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength)) {
+                bool carrierValid = HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
                 string location = $"PNG/iTXt-XMP@{offset}";
-                if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+                if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                 if (output != null && removalOptions != null && changes != null &&
+                    (carrierValid || !removalOptions.RequireStructurallyValidCarrier) &&
                     OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, changes, out byte[] cleaned)) {
                     int prefixLength = packetOffset - (offset + 8);
                     byte[] rewrittenPayload = new byte[prefixLength + cleaned.Length];

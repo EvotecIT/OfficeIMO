@@ -78,14 +78,16 @@ internal static class OfficeProvenanceJpeg {
                     continue;
                 }
 
-                if (marker == 0xEB && TryGetSequenceEnd(data, segmentStart, payloadOffset, payloadLength, options, out int sequenceEnd, out int manifestLength)) {
+                if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options,
+                    out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
                         OfficeProvenanceCarrierKind.C2paManifest,
                         location,
-                        isStructurallyValid: true,
+                        structurallyValid,
                         payloadLength: manifestLength));
-                    if (output != null && removalOptions != null && changes != null && removalOptions.RemoveC2paManifests) {
+                    if (output != null && removalOptions != null && changes != null && removalOptions.RemoveC2paManifests &&
+                        (structurallyValid || !removalOptions.RequireStructurallyValidCarrier)) {
                         changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, sequenceEnd - segmentStart));
                     } else {
                         output?.Write(data, segmentStart, sequenceEnd - segmentStart);
@@ -118,44 +120,45 @@ internal static class OfficeProvenanceJpeg {
         output.Write(payload, 0, payload.Length);
     }
 
-    private static bool TryGetSequenceEnd(
+    private static bool TryGetC2paSequence(
         byte[] data,
         int segmentStart,
         int payloadOffset,
         int payloadLength,
         OfficeProvenanceOptions options,
         out int sequenceEnd,
-        out int manifestLength) {
+        out int manifestLength,
+        out bool structurallyValid) {
         sequenceEnd = segmentStart;
         manifestLength = 0;
-        if (payloadLength < 16 || data[payloadOffset] != 0x4A || data[payloadOffset + 1] != 0x50 ||
+        structurallyValid = false;
+        if (payloadLength < 8 || data[payloadOffset] != 0x4A || data[payloadOffset + 1] != 0x50 ||
             OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false) != 1) return false;
         int firstFragmentLength = payloadLength - 8;
-        if (!OfficeC2paManifestStore.IsValid(data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out int declaredManifestLength)) {
-            // The first APP11 fragment frequently contains only the beginning of a larger JUMBF box.
-            if (!TryReadDeclaredJumbfLength(data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out declaredManifestLength) ||
-                !HasC2paDescriptionPrefix(data, payloadOffset + 8, firstFragmentLength)) return false;
-        }
+        bool completeFirstFragment = OfficeC2paManifestStore.IsValid(
+            data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out int declaredManifestLength);
+        bool hasDeclaredLength = completeFirstFragment ||
+            (TryReadDeclaredJumbfLength(data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out declaredManifestLength) &&
+             HasC2paDescriptionPrefix(data, payloadOffset + 8, firstFragmentLength));
 
         long collected = firstFragmentLength;
         int current = payloadOffset + payloadLength;
         byte instanceHigh = data[payloadOffset + 2];
         byte instanceLow = data[payloadOffset + 3];
         uint expectedSequence = 2;
-        while (collected < declaredManifestLength) {
+        while (!completeFirstFragment && (!hasDeclaredLength || collected < declaredManifestLength)) {
             if (!TryReadMarker(data, current, out byte marker, out int nextPayloadOffset, out int nextPayloadLength, out int nextEnd) ||
                 marker != 0xEB || nextPayloadLength < 8 ||
                 data[nextPayloadOffset] != 0x4A || data[nextPayloadOffset + 1] != 0x50 ||
                 data[nextPayloadOffset + 2] != instanceHigh || data[nextPayloadOffset + 3] != instanceLow ||
-                OfficeProvenanceBinary.ReadUInt32(data, nextPayloadOffset + 4, littleEndian: false) != expectedSequence) return false;
+                OfficeProvenanceBinary.ReadUInt32(data, nextPayloadOffset + 4, littleEndian: false) != expectedSequence) break;
             collected += nextPayloadLength - 8L;
-            if (collected > declaredManifestLength) return false;
             current = nextEnd;
             expectedSequence++;
         }
-        if (collected != declaredManifestLength) return false;
         sequenceEnd = current;
-        manifestLength = declaredManifestLength;
+        manifestLength = hasDeclaredLength ? declaredManifestLength : checked((int)Math.Min(collected, int.MaxValue));
+        structurallyValid = hasDeclaredLength && collected == declaredManifestLength;
         return true;
     }
 

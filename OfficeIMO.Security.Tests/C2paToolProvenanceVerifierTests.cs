@@ -10,6 +10,8 @@ public sealed class C2paToolProvenanceVerifierTests {
     [InlineData("{\"active_manifest\":null,\"manifests\":{}}", 0, OfficeProvenanceVerificationStatus.NotPresent)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"signingCredential.untrusted\"}]}", 0, OfficeProvenanceVerificationStatus.Untrusted)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}]}", 0, OfficeProvenanceVerificationStatus.Invalid)]
+    [InlineData("{\"active_manifest\":null,\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}]}", 0, OfficeProvenanceVerificationStatus.Invalid)]
+    [InlineData("{\"active_manifest\":null,\"validation_status\":[{\"code\":\"signingCredential.untrusted\"}]}", 0, OfficeProvenanceVerificationStatus.Untrusted)]
     [InlineData("not-json", 1, OfficeProvenanceVerificationStatus.Error)]
     public void VerifyNormalizesBoundedToolReports(string report, int exitCode, OfficeProvenanceVerificationStatus expected) {
         string assetPath = CreateAsset();
