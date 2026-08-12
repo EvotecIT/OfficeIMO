@@ -61,6 +61,25 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void WebpChunkCountIsBoundedBeforeCarrierProcessing() {
+        byte[] webp = CreateWebp(
+            CreateRiffChunk("VP8 ", Array.Empty<byte>()),
+            CreateRiffChunk("VP8 ", Array.Empty<byte>()),
+            CreateRiffChunk("VP8 ", Array.Empty<byte>()));
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 2;
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            webp,
+            "fixture.webp",
+            new OfficeProvenanceOptions { MaxContainerEntries = 2 }));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(
+            webp,
+            "fixture.webp",
+            removalOptions));
+    }
+
+    [Fact]
     public void MalformedOversizedTextWrapperIsRemovedAsOneCompleteRun() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
         byte[] suffix = Encoding.UTF8.GetBytes("tail");
@@ -178,6 +197,8 @@ public sealed class ProvenanceReviewRegressionContracts {
 
     [Fact]
     public void ZipRewritePreservesExternalAttributes() {
+        byte[] localExtraField = { 0xFE, 0xCA, 0x03, 0x00, 0x10, 0x20, 0x30 };
+        byte[] centralExtraField = { 0xFE, 0xCA, 0x02, 0x00, 0x40, 0x50 };
         byte[] package;
         using (var stream = new MemoryStream()) {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
@@ -187,7 +208,8 @@ public sealed class ProvenanceReviewRegressionContracts {
                 script.ExternalAttributes = unchecked((int)0x81ED0000);
                 using (Stream target = script.Open()) WriteAll(target, Encoding.UTF8.GetBytes("#!/bin/sh\n"));
             }
-            package = AddCentralDirectoryComment(stream.ToArray(), "bin/run.sh", Encoding.UTF8.GetBytes("keep-comment"));
+            package = AddEntryExtraFields(stream.ToArray(), "bin/run.sh", localExtraField, centralExtraField);
+            package = AddCentralDirectoryComment(package, "bin/run.sh", Encoding.UTF8.GetBytes("keep-comment"));
             package = AddArchiveComment(package, Encoding.UTF8.GetBytes("keep-archive-comment"));
         }
 
@@ -199,6 +221,8 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.Equal(unchecked((int)0x81ED0000), rewritten.GetEntry("bin/run.sh")!.ExternalAttributes);
         int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "bin/run.sh");
         Assert.Equal(3, result.ToArray()[centralHeader + 5]);
+        Assert.Equal(localExtraField, ReadLocalExtraField(result.ToArray(), centralHeader));
+        Assert.Equal(centralExtraField, ReadCentralExtraField(result.ToArray(), centralHeader));
         Assert.Equal("keep-comment", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
         Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(result.ToArray())));
     }
@@ -413,6 +437,22 @@ public sealed class ProvenanceReviewRegressionContracts {
         CreatePngChunk("caBX", manifest),
         CreatePngChunk("IEND", Array.Empty<byte>()));
 
+    private static byte[] CreateWebp(params byte[][] chunks) {
+        byte[] result = Join(new byte[12], Join(chunks));
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
+        WriteLittleEndian(result, 4, (uint)(result.Length - 8));
+        Encoding.ASCII.GetBytes("WEBP").CopyTo(result, 8);
+        return result;
+    }
+
+    private static byte[] CreateRiffChunk(string type, byte[] payload) {
+        byte[] chunk = new byte[8 + payload.Length + (payload.Length & 1)];
+        Encoding.ASCII.GetBytes(type).CopyTo(chunk, 0);
+        WriteLittleEndian(chunk, 4, (uint)payload.Length);
+        Buffer.BlockCopy(payload, 0, chunk, 8, payload.Length);
+        return chunk;
+    }
+
     private static byte[] CreatePngChunk(string type, byte[] payload) {
         byte[] typeBytes = Encoding.ASCII.GetBytes(type);
         byte[] chunk = new byte[12 + payload.Length];
@@ -484,6 +524,51 @@ public sealed class ProvenanceReviewRegressionContracts {
         uint centralSize = BitConverter.ToUInt32(updated, updatedEndOffset + 12);
         WriteLittleEndian(updated, updatedEndOffset + 12, checked(centralSize + (uint)comment.Length));
         return updated;
+    }
+
+    private static byte[] AddEntryExtraFields(
+        byte[] package,
+        string entryName,
+        byte[] localExtraField,
+        byte[] centralExtraField) {
+        int centralHeader = FindSignature(package, 0x02014B50u, entryName);
+        int localHeader = checked((int)BitConverter.ToUInt32(package, centralHeader + 42));
+        Assert.Equal(0x04034B50u, BitConverter.ToUInt32(package, localHeader));
+        int localNameLength = BitConverter.ToUInt16(package, localHeader + 26);
+        Assert.Equal(0, BitConverter.ToUInt16(package, localHeader + 28));
+        int centralNameLength = BitConverter.ToUInt16(package, centralHeader + 28);
+        Assert.Equal(0, BitConverter.ToUInt16(package, centralHeader + 30));
+        int localInsertOffset = localHeader + 30 + localNameLength;
+        int centralInsertOffset = centralHeader + 46 + centralNameLength;
+        int endOffset = FindEndOfCentralDirectory(package);
+        byte[] updated = new byte[package.Length + localExtraField.Length + centralExtraField.Length];
+        Buffer.BlockCopy(package, 0, updated, 0, localInsertOffset);
+        Buffer.BlockCopy(localExtraField, 0, updated, localInsertOffset, localExtraField.Length);
+        Buffer.BlockCopy(package, localInsertOffset, updated, localInsertOffset + localExtraField.Length, centralInsertOffset - localInsertOffset);
+        Buffer.BlockCopy(centralExtraField, 0, updated, centralInsertOffset + localExtraField.Length, centralExtraField.Length);
+        Buffer.BlockCopy(package, centralInsertOffset, updated, centralInsertOffset + localExtraField.Length + centralExtraField.Length, package.Length - centralInsertOffset);
+        WriteLittleEndian16(updated, localHeader + 28, checked((ushort)localExtraField.Length));
+        int updatedCentralHeader = centralHeader + localExtraField.Length;
+        WriteLittleEndian16(updated, updatedCentralHeader + 30, checked((ushort)centralExtraField.Length));
+        int updatedEndOffset = endOffset + localExtraField.Length + centralExtraField.Length;
+        uint centralSize = BitConverter.ToUInt32(updated, updatedEndOffset + 12);
+        uint centralOffset = BitConverter.ToUInt32(updated, updatedEndOffset + 16);
+        WriteLittleEndian(updated, updatedEndOffset + 12, checked(centralSize + (uint)centralExtraField.Length));
+        WriteLittleEndian(updated, updatedEndOffset + 16, checked(centralOffset + (uint)localExtraField.Length));
+        return updated;
+    }
+
+    private static byte[] ReadLocalExtraField(byte[] package, int centralHeader) {
+        int localHeader = checked((int)BitConverter.ToUInt32(package, centralHeader + 42));
+        int nameLength = BitConverter.ToUInt16(package, localHeader + 26);
+        int extraLength = BitConverter.ToUInt16(package, localHeader + 28);
+        return package.AsSpan(localHeader + 30 + nameLength, extraLength).ToArray();
+    }
+
+    private static byte[] ReadCentralExtraField(byte[] package, int centralHeader) {
+        int nameLength = BitConverter.ToUInt16(package, centralHeader + 28);
+        int extraLength = BitConverter.ToUInt16(package, centralHeader + 30);
+        return package.AsSpan(centralHeader + 46 + nameLength, extraLength).ToArray();
     }
 
     private static byte[] ReadCentralDirectoryComment(byte[] package, int centralHeader) {

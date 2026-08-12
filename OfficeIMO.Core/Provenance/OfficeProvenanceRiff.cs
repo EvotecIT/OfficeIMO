@@ -38,7 +38,11 @@ internal static class OfficeProvenanceRiff {
         if (declaredEndValue < 12 || declaredEndValue > data.Length) throw new InvalidDataException("RIFF size exceeds the asset bounds.");
         int declaredEnd = (int)declaredEndValue;
         int offset = 12;
+        int chunkCount = 0;
         while (offset < declaredEnd) {
+            if (++chunkCount > options.MaxContainerEntries) {
+                throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            }
             if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
             if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");
