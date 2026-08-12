@@ -217,8 +217,14 @@ internal static partial class PdfAcroFormEditor {
             : null;
         if (appearances is null) {
             appearances = new PdfDictionary();
-            widget.Items["AP"] = appearances;
+        } else {
+            var detachedAppearances = new PdfDictionary();
+            foreach (KeyValuePair<string, PdfObject> item in appearances.Items) {
+                detachedAppearances.Items[item.Key] = item.Value;
+            }
+            appearances = detachedAppearances;
         }
+        widget.Items["AP"] = appearances;
         appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
     }
 
@@ -231,7 +237,14 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {
-        EditableField field = RequireField(objects, fields, name); field.Dictionary.Items["Ff"] = new PdfNumber(flags);
+        EditableField field = RequireField(objects, fields, name);
+        int previousFlags = ReadInheritedFieldFlags(objects, field.Dictionary);
+        if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+            (previousFlags & FieldFlagPushButton) != 0 &&
+            (flags & FieldFlagPushButton) == 0) {
+            throw new NotSupportedException("Clearing the push-button flag is not supported because it changes the field's button semantics.");
+        }
+        field.Dictionary.Items["Ff"] = new PdfNumber(flags);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {
             refillValues.Remove(name);
             return;

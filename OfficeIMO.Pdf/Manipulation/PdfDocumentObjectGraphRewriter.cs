@@ -48,7 +48,8 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         if (reachableObjectNumbers.Any(objectNumber =>
                 objects[objectNumber].Value is PdfStream stream &&
-                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType")) {
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") &&
+            !CatalogDeclaresAtLeastPdf16(root.Value as PdfDictionary, objects)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
         }
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
@@ -59,6 +60,36 @@ internal static class PdfDocumentObjectGraphRewriter {
             rewrittenInfoObjectNumber,
             fileVersion,
             outputEncryption);
+    }
+
+    private static bool CatalogDeclaresAtLeastPdf16(
+        PdfDictionary? catalog,
+        Dictionary<int, PdfIndirectObject> objects) {
+        string? version = catalog != null &&
+            catalog.Items.TryGetValue("Version", out PdfObject? versionObject) &&
+            TryResolveReferenceChain(objects, versionObject, out PdfObject? resolvedVersion) &&
+            resolvedVersion is PdfName versionName
+                ? versionName.Name
+                : null;
+        return version == "1.6" || version == "1.7" || version == "2.0";
+    }
+
+    private static bool TryResolveReferenceChain(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        out PdfObject? resolved) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Generation != reference.Generation) {
+                resolved = null;
+                return false;
+            }
+            resolved = indirect.Value;
+        }
+        return true;
     }
 
     private static int RequireRootObjectNumber(

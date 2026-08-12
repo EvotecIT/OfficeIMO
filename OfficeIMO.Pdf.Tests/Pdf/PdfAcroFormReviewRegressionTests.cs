@@ -114,6 +114,50 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Move_DetachesSharedPushButtonAppearanceDictionary() {
+        byte[] source = BuildSharedPushButtonAppearancePdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.Move("first", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary first = RequireNamedField(objects, "first");
+        PdfDictionary second = RequireNamedField(objects, "second");
+        PdfDictionary firstAppearances = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, first.Items["AP"]));
+        PdfDictionary secondAppearances = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, second.Items["AP"]));
+        PdfStream firstNormal = Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, firstAppearances.Items["N"]));
+        PdfStream secondNormal = Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, secondAppearances.Items["N"]));
+
+        Assert.Equal(new[] { 0D, 0D, 180D, 40D }, Assert.IsType<PdfArray>(firstNormal.Dictionary.Items["BBox"]).Items.Cast<PdfNumber>().Select(number => number.Value));
+        Assert.Equal(new[] { 0D, 0D, 100D, 20D }, Assert.IsType<PdfArray>(secondNormal.Dictionary.Items["BBox"]).Items.Cast<PdfNumber>().Select(number => number.Value));
+    }
+
+    [Fact]
+    public void Edit_RejectsClearingPushButtonSemanticFlag() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button flags")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "run",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Run"
+        })).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(authored).Forms.Edit(edit => edit.SetFlags("run", 0)));
+
+        Assert.Contains("push-button flag", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AttachmentEdit_PreservesHeaderWhenCatalogAlreadyDeclaresOpenTypeVersion() {
+        byte[] source = BuildCatalogVersionedOpenTypePdf();
+
+        byte[] output = PdfAttachmentEditor.Add(source, new PdfEmbeddedFile("note.txt", Encoding.UTF8.GetBytes("note"))).ToBytes();
+
+        Assert.StartsWith("%PDF-1.4", PdfEncoding.Latin1GetString(output), StringComparison.Ordinal);
+        Assert.Equal("1.6", PdfInspector.Inspect(output).CatalogVersion);
+        Assert.Single(PdfAttachmentExtractor.ExtractAttachments(output));
+    }
+
+    [Fact]
     public void RewritePreservation_ComparesPageActionContentsWhenPageCountsDiffer() {
         byte[] original = BuildPageActionPdf(pageCount: 2, "https://before.example/");
         byte[] rewritten = BuildPageActionPdf(pageCount: 1, "https://after.example/");
@@ -217,6 +261,39 @@ public class PdfAcroFormReviewRegressionTests {
             "6 2 obj", "<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /V (Ada) /Rect [20 20 120 40] /P 3 0 R >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));
+    }
+
+    private static byte[] BuildSharedPushButtonAppearancePdf() {
+        const string appearance = "BT (Shared) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R 7 0 R] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R 7 0 R] >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (first) /Rect [20 20 120 40] /P 3 0 R /MK << /CA (First) >> /AP 8 0 R >>", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (second) /Rect [20 60 120 80] /P 3 0 R /MK << /CA (Second) >> /AP 8 0 R >>", "endobj",
+            "8 0 obj", "<< /N 9 0 R >>", "endobj",
+            "9 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildCatalogVersionedOpenTypePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Version /1.6 /Pages 2 0 R /OfficeIMOFont 4 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>", "endobj",
+            "4 0 obj", "<< /Subtype /OpenType /Length 0 >>", "stream", "", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static PdfDictionary RequireNamedField(Dictionary<int, PdfIndirectObject> objects, string name) {
+        return Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfStringObj>("T")?.Value == name).Value);
     }
 
     private static byte[] BuildPageActionPdf(int pageCount, string uri) {
