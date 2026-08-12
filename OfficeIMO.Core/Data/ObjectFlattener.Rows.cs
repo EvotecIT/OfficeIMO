@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 namespace OfficeIMO.Data {
     /// <summary>
@@ -10,36 +11,172 @@ namespace OfficeIMO.Data {
         internal ObjectTableProjection FlattenRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
             IEnumerable<T> source,
             ObjectFlattenerOptions options,
-            string consumerName) {
+            string consumerName,
+            int headerRowCount,
+            bool enforceEmptyProjectionLimits = true,
+            int? renderedColumnCountForCellLimit = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
-
-            List<T> items = MaterializeRowsBounded(source, options, consumerName);
-            var rows = new List<Dictionary<string, object?>>(items.Count);
-            var discoveredColumns = new List<string>();
-            var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            if (items.Count == 0
-                && (options.Columns == null || options.Columns.Length == 0)
-                && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
-                discoveredColumns.AddRange(GetPaths(typeof(T), options));
+            options = options.CreateProjectionSnapshot();
+            if (headerRowCount < 0) throw new ArgumentOutOfRangeException(nameof(headerRowCount));
+            if (renderedColumnCountForCellLimit <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(renderedColumnCountForCellLimit));
+            }
+            ValidateLimits(options);
+            if (options.MaxRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRows),
+                    "MaxRows must be greater than zero.");
             }
 
-            foreach (T item in items) {
-                Dictionary<string, object?> row = Flatten(item, options);
+            int knownRowCount = source is IReadOnlyCollection<T> readOnlyCollection
+                ? readOnlyCollection.Count
+                : source is ICollection<T> collection
+                    ? collection.Count
+                    : 0;
+            if (knownRowCount > options.MaxRows) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
+            }
+
+            var rows = knownRowCount > 0
+                ? new List<Dictionary<string, object?>>(Math.Min(knownRowCount, 4096))
+                : new List<Dictionary<string, object?>>();
+            var discoveredColumns = new List<string>();
+            var discoveredColumnSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<string>? explicitColumns = null;
+            bool hasExplicitColumns = options.Columns != null && options.Columns.Length > 0;
+
+            void AddProjectedRow(T item) {
+                if (rows.Count >= options.MaxRows) {
+                    throw new InvalidDataException(
+                        $"{consumerName} exceeds the {options.MaxRows}-row materialization limit.");
+                }
+                if (hasExplicitColumns && explicitColumns == null) {
+                    explicitColumns = ResolveExplicitColumns(options, consumerName);
+                }
+
+                Dictionary<string, object?> row = FlattenPrepared(item, options);
                 rows.Add(row);
                 foreach (string path in row.Keys) {
                     if (!string.IsNullOrWhiteSpace(path) && discoveredColumnSet.Add(path)) {
+                        if (discoveredColumns.Count >= options.MaxColumns) {
+                            throw new InvalidDataException(
+                                $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+                        }
                         discoveredColumns.Add(path);
                     }
                 }
+                int materializedColumnCount = explicitColumns?.Count ?? discoveredColumns.Count;
+                EnsureTableCellLimit(
+                    rows.Count,
+                    GetRenderedColumnCount(materializedColumnCount, renderedColumnCountForCellLimit),
+                    headerRowCount,
+                    options,
+                    consumerName);
+                if (renderedColumnCountForCellLimit.HasValue) {
+                    EnsureIntermediateCellLimit(
+                        rows.Count,
+                        materializedColumnCount,
+                        headerRowCount,
+                        options,
+                        consumerName);
+                }
             }
 
-            IEnumerable<string> columnCandidates = options.Columns != null && options.Columns.Length > 0
-                ? options.Columns
-                : discoveredColumns;
-            List<string> columns = ResolvePaths(columnCandidates, options);
+            if (source is IReadOnlyList<T> readOnlyList) {
+                for (int index = 0; index < readOnlyList.Count; index++) {
+                    AddProjectedRow(readOnlyList[index]);
+                }
+            } else {
+                foreach (T item in source) AddProjectedRow(item);
+            }
+
+            if (rows.Count == 0) {
+                if (!enforceEmptyProjectionLimits) {
+                    return new ObjectTableProjection(rows, new List<string>());
+                }
+                if (hasExplicitColumns) {
+                    explicitColumns = ResolveExplicitColumns(options, consumerName);
+                } else if (!ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
+                    discoveredColumns.AddRange(GetPathsPrepared(typeof(T), options));
+                }
+            }
+
+            List<string> columns = explicitColumns ?? ResolvePathsPrepared(discoveredColumns, options);
+            if (columns.Count > options.MaxColumns) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+            }
+            EnsureTableCellLimit(
+                rows.Count,
+                GetRenderedColumnCount(columns.Count, renderedColumnCountForCellLimit),
+                headerRowCount,
+                options,
+                consumerName);
+            if (renderedColumnCountForCellLimit.HasValue) {
+                EnsureIntermediateCellLimit(rows.Count, columns.Count, headerRowCount, options, consumerName);
+            }
             return new ObjectTableProjection(rows, columns);
+        }
+
+        private static int GetRenderedColumnCount(int columnCount, int? renderedColumnCountForCellLimit) =>
+            renderedColumnCountForCellLimit.HasValue
+                ? Math.Min(columnCount, renderedColumnCountForCellLimit.Value)
+                : columnCount;
+
+        private static void EnsureIntermediateCellLimit(
+            int rowCount,
+            int columnCount,
+            int headerRowCount,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            long maximumIntermediateCells = Math.Max(options.MaxCells, ObjectFlattenerOptions.DefaultMaxCells);
+            long intermediateCells = ((long)rowCount + headerRowCount) * columnCount;
+            if (intermediateCells > maximumIntermediateCells) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {maximumIntermediateCells}-cell intermediate materialization limit.");
+            }
+        }
+
+        private List<string> ResolveExplicitColumns(
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            var explicitColumnCandidates = new List<string>(Math.Min(options.Columns!.Length, options.MaxColumns));
+            AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName);
+            return ResolvePathsPrepared(explicitColumnCandidates, options);
+        }
+
+        private static void AddExplicitColumnsBounded(
+            List<string> columns,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string column in options.Columns!) {
+                if (string.IsNullOrWhiteSpace(column) || !added.Add(column)) {
+                    continue;
+                }
+                if (!IsPathSelectedForMaterialization(column, options)) {
+                    continue;
+                }
+                if (columns.Count >= options.MaxColumns) {
+                    throw new InvalidDataException(
+                        $"{consumerName} exceeds the {options.MaxColumns}-column materialization limit.");
+                }
+                columns.Add(column);
+            }
+        }
+
+        private static void EnsureTableCellLimit(
+            int rowCount,
+            int columnCount,
+            int headerRowCount,
+            ObjectFlattenerOptions options,
+            string consumerName) {
+            long projectedCells = ((long)rowCount + headerRowCount) * columnCount;
+            if (projectedCells > options.MaxCells) {
+                throw new InvalidDataException(
+                    $"{consumerName} exceeds the {options.MaxCells}-cell materialization limit.");
+            }
         }
     }
 

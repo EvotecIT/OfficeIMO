@@ -357,4 +357,15 @@ public sealed class SpreadsheetNumberFormatSyntaxTests {
         Assert.Equal(scaleThousands, syntax.ScaleThousands);
         Assert.Equal(format, string.Concat(syntax.Tokens.Select(token => token.Text)));
     }
+
+    [Fact]
+    public void Parser_Classifies_Long_Comma_Run_In_One_Pass() {
+        string format = new string(',', 20_000) + "0";
+
+        SpreadsheetNumberFormatSyntax syntax = SpreadsheetNumberFormatSyntax.Parse(format);
+
+        Assert.True(syntax.UsesGrouping);
+        Assert.Equal(0, syntax.ScaleThousands);
+        Assert.Equal(20_001, syntax.Tokens.Count);
+    }
 }

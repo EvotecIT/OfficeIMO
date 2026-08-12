@@ -8,13 +8,20 @@ internal static class PdfImageMaskNormalizer {
         int height,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
             !IsImageMask(stream, objects) ||
-            !PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 2, out _, out int scanlineBytes) ||
-            !TryReadDecodedStreamBytes(stream, objects, out var maskPixels)) {
+            !PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                2,
+                maxDecodedStreamBytes,
+                out _,
+                out int scanlineBytes) ||
+            !TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out var maskPixels)) {
             return false;
         }
 
@@ -34,7 +41,9 @@ internal static class PdfImageMaskNormalizer {
             return false;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
+        if (!PdfImageDecodeTransform.TryCreateIndexed(stream.Dictionary, objects, out PdfImageDecodeTransform? decodeTransform)) {
+            return false;
+        }
         byte[] scanlines = new byte[scanlineBytes];
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
@@ -72,8 +81,9 @@ internal static class PdfImageMaskNormalizer {
     private static bool TryReadDecodedStreamBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] bytes) {
-        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maxDecodedStreamBytes) && bytes.Length > 0;
     }
 
     private static int ReadMaskSample(byte[] maskPixels, int rowOffset, int pixelIndex) {

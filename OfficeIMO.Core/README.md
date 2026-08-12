@@ -62,7 +62,8 @@ if (profile?.HasOutputTransform == true &&
 }
 ```
 
-The managed contract accepts bounded RGB and Gray matrix/TRC input profiles plus intent-invariant A2B0
+The managed contract accepts bounded RGB and Gray matrix/TRC input-device and display-device profiles
+plus intent-invariant A2B0
 LUT transforms: RGB or CMYK LUT8 with a Lab profile connection space, and RGB or CMYK LUT16 with an
 XYZ or Lab profile connection space. It also accepts bounded ICC v4 RGB and CMYK A2B `mAB` input
 transforms and B2A `mBA` output transforms using the specification-defined curve, variable-grid CLUT,

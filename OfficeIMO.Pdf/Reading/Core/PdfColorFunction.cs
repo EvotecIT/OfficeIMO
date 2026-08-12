@@ -1,10 +1,12 @@
 namespace OfficeIMO.Pdf;
 
+internal delegate bool PdfColorFunctionEvaluator(double[] input, double[] output, int outputOffset);
+
 /// <summary>Immutable, bounded PDF function used by color spaces and shading projection.</summary>
 internal sealed class PdfColorFunction {
     private readonly double[] _domain;
     private readonly double[]? _range;
-    private readonly Func<double[], double[]?> _evaluateCore;
+    private readonly PdfColorFunctionEvaluator _evaluateCore;
     private readonly System.Collections.ObjectModel.ReadOnlyCollection<double> _breakpoints;
     private readonly System.Collections.ObjectModel.ReadOnlyCollection<double> _discontinuities;
 
@@ -13,7 +15,7 @@ internal sealed class PdfColorFunction {
         int outputCount,
         double[] domain,
         double[]? range,
-        Func<double[], double[]?> evaluateCore,
+        PdfColorFunctionEvaluator evaluateCore,
         IReadOnlyList<double>? breakpoints = null,
         IReadOnlyList<double>? discontinuities = null,
         int evaluationCost = 0) {
@@ -54,13 +56,22 @@ internal sealed class PdfColorFunction {
     internal IReadOnlyList<double> Discontinuities => _discontinuities;
 
     internal double[]? Evaluate(IReadOnlyList<double> values) {
-        if (values == null || values.Count < InputCount) return null;
+        var result = new double[OutputCount];
+        return TryEvaluate(values, result) ? result : null;
+    }
+
+    internal bool TryEvaluate(IReadOnlyList<double> values, double[] output) =>
+        TryEvaluate(values, output, 0);
+
+    internal bool TryEvaluate(IReadOnlyList<double> values, double[] output, int outputOffset) {
+        if (values == null || values.Count < InputCount || output == null ||
+            outputOffset < 0 || outputOffset > output.Length - OutputCount) return false;
 
         double[]? clipped = null;
         double[]? sourceArray = values as double[];
         for (int index = 0; index < InputCount; index++) {
             double value = values[index];
-            if (!IsFinite(value)) return null;
+            if (!IsFinite(value)) return false;
             double bounded = Clamp(value, _domain[index * 2], _domain[index * 2 + 1]);
             if (bounded == value && clipped == null) continue;
             if (clipped == null) {
@@ -70,16 +81,21 @@ internal sealed class PdfColorFunction {
             clipped[index] = bounded;
         }
 
-        double[] input = clipped ?? (sourceArray != null && sourceArray.Length == InputCount ? sourceArray : values.Take(InputCount).ToArray());
-        double[]? result = _evaluateCore(input);
-        if (result == null || result.Length != OutputCount || result.Any(static value => !IsFinite(value))) return null;
+        double[] input = clipped ?? (sourceArray != null && sourceArray.Length >= InputCount ? sourceArray : values.Take(InputCount).ToArray());
+        if (!_evaluateCore(input, output, outputOffset)) return false;
+        for (int index = 0; index < OutputCount; index++) {
+            if (!IsFinite(output[outputOffset + index])) return false;
+        }
         if (_range != null) {
-            for (int index = 0; index < result.Length; index++) {
-                result[index] = Clamp(result[index], _range[index * 2], _range[index * 2 + 1]);
+            for (int index = 0; index < OutputCount; index++) {
+                output[outputOffset + index] = Clamp(
+                    output[outputOffset + index],
+                    _range[index * 2],
+                    _range[index * 2 + 1]);
             }
         }
 
-        return result;
+        return true;
     }
 
     internal static double Interpolate(double value, double sourceStart, double sourceEnd, double targetStart, double targetEnd) {

@@ -22,6 +22,7 @@ public static partial class WordOpenDocumentConversionExtensions {
 
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, images = 0, unsupportedImages = 0, bookmarks = 0;
         int unsupportedFootnotes = 0, nestedListLevels = 0;
+        var imageValidationBudget = new OdfImageValidationBudget();
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
         IReadOnlyList<WordParagraphSnapshot> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
             ? EnumerateDefaultHeaderFooterParagraphs(snapshot.Sections[0]).ToList()
@@ -47,7 +48,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                             lists++;
                         }
                         OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
-                        CopyParagraph(paragraph, listParagraph, effective, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
+                        CopyParagraph(paragraph, listParagraph, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
                         if (paragraph.ListLevel > 0) nestedListLevels++;
                         paragraphs++;
                         continue;
@@ -57,12 +58,12 @@ public static partial class WordOpenDocumentConversionExtensions {
                     currentOrdered = null;
                     int headingLevel = GetHeadingLevel(paragraph);
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
-                    CopyParagraph(paragraph, converted, effective, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
+                    CopyParagraph(paragraph, converted, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
                     if (headingLevel > 0) headings++; else paragraphs++;
                 } else if (block is WordTableSnapshot table) {
                     currentList = null;
                     currentOrdered = null;
-                    ConvertTable(table, target, effective, ref hyperlinks, ref images, ref unsupportedImages,
+                    ConvertTable(table, target, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                         ref bookmarks, ref unsupportedFootnotes);
                     tables++;
                 }
@@ -72,9 +73,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         int headerFooterBlocks = snapshot.Sections.Sum(CountHeaderFooterBlocks);
         if (effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0) {
             WordSectionSnapshot first = snapshot.Sections[0];
-            CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header, effective, ref hyperlinks, ref images,
+            CopyHeaderFooter(first.DefaultHeader, target.PageLayout.Header, effective, imageValidationBudget, ref hyperlinks, ref images,
                 ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
-            CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer, effective, ref hyperlinks, ref images,
+            CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer, effective, imageValidationBudget, ref hyperlinks, ref images,
                 ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
             int firstDefaultTables = (first.DefaultHeader?.Tables.Count ?? 0) + (first.DefaultFooter?.Tables.Count ?? 0);
             if (firstDefaultTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstDefaultTables,
@@ -246,7 +247,8 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
+        ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, ref int unsupportedFootnotes) {
         bool wrote = false;
         foreach (WordRunSnapshot run in source.Runs) {
@@ -268,7 +270,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                     if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
                         bytes,
                         fileName,
-                        out string storedFileName)) {
+                        out string storedFileName,
+                        imageValidationBudget)) {
                         throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
                     }
                     target.AddImage(bytes, storedFileName,
@@ -445,7 +448,8 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static void ConvertTable(WordTableSnapshot source, OdtDocument targetDocument,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
+        ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, ref int unsupportedFootnotes) {
         int rows = Math.Max(1, source.RowCount);
         int columns = Math.Max(1, source.ColumnCount);
@@ -460,7 +464,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                     OdtParagraph targetParagraph = paragraphIndex == 0
                         ? targetCell.Paragraphs[0]
                         : targetCell.AddParagraph();
-                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, ref hyperlinks, ref images,
+                    CopyParagraph(cell.Paragraphs[paragraphIndex], targetParagraph, options, imageValidationBudget, ref hyperlinks, ref images,
                         ref unsupportedImages, ref bookmarks, ref unsupportedFootnotes);
                 }
                 int rowSpan = Math.Min(cell.RowSpan, rows - row.RowIndex);
@@ -506,11 +510,12 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static void CopyHeaderFooter(WordHeaderFooterSnapshot? source, OdtHeaderFooter target,
-        WordOpenDocumentConversionOptions options, ref int hyperlinks, ref int images, ref int unsupportedImages,
+        WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
+        ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, ref int unsupportedFootnotes) {
         if (source == null) return;
         foreach (WordParagraphSnapshot paragraph in source.Paragraphs) {
-            CopyParagraph(paragraph, target.AddParagraph(), options, ref hyperlinks, ref images, ref unsupportedImages,
+            CopyParagraph(paragraph, target.AddParagraph(), options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                 ref bookmarks, ref unsupportedFootnotes);
         }
     }

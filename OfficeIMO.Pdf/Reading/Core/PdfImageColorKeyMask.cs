@@ -15,7 +15,8 @@ internal sealed class PdfImageColorKeyMask {
         Dictionary<int, PdfIndirectObject> objects) {
         if (componentCount <= 0 ||
             !dictionary.Items.TryGetValue("Mask", out var maskObj) ||
-            PdfObjectLookup.ResolveChain(objects, maskObj) is not PdfArray maskArray ||
+            !PdfObjectLookup.TryResolveReferenceChain(objects, maskObj, out PdfObject? resolvedMask) ||
+            resolvedMask is not PdfArray maskArray ||
             maskArray.Items.Count < componentCount * 2) {
             return null;
         }
@@ -23,8 +24,10 @@ internal sealed class PdfImageColorKeyMask {
         var minimums = new int[componentCount];
         var maximums = new int[componentCount];
         for (int component = 0; component < componentCount; component++) {
-            if (PdfObjectLookup.ResolveChain(objects, maskArray.Items[component * 2]) is not PdfNumber minimum ||
-                PdfObjectLookup.ResolveChain(objects, maskArray.Items[component * 2 + 1]) is not PdfNumber maximum) {
+            if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2], out PdfObject? resolvedMinimum) ||
+                resolvedMinimum is not PdfNumber minimum ||
+                !PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2 + 1], out PdfObject? resolvedMaximum) ||
+                resolvedMaximum is not PdfNumber maximum) {
                 return null;
             }
 
@@ -42,8 +45,8 @@ internal sealed class PdfImageColorKeyMask {
         out PdfImageColorKeyMask? mask) {
         mask = null;
         if (!dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject)) return true;
-        PdfObject? resolvedMask = PdfObjectLookup.ResolveChain(objects, maskObject);
-        if (resolvedMask is null or PdfNull ||
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskObject, out PdfObject? resolvedMask)) return false;
+        if (resolvedMask is PdfNull ||
             resolvedMask is PdfName { Name: "None" } ||
             resolvedMask is PdfStream) {
             return true;
@@ -57,8 +60,10 @@ internal sealed class PdfImageColorKeyMask {
         var minimums = new int[componentCount];
         var maximums = new int[componentCount];
         for (int component = 0; component < componentCount; component++) {
-            if (PdfObjectLookup.ResolveChain(objects, maskArray.Items[component * 2]) is not PdfNumber minimum ||
-                PdfObjectLookup.ResolveChain(objects, maskArray.Items[component * 2 + 1]) is not PdfNumber maximum ||
+            if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2], out PdfObject? resolvedMinimum) ||
+                resolvedMinimum is not PdfNumber minimum ||
+                !PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2 + 1], out PdfObject? resolvedMaximum) ||
+                resolvedMaximum is not PdfNumber maximum ||
                 double.IsNaN(minimum.Value) ||
                 double.IsInfinity(minimum.Value) ||
                 double.IsNaN(maximum.Value) ||

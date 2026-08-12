@@ -516,7 +516,7 @@ public sealed partial class PdfReadPage {
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
 
         spans.AddRange(TextContentParser.Parse(
             content,
@@ -648,7 +648,7 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialFillColorSelection = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,

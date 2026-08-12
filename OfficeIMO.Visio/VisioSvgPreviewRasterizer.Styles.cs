@@ -13,6 +13,7 @@ namespace OfficeIMO.Visio {
             private const int MaximumStyleDeclarations = 100000;
             private const int MaximumStyleSelectors = 100000;
             private const int MaximumStyleRuleDeclarationCopies = 100000;
+            private const int MaximumStyleNestingDepth = 64;
             private readonly List<SvgStyleRule> _rules;
             private readonly List<SvgVisualEffectRule> _visualEffectRules;
             private readonly Dictionary<XElement, Dictionary<string, string>> _styleCache = new();
@@ -66,7 +67,8 @@ namespace OfficeIMO.Visio {
                         ref ruleDeclarationCopies,
                         cancellationToken,
                         ref parseBudgetExceeded,
-                        ref unsupportedConditionalRule);
+                        ref unsupportedConditionalRule,
+                        depth: 0);
                     if (parseBudgetExceeded) break;
                 }
 
@@ -119,8 +121,13 @@ namespace OfficeIMO.Visio {
                 ref int ruleDeclarationCopies,
                 CancellationToken cancellationToken,
                 ref bool budgetExceeded,
-                ref bool unsupportedConditionalRule) {
+                ref bool unsupportedConditionalRule,
+                int depth) {
                 if (string.IsNullOrWhiteSpace(css)) {
+                    return;
+                }
+                if (depth > MaximumStyleNestingDepth) {
+                    budgetExceeded = true;
                     return;
                 }
 
@@ -158,7 +165,8 @@ namespace OfficeIMO.Visio {
                                 ref ruleDeclarationCopies,
                                 cancellationToken,
                                 ref budgetExceeded,
-                                ref unsupportedConditionalRule);
+                                ref unsupportedConditionalRule,
+                                depth + 1);
                         } else if (!canEvaluate) {
                             unsupportedConditionalRule = true;
                         }

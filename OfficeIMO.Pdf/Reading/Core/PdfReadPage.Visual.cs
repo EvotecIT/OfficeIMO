@@ -407,7 +407,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -860,7 +860,7 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private PdfPageInvokedResourceNames GetInvokedResourceNames(string content) {
+    private PdfPageInvokedResourceNames GetInvokedResourceNames(string content, PdfDictionary? resources) {
         var names = new PdfPageInvokedResourceNames();
         PdfContentStreamInterpreter.Interpret(
             content,
@@ -870,6 +870,10 @@ public sealed partial class PdfReadPage {
                     operation.Operands.Count > 0 &&
                     operation.Operands[operation.Operands.Count - 1] is string name) {
                     names.ColorSpaces.Add(name);
+                } else if (operation.InlineImage is PdfContentInlineImage inlineImage &&
+                    inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) &&
+                    colorSpaceObject is PdfName colorSpaceName) {
+                    names.ColorSpaces.Add(colorSpaceName.Name);
                 } else if (operation.Name == "sh" &&
                     operation.Operands.Count > 0 &&
                     operation.Operands[operation.Operands.Count - 1] is string shadingName) {
@@ -880,9 +884,51 @@ public sealed partial class PdfReadPage {
                     names.Patterns.Add(patternName);
                 }
             },
+            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands);
         return names;
+    }
+
+    private int GetDeclaredColorSpaceComponentCount(PdfDictionary? resources, string name) {
+        if (name is "DeviceRGB" or "RGB" or "CalRGB" or "Lab") return 3;
+        if (name is "DeviceCMYK" or "CMYK") return 4;
+        if (name is "DeviceGray" or "G") return 1;
+        PdfObject? colorSpaceDictionary = resources?.Items.TryGetValue("ColorSpace", out PdfObject? declaration) == true
+            ? ResolveIccDeclaration(declaration)
+            : null;
+        PdfDictionary? colorSpaces = colorSpaceDictionary as PdfDictionary;
+        if (colorSpaces == null || !colorSpaces.Items.TryGetValue(name, out PdfObject? value)) return 1;
+        PdfObject? resolved = ResolveIccDeclaration(value);
+        if (resolved is PdfName directName) return GetDeclaredColorSpaceComponentCount(null, directName.Name);
+        if (resolved is not PdfArray { Items.Count: > 0 } array ||
+            ResolveIccDeclaration(array.Items[0]) is not PdfName kind) return 1;
+        if (kind.Name is "DeviceRGB" or "RGB" or "CalRGB" or "Lab") return 3;
+        if (kind.Name is "DeviceCMYK" or "CMYK") return 4;
+        if (kind.Name is "Indexed" or "I" or "Separation") return 1;
+        if (kind.Name is "DeviceN" or "NChannel") {
+            return array.Items.Count > 1 && ResolveIccDeclaration(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 0
+                ? colorants.Items.Count
+                : 1;
+        }
+        if (kind.Name is "ICCBased" or "ICC" && array.Items.Count > 1) {
+            PdfObject? profile = ResolveIccDeclaration(array.Items[1]);
+            PdfDictionary? dictionary = profile switch {
+                PdfStream stream => stream.Dictionary,
+                PdfDictionary direct => direct,
+                _ => null
+            };
+            PdfObject? componentCount = dictionary?.Items.TryGetValue("N", out PdfObject? declaredCount) == true
+                ? ResolveIccDeclaration(declaredCount)
+                : null;
+            int? count = componentCount is PdfNumber number &&
+                number.Value >= int.MinValue && number.Value <= int.MaxValue &&
+                number.Value == Math.Truncate(number.Value)
+                    ? (int)number.Value
+                    : null;
+            return count is >= 1 and <= 4 ? count.Value : 1;
+        }
+        return 1;
     }
 
     private sealed class PdfPageInvokedResourceNames {
@@ -897,18 +943,21 @@ public sealed partial class PdfReadPage {
 
     private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
+            !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
-        if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+        if (!PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Gamma", out PdfObject? gammaObject, out bool hasGamma)) return false;
         IReadOnlyList<double>? gamma = null;
-        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
+        if (hasGamma) {
             gamma = ReadNumberArray(gammaObject);
             if (gamma.Count != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
         }
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Matrix", out PdfObject? matrixObject, out bool hasMatrix)) return false;
         IReadOnlyList<double>? matrix = null;
-        if (calibration.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+        if (hasMatrix) {
             matrix = ReadNumberArray(matrixObject);
             if (matrix.Count != 9 || matrix.Any(static value => !IsFinite(value))) return false;
         }
