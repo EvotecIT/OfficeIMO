@@ -3,6 +3,8 @@ using System.Text;
 
 namespace OfficeIMO.Pdf;
 
+internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> components, double[] output);
+
 /// <summary>Resolves bounded PDF functions shared by content, image, and shading color projection.</summary>
 internal static class PdfColorSpaceFunctionResolver {
     private const int MaxFunctionDepth = 16;
@@ -10,6 +12,8 @@ internal static class PdfColorSpaceFunctionResolver {
     private const int MaxSampledInputs = 4;
     private const int MaxStitchingFunctions = 32;
     private const int MaxSuggestedSampleBreakpoints = 128;
+    [ThreadStatic]
+    private static double[]? _scalarInput;
 
     internal static bool TryCreateTintTransform(
         PdfObject? value,
@@ -17,12 +21,12 @@ internal static class PdfColorSpaceFunctionResolver {
         int outputCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) {
+        out PdfColorSpaceTintTransform transform) {
         transform = null!;
         if (!TryCreateFunction(value, inputCount, outputCount, objects, maxDecodedStreamBytes, out PdfColorFunction function) ||
             !HasUnitIntervals(function.Domain, inputCount)) return false;
 
-        transform = function.Evaluate;
+        transform = function.TryEvaluate;
         return true;
     }
 
@@ -117,7 +121,7 @@ internal static class PdfColorSpaceFunctionResolver {
             outputCount,
             domain,
             range: null,
-            values => EvaluateFunctionArray(values, components),
+            (values, output, outputOffset) => EvaluateFunctionArray(values, output, outputOffset, components),
             breakpoints,
             discontinuities);
         return true;
@@ -252,7 +256,18 @@ internal static class PdfColorSpaceFunctionResolver {
                 outputCount,
                 domain,
                 range,
-                values => EvaluateSampled(values, domain, encode, sizes, bitsPerSample, maximumSample, decode, samples, outputCount),
+                (values, output, outputOffset) => EvaluateSampled(
+                    values,
+                    output,
+                    outputOffset,
+                    domain,
+                    encode,
+                    sizes,
+                    bitsPerSample,
+                    maximumSample,
+                    decode,
+                    samples,
+                    outputCount),
                 breakpoints);
             return true;
         } catch (OverflowException) {
@@ -288,7 +303,7 @@ internal static class PdfColorSpaceFunctionResolver {
             outputCount,
             domain,
             range,
-            values => EvaluateType2(values, c0, c1, exponent),
+            (values, output, outputOffset) => EvaluateType2(values, output, outputOffset, c0, c1, exponent),
             exponent == 1D ? domain : CreateUniformBreakpoints(domain, 65));
         return true;
     }
@@ -356,7 +371,8 @@ internal static class PdfColorSpaceFunctionResolver {
             outputCount,
             domain,
             range,
-            values => EvaluateStitching(values[0], domain, bounds, encode, children),
+            (values, output, outputOffset) => EvaluateStitching(
+                values[0], output, outputOffset, domain, bounds, encode, children),
             breakpoints,
             discontinuities);
         return true;
@@ -381,13 +397,16 @@ internal static class PdfColorSpaceFunctionResolver {
             outputCount,
             domain,
             range,
-            values => EvaluateIdentity(values, outputCount, duplicateCount),
+            (values, output, outputOffset) => EvaluateIdentity(
+                values, output, outputOffset, outputCount, duplicateCount),
             inputCount == 1 ? domain : null);
         return true;
     }
 
-    private static double[]? EvaluateSampled(
+    private static bool EvaluateSampled(
         double[] values,
+        double[] outputValues,
+        int outputOffset,
         double[] domain,
         double[] encode,
         int[] sizes,
@@ -397,7 +416,7 @@ internal static class PdfColorSpaceFunctionResolver {
         byte[] samples,
         int outputCount) {
         int inputCount = sizes.Length;
-        var result = new double[outputCount];
+        for (int output = 0; output < outputCount; output++) outputValues[outputOffset + output] = 0D;
         int cornerCount = 1 << inputCount;
         for (int corner = 0; corner < cornerCount; corner++) {
             double weight = 1D;
@@ -410,7 +429,7 @@ internal static class PdfColorSpaceFunctionResolver {
                     domain[input * 2 + 1],
                     encode[input * 2],
                     encode[input * 2 + 1]);
-                if (!IsFinite(encoded)) return null;
+                if (!IsFinite(encoded)) return false;
                 encoded = PdfColorFunction.Clamp(encoded, 0D, sizes[input] - 1D);
                 int lower = (int)Math.Floor(encoded);
                 int upper = Math.Min(lower + 1, sizes[input] - 1);
@@ -426,22 +445,36 @@ internal static class PdfColorSpaceFunctionResolver {
             long sampleOffset = pointIndex * outputCount;
             for (int output = 0; output < outputCount; output++) {
                 ulong raw = ReadSample(samples, sampleOffset + output, bitsPerSample);
-                result[output] += weight * PdfColorFunction.Interpolate(raw, 0D, maximumSample, decode[output * 2], decode[output * 2 + 1]);
+                outputValues[outputOffset + output] += weight * PdfColorFunction.Interpolate(
+                    raw,
+                    0D,
+                    maximumSample,
+                    decode[output * 2],
+                    decode[output * 2 + 1]);
             }
         }
-        return result;
+        return true;
     }
 
-    private static double[]? EvaluateType2(double[] values, double[] c0, double[] c1, double exponent) {
+    private static bool EvaluateType2(
+        double[] values,
+        double[] output,
+        int outputOffset,
+        double[] c0,
+        double[] c1,
+        double exponent) {
         double factor = Math.Pow(values[0], exponent);
-        if (!IsFinite(factor)) return null;
-        var result = new double[c0.Length];
-        for (int index = 0; index < result.Length; index++) result[index] = c0[index] + factor * (c1[index] - c0[index]);
-        return result;
+        if (!IsFinite(factor)) return false;
+        for (int index = 0; index < c0.Length; index++) {
+            output[outputOffset + index] = c0[index] + factor * (c1[index] - c0[index]);
+        }
+        return true;
     }
 
-    private static double[]? EvaluateStitching(
+    private static bool EvaluateStitching(
         double value,
+        double[] output,
+        int outputOffset,
         double[] domain,
         double[] bounds,
         double[] encode,
@@ -459,23 +492,35 @@ internal static class PdfColorSpaceFunctionResolver {
             sourceEnd,
             encode[childIndex * 2],
             encode[childIndex * 2 + 1]);
-        if (!IsFinite(encoded)) return null;
-        return children[childIndex].Evaluate(new[] { encoded });
+        if (!IsFinite(encoded)) return false;
+        double[] input = _scalarInput ??= new double[1];
+        input[0] = encoded;
+        return children[childIndex].TryEvaluate(input, output, outputOffset);
     }
 
-    private static double[]? EvaluateFunctionArray(double[] values, PdfColorFunction[] components) {
-        var result = new double[components.Length];
+    private static bool EvaluateFunctionArray(
+        double[] values,
+        double[] output,
+        int outputOffset,
+        PdfColorFunction[] components) {
         for (int index = 0; index < components.Length; index++) {
-            double[]? component = components[index].Evaluate(values);
-            if (component == null || component.Length != 1) return null;
-            result[index] = component[0];
+            if (!components[index].TryEvaluate(values, output, outputOffset + index)) return false;
         }
-        return result;
+        return true;
     }
 
-    private static double[] EvaluateIdentity(double[] values, int outputCount, int duplicateCount) {
-        if (duplicateCount == 0) return values.Take(outputCount).ToArray();
-        return Enumerable.Repeat(values[0], outputCount).ToArray();
+    private static bool EvaluateIdentity(
+        double[] values,
+        double[] output,
+        int outputOffset,
+        int outputCount,
+        int duplicateCount) {
+        if (duplicateCount == 0) {
+            for (int index = 0; index < outputCount; index++) output[outputOffset + index] = values[index];
+        } else {
+            for (int index = 0; index < outputCount; index++) output[outputOffset + index] = values[0];
+        }
+        return true;
     }
 
     private static ulong ReadSample(byte[] samples, long sampleIndex, int bitsPerSample) {

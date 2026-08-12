@@ -11,6 +11,8 @@ namespace OfficeIMO.Drawing;
 /// supported. Other transform types are rejected for explicit fallback.
 /// </remarks>
 public sealed partial class OfficeIccColorProfile {
+    private const uint InputDeviceClassSignature = 0x73636E72U;
+    private const uint DisplayDeviceClassSignature = 0x6D6E7472U;
     private const uint GraySignature = 0x47524159U;
     private const uint RgbSignature = 0x52474220U;
     private const uint XyzSignature = 0x58595A20U;
@@ -104,6 +106,7 @@ public sealed partial class OfficeIccColorProfile {
             ? 0U
             : ReadUInt32(profileBytes, 20);
         if (profileBytes == null || !OfficeIccProfileValidator.TryValidate(profileBytes, 0, profileBytes.Length) ||
+            !IsSupportedProfileClass(ReadUInt32(profileBytes, 12)) ||
             (profileConnectionSpace != XyzSignature && profileConnectionSpace != LabSignature) ||
             !TryReadXyz(profileBytes, 68, profileBytes.Length - 68, requireTypeHeader: false, out XyzValue whitePoint) ||
             !whitePoint.IsPositive || !IsD50Illuminant(whitePoint)) {
@@ -115,10 +118,10 @@ public sealed partial class OfficeIccColorProfile {
         uint deviceColorSpace = ReadUInt32(profileBytes, 16);
         if (!hasAuthoredDeviceToPcsTransform &&
             deviceColorSpace == GraySignature && profileConnectionSpace == XyzSignature) {
-            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve)) return false; // kTRC
-            if (TryReadXyzTag(profileBytes, tags, 0x77747074U, out XyzValue mediaWhite) && mediaWhite.IsPositive) {
-                whitePoint = mediaWhite;
-            }
+            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve) || // kTRC
+                !TryReadXyzTag(profileBytes, tags, 0x77747074U, out XyzValue mediaWhite) || // wtpt
+                !mediaWhite.IsPositive) return false;
+            whitePoint = mediaWhite;
             profile = new OfficeIccColorProfile(
                 1,
                 grayCurve,
@@ -176,6 +179,9 @@ public sealed partial class OfficeIccColorProfile {
 
         return false;
     }
+
+    private static bool IsSupportedProfileClass(uint signature) =>
+        signature == InputDeviceClassSignature || signature == DisplayDeviceClassSignature;
 
     /// <summary>Attempts to convert device components through the ICC profile to sRGB.</summary>
     public bool TryConvert(IReadOnlyList<double> components, out OfficeColor color) {
@@ -388,9 +394,39 @@ public sealed partial class OfficeIccColorProfile {
             parameters[index] = ReadS15Fixed16(bytes, range.Offset + 12 + index * 4);
             if (!IsFinite(parameters[index])) return false;
         }
-        if (parameters[0] <= 0D || (functionType > 0 && parameters[1] == 0D)) return false;
+        if (parameters[0] <= 0D ||
+            (functionType > 0 && parameters[1] == 0D) ||
+            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters)) return false;
         curve = ToneCurve.FromParameters(functionType, parameters);
         return true;
+    }
+
+    private static bool IsParametricCurveDefinedOnUnitInterval(int functionType, double[] parameters) {
+        if (functionType == 0) return true;
+
+        double gamma = parameters[0];
+        double a = parameters[1];
+        double b = parameters[2];
+        double branchStart = functionType <= 2
+            ? Math.Max(0D, -b / a)
+            : Math.Max(0D, parameters[4]);
+        if (branchStart > 1D) return true;
+
+        double startBase = functionType <= 2 && a > 0D && branchStart > 0D
+            ? 0D
+            : a * branchStart + b;
+        double endBase = a + b;
+        double minimumBase = Math.Min(startBase, endBase);
+        if (minimumBase < 0D && gamma != Math.Truncate(gamma)) return false;
+
+        double offset = functionType switch {
+            2 => parameters[3],
+            4 => parameters[5],
+            _ => 0D
+        };
+        double start = Math.Pow(startBase, gamma) + offset;
+        double end = Math.Pow(endBase, gamma) + offset;
+        return IsFinite(start) && IsFinite(end);
     }
 
     private static ushort ReadUInt16(byte[] bytes, int offset) =>

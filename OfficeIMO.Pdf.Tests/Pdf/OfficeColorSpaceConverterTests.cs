@@ -61,10 +61,16 @@ public class OfficeColorSpaceConverterTests {
         badSignature[36] = (byte)'x';
         byte[] authoredLutTransform = PdfIccProfiles.SrgbIec6196621;
         RenameTag(authoredLutTransform, "desc", "A2B0");
+        byte[] outputProfile = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(outputProfile, 12, "prtr");
+        byte[] deviceLinkProfile = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(deviceLinkProfile, 12, "link");
 
         Assert.False(OfficeIccColorProfile.TryCreate(cmykProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(badSignature, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(authoredLutTransform, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(outputProfile, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(deviceLinkProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(null!, out _));
     }
 
@@ -81,6 +87,39 @@ public class OfficeColorSpaceConverterTests {
         Assert.InRange(color.R, 130, 145);
         Assert.InRange(color.G, 130, 145);
         Assert.InRange(color.B, 130, 145);
+    }
+
+    [Fact]
+    public void IccMatrixProfile_RejectsUndefinedOrNonfiniteParametricCurves() {
+        for (int functionType = 1; functionType <= 4; functionType++) {
+            byte[] undefinedProfile = PdfIccProfiles.SrgbIec6196621;
+            int curveOffset = FindTagOffset(undefinedProfile, "rTRC");
+            WriteSignature(undefinedProfile, curveOffset, "para");
+            Array.Clear(undefinedProfile, curveOffset + 4, 8);
+            undefinedProfile[curveOffset + 9] = (byte)functionType;
+            double[] parameters = functionType switch {
+                1 => new[] { 0.5D, -1D, 0.5D },
+                2 => new[] { 0.5D, -1D, 0.5D, 0D },
+                3 => new[] { 0.5D, -1D, 0.5D, 1D, 0.5D },
+                _ => new[] { 0.5D, -1D, 0.5D, 1D, 0.5D, 0D, 0D }
+            };
+            for (int index = 0; index < parameters.Length; index++) {
+                WriteS15Fixed16(undefinedProfile, curveOffset + 12 + index * 4, parameters[index]);
+            }
+
+            Assert.False(OfficeIccColorProfile.TryCreate(undefinedProfile, out _));
+        }
+
+        byte[] overflowingProfile = PdfIccProfiles.SrgbIec6196621;
+        int overflowingCurveOffset = FindTagOffset(overflowingProfile, "rTRC");
+        WriteSignature(overflowingProfile, overflowingCurveOffset, "para");
+        Array.Clear(overflowingProfile, overflowingCurveOffset + 4, 8);
+        overflowingProfile[overflowingCurveOffset + 9] = 1;
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 12, 32767D);
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 16, 32767D);
+        WriteS15Fixed16(overflowingProfile, overflowingCurveOffset + 20, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(overflowingProfile, out _));
     }
 
     [Fact]
@@ -323,6 +362,21 @@ public class OfficeColorSpaceConverterTests {
         output0 = Math.Pow(Math.Min(1D, 0.5D * m0 + 0.1D), 1.25D);
         output1 = Math.Pow(Math.Min(1D, 0.5D * m1 + 0.1D), 1.5D);
         output2 = Math.Pow(Math.Min(1D, 0.5D * m2 + 0.1D), 1.75D);
+    }
+
+    [Fact]
+    public void IccGrayProfile_RequiresValidMediaWhitePoint() {
+        byte[] missingWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(missingWhitePoint, 16, "GRAY");
+        RenameTag(missingWhitePoint, "rTRC", "kTRC");
+        RenameTag(missingWhitePoint, "wtpt", "desc");
+        byte[] nonpositiveWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(nonpositiveWhitePoint, 16, "GRAY");
+        RenameTag(nonpositiveWhitePoint, "rTRC", "kTRC");
+        WriteS15Fixed16(nonpositiveWhitePoint, FindTagOffset(nonpositiveWhitePoint, "wtpt") + 8, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(missingWhitePoint, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
     }
 
     private static int FindTagOffset(byte[] profile, string signature) {

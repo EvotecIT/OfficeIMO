@@ -105,7 +105,7 @@ internal readonly struct PdfPageColorSpace {
         PdfPageColorSpaceKind kind,
         int componentCount,
         PdfPageColorSpace alternate,
-        Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) =>
+        PdfColorSpaceTintTransform transform) =>
         new PdfPageColorSpace(kind, new PdfPageCustomColorSpace(componentCount, alternate, transform));
 
     public OfficeColor ConvertCalRgb(double red, double green, double blue) {
@@ -118,8 +118,8 @@ internal readonly struct PdfPageColorSpace {
 
     public bool TryConvertColor(IReadOnlyList<double> components, out OfficeColor color) {
         color = OfficeColor.Black;
-        if (components == null || components.Count < ComponentCount || Kind == PdfPageColorSpaceKind.Pattern ||
-            components.Take(ComponentCount).Any(value => !IsFinite(value))) return false;
+        if (components == null || components.Count < ComponentCount || Kind == PdfPageColorSpaceKind.Pattern) return false;
+        for (int index = 0; index < ComponentCount; index++) if (!IsFinite(components[index])) return false;
 
         if (Kind == PdfPageColorSpaceKind.Indexed) {
             IReadOnlyList<OfficeColor>? palette = _custom?.Palette;
@@ -140,8 +140,8 @@ internal readonly struct PdfPageColorSpace {
 
         if (Kind is PdfPageColorSpaceKind.Separation or PdfPageColorSpaceKind.DeviceN) {
             if (_custom?.Alternate is not PdfPageColorSpace alternate || _custom.Transform == null) return false;
-            IReadOnlyList<double>? transformed = _custom.Transform(components);
-            return transformed != null && alternate.TryConvertColor(transformed, out color);
+            var transformed = new double[alternate.ComponentCount];
+            return _custom.Transform(components, transformed) && alternate.TryConvertColor(transformed, out color);
         }
 
         switch (Kind) {
@@ -250,7 +250,7 @@ internal readonly struct PdfPageColorSpace {
         public PdfPageCustomColorSpace(
             int componentCount,
             PdfPageColorSpace alternate,
-            Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) {
+            PdfColorSpaceTintTransform transform) {
             ComponentCount = componentCount;
             Alternate = alternate;
             Transform = transform;
@@ -261,7 +261,7 @@ internal readonly struct PdfPageColorSpace {
         public bool UsesIccApproximation { get; }
         public IReadOnlyList<OfficeColor>? Palette { get; }
         public PdfPageColorSpace? Alternate { get; }
-        public Func<IReadOnlyList<double>, IReadOnlyList<double>?>? Transform { get; }
+        public PdfColorSpaceTintTransform? Transform { get; }
         public Func<IReadOnlyList<double>, OfficeColor?>? ColorTransform { get; }
         public IReadOnlyList<double>? ComponentRanges { get; }
     }

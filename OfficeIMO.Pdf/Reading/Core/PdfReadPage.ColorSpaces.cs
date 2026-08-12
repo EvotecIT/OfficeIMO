@@ -71,12 +71,16 @@ public sealed partial class PdfReadPage {
         if (kind == PdfPageColorSpaceKind.Pattern) return false;
         IReadOnlyList<double>? ranges = null;
         if (profile != null && profile.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
-            ranges = ReadNumberArray(rangeObject);
-            if (ranges.Count != components * 2) return false;
-            for (int index = 0; index < components; index++) {
-                double minimum = ranges[index * 2];
-                double maximum = ranges[index * 2 + 1];
-                if (!IsFinite(minimum) || !IsFinite(maximum) || minimum >= maximum) return false;
+            PdfObject? resolvedRange = ResolveIccDeclaration(rangeObject);
+            if (resolvedRange == null) return false;
+            if (resolvedRange is not PdfNull) {
+                ranges = ReadNumberArray(resolvedRange);
+                if (ranges.Count != components * 2) return false;
+                for (int index = 0; index < components; index++) {
+                    double minimum = ranges[index * 2];
+                    double maximum = ranges[index * 2 + 1];
+                    if (!IsFinite(minimum) || !IsFinite(maximum) || minimum >= maximum) return false;
+                }
             }
         }
 
@@ -88,17 +92,33 @@ public sealed partial class PdfReadPage {
             }
         }
 
-        if (profile != null &&
-            profile.Items.TryGetValue("Alternate", out PdfObject? alternateObject) &&
-            TryReadExtendedColorSpaceResource(alternateObject, depth + 1, out PdfPageColorSpace alternate) &&
-            alternate.Kind is not PdfPageColorSpaceKind.Pattern and not PdfPageColorSpaceKind.Indexed &&
-            alternate.ComponentCount == components) {
-            colorSpace = PdfPageColorSpace.IccFallback(alternate, ranges);
-            return true;
+        if (profile != null && profile.Items.TryGetValue("Alternate", out PdfObject? alternateObject)) {
+            PdfObject? resolvedAlternate = ResolveIccDeclaration(alternateObject);
+            if (resolvedAlternate == null) return false;
+            if (resolvedAlternate is not PdfNull) {
+                if (!TryReadExtendedColorSpaceResource(resolvedAlternate, depth + 1, out PdfPageColorSpace alternate) ||
+                    alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
+                    alternate.ComponentCount != components) {
+                    return false;
+                }
+                colorSpace = PdfPageColorSpace.IccFallback(alternate, ranges);
+                return true;
+            }
         }
 
-        colorSpace = PdfPageColorSpace.IccBased(kind);
+        colorSpace = PdfPageColorSpace.IccFallback(kind, ranges);
         return true;
+    }
+
+    private PdfObject? ResolveIccDeclaration(PdfObject? value) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        PdfObject? resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) return null;
+            resolved = indirect.Value;
+        }
+        return resolved;
     }
 
     private bool TryReadIndexedColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
@@ -153,7 +173,7 @@ public sealed partial class PdfReadPage {
                 alternate.ComponentCount,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
-                out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform)) {
+                out PdfColorSpaceTintTransform transform)) {
             return false;
         }
 

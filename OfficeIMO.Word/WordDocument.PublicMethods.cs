@@ -36,7 +36,16 @@ namespace OfficeIMO.Word {
         /// <param name="text">Text for the paragraph.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddParagraph(string text) {
-            //return AddParagraph().SetText(text);
+            text ??= string.Empty;
+            if (text.IndexOf('\r') < 0 &&
+                text.IndexOf('\n') < 0 &&
+                text.IndexOf('\t') < 0 &&
+                text.IndexOf('\u2028') < 0) {
+                var paragraph = new WordParagraph(this, newParagraph: true, newRun: true);
+                paragraph._run!.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+                return AddParagraph(paragraph);
+            }
+
             return AddParagraph().AddText(text);
         }
 
