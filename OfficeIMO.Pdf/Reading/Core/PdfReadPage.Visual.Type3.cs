@@ -25,6 +25,8 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
             PdfPageType3GlyphInvocation glyph = invocation.Glyphs[i];
             if (glyph.Font.Type3 is not PdfType3FontResource type3 ||
+                glyph.FillPatternName != null ||
+                glyph.StrokePatternName != null ||
                 !type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream) ||
                 Filters.StreamDecoder.GetUnsupportedFilters(glyphStream.Dictionary, _objects).Count != 0 ||
                 activeType3Glyphs.Contains(glyphStream)) return false;
@@ -32,7 +34,7 @@ public sealed partial class PdfReadPage {
 
         var glyphPrimitives = new List<PdfPageVisualPrimitive>();
         var glyphImages = new List<(PdfImagePlacement Placement, PdfExtractedImage Image)>();
-        var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
+        var extractedImageCache = new Dictionary<(PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor), PdfExtractedImage>();
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -87,6 +89,7 @@ public sealed partial class PdfReadPage {
                         allowSupportedType3Patterns: !type3.IsUncolored,
                         requireNestedType3Uncolored: type3.IsUncolored,
                         type3ImageVisitor: (placement, image) => localImages.Add((placement, image)),
+                        type3ImagePlacementVisitor: localImagePlacements.Add,
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
                         pageContentBudget: pageContentBudget,
@@ -97,66 +100,37 @@ public sealed partial class PdfReadPage {
 
                 if (type3GlyphBudget.FailureVersion != failureVersion) return false;
 
-                CollectImagePlacementsAndForms(
-                    glyphContent,
-                    type3.Resources,
-                    0,
-                    glyphTransform,
-                    pageHeight,
-                    localImagePlacements,
-                    activeForms,
-                    glyph.FillColor,
-                    glyph.FillColorSpace,
-                    glyph.FillOpacity,
-                    0D,
-                    1D,
-                    initialClipPath: glyph.ClipPath,
-                    contentNestingDepth: contentNestingDepth + 1,
-                    pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: glyphOrderPrefix);
                 if (type3.IsUncolored) {
+                    for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
+                        localImagePlacements[imageIndex] = localImagePlacements[imageIndex].WithImageMaskColor(glyph.FillColor);
+                    }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
                         (PdfImagePlacement Placement, PdfExtractedImage Image) image = localImages[imageIndex];
                         if (!image.Image.IsImageMask) return false;
-                        localImages[imageIndex] = (image.Placement.WithImageMaskColor(glyph.FillColor), image.Image);
+                        PdfImagePlacement placement = image.Placement.WithImageMaskColor(glyph.FillColor);
+                        PdfExtractedImage? recolored = TryExtractType3Image(placement);
+                        if (recolored == null || !recolored.IsImageFile || !recolored.IsImageMask || recolored.HasUnresolvedTransparencyMask) return false;
+                        localImages[imageIndex] = (placement, recolored);
                     }
                     for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
                         localPrimitives[primitiveIndex] = localPrimitives[primitiveIndex].WithPaintColors(glyph.FillColor, glyph.StrokeColor);
                     }
-                    for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
-                        localImagePlacements[imageIndex] = localImagePlacements[imageIndex].WithImageMaskColor(glyph.FillColor);
-                    }
                 }
 
-                if (localImagePlacements.Count > 0) {
-                    var pendingPlacements = new List<PdfImagePlacement>();
-                    var pendingKeys = new HashSet<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor)>();
-                    for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
-                        PdfImagePlacement placement = localImagePlacements[imageIndex];
-                        var key = GetType3ImageCacheKey(placement);
-                        if (!extractedImageCache.ContainsKey(key) && pendingKeys.Add(key)) pendingPlacements.Add(placement);
+                for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
+                    PdfImagePlacement placement = localImagePlacements[imageIndex];
+                    var cacheKey = GetType3ImageCacheKey(placement);
+                    if (!extractedImageCache.TryGetValue(cacheKey, out PdfExtractedImage? image)) {
+                        image = TryExtractType3Image(placement);
+                        if (image == null || !image.IsImageFile) return false;
+                        extractedImageCache[cacheKey] = image;
                     }
-                    if (pendingPlacements.Count > 0) {
-                        IReadOnlyList<PdfExtractedImage> images;
-                        try {
-                            images = GetImagesForResources(type3.Resources, 0, pendingPlacements, colorizeImageMasks: true);
-                        } catch (IOException exception) when (exception is not PdfReadLimitException) {
-                            return false;
-                        } catch (NotSupportedException) {
-                            return false;
-                        }
-                        for (int imageIndex = 0; imageIndex < pendingPlacements.Count; imageIndex++) {
-                            PdfExtractedImage? image = FindImage(images, pendingPlacements[imageIndex]);
-                            if (image == null || !image.IsImageFile) return false;
-                            extractedImageCache[GetType3ImageCacheKey(pendingPlacements[imageIndex])] = image;
-                        }
-                    }
-                    for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
-                        PdfExtractedImage image = extractedImageCache[GetType3ImageCacheKey(localImagePlacements[imageIndex])];
-                        if (type3.IsUncolored && !image.IsImageMask) return false;
-                        localImages.Add((localImagePlacements[imageIndex], image));
-                    }
+                    if ((type3.IsUncolored && !image.IsImageMask) || image.HasUnresolvedTransparencyMask) return false;
+                    localImages.Add((placement, image));
                 }
+
+                for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++)
+                    if (localImages[imageIndex].Image.HasUnresolvedTransparencyMask) return false;
 
                 if (!TryPublishType3GlyphContent(
                         localPrimitives,
@@ -182,8 +156,23 @@ public sealed partial class PdfReadPage {
         exception is not PdfReadLimitException &&
         (exception is IOException || exception is InvalidDataException || exception is NotSupportedException);
 
-    private static (int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
-        (placement.ObjectNumber, placement.DirectStreamIdentity, placement.ResourceName, placement.ImageMaskColor);
+    private PdfExtractedImage? TryExtractType3Image(PdfImagePlacement placement) {
+        try {
+            IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(
+                placement.EffectiveResources,
+                0,
+                new[] { placement },
+                colorizeImageMasks: true);
+            return FindImage(images, placement);
+        } catch (IOException exception) when (exception is not PdfReadLimitException) {
+            return null;
+        } catch (NotSupportedException) {
+            return null;
+        }
+    }
+
+    private static (PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
+        (placement.EffectiveResources, placement.ObjectNumber, placement.DirectStreamIdentity, placement.ResourceName, placement.ImageMaskColor);
 
     private static bool TryPublishType3GlyphContent(
         List<PdfPageVisualPrimitive> localPrimitives,

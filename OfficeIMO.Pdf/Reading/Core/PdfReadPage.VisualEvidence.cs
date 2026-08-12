@@ -37,6 +37,7 @@ public sealed partial class PdfReadPage {
                 },
                 activeForms,
                 retainPrimitiveData: false,
+                type3ImageVisitor: static (_, _) => { },
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget);

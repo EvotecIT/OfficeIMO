@@ -422,6 +422,7 @@ public sealed partial class PdfReadPage {
         bool requireNestedType3Uncolored = false,
         Action<string>? unrenderedPatternVisitor = null,
         Action<PdfImagePlacement, PdfExtractedImage>? type3ImageVisitor = null,
+        Action<PdfImagePlacement>? type3ImagePlacementVisitor = null,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -568,13 +569,61 @@ public sealed partial class PdfReadPage {
                           ? name => {
                               unrenderedPatternVisitor?.Invoke(name);
                               if (!allowSupportedType3Patterns ||
-                                  !(shadingPatternResources.ContainsKey(name) || tilingPatternResources?.ContainsKey(name) == true)) {
+                                  !(shadingPatternResources.ContainsKey(name) && IsSupportedType3ShadingPattern(resources, name) ||
+                                    tilingPatternResources?.ContainsKey(name) == true)) {
                                   if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                               }
                           }
+                          : null,
+                      patternSelectionVisitor: requireSupportedType3Content
+                          ? selection => {
+                              if (!IsSupportedType3PatternSelection(selection, resources, shadingPatternResources, tilingPatternResources)) {
+                                  type3GlyphBudget.RecordFailure();
+                              }
+                          }
                           : null)) {
+            PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
+            if (requireSupportedType3Content &&
+                (invocation.FillPatternName != null || invocation.StrokePatternName != null)) {
+                type3GlyphBudget.RecordFailure();
+                continue;
+            }
+            if (requireSupportedType3Content && invocation.InlineImage != null) {
+                PdfImagePlacement placement = BuildImagePlacement(
+                    0,
+                    invocation.InlineImage.ResourceName,
+                    0,
+                    invocation.InlineImage.DirectStreamIdentity,
+                    invocation.Transform,
+                    invocation.ClipPath,
+                    invocation.FillColor,
+                    invocation.FillOpacity,
+                    invocation.InlineImage.Stream,
+                    resources,
+                    invocation.PaintOrder,
+                    resources);
+                type3ImagePlacementVisitor?.Invoke(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
+                if (type3ImagePlacementVisitor == null) type3GlyphBudget.RecordFailure();
+                continue;
+            }
+            if (requireSupportedType3Content && TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
+                PdfImagePlacement placement = BuildImagePlacement(
+                    0,
+                    invocation.Name,
+                    imageObjectNumber,
+                    directStreamIdentity,
+                    invocation.Transform,
+                    invocation.ClipPath,
+                    invocation.FillColor,
+                    invocation.FillOpacity,
+                    paintOrder: invocation.PaintOrder,
+                    effectiveResources: resources);
+                type3ImagePlacementVisitor?.Invoke(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
+                if (type3ImagePlacementVisitor == null) type3GlyphBudget.RecordFailure();
+                continue;
+            }
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
-                if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                if (requireSupportedType3Content) {
                     type3GlyphBudget.RecordFailure();
                 }
                 continue;
@@ -593,7 +642,6 @@ public sealed partial class PdfReadPage {
                 }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
-                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
                 CollectVisualPrimitivesAndForms(
                     formContent,
@@ -627,10 +675,11 @@ public sealed partial class PdfReadPage {
                     requireNestedType3Uncolored: requireNestedType3Uncolored,
                     unrenderedPatternVisitor: unrenderedPatternVisitor,
                     type3ImageVisitor: type3ImageVisitor,
+                    type3ImagePlacementVisitor: type3ImagePlacementVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: formOrderPrefix);
+                    contentOrderPrefix: invocationOrder);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -639,6 +688,31 @@ public sealed partial class PdfReadPage {
 
     private static bool HasUnsupportedType3FormGroup(PdfDictionary formDictionary) =>
         formDictionary.Items.ContainsKey("Group");
+
+    private bool IsSupportedType3PatternSelection(
+        PdfPagePatternSelection selection,
+        PdfDictionary? resources,
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns,
+        Dictionary<string, PdfPageTilingPatternResource>? tilingPatterns) {
+        if (!selection.HasValidComponents || selection.ColorSpace.Kind != PdfPageColorSpaceKind.Pattern) return false;
+        if (tilingPatterns?.TryGetValue(selection.Name, out PdfPageTilingPatternResource? tilingPattern) == true) {
+            return tilingPattern.Uncolored
+                ? selection.ColorSpace.HasPatternBaseColorSpace && selection.ComponentCount == selection.ColorSpace.ComponentCount
+                : !selection.ColorSpace.HasPatternBaseColorSpace && selection.ComponentCount == 0;
+        }
+        return shadingPatterns.ContainsKey(selection.Name) &&
+            IsSupportedType3ShadingPattern(resources, selection.Name) &&
+            !selection.ColorSpace.HasPatternBaseColorSpace &&
+            selection.ComponentCount == 0;
+    }
+
+    private bool IsSupportedType3ShadingPattern(PdfDictionary? resources, string name) {
+        if (resources == null ||
+            ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? patternObject) ? patternObject : null) is not PdfDictionary patterns ||
+            !patterns.Items.TryGetValue(name, out PdfObject? value) ||
+            ResolveDictionary(value) is not PdfDictionary pattern) return false;
+        return !pattern.Items.ContainsKey("ExtGState");
+    }
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);

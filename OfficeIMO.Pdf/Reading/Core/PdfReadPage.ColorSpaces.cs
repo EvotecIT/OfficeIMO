@@ -22,6 +22,12 @@ public sealed partial class PdfReadPage {
         }
 
         switch (arrayName.Name) {
+            case "Pattern":
+                if (array.Items.Count != 2 ||
+                    !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, out PdfPageColorSpace patternBase) ||
+                    patternBase.Kind == PdfPageColorSpaceKind.Pattern) return false;
+                colorSpace = PdfPageColorSpace.Pattern(patternBase);
+                return true;
             case "ICCBased":
                 return TryReadIccColorSpace(array, out colorSpace);
             case "Indexed":

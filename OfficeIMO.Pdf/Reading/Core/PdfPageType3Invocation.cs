@@ -28,6 +28,8 @@ internal readonly struct PdfPageType3GlyphInvocation {
         OfficeColor strokeColor,
         PdfPageColorSpace strokeColorSpace,
         double? strokeOpacity,
+        string? fillPatternName,
+        string? strokePatternName,
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
@@ -42,6 +44,8 @@ internal readonly struct PdfPageType3GlyphInvocation {
         StrokeColor = strokeColor;
         StrokeColorSpace = strokeColorSpace;
         StrokeOpacity = strokeOpacity;
+        FillPatternName = fillPatternName;
+        StrokePatternName = strokePatternName;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
         StrokeLineCap = strokeLineCap;
@@ -58,6 +62,8 @@ internal readonly struct PdfPageType3GlyphInvocation {
     internal OfficeColor StrokeColor { get; }
     internal PdfPageColorSpace StrokeColorSpace { get; }
     internal double? StrokeOpacity { get; }
+    internal string? FillPatternName { get; }
+    internal string? StrokePatternName { get; }
     internal double StrokeWidth { get; }
     internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
     internal OfficeStrokeLineCap? StrokeLineCap { get; }

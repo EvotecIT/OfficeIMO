@@ -234,7 +234,7 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
             requireSupportedType3Content: requireSupportedType3Content,
-            unrenderedPatternVisitor: _ => type3GlyphBudget.RecordFailure(),
+            unrenderedPatternVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
             type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);

@@ -27,7 +27,8 @@ public sealed class PdfImagePlacement {
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
-        PdfContentOrderKey? contentOrderKey = null) {
+        PdfContentOrderKey? contentOrderKey = null,
+        PdfDictionary? effectiveResources = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -49,6 +50,7 @@ public sealed class PdfImagePlacement {
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
         ContentOrderKey = contentOrderKey;
+        EffectiveResources = effectiveResources;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -107,6 +109,8 @@ public sealed class PdfImagePlacement {
 
     internal PdfContentOrderKey? ContentOrderKey { get; }
 
+    internal PdfDictionary? EffectiveResources { get; }
+
     internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
         Copy(ImageMaskColor, paintOrder);
 
@@ -118,7 +122,7 @@ public sealed class PdfImagePlacement {
             PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
             A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
             ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
-            PaintOrder, contentOrderKey);
+            PaintOrder, contentOrderKey, EffectiveResources);
 
     private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
         new PdfImagePlacement(
@@ -142,7 +146,8 @@ public sealed class PdfImagePlacement {
             InlineImageStream,
             InlineImageResources,
             paintOrder,
-            ContentOrderKey);
+            ContentOrderKey,
+            EffectiveResources);
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

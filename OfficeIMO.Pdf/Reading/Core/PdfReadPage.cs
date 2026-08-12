@@ -646,13 +646,14 @@ public sealed partial class PdfReadPage {
                     invocation.FillOpacity,
                     invocation.InlineImage.Stream,
                     resources,
-                    invocation.PaintOrder);
+                    invocation.PaintOrder,
+                    resources);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
             if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                PdfImagePlacement placement = BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder);
+                PdfImagePlacement placement = BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder, effectiveResources: resources);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
@@ -770,7 +771,8 @@ public sealed partial class PdfReadPage {
         double? imageOpacity,
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        PdfDictionary? effectiveResources = null) {
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
         var p2 = transform.Transform(0D, 1D);
@@ -800,7 +802,8 @@ public sealed partial class PdfReadPage {
             imageOpacity,
             inlineImageStream,
             inlineImageResources,
-            paintOrder);
+            paintOrder,
+            effectiveResources: effectiveResources);
     }
 
     private byte[]? GetMarkedContentActualTextBytes(PdfDictionary? resources, string propertyName) {
