@@ -108,7 +108,7 @@ public sealed partial class PdfReadPage {
             _limits.MaxContentOperands);
         transitions.AddRange(local);
 
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,

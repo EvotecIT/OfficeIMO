@@ -234,6 +234,85 @@ public class PdfIccColorRenderingTests {
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsCal");
     }
 
+    [Fact]
+    public void RenderPage_ResolvesMultiHopIccProfileOperand() {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            "1 0 0 scn",
+            "7 0 obj\n8 0 R\nendobj\n8 0 obj\n5 0 R\nendobj\n",
+            colorSpaceResources: "/CsIcc [/ICCBased 7 0 R]");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Single(drawing.Shapes);
+    }
+
+    [Fact]
+    public void IccProfile_RejectsNonD50HeaderIlluminant() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        WriteS15Fixed16(profile, 68, 0.95047D);
+        WriteS15Fixed16(profile, 72, 1D);
+        WriteS15Fixed16(profile, 76, 1.08883D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void IccProfile_RejectsDecreasingSampledToneCurve() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, int length) = FindTag(profile, "rTRC");
+        Assert.True(length >= 16);
+        WriteUInt32(profile, offset, 0x63757276U);
+        WriteUInt32(profile, offset + 8, 2U);
+        profile[offset + 12] = 0xFF;
+        profile[offset + 13] = 0xFF;
+        profile[offset + 14] = 0x00;
+        profile[offset + 15] = 0x00;
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void IccProfile_RejectsDecreasingParametricToneCurve() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, int length) = FindTag(profile, "rTRC");
+        Assert.True(length >= 40);
+        WriteUInt32(profile, offset, 0x70617261U);
+        profile[offset + 8] = 0;
+        profile[offset + 9] = 4;
+        profile[offset + 10] = 0;
+        profile[offset + 11] = 0;
+        WriteS15Fixed16(profile, offset + 12, 2.4D);
+        WriteS15Fixed16(profile, offset + 16, 0.94787D);
+        WriteS15Fixed16(profile, offset + 20, 0.05213D);
+        WriteS15Fixed16(profile, offset + 24, -1D);
+        WriteS15Fixed16(profile, offset + 28, 0.04045D);
+        WriteS15Fixed16(profile, offset + 32, 0D);
+        WriteS15Fixed16(profile, offset + 36, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void ExtractImages_ClipsImplicitCmykFallbackToIccRangeAfterExplicitDecode() {
+        byte[] unsupportedProfile = PdfIccProfiles.SrgbIec6196621;
+        unsupportedProfile[16] = (byte)'C';
+        unsupportedProfile[17] = (byte)'M';
+        unsupportedProfile[18] = (byte)'Y';
+        unsupportedProfile[19] = (byte)'K';
+        byte[] pdf = BuildIccImagePdf(
+            unsupportedProfile,
+            new byte[] { 0, 0, 0, 0 },
+            "/N 4 /Range [0.2 0.8 0.2 0.8 0.2 0.8 0.2 0.8]",
+            imageEntries: "/Decode [0 1 0 1 0 1 0 1]");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        Assert.True(OfficePngReader.TryDecode(Assert.Single(drawing.Images).Bytes, out OfficeRasterImage? raster));
+
+        Assert.Equal(OfficeColor.FromRgb(153, 153, 153), raster!.GetPixel(0, 0));
+    }
+
     [Theory]
     [InlineData("CalRGB", "Gamma")]
     [InlineData("CalRGB", "Matrix")]
@@ -1514,6 +1593,16 @@ public class PdfIccColorRenderingTests {
 
     private static uint ReadUInt32(byte[] bytes, int offset) =>
         unchecked(((uint)bytes[offset] << 24) | ((uint)bytes[offset + 1] << 16) | ((uint)bytes[offset + 2] << 8) | bytes[offset + 3]);
+
+    private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
+    }
+
+    private static void WriteS15Fixed16(byte[] bytes, int offset, double value) =>
+        WriteUInt32(bytes, offset, unchecked((uint)(int)Math.Round(value * 65536D)));
 
     private static void WriteAscii(Stream stream, string value) {
         byte[] bytes = Encoding.ASCII.GetBytes(value);
