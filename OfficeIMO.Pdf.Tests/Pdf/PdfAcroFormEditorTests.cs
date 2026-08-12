@@ -151,6 +151,31 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_MoveRegeneratesPushButtonCaptionAppearanceForTheNewBounds() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push button move")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit",
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+
+        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Submit", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Submit").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+        PdfArray boundingBox = Assert.IsType<PdfArray>(normalAppearance.Dictionary.Items["BBox"]);
+
+        Assert.Equal(new[] { 0D, 0D, 200D, 40D }, boundingBox.Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
+
+    [Fact]
     public void Edit_AllowsFurtherLayoutChangesToUnsignedSignatureField() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature page")).ToBytes();
         byte[] placed = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();

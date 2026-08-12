@@ -217,10 +217,11 @@ internal static partial class PdfFormFiller {
         string fieldName,
         PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber,
-        TextAppearanceFontPlan? preparedFontPlan = null) {
+        TextAppearanceFontPlan? preparedFontPlan = null,
+        string? inheritedDefaultAppearance = null) {
         PdfDictionary? defaultResources = ResolveDictionary(objects, acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) ? resourcesObject : null);
         PdfDictionary? pageResources = ResolveDictionary(objects, page.Items.TryGetValue("Resources", out PdfObject? pageResourcesObject) ? pageResourcesObject : null);
-        string? defaultAppearance = TryReadText(objects, widget, "DA");
+        string? defaultAppearance = TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance;
         return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, appearanceOptions, fieldName, ref nextObjectNumber, preparedFontPlan: preparedFontPlan);
     }
 
@@ -357,7 +358,7 @@ internal static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int fieldFlags = 0, int? inheritedQuadding = null, int? inheritedMaxLength = null, string? inheritedDefaultAppearance = null) {
+    internal static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int fieldFlags = 0, int? inheritedQuadding = null, int? inheritedMaxLength = null, string? inheritedDefaultAppearance = null) {
         var style = new PdfFormFieldStyle();
         style.IsMultiline = (fieldFlags & MultilineFlag) != 0;
         style.IsPassword = (fieldFlags & PasswordFlag) != 0;
@@ -587,7 +588,7 @@ internal static partial class PdfFormFiller {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 
-    private static double ReadWidgetAppearanceFontSize(string? defaultAppearance, double height) {
+    internal static double ReadWidgetAppearanceFontSize(string? defaultAppearance, double height) {
         return PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double fontSize)
             ? fontSize
             : Math.Max(6D, Math.Min(12D, height - 4D));

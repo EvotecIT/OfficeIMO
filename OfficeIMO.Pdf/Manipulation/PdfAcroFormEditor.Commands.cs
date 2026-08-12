@@ -30,7 +30,7 @@ internal static partial class PdfAcroFormEditor {
                     operations.Add("Remove " + command.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Move:
-                    ApplyMove(objects, fields, pageObjectNumbers, command.Name!, command.PageNumber, command.Rectangle!, refillValues);
+                    ApplyMove(objects, acroForm, fields, pageObjectNumbers, command.Name!, command.PageNumber, command.Rectangle!, refillValues, appearanceOptions, ref nextObjectNumber);
                     operations.Add("Move " + command.Name + " to page " + command.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
                     break;
                 case PdfAcroFormEditSession.EditKind.DefaultValue:
@@ -139,7 +139,7 @@ internal static partial class PdfAcroFormEditor {
         flattenNames.RemoveAll(candidate => string.Equals(candidate, name, StringComparison.Ordinal) || candidate.StartsWith(descendantPrefix, StringComparison.Ordinal));
     }
 
-    private static void ApplyMove(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, int[] pages, string name, int pageNumber, double[] rectangle, Dictionary<string, string> refillValues) {
+    private static void ApplyMove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, string name, int pageNumber, double[] rectangle, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
         EditableField field = RequireField(objects, fields, name);
         if (field.WidgetObjectNumbers.Count != 1) throw new NotSupportedException("Moving a form field requires exactly one indirect widget.");
         PdfDictionary widget = RequireDictionary(objects, field.WidgetObjectNumbers[0]);
@@ -147,8 +147,63 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
         EnsureAnnotationArray(objects, page).Items.Add(new PdfReference(field.WidgetObjectNumbers[0], 0));
+        if (IsPushButton(objects, field)) {
+            RebuildPushButtonAppearance(objects, acroForm, page, field, widget, rectangle, appearanceOptions, ref nextObjectNumber);
+            refillValues.Remove(name);
+            return;
+        }
         QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
     }
+
+    private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
+        string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+        field.Dictionary.Items.TryGetValue("Ff", out PdfObject? flagsObject) &&
+        PdfObjectLookup.Resolve(objects, flagsObject) is PdfNumber flags &&
+        flags.Value >= int.MinValue && flags.Value <= int.MaxValue &&
+        Math.Truncate(flags.Value) == flags.Value &&
+        ((int)flags.Value & FieldFlagPushButton) != 0;
+
+    private static void RebuildPushButtonAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        EditableField field,
+        PdfDictionary widget,
+        double[] rectangle,
+        PdfFormFillerOptions? appearanceOptions,
+        ref int nextObjectNumber) {
+        double width = rectangle[2] - rectangle[0];
+        double height = rectangle[3] - rectangle[1];
+        string? defaultAppearance = ReadResolvedText(objects, widget, "DA") ?? ReadResolvedText(objects, field.Dictionary, "DA") ?? ReadResolvedText(objects, acroForm, "DA");
+        PdfFormFieldStyle style = PdfAcroFormEditor.CreateButtonCaptionStyle(
+            PdfFormFiller.ReadWidgetAppearanceStyle(objects, widget, inheritedDefaultAppearance: defaultAppearance));
+        style.TextAlignment = PdfFormFieldTextAlignment.Center;
+        string caption = ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? characteristicsObject) ? characteristicsObject : null) is PdfDictionary characteristics
+            ? ReadResolvedText(objects, characteristics, "CA") ?? string.Empty
+            : string.Empty;
+        PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
+            objects,
+            acroForm,
+            page,
+            widget,
+            caption,
+            width,
+            height,
+            style,
+            PdfFormFiller.ReadWidgetAppearanceFontSize(defaultAppearance, height),
+            field.FullName,
+            appearanceOptions,
+            ref nextObjectNumber,
+            inheritedDefaultAppearance: defaultAppearance);
+        int appearanceObjectNumber = nextObjectNumber++;
+        objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+        widget.Items["AP"] = appearances;
+    }
+
+    private static string? ReadResolvedText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfStringObj text ? text.Value : null;
 
     private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
         EditableField field = RequireField(objects, fields, name);

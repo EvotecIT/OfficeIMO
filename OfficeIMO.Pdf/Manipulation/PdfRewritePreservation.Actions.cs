@@ -152,13 +152,18 @@ public static partial class PdfRewritePreservation {
             PdfFormField field = fields[fieldIndex];
             for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
                 PdfFormWidget widget = field.Widgets[widgetIndex];
+                var retainedOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
                 for (int actionIndex = 0; actionIndex < widget.Actions.Count; actionIndex++) {
                     PdfFormWidgetAction action = widget.Actions[actionIndex];
                     if (!IsPreservedActionType(options, action.ActionType)) continue;
                     if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
+                    string triggerName = NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty;
+                    retainedOrdinals.TryGetValue(triggerName, out int retainedOrdinal);
+                    retainedOrdinals[triggerName] = retainedOrdinal + 1;
                     inventory.Add((field.Name ?? string.Empty) + "\u001f" +
                                   widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                                  (NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty) + "\u001f" +
+                                  triggerName + "\u001f" +
+                                  retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
                                   action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty));
                 }
             }
