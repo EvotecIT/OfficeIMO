@@ -79,6 +79,8 @@ public sealed class PdfRewritePreservationOptions {
     /// <summary>Action types compared when action preservation is enabled. An empty set compares every action type.</summary>
     public ISet<string> PreservedActionTypes => _preservedActionTypes;
 
+    internal bool FilterActionsByPreservedTypes { get; set; }
+
     /// <summary>True when viewer preference values must not be changed.</summary>
     public bool PreserveViewerPreferences { get; set; } = true;
 

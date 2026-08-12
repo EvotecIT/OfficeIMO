@@ -54,9 +54,10 @@ internal static partial class PdfSanitizer {
             PreserveLinkAnnotations = true,
             PreserveAnnotations = true,
             PreserveEmbeddedFiles = false,
-            PreserveCatalogActions = policy.AllowedActionTypes.Count > 0,
-            PreservePageActions = policy.AllowedActionTypes.Count > 0,
-            PreserveOpenAction = policy.AllowedActionTypes.Count > 0,
+            PreserveCatalogActions = true,
+            PreservePageActions = true,
+            PreserveOpenAction = true,
+            FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
         };
@@ -69,6 +70,9 @@ internal static partial class PdfSanitizer {
             if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
         }
         foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
+        if (!before.Any(finding => finding.Kind == PdfSanitizationFindingKind.UnsafeUri)) {
+            preservationOptions.PreservedActionTypes.Add("URI");
+        }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);

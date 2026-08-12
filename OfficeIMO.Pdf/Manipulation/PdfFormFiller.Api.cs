@@ -43,6 +43,7 @@ internal static partial class PdfFormFiller {
     private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
+        RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions, fieldNames: fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
@@ -71,6 +72,15 @@ internal static partial class PdfFormFiller {
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
+    }
+
+    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfReadOptions? readOptions) {
+        IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, readOptions).FormFieldsByName;
+        foreach (string fieldName in fieldNames) {
+            if (fields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
+                throw new ArgumentException("Push-button fields do not have a fillable value: " + fieldName, nameof(fieldNames));
+            }
+        }
     }
 
     /// <summary>

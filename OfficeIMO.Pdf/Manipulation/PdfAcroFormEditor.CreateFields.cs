@@ -13,6 +13,7 @@ internal static partial class PdfAcroFormEditor {
     private const int FieldFlagEdit = 262144;
     private const int FieldFlagSort = 524288;
     private const int FieldFlagFileSelect = 1048576;
+    private const int FieldFlagMultiSelect = 2097152;
     private const int FieldFlagDoNotSpellCheck = 4194304;
     private const int FieldFlagDoNotScroll = 8388608;
     private const int FieldFlagComb = 16777216;

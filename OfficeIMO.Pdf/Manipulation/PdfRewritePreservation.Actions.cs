@@ -97,13 +97,13 @@ public static partial class PdfRewritePreservation {
     }
 
     private static bool IsPreservedActionType(PdfRewritePreservationOptions options, string? actionType) =>
-        actionType is not null && (options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(actionType));
+        actionType is null || (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0) || options.PreservedActionTypes.Contains(actionType);
 
     private static IReadOnlyList<PdfCatalogAction> FilterPreservedActions(IReadOnlyList<PdfCatalogAction> actions, PdfRewritePreservationOptions options) =>
-        options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
+        !options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
 
     private static IReadOnlyList<PdfPageAction> FilterPreservedActions(IReadOnlyList<PdfPageAction> actions, PdfRewritePreservationOptions options) =>
-        options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
+        !options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
 
     private static void CompareNullablePresence(List<PdfRewritePreservationIssue> issues, string feature, bool expectedPresent, bool actualPresent) {
         if (expectedPresent == actualPresent) {
