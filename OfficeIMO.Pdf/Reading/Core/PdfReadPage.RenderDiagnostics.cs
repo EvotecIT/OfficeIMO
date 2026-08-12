@@ -706,6 +706,10 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
+                if (form.Dictionary.Items.ContainsKey("OC")) {
+                    supported = false;
+                    continue;
+                }
                 if (ResolveXObjectPaintChannels(
                         resources,
                         invocation.Name,

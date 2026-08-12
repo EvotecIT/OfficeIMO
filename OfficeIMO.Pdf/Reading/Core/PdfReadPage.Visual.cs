@@ -1286,7 +1286,13 @@ public sealed partial class PdfReadPage {
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
-                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask"));
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask")) ||
+                HasInvalidStrictNumber(state, "ca", static value => value >= 0D && value <= 1D) ||
+                HasInvalidStrictNumber(state, "CA", static value => value >= 0D && value <= 1D) ||
+                HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
+                HasInvalidStrictInteger(state, "LC", 0, 2) ||
+                HasInvalidStrictInteger(state, "LJ", 0, 2) ||
+                !HasExactlyRepresentableStrokeDash(state);
             bool hasSoftMask = state.Items.ContainsKey("SMask");
             PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state, resources) : null;
             bool clearsSoftMask = hasSoftMask &&
@@ -1300,12 +1306,50 @@ public sealed partial class PdfReadPage {
                 strokeLineJoin.HasValue ||
                 blendMode.HasValue ||
                 hasUnsupportedBlendMode ||
-                hasSoftMask) {
+                hasSoftMask ||
+                hasUnsupportedEntries) {
                 result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, hasSoftMask && !clearsSoftMask && softMask == null, hasUnsupportedBlendMode, hasUnsupportedEntries);
             }
         }
 
         return result;
+    }
+
+    private bool HasInvalidStrictNumber(PdfDictionary dictionary, string key, Func<double, bool> isValid) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
+        return ResolveEffectObject(value) is not PdfNumber number || !IsFinite(number.Value) || !isValid(number.Value);
+    }
+
+    private bool HasInvalidStrictInteger(PdfDictionary dictionary, string key, int minimum, int maximum) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
+        if (ResolveEffectObject(value) is not PdfNumber number ||
+            !IsFinite(number.Value) ||
+            number.Value != Math.Truncate(number.Value)) return true;
+        return number.Value < minimum || number.Value > maximum;
+    }
+
+    private bool HasExactlyRepresentableStrokeDash(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("D", out PdfObject? value)) return true;
+        if (ResolveEffectObject(value) is not PdfArray dash || dash.Items.Count != 2 ||
+            ResolveEffectObject(dash.Items[0]) is not PdfArray dashArray ||
+            ResolveEffectObject(dash.Items[1]) is not PdfNumber phase ||
+            !IsFinite(phase.Value) || phase.Value != 0D) return false;
+
+        IReadOnlyList<double> values = ReadNumberArray(dashArray);
+        if (values.Count != dashArray.Items.Count || values.Any(static item => !IsFinite(item) || item < 0D)) return false;
+        return values.Count == 0 ||
+               MatchesDash(values, 1D, 1D) ||
+               MatchesDash(values, 3D, 1D) ||
+               MatchesDash(values, 3D, 1D, 1D, 1D) ||
+               MatchesDash(values, 3D, 1D, 1D, 1D, 1D, 1D);
+    }
+
+    private static bool MatchesDash(IReadOnlyList<double> actual, params double[] expected) {
+        if (actual.Count != expected.Length) return false;
+        for (int index = 0; index < expected.Length; index++) {
+            if (Math.Abs(actual[index] - expected[index]) > 0.000000001D) return false;
+        }
+        return true;
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
