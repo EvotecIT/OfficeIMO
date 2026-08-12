@@ -80,8 +80,35 @@ namespace OfficeIMO.Tests {
                 new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
             };
 
-            Assert.Throws<InvalidDataException>(() => document.Compose("Report", composer =>
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Compose("Report", composer =>
                 composer.TableFrom(rows, configure: options => options.MaxCells = 5)));
+
+            Assert.Contains("requires at least 6 cells", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("2 data rows + 1 header row x 2 columns", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("options.MaxCells = 6", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("TableFrom(DataTable)", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SheetComposer_ExplainsHowToOverrideRowAndColumnLimits() {
+            var rows = new[] {
+                new ReadOnlyDictionaryRow(("A", 1), ("B", 2)),
+                new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
+            };
+
+            using var rowDocument = ExcelDocument.Create();
+            InvalidDataException rowException = Assert.Throws<InvalidDataException>(() =>
+                rowDocument.Compose("Rows", composer =>
+                    composer.TableFrom(rows, configure: options => options.MaxRows = 1)));
+            Assert.Contains("requires at least 2 data rows", rowException.Message, StringComparison.Ordinal);
+            Assert.Contains("options.MaxRows = 2", rowException.Message, StringComparison.Ordinal);
+
+            using var columnDocument = ExcelDocument.Create();
+            InvalidDataException columnException = Assert.Throws<InvalidDataException>(() =>
+                columnDocument.Compose("Columns", composer =>
+                    composer.TableFrom(rows, configure: options => options.MaxColumns = 1)));
+            Assert.Contains("requires at least 2 columns", columnException.Message, StringComparison.Ordinal);
+            Assert.Contains("options.MaxColumns = 2", columnException.Message, StringComparison.Ordinal);
         }
 
         [Fact]

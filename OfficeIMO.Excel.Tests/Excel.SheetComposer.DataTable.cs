@@ -1,0 +1,177 @@
+using System.Data;
+using System.IO;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public class ExcelSheetComposerDataTableTests {
+        [Fact]
+        public void SheetComposer_DataTablePreservesSelectedSchemaAndRichWorkbookFeatures() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                DataTable members = CreateMembersTable();
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    document.Compose("Summary", composer => {
+                        composer.Title("Directory report");
+                        composer.Finish(autoFitColumns: false);
+                    });
+                    document.Compose("Members", composer => {
+                        string range = composer.TableFrom(
+                            members,
+                            title: "Members",
+                            configure: options => {
+                                options.Columns = new[] { "Enabled", "ADState", "Endpoint", "Missing" };
+                                options.MaxCells = 1;
+                            },
+                            style: ExcelTableStyle.TableStyleMedium2,
+                            visuals: options => options.ShowRowStripes = false);
+                        Assert.Equal("A2:D4", range);
+                        composer.Finish(autoFitColumns: false);
+                    });
+                    document.Compose("Notes", composer => {
+                        composer.Paragraph("Generated after the report table.");
+                        composer.Finish(autoFitColumns: false);
+                    });
+                    document.Save();
+                }
+
+                using (ExcelDocument document = ExcelDocument.Load(
+                    filePath,
+                    new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                    Assert.Equal(3, document.Sheets.Count);
+                    ExcelSheet sheet = document["Members"];
+                    Assert.Equal("A2:D4", sheet.GetTableRange("Members"));
+                    Assert.True(sheet.TryGetCellText(2, 1, out string? enabledHeader));
+                    Assert.True(sheet.TryGetCellText(2, 2, out string? adStateHeader));
+                    Assert.True(sheet.TryGetCellText(2, 3, out string? endpointHeader));
+                    Assert.True(sheet.TryGetCellText(2, 4, out string? missingHeader));
+                    Assert.True(sheet.TryGetCellText(3, 1, out string? enabled));
+                    Assert.True(sheet.TryGetCellText(3, 2, out string? adState));
+                    Assert.True(sheet.TryGetCellText(3, 3, out string? endpoint));
+                    Assert.True(sheet.TryGetCellText(3, 4, out string? missing));
+                    Assert.Equal("Enabled", enabledHeader);
+                    Assert.Equal("AD State", adStateHeader);
+                    Assert.Equal("Endpoint", endpointHeader);
+                    Assert.Equal("Missing", missingHeader);
+                    Assert.Equal("1", enabled);
+                    Assert.Equal("Disabled", adState);
+                    Assert.Equal("PC-01", endpoint);
+                    Assert.True(string.IsNullOrEmpty(missing));
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                    WorksheetPart membersPart = spreadsheet.WorkbookPart!.WorksheetParts.ElementAt(1);
+                    TableDefinitionPart tablePart = Assert.Single(membersPart.TableDefinitionParts);
+                    TableStyleInfo style = Assert.IsType<TableStyleInfo>(tablePart.Table!.TableStyleInfo);
+                    Assert.Equal("TableStyleMedium2", style.Name?.Value);
+                    Assert.False(style.ShowRowStripes?.Value);
+                }
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableUsesExcelRowBoundaryInsteadOfGenericCellLimit() {
+            DataTable members = CreateMembersTable();
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Members", composer => {
+                string range = composer.TableFrom(
+                    members,
+                    configure: options => options.MaxCells = 1,
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:D3", range);
+            });
+        }
+
+        [Fact]
+        public void SheetComposer_DataTablePreservesCaseDistinctSchemaColumns() {
+            var table = new DataTable("CaseDistinct");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("name", typeof(string));
+            table.Rows.Add("Upper", "Lower");
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Data", composer => {
+                string range = composer.TableFrom(table, freezeHeaderRow: false);
+                Assert.Equal("A1:B2", range);
+            });
+
+            ExcelSheet sheet = document["Data"];
+            Assert.True(sheet.TryGetCellText(1, 1, out string? firstHeader));
+            Assert.True(sheet.TryGetCellText(1, 2, out string? secondHeader));
+            Assert.True(sheet.TryGetCellText(2, 1, out string? firstValue));
+            Assert.True(sheet.TryGetCellText(2, 2, out string? secondValue));
+            Assert.Equal("Name", firstHeader);
+            Assert.Equal("Name (2)", secondHeader);
+            Assert.Equal("Upper", firstValue);
+            Assert.Equal("Lower", secondValue);
+        }
+
+        [Fact]
+        public void SheetComposer_DataTablePreservesExplicitCaseDistinctColumnsAndRejectsAmbiguousFallback() {
+            var table = new DataTable("CaseDistinct");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("name", typeof(string));
+            table.Rows.Add("Upper", "Lower");
+
+            using (var document = ExcelDocument.Create()) {
+                document.Compose("Data", composer => {
+                    string range = composer.TableFrom(
+                        table,
+                        configure: options => options.Columns = new[] { "Name", "name" },
+                        freezeHeaderRow: false);
+                    Assert.Equal("A1:B2", range);
+                });
+
+                ExcelSheet sheet = document["Data"];
+                Assert.True(sheet.TryGetCellText(2, 1, out string? firstValue));
+                Assert.True(sheet.TryGetCellText(2, 2, out string? secondValue));
+                Assert.Equal("Upper", firstValue);
+                Assert.Equal("Lower", secondValue);
+            }
+
+            using var ambiguousDocument = ExcelDocument.Create();
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ambiguousDocument.Compose("Data", composer =>
+                    composer.TableFrom(
+                        table,
+                        configure: options => options.Columns = new[] { "NAME" },
+                        freezeHeaderRow: false)));
+            Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("exact column casing", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
+            var table = new DataTable("Wide");
+            for (int index = 0; index <= A1.MaxColumns; index++) {
+                table.Columns.Add("Column" + index, typeof(string));
+            }
+            table.Rows.Add(table.NewRow());
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Data", composer => composer.TableFrom(table, freezeHeaderRow: false)));
+
+            Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("options.MaxColumns = 16385", exception.Message, StringComparison.Ordinal);
+        }
+
+        private static DataTable CreateMembersTable() {
+            var table = new DataTable("Members");
+            table.Columns.Add("Endpoint", typeof(string));
+            table.Columns.Add("Enabled", typeof(bool));
+            table.Columns.Add("ADState", typeof(string));
+            table.Columns.Add("Ignored", typeof(string));
+            table.Rows.Add("PC-01", true, "Disabled", "one");
+            table.Rows.Add("PC-02", false, "Gone", "two");
+            return table;
+        }
+    }
+}
