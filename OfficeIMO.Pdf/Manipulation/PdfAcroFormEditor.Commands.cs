@@ -101,7 +101,9 @@ internal static partial class PdfAcroFormEditor {
         if (options.Kind == PdfFormFieldCreationKind.PushButton) {
             AddPushButtonAppearance(objects, acroForm, page, field, options, appearanceOptions, ref nextObjectNumber);
         } else if (options.Kind != PdfFormFieldCreationKind.Signature) {
-            QueueRefillValue(refillValues, options.Name, GetFieldType(options.Kind), ReadSimpleValue(field));
+            bool normalizeEmptyMultiSelect = options.Kind == PdfFormFieldCreationKind.Choice &&
+                                             (fieldFlags & FieldFlagMultiSelect) != 0;
+            QueueRefillValue(refillValues, options.Name, GetFieldType(options.Kind), ReadSimpleValue(field), includeEmptyChoice: normalizeEmptyMultiSelect);
         }
         if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
     }

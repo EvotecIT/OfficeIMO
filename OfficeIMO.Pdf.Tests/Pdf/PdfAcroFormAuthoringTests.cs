@@ -566,6 +566,44 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void ChoiceCreation_NormalizesAnEmptyMultiSelectValue() {
+        const int multiSelectFlag = 2097152;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected multi-select choice")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "countries",
+            Kind = PdfFormFieldCreationKind.Choice,
+            FieldFlags = multiSelectFlag,
+            ChoiceOptions = new[] { "Poland", "Germany" },
+            Value = string.Empty
+        }));
+        PdfFormField field = Assert.Single(result.Fields);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(objects[field.ObjectNumber!.Value].Value);
+
+        Assert.True(field.AllowsMultipleSelection);
+        Assert.Equal("[]", field.Value);
+        Assert.Empty(field.Values);
+        Assert.Empty(Assert.IsType<PdfArray>(dictionary.Items["V"]).Items);
+        Assert.False(dictionary.Items.ContainsKey("I"));
+    }
+
+    [Fact]
+    public void Create_ExtendsANonterminalFieldThatDeclaresAnInheritedType() {
+        byte[] source = BuildInheritedTypeFieldHierarchyPdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "customer.phone",
+            Value = "+48 123 456 789"
+        }));
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Equal("Ada", result.Fields.Single(static field => field.Name == "customer.name").Value);
+        Assert.Equal("ada@example.test", result.Fields.Single(static field => field.Name == "customer.email").Value);
+        Assert.Equal("+48 123 456 789", result.Fields.Single(static field => field.Name == "customer.phone").Value);
+    }
+
+    [Fact]
     public void Create_AllocatesHelveticaWithoutReplacingAnExistingHelvResource() {
         byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace("/BaseFont /Helvetica", "/BaseFont /ZapfDingbats"));
@@ -879,6 +917,21 @@ public class PdfAcroFormAuthoringTests {
         WriteAscii(output, "7 0 obj\n<< /Length " + script.Length + " >>\nstream\n");
         output.Write(script, 0, script.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildInheritedTypeFieldHierarchyPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Annots [7 0 R 8 0 R] >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /FT /Tx /T (customer) /Kids [7 0 R 8 0 R] >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /T (name) /V (Ada) /Rect [20 220 180 244] /P 3 0 R >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /T (email) /V (ada@example.test) /Rect [20 180 180 204] /P 3 0 R >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
         return output.ToArray();
     }
 

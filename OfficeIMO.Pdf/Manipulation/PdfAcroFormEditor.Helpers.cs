@@ -188,9 +188,24 @@ internal static partial class PdfAcroFormEditor {
                 objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, parent);
                 owner.Items.Add(matchingReference);
                 matchingDictionary = parent;
-            } else if (matchingDictionary.Items.ContainsKey("FT") ||
-                       string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal)) {
-                throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
+            } else {
+                PdfArray? existingKids = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? existingKidsObject)
+                    ? ResolveArray(objects, existingKidsObject)
+                    : null;
+                bool hasNamedFieldKids = false;
+                if (existingKids is not null) {
+                    for (int kidIndex = 0; kidIndex < existingKids.Items.Count; kidIndex++) {
+                        PdfDictionary? kid = ResolveDictionary(objects, existingKids.Items[kidIndex]);
+                        if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) {
+                            hasNamedFieldKids = true;
+                            break;
+                        }
+                    }
+                }
+                if (string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal) ||
+                    (matchingDictionary.Items.ContainsKey("FT") && !hasNamedFieldKids)) {
+                    throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
+                }
             }
 
             PdfArray? kids = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)

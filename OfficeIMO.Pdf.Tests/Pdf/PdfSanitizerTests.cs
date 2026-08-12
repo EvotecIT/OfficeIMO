@@ -113,6 +113,20 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_PreservesCatalogActionsThatThePolicyRetains() {
+        byte[] source = BuildSafeViewerActionPdf();
+        var policy = new PdfSanitizationOptions();
+        policy.AllowedActionTypes.Add("GoToR");
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source, policy);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Contains(info.CatalogActions, static action => action.ActionType == "GoTo");
+        Assert.Contains(info.CatalogActions, static action => action.ActionType == "GoToR");
+    }
+
+    [Fact]
     public void Sanitize_PreservesSafeUriActionsWhenUnsafeUriActionsAlsoExist() {
         byte[] source = BuildMixedPageUriActionPdf();
 
@@ -304,7 +318,7 @@ public class PdfSanitizerTests {
 
     private static byte[] BuildSafeViewerActionPdf() {
         string pdf = "%PDF-1.7\n" +
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /AA << /WC << /S /URI /URI (https://example.com/catalog) >> >> >>\nendobj\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /AA << /WC << /S /URI /URI (https://example.com/catalog) >> /WS << /S /GoTo /D [3 0 R /Fit] >> /WP << /S /GoToR /F (remote.pdf) /D [0 /Fit] >> >> >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /AA << /O << /S /URI /URI (https://example.com/safe) >> /C << /S /GoTo /D [3 0 R /Fit] >> >> >>\nendobj\n" +
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
