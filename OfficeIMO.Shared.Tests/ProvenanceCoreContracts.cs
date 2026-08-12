@@ -215,6 +215,24 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void TiffCombinedRemovalRetainsTheCleanedXmpEntryCount() {
+        byte[] originalXmp = CreateXmpPacket();
+        byte[] tiff = CreateLittleEndianTiffWithC2paBeforeXmp(CreateManifestStore(), originalXmp);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
+        byte[] output = result.ToArray();
+
+        Assert.True(result.WasChanged);
+        Assert.Equal((ushort)1, BitConverter.ToUInt16(output, 8));
+        Assert.Equal((ushort)700, BitConverter.ToUInt16(output, 10));
+        uint cleanedLength = BitConverter.ToUInt32(output, 14);
+        Assert.True(cleanedLength < originalXmp.Length);
+        string cleaned = Encoding.UTF8.GetString(output, 38, checked((int)cleanedLength));
+        Assert.DoesNotContain("trainedAlgorithmicMedia", cleaned, StringComparison.Ordinal);
+        Assert.Contains("digitalCapture", cleaned, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgRemovesOnlyNamespacedManifestElements() {
         string encoded = Convert.ToBase64String(CreateManifestStore());
         string svg = $"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata><keep>yes</keep><c2pa:manifest>{encoded}</c2pa:manifest></metadata></svg>";
@@ -543,6 +561,27 @@ public sealed class ProvenanceCoreContracts {
         BitConverter.GetBytes(26).CopyTo(result, 18);
         manifest.CopyTo(result, 26);
         return result;
+    }
+
+    private static byte[] CreateLittleEndianTiffWithC2paBeforeXmp(byte[] manifest, byte[] xmp) {
+        const int payloadOffset = 38;
+        byte[] result = new byte[payloadOffset + manifest.Length + xmp.Length];
+        result[0] = result[1] = (byte)'I';
+        result[2] = 42;
+        result[4] = 8;
+        result[8] = 2;
+        WriteLittleEndianEntry(result, 10, 0xCD41, 7, manifest.Length, payloadOffset);
+        WriteLittleEndianEntry(result, 22, 700, 1, xmp.Length, payloadOffset + manifest.Length);
+        Buffer.BlockCopy(manifest, 0, result, payloadOffset, manifest.Length);
+        Buffer.BlockCopy(xmp, 0, result, payloadOffset + manifest.Length, xmp.Length);
+        return result;
+    }
+
+    private static void WriteLittleEndianEntry(byte[] data, int offset, ushort tag, ushort type, int count, int valueOffset) {
+        BitConverter.GetBytes(tag).CopyTo(data, offset);
+        BitConverter.GetBytes(type).CopyTo(data, offset + 2);
+        BitConverter.GetBytes(count).CopyTo(data, offset + 4);
+        BitConverter.GetBytes(valueOffset).CopyTo(data, offset + 8);
     }
 
     private static byte[] CreateZip(params (string Name, byte[] Data)[] entries) {

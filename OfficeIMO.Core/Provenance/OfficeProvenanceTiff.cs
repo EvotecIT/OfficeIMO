@@ -73,7 +73,7 @@ internal static class OfficeProvenanceTiff {
                 }
             }
             if (retained.Count == ifd.Entries.Count) continue;
-            RewriteIfd(data, output, ifd, retained);
+            RewriteIfd(output, ifd, retained);
         }
         return output;
     }
@@ -156,15 +156,15 @@ internal static class OfficeProvenanceTiff {
         return true;
     }
 
-    private static void RewriteIfd(byte[] input, byte[] output, TiffIfd ifd, List<TiffEntry> retained) {
+    private static void RewriteIfd(byte[] output, TiffIfd ifd, List<TiffEntry> retained) {
         if (ifd.BigTiff) OfficeProvenanceBinary.WriteUInt64(output, ifd.Offset, (ulong)retained.Count, ifd.LittleEndian);
         else OfficeProvenanceBinary.WriteUInt16(output, ifd.Offset, (ushort)retained.Count, ifd.LittleEndian);
         int target = ifd.EntriesOffset;
         foreach (TiffEntry entry in retained) {
-            Buffer.BlockCopy(input, entry.Offset, output, target, ifd.EntrySize);
+            Buffer.BlockCopy(output, entry.Offset, output, target, ifd.EntrySize);
             target += ifd.EntrySize;
         }
-        Buffer.BlockCopy(input, ifd.NextFieldOffset, output, target, ifd.NextFieldSize);
+        Buffer.BlockCopy(output, ifd.NextFieldOffset, output, target, ifd.NextFieldSize);
         target += ifd.NextFieldSize;
         int oldEnd = ifd.NextFieldOffset + ifd.NextFieldSize;
         Array.Clear(output, target, oldEnd - target);
