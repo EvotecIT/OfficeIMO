@@ -189,6 +189,8 @@ public static class PdfProvenance {
     private static bool IsInformationResource(PdfObject owner, PdfDictionary dictionary) {
         string? type = dictionary.Get<PdfName>("Type")?.Name;
         if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "XRef" or "ObjStm") return false;
+        if (dictionary.Items.ContainsKey("EF") &&
+            (dictionary.Items.ContainsKey("F") || dictionary.Items.ContainsKey("UF"))) return false;
         if (owner is PdfStream) return true;
         return string.Equals(type, "StructElem", StringComparison.Ordinal) || type == null;
     }

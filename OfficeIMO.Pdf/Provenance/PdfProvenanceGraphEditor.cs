@@ -41,39 +41,57 @@ internal static class PdfProvenanceGraphEditor {
             PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is not PdfDictionary names ||
             !names.Items.TryGetValue("EmbeddedFiles", out PdfObject? embeddedFiles)) return;
         if (PdfObjectLookup.Resolve(objects, embeddedFiles) is not PdfDictionary rootTree) return;
-        var retainedPairs = new List<(PdfObject Name, PdfObject FileSpecification)>();
-        CollectNameTreePairs(objects, embeddedFiles, targets, retainedPairs, new HashSet<PdfObject>());
-        rootTree.Items.Remove("Kids");
-        rootTree.Items.Remove("Limits");
-        if (retainedPairs.Count == 0) {
+        if (!PruneNameTree(objects, rootTree, targets, new HashSet<PdfObject>(), out _, out _)) {
             names.Items.Remove("EmbeddedFiles");
-            return;
         }
-        var flatNames = new PdfArray();
-        foreach ((PdfObject name, PdfObject fileSpecification) in retainedPairs) {
-            flatNames.Items.Add(name);
-            flatNames.Items.Add(fileSpecification);
-        }
-        rootTree.Items["Names"] = flatNames;
     }
 
-    private static void CollectNameTreePairs(
+    private static bool PruneNameTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> targets,
-        List<(PdfObject Name, PdfObject FileSpecification)> retained,
-        HashSet<PdfObject> visited) {
+        HashSet<PdfObject> visited,
+        out PdfObject? firstName,
+        out PdfObject? lastName) {
+        firstName = lastName = null;
         PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
-        if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return;
+        if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return false;
+        bool hadLimits = dictionary.Items.ContainsKey("Limits");
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
-            for (int index = 0; index + 1 < names.Items.Count; index += 2) {
+            for (int index = names.Items.Count - 2; index >= 0; index -= 2) {
                 PdfObject fileSpecification = names.Items[index + 1];
-                if (fileSpecification is PdfReference reference && targets.Contains(reference.ObjectNumber)) continue;
-                retained.Add((names.Items[index], fileSpecification));
+                if (fileSpecification is not PdfReference reference || !targets.Contains(reference.ObjectNumber)) continue;
+                names.Items.RemoveAt(index + 1);
+                names.Items.RemoveAt(index);
+            }
+            if (names.Items.Count == 0) dictionary.Items.Remove("Names");
+            else {
+                firstName = names.Items[0];
+                lastName = names.Items[names.Items.Count - 2];
             }
         }
-        if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;
-        foreach (PdfObject child in kids.Items) CollectNameTreePairs(objects, child, targets, retained, visited);
+        if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
+            for (int index = kids.Items.Count - 1; index >= 0; index--) {
+                if (!PruneNameTree(objects, kids.Items[index], targets, visited, out PdfObject? childFirst, out PdfObject? childLast)) {
+                    kids.Items.RemoveAt(index);
+                    continue;
+                }
+                firstName = childFirst ?? firstName;
+                if (lastName == null) lastName = childLast;
+            }
+            if (kids.Items.Count == 0) dictionary.Items.Remove("Kids");
+        }
+        if (firstName == null || lastName == null) {
+            dictionary.Items.Remove("Limits");
+            return false;
+        }
+        if (hadLimits) {
+            var limits = new PdfArray();
+            limits.Items.Add(firstName);
+            limits.Items.Add(lastName);
+            dictionary.Items["Limits"] = limits;
+        }
+        return true;
     }
 
     private static HashSet<PdfDictionary> CollectFileAttachmentAnnotations(

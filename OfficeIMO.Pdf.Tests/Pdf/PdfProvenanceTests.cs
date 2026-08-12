@@ -153,6 +153,48 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void UntypedFileSpecificationSelfAssociationIsStructurallyInvalid() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] selfAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            catalog.Items.Remove("AF");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            var selfAssociation = new PdfArray();
+            selfAssociation.Items.Add(candidate);
+            fileSpecification.Items["AF"] = selfAssociation;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(selfAssociated);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void CatalogReachabilityHandlesDeepIndirectChainsIteratively() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            int firstObjectNumber = objects.Keys.Max() + 1;
+            const int chainLength = 20_000;
+            for (int index = 0; index < chainLength; index++) {
+                var node = new PdfDictionary();
+                if (index + 1 < chainLength) node.Items["Next"] = new PdfReference(firstObjectNumber + index + 1, 0);
+                objects[firstObjectNumber + index] = new PdfIndirectObject(firstObjectNumber + index, 0, node);
+            }
+            catalog.Items["ProvenanceExtension"] = new PdfReference(firstObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(deeplyLinked);
+
+        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
     public void CatalogAssociationWithoutNameTreeOrAnnotationIsStructurallyInvalid() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] catalogOnly = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -218,7 +260,7 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
-    public void RemovalFlattensHierarchicalEmbeddedFilesNameTreeWithoutStaleLimits() {
+    public void RemovalPreservesHierarchicalEmbeddedFilesNameTreeWithUpdatedLimits() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] hierarchical = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
             PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
@@ -256,11 +298,15 @@ public sealed class PdfProvenanceTests {
         PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, catalog.Items["Names"]));
         PdfDictionary rootTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, names.Items["EmbeddedFiles"]));
 
-        Assert.False(rootTree.Items.ContainsKey("Kids"));
-        Assert.False(rootTree.Items.ContainsKey("Limits"));
-        PdfArray retainedNames = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rootTree.Items["Names"]));
+        Assert.False(rootTree.Items.ContainsKey("Names"));
+        PdfArray retainedKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rootTree.Items["Kids"]));
+        PdfDictionary retainedChild = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, Assert.Single(retainedKids.Items)));
+        PdfArray retainedNames = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, retainedChild.Items["Names"]));
         Assert.Equal(2, retainedNames.Items.Count);
         Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(retainedNames.Items[0]).Value);
+        PdfArray limits = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, rootTree.Items["Limits"]));
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(limits.Items[0]).Value);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(limits.Items[1]).Value);
     }
 
     [Fact]
