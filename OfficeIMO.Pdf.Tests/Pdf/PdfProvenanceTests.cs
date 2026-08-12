@@ -220,6 +220,33 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void ActiveUntypedFileAttachmentAnnotationCannotMasqueradeAsTheFileSpecification() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] annotationCarrier = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            fileSpecification.Items["Subtype"] = new PdfName("FileAttachment");
+            fileSpecification.Items["FS"] = candidate;
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values
+                .Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            var annotations = new PdfArray();
+            annotations.Items.Add(candidate);
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(annotationCarrier);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(annotationCarrier);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void MalformedEmbeddedFilesNameTreeKeyDoesNotValidateCatalogAssociation() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] malformedNameTree = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -796,6 +823,32 @@ public sealed class PdfProvenanceTests {
 
         Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
         Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void ResourceDictionaryDiscoveryHandlesDeepIndirectChainsIteratively() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values
+                .Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            int firstObjectNumber = objects.Keys.Max() + 1;
+            const int chainLength = 10_000;
+            for (int index = 0; index < chainLength; index++) {
+                var dictionary = new PdfDictionary();
+                if (index + 1 < chainLength) dictionary.Items["Next"] = new PdfReference(firstObjectNumber + index + 1, 0);
+                objects[firstObjectNumber + index] = new PdfIndirectObject(firstObjectNumber + index, 0, dictionary);
+            }
+            page.Items["Resources"] = new PdfReference(firstObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(
+            deeplyLinked,
+            new OfficeProvenanceOptions { MaxContainerEntries = 20_000 },
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
+
+        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
     }
 
     [Fact]

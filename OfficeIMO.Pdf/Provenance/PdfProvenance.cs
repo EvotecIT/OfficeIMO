@@ -39,7 +39,8 @@ public static class PdfProvenance {
                 IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber, pageTreeObjectNumbers) &&
                 HasOnlySelectedEmbeddedFileVariants(document.Objects, attachment) &&
                 associations.IsValid(attachment.FileSpecObjectNumber) &&
-                OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
+                OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
             evidence.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
@@ -314,13 +315,18 @@ public static class PdfProvenance {
         PdfObject? value,
         HashSet<PdfObject> result,
         HashSet<PdfObject> visited) {
-        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
-        if (resolved == null || resolved is PdfStream || !visited.Add(resolved)) return;
-        if (resolved is PdfDictionary dictionary) {
-            result.Add(dictionary);
-            foreach (PdfObject child in dictionary.Items.Values) AddResourceDictionaries(objects, child, result, visited);
-        } else if (resolved is PdfArray array) {
-            foreach (PdfObject child in array.Items) AddResourceDictionaries(objects, child, result, visited);
+        if (value == null) return;
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (resolved == null || resolved is PdfStream || !visited.Add(resolved)) continue;
+            if (resolved is PdfDictionary dictionary) {
+                result.Add(dictionary);
+                foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+            } else if (resolved is PdfArray array) {
+                foreach (PdfObject child in array.Items) pending.Push(child);
+            }
         }
     }
 
@@ -410,6 +416,7 @@ public static class PdfProvenance {
     private static bool IsFileSpecificationValue(PdfObject value) {
         if (value is not PdfDictionary dictionary) return false;
         string? type = dictionary.Get<PdfName>("Type")?.Name;
+        if (string.Equals(type, "Annot", StringComparison.Ordinal) || dictionary.Items.ContainsKey("Subtype")) return false;
         return type == null || string.Equals(type, "Filespec", StringComparison.Ordinal);
     }
 
