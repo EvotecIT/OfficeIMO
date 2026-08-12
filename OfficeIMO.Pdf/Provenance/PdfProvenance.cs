@@ -22,7 +22,7 @@ public static class PdfProvenance {
             document,
             IsCandidate,
             Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)));
-        HashSet<int> associatedFileSpecifications = CollectAssociatedFileSpecifications(document.Objects);
+        HashSet<int> associatedFileSpecifications = CollectCatalogAssociatedFileSpecifications(document);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -73,6 +73,7 @@ public static class PdfProvenance {
             Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)));
         IReadOnlyList<PdfAttachmentInfo> allAttachments = document.Attachments;
         var removeIndices = new List<int>();
+        var usedAttachmentIndices = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
         for (int index = 0; index < attachments.Count; index++) {
@@ -80,13 +81,14 @@ public static class PdfProvenance {
             if (!IsCandidate(attachment)) continue;
             OfficeProvenanceEvidence evidence = before.Evidence[evidenceIndex++];
             if (!evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
-            int attachmentIndex = FindAttachmentIndex(allAttachments, attachment);
+            int attachmentIndex = FindAttachmentIndex(allAttachments, attachment, usedAttachmentIndices);
             if (attachmentIndex < 0) throw new InvalidDataException("A PDF provenance attachment could not be matched to its descriptor.");
             removeIndices.Add(attachmentIndex);
+            usedAttachmentIndices.Add(attachmentIndex);
             changes.Add(new OfficeProvenanceChange(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 evidence.Location,
-                attachment.ByteLength));
+                removedBytes: 0));
         }
         if (removeIndices.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
@@ -104,7 +106,8 @@ public static class PdfProvenance {
             for (int index = removeIndices.Count - 1; index >= 0; index--) session.RemoveAt(removeIndices[index]);
         }, readOptions, options.Limits.MaxExpandedContainerBytes);
         byte[] output = edit.ToBytes();
-        OfficeProvenanceReport after = Inspect(output, options.Limits, readOptions: null);
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
+        OfficeProvenanceReport after = Inspect(output, options.Limits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
 
@@ -131,12 +134,13 @@ public static class PdfProvenance {
         attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
         string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
 
-    private static HashSet<int> CollectAssociatedFileSpecifications(Dictionary<int, PdfIndirectObject> objects) {
+    private static HashSet<int> CollectCatalogAssociatedFileSpecifications(PdfReadDocument document) {
         var result = new HashSet<int>();
-        foreach (PdfArray array in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
-            foreach (PdfObject item in array.Items) {
-                if (item is PdfReference reference) result.Add(reference.ObjectNumber);
-            }
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(document.Objects, document.TrailerRaw);
+        if (catalog == null || !catalog.Items.TryGetValue("AF", out PdfObject? associatedObject) ||
+            PdfObjectLookup.Resolve(document.Objects, associatedObject) is not PdfArray associatedFiles) return result;
+        foreach (PdfObject item in associatedFiles.Items) {
+            if (item is PdfReference reference) result.Add(reference.ObjectNumber);
         }
         return result;
     }
@@ -144,8 +148,12 @@ public static class PdfProvenance {
     private static long MultiplySaturating(long value, int multiplier) =>
         value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
-    private static int FindAttachmentIndex(IReadOnlyList<PdfAttachmentInfo> attachments, PdfExtractedAttachment target) {
+    private static int FindAttachmentIndex(
+        IReadOnlyList<PdfAttachmentInfo> attachments,
+        PdfExtractedAttachment target,
+        HashSet<int> usedIndices) {
         for (int index = 0; index < attachments.Count; index++) {
+            if (usedIndices.Contains(index)) continue;
             PdfAttachmentInfo candidate = attachments[index];
             if (candidate.FileSpecObjectNumber == target.FileSpecObjectNumber &&
                 candidate.EmbeddedFileObjectNumber == target.EmbeddedFileObjectNumber) return index;

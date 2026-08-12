@@ -16,6 +16,18 @@ internal static class PdfAttachmentEditor {
         IReadOnlyList<PdfExtractedAttachment> existing = maxDecodedAttachmentBytes.HasValue
             ? PdfAttachmentExtractor.ExtractAttachments(document, static _ => true, maxDecodedAttachmentBytes.Value)
             : PdfAttachmentExtractor.ExtractAttachments(document);
+        if (maxDecodedAttachmentBytes.HasValue) {
+            long projectedBytes = 0;
+            foreach (PdfExtractedAttachment attachment in existing) {
+                if (projectedBytes > maxDecodedAttachmentBytes.Value - attachment.ByteLength) {
+                    throw PdfReadLimitException.Create(
+                        PdfReadLimitKind.AttachmentBytes,
+                        maxDecodedAttachmentBytes.Value,
+                        projectedBytes + attachment.ByteLength);
+                }
+                projectedBytes += attachment.ByteLength;
+            }
+        }
         var session = new PdfAttachmentEditSession(existing.Select(static attachment =>
             new PdfAttachmentEditSource(
                 new PdfEmbeddedFile(attachment.FileName, attachment.Bytes, attachment.MimeType,
