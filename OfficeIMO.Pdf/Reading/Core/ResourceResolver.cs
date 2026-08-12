@@ -1108,7 +1108,13 @@ internal static partial class ResourceResolver {
                 return false;
             }
 
-            var decodeTransform = PdfImageDecodeTransform.CreateColor(stream.Dictionary, colorNormalization.SourceColorCount, objects);
+            if (!PdfImageDecodeTransform.TryCreateColor(
+                    stream.Dictionary,
+                    colorNormalization.SourceColorCount,
+                    objects,
+                    out PdfImageDecodeTransform? decodeTransform)) {
+                return false;
+            }
             return TryBuildPngFileWithSoftMask(
                 stream,
                 width,
@@ -1121,7 +1127,13 @@ internal static partial class ResourceResolver {
                 out pngBytes);
         }
 
-        var colorDecodeTransform = PdfImageDecodeTransform.CreateColor(stream.Dictionary, colorNormalization.SourceColorCount, objects);
+        if (!PdfImageDecodeTransform.TryCreateColor(
+                stream.Dictionary,
+                colorNormalization.SourceColorCount,
+                objects,
+                out PdfImageDecodeTransform? colorDecodeTransform)) {
+            return false;
+        }
         var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, colorNormalization.SourceColorCount, objects);
         if (colorKeyMask is not null) {
             if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
@@ -1513,7 +1525,13 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
+        if (!PdfImageDecodeTransform.TryCreateColor(
+                softMask.Dictionary,
+                1,
+                objects,
+                out PdfImageDecodeTransform? alphaDecodeTransform)) {
+            return false;
+        }
         byte[] scanlines = new byte[scanlineBytes];
         PdfImageColorConversionBuffer? colorComponents = colorNormalization.RequiresColorConversion
             ? colorNormalization.CreateConversionBuffer()
