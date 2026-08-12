@@ -77,7 +77,7 @@ internal static partial class PdfSanitizer {
         }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 
-        return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);
+        return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined, rewrittenReadOptions);
     }
 
     internal static void AddPolicyRetainedActionTypes(PdfDocumentInfo info, PdfSanitizationOptions policy, ISet<string> preservedActionTypes) {

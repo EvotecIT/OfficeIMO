@@ -147,14 +147,21 @@ public class PdfSanitizerTests {
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
-            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17
+            }
         };
 
         PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+        PdfDocument reopened = result.ToDocument();
 
         Assert.True(result.IsSanitized);
         Assert.True(result.PreservationReport.IsPreserved);
         Assert.Empty(result.RemainingFindings);
+        Assert.Equal(PdfReadLimits.DefaultMaxJavaScripts + 17, reopened.ReadOptions.Limits.MaxJavaScripts);
+        Assert.True(reopened.ReadOptions.Limits.MaxInputBytes >= result.ToBytes().LongLength);
+        Assert.Empty(PdfSanitizer.Analyze(reopened.ToBytes()));
     }
 
     [Theory]

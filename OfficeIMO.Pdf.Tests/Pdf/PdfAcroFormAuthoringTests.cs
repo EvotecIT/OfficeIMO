@@ -164,13 +164,17 @@ public class PdfAcroFormAuthoringTests {
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
-            Caption = "Calculate"
+            Caption = "Calculate",
+            JavaScript = "app.alert('kept');"
         })).ToBytes();
 
         PdfDocumentPreflight preflight = PdfInspector.Preflight(authored);
 
         Assert.False(preflight.CanFillSimpleFormFields);
         Assert.False(preflight.Can(PdfPreflightCapability.FillSimpleFormFields));
+        IReadOnlyList<string> diagnostics = preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields);
+        Assert.DoesNotContain(diagnostics, static message => message.Contains("active content", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(diagnostics, static message => message.Contains("does not contain named", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

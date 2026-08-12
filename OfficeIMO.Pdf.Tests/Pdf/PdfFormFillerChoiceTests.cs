@@ -6,6 +6,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfFormFillerTests {
     [Fact]
+    public void FillFields_EmptyChoiceValueClearsSelectionAndRebuildsBlankAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = string.Empty
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.DoesNotContain("<506F6C616E64> Tj", PdfEncoding.Latin1GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillAndFlattenFields_PaintsChoiceOptionDisplayText() {
         byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Country"] = "PL"

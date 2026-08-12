@@ -113,6 +113,44 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_RejectsTerminalNamesThatCollideWithNonterminalParents() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Field hierarchy collisions")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions { Name = "Customer.Notes", Value = "kept" })
+            .Create(new PdfFormFieldCreateOptions { Name = "Other", Value = "rename source" }))
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Create(
+            new PdfFormFieldCreateOptions { Name = "Customer", Value = "invalid" })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("Other", "Customer")));
+    }
+
+    [Fact]
+    public void Edit_MoveRegeneratesAnEmptyChoiceAppearanceForTheNewBounds() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Empty choice move")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Country",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "Poland", "Germany" },
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+
+        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Country", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Country").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+        PdfArray boundingBox = Assert.IsType<PdfArray>(normalAppearance.Dictionary.Items["BBox"]);
+
+        Assert.Equal(new[] { 0D, 0D, 200D, 40D }, boundingBox.Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
+
+    [Fact]
     public void Edit_AllowsFurtherLayoutChangesToUnsignedSignatureField() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature page")).ToBytes();
         byte[] placed = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();

@@ -192,21 +192,22 @@ public sealed partial class PdfDocumentPreflight {
 
     private bool HasOperationSpecificFormRewriteBlocker(PdfMutationOperation operation) {
         for (int i = 0; i < RewriteBlockers.Count; i++) {
-            PdfRewriteBlockerKind kind = RewriteBlockers[i].Kind;
-            if (kind == PdfRewriteBlockerKind.ActiveContent &&
-                _documentInfo is not null &&
-                _documentInfo.AcroFormXfa is null &&
-                _documentInfo.HasOnlyWidgetOwnedActiveContent) {
-                continue;
-            }
-            if (kind != PdfRewriteBlockerKind.Encryption &&
-                kind != PdfRewriteBlockerKind.Signatures &&
-                PdfMutationPlanner.IsFullRewriteBlockerForOperation(kind, operation)) {
-                return true;
-            }
+            if (IsOperationSpecificFormRewriteBlocker(RewriteBlockers[i].Kind, operation)) return true;
         }
 
         return false;
+    }
+
+    private bool IsOperationSpecificFormRewriteBlocker(PdfRewriteBlockerKind kind, PdfMutationOperation operation) {
+        if (kind == PdfRewriteBlockerKind.ActiveContent &&
+            _documentInfo is not null &&
+            _documentInfo.AcroFormXfa is null &&
+            _documentInfo.HasOnlyWidgetOwnedActiveContent) {
+            return false;
+        }
+        return kind != PdfRewriteBlockerKind.Encryption &&
+            kind != PdfRewriteBlockerKind.Signatures &&
+            PdfMutationPlanner.IsFullRewriteBlockerForOperation(kind, operation);
     }
 
     private bool HasImageExtractionBlocker() {
@@ -417,9 +418,7 @@ public sealed partial class PdfDocumentPreflight {
 
         for (int i = 0; i < RewriteBlockers.Count; i++) {
             PdfRewriteBlocker blocker = RewriteBlockers[i];
-            if (blocker.Kind != PdfRewriteBlockerKind.Encryption &&
-                blocker.Kind != PdfRewriteBlockerKind.Signatures &&
-                PdfMutationPlanner.IsFullRewriteBlockerForOperation(blocker.Kind, operation)) {
+            if (IsOperationSpecificFormRewriteBlocker(blocker.Kind, operation)) {
                 AddDistinct(messages, blocker.Message);
             }
         }

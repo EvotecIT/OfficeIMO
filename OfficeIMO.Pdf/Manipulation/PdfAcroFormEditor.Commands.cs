@@ -63,7 +63,7 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
-        if (FindField(objects, fields, options.Name) is not null) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
+        if (FieldPathExists(objects, fields, options.Name)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
         (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
@@ -107,7 +107,7 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues) {
-        if (FindField(objects, fields, newName) is not null) throw new ArgumentException("PDF form field already exists: " + newName, nameof(newName));
+        if (FieldPathExists(objects, fields, newName)) throw new ArgumentException("PDF form field already exists: " + newName, nameof(newName));
         EditableField field = RequireField(objects, fields, name);
         string oldParent = ParentName(name); string newParent = ParentName(newName);
         if (!string.Equals(oldParent, newParent, StringComparison.Ordinal)) throw new NotSupportedException("Renaming a hierarchical field must preserve its parent path.");
@@ -135,7 +135,7 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
         EnsureAnnotationArray(objects, page).Items.Add(new PdfReference(field.WidgetObjectNumbers[0], 0));
-        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary));
+        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
     }
 
     private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
@@ -145,12 +145,12 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {
         EditableField field = RequireField(objects, fields, name); field.Dictionary.Items["Ff"] = new PdfNumber(flags);
-        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary));
+        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
     }
 
-    private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value) {
+    private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value, bool includeEmptyChoice = false) {
         if (value is null || string.Equals(fieldType, "Sig", StringComparison.Ordinal) ||
-            string.Equals(fieldType, "Ch", StringComparison.Ordinal) && value.Length == 0) {
+            !includeEmptyChoice && string.Equals(fieldType, "Ch", StringComparison.Ordinal) && value.Length == 0) {
             return;
         }
         refillValues[name] = value;

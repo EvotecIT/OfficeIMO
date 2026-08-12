@@ -45,6 +45,34 @@ internal static partial class PdfAcroFormEditor {
         return match;
     }
 
+    private static bool FieldPathExists(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) {
+        var pending = new Stack<(PdfArray Owner, string? ParentName)>();
+        var visited = new HashSet<int>();
+        pending.Push((fields, null));
+        while (pending.Count > 0) {
+            (PdfArray owner, string? parentName) = pending.Pop();
+            for (int index = 0; index < owner.Items.Count; index++) {
+                if (owner.Items[index] is not PdfReference reference || !visited.Add(reference.ObjectNumber)) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
+                }
+                PdfDictionary field = RequireDictionary(objects, reference.ObjectNumber);
+                string? fullName = CombineName(parentName, ReadText(field, "T"));
+                if (string.Equals(fullName, name, StringComparison.Ordinal)) return true;
+                if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) || ResolveArray(objects, kidsObject) is not PdfArray kids) continue;
+                bool hasNamedFieldKids = false;
+                for (int kidIndex = 0; kidIndex < kids.Items.Count; kidIndex++) {
+                    PdfDictionary? kid = ResolveDictionary(objects, kids.Items[kidIndex]);
+                    if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) {
+                        hasNamedFieldKids = true;
+                        break;
+                    }
+                }
+                if (hasNamedFieldKids) pending.Push((kids, fullName));
+            }
+        }
+        return false;
+    }
+
     private static IReadOnlyList<string> ReadCalculationOrder(byte[] pdf, PdfReadOptions? readOptions) {
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
