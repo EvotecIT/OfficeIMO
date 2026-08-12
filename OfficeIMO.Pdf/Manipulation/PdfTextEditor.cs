@@ -7,13 +7,12 @@ internal static partial class PdfTextEditor {
     internal static PdfRegionText Inspect(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
-        IReadOnlyList<PdfTextSpan> selected = document.Pages[region.PageNumber - 1]
-            .GetTextSpans()
-            .Where(span => IsVisibleSearchSpan(span) && Intersects(region, GetBounds(span)))
-            .ToArray();
-        return BuildRegionText(selected);
+        PdfReadPage page = document.Pages[region.PageNumber - 1];
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        PdfPageRegion sourceRegion = OffsetRegion(region, originX, originY);
+        return OffsetRegionText(InspectSource(page, sourceRegion), -originX, -originY);
     }
 
     internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options, PdfReadOptions? readOptions) {
@@ -22,8 +21,8 @@ internal static partial class PdfTextEditor {
 
     internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
-        if (text.Length == 0) throw new ArgumentException("Added text cannot be empty.", nameof(text));
-        ValidateRegionPage(pdf, region, readOptions);
+        if (!HasRenderableTextLine(text)) throw new ArgumentException("Added text must contain at least one renderable line.", nameof(text));
+        region = TranslateRegionToSource(pdf, region, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected: null);
         double baselineY = region.Top - style.FontSize;
@@ -33,8 +32,9 @@ internal static partial class PdfTextEditor {
 
     internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
+        region = TranslateRegionToSource(pdf, region, readOptions);
         EnsureRegionIsSafelyEditable(pdf, region, readOptions);
-        PdfRegionText detected = Inspect(pdf, region, readOptions);
+        PdfRegionText detected = InspectSource(pdf, region, readOptions);
         EnsureAppendOrderIsSafe(pdf, region.PageNumber, detected.Spans, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected);
@@ -53,8 +53,9 @@ internal static partial class PdfTextEditor {
     internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
+        source = TranslateRegionToSource(pdf, source, readOptions);
         EnsureRegionIsSafelyEditable(pdf, source, readOptions);
-        PdfRegionText detected = Inspect(pdf, source, readOptions);
+        PdfRegionText detected = InspectSource(pdf, source, readOptions);
         if (detected.Spans.Count == 0 || detected.Text.Length == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
         EnsureAppendOrderIsSafe(pdf, source.PageNumber, detected.Spans, readOptions);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
@@ -149,7 +150,7 @@ internal static partial class PdfTextEditor {
         for (int index = 0; index < affectedPages.Length; index++) {
             int pageNumber = affectedPages[index];
             ValidatePage(pageNumber, before.Pages.Count, nameof(areas));
-            IReadOnlyList<PdfTextSpan> spans = before.Pages[pageNumber - 1].GetTextSpans();
+            IReadOnlyList<PdfTextSpan> spans = before.Pages[pageNumber - 1].GetTextSpans(includeArtifactText: true);
             for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
                 PdfTextSpan span = spans[spanIndex];
                 SpanBounds bounds = GetBounds(span);
@@ -168,7 +169,7 @@ internal static partial class PdfTextEditor {
         PdfReadDocument after = PdfReadDocument.Open(removed, afterReadOptions);
         var remainingByPage = affectedPages.ToDictionary(
             static page => page,
-            page => after.Pages[page - 1].GetTextSpans().ToList());
+            page => after.Pages[page - 1].GetTextSpans(includeArtifactText: true).ToList());
         var missing = new List<PageTextSpanSnapshot>();
         for (int index = 0; index < original.Count; index++) {
             PageTextSpanSnapshot candidate = original[index];
@@ -199,8 +200,8 @@ internal static partial class PdfTextEditor {
         return new TextRemovalResult(removed, warnings, restamps);
     }
 
-    private static PdfRegionText BuildRegionText(IReadOnlyList<PdfTextSpan> spans) {
-        if (spans.Count == 0) return new PdfRegionText(string.Empty, Array.Empty<PdfTextSpan>(), PdfStandardFont.Helvetica, null, 12D, PdfColor.Black, 0D, 0D, 0D);
+    private static PdfRegionText BuildRegionText(PdfTextSpan[] spans) {
+        if (spans.Length == 0) return new PdfRegionText(string.Empty, Array.Empty<PdfTextSpan>(), PdfStandardFont.Helvetica, null, 12D, PdfColor.Black, 0D, 0D, 0D);
         PdfTextSpan dominant = spans
             .GroupBy(static span => new SpanStyleKey(span.BaseFont ?? span.FontResource, Math.Round(EffectiveFontSize(span), 2), Math.Round(span.RotationDegrees, 2), span.Color))
             .OrderByDescending(static group => group.Sum(static span => Math.Max(1, span.Text.Length)))
@@ -214,6 +215,20 @@ internal static partial class PdfTextEditor {
             builder.Append(new TextSearchUnit(layoutLines[lineIndex].Spans).Text);
         }
         return new PdfRegionText(builder.ToString(), ordered, ResolveStandardFont(dominant.BaseFont), dominant.BaseFont, EffectiveFontSize(dominant), ToPdfColor(dominant.Color), dominant.RotationDegrees, ordered[0].X, ordered[0].Y);
+    }
+
+    private static PdfRegionText OffsetRegionText(PdfRegionText value, double deltaX, double deltaY) {
+        if (value.Spans.Count == 0) return value;
+        return new PdfRegionText(
+            value.Text,
+            value.Spans.Select(span => span.WithOffset(deltaX, deltaY)).ToArray(),
+            value.SuggestedFont,
+            value.SourceFont,
+            value.FontSize,
+            value.Color,
+            value.RotationDegrees,
+            value.BaselineX + deltaX,
+            value.BaselineY + deltaY);
     }
 
     private static byte[] StampLines(byte[] pdf, int pageNumber, double x, double baselineY, string text, PdfResolvedTextStyle style, PdfReadOptions? readOptions) {
@@ -240,6 +255,12 @@ internal static partial class PdfTextEditor {
                 style.RotationDegrees,
                 paintOrder + (index * 0.0000001D)));
         }
+    }
+
+    private static bool HasRenderableTextLine(string text) {
+        string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (int index = 0; index < lines.Length; index++) if (lines[index].Length > 0) return true;
+        return false;
     }
 
     private static byte[] ApplyStampRequests(byte[] pdf, List<PdfStamper.TextStampRequest> requests, PdfReadOptions? readOptions) =>
@@ -300,25 +321,44 @@ internal static partial class PdfTextEditor {
 
     private static void AddReflowedLineRequests(List<PdfStamper.TextStampRequest> requests, List<PositionedRewrite> line) {
         PositionedRewrite[] ordered = line.OrderBy(static rewrite => BaselinePosition(rewrite.Source)).ToArray();
-        double cumulativeShift = 0D;
+        double offsetX = 0D;
+        double offsetY = 0D;
         for (int index = 0; index < ordered.Length; index++) {
             PositionedRewrite rewrite = ordered[index];
             double radians = rewrite.Source.RotationDegrees * Math.PI / 180D;
             double ux = Math.Cos(radians);
             double uy = Math.Sin(radians);
-            double x = rewrite.Source.X + ux * cumulativeShift;
-            double y = rewrite.Source.Y + uy * cumulativeShift;
-            double replacementAdvance = 0D;
+            double x = rewrite.Source.X + offsetX;
+            double y = rewrite.Source.Y + offsetY;
+            double cursorX = x;
+            double cursorY = y;
             for (int fragmentIndex = 0; fragmentIndex < rewrite.Fragments.Length; fragmentIndex++) {
                 PositionedTextFragment fragment = rewrite.Fragments[fragmentIndex];
                 if (fragment.Text.Length == 0) continue;
-                double fragmentX = x + ux * replacementAdvance;
-                double fragmentY = y + uy * replacementAdvance;
-                AddStampLines(requests, rewrite.PageNumber, fragmentX, fragmentY, fragment.Text, fragment.Style, rewrite.Source.PaintOrder + (fragmentIndex * 0.00000001D));
-                replacementAdvance += PdfWriter.EstimateSimpleTextWidth(fragment.Text, fragment.Style.Font, fragment.Style.FontSize);
+                AddStampLines(requests, rewrite.PageNumber, cursorX, cursorY, fragment.Text, fragment.Style, rewrite.Source.PaintOrder + (fragmentIndex * 0.00000001D));
+                AdvanceFragmentCursor(fragment, ref cursorX, ref cursorY);
             }
-            cumulativeShift += replacementAdvance - Math.Abs(rewrite.Source.Advance);
+            double sourceEndX = rewrite.Source.X + ux * Math.Abs(rewrite.Source.Advance);
+            double sourceEndY = rewrite.Source.Y + uy * Math.Abs(rewrite.Source.Advance);
+            offsetX = cursorX - sourceEndX;
+            offsetY = cursorY - sourceEndY;
         }
+    }
+
+    private static void AdvanceFragmentCursor(PositionedTextFragment fragment, ref double cursorX, ref double cursorY) {
+        string[] lines = fragment.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        int finalLineIndex = -1;
+        for (int index = 0; index < lines.Length; index++) if (lines[index].Length > 0) finalLineIndex = index;
+        if (finalLineIndex < 0) return;
+
+        double radians = fragment.Style.RotationDegrees * Math.PI / 180D;
+        double ux = Math.Cos(radians);
+        double uy = Math.Sin(radians);
+        double normalX = Math.Sin(radians) * fragment.Style.FontSize * 1.15D;
+        double normalY = -Math.Cos(radians) * fragment.Style.FontSize * 1.15D;
+        double finalWidth = PdfWriter.EstimateSimpleTextWidth(lines[finalLineIndex], fragment.Style.Font, fragment.Style.FontSize);
+        cursorX += normalX * finalLineIndex + ux * finalWidth;
+        cursorY += normalY * finalLineIndex + uy * finalWidth;
     }
 
     private static PdfResolvedTextStyle ResolveStyle(PdfTextEditOptions options, PdfRegionText? detected) => new PdfResolvedTextStyle(
@@ -493,16 +533,36 @@ internal static partial class PdfTextEditor {
         (!span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);
 
-    private static void ValidateRegionPage(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    private static PdfReadDocument OpenForVisualTextEditing(byte[] pdf, PdfReadOptions? readOptions) =>
+        PdfReadDocument.Open(pdf, PdfReadOptions.WithArtifactText(readOptions));
+
+    private static PdfPageRegion TranslateRegionToSource(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
-        ValidatePage(region.PageNumber, PdfReadDocument.Open(pdf, readOptions).Pages.Count, nameof(region));
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
+        (double originX, double originY) = document.Pages[region.PageNumber - 1].GetPageBoundaryOrigin();
+        return OffsetRegion(region, originX, originY);
     }
+
+    private static PdfPageRegion OffsetRegion(PdfPageRegion region, double deltaX, double deltaY) =>
+        new PdfPageRegion(region.PageNumber, region.X + deltaX, region.Y + deltaY, region.Width, region.Height);
+
+    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
+        return InspectSource(document.Pages[region.PageNumber - 1], region);
+    }
+
+    private static PdfRegionText InspectSource(PdfReadPage page, PdfPageRegion region) =>
+        BuildRegionText(page.GetTextSpans()
+            .Where(span => IsVisibleSearchSpan(span) && Intersects(region, GetBounds(span)))
+            .ToArray());
 
     private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         bool containsUnsafeText = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
@@ -515,7 +575,7 @@ internal static partial class PdfTextEditor {
     private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfReadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
         if (spans.Count == 0) return;
         if (appendedRequests != null && AppendedTextStaysWithinSourceBounds(spans, appendedRequests)) return;
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         IReadOnlyList<PdfReadPage.PdfAppendedTextBounds>? appendedBounds = appendedRequests?.Select(ToAppendedTextBounds).ToArray();
         if (document.Pages[pageNumber - 1].WouldAppendingTextChangeVisibleStacking(spans, appendedBounds)) {
             throw new NotSupportedException("The text edit would change the visible stacking order of overlapping page content.");

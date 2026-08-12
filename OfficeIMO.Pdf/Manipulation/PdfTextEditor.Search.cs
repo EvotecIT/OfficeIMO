@@ -6,7 +6,7 @@ internal static partial class PdfTextEditor {
         Guard.NotNull(text, nameof(text));
         if (text.Length == 0) return Array.Empty<TextSearchHit>();
         PdfTextSearchOptions snapshot = (options ?? new PdfTextSearchOptions()).Snapshot();
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         int[] pages = snapshot.PageNumbers == null || snapshot.PageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
             : snapshot.PageNumbers;
@@ -15,7 +15,9 @@ internal static partial class PdfTextEditor {
         var hits = new List<TextSearchHit>();
         for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++) {
             int pageNumber = pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = document.Pages[pageNumber - 1]
+            PdfReadPage page = document.Pages[pageNumber - 1];
+            (double originX, double originY) = page.GetPageBoundaryOrigin();
+            IReadOnlyList<PdfTextSpan> spans = page
                 .GetTextSpans()
                 .Where(IsVisibleSearchSpan)
                 .ToArray();
@@ -36,7 +38,7 @@ internal static partial class PdfTextEditor {
                     if (segments.Count == 0) continue;
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
-                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X, matchBounds.Y, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
+                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
                     hits.Add(new TextSearchHit(pageNumber, segments, line.Spans, match));
                 }
             }
@@ -58,25 +60,41 @@ internal static partial class PdfTextEditor {
                 double spanNormal = NormalPosition(span);
                 double tolerance = Math.Max(0.5D, Math.Min(2.5D, EffectiveFontSize(span) * 0.6D));
                 bool newLine = current.Count > 0 && Math.Abs(spanNormal - normal) > tolerance;
-                if (!newLine && current.Count > 0) {
-                    PdfTextSpan previous = current[current.Count - 1];
-                    double gap = BaselinePosition(span) - (BaselinePosition(previous) + Math.Abs(previous.Advance));
-                    newLine = IsIndependentFlowGap(gap, previous, span);
-                }
                 if (newLine) {
-                    lines.Add(BuildSearchLine(current));
+                    AddSearchLineSegments(lines, current);
                     current.Clear();
                 }
                 normal = current.Count == 0 ? spanNormal : ((normal * current.Count) + spanNormal) / (current.Count + 1);
                 current.Add(span);
             }
-            if (current.Count > 0) lines.Add(BuildSearchLine(current));
+            if (current.Count > 0) AddSearchLineSegments(lines, current);
         }
         return lines.OrderByDescending(static line => line.Y).ThenBy(static line => line.XStart).ToList();
     }
 
+    private static void AddSearchLineSegments(List<TextLayoutEngine.TextLine> lines, List<PdfTextSpan> candidates) {
+        PdfTextSpan[] ordered = OrderSpansInReadingDirection(candidates);
+        var segment = new List<PdfTextSpan>();
+        bool rightToLeft = UsesRightToLeftReadingOrder(ordered);
+        for (int index = 0; index < ordered.Length; index++) {
+            PdfTextSpan span = ordered[index];
+            if (segment.Count > 0) {
+                PdfTextSpan previous = segment[segment.Count - 1];
+                double gap = rightToLeft
+                    ? BaselinePosition(previous) - (BaselinePosition(span) + Math.Abs(span.Advance))
+                    : BaselinePosition(span) - (BaselinePosition(previous) + Math.Abs(previous.Advance));
+                if (IsIndependentFlowGap(gap, previous, span)) {
+                    lines.Add(BuildSearchLine(segment));
+                    segment.Clear();
+                }
+            }
+            segment.Add(span);
+        }
+        if (segment.Count > 0) lines.Add(BuildSearchLine(segment));
+    }
+
     private static TextLayoutEngine.TextLine BuildSearchLine(List<PdfTextSpan> spans) {
-        PdfTextSpan[] ordered = spans.OrderBy(static span => BaselinePosition(span)).ToArray();
+        PdfTextSpan[] ordered = OrderSpansInReadingDirection(spans);
         double start = BaselinePosition(ordered[0]);
         PdfTextSpan last = ordered[ordered.Length - 1];
         return new TextLayoutEngine.TextLine(NormalPosition(ordered[0]), start, BaselinePosition(last) + Math.Abs(last.Advance), string.Empty, ordered.ToList());
@@ -115,13 +133,14 @@ internal static partial class PdfTextEditor {
         private readonly TextCharacterSource?[] _sources;
 
         internal TextSearchUnit(IReadOnlyList<PdfTextSpan> spans) {
-            PdfTextSpan[] orderedSpans = spans.OrderBy(static span => BaselinePosition(span)).ThenByDescending(static span => NormalPosition(span)).ToArray();
+            PdfTextSpan[] orderedSpans = OrderSpansInReadingDirection(spans);
+            bool rightToLeft = UsesRightToLeftReadingOrder(orderedSpans);
             var text = new System.Text.StringBuilder();
             var sources = new List<TextCharacterSource?>();
             PdfTextSpan? previous = null;
             for (int spanIndex = 0; spanIndex < orderedSpans.Length; spanIndex++) {
                 PdfTextSpan span = orderedSpans[spanIndex];
-                if (previous != null && NeedsSyntheticSpace(previous, span, text)) {
+                if (previous != null && NeedsSyntheticSpace(previous, span, text, rightToLeft)) {
                     text.Append(' ');
                     sources.Add(null);
                 }
@@ -160,13 +179,47 @@ internal static partial class PdfTextEditor {
             return segments;
         }
 
-        private static bool NeedsSyntheticSpace(PdfTextSpan previous, PdfTextSpan current, System.Text.StringBuilder text) {
+        private static bool NeedsSyntheticSpace(PdfTextSpan previous, PdfTextSpan current, System.Text.StringBuilder text, bool rightToLeft) {
             if (text.Length == 0 || char.IsWhiteSpace(text[text.Length - 1]) || (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]))) return false;
             if (previous.LogicalTrailingSpace || current.LogicalLeadingSpace) return true;
-            double gap = BaselinePosition(current) - (BaselinePosition(previous) + Math.Max(0D, Math.Abs(previous.Advance)));
+            double gap = rightToLeft
+                ? BaselinePosition(previous) - (BaselinePosition(current) + Math.Max(0D, Math.Abs(current.Advance)))
+                : BaselinePosition(current) - (BaselinePosition(previous) + Math.Max(0D, Math.Abs(previous.Advance)));
             return gap > Math.Max(1D, Math.Min(EffectiveFontSize(previous), EffectiveFontSize(current)) * 0.18D);
         }
     }
+
+    private static PdfTextSpan[] OrderSpansInReadingDirection(IEnumerable<PdfTextSpan> spans) {
+        PdfTextSpan[] values = spans.ToArray();
+        bool rightToLeft = UsesRightToLeftReadingOrder(values);
+        return rightToLeft
+            ? values.OrderByDescending(static span => BaselinePosition(span)).ThenByDescending(static span => NormalPosition(span)).ToArray()
+            : values.OrderBy(static span => BaselinePosition(span)).ThenByDescending(static span => NormalPosition(span)).ToArray();
+    }
+
+    private static bool UsesRightToLeftReadingOrder(PdfTextSpan[] spans) {
+        int rightToLeft = 0;
+        int leftToRight = 0;
+        for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
+            string text = spans[spanIndex].Text;
+            for (int index = 0; index < text.Length; index++) {
+                int codePoint = text[index];
+                if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                    codePoint = char.ConvertToUtf32(text[index], text[++index]);
+                }
+                if (IsRightToLeftCodePoint(codePoint)) rightToLeft++;
+                else if (codePoint <= char.MaxValue && char.IsLetterOrDigit((char)codePoint)) leftToRight++;
+            }
+        }
+        return rightToLeft > leftToRight;
+    }
+
+    private static bool IsRightToLeftCodePoint(int value) =>
+        value >= 0x0590 && value <= 0x08FF ||
+        value >= 0xFB1D && value <= 0xFDFF ||
+        value >= 0xFE70 && value <= 0xFEFF ||
+        value >= 0x10800 && value <= 0x10FFF ||
+        value >= 0x1E800 && value <= 0x1EEFF;
 
     private sealed class TextSearchHit {
         internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, IReadOnlyList<PdfTextSpan> lineSpans, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); LineSpans = lineSpans.ToArray(); Match = match; }

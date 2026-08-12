@@ -51,4 +51,9 @@ public sealed class PdfTextSpan {
         Text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
         CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize);
+
+    internal PdfTextSpan WithOffset(double deltaX, double deltaY) => new PdfTextSpan(
+        Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize);
 }
