@@ -270,8 +270,9 @@ internal static class Guard {
             value != PdfAssociatedFileRelationship.Source &&
             value != PdfAssociatedFileRelationship.Data &&
             value != PdfAssociatedFileRelationship.Alternative &&
-            value != PdfAssociatedFileRelationship.Supplement) {
-            throw new System.ArgumentOutOfRangeException(paramName, "PDF associated-file relationship must be Unspecified, Source, Data, Alternative, or Supplement.");
+            value != PdfAssociatedFileRelationship.Supplement &&
+            value != PdfAssociatedFileRelationship.C2paManifest) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF associated-file relationship must be Unspecified, Source, Data, Alternative, Supplement, or C2paManifest.");
         }
     }
 

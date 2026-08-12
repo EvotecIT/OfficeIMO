@@ -13,5 +13,7 @@ public enum PdfAssociatedFileRelationship {
     /// <summary>The embedded file is an alternative representation of the PDF content.</summary>
     Alternative,
     /// <summary>The embedded file supplements the PDF content.</summary>
-    Supplement
+    Supplement,
+    /// <summary>The embedded file is a C2PA Manifest Store associated with the PDF.</summary>
+    C2paManifest
 }

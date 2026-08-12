@@ -549,6 +549,7 @@ internal static class PdfAttachmentExtractor {
             "Data" => PdfAssociatedFileRelationship.Data,
             "Alternative" => PdfAssociatedFileRelationship.Alternative,
             "Supplement" => PdfAssociatedFileRelationship.Supplement,
+            "C2PA_Manifest" => PdfAssociatedFileRelationship.C2paManifest,
             _ => PdfAssociatedFileRelationship.Unspecified
         };
     }
