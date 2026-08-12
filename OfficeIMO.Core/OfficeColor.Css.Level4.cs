@@ -361,8 +361,13 @@ public readonly partial struct OfficeColor {
         blue = DecodeSrgb(color.B / 255D);
     }
 
-    private static double DecodeSrgb(double value) =>
-        value <= 0.04045D ? value / 12.92D : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
+    private static double DecodeSrgb(double value) {
+        double absolute = Math.Abs(value);
+        double linear = absolute <= 0.04045D
+            ? absolute / 12.92D
+            : Math.Pow((absolute + 0.055D) / 1.055D, 2.4D);
+        return value < 0D ? -linear : linear;
+    }
 
     private static void ToOklab(OfficeColor color, out double lightness, out double a, out double b) {
         ToLinearSrgb(color, out double red, out double green, out double blue);

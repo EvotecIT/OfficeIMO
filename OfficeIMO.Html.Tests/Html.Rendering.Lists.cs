@@ -130,6 +130,23 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "[0011] ", "Item" }, rendered.Text.Split('\n'));
     }
 
+    [Theory]
+    [InlineData("cyclic 2")]
+    [InlineData("numeric 2")]
+    [InlineData("alphabetic 2")]
+    [InlineData("symbolic 2")]
+    [InlineData("additive 2")]
+    [InlineData("fixed nope")]
+    [InlineData("fixed 2 3")]
+    public void HtmlRendering_InvalidCounterStyleSystemArityUsesInitialSymbolicSystem(string system) {
+        string html = "<style>@counter-style marks{system:" + system + ";symbols:'X' 'Y';additive-symbols:1 'I'}</style>"
+            + "<ol start='3' style='list-style-type:marks'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "XX. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
     [Fact]
     public void HtmlRendering_CounterStylePaddingIncludesNegativeAffixes() {
         const string html = "<style>@counter-style signed{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';negative:'-';pad:3 '0';suffix:' '}</style><ol start='-1' style='list-style-type:signed'><li>Item</li></ol>";

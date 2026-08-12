@@ -38,6 +38,13 @@ public sealed class DrawingCssColorTests {
     }
 
     [Fact]
+    public void OfficeColor_DecodesNegativeDisplayP3ChannelsWithExtendedTransferFunction() {
+        Assert.True(OfficeColor.TryParseCss("color(display-p3 -0.8 0 0)", out OfficeColor color));
+
+        Assert.Equal(OfficeColor.FromRgb(0, 44, 28), color);
+    }
+
+    [Fact]
     public void OfficeColor_PreservesHighChromaLchCoordinatesUntilSrgbGamutClipping() {
         Assert.True(OfficeColor.TryParseCss("lch(30 150 0)", out OfficeColor color));
 

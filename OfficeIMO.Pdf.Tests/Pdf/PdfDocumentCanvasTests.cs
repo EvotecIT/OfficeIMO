@@ -64,6 +64,25 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasChoiceField_ValueOnlyOverloadRejectsDuplicateExportValues() {
+        var options = new[] {
+            new PdfFormFieldOption("x", "First"),
+            new PdfFormFieldOption("x", "Second")
+        };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfPageCanvas().ChoiceField(
+            "Choice",
+            options,
+            new[] { "x" },
+            20D,
+            20D,
+            120D,
+            24D));
+
+        Assert.Contains("export values must be unique", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas

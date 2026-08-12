@@ -220,11 +220,7 @@ internal sealed class HtmlCounterStyleRegistry {
             IReadOnlyDictionary<string, string> descriptors = ParseDescriptors(body);
             if (name.Length == 0) return null;
             IReadOnlyList<string> systemParts = HtmlRenderCssValues.SplitWhitespace(GetDescriptor(descriptors, "system"));
-            string system = systemParts.Count == 0 ? "symbolic" : systemParts[0].ToLowerInvariant();
-            int fixedFirst = 1;
-            if (system == "fixed" && systemParts.Count > 1
-                && !int.TryParse(systemParts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out fixedFirst)) return null;
-            if (system is not ("cyclic" or "numeric" or "alphabetic" or "symbolic" or "fixed" or "additive")) return null;
+            if (!TryParseSystemDescriptor(systemParts, out string system, out int fixedFirst)) return null;
 
             if (!TryParseSymbols(GetDescriptor(descriptors, "symbols"), out IReadOnlyList<string> symbols)) return null;
             if (!TryParseAdditiveSymbols(GetDescriptor(descriptors, "additive-symbols"), out IReadOnlyList<AdditiveSymbol> additive)) return null;
@@ -238,6 +234,28 @@ internal sealed class HtmlCounterStyleRegistry {
             if (!TryParseSingleString(GetDescriptor(descriptors, "suffix"), ". ", out string suffix)) return null;
             string fallback = HtmlCssEscapeDecoder.Decode(GetDescriptor(descriptors, "fallback").Trim());
             return new Definition(name, system, fixedFirst, symbols, additive, ranges, negativePrefix, negativeSuffix, padWidth, padSymbol, prefix, suffix, fallback);
+        }
+
+        private static bool TryParseSystemDescriptor(IReadOnlyList<string> parts, out string system, out int fixedFirst) {
+            system = "symbolic";
+            fixedFirst = 1;
+            if (parts.Count == 0) return true;
+
+            string requested = parts[0].ToLowerInvariant();
+            if (requested == "fixed") {
+                if (parts.Count == 1) {
+                    system = requested;
+                } else if (parts.Count == 2
+                    && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedFirst)) {
+                    system = requested;
+                    fixedFirst = parsedFirst;
+                }
+                return true;
+            }
+
+            if (requested is not ("cyclic" or "numeric" or "alphabetic" or "symbolic" or "additive")) return false;
+            if (parts.Count == 1) system = requested;
+            return true;
         }
 
         private static IReadOnlyDictionary<string, string> ParseDescriptors(string body) {

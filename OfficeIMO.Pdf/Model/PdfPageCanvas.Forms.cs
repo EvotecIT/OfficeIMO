@@ -104,6 +104,9 @@ public sealed partial class PdfPageCanvas {
         if (optionSnapshot.Count == 0 || optionSnapshot.Any(option => option == null || string.IsNullOrWhiteSpace(option.DisplayText))) {
             throw new ArgumentException("Canvas choice fields require at least one option with non-empty display text.", nameof(options));
         }
+        if (optionSnapshot.Select(option => option.ExportValue).Distinct(StringComparer.Ordinal).Count() != optionSnapshot.Count) {
+            throw new ArgumentException("Canvas choice field export values must be unique when selected values are provided without indices.", nameof(options));
+        }
         var valueSnapshot = values?.Distinct(StringComparer.Ordinal).ToList() ?? new List<string>();
         if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
             throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
