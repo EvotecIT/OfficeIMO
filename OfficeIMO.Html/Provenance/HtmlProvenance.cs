@@ -164,6 +164,16 @@ public static class HtmlProvenance {
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics) {
         int count = 0;
+        InspectEmbeddedImages(document, options, evidence, diagnostics, ref count, srcDocDepth: 0);
+    }
+
+    private static void InspectEmbeddedImages(
+        IHtmlDocument document,
+        OfficeProvenanceOptions options,
+        List<OfficeProvenanceEvidence> evidence,
+        List<string> diagnostics,
+        ref int count,
+        int srcDocDepth) {
         foreach (IElement element in GetEmbeddedImageElements(document)) {
             foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -188,6 +198,13 @@ public static class HtmlProvenance {
                 }
             }
         }
+        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
+            string? srcdoc = iframe.GetAttribute("srcdoc");
+            if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
+            IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc);
+            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, srcDocDepth + 1);
+        }
     }
 
     private static void RemoveEmbeddedImages(
@@ -195,6 +212,15 @@ public static class HtmlProvenance {
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes) {
         int count = 0;
+        RemoveEmbeddedImages(document, options, changes, ref count, srcDocDepth: 0);
+    }
+
+    private static void RemoveEmbeddedImages(
+        IHtmlDocument document,
+        OfficeProvenanceRemovalOptions options,
+        List<OfficeProvenanceChange> changes,
+        ref int count,
+        int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         foreach (IElement element in GetEmbeddedImageElements(document)) {
             EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
@@ -225,6 +251,15 @@ public static class HtmlProvenance {
                 }
             }
             ApplyEmbeddedImageReplacements(element, replacements);
+        }
+        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
+            string? srcdoc = iframe.GetAttribute("srcdoc");
+            if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
+            IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc);
+            int priorChanges = changes.Count;
+            RemoveEmbeddedImages(nested, options, changes, ref count, srcDocDepth + 1);
+            if (changes.Count != priorChanges) iframe.SetAttribute("srcdoc", nested.ToHtml());
         }
     }
 

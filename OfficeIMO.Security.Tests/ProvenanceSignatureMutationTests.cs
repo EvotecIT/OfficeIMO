@@ -93,7 +93,7 @@ public sealed class ProvenanceSignatureMutationTests {
     }
 
     private static byte[] CreatePngWithManifest() {
-        byte[] manifest = new byte[38];
+        byte[] manifest = new byte[126];
         WriteBigEndian(manifest, 0, manifest.Length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(manifest, 4);
         WriteBigEndian(manifest, 8, 30);
@@ -101,6 +101,22 @@ public sealed class ProvenanceSignatureMutationTests {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(manifest, 16);
         manifest[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(manifest, 33);
+        WriteBigEndian(manifest, 38, manifest.Length - 38);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(manifest, 42);
+        WriteBigEndian(manifest, 46, 27);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(manifest, 50);
+        new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(manifest, 54);
+        manifest[70] = 0x02;
+        manifest[71] = (byte)'m';
+        WriteBigEndian(manifest, 73, 53);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(manifest, 77);
+        WriteBigEndian(manifest, 81, 36);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(manifest, 85);
+        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(manifest, 89);
+        manifest[105] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(manifest, 106);
+        WriteBigEndian(manifest, 117, 9);
+        Encoding.ASCII.GetBytes("cbor").CopyTo(manifest, 121);
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         return Join(
             header,

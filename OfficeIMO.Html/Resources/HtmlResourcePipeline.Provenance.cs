@@ -7,13 +7,23 @@ public static partial class HtmlResourcePipeline {
     internal static IEnumerable<HtmlCssImageReference> EnumerateProvenanceCssImageReferences(string css) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
+        var usedImageProperties = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match variable in CssVarExpression.Matches(masked)) {
+            if (IsCssFunctionNameAt(masked, variable.Index, "var") &&
+                !IsInsideCssString(masked, variable.Index) &&
+                ClassifyCssUrl(masked, variable.Index) == HtmlResourceKind.Image) {
+                usedImageProperties.Add(DecodeCssEscapes(variable.Groups["name"].Value));
+            }
+        }
+        var emittedRanges = new HashSet<(int Start, int Length)>();
         foreach (Match match in CssUrlExpression.Matches(masked)) {
+            bool isCustomProperty = TryGetCustomPropertyName(masked, match.Index, out string customPropertyName);
             if (!IsCssFunctionNameAt(masked, match.Index, "url") ||
                 IsInsideCssString(masked, match.Index) ||
                 IsImportAtRuleUrl(masked, match.Index) ||
                 IsAtRulePreludeUrl(masked, match.Index) ||
-                IsCustomPropertyUrl(masked, match.Index) ||
-                ClassifyCssUrl(masked, match.Index) != HtmlResourceKind.Image) continue;
+                isCustomProperty && !usedImageProperties.Contains(DecodeCssEscapes(customPropertyName)) ||
+                !isCustomProperty && ClassifyCssUrl(masked, match.Index) != HtmlResourceKind.Image) continue;
             Group sourceGroup = match.Groups["url"];
             int leading = 0;
             while (leading < sourceGroup.Length && char.IsWhiteSpace(sourceGroup.Value[leading])) leading++;
@@ -21,13 +31,14 @@ public static partial class HtmlResourcePipeline {
             while (trailing > leading && char.IsWhiteSpace(sourceGroup.Value[trailing - 1])) trailing--;
             if (trailing == leading) continue;
             string source = DecodeCssEscapes(sourceGroup.Value.Substring(leading, trailing - leading));
-            yield return new HtmlCssImageReference(sourceGroup.Index + leading, trailing - leading, source);
+            var range = (sourceGroup.Index + leading, trailing - leading);
+            if (emittedRanges.Add(range)) yield return new HtmlCssImageReference(range.Item1, range.Item2, source);
         }
 
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
             if (ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image) continue;
             int start = css.IndexOf(reference.Source, reference.Start, Math.Min(css.Length - reference.Start, reference.End - reference.Start), StringComparison.Ordinal);
-            if (start < 0) continue;
+            if (start < 0 || !emittedRanges.Add((start, reference.Source.Length))) continue;
             yield return new HtmlCssImageReference(start, reference.Source.Length, DecodeCssEscapes(reference.Source));
         }
     }

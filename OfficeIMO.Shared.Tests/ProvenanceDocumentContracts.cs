@@ -298,6 +298,47 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlImageSetUrlReferenceIsEnumeratedOnlyOnce() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head><style>.x{{background-image:image-set(url('{dataUri}') 1x)}}</style></head><body class=\"x\"></body></html>";
+        var options = new OfficeProvenanceRemovalOptions { MaxEmbeddedAssets = 1 };
+        options.Limits.MaxEmbeddedAssets = 1;
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html, options);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void HtmlSanitizesUsedCssCustomPropertyImage() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlSanitizesImageInsideIframeSrcdoc() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string nested = $"<html><body><img src=\"{dataUri}\"></body></html>";
+        string html = $"<html><head></head><body><iframe srcdoc=\"{System.Net.WebUtility.HtmlEncode(nested)}\"></iframe></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);
@@ -636,7 +677,7 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[73];
+        byte[] data = new byte[126];
         WriteBigEndian(data, 0, data.Length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
         WriteBigEndian(data, 8, 30);
@@ -644,13 +685,22 @@ public sealed class ProvenanceDocumentContracts {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
         data[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
-        WriteBigEndian(data, 38, 35);
+        WriteBigEndian(data, 38, data.Length - 38);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
         WriteBigEndian(data, 46, 27);
         Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
         new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
         data[70] = 0x02;
         data[71] = (byte)'m';
+        WriteBigEndian(data, 73, 53);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 77);
+        WriteBigEndian(data, 81, 36);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 85);
+        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 89);
+        data[105] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 106);
+        WriteBigEndian(data, 117, 9);
+        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 121);
         return data;
     }
 
