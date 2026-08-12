@@ -245,7 +245,8 @@ public sealed partial class PdfReadPage {
                                                  type3GlyphBudget,
                                                  depth,
                                                  name,
-                                                 content));
+                                                 content),
+                                         activeType3Glyphs: activeStreams);
                                      canProject = resolved.TryGetValue(name, out PdfPageTilingPatternResource? tilingPattern) &&
                                          type3GlyphBudget.FailureVersion == failureVersion;
                                      if (canProject) {
@@ -356,7 +357,9 @@ public sealed partial class PdfReadPage {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
         }
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
-        if (image == null || !IsValidType3ImageFile(image) || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
+        if (image == null || !IsValidType3ImageFile(image) || image.HasUnresolvedTransparencyMask ||
+            requireImageMask && !image.IsImageMask ||
+            !image.IsImageMask && !ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects)) return false;
         return true;
     }
 

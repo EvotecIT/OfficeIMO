@@ -124,7 +124,7 @@ public sealed partial class PdfReadPage {
                     var cacheKey = GetType3ImageCacheKey(placement);
                     if (!extractedImageCache.TryGetValue(cacheKey, out PdfExtractedImage? image)) {
                         image = TryExtractType3Image(placement);
-                        if (image == null || !IsValidType3ImageFile(image)) return false;
+                        if (image == null || !IsSupportedType3Image(placement, image)) return false;
                         extractedImageCache[cacheKey] = image;
                     }
                     if ((type3.IsUncolored && !image.IsImageMask) || image.HasUnresolvedTransparencyMask) return false;
@@ -132,7 +132,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++)
-                    if (!IsValidType3ImageFile(localImages[imageIndex].Image) || localImages[imageIndex].Image.HasUnresolvedTransparencyMask) return false;
+                    if (!IsSupportedType3Image(localImages[imageIndex].Placement, localImages[imageIndex].Image) || localImages[imageIndex].Image.HasUnresolvedTransparencyMask) return false;
 
                 if (!TryPublishType3GlyphContent(
                         localPrimitives,
@@ -166,7 +166,7 @@ public sealed partial class PdfReadPage {
                 new[] { placement },
                 colorizeImageMasks: true);
             PdfExtractedImage? image = FindImage(images, placement);
-            return image != null && IsValidType3ImageFile(image) ? image : null;
+            return image != null && IsSupportedType3Image(placement, image) ? image : null;
         } catch (IOException exception) when (exception is not PdfReadLimitException) {
             return null;
         } catch (NotSupportedException) {
@@ -179,6 +179,21 @@ public sealed partial class PdfReadPage {
         return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
             OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
             validated.Format == OfficeImageFormat.Jpeg;
+    }
+
+    private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image) {
+        if (!IsValidType3ImageFile(image)) return false;
+        if (image.IsImageMask) return true;
+        PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
+        PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources;
+        if (imageDictionary == null && resources != null) {
+            PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null);
+            if (xObjects?.Items.TryGetValue(placement.ResourceName, out PdfObject? imageObject) == true &&
+                ResolveObject(imageObject) is PdfStream imageStream) {
+                imageDictionary = imageStream.Dictionary;
+            }
+        }
+        return imageDictionary != null && ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects);
     }
 
     private static (PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>

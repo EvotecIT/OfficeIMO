@@ -121,7 +121,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget = null,
         Type3GlyphBudget? type3GlyphBudget = null,
         bool requireSupportedType3Content = false,
-        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor = null) {
+        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor = null,
+        HashSet<PdfStream>? activeType3Glyphs = null) {
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
@@ -151,6 +152,7 @@ public sealed partial class PdfReadPage {
                 type3GlyphBudget,
                 requireSupportedType3Content,
                 materializedPatternVisitor,
+                activeType3Glyphs,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
@@ -172,6 +174,7 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         bool requireSupportedType3Content,
         Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor,
+        HashSet<PdfStream>? activeType3Glyphs,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -191,8 +194,9 @@ public sealed partial class PdfReadPage {
         PdfDictionary resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, content, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content);
-        if (type3GlyphBudget.FailureVersion != failureVersion) return false;
+        bool uncolored = paintType == 2;
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, content, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content, activeType3Glyphs, rejectImageContent: requireSupportedType3Content && uncolored);
+        if (requireSupportedType3Content && type3GlyphBudget.FailureVersion != failureVersion) return false;
         Matrix2D matrix;
         if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
             if (requireSupportedType3Content) {
@@ -205,7 +209,6 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         materializedPatternVisitor?.Invoke(stream, resources, content);
-        bool uncolored = paintType == 2;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored);
         return true;
     }
@@ -225,7 +228,9 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
-        bool requireSupportedType3Content) {
+        bool requireSupportedType3Content,
+        HashSet<PdfStream>? activeType3Glyphs,
+        bool rejectImageContent) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         if (content.Length == 0) return drawing;
@@ -243,12 +248,19 @@ public sealed partial class PdfReadPage {
             height,
             primitives.Add,
             activeForms,
+            activeType3Glyphs,
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
             requireSupportedType3Content: requireSupportedType3Content,
             unrenderedPatternVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
-            type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
+            type3ImageVisitor: (placement, image) => {
+                if (rejectImageContent) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
+                }
+            },
             type3ImagePlacementVisitor: requireSupportedType3Content ? placements.Add : null,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
@@ -284,7 +296,7 @@ public sealed partial class PdfReadPage {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
-                if (requireSupportedType3Content && (image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask)) {
+                if (requireSupportedType3Content && (rejectImageContent || image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask)) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
