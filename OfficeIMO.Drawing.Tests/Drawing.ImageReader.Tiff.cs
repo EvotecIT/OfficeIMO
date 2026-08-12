@@ -36,6 +36,23 @@ public partial class DrawingTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void OfficeImageReader_SwapsBigTiffDimensionsAndDensityForRotatedOrientations(bool littleEndian) {
+        byte[] data = CreateBigTiff(littleEndian, 11, 9, 300);
+        WriteUInt32(data, 96, 150, littleEndian);
+        WriteUInt16(data, 104, 274, littleEndian);
+        WriteUInt16(data, 116, 6, littleEndian);
+
+        bool identified = OfficeImageReader.TryIdentify(data, fileName: null, out OfficeImageInfo info);
+
+        Assert.True(identified);
+        Assert.Equal((9, 11), (info.Width, info.Height));
+        Assert.Equal(150D, info.DpiX);
+        Assert.Equal(300D, info.DpiY);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void OfficeImageReader_ReadsClassicTiffRationalsAsUnsignedValues(bool littleEndian) {
         byte[] data = CreateClassicTiff(
             littleEndian,

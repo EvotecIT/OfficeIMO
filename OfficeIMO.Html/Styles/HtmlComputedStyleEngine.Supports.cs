@@ -312,6 +312,11 @@ public static partial class HtmlComputedStyleEngine {
                 return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
                     : IsNonNegativeCssLength(normalized);
+            case "letter-spacing":
+            case "word-spacing":
+                return normalized == "normal"
+                    || HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
+                    && TryValidateCssLength(normalized, out _);
             default:
                 return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
         }

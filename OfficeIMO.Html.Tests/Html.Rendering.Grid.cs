@@ -88,6 +88,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_MinmaxAutoPreservesTheAutomaticItemMinimum() {
+        const string html = "<div style='display:grid;width:200px;grid-template-columns:minmax(auto,1fr) minmax(0,1fr)'>"
+            + "<span id='automatic-floor' style='white-space:nowrap;background:red'>unbreakable-automatic-minimum</span>"
+            + "<span id='remaining-fraction' style='background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+        HtmlRenderShape floor = FindGridShape(rendered, "span#automatic-floor");
+        HtmlRenderShape remaining = FindGridShape(rendered, "span#remaining-fraction");
+
+        Assert.True(floor.Width > remaining.Width);
+        Assert.Equal(floor.X + floor.Width, remaining.X, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_FitContentLimitDoesNotShrinkBelowMinContent() {
         const string html = """
             <div style="display:grid;width:260px;grid-template-columns:fit-content(10px) 20px;justify-content:start">

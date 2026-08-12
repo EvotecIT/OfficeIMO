@@ -307,6 +307,32 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_ControlBackgroundImageUsesTruthfulStaticFallback() {
+        const string html = "<input name='gradient' value='Static gradient' style='background:linear-gradient(red,blue)'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBackgroundImageStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Static gradient", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_RadioBackgroundImageMakesTheEntireGroupStatic() {
+        const string html = "<input type='radio' name='choice' value='one'>"
+            + "<input type='radio' name='choice' value='two' checked style='background:linear-gradient(red,blue)'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBackgroundImageStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
     public void HtmlToPdf_BlankChoiceLabelsUseTruthfulStaticFallback() {
         const string html = "<select name='choice'><option value='' selected></option><option value='one'>One</option></select>";
 

@@ -175,6 +175,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(glyphs[2].X - glyphs[1].X > 180D);
     }
 
+    [Theory]
+    [InlineData("letter-spacing")]
+    [InlineData("word-spacing")]
+    public void HtmlRender_InvalidTextSpacingDeclarationsRetainInheritedComputedLengths(string property) {
+        string html = "<style>@supports (" + property + ":banana){span{display:none}}</style>"
+            + "<div style='" + property + ":2px'><span style='" + property + ":banana'>Text</span></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
+        AngleSharp.Dom.IElement childElement = document.QuerySelector("span")!;
+        HtmlRenderBoxStyle child = resolver.Resolve(childElement, 120D, parent);
+
+        double parentSpacing = property == "letter-spacing" ? parent.LetterSpacing : parent.WordSpacing;
+        double childSpacing = property == "letter-spacing" ? child.LetterSpacing : child.WordSpacing;
+        Assert.Equal(2D, parentSpacing, 3);
+        Assert.Equal(parentSpacing, childSpacing, 3);
+        Assert.NotEqual("none", computed[childElement].GetValue("display"));
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateTextOverflowVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;

@@ -122,7 +122,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GridTrack minimumTrack = ParseGridTrackToken(arguments[0], reference, percentageReferenceIsDefinite, style, source, axis);
                 GridTrack maximumTrack = ParseGridTrackToken(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis);
                 maximumTrack.Minimum = minimumTrack.Kind == GridTrackKind.Fixed ? minimumTrack.Value : minimumTrack.Minimum;
-                maximumTrack.MinimumSizing = minimumTrack.MaximumSizing;
+                maximumTrack.MinimumSizing = minimumTrack.Kind == GridTrackKind.Auto
+                    ? GridIntrinsicSizing.MinContent
+                    : minimumTrack.MaximumSizing;
                 maximumTrack.HasExplicitMinimum = true;
                 AddGridTrack(tracks, maximumTrack);
                 return;

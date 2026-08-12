@@ -580,6 +580,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportTransparentFormFieldPaintFallback(source, staticGroupKey);
             return false;
         }
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _backgroundImageRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
+            ReportBackgroundImageFormFieldFallback(source, staticGroupKey);
+            return false;
+        }
 
         int nodeId = GetSemanticNodeId(element);
         string mappingName = authoredName is { Length: > 0 } ? authoredName : string.Empty;
@@ -663,6 +667,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (HasUnsupportedInteractiveFieldTransparency(style.Color, style.BackgroundColor, borderColor)) {
             ReportTransparentFormFieldPaintFallback(source, null);
+            return false;
+        }
+        if (style.BackgroundImageLayers.Count > 0) {
+            ReportBackgroundImageFormFieldFallback(source, null);
             return false;
         }
         HtmlResolvedBorderRadii resolvedRadii = ResolveBoxRadii(style, width, height, element, source);
@@ -862,6 +870,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportBackgroundImageFormFieldFallback(string source, string? groupKey) {
+        if (groupKey != null && !_reportedStaticRadioGroups.Add("background-image\n" + groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldBackgroundImageStaticFallback,
+            "An HTML form control with background-image paint was rendered as static content because generated PDF widget appearances cannot preserve background layers.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            groupKey == null
+                ? "form-control background-image"
+                : "radio-group background-image; group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
     private static bool HasUnsupportedInteractiveFieldTransparency(
         OfficeColor textColor,
         OfficeColor? backgroundColor,
@@ -905,6 +927,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _blankValueRadioGroupKeys.Clear();
         _mixedDisabledRadioGroupKeys.Clear();
         _transparentRadioGroupKeys.Clear();
+        _backgroundImageRadioGroupKeys.Clear();
         _staticRepeatedControlGroupKeys.Clear();
         IElement[] radios = _document.QuerySelectorAll("input")
             .Where(element => NormalizeInputType(element) == "radio")
@@ -922,21 +945,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Any(values => values.Skip(1).Any());
                 bool hasDisabled = members.Any(HtmlFormControlSemantics.IsEffectivelyDisabled);
                 bool hasEnabled = members.Any(element => !HtmlFormControlSemantics.IsEffectivelyDisabled(element));
-                bool hasTransparentPaint = members.Any(element => {
+                bool hasTransparentPaint = false;
+                bool hasBackgroundImage = false;
+                foreach (IElement element in members) {
                     HtmlRenderBoxStyle authoredStyle = _styleResolver.Resolve(element, _options.PageWidth);
                     HtmlRenderBoxStyle controlStyle = CreateFormControlStyle(element, authoredStyle);
                     OfficeColor? borderColor = controlStyle.BorderWidth > 0D && controlStyle.BorderStyle != "none"
                         ? controlStyle.BorderColor
                         : null;
-                    return HasUnsupportedInteractiveFieldTransparency(controlStyle.Color, controlStyle.BackgroundColor, borderColor);
-                });
-                if (!hasBlankValue && !hasDuplicateValue && !(hasDisabled && hasEnabled) && !hasTransparentPaint) continue;
+                    hasTransparentPaint |= HasUnsupportedInteractiveFieldTransparency(controlStyle.Color, controlStyle.BackgroundColor, borderColor);
+                    hasBackgroundImage |= controlStyle.BackgroundImageLayers.Count > 0;
+                }
+                if (!hasBlankValue && !hasDuplicateValue && !(hasDisabled && hasEnabled) && !hasTransparentPaint && !hasBackgroundImage) continue;
                 string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
                 foreach (IElement element in members) {
                     if (hasBlankValue) _blankValueRadioGroupKeys[element] = key;
                     if (hasDuplicateValue) _staticRadioGroupKeys[element] = key;
                     if (hasDisabled && hasEnabled) _mixedDisabledRadioGroupKeys[element] = key;
                     if (hasTransparentPaint) _transparentRadioGroupKeys[element] = key;
+                    if (hasBackgroundImage) _backgroundImageRadioGroupKeys[element] = key;
                 }
             }
         }
