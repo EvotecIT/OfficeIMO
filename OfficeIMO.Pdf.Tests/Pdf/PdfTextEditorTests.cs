@@ -181,6 +181,218 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void FindUsesDecodedGlyphAdvancesForSubstringGeometry() {
+        byte[] source = BuildRawTextPdf("BT /F1 20 Tf 50 700 Td (iiiiWWWW) Tj ET\n");
+
+        PdfTextMatch narrow = Assert.Single(PdfDocument.Open(source).Text.Find("iiii", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch wide = Assert.Single(PdfDocument.Open(source).Text.Find("WWWW", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.True(wide.Width > narrow.Width * 2D);
+    }
+
+    [Fact]
+    public void FindGroupsRotatedSpansByTheirProjectedBaseline() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 0 1 -1 0 200 300 Tm (alpha) Tj ET\n" +
+            "BT /F1 12 Tf 0 1 -1 0 200 340 Tm (beta) Tj ET\n");
+
+        PdfTextMatch phrase = Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.InRange(phrase.RotationDegrees, 89.9D, 90.1D);
+    }
+
+    [Fact]
+    public void MovePreservesIndependentSpanStyleAndPlacement() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 1 0 0 rg 50 700 Td (red) Tj ET\n" +
+            "BT /F2 18 Tf 0 0 1 rg 90 700 Td (blue) Tj ET\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 140D, 45D);
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.Move(region, 40D, -30D);
+        PdfReadPage page = PdfReadDocument.Open(result.Document.ToBytes()).Pages[0];
+        PdfTextSpan red = Assert.Single(page.GetTextSpans(), static span => span.Text == "red");
+        PdfTextSpan blue = Assert.Single(page.GetTextSpans(), static span => span.Text == "blue");
+
+        Assert.InRange(red.X, 89.9D, 90.1D);
+        Assert.InRange(blue.X, 129.9D, 130.1D);
+        Assert.Equal(12D, red.FontSize, 2);
+        Assert.Equal(18D, blue.FontSize, 2);
+        Assert.True(red.Color!.Value.R > red.Color.Value.B);
+        Assert.True(blue.Color!.Value.B > blue.Color.Value.R);
+    }
+
+    [Fact]
+    public void InspectDominantStyleIncludesPaintColor() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 0 0 1 rg 50 700 Td (x) Tj ET\n" +
+            "BT /F1 12 Tf 1 0 0 rg 65 700 Td (dominant-red) Tj ET\n");
+
+        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(new PdfPageRegion(1, 45D, 680D, 180D, 45D));
+
+        Assert.True(inspected.Color.R > inspected.Color.B);
+    }
+
+    [Fact]
+    public void ReplaceAllReflowsTrailingCrossSpanSuffixAndUsesOneBatchStamp() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("alpha beta", "a much wider replacement", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("a much wider replacement", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+        string syntax = System.Text.Encoding.Latin1.GetString(result.Document.ToBytes());
+
+        Assert.True(tail.X >= replacement.X + replacement.Width - 1D);
+        Assert.Contains("/OIMOEditF1", syntax, StringComparison.Ordinal);
+        Assert.DoesNotContain("/OIMOEditF2", syntax, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("1 Tr")]
+    [InlineData("2 Tr")]
+    [InlineData("4 Tr")]
+    [InlineData("5 Tr")]
+    [InlineData("6 Tr")]
+    public void MutationRejectsTextRenderingModesTheFillOnlyStamperCannotPreserve(string renderingMode) {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf " + renderingMode + " 50 700 Td (clip source) Tj ET\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "replacement"));
+    }
+
+    [Theory]
+    [InlineData("2 0 0 1 50 700 Tm")]
+    [InlineData("-1 0 0 1 150 700 Tm")]
+    [InlineData("1 .3 0 1 50 700 Tm")]
+    public void MutationRejectsTextTransformsTheStandardFontStamperCannotPreserve(string matrix) {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf " + matrix + " (transformed) Tj ET\n");
+        var region = new PdfPageRegion(1, 0D, 650D, 300D, 100D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "replacement"));
+    }
+
+    [Fact]
+    public void ConformalTextScaleIsPreservedAndMutationRecordsContentOperationAndReadOptions() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 2 0 0 2 50 350 Tm (scaled) Tj ET\n");
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperations = 321 } };
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("scaled", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("scaled", "updated", readOptions: readOptions);
+        PdfTextMatch updated = Assert.Single(result.Document.Text.Find("updated", new PdfTextSearchOptions { MatchCase = true }));
+        PdfPipelineStep mutation = Assert.Single(result.Document.Pipeline.Steps, static step => step.Kind == PdfPipelineStepKind.Mutation);
+
+        Assert.Equal(24D, match.FontSize, 2);
+        Assert.Equal(24D, updated.FontSize, 2);
+        Assert.Equal(PdfMutationOperation.ModifyPageContent, mutation.MutationOperation);
+        Assert.Equal(321, result.Document.ReadOptions.Limits.MaxContentOperations);
+    }
+
+    [Fact]
+    public void MutationFailsClosedWhenAppendingWouldReverseOverlappingPaintOrder() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 20 Tf 50 700 Td (covered) Tj ET\n" +
+            "1 1 1 rg 45 685 100 30 re f\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 110D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "visible-now"));
+    }
+
+    [Fact]
+    public void MoveChecksTheProjectedDestinationAgainstLaterPaint() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 20 Tf 50 700 Td (move me) Tj ET\n" +
+            "1 1 1 rg 295 685 110 30 re f\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 250D, 0D));
+    }
+
+    [Fact]
+    public void RotatedPageMoveChecksDestinationInVisualCoordinates() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 20 Tf 50 700 Td (move me) Tj ET\n" +
+            "1 1 1 rg 295 685 110 30 re f\n",
+            pageEntries: "/Rotate 90");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("move me", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X - 5D, match.Y - 5D, match.Width + 10D, match.Height + 10D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 250D, 0D));
+    }
+
+    [Fact]
+    public void ConformalScaleUsesTheRestampFontSizeForStackingBounds() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 2 0 0 2 50 350 Tm (scaled) Tj ET\n" +
+            "1 1 1 rg 45 362 120 4 re f\n");
+        var region = new PdfPageRegion(1, 45D, 325D, 150D, 60D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Theory]
+    [InlineData("2 Tc (spaced) Tj")]
+    [InlineData("4 Tw (spaced text) Tj")]
+    [InlineData("[(spa) -120 (ced)] TJ")]
+    public void MutationRejectsTextSpacingThePlainStamperCannotRecreate(string showText) {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td " + showText + " ET\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 180D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsNonDefaultBlendAndSoftMaskTextEffects() {
+        byte[] blend = BuildRawTextPdf(
+            "/GSBlend gs BT /F1 12 Tf 50 700 Td (blended) Tj ET\n",
+            "/ExtGState << /GSBlend << /BM /Multiply >> >>");
+        byte[] masked = BuildRawTextPdf(
+            "/GSMask gs BT /F1 12 Tf 50 700 Td (masked) Tj ET\n",
+            "/ExtGState << /GSMask << /SMask << /S /Alpha /G 7 0 R >> >> >>",
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Group << /S /Transparency /CS /DeviceRGB >> /Length 0 >>\nstream\nendstream\nendobj\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(blend).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(masked).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsUnsupportedBlendAndMalformedSoftMaskEffects() {
+        byte[] blend = BuildRawTextPdf(
+            "/GSBlend gs BT /F1 12 Tf 50 700 Td (blended) Tj ET\n",
+            "/ExtGState << /GSBlend << /BM /UnsupportedMode >> >>");
+        byte[] masked = BuildRawTextPdf(
+            "/GSMask gs BT /F1 12 Tf 50 700 Td (masked) Tj ET\n",
+            "/ExtGState << /GSMask << /SMask << /S /Alpha >> >> >>");
+        var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(blend).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(masked).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsTextInAFormWithInheritedBlendEffect() {
+        const string formText = "BT /F1 12 Tf 50 700 Td (form text) Tj ET\n";
+        byte[] source = BuildRawTextPdf(
+            "/GSBlend gs /Fm Do\n",
+            "/ExtGState << /GSBlend << /BM /Multiply >> >> /XObject << /Fm 7 0 R >>",
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationFailsClosedWhenAReferencedLaterPaintCannotBeBounded() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (source) Tj ET\n/Sh1 sh\n",
+            "/Shading << /Sh1 7 0 R >>",
+            "7 0 obj\n<< /ShadingType 4 /ColorSpace /DeviceRGB >>\nendobj\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
     public void SearchOptionsSnapshotPagesAndRejectInvalidSelection() {
         int[] pages = { 1 };
         var options = new PdfTextSearchOptions { PageNumbers = pages };
@@ -221,19 +433,20 @@ public class PdfTextEditorTests {
         return new PdfPageRegion(1, left - 0.5D, bottom, right - left + 1D, top - bottom);
     }
 
-    private static byte[] BuildRawTextPdf(string content) {
+    private static byte[] BuildRawTextPdf(string content, string additionalResources = "", string additionalObjects = "", string pageEntries = "") {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] " + pageEntries + " /Resources << /Font << /F1 5 0 R /F2 6 0 R >> " + additionalResources + " >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "endstream\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n");
-        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
+        WriteAscii(output, additionalObjects);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
         return output.ToArray();
     }
 
@@ -241,6 +454,7 @@ public class PdfTextEditorTests {
         byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
         stream.Write(bytes, 0, bytes.Length);
     }
+
 }
 
 internal static class PdfTextEditorTestExtensions {
