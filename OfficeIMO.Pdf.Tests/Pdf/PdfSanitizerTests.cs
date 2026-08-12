@@ -260,6 +260,19 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_CountsPromotedRetainedActionSiblingsOnce() {
+        byte[] source = BuildForbiddenActionWithRetainedSiblingsPdf(actionCount: 5);
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 6 } };
+
+        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+
+        PdfPageAction[] actions = result.ToDocument().Inspect().Pages[0].PageActions.ToArray();
+        Assert.Equal(5, actions.Length);
+        Assert.All(actions, static action => Assert.Equal("URI", action.ActionType));
+        Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
+    }
+
+    [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
@@ -483,6 +496,19 @@ public class PdfSanitizerTests {
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O " + action + " >> >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildForbiddenActionWithRetainedSiblingsPdf(int actionCount) {
+        string siblings = string.Join(" ", Enumerable.Range(1, actionCount).Select(static index =>
+            "<< /S /URI /URI (https://example.test/" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ") >>"));
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O << /S /JavaScript /JS (remove) /Next [" + siblings + "] >> >> >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
         }));

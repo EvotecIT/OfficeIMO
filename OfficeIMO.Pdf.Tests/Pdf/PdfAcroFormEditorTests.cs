@@ -302,6 +302,34 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_SetFlagsRejectsChangingBetweenCheckBoxAndRadioSemantics() {
+        byte[] checkBox = PdfDocument.Create().CheckBox("Choice", isChecked: true).ToBytes();
+        byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
+
+        NotSupportedException checkBoxException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetFlags("Choice", 1 << 15)));
+        NotSupportedException radioException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetFlags("Choice", 0)));
+
+        Assert.Contains("radio-button", checkBoxException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("radio-button", radioException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_MoveOnTheSamePagePreservesAnnotationOrder() {
+        byte[] source = PdfDocument.Create()
+            .TextField("First", value: "1")
+            .TextField("Moved", value: "2")
+            .TextField("Last", value: "3")
+            .ToBytes();
+        string[] expectedOrder = ReadPageAnnotationNames(source);
+
+        byte[] moved = PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Moved", 1, 72D, 440D, 200D, 40D)).ToBytes();
+
+        Assert.Equal(expectedOrder, ReadPageAnnotationNames(moved));
+    }
+
+    [Fact]
     public void Edit_UsesTheLastFlagsAssignmentInOneTransaction() {
         byte[] source = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
 
@@ -328,6 +356,24 @@ public class PdfAcroFormEditorTests {
         PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
 
         Assert.Contains("496E686572697465642076616C7565", Encoding.ASCII.GetString(normalAppearance.Data), StringComparison.Ordinal);
+    }
+
+    private static string[] ReadPageAnnotationNames(byte[] pdf) {
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, null).Map;
+        PdfDictionary page = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("Type", out PdfObject? type) && type is PdfName { Name: "Page" }).Value);
+        PdfArray annotations = Assert.IsType<PdfArray>(page.Items["Annots"]);
+        return annotations.Items.Select(item => {
+            PdfReference annotationReference = Assert.IsType<PdfReference>(item);
+            PdfDictionary annotation = Assert.IsType<PdfDictionary>(objects[annotationReference.ObjectNumber].Value);
+            if (annotation.Items.TryGetValue("T", out PdfObject? directName)) {
+                return Assert.IsType<PdfStringObj>(directName).Value;
+            }
+            PdfReference parentReference = Assert.IsType<PdfReference>(annotation.Items["Parent"]);
+            PdfDictionary parent = Assert.IsType<PdfDictionary>(objects[parentReference.ObjectNumber].Value);
+            return Assert.IsType<PdfStringObj>(parent.Items["T"]).Value;
+        }).ToArray();
     }
 
     private static byte[] BuildInheritedValueFieldPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {

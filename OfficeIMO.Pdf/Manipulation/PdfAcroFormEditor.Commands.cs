@@ -157,10 +157,18 @@ internal static partial class PdfAcroFormEditor {
         if (pushButtonSizeChanged && HasPushButtonIcon(objects, widget)) {
             throw new NotSupportedException("Resizing a push button with an icon is not supported because its icon and layout semantics cannot be preserved safely.");
         }
-        RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
+        PdfArray destinationAnnotations = EnsureAnnotationArray(objects, page);
+        int destinationIndex = FindReferenceIndex(destinationAnnotations, field.WidgetObjectNumbers[0]);
+        RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
-        EnsureAnnotationArray(objects, page).Items.Add(CreateReference(objects, field.WidgetObjectNumbers[0]));
+        destinationAnnotations = EnsureAnnotationArray(objects, page);
+        PdfReference widgetReference = CreateReference(objects, field.WidgetObjectNumbers[0]);
+        if (destinationIndex >= 0) {
+            destinationAnnotations.Items.Insert(Math.Min(destinationIndex, destinationAnnotations.Items.Count), widgetReference);
+        } else {
+            destinationAnnotations.Items.Add(widgetReference);
+        }
         if (IsPushButton(objects, field)) {
             if (pushButtonSizeChanged) {
                 RebuildPushButtonAppearance(objects, acroForm, page, field, widget, rectangle, appearanceOptions, ref nextObjectNumber);
@@ -174,6 +182,13 @@ internal static partial class PdfAcroFormEditor {
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
         string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
         (ReadInheritedFieldFlags(objects, field.Dictionary) & FieldFlagPushButton) != 0;
+
+    private static int FindReferenceIndex(PdfArray array, int objectNumber) {
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (array.Items[index] is PdfReference reference && reference.ObjectNumber == objectNumber) return index;
+        }
+        return -1;
+    }
 
     private static bool HasPushButtonIcon(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
         PdfDictionary? characteristics = ResolveDictionary(
@@ -292,6 +307,10 @@ internal static partial class PdfAcroFormEditor {
             (previousFlags & FieldFlagPushButton) == 0 &&
             (flags & FieldFlagPushButton) != 0) {
             throw new NotSupportedException("Converting a check box or radio button to a push button is not supported because it requires rebuilding the complete button state.");
+        }
+        if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+            ((previousFlags ^ flags) & FieldFlagRadio) != 0) {
+            throw new NotSupportedException("Changing between check-box and radio-button semantics is not supported because it requires rebuilding the complete button state.");
         }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {

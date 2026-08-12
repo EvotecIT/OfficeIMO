@@ -137,7 +137,7 @@ internal static partial class PdfSanitizer {
                     dictionary.Items.Remove(key);
                 } else {
                     PdfDictionary promoted = CreatePromotedActionRoot(retained);
-                    SanitizeDictionary(objects, promoted, policy, maximumActionDepth, actionBudget);
+                    SanitizeNormalizedActionDictionary(objects, promoted, policy, maximumActionDepth, actionBudget);
                     dictionary.Items[key] = promoted;
                 }
                 continue;
