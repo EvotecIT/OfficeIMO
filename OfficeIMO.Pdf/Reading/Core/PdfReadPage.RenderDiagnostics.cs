@@ -70,7 +70,7 @@ public sealed partial class PdfReadPage {
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
         CollectXObjectCapabilityDiagnostics(resources, invokedXObjects, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, depth);
-        CollectAuxiliarySurfaceCapabilityDiagnostics(resources, invokedPatterns, invokedSoftMasks, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, depth);
+        CollectAuxiliarySurfaceCapabilityDiagnostics(resources, invokedPatterns, invokedSoftMasks, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget);
     }
 
     private static string? GetOperatorCapabilityId(string op) {
@@ -356,18 +356,17 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget,
-        int depth) {
+        Type3GlyphBudget type3GlyphBudget) {
         PdfDictionary? patterns = ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? patternObject) ? patternObject : null);
         foreach (string patternName in invokedPatterns) {
             if (patterns?.Items.TryGetValue(patternName, out PdfObject? patternValue) != true ||
                 ResolveObject(patternValue) is not PdfStream patternStream ||
                 TryReadInteger(patternStream.Dictionary.Items.TryGetValue("PatternType", out PdfObject? typeValue) ? typeValue : null) != 1) continue;
-            CollectOneAuxiliarySurfaceCapabilityDiagnostics(patternStream, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, depth);
+            CollectOneAuxiliarySurfaceCapabilityDiagnostics(patternStream, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget);
         }
 
         foreach (PdfStream softMaskGroup in invokedSoftMasks) {
-            CollectOneAuxiliarySurfaceCapabilityDiagnostics(softMaskGroup, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, depth);
+            CollectOneAuxiliarySurfaceCapabilityDiagnostics(softMaskGroup, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget);
         }
     }
 
@@ -378,13 +377,12 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget,
-        int depth) {
+        Type3GlyphBudget type3GlyphBudget) {
         if (!activeForms.Add(stream)) return;
         try {
             PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
-            CollectRenderCapabilityDiagnostics(content, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, depth + 1);
+            CollectRenderCapabilityDiagnostics(content, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, 0);
         } finally {
             activeForms.Remove(stream);
         }
@@ -516,7 +514,7 @@ public sealed partial class PdfReadPage {
             if (synthesized) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
-            CollectOneAuxiliarySurfaceCapabilityDiagnostics(appearance, pageResources ?? new PdfDictionary(), diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, 0);
+            CollectOneAuxiliarySurfaceCapabilityDiagnostics(appearance, pageResources ?? new PdfDictionary(), diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget);
         }
     }
 

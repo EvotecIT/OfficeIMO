@@ -71,6 +71,7 @@ public static partial class OfficeSvgDrawingReader {
             var scene = new OfficeDrawing(viewWidth, viewHeight);
             int visited = 0;
             int pathCommands = 0;
+            bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions);
@@ -78,10 +79,10 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
             AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
-                ref visited, ref pathCommands, ref unsupportedFeatureCount);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
             if (allowUnresolvedViewport &&
-                (pathCommands >= MaximumSvgPathCommands || ExceedsSvgElementNestingLimit(root))) return false;
+                (pathCommandLimitExceeded || ExceedsSvgElementNestingLimit(root))) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
             } else {
@@ -256,6 +257,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (depth > MaximumSvgNestingDepth) {
             unsupported++;
@@ -264,7 +266,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement element in parent.Elements()) {
             AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (visited > maximumElements) return;
         }
     }
@@ -284,6 +286,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         visited++;
         if (visited > maximumElements) return;
@@ -311,13 +314,14 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
         }
@@ -338,6 +342,7 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
@@ -345,7 +350,7 @@ public static partial class OfficeSvgDrawingReader {
             if (name == "use") {
                 AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                    ref visited, ref pathCommands, ref unsupported);
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             } else {
                 AddText(element, target, style, paintServers, transform, viewX, viewY, ref unsupported);
             }
@@ -358,9 +363,9 @@ public static partial class OfficeSvgDrawingReader {
             "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "ellipse" => CreateEllipse(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "line" => CreateLine(element, style, viewX, viewY, drawing.Width, drawing.Height),
-            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands),
-            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands),
-            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands),
+            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands, ref pathCommandLimitExceeded),
+            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands, ref pathCommandLimitExceeded),
+            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded),
             _ => null
         };
         if (shape == null) {
@@ -389,6 +394,7 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
@@ -535,10 +541,13 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX,
-        double viewY, bool close, ref int pathCommands) {
+        double viewY, bool close, ref int pathCommands, ref bool pathCommandLimitExceeded) {
         int remainingCommands = MaximumSvgPathCommands - pathCommands;
         if (remainingCommands <= 0) {
-            pathCommands = MaximumSvgPathCommands;
+            int minimumValues = close ? 6 : 4;
+            _ = TryParseNumberList(element.Attribute("points")?.Value, minimumValues,
+                out IReadOnlyList<double> probeValues, out _);
+            pathCommandLimitExceeded |= probeValues.Count >= minimumValues;
             return null;
         }
         bool parsed = TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
@@ -546,6 +555,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
             if (limitExceeded) {
                 pathCommands = MaximumSvgPathCommands;
+                pathCommandLimitExceeded = true;
             } else if (values.Count > 0) {
                 int parsedCommands = Math.Max(1, (values.Count + 1) / 2);
                 pathCommands += Math.Min(remainingCommands, parsedCommands);
@@ -559,6 +569,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (commandCount > remainingCommands) {
             pathCommands = MaximumSvgPathCommands;
+            pathCommandLimitExceeded = true;
             return null;
         }
         var points = new List<OfficePoint>(values.Count / 2);
@@ -584,13 +595,21 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePath(XElement element, SvgPaintContext style, double viewX,
-        double viewY, ref int pathCommands) {
+        double viewY, ref int pathCommands, ref bool pathCommandLimitExceeded) {
         int remaining = MaximumSvgPathCommands - pathCommands;
-        if (remaining <= 0) return null;
+        if (remaining <= 0) {
+            _ = OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, 1,
+                out IReadOnlyList<OfficePathCommand> probeCommands, out _);
+            pathCommandLimitExceeded |= probeCommands.Count > 0;
+            return null;
+        }
         if (!OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, remaining,
                 out IReadOnlyList<OfficePathCommand> parsed, out bool commandLimitExceeded)) {
             pathCommands += Math.Min(remaining, parsed.Count);
-            if (commandLimitExceeded) pathCommands = MaximumSvgPathCommands;
+            if (commandLimitExceeded) {
+                pathCommands = MaximumSvgPathCommands;
+                pathCommandLimitExceeded = true;
+            }
             return null;
         }
         pathCommands += parsed.Count;

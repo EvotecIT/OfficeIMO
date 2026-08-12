@@ -22,6 +22,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported,
         out OfficeBlendMode blendMode,
         out OfficeDrawingSoftMask? softMask) {
@@ -78,7 +79,7 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform maskTransform = ResolveTransform(maskElement, transform, viewX, viewY, ref unsupported);
             AddChildren(maskElement, maskContent, maskStyle, paintServers, references, maskTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             OfficeDrawing maskDrawing = ClipMaskToRegion(maskContent, regionX, regionY, regionWidth, regionHeight, transform);
             OfficeSoftMaskMode mode = ReadPresentationProperty(maskElement, "mask-type")?.Trim().Equals("alpha", StringComparison.OrdinalIgnoreCase) == true
                 ? OfficeSoftMaskMode.Alpha

@@ -23,6 +23,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (!references.TryEnter(use, out string referenceId, out XElement? target)) {
             unsupported++;
@@ -38,7 +39,7 @@ public static partial class OfficeSvgDrawingReader {
             if (targetName == "symbol") {
                 AddReferencedSymbol(use, target, drawing, style, paintServers, references, transform,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                    ref visited, ref pathCommands, ref unsupported);
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
                 return;
             }
             if (!TryOptionalUseLength(use, "x", out double x) || !TryOptionalUseLength(use, "y", out double y)) {
@@ -49,7 +50,7 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform placement = OfficeTransform.Translate(x, y).Then(transform);
             AddElement(target, drawing, style, paintServers, references, placement, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
         } finally {
             references.Exit(referenceId);
         }

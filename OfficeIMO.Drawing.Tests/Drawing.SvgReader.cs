@@ -174,6 +174,22 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateAllowsExactPathBudgetAndRejectsAnOverrun() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 1; index < 20_000; index++) path.Append(" L1 1");
+        string withinBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='"
+            + path + "'/><foreignObject/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(withinBudget)));
+
+        path.Append(" L1 1");
+        string overBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='"
+            + path + "'/><foreignObject/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(overBudget)));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

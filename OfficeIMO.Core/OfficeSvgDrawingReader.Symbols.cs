@@ -19,6 +19,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (!TryParseNumberList(symbol.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
             || viewBox.Count != 4
@@ -49,7 +50,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
         AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1],
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-            ref visited, ref pathCommands, ref unsupported);
+            ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
 
         OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice);
 
