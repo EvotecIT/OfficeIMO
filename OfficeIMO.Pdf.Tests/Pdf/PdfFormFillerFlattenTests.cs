@@ -53,6 +53,18 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_PrunesIndirectStructureKidArraysForDeletedWidgets() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectStructureKidArraysPdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructElem");
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(flattened).TaggedContent);
+        Assert.Empty(tagged.ParentTreeStructParentIndexes);
+    }
+
+    [Fact]
     public void FlattenFields_SynthesizesMaskedPasswordTextAppearanceWhenMissing() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildPasswordTextWidgetWithoutAppearancePdf());
 

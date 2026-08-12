@@ -153,6 +153,7 @@ namespace OfficeIMO.Examples.Html {
                       .proof-list strong { color:#172033; }
                       .hyphen-proof {
                         margin-top:8px;
+                        max-width:150px;
                         padding:8px;
                         border-radius:9px;
                         background:#fff7ed;
@@ -225,7 +226,7 @@ namespace OfficeIMO.Examples.Html {
                           <li><strong>Unicode text:</strong> line breaking and fallback remain searchable.</li>
                           <li><strong>Page semantics:</strong> named geometry and margin counters are resolved.</li>
                         </ol>
-                        <div class="hyphen-proof" lang="de">Donaudampfschifffahrtsgesellschaftskapitän demonstrates language-aware hyphenation in a deliberately narrow measure.</div>
+                        <div id="hyphen-proof" class="hyphen-proof" lang="de">Donaudampfschifffahrtsgesellschaftskapitän demonstrates language-aware hyphenation in a deliberately narrow measure.</div>
                         <form class="controls">
                           <label for="gallery-reviewer">Reviewer</label>
                           <label for="gallery-decision">Decision</label>
@@ -252,6 +253,9 @@ namespace OfficeIMO.Examples.Html {
                 Scale = 1D,
                 ConicGradientQualitySegments = 72
             };
+            options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
+                "Do-nau-dampf-schiff-fahrts-ge-sell-schafts-ka-pi-tän"
+            }, minimumPrefixLength: 2, minimumSuffixLength: 2));
 
             string htmlPath = Path.Combine(folderPath, "HtmlManagedRendererGallery.html");
             string pdfPath = Path.Combine(folderPath, "HtmlManagedRendererGallery.pdf");
@@ -266,6 +270,14 @@ namespace OfficeIMO.Examples.Html {
             if (fidelityDiagnostics.Length > 0) {
                 throw new InvalidOperationException("Managed renderer gallery emitted fidelity diagnostics: " + string.Join("; ", fidelityDiagnostics.Select(diagnostic =>
                     diagnostic.Code + " (" + diagnostic.Source + ": " + diagnostic.Detail + ")")));
+            }
+            bool hasHyphenationProof = rendered.Pages
+                .SelectMany(page => EnumerateManagedRendererGalleryVisuals(page.Scene))
+                .OfType<HtmlRenderText>()
+                .Any(text => text.Text.StartsWith("Donaudampf", StringComparison.Ordinal)
+                    && text.Text.EndsWith("-", StringComparison.Ordinal));
+            if (!hasHyphenationProof) {
+                throw new InvalidOperationException("Managed renderer gallery expected the German proof word to use the configured automatic hyphenation lexicon.");
             }
 
             File.WriteAllText(htmlPath, html);
@@ -292,6 +304,25 @@ namespace OfficeIMO.Examples.Html {
 
             if (openPdf) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pdfPath) { UseShellExecute = true });
+            }
+        }
+
+        private static IEnumerable<HtmlRenderVisual> EnumerateManagedRendererGalleryVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+            foreach (HtmlRenderVisual visual in visuals) {
+                yield return visual;
+                IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clip
+                    ? clip.Visuals
+                    : visual is HtmlRenderPathClipGroup pathClip
+                        ? pathClip.Visuals
+                        : visual is HtmlRenderEffectGroup effect
+                            ? effect.Visuals
+                            : visual is HtmlRenderSemanticGroup semantic
+                                ? semantic.Visuals
+                                : visual is HtmlRenderLogicalTextGroup logical
+                                    ? logical.Visuals
+                                    : visual is HtmlRenderFormField form ? form.Visuals : null;
+                if (children == null) continue;
+                foreach (HtmlRenderVisual child in EnumerateManagedRendererGalleryVisuals(children)) yield return child;
             }
         }
     }

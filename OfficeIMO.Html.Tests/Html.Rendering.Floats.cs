@@ -141,6 +141,82 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_AutomaticHyphenationUsesAuthoredBreakpointsAndCharacter() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextHyphenationCallback = token => token == "typography" ? new[] { 2, 5, 7 } : Array.Empty<int>()
+        };
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px'>"
+            + "<span style='float:left;width:50px;height:28px'></span>"
+            + "<span style='hyphens:auto;hyphenate-character:\"·\"'>typography</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderText> fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Contains(fragments, fragment => fragment.Text.EndsWith("·", StringComparison.Ordinal));
+        Assert.Equal("typography", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
+    public void HtmlFloat_LineClampTruncatesFloatAwareLinesAndAddsEllipsis() {
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px;overflow:hidden;line-clamp:2'>"
+            + "<span style='float:left;width:30px;height:28px'></span>one two three four five six seven eight nine ten eleven twelve</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(2, lines.Select(line => line.Y).Distinct().Count());
+        Assert.EndsWith("\u2026", lines[lines.Count - 1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFloat_NoWrapTextOverflowUsesEllipsisBesideAnObstruction() {
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis'>"
+            + "<span style='float:left;width:30px;height:20px'></span>one two three four five six seven eight</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> fragments = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .OrderBy(fragment => fragment.X)
+            .ToList();
+
+        Assert.Single(fragments.Select(fragment => fragment.Y).Distinct());
+        Assert.EndsWith("\u2026", fragments[fragments.Count - 1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFloat_CjkUsesPreferredLineBreaksBesideAnObstruction() {
+        const string text = "日本語中文";
+        string html = """
+            <div style="width:70px;font:12px/14px Arial,sans-serif">
+              <span style="float:left;width:38px;height:28px"></span>日本語中文
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        IReadOnlyList<HtmlRenderText> lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(visual => text.Contains(visual.Text, StringComparison.Ordinal))
+            .OrderBy(visual => visual.Y)
+            .ThenBy(visual => visual.X)
+            .ToList();
+        Assert.True(lines.Select(line => line.Y).Distinct().Count() > 1);
+        Assert.Equal(text, string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
     public void HtmlFloatImage_UsesIntrinsicAspectRatioWithoutConsumingTheLine() {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
         string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"

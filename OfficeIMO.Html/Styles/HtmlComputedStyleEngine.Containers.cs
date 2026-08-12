@@ -106,11 +106,40 @@ public static partial class HtmlComputedStyleEngine {
     private static double ResolveContainerElementWidth(HtmlComputedStyle style, double containingWidth, double fontSize, double rootFontSize, MediaEnvironment environment) {
         string width = style.GetValue("width");
         ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out double horizontalInsets, out _);
+        bool borderBox = IsBorderBox(style);
+        double contentWidth;
         if (HtmlRenderCssValues.TryLength(width, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
             && resolved >= 0D) {
-            return Math.Max(0D, resolved - (IsBorderBox(style) ? horizontalInsets : 0D));
+            contentWidth = Math.Max(0D, resolved - (borderBox ? horizontalInsets : 0D));
+        } else {
+            contentWidth = Math.Max(0D, containingWidth - horizontalInsets);
         }
-        return Math.Max(0D, containingWidth - horizontalInsets);
+
+        if (TryResolveContainerWidthConstraint(style.GetValue("max-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double maximum)) {
+            contentWidth = Math.Min(contentWidth, maximum);
+        }
+        if (TryResolveContainerWidthConstraint(style.GetValue("min-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double minimum)) {
+            contentWidth = Math.Max(contentWidth, minimum);
+        }
+        return contentWidth;
+    }
+
+    private static bool TryResolveContainerWidthConstraint(
+        string value,
+        double containingWidth,
+        double fontSize,
+        double rootFontSize,
+        MediaEnvironment environment,
+        double horizontalInsets,
+        bool borderBox,
+        out double contentWidth) {
+        contentWidth = 0D;
+        if (!HtmlRenderCssValues.TryLength(value, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
+            || resolved < 0D) {
+            return false;
+        }
+        contentWidth = Math.Max(0D, resolved - (borderBox ? horizontalInsets : 0D));
+        return true;
     }
 
     private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double containingWidth, double? containingHeight, double fontSize, double rootFontSize, MediaEnvironment environment) {

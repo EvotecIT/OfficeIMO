@@ -169,17 +169,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previousWasCollapsibleSpace = false;
                 }
 
-                double measured = MeasureInlineText(normalizedToken, run.Style);
+                HyphenationToken hyphenation = PrepareHyphenationToken(normalizedToken, normalizedToken, run.Style);
+                string paintToken = hyphenation.PaintText;
+                double measured = MeasureInlineText(paintToken, run.Style);
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
-                if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth) {
-                    AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, normalizedToken);
+                if (!preventTokenWrapping
+                    && !whitespace
+                    && measured > Math.Max(0D, line.AvailableWidth - line.Width)
+                    && TryAddHyphenatedFloatToken(
+                        lines,
+                        ref line,
+                        ref y,
+                        context,
+                        paragraphStyle.LineHeight,
+                        run,
+                        hyphenation)) {
                     continue;
+                }
+                if (!preventTokenWrapping
+                    && !whitespace
+                    && measured > Math.Max(0D, line.AvailableWidth - line.Width)
+                    && TryAddPreferredFloatBreakToken(
+                        lines,
+                        ref line,
+                        ref y,
+                        context,
+                        paragraphStyle.LineHeight,
+                        run,
+                        hyphenation.PaintText,
+                        hyphenation.LogicalText)) {
+                    continue;
+                }
+                if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth && AllowsEmergencyTokenBreak(run.Style)) {
+                    AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
+                    continue;
+                }
+                if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth && !line.HasFlowContent) {
+                    MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, measured);
                 }
                 if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !preserveWhitespace) continue;
                 }
-                line.Add(new InlineSegment(normalizedToken, measured, run));
+                line.Add(new InlineSegment(paintToken, measured, run, hyphenation.LogicalText));
             }
         }
 
@@ -196,6 +228,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0) lines.Add(line);
+        if (paragraphStyle.LineClamp.HasValue && lines.Count > paragraphStyle.LineClamp.Value) {
+            lines.RemoveRange(paragraphStyle.LineClamp.Value, lines.Count - paragraphStyle.LineClamp.Value);
+            ApplyEndEllipsis(lines[lines.Count - 1], width, completeLogicalProgress: 0);
+        } else if (paragraphStyle.TextOverflow == "ellipsis"
+            && paragraphStyle.PreventTextWrapping
+            && paragraphStyle.OverflowX != "visible"
+            && lines.Count > 0
+            && lines[0].Width > lines[0].AvailableWidth + 0.0001D) {
+            ApplyEndEllipsis(lines[0], width, completeLogicalProgress: 0);
+        }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom);
     }
 

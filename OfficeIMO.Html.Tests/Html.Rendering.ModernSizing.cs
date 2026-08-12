@@ -264,6 +264,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerQueriesApplyMinAndMaxWidthConstraintsToTheContentBox() {
+        const string html = """
+            <style>
+              @container (width:200px) { #maximum { background:red; } }
+              @container (width:300px) { #minimum { background:red; } }
+              @container (width:180px) { #border-box { background:red; } }
+            </style>
+            <section style="max-width:200px;container-type:inline-size">
+              <div id="maximum" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="width:100px;min-width:300px;container-type:inline-size">
+              <div id="minimum" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="box-sizing:border-box;max-width:240px;padding:20px;border:10px solid black;container-type:inline-size">
+              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#maximum").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_SizeContainerPercentageHeightUsesItsDefiniteContainingBlock() {
         const string html = """
             <style>@container (height:100px) { #item { background:red; } }</style>
