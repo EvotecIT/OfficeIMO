@@ -75,6 +75,10 @@ internal static class OfficeProvenanceJpegXmp {
                 if (chunks.Length != 0) context?.Diagnostics.Add($"{location}: extended XMP chunks are incomplete or malformed.");
                 continue;
             }
+            if (!string.Equals(ComputeGuid(packet), reference.Key, StringComparison.OrdinalIgnoreCase)) {
+                context?.Diagnostics.Add($"{location}: extended XMP digest does not match its standard-packet reference.");
+                continue;
+            }
             if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
             if (removalOptions == null || changes == null) continue;
 
@@ -189,23 +193,7 @@ internal static class OfficeProvenanceJpegXmp {
     }
 
     private static bool TryLoad(byte[] packet, OfficeProvenanceOptions options, out XDocument? document) {
-        document = null;
-        if (packet.LongLength > options.MaxAssetBytes) return false;
-        try {
-            var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = options.MaxAssetBytes,
-                MaxCharactersFromEntities = 0,
-                IgnoreWhitespace = false
-            };
-            using var stream = new MemoryStream(packet, writable: false);
-            using XmlReader reader = XmlReader.Create(stream, settings);
-            document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
-            return document.Root != null;
-        } catch (XmlException) {
-            return false;
-        }
+        return OfficeProvenanceXml.TryLoadDocument(packet, options, out document);
     }
 
     private static byte[] Serialize(XDocument document) {

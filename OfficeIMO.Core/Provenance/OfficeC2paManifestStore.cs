@@ -7,6 +7,14 @@ internal static class OfficeC2paManifestStore {
         0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
+    private static readonly byte[] StandardManifestUuid = {
+        0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
+    private static readonly byte[] UpdateManifestUuid = {
+        0x63, 0x32, 0x75, 0x6D, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
 
     internal static bool IsValid(byte[] data, int offset, int availableLength, long maximumBytes, out int storeLength) {
         storeLength = 0;
@@ -37,18 +45,40 @@ internal static class OfficeC2paManifestStore {
 
         int storeEnd = offset + totalLength;
         int nextChildOffset = childOffset + (int)childLength;
+        bool hasManifest = false;
         while (nextChildOffset < storeEnd) {
             int remaining = storeEnd - nextChildOffset;
-            if (!TryReadBox(data, nextChildOffset, remaining, out _, out ulong nextChildLength, out _) ||
+            if (!TryReadBox(data, nextChildOffset, remaining, out _, out ulong nextChildLength, out string nextChildType) ||
                 nextChildLength > int.MaxValue) {
                 return false;
             }
+            if (nextChildType == "jumb" && IsManifestSuperbox(data, nextChildOffset, (int)nextChildLength)) {
+                hasManifest = true;
+            }
             nextChildOffset += (int)nextChildLength;
         }
-        if (nextChildOffset != storeEnd) return false;
+        if (nextChildOffset != storeEnd || !hasManifest) return false;
 
         storeLength = totalLength;
         return true;
+    }
+
+    private static bool IsManifestSuperbox(byte[] data, int offset, int availableLength) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        int descriptionAvailable = availableLength - headerLength;
+        if (!TryReadBox(data, descriptionOffset, descriptionAvailable, out int descriptionHeaderLength,
+            out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + 18)) return false;
+        int payloadOffset = descriptionOffset + descriptionHeaderLength;
+        if (!Matches(data, payloadOffset, StandardManifestUuid) && !Matches(data, payloadOffset, UpdateManifestUuid)) return false;
+        int togglesOffset = payloadOffset + StandardManifestUuid.Length;
+        if ((data[togglesOffset] & 0x02) == 0) return false;
+        int labelOffset = togglesOffset + 1;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        return labelOffset < descriptionEnd && data[labelOffset] != 0 &&
+            Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset) >= 0;
     }
 
     private static bool TryReadBox(

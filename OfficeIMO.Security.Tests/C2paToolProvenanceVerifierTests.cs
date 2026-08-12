@@ -58,6 +58,27 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
+    public void VerifyDeduplicatesManyFindingsWhilePreservingFirstSeenOrder() {
+        string assetPath = CreateAsset();
+        try {
+            string statuses = string.Join(",", Enumerable.Range(0, 5000)
+                .Select(index => $"{{\"code\":\"failure.{index}\"}}"));
+            string report = $"{{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{statuses},{{\"code\":\"failure.0\"}}]}}";
+            var verifier = new C2paToolProvenanceVerifier(
+                "c2patool",
+                new StubRunner(new C2paToolProcessResult(0, report, string.Empty)));
+
+            OfficeProvenanceVerificationResult result = verifier.Verify(assetPath);
+
+            Assert.Equal(5000, result.Findings.Count);
+            Assert.Equal("failure.0", result.Findings[0]);
+            Assert.Equal("failure.4999", result.Findings[4999]);
+        } finally {
+            File.Delete(assetPath);
+        }
+    }
+
+    [Fact]
     public void VerifyAddsLocalTrustArgumentsWithoutEnablingNetwork() {
         string assetPath = CreateAsset();
         string anchorsPath = CreateAsset();

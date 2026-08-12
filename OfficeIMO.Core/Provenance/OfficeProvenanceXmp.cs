@@ -100,23 +100,7 @@ internal static class OfficeProvenanceXmp {
     }
 
     private static bool TryLoad(byte[] packet, OfficeProvenanceOptions options, out XDocument? document) {
-        document = null;
-        if (packet.LongLength > options.MaxAssetBytes) return false;
-        try {
-            var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = options.MaxAssetBytes,
-                MaxCharactersFromEntities = 0,
-                IgnoreWhitespace = false
-            };
-            using var stream = new MemoryStream(packet, writable: false);
-            using XmlReader reader = XmlReader.Create(stream, settings);
-            document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
-            return document.Root != null;
-        } catch (XmlException) {
-            return false;
-        }
+        return OfficeProvenanceXml.TryLoadDocument(packet, options, out document);
     }
 
     private sealed class XmpValue {

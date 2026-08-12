@@ -107,7 +107,8 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                     ? activeManifestElement.GetString()
                     : null;
             var findings = new List<string>();
-            CollectValidationFindings(document.RootElement, findings);
+            var findingSet = new HashSet<string>(StringComparer.Ordinal);
+            CollectValidationFindings(document.RootElement, findings, findingSet);
             if (string.IsNullOrWhiteSpace(activeManifest)) {
                 if (findings.Count > 0) {
                     bool onlyNoManifestTrustFailures = findings.All(IsTrustFinding);
@@ -144,7 +145,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         }
     }
 
-    private static void CollectValidationFindings(JsonElement element, List<string> findings) {
+    private static void CollectValidationFindings(JsonElement element, List<string> findings, HashSet<string> findingSet) {
         if (element.ValueKind == JsonValueKind.Object) {
             foreach (JsonProperty property in element.EnumerateObject()) {
                 if (property.NameEquals("validation_status") && property.Value.ValueKind == JsonValueKind.Array) {
@@ -163,14 +164,14 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                         if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
                         string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
                         if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
-                        if (!findings.Contains(finding, StringComparer.Ordinal)) findings.Add(finding);
+                        if (findingSet.Add(finding)) findings.Add(finding);
                     }
                 } else {
-                    CollectValidationFindings(property.Value, findings);
+                    CollectValidationFindings(property.Value, findings, findingSet);
                 }
             }
         } else if (element.ValueKind == JsonValueKind.Array) {
-            foreach (JsonElement item in element.EnumerateArray()) CollectValidationFindings(item, findings);
+            foreach (JsonElement item in element.EnumerateArray()) CollectValidationFindings(item, findings, findingSet);
         }
     }
 

@@ -71,13 +71,15 @@ internal static class OfficeProvenanceZipWriter {
                 ToUInt32(compressedLength, "compressed entry size"),
                 ToUInt32(uncompressedLength, "uncompressed entry size"),
                 localOffset,
-                entry.ExternalAttributes));
+                entry.ExternalAttributes,
+                entry.Comment));
         }
 
         uint centralOffset = ToUInt32(output.Position, "central directory offset");
         foreach (OfficeProvenanceZipRecord record in records) {
             WriteCentralHeader(writer, record);
             writer.Write(record.Name);
+            writer.Write(record.Comment);
         }
         uint centralSize = ToUInt32(output.Position - centralOffset, "central directory size");
         if (records.Count >= ushort.MaxValue) {
@@ -140,7 +142,7 @@ internal static class OfficeProvenanceZipWriter {
         writer.Write(record.UncompressedLength);
         writer.Write((ushort)record.Name.Length);
         writer.Write((ushort)0);
-        writer.Write((ushort)0);
+        writer.Write((ushort)record.Comment.Length);
         writer.Write((ushort)0);
         writer.Write((ushort)0);
         writer.Write(record.ExternalAttributes);
@@ -203,7 +205,7 @@ internal static class OfficeProvenanceZipWriter {
 
     private sealed class OfficeProvenanceZipRecord {
         internal OfficeProvenanceZipRecord(byte[] name, ushort method, ushort time, ushort date, uint crc,
-            uint compressedLength, uint uncompressedLength, uint localOffset, uint externalAttributes) {
+            uint compressedLength, uint uncompressedLength, uint localOffset, uint externalAttributes, byte[] comment) {
             Name = name;
             Method = method;
             Time = time;
@@ -213,6 +215,7 @@ internal static class OfficeProvenanceZipWriter {
             UncompressedLength = uncompressedLength;
             LocalOffset = localOffset;
             ExternalAttributes = externalAttributes;
+            Comment = comment;
         }
 
         internal byte[] Name { get; }
@@ -224,6 +227,7 @@ internal static class OfficeProvenanceZipWriter {
         internal uint UncompressedLength { get; }
         internal uint LocalOffset { get; }
         internal uint ExternalAttributes { get; }
+        internal byte[] Comment { get; }
     }
 }
 
@@ -236,6 +240,7 @@ internal sealed class OfficeProvenanceZipWriteEntry {
         bool compress,
         DateTimeOffset lastWriteTime,
         uint externalAttributes,
+        byte[] comment,
         Func<Stream> open) {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         if (expectedLength < 0) throw new ArgumentOutOfRangeException(nameof(expectedLength));
@@ -243,6 +248,8 @@ internal sealed class OfficeProvenanceZipWriteEntry {
         Compress = compress;
         LastWriteTime = lastWriteTime;
         ExternalAttributes = externalAttributes;
+        Comment = comment ?? throw new ArgumentNullException(nameof(comment));
+        if (comment.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(comment));
         _open = open ?? throw new ArgumentNullException(nameof(open));
     }
 
@@ -251,5 +258,6 @@ internal sealed class OfficeProvenanceZipWriteEntry {
     internal bool Compress { get; }
     internal DateTimeOffset LastWriteTime { get; }
     internal uint ExternalAttributes { get; }
+    internal byte[] Comment { get; }
     internal Stream Open() => _open();
 }

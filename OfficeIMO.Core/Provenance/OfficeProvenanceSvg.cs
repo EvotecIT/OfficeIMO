@@ -114,8 +114,9 @@ internal static class OfficeProvenanceSvg {
             .Select(GetDirectIptcScope)
             .Distinct()
             .ToArray();
+        var directIptcScopeSet = new HashSet<XElement>(directIptcScopes);
         roots.AddRange(directIptcScopes.Where(element =>
-            !element.Ancestors().Any(ancestor => directIptcScopes.Contains(ancestor))));
+            !element.Ancestors().Any(directIptcScopeSet.Contains)));
         return roots;
     }
 

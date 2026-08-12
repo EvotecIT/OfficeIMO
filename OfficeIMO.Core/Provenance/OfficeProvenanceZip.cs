@@ -121,6 +121,7 @@ internal static class OfficeProvenanceZip {
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
+        Dictionary<ZipArchiveEntry, byte[]> entryComments = GetEntryComments(data, input);
         occurrence = 0;
         IEnumerable<ZipArchiveEntry> orderedEntries = input.Entries
             .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal));
@@ -130,7 +131,7 @@ internal static class OfficeProvenanceZip {
             if (isManifest) occurrence++;
             if (isManifest && removable.Contains(key)) continue;
             embeddedRewrites.TryGetValue(entry, out byte[]? rewritten);
-            outputEntries.Add(CreateWriteEntry(entry, rewritten));
+            outputEntries.Add(CreateWriteEntry(entry, entryComments[entry], rewritten));
         }
         reserialized = true;
         return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes);
@@ -142,7 +143,7 @@ internal static class OfficeProvenanceZip {
         return value is int signed ? unchecked((uint)signed) : value is uint unsigned ? unsigned : 0u;
     }
 
-    private static OfficeProvenanceZipWriteEntry CreateWriteEntry(ZipArchiveEntry entry, byte[]? replacement = null) {
+    private static OfficeProvenanceZipWriteEntry CreateWriteEntry(ZipArchiveEntry entry, byte[] comment, byte[]? replacement = null) {
         bool isMimetype = entry.FullName.Equals("mimetype", StringComparison.Ordinal);
         if (replacement != null) {
             return new OfficeProvenanceZipWriteEntry(
@@ -151,6 +152,7 @@ internal static class OfficeProvenanceZip {
                 compress: !isMimetype,
                 entry.LastWriteTime,
                 GetExternalAttributes(entry),
+                comment,
                 () => new MemoryStream(replacement, writable: false));
         }
         return new OfficeProvenanceZipWriteEntry(
@@ -159,6 +161,7 @@ internal static class OfficeProvenanceZip {
             compress: !isMimetype,
             entry.LastWriteTime,
             GetExternalAttributes(entry),
+            comment,
             entry.Open);
     }
 
@@ -175,14 +178,23 @@ internal static class OfficeProvenanceZip {
         bool hadMatches = input.Entries.Any(entry => shouldRemove(entry.FullName));
         if (!hadMatches) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
 
+        Dictionary<ZipArchiveEntry, byte[]> entryComments = GetEntryComments(data, input);
         List<OfficeProvenanceZipWriteEntry> outputEntries = input.Entries
             .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal))
             .Where(entry => !shouldRemove(entry.FullName))
-            .Select(entry => CreateWriteEntry(entry))
+            .Select(entry => CreateWriteEntry(entry, entryComments[entry]))
             .ToList();
         return new OfficeProvenanceSignatureStripResult(
             OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue),
             hadSignatures: true);
+    }
+
+    internal static bool HasEntry(byte[] data, Func<string, bool> predicate) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        return archive.Entries.Any(entry => predicate(entry.FullName));
     }
 
     internal static void ValidateEntryCount(byte[] data, int maximumEntries) {
@@ -230,6 +242,59 @@ internal static class OfficeProvenanceZip {
             if (entriesOnZip64Disk != entryCount) throw new InvalidDataException("Multi-disk ZIP64 packages are not supported.");
         }
         if (entryCount > (ulong)maximumEntries) throw new InvalidDataException("ZIP package exceeds the configured entry limit.");
+    }
+
+    private static Dictionary<ZipArchiveEntry, byte[]> GetEntryComments(byte[] data, ZipArchive archive) {
+        List<byte[]> comments = ReadCentralDirectoryComments(data, archive.Entries.Count);
+        var result = new Dictionary<ZipArchiveEntry, byte[]>(archive.Entries.Count);
+        for (int index = 0; index < archive.Entries.Count; index++) result.Add(archive.Entries[index], comments[index]);
+        return result;
+    }
+
+    private static List<byte[]> ReadCentralDirectoryComments(byte[] data, int expectedEntries) {
+        const uint endSignature = 0x06054B50;
+        const uint zip64LocatorSignature = 0x07064B50;
+        const uint zip64EndSignature = 0x06064B50;
+        const uint centralHeaderSignature = 0x02014B50;
+        int minimumOffset = Math.Max(0, data.Length - (22 + ushort.MaxValue));
+        int endOffset = -1;
+        for (int offset = data.Length - 22; offset >= minimumOffset; offset--) {
+            if (OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: true) != endSignature) continue;
+            ushort commentLength = OfficeProvenanceBinary.ReadUInt16(data, offset + 20, littleEndian: true);
+            if (offset + 22 + commentLength == data.Length) { endOffset = offset; break; }
+        }
+        if (endOffset < 0) throw new InvalidDataException("ZIP package does not contain a valid end-of-central-directory record.");
+        ulong centralOffset = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 16, littleEndian: true);
+        ushort totalEntries = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 10, littleEndian: true);
+        if (totalEntries == ushort.MaxValue && HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
+            int locatorOffset = endOffset - 20;
+            ulong recordOffset = OfficeProvenanceBinary.ReadUInt64(data, locatorOffset + 8, littleEndian: true);
+            if (recordOffset > (ulong)(data.Length - 56) ||
+                OfficeProvenanceBinary.ReadUInt32(data, (int)recordOffset, littleEndian: true) != zip64EndSignature) {
+                throw new InvalidDataException("ZIP64 end-of-central-directory record is invalid.");
+            }
+            centralOffset = OfficeProvenanceBinary.ReadUInt64(data, (int)recordOffset + 48, littleEndian: true);
+        }
+        if (centralOffset > int.MaxValue || centralOffset > (ulong)data.Length) {
+            throw new InvalidDataException("ZIP central directory is outside the package.");
+        }
+        int cursor = (int)centralOffset;
+        var comments = new List<byte[]>(expectedEntries);
+        for (int index = 0; index < expectedEntries; index++) {
+            if (cursor > data.Length - 46 || OfficeProvenanceBinary.ReadUInt32(data, cursor, littleEndian: true) != centralHeaderSignature) {
+                throw new InvalidDataException("ZIP central directory is malformed.");
+            }
+            int nameLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 28, littleEndian: true);
+            int extraLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 30, littleEndian: true);
+            int commentLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 32, littleEndian: true);
+            long recordEnd = (long)cursor + 46 + nameLength + extraLength + commentLength;
+            if (recordEnd > data.Length) throw new InvalidDataException("ZIP central-directory entry exceeds the package bounds.");
+            byte[] comment = new byte[commentLength];
+            if (commentLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength + extraLength, comment, 0, commentLength);
+            comments.Add(comment);
+            cursor = (int)recordEnd;
+        }
+        return comments;
     }
 
     private static bool HasZip64Locator(byte[] data, int endOffset, uint locatorSignature) {

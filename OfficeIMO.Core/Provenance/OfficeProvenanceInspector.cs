@@ -92,8 +92,8 @@ public static class OfficeProvenanceInspector {
             Path.GetExtension(fileName ?? string.Empty).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) {
             return OfficeProvenanceAssetFormat.Pdf;
         }
-        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (LooksLikeSvg(data, fileName)) return OfficeProvenanceAssetFormat.Svg;
+        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;
         if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
         return OfficeProvenanceAssetFormat.Unknown;

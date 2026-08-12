@@ -45,16 +45,22 @@ internal static class OfficeProvenanceTiff {
                     TryGetPayload(data, entry, options.Limits.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
+                    var pendingChanges = new List<OfficeProvenanceChange>();
                     if (OfficeProvenanceXmp.TryRemoveAiDeclarations(
                         packet,
                         options,
                         $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",
-                        changes,
+                        pendingChanges,
                         out byte[] cleaned)) {
+                        if (HasOverlappingValueStorage(data, ifds, entry, xmpOffset, xmpLength)) {
+                            retained.Add(entry);
+                            continue;
+                        }
                         if (cleaned.Length > xmpLength) throw new InvalidDataException("Rewritten TIFF XMP exceeds its existing allocation.");
                         Buffer.BlockCopy(cleaned, 0, output, xmpOffset, cleaned.Length);
                         Array.Clear(output, xmpOffset + cleaned.Length, xmpLength - cleaned.Length);
                         WriteEntryCount(output, entry, (ulong)cleaned.Length);
+                        changes.AddRange(pendingChanges);
                         reserialized = true;
                     }
                     retained.Add(entry);
@@ -76,6 +82,43 @@ internal static class OfficeProvenanceTiff {
             RewriteIfd(output, ifd, retained);
         }
         return output;
+    }
+
+    private static bool HasOverlappingValueStorage(
+        byte[] data,
+        List<TiffIfd> ifds,
+        TiffEntry xmpEntry,
+        int xmpOffset,
+        int xmpLength) {
+        long xmpEnd = (long)xmpOffset + xmpLength;
+        foreach (TiffIfd ifd in ifds) {
+            foreach (TiffEntry entry in ifd.Entries) {
+                if (ReferenceEquals(entry, xmpEntry) || !TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
+                long end = (long)offset + length;
+                if (offset < xmpEnd && xmpOffset < end) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool TryGetValueStorageRange(byte[] data, TiffEntry entry, out int offset, out int length) {
+        offset = length = 0;
+        int elementSize = entry.Type switch {
+            1 or 2 or 6 or 7 => 1,
+            3 or 8 => 2,
+            4 or 9 or 11 or 13 => 4,
+            5 or 10 or 12 or 16 or 17 or 18 => 8,
+            _ => 0
+        };
+        if (elementSize == 0 || entry.Count == 0 || entry.Count > (ulong)(int.MaxValue / elementSize)) return false;
+        length = (int)entry.Count * elementSize;
+        if (length <= entry.InlineSize) {
+            offset = entry.Offset + (entry.InlineSize == 8 ? 12 : 8);
+            return offset <= data.Length - length;
+        }
+        if (entry.ValueOrOffset > int.MaxValue || entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
+        offset = (int)entry.ValueOrOffset;
+        return true;
     }
 
     private static void WriteEntryCount(byte[] output, TiffEntry entry, ulong count) {
