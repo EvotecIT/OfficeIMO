@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
@@ -30,6 +31,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Optional concrete stencil shape for this node.</summary>
         public VisioStencilShape? Stencil { get; set; }
+
+        /// <summary>Optional native fill color. Null keeps the theme-derived fill.</summary>
+        public OfficeColor? FillColor { get; set; }
+
+        /// <summary>Optional native line color. Null keeps the theme-derived line color.</summary>
+        public OfficeColor? LineColor { get; set; }
 
         /// <summary>Optional stencil catalog used with <see cref="StencilQueries"/>.</summary>
         public VisioStencilCatalog? StencilCatalog { get; set; }
@@ -89,6 +96,18 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Whether the generated edge should be directed.</summary>
         public bool Directed { get; set; } = true;
 
+        /// <summary>Optional arrow style at the source end. Null keeps the theme-derived style.</summary>
+        public EndArrow? BeginArrow { get; set; }
+
+        /// <summary>Optional arrow style at the target end. Null keeps the theme-derived style.</summary>
+        public EndArrow? EndArrow { get; set; }
+
+        /// <summary>Optional reusable stroke dash style. Null keeps the theme-derived pattern.</summary>
+        public OfficeStrokeDashStyle? LineStyle { get; set; }
+
+        /// <summary>Optional native connector line color. Null keeps the theme-derived line color.</summary>
+        public OfficeColor? LineColor { get; set; }
+
         /// <summary>Shape Data rows to apply to the generated connector.</summary>
         public IDictionary<string, string?> ShapeData { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
@@ -136,6 +155,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Node ids contained by the cluster.</summary>
         public IList<string> NodeIds { get; } = new List<string>();
+
+        /// <summary>Optional native background fill color. Null keeps the theme-derived fill.</summary>
+        public OfficeColor? FillColor { get; set; }
+
+        /// <summary>Optional native background line color. Null keeps the theme-derived line color.</summary>
+        public OfficeColor? LineColor { get; set; }
 
         /// <summary>Shape Data rows to apply to the generated cluster background.</summary>
         public IDictionary<string, string?> ShapeData { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
