@@ -483,6 +483,7 @@ public sealed partial class PdfReadPage {
                 authoredShadingInvocationVisitor: requireImageMask
                     ? _ => supported = false
                     : null,
+                unsupportedOperatorVisitor: _ => supported = false,
                 initialFillPattern: initialFillPattern,
                 initialStrokePattern: initialStrokePattern);
             if (usesUnsupportedInheritedShadingStroke) {

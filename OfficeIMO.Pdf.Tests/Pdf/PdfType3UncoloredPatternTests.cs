@@ -490,6 +490,7 @@ public partial class PdfType3UncoloredPatternTests {
     [InlineData("/ShadingType 2 /ColorSpace /DeviceCMYK /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 2 /ColorSpace /DeviceRGB /BBox [22 100 28 110] /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [23 106 2 27 106 2] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
+    [InlineData("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 1e999 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [25 106 8 25 106 2] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     [InlineData("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [25 106 1 25.001 106.001 1.0011] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true]")]
     public void RenderPage_FailsClosedForUnmodeledOuterShadingContracts(string shadingEntries) {
@@ -506,6 +507,53 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Empty(drawing.Shapes);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForUnprojectedMiterLimitInStrictType3Content() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 2 M 80 w 30 30 m 250 670 l 470 30 l S");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForInexactPatternFillClipIntersection() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 0 0 m 500 0 l 0 700 l 500 700 l h W n 0 700 m 500 700 l 0 0 l 500 0 l h f");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForType3ImageWithSoftMaskMatte() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "0 0 1 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /SMask 9 0 R", "red"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Matte [1 0 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]

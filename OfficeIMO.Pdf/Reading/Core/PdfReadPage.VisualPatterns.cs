@@ -83,10 +83,10 @@ public sealed partial class PdfReadPage {
     private static bool CanRenderTilingPatterns(PdfPageVisualPrimitive primitive, double drawingWidth, double drawingHeight) {
         if (primitive.FillTilingPattern != null &&
             TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
-            !IsWithinTilingPatternLimit(primitive.FillTilingPattern, fillBounds)) return false;
+            (!fillBounds.IsExact || !IsWithinTilingPatternLimit(primitive.FillTilingPattern, fillBounds))) return false;
         if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D &&
             TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
-            !IsWithinTilingPatternLimit(primitive.StrokeTilingPattern, strokeBounds)) return false;
+            (!strokeBounds.IsExact || !IsWithinTilingPatternLimit(primitive.StrokeTilingPattern, strokeBounds))) return false;
         return true;
     }
 

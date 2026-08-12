@@ -1051,13 +1051,14 @@ public sealed partial class PdfReadPage {
         exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
 
         if (shadingType == 2) {
+            bool exactAxialFamily = coords.Count == 4 && coords.All(IsFinite);
             shading = new PdfPageShadingResource(
                 coords[0],
                 coords[1],
                 coords[2],
                 coords[3],
                 stops,
-                exactColorInterpolation && !hasShadingBoundingBox && extendsBothEnds);
+                exactColorInterpolation && exactAxialFamily && !hasShadingBoundingBox && extendsBothEnds);
             return true;
         }
 

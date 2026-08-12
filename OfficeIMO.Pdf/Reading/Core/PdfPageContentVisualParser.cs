@@ -916,7 +916,7 @@ internal static class PdfPageContentVisualParser {
 
         private static bool IsKnownContentOperator(string value) {
             switch (value) {
-                case "q": case "Q": case "cm": case "w": case "J": case "j": case "M": case "d": case "ri": case "i": case "gs":
+                case "q": case "Q": case "cm": case "w": case "J": case "j": case "d": case "ri": case "i": case "gs":
                 case "m": case "l": case "c": case "v": case "y": case "h": case "re":
                 case "S": case "s": case "f": case "F": case "f*": case "B": case "B*": case "b": case "b*": case "n":
                 case "W": case "W*": case "BT": case "ET": case "Tc": case "Tw": case "Tz": case "TL": case "Tf": case "Tr": case "Ts":

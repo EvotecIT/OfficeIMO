@@ -314,11 +314,26 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null &&
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+        if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (image.IsImageMask) return true;
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private bool HasType3SoftMaskMatte(PdfDictionary imageDictionary) {
+        if (!imageDictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return false;
+        PdfObject? current = softMaskObject;
+        var visited = new HashSet<long>();
+        while (current is PdfReference reference) {
+            long key = ((long)reference.ObjectNumber << 32) | (uint)reference.Generation;
+            if (!visited.Add(key) || !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) return false;
+            current = indirect.Value;
+        }
+        return current is PdfStream softMask &&
+            softMask.Dictionary.Items.TryGetValue("Matte", out PdfObject? matteObject) &&
+            ResolveObject(matteObject) is not PdfNull;
     }
 
     internal static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
