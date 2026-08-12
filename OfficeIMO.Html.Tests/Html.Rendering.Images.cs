@@ -541,6 +541,47 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_OrientedTiffPremeasurementMatchesRenderedGeometryAcrossLayoutOwners() {
+        byte[] tiff = CreateHtmlTiffWithOrientation(20, 10, 6);
+        string data = Convert.ToBase64String(tiff);
+        string source = "data:image/tiff;base64," + data;
+        string referenceSource = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 20));
+        string html = $"<div style='display:flex;width:100px'><img id='flex-tiff' src='{source}'><div id='flex-after' style='width:10px;height:10px;background:blue'></div></div>"
+            + $"<div style='display:flex;width:100px'><img id='raw-tiff' src='{source}' style='image-orientation:none'><div id='raw-after' style='width:10px;height:10px;background:blue'></div></div>"
+            + $"<div style='display:grid;grid-template-columns:max-content 10px;width:100px'><img id='grid-tiff' src='{source}'><div id='grid-after' style='height:10px;background:blue'></div></div>"
+            + $"<table style='border-collapse:collapse;width:20px;margin:0'><tr><td style='padding:0'><img id='table-tiff' src='{source}'></td><td style='padding:0'><div id='table-after' style='width:10px;height:10px;background:blue'></div></td></tr></table>"
+            + $"<table style='border-collapse:collapse;width:20px;margin:0'><tr><td style='padding:0'><img id='table-reference' src='{referenceSource}'></td><td style='padding:0'><div id='table-reference-after' style='width:10px;height:10px;background:blue'></div></td></tr></table>"
+            + $"<div style='width:100px;font-size:8px;line-height:10px'><img id='float-tiff' src='{source}' style='float:left'><span>TiffFloatText</span></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages[0].Visuals;
+        HtmlRenderImage flex = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#flex-tiff");
+        HtmlRenderImage raw = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#raw-tiff");
+        HtmlRenderImage grid = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#grid-tiff");
+        HtmlRenderImage table = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#table-tiff");
+        HtmlRenderImage tableReference = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#table-reference");
+        HtmlRenderImage floated = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#float-tiff");
+
+        Assert.All(new[] { flex, grid, table, floated }, image => {
+            Assert.Equal(10D, image.Width, 3);
+            Assert.Equal(20D, image.Height, 3);
+        });
+        Assert.Equal(20D, raw.Width, 3);
+        Assert.Equal(10D, raw.Height, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#flex-after").X, 3);
+        Assert.Equal(20D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#raw-after").X, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-after").X, 3);
+        HtmlRenderShape tableAfter = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#table-after");
+        HtmlRenderShape tableReferenceAfter = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#table-reference-after");
+        Assert.Equal(tableReferenceAfter.X - tableReference.X, tableAfter.X - table.X, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "TiffFloatText").X, 3);
+    }
+
+    [Fact]
     public void HtmlImages_NormalInlineBoxesWrapAndParticipateInBaselineAcrossBackends() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<p id='inline-line' style='width:60px;margin:0;font-size:10px;line-height:12px'>Before<a href='https://example.com/image'><img id='inline-image' src='data:image/png;base64,{data}' alt='inline image' style='width:18px;height:14px;margin:0 2px;border:1px solid #0000ff;border-radius:4px;object-fit:cover'></a>After</p>";
@@ -795,6 +836,33 @@ public sealed partial class HtmlRenderingTests {
         (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00
     };
+
+    private static byte[] CreateHtmlTiffWithOrientation(int width, int height, ushort orientation) {
+        byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(width, height, OfficeColor.Red));
+        bool littleEndian = tiff[0] == (byte)'I';
+        int ifdOffset = littleEndian
+            ? BitConverter.ToInt32(tiff, 4)
+            : (tiff[4] << 24) | (tiff[5] << 16) | (tiff[6] << 8) | tiff[7];
+        int entryCount = littleEndian
+            ? BitConverter.ToUInt16(tiff, ifdOffset)
+            : (tiff[ifdOffset] << 8) | tiff[ifdOffset + 1];
+        for (int index = 0; index < entryCount; index++) {
+            int entry = ifdOffset + 2 + index * 12;
+            int tag = littleEndian
+                ? BitConverter.ToUInt16(tiff, entry)
+                : (tiff[entry] << 8) | tiff[entry + 1];
+            if (tag != 274) continue;
+            if (littleEndian) {
+                tiff[entry + 8] = (byte)orientation;
+                tiff[entry + 9] = (byte)(orientation >> 8);
+            } else {
+                tiff[entry + 8] = (byte)(orientation >> 8);
+                tiff[entry + 9] = (byte)orientation;
+            }
+            return tiff;
+        }
+        throw new InvalidOperationException("Encoded TIFF did not contain an orientation entry.");
+    }
 
     private sealed class SlowFallbackCodec : IOfficeRasterImageCodec {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {

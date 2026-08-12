@@ -13,13 +13,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             out OfficeImageInfo? imageInfo,
             reportDiagnostics: false);
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
-        bool swapsAxes = hasIntrinsicSize
-            && style.ApplyEmbeddedImageOrientation
+        bool hasAxisSwappingOrientation = hasIntrinsicSize
             && OfficeImageOrientationNormalizer.TryRead(bytes, out OfficeImageOrientation orientation)
             && orientation is OfficeImageOrientation.Transpose
                 or OfficeImageOrientation.Rotate90Clockwise
                 or OfficeImageOrientation.Transverse
                 or OfficeImageOrientation.Rotate90CounterClockwise;
+        // TIFF identification already exposes orientation-normalized dimensions and density,
+        // whereas the other metadata readers expose the encoded axes. Swap exactly when the
+        // requested CSS orientation differs from the metadata representation.
+        bool metadataAppliesOrientation = imageInfo?.Format == OfficeImageFormat.Tiff;
+        bool swapsAxes = hasAxisSwappingOrientation
+            && style.ApplyEmbeddedImageOrientation != metadataAppliesOrientation;
         double sourceWidth = swapsAxes ? imageInfo!.Height : imageInfo?.Width ?? 0D;
         double sourceHeight = swapsAxes ? imageInfo!.Width : imageInfo?.Height ?? 0D;
         double sourceDpiX = swapsAxes ? imageInfo!.DpiY : imageInfo?.DpiX ?? 96D;
