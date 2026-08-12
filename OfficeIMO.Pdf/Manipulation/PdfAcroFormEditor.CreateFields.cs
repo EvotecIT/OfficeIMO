@@ -59,7 +59,9 @@ internal static partial class PdfAcroFormEditor {
         if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return false;
         PdfObject? encoding = PdfObjectLookup.Resolve(objects, encodingObject);
         if (encoding is PdfName name) return string.Equals(name.Name, "WinAnsiEncoding", StringComparison.Ordinal);
-        return encoding is PdfDictionary dictionary && string.Equals(ReadName(dictionary, "BaseEncoding"), "WinAnsiEncoding", StringComparison.Ordinal);
+        return encoding is PdfDictionary dictionary &&
+            string.Equals(ReadName(dictionary, "BaseEncoding"), "WinAnsiEncoding", StringComparison.Ordinal) &&
+            (!dictionary.Items.TryGetValue("Differences", out PdfObject? differences) || PdfObjectLookup.Resolve(objects, differences) is PdfNull);
     }
 
     private static void ApplyCreateRadioButtonGroup(
@@ -70,6 +72,7 @@ internal static partial class PdfAcroFormEditor {
         PdfFormFieldCreateOptions options,
         string appearanceFontName,
         Dictionary<string, string> refillValues,
+        PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber) {
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
         int parentObjectNumber = nextObjectNumber++;
@@ -109,12 +112,12 @@ internal static partial class PdfAcroFormEditor {
             objects[offAppearanceObjectNumber] = new PdfIndirectObject(
                 offAppearanceObjectNumber,
                 0,
-                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: false, ref nextObjectNumber));
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: false, appearanceOptions, ref nextObjectNumber));
             int selectedAppearanceObjectNumber = nextObjectNumber++;
             objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(
                 selectedAppearanceObjectNumber,
                 0,
-                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: true, ref nextObjectNumber));
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: true, appearanceOptions, ref nextObjectNumber));
             var normalAppearances = new PdfDictionary();
             normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
             normalAppearances.Items[option] = new PdfReference(selectedAppearanceObjectNumber, 0);
@@ -137,6 +140,7 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary page,
         PdfDictionary widget,
         PdfFormFieldCreateOptions options,
+        PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber) {
         PdfFormFieldStyle style = CreateButtonCaptionStyle(options.Style);
         style.TextAlignment = PdfFormFieldTextAlignment.Center;
@@ -151,6 +155,7 @@ internal static partial class PdfAcroFormEditor {
             style,
             options.FontSize,
             options.Name,
+            appearanceOptions,
             ref nextObjectNumber);
         int appearanceObjectNumber = nextObjectNumber++;
         objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
@@ -166,6 +171,7 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary widget,
         PdfFormFieldCreateOptions options,
         string value,
+        PdfFormFillerOptions? appearanceOptions,
         ref int nextObjectNumber) {
         PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
         PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
@@ -179,11 +185,36 @@ internal static partial class PdfAcroFormEditor {
             style,
             options.FontSize,
             options.Name,
+            appearanceOptions,
             ref nextObjectNumber);
         int appearanceObjectNumber = nextObjectNumber++;
         objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
         var appearances = new PdfDictionary();
         appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+        widget.Items["AP"] = appearances;
+    }
+
+    private static void AddCheckBoxAppearances(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary widget,
+        PdfFormFieldCreateOptions options,
+        ref int nextObjectNumber) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        int offAppearanceObjectNumber = nextObjectNumber++;
+        int selectedAppearanceObjectNumber = nextObjectNumber++;
+        objects[offAppearanceObjectNumber] = new PdfIndirectObject(
+            offAppearanceObjectNumber,
+            0,
+            PdfFormFiller.CreateAuthoredButtonWidgetAppearance(options.Width, options.Height, selected: false, isRadioButton: false, style));
+        objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(
+            selectedAppearanceObjectNumber,
+            0,
+            PdfFormFiller.CreateAuthoredButtonWidgetAppearance(options.Width, options.Height, selected: true, isRadioButton: false, style));
+        var normalAppearances = new PdfDictionary();
+        normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
+        normalAppearances.Items[options.CheckedValueName] = new PdfReference(selectedAppearanceObjectNumber, 0);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = normalAppearances;
         widget.Items["AP"] = appearances;
     }
 

@@ -575,6 +575,63 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Create_DoesNotReuseHelveticaWithWinAnsiDifferences() {
+        byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace("/BaseFont /Helvetica >>", "/BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [65 /space] >> >>"));
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "caption",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "A"
+        }));
+
+        PdfFormField field = result.Fields.Single(static item => item.Name == "caption");
+        Assert.StartsWith("/Helv1 ", field.DefaultAppearance, StringComparison.Ordinal);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Contains("/Differences [65 /space]", PdfEncoding.Latin1GetString(source), StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica /Encoding /WinAnsiEncoding", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_UsesConfiguredUnicodeAppearanceFontForPushButtonCaption() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath is null) return;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unicode button caption")).ToBytes();
+        var appearanceOptions = new PdfFormFillerOptions().UseAppearanceFontFile("OfficeIMO Authoring Font", fontPath);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "calculate",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Łódź"
+        }), appearanceOptions);
+
+        PdfFormField button = Assert.Single(result.Fields);
+        Assert.True(button.IsPushButton);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_PreservesCheckBoxMarkColorThroughInitialRefill() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled checkbox")).ToBytes();
+        var style = new PdfFormFieldStyle { MarkColor = PdfColor.FromRgb(22, 101, 52) };
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "accepted",
+            Kind = PdfFormFieldCreationKind.CheckBox,
+            Value = "Yes",
+            Style = style
+        }));
+
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Contains("0.086 0.396 0.204 RG 1.25 w", raw, StringComparison.Ordinal);
+        PdfFormWidget widget = Assert.Single(Assert.Single(result.Fields).Widgets);
+        Assert.True(widget.HasNormalAppearanceState("Off"));
+        Assert.True(widget.HasNormalAppearanceState("Yes"));
+    }
+
+    [Fact]
     public void Edit_ReusesRaisedJavaScriptLimitsForIntermediateReadbacks() {
         byte[] source = BuildWidgetActionBudgetPdf(10_001);
         var readOptions = new PdfReadOptions {
