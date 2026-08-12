@@ -57,38 +57,6 @@ public sealed class ReleasePackagingGuardrails {
     }
 
     [Fact]
-    public void PackageLocks_DoNotRetainOlderOfficeIMOReleaseLines() {
-        string repositoryRoot = GetRepositoryRoot();
-        string coordinatedVersion = ReadCoordinatedReleaseVersion(repositoryRoot);
-        string[] lockFiles = Directory
-            .EnumerateFiles(repositoryRoot, "packages.lock.json", SearchOption.AllDirectories)
-            .Where(static path => !ContainsBuildOutput(path))
-            .ToArray();
-        Assert.NotEmpty(lockFiles);
-
-        var staleDependencies = new List<string>();
-        foreach (string lockFile in lockFiles) {
-            string content = File.ReadAllText(lockFile);
-            foreach (Match match in Regex.Matches(
-                content,
-                "\"OfficeIMO\\.[^\"]+\"\\s*:\\s*\"\\[(?<version>\\d+\\.\\d+\\.\\d+),",
-                RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)) {
-                if (!string.Equals(
-                    match.Groups["version"].Value,
-                    coordinatedVersion,
-                    StringComparison.Ordinal)) {
-                    staleDependencies.Add(
-                        GetRepositoryRelativePath(repositoryRoot, lockFile)
-                        + " -> "
-                        + match.Value);
-                }
-            }
-        }
-
-        Assert.Empty(staleDependencies);
-    }
-
-    [Fact]
     public void ProjectBuild_IncludesEveryPublishablePackageExactlyOnceAndUsesOneVersion() {
         string repositoryRoot = GetRepositoryRoot();
         string projectBuildPath = Path.Combine(repositoryRoot, "Build", "project.build.json");

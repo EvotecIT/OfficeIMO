@@ -97,6 +97,18 @@
     "OfficeIMO.Word.Rtf": "3.2.X",
     "OfficeIMO.Zip": "3.2.X"
   },
+  "VersionBindings": [
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/.mcp.json",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/README.md",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    }
+  ],
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
   "AlignPackageVersions": true,
