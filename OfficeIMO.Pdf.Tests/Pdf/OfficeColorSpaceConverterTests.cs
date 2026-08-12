@@ -654,6 +654,23 @@ public class OfficeColorSpaceConverterTests {
         Assert.False(OfficeIccColorProfile.TryCreate(nonnormalizedWhitePoint, out _));
     }
 
+    [Fact]
+    public void IccRgbProfile_ConvertsMatrixPcsFromHeaderD50() {
+        byte[] baselineBytes = PdfIccProfiles.SrgbIec6196621;
+        byte[] adaptedMediaWhiteBytes = PdfIccProfiles.SrgbIec6196621;
+        int mediaWhiteOffset = FindTagOffset(adaptedMediaWhiteBytes, "wtpt");
+        WriteS15Fixed16(adaptedMediaWhiteBytes, mediaWhiteOffset + 8, 1D);
+        WriteS15Fixed16(adaptedMediaWhiteBytes, mediaWhiteOffset + 12, 1D);
+        WriteS15Fixed16(adaptedMediaWhiteBytes, mediaWhiteOffset + 16, 1D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(baselineBytes, out OfficeIccColorProfile? baseline));
+        Assert.True(OfficeIccColorProfile.TryCreate(adaptedMediaWhiteBytes, out OfficeIccColorProfile? adaptedMediaWhite));
+        Assert.True(baseline!.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out OfficeColor expected));
+        Assert.True(adaptedMediaWhite!.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out OfficeColor actual));
+
+        Assert.Equal(expected, actual);
+    }
+
     private static int FindTagOffset(byte[] profile, string signature) {
         int entry = FindTagEntryOffset(profile, signature);
         return checked((int)ReadUInt32(profile, entry + 4));

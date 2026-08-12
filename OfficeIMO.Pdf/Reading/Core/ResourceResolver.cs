@@ -1138,7 +1138,7 @@ internal static partial class ResourceResolver {
     }
 
     private static PdfObject? ResolveColorSpaceResource(PdfObject? colorSpaceObject, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects) {
-        PdfObject? resolved = ResolveObject(colorSpaceObject, objects);
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, colorSpaceObject, out PdfObject? resolved)) return null;
         if (resolved is not PdfName name || resources == null) {
             return resolved;
         }
@@ -1147,13 +1147,15 @@ internal static partial class ResourceResolver {
             return resolved;
         }
 
-        PdfDictionary? colorSpaceResources = ResolveDict(colorSpaceResourcesObject, objects);
-        if (colorSpaceResources == null ||
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, colorSpaceResourcesObject, out PdfObject? resolvedResources) ||
+            resolvedResources is not PdfDictionary colorSpaceResources ||
             !colorSpaceResources.Items.TryGetValue(name.Name, out PdfObject? resourceColorSpaceObject)) {
             return resolved;
         }
 
-        return ResolveObject(resourceColorSpaceObject, objects) ?? resourceColorSpaceObject;
+        return PdfObjectLookup.TryResolveReferenceChain(objects, resourceColorSpaceObject, out PdfObject? resolvedResource)
+            ? resolvedResource
+            : null;
     }
 
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
