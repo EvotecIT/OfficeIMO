@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 slide.AddTable(rows, options => {
                     options.Columns = columns;
-                    options.MaxCells = long.MaxValue;
+                    options.MaxCells = 50_000;
                 }));
 
             Assert.Contains("requires at least 101000 cells", exception.Message, StringComparison.Ordinal);

@@ -293,6 +293,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_TitledDataTableAppliesVisualsToItsActualHeaderRow() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            try {
+                DataTable members = CreateMembersTable();
+                using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    document.Compose("Members", composer => {
+                        string range = composer.TableFrom(
+                            members,
+                            title: "Members",
+                            freezeHeaderRow: false,
+                            visuals: options => options.NumericColumnFormats["Enabled"] = "0.0000");
+                        Assert.Equal("A2:D4", range);
+                    });
+                    document.Save();
+                }
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.First();
+                Cell dataCell = worksheetPart.Worksheet.Descendants<Cell>()
+                    .Single(cell => cell.CellReference?.Value == "B3");
+                Assert.NotNull(dataCell.StyleIndex);
+
+                Stylesheet stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet!;
+                CellFormat cellFormat = stylesheet.CellFormats!.Elements<CellFormat>()
+                    .ElementAt((int)dataCell.StyleIndex!.Value);
+                Assert.True(cellFormat.ApplyNumberFormat?.Value);
+                NumberingFormat numberFormat = stylesheet.NumberingFormats!.Elements<NumberingFormat>()
+                    .Single(format => format.NumberFormatId?.Value == cellFormat.NumberFormatId?.Value);
+                Assert.Equal("0.0000", numberFormat.FormatCode?.Value);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
             var table = new DataTable("Wide");
             for (int index = 0; index <= A1.MaxColumns; index++) {

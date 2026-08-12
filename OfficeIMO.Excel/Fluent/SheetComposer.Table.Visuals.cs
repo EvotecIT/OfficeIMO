@@ -27,13 +27,16 @@ namespace OfficeIMO.Excel.Fluent {
             for (int index = 0; index < headers.Count; index++) {
                 string header = headers[index];
                 string columnRange = $"{ColumnLetter(startColumn + index)}{headerRow + 1}:{ColumnLetter(startColumn + index)}{lastRow}";
+                var columnStyle = new ExcelColumnStyleByHeaderBuilder(
+                    Sheet,
+                    startColumn + index,
+                    headerRow + 1,
+                    lastRow);
 
                 if (visualOptions.NumericColumnFormats.TryGetValue(header, out string? format)) {
-                    if (Sheet.TryGetColumnIndexByHeader(header, out _))
-                        Sheet.ColumnStyleByHeader(header).NumberFormat(format);
+                    columnStyle.NumberFormat(format);
                 } else if (visualOptions.NumericColumnDecimals.TryGetValue(header, out int decimals)) {
-                    if (Sheet.TryGetColumnIndexByHeader(header, out _))
-                        Sheet.ColumnStyleByHeader(header).Number(decimals);
+                    columnStyle.Number(decimals);
                 }
 
                 if (visualOptions.DataBars.TryGetValue(header, out var color))
@@ -45,33 +48,23 @@ namespace OfficeIMO.Excel.Fluent {
                     Sheet.AddConditionalIconSet(columnRange);
 
                 if (visualOptions.TextBackgrounds.TryGetValue(header, out var backgroundMap)) {
-                    if (Sheet.TryGetColumnIndexByHeader(header, out _)) {
-                        Sheet.ColumnStyleByHeader(header).BackgroundByTextMap(backgroundMap);
-                    } else {
-                        for (int row = headerRow + 1; row <= lastRow; row++)
-                            if (Sheet.TryGetCellText(row, startColumn + index, out string? text) && text != null && backgroundMap.TryGetValue(text, out string? colorHex))
-                                Sheet.CellBackground(row, startColumn + index, colorHex);
-                    }
+                    columnStyle.BackgroundByTextMap(backgroundMap);
                 }
 
                 if (visualOptions.BoldByText.TryGetValue(header, out var boldValues)) {
-                    if (Sheet.TryGetColumnIndexByHeader(header, out _)) {
-                        Sheet.ColumnStyleByHeader(header).BoldByTextSet(boldValues);
-                    } else {
-                        var values = new HashSet<string>(boldValues, StringComparer.OrdinalIgnoreCase);
-                        for (int row = headerRow + 1; row <= lastRow; row++)
-                            if (Sheet.TryGetCellText(row, startColumn + index, out string? text) && !string.IsNullOrEmpty(text) && values.Contains(text))
-                                Sheet.CellBold(row, startColumn + index, true);
-                    }
+                    columnStyle.BoldByTextSet(boldValues);
                 }
             }
 
             if (visualOptions.AutoFormatDynamicCollections) {
                 for (int index = 0; index < paths.Count; index++) {
                     if (!paths[index].Contains('.')) continue;
-                    string header = headers[index];
-                    if (Sheet.TryGetColumnIndexByHeader(header, out _))
-                        Sheet.ColumnStyleByHeader(header).Number(visualOptions.AutoFormatDecimals);
+                    var columnStyle = new ExcelColumnStyleByHeaderBuilder(
+                        Sheet,
+                        startColumn + index,
+                        headerRow + 1,
+                        lastRow);
+                    columnStyle.Number(visualOptions.AutoFormatDecimals);
                     string columnRange = $"{ColumnLetter(startColumn + index)}{headerRow + 1}:{ColumnLetter(startColumn + index)}{lastRow}";
                     Sheet.AddConditionalDataBar(columnRange, visualOptions.AutoFormatDataBarColor);
                 }

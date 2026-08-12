@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
-            string? maxColumnsGuidance = opts.MaxColumns >= A1.MaxColumns
+            Func<int, string?> maxColumnsGuidance = requiredColumns => requiredColumns > A1.MaxColumns
                 ? $"Select fewer columns or split the data across multiple worksheets; Excel's {A1.MaxColumns}-column worksheet limit cannot be overridden."
                 : null;
             opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);

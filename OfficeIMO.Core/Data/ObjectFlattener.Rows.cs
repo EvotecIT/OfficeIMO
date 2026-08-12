@@ -16,8 +16,8 @@ namespace OfficeIMO.Data {
             int headerRowCount,
             bool enforceEmptyProjectionLimits = true,
             int? renderedColumnCountForCellLimit = null,
-            string? columnLimitGuidance = null,
-            string? cellLimitGuidance = null) {
+            Func<int, string?>? columnLimitGuidance = null,
+            Func<long, string?>? cellLimitGuidance = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (options == null) throw new ArgumentNullException(nameof(options));
             options = options.CreateProjectionSnapshot();
@@ -176,7 +176,7 @@ namespace OfficeIMO.Data {
             int headerRowCount,
             ObjectFlattenerOptions options,
             string consumerName,
-            string? limitGuidance) {
+            Func<long, string?>? limitGuidance) {
             long maximumIntermediateCells = Math.Max(options.MaxCells, ObjectFlattenerOptions.DefaultMaxCells);
             long intermediateCells = ((long)rowCount + headerRowCount) * columnCount;
             if (intermediateCells > maximumIntermediateCells) {
@@ -195,7 +195,7 @@ namespace OfficeIMO.Data {
         private List<string> ResolveExplicitColumns(
             ObjectFlattenerOptions options,
             string consumerName,
-            string? limitGuidance) {
+            Func<int, string?>? limitGuidance) {
             var explicitColumnCandidates = new List<string>(Math.Min(options.Columns!.Length, options.MaxColumns));
             AddExplicitColumnsBounded(explicitColumnCandidates, options, consumerName, limitGuidance);
             return ResolvePathsPrepared(explicitColumnCandidates, options);
@@ -205,7 +205,7 @@ namespace OfficeIMO.Data {
             List<string> columns,
             ObjectFlattenerOptions options,
             string consumerName,
-            string? limitGuidance) {
+            Func<int, string?>? limitGuidance) {
             var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string column in options.Columns!) {
                 if (string.IsNullOrWhiteSpace(column) || !added.Add(column)) {
@@ -231,7 +231,7 @@ namespace OfficeIMO.Data {
             int headerRowCount,
             ObjectFlattenerOptions options,
             string consumerName,
-            string? limitGuidance) {
+            Func<long, string?>? limitGuidance) {
             long projectedCells = ((long)rowCount + headerRowCount) * columnCount;
             if (projectedCells > options.MaxCells) {
                 throw CreateCellLimitException(
@@ -254,13 +254,13 @@ namespace OfficeIMO.Data {
             long limit,
             string consumerName,
             string limitKind,
-            string? limitGuidance = null) {
+            Func<long, string?>? limitGuidance = null) {
             string rows = headerRowCount == 0
                 ? FormatCount(rowCount, "row", "rows")
                 : FormatCount(rowCount, "data row", "data rows") + " + "
                     + FormatCount(headerRowCount, "header row", "header rows");
             string requiredCells = projectedCells.ToString(CultureInfo.InvariantCulture);
-            string overrideHint = limitGuidance ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
+            string overrideHint = limitGuidance?.Invoke(projectedCells) ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
                 ? "For intentionally materialized object rows, raise the limit with configure: options => options.MaxCells = " + requiredCells + ". "
                     + "For fixed-schema data, use the TableFrom(DataTable) overload, which avoids generic object flattening."
                 : "If this materialization is intentional, set ObjectFlattenerOptions.MaxCells to at least " + requiredCells + ".");
@@ -288,9 +288,9 @@ namespace OfficeIMO.Data {
             int limit,
             string consumerName,
             Exception? innerException = null,
-            string? limitGuidance = null) {
+            Func<int, string?>? limitGuidance = null) {
             string required = requiredColumns.ToString(CultureInfo.InvariantCulture);
-            string overrideHint = limitGuidance ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
+            string overrideHint = limitGuidance?.Invoke(requiredColumns) ?? (string.Equals(consumerName, "TableFrom", StringComparison.Ordinal)
                 ? "If this materialization is intentional, raise the limit with configure: options => options.MaxColumns = " + required + "."
                 : "If this materialization is intentional, set ObjectFlattenerOptions.MaxColumns to at least " + required + ".");
             string message = consumerName + " requires at least " + FormatCount(requiredColumns, "column", "columns")
