@@ -140,7 +140,7 @@ public static class PdfProvenance {
         PdfIndirectObject catalogObject = document.Objects.Values.First(item => ReferenceEquals(item.Value, catalog));
         var collector = new PdfPageExtractor.ObjectCollector(document.Objects);
         collector.CollectObjectGraph(new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
-        HashSet<int> reachableObjectNumbers = collector.ObjectIds.ToHashSet();
+        var reachableObjectNumbers = new HashSet<int>(collector.ObjectIds);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, secondaryDocumentReferences, visited);
