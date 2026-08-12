@@ -280,6 +280,11 @@ public sealed class ProvenanceDocumentContracts {
     [InlineData("<html><body><input type=\"image\" src=\"{0}\"></body></html>", "src")]
     [InlineData("<html><body><svg><image href=\"{0}\"/></svg></body></html>", "href")]
     [InlineData("<html><head><link rel=\"icon\" href=\"{0}\"></head><body></body></html>", "href")]
+    [InlineData("<html><body><table background=\"{0}\"></table></body></html>", "background")]
+    [InlineData("<html><head><link rel=\"preload\" as=\"image\" href=\"{0}\"></head><body></body></html>", "href")]
+    [InlineData("<html><head><link rel=\"preload\" as=\"image\" href=\"keep.png\" imagesrcset=\"{0} 1x, keep2.png 2x\"></head><body></body></html>", "imagesrcset")]
+    [InlineData("<html><body><div style=\"background-image:url('{0}')\"></div></body></html>", "style")]
+    [InlineData("<html><head><style>.x{{background-image:image-set(\"{0}\" 1x)}}</style></head><body class=\"x\"></body></html>", "css")]
     public void HtmlSanitizesEverySupportedEmbeddedImageCarrier(string template, string attributeName) {
         byte[] image = CreatePngWithManifest(CreateManifestStore());
         string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
@@ -413,6 +418,18 @@ public sealed class ProvenanceDocumentContracts {
             OdfDocument.RemoveProvenance(package, "document.odt"));
 
         Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EpubIgnoresNonstandardSignatureLikeResourceNames() {
+        byte[] package = CreateZipPackage("epub", "META-INF/customsignatures.xml", CreatePngWithManifest(CreateManifestStore()));
+
+        OfficeProvenanceRemovalResult result = EpubDocument.RemoveProvenance(package, "publication.epub");
+
+        using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
+        Assert.False(result.WereInvalidatedSignaturesRemoved);
+        Assert.Contains(archive.Entries, entry => entry.FullName.Equals("META-INF/customsignatures.xml", StringComparison.OrdinalIgnoreCase));
+        Assert.Empty(result.After.Evidence);
     }
 
     [Fact]
@@ -619,7 +636,7 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[38];
+        byte[] data = new byte[73];
         WriteBigEndian(data, 0, data.Length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
         WriteBigEndian(data, 8, 30);
@@ -627,6 +644,13 @@ public sealed class ProvenanceDocumentContracts {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
         data[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
+        WriteBigEndian(data, 38, 35);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
+        WriteBigEndian(data, 46, 27);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
+        new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
+        data[70] = 0x02;
+        data[71] = (byte)'m';
         return data;
     }
 

@@ -12,14 +12,17 @@ public sealed partial class EpubDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
 
     /// <summary>Removes selected provenance from encoded EPUB package bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] packageBytes,
         string fileName = "publication.epub",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+
+    private static bool HasPackageSignatures(byte[] data) => OfficeProvenanceZip.HasEntry(data, path =>
+        path.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
         return OfficeProvenanceZip.RemoveEntries(data, path =>

@@ -230,6 +230,23 @@ public static class HtmlProvenance {
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(IElement element) {
         string localName = element.LocalName.ToLowerInvariant();
+        if (localName == "style") {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(element.TextContent)) {
+                yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
+            }
+            yield break;
+        }
+
+        string? inlineStyle = element.GetAttribute("style");
+        if (inlineStyle != null) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(inlineStyle)) {
+                yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
+            }
+        }
+
+        string? background = element.GetAttribute("background");
+        if (background != null) yield return new EmbeddedImageReference("background", background, 0, background.Length);
+
         if (localName is "img" or "source") {
             foreach (string attributeName in EmbeddedImageSourceAttributes) {
                 string? source = element.GetAttribute(attributeName);
@@ -265,17 +282,27 @@ public static class HtmlProvenance {
             string? source = element.GetAttribute(attributeName);
             if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
         }
+        if (localName == "link" && IsPreloadedImage(element)) {
+            string? sourceSet = element.GetAttribute("imagesrcset");
+            if (sourceSet != null) {
+                foreach (EmbeddedImageReference reference in ParseSrcset("imagesrcset", sourceSet)) yield return reference;
+            }
+        }
     }
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
-        document.QuerySelectorAll("img,source,video,input,image,feimage,use,link");
+        document.QuerySelectorAll("img,source,video,input,image,feimage,use,link,[background],style,[style]").Distinct();
 
     private static bool IsImageLink(IElement element) {
         string? rel = element.GetAttribute("rel");
         return HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
             HasRelationship(rel, "shortcut icon") ||
-            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon");
+            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon") || IsPreloadedImage(element);
     }
+
+    private static bool IsPreloadedImage(IElement element) =>
+        HasRelationship(element.GetAttribute("rel"), "preload") &&
+        string.Equals(element.GetAttribute("as")?.Trim(), "image", StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
         int searchOffset = 0;
@@ -308,11 +335,12 @@ public static class HtmlProvenance {
         IElement element,
         List<(EmbeddedImageReference Reference, string Value)> replacements) {
         foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
-            string value = element.GetAttribute(group.Key) ?? string.Empty;
+            string value = group.Key == "css" ? element.TextContent : element.GetAttribute(group.Key) ?? string.Empty;
             foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
                 value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
             }
-            element.SetAttribute(group.Key, value);
+            if (group.Key == "css") element.TextContent = value;
+            else element.SetAttribute(group.Key, value);
         }
     }
 
