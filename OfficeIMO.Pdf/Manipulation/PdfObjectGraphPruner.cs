@@ -15,35 +15,30 @@ internal static class PdfObjectGraphPruner {
         }
     }
 
-    private static void CollectReachableObjectNumbers(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, HashSet<int> reachable) {
-        if (value is PdfReference reference) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                !reachable.Add(indirect.ObjectNumber)) {
-                return;
+    private static void CollectReachableObjectNumbers(Dictionary<int, PdfIndirectObject> objects, PdfObject value, HashSet<int> reachable) {
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            PdfObject current = pending.Pop();
+            if (current is PdfReference reference) {
+                if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+                    reachable.Add(indirect.ObjectNumber)) {
+                    pending.Push(indirect.Value);
+                }
+                continue;
             }
 
-            CollectReachableObjectNumbers(objects, indirect.Value, reachable);
-            return;
-        }
-
-        if (value is PdfArray array) {
-            for (int i = 0; i < array.Items.Count; i++) {
-                CollectReachableObjectNumbers(objects, array.Items[i], reachable);
+            if (current is PdfArray array) {
+                for (int i = array.Items.Count - 1; i >= 0; i--) pending.Push(array.Items[i]);
+                continue;
             }
 
-            return;
-        }
-
-        if (value is PdfDictionary dictionary) {
-            foreach (PdfObject child in dictionary.Items.Values) {
-                CollectReachableObjectNumbers(objects, child, reachable);
+            if (current is PdfDictionary dictionary) {
+                foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+                continue;
             }
 
-            return;
-        }
-
-        if (value is PdfStream stream) {
-            CollectReachableObjectNumbers(objects, stream.Dictionary, reachable);
+            if (current is PdfStream stream) pending.Push(stream.Dictionary);
         }
     }
 }

@@ -30,12 +30,13 @@ internal static partial class PdfSanitizer {
             ? PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions))
             : Array.Empty<PdfExtractedAttachment>();
 
+        int maximumActionDepth = (readOptions?.Limits ?? new PdfReadLimits()).MaxObjectNestingDepth;
         byte[] sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
             pdf,
             sourceReadOptions: readOptions,
             outputEncryption: null,
             (objects, security) => {
-                SanitizeObjectGraph(objects, policy);
+                SanitizeObjectGraph(objects, policy, maximumActionDepth);
                 return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                     ? security.InfoObjectNumber
                     : null;
@@ -57,6 +58,7 @@ internal static partial class PdfSanitizer {
             PreserveCatalogActions = true,
             PreservePageActions = true,
             PreserveOpenAction = true,
+            PreserveFormWidgetActions = true,
             FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
@@ -85,6 +87,15 @@ internal static partial class PdfSanitizer {
         for (int i = 0; i < info.Pages.Count; i++) {
             IReadOnlyList<PdfPageAction> actions = info.Pages[i].PageActions;
             for (int j = 0; j < actions.Count; j++) AddPolicyRetainedActionType(actions[j].ActionType, policy, preservedActionTypes);
+        }
+        for (int fieldIndex = 0; fieldIndex < info.FormFields.Count; fieldIndex++) {
+            IReadOnlyList<PdfFormWidget> widgets = info.FormFields[fieldIndex].Widgets;
+            for (int widgetIndex = 0; widgetIndex < widgets.Count; widgetIndex++) {
+                IReadOnlyList<PdfFormWidgetAction> actions = widgets[widgetIndex].Actions;
+                for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
+                    AddPolicyRetainedActionType(actions[actionIndex].ActionType, policy, preservedActionTypes);
+                }
+            }
         }
         if (info.OpenAction is not null) AddPolicyRetainedActionType(info.OpenAction.ActionType, policy, preservedActionTypes);
         foreach (string actionType in policy.AllowedActionTypes) preservedActionTypes.Add(actionType);

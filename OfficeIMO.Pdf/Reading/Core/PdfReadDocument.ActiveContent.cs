@@ -26,42 +26,43 @@ public sealed partial class PdfReadDocument {
         PdfObject value,
         HashSet<int> widgetObjectNumbers) {
         var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        var pending = new Stack<(PdfObject Value, int Depth)>();
-        pending.Push((value, 0));
+        var pending = new Stack<(PdfObject Value, int Depth, bool WidgetRoot)>();
+        pending.Push((value, 0, false));
         while (pending.Count > 0) {
-            (PdfObject current, int depth) = pending.Pop();
+            (PdfObject current, int depth, bool widgetRoot) = pending.Pop();
             if (depth > _options.Limits.MaxObjectNestingDepth) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, _options.Limits.MaxObjectNestingDepth, depth);
             }
 
             if (current is PdfReference reference) {
-                if (widgetObjectNumbers.Contains(reference.ObjectNumber) ||
-                    !visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
+                if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
                     !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject? indirect)) {
                     continue;
                 }
-                pending.Push((indirect.Value, depth + 1));
+                pending.Push((indirect.Value, depth + 1, widgetObjectNumbers.Contains(reference.ObjectNumber)));
                 continue;
             }
             if (current is PdfStream stream) {
-                pending.Push((stream.Dictionary, depth + 1));
+                pending.Push((stream.Dictionary, depth + 1, widgetRoot));
                 continue;
             }
             if (current is PdfArray array) {
-                for (int index = array.Items.Count - 1; index >= 0; index--) pending.Push((array.Items[index], depth + 1));
+                for (int index = array.Items.Count - 1; index >= 0; index--) pending.Push((array.Items[index], depth + 1, false));
                 continue;
             }
             if (current is not PdfDictionary dictionary) continue;
             for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
-                if (dictionary.Items.ContainsKey(PdfActiveContentPolicy.MarkerNames[index])) return true;
+                string marker = PdfActiveContentPolicy.MarkerNames[index];
+                if ((!widgetRoot || !string.Equals(marker, "AA", StringComparison.Ordinal)) && dictionary.Items.ContainsKey(marker)) return true;
             }
             foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                if (widgetRoot && (string.Equals(item.Key, "A", StringComparison.Ordinal) || string.Equals(item.Key, "AA", StringComparison.Ordinal))) continue;
                 if (item.Value is PdfName name) {
                     for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
                         if (string.Equals(name.Name, PdfActiveContentPolicy.MarkerNames[index], StringComparison.Ordinal)) return true;
                     }
                 }
-                pending.Push((item.Value, depth + 1));
+                pending.Push((item.Value, depth + 1, false));
             }
         }
         return false;

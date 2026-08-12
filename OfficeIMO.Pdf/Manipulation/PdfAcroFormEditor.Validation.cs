@@ -16,7 +16,7 @@ internal static partial class PdfAcroFormEditor {
                     if (!IsRemovedLater(commands, i, command.Value!) && !byName.ContainsKey(command.Value!)) throw new InvalidOperationException("AcroForm rename readback validation failed for " + command.Value + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
-                    if (byName.Keys.Any(candidate => IsFieldInSubtree(candidate, command.Name!))) throw new InvalidOperationException("AcroForm remove readback validation failed for " + command.Name + ".");
+                    if (byName.Keys.Any(candidate => IsFieldInSubtree(candidate, command.Name!) && !IsIntroducedLater(commands, i, candidate))) throw new InvalidOperationException("AcroForm remove readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.DefaultValue:
                     if (byName.TryGetValue(command.Name!, out PdfFormField? defaultField) && !string.Equals(defaultField.DefaultValue, command.Value, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm default-value readback validation failed for " + command.Name + ".");
@@ -47,6 +47,15 @@ internal static partial class PdfAcroFormEditor {
             if (command.Kind == PdfAcroFormEditSession.EditKind.Flatten && command.Names!.Contains(current, StringComparer.Ordinal)) return true;
         }
         return !string.Equals(current, name, StringComparison.Ordinal);
+    }
+
+    private static bool IsIntroducedLater(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, string finalName) {
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Create && string.Equals(command.Options!.Name, finalName, StringComparison.Ordinal)) return true;
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Rename && string.Equals(command.Value, finalName, StringComparison.Ordinal)) return true;
+        }
+        return false;
     }
 
     private static bool HasLaterFlagsEdit(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, string name) {

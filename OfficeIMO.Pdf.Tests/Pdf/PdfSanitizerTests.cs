@@ -158,6 +158,19 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_PromotesRetainedWidgetNextActionAndProvesItsPreservation() {
+        byte[] source = BuildForbiddenWidgetRootWithRetainedNextPdf();
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+        PdfFormWidget widget = Assert.Single(Assert.Single(result.ToDocument().Inspect().FormFields).Widgets);
+        PdfFormWidgetAction action = Assert.Single(widget.Actions);
+
+        Assert.Equal("GoTo", action.ActionType);
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+        Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
+    }
+
+    [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
@@ -287,6 +300,21 @@ public class PdfSanitizerTests {
             "%%EOF"
         }) + "\n";
 
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildForbiddenWidgetRootWithRetainedNextPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A 7 0 R >>", "endobj",
+            "7 0 obj", "<< /S /JavaScript /JS (app.alert\\('remove'\\);) /Next 8 0 R >>", "endobj",
+            "8 0 obj", "<< /S /GoTo /D [3 0 R /Fit] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        });
         return Encoding.ASCII.GetBytes(pdf);
     }
 

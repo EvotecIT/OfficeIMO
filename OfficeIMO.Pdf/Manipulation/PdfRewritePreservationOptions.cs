@@ -80,6 +80,9 @@ public sealed class PdfRewritePreservationOptions {
     /// <summary>True when page-level additional action metadata must not be changed.</summary>
     public bool PreservePageActions { get; set; } = true;
 
+    /// <summary>True when retained AcroForm widget actions must not be lost.</summary>
+    public bool PreserveFormWidgetActions { get; set; }
+
     /// <summary>Action types compared when action preservation is enabled. An empty set compares every action type.</summary>
     public ISet<string> PreservedActionTypes => _preservedActionTypes;
 

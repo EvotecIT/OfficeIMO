@@ -6,6 +6,7 @@ public static partial class PdfRewritePreservation {
         CompareViewerPreferences(issues, original.ViewerPreferences, rewritten.ViewerPreferences, options);
         CompareCatalogActions(issues, original.CatalogActions, rewritten.CatalogActions, options);
         ComparePageActions(issues, original.Pages, rewritten.Pages, options);
+        CompareFormWidgetActions(issues, original.FormFields, rewritten.FormFields, options);
     }
 
     private static void CompareOpenAction(List<PdfRewritePreservationIssue> issues, PdfDocumentOpenAction? original, PdfDocumentOpenAction? rewritten, PdfRewritePreservationOptions options) {
@@ -110,6 +111,34 @@ public static partial class PdfRewritePreservation {
         actions.Where(action =>
             (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(action.ActionType)) &&
             (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri))).ToArray();
+
+    private static void CompareFormWidgetActions(List<PdfRewritePreservationIssue> issues, IReadOnlyList<PdfFormField> originalFields, IReadOnlyList<PdfFormField> rewrittenFields, PdfRewritePreservationOptions options) {
+        if (!options.PreserveFormWidgetActions) return;
+        string[] expected = CreateFormWidgetActionInventory(originalFields, options);
+        string[] actual = CreateFormWidgetActionInventory(rewrittenFields, options);
+        if (!expected.SequenceEqual(actual, StringComparer.Ordinal)) {
+            issues.Add(CreateIssue("FormWidgetActions", string.Join(" | ", expected), string.Join(" | ", actual)));
+        }
+    }
+
+    private static string[] CreateFormWidgetActionInventory(IReadOnlyList<PdfFormField> fields, PdfRewritePreservationOptions options) {
+        var inventory = new List<string>();
+        for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++) {
+            PdfFormField field = fields[fieldIndex];
+            for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
+                PdfFormWidget widget = field.Widgets[widgetIndex];
+                for (int actionIndex = 0; actionIndex < widget.Actions.Count; actionIndex++) {
+                    PdfFormWidgetAction action = widget.Actions[actionIndex];
+                    if (options.FilterActionsByPreservedTypes && !options.PreservedActionTypes.Contains(action.ActionType)) continue;
+                    inventory.Add((field.Name ?? string.Empty) + "\u001f" +
+                                  widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
+                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty));
+                }
+            }
+        }
+        inventory.Sort(StringComparer.Ordinal);
+        return inventory.ToArray();
+    }
 
     private static string? NormalizeFilteredActionPath(string? value, PdfRewritePreservationOptions options) {
         if (!options.FilterActionsByPreservedTypes || value is null || value.Length == 0) return value;

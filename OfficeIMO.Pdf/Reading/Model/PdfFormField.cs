@@ -301,7 +301,7 @@ public sealed class PdfFormField {
             for (int widgetIndex = 0; widgetIndex < Widgets.Count; widgetIndex++) {
                 IReadOnlyList<PdfFormWidgetAction> actions = Widgets[widgetIndex].Actions;
                 for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
-                    if (!string.IsNullOrEmpty(actions[actionIndex].JavaScript)) {
+                    if (actions[actionIndex].JavaScript is not null) {
                         return actions[actionIndex].JavaScript;
                     }
                 }
@@ -548,7 +548,7 @@ public sealed class PdfFormWidget {
     public string? JavaScript {
         get {
             for (int i = 0; i < Actions.Count; i++) {
-                if (!string.IsNullOrEmpty(Actions[i].JavaScript)) {
+                if (Actions[i].JavaScript is not null) {
                     return Actions[i].JavaScript;
                 }
             }

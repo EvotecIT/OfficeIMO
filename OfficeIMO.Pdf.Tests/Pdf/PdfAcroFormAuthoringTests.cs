@@ -256,6 +256,19 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void WidgetOwnedActiveContentTraversalInspectsNonActionWidgetEntries() {
+        byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace(" /A 8 0 R >>", " /A 8 0 R /OfficeIMO << /S /Launch >> >>", StringComparison.Ordinal));
+
+        PdfReadDocument readDocument = PdfReadDocument.Open(source);
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.False(readDocument.HasOnlyWidgetOwnedActiveContent());
+        Assert.False(document.Preflight().CanFillSimpleFormFields);
+        Assert.Throws<PdfMutationBlockedException>(() => document.Forms.Edit(edit => edit.Rename("run", "renamed")));
+    }
+
+    [Fact]
     public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
         byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
@@ -328,6 +341,17 @@ public class PdfAcroFormAuthoringTests {
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void Reader_ReportsReadableEmptyWidgetJavaScriptAsPresent() {
+        PdfFormField field = Assert.Single(PdfDocument.Open(BuildWidgetJavaScriptStreamPdf(string.Empty)).Inspect().FormFields);
+        PdfFormWidget widget = Assert.Single(field.Widgets);
+
+        Assert.True(field.HasJavaScript);
+        Assert.Equal(string.Empty, field.JavaScript);
+        Assert.True(widget.HasJavaScript);
+        Assert.Equal(string.Empty, widget.JavaScript);
     }
 
     [Fact]
@@ -789,6 +813,35 @@ public class PdfAcroFormAuthoringTests {
         Assert.Empty(result.Fields);
         Assert.Empty(result.ToDocument().Inspect().FormFields);
         Assert.DoesNotContain("/T <637573746F6D6572>", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Remove_CanRebuildAFieldSubtreeLaterInTheSameTransaction() {
+        byte[] source = BuildInheritedTypeFieldHierarchyPdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Remove("customer")
+            .Create(new PdfFormFieldCreateOptions { Name = "customer.phone", Value = "+48 123 456 789" }));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("customer.phone", field.Name);
+        Assert.Equal("+48 123 456 789", field.Value);
+        Assert.True(result.PreservationReport.IsPreserved);
+    }
+
+    [Fact]
+    public void ObjectGraphPrunerTraversesLongReferenceChainsIteratively() {
+        const int objectCount = 20_000;
+        var objects = new Dictionary<int, PdfIndirectObject>(objectCount);
+        for (int objectNumber = 1; objectNumber <= objectCount; objectNumber++) {
+            var dictionary = new PdfDictionary();
+            if (objectNumber < objectCount) dictionary.Items["Next"] = new PdfReference(objectNumber + 1, 0);
+            objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, dictionary);
+        }
+
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, 1);
+
+        Assert.Equal(objectCount, objects.Count);
     }
 
     [Fact]
