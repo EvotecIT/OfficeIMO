@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.OpenDocument;
@@ -23,19 +22,8 @@ public abstract partial class OdfDocument {
         OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
-        using var stream = new MemoryStream(data.Length);
-        stream.Write(data, 0, data.Length);
-        stream.Position = 0;
-        bool hadSignatures = false;
-        using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
-            ZipArchiveEntry[] entries = archive.Entries.Where(item =>
-                item.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
-                item.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase)).ToArray();
-            foreach (ZipArchiveEntry entry in entries) {
-                hadSignatures = true;
-                entry.Delete();
-            }
-        }
-        return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
+        return OfficeProvenanceZip.RemoveEntries(data, path =>
+            path.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
+            path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase));
     }
 }

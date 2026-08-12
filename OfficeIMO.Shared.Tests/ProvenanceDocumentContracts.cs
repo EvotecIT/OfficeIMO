@@ -195,6 +195,21 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlSanitizesConsecutiveDataUrisWhenTheFirstSrcsetCandidateHasNoDescriptor() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string first = "data:image/png;base64," + Convert.ToBase64String(image);
+        string second = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head></head><body><source srcset=\"{first}, {second} 2x\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Equal(2, result.Before.Evidence.Count);
+        Assert.Empty(result.After.Evidence);
+        Assert.Equal(2, result.Changes.Count);
+        Assert.All(result.Changes, change => Assert.Equal(0, change.RemovedBytes));
+    }
+
+    [Fact]
     public void HtmlRemovalSkipsEmbeddedAssetsWhenDisabled() {
         string html = "<html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head>" +
             "<body><img src=\"data:image/png;base64," + new string('A', 512) + "\"></body></html>";

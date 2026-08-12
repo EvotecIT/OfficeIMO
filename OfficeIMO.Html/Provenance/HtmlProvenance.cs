@@ -211,7 +211,7 @@ public static class HtmlProvenance {
                         changes.Add(new OfficeProvenanceChange(
                             change.Carrier,
                             $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
-                            change.RemovedBytes));
+                            0));
                     }
                 } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
                     // Preserve malformed embedded data; structural diagnostics are available through Inspect.
@@ -230,17 +230,12 @@ public static class HtmlProvenance {
     }
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string sourceSet) {
-        int cursor = 0;
-        while (cursor < sourceSet.Length) {
-            while (cursor < sourceSet.Length && (char.IsWhiteSpace(sourceSet[cursor]) || sourceSet[cursor] == ',')) cursor++;
-            if (cursor >= sourceSet.Length) yield break;
-            int start = cursor;
-            while (cursor < sourceSet.Length && !char.IsWhiteSpace(sourceSet[cursor])) cursor++;
-            int end = cursor;
-            while (end > start && sourceSet[end - 1] == ',') end--;
-            if (end > start) yield return new EmbeddedImageReference("srcset", sourceSet.Substring(start, end - start), start, end - start);
-            while (cursor < sourceSet.Length && sourceSet[cursor] != ',') cursor++;
-            if (cursor < sourceSet.Length) cursor++;
+        int searchOffset = 0;
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {
+            int start = sourceSet.IndexOf(candidate.Url, searchOffset, StringComparison.Ordinal);
+            if (start < 0) continue;
+            yield return new EmbeddedImageReference("srcset", candidate.Url, start, candidate.Url.Length);
+            searchOffset = start + candidate.Url.Length;
         }
     }
 
