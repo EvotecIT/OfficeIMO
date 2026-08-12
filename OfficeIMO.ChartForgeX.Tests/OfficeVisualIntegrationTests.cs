@@ -83,6 +83,12 @@ public sealed class OfficeVisualIntegrationTests {
         var markupSource = new OfficeVisualSource(System.Text.Encoding.UTF8.GetString(svg));
         Assert.Equal(svg, markupSource.GetSvgBytes());
 
+        const string declaredUtf16 = "<?xml version=\"1.0\" encoding=\"utf-16\"?><svg xmlns='http://www.w3.org/2000/svg' width='20' height='10'><rect width='20' height='10'/></svg>";
+        var declaredMarkupSource = new OfficeVisualSource(declaredUtf16);
+        string normalizedMarkup = Encoding.UTF8.GetString(declaredMarkupSource.GetSvgBytes());
+        Assert.DoesNotContain("encoding=", normalizedMarkup, StringComparison.OrdinalIgnoreCase);
+        Assert.True(declaredMarkupSource.ToOfficeVisual().Report.IsVector);
+
         const string rectangularViewport = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='#2563eb'/></svg>";
         OfficeVisualConversionResult rectangular = new OfficeVisualSource(rectangularViewport).ToOfficeVisual();
         Assert.Equal(150D, rectangular.WidthPoints, 6);

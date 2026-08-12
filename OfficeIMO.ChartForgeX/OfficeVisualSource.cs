@@ -18,8 +18,7 @@ public sealed class OfficeVisualSource {
     }
 
     /// <summary>Initializes a portable SVG source from markup.</summary>
-    public OfficeVisualSource(string svg) : this(Encoding.UTF8.GetBytes(
-        string.IsNullOrWhiteSpace(svg) ? throw new ArgumentException("SVG markup cannot be empty.", nameof(svg)) : svg)) {
+    public OfficeVisualSource(string svg) : this(EncodeSvgMarkupAsUtf8(svg)) {
     }
 
     /// <summary>Gets or sets a stable source identifier.</summary>
@@ -36,4 +35,25 @@ public sealed class OfficeVisualSource {
 
     /// <summary>Returns an independent copy of the SVG payload.</summary>
     public byte[] GetSvgBytes() => (byte[])_svgBytes.Clone();
+
+    private static byte[] EncodeSvgMarkupAsUtf8(string svg) {
+        if (string.IsNullOrWhiteSpace(svg)) {
+            throw new ArgumentException("SVG markup cannot be empty.", nameof(svg));
+        }
+
+        string normalized = svg[0] == '\uFEFF' ? svg.Substring(1) : svg;
+        if (normalized.StartsWith("<?xml", StringComparison.Ordinal)) {
+            int declarationEnd = normalized.IndexOf("?>", StringComparison.Ordinal);
+            if (declarationEnd < 0) {
+                throw new ArgumentException("SVG XML declaration is incomplete.", nameof(svg));
+            }
+
+            normalized = normalized.Substring(declarationEnd + 2);
+            if (string.IsNullOrWhiteSpace(normalized)) {
+                throw new ArgumentException("SVG markup cannot be empty.", nameof(svg));
+            }
+        }
+
+        return new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(normalized);
+    }
 }
