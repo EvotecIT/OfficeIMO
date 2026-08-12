@@ -1318,6 +1318,23 @@ public class PdfIccColorRenderingTests {
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
     }
 
+    [Fact]
+    public void RenderDiagnostics_DoesNotScanNamedInlineImageSamplesAsOperators() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        byte[] pdf = BuildNamedRawInlineImageWithUnusedIccPdf(Compress(profile));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
+        });
+
+        PdfReadPage page = document.Pages[0];
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = page.GetRenderCapabilityDiagnostics();
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
+
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+        Assert.NotEmpty(result.Bytes);
+    }
+
     [Theory]
     [InlineData("shading")]
     [InlineData("shading-pattern")]
@@ -1684,6 +1701,29 @@ public class PdfIccColorRenderingTests {
         WriteAscii(output, profileObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /N 3 /Filter /FlateDecode /Length " + compressedProfile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(compressedProfile, 0, compressedProfile.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildNamedRawInlineImageWithUnusedIccPdf(byte[] compressedProfile) {
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 5\n/H 1\n/CS /CsRgb\n/BPC 8\nID\n");
+        byte[] samples = Encoding.ASCII.GetBytes("ABCDE/Unused cs");
+        content.Write(samples, 0, samples.Length);
+        WriteAscii(content, "\nEI\nQ");
+        byte[] contentBytes = content.ToArray();
+
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.4\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB /Unused [/ICCBased 5 0 R] >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /N 3 /Filter /FlateDecode /Length " + compressedProfile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(compressedProfile, 0, compressedProfile.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 
