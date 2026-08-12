@@ -313,6 +313,80 @@ public sealed class PdfProvenanceTests {
         Assert.True(report.Evidence[0].IsStructurallyValid);
     }
 
+    [Fact]
+    public void InspectionAppliesTheManifestLimitBeforeDecodingEachCandidate() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Bounded provenance manifest"))
+            .AttachFile(new PdfEmbeddedFile(
+                "content-credential.c2pa",
+                new byte[4096],
+                "application/c2pa",
+                PdfAssociatedFileRelationship.C2paManifest))
+            .ToBytes();
+        var options = new OfficeProvenanceOptions {
+            MaxAssetBytes = pdf.Length + 1L,
+            MaxManifestBytes = 64,
+            MaxExpandedContainerBytes = 1024 * 1024
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfProvenance.Inspect(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+    }
+
+    [Fact]
+    public void RemovalPreservesDirectFileSpecificationsInTheEmbeddedFilesNameTree() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] directFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            for (int index = 0; index + 1 < entries.Items.Count; index += 2) {
+                if (Assert.IsType<PdfStringObj>(entries.Items[index]).Value != "keep.txt") continue;
+                PdfReference reference = Assert.IsType<PdfReference>(entries.Items[index + 1]);
+                entries.Items[index + 1] = Assert.IsType<PdfDictionary>(objects[reference.ObjectNumber].Value);
+            }
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(directFileSpecification);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(PdfSyntax.FindCatalog(parsed.Map, parsed.TrailerRaw));
+        PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, catalog.Items["Names"]));
+        PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, names.Items["EmbeddedFiles"]));
+        PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, embeddedFiles.Items["Names"]));
+
+        Assert.Equal(2, entries.Items.Count);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(entries.Items[0]).Value);
+        PdfDictionary retained = Assert.IsType<PdfDictionary>(entries.Items[1]);
+        Assert.Equal("keep.txt", retained.Get<PdfStringObj>("UF")?.Value ?? retained.Get<PdfStringObj>("F")?.Value);
+    }
+
+    [Fact]
+    public void RemovalDropsAnOwnerReferenceToAnEmptiedIndirectAssociatedFilesArray() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] indirectAssociatedFiles = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            var candidateOnly = new PdfArray();
+            candidateOnly.Items.Add(candidate);
+            int nextObjectNumber = objects.Keys.Max() + 1;
+            objects[nextObjectNumber] = new PdfIndirectObject(nextObjectNumber, 0, candidateOnly);
+            catalog.Items["AF"] = new PdfReference(nextObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(indirectAssociatedFiles);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(PdfSyntax.FindCatalog(parsed.Map, parsed.TrailerRaw));
+
+        Assert.False(catalog.Items.ContainsKey("AF"));
+        Assert.Empty(result.After.Evidence);
+    }
+
     private static byte[] CreatePdfWithCandidateAndRetainedAttachment() => PdfDocument.Create()
         .Paragraph(paragraph => paragraph.Text("PDF provenance"))
         .AttachFile(new PdfEmbeddedFile(

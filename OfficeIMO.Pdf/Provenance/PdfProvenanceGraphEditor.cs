@@ -19,6 +19,10 @@ internal static class PdfProvenanceGraphEditor {
             foreach (PdfIndirectObject item in objects.Values.ToArray()) {
                 ScrubReferences(item.Value, removedObjectNumbers, removedDirectAnnotations, visited);
             }
+            visited.Clear();
+            foreach (PdfIndirectObject item in objects.Values.ToArray()) {
+                RemoveEmptyAssociatedFileReferences(objects, item.Value, visited);
+            }
             foreach (int objectNumber in removedObjectNumbers) objects.Remove(objectNumber);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                 ? security.InfoObjectNumber
@@ -36,7 +40,7 @@ internal static class PdfProvenanceGraphEditor {
             PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is not PdfDictionary names ||
             !names.Items.TryGetValue("EmbeddedFiles", out PdfObject? embeddedFiles)) return;
         if (PdfObjectLookup.Resolve(objects, embeddedFiles) is not PdfDictionary rootTree) return;
-        var retainedPairs = new List<(PdfObject Name, PdfReference FileSpecification)>();
+        var retainedPairs = new List<(PdfObject Name, PdfObject FileSpecification)>();
         CollectNameTreePairs(objects, embeddedFiles, targets, retainedPairs, new HashSet<PdfObject>());
         rootTree.Items.Remove("Kids");
         rootTree.Items.Remove("Limits");
@@ -45,7 +49,7 @@ internal static class PdfProvenanceGraphEditor {
             return;
         }
         var flatNames = new PdfArray();
-        foreach ((PdfObject name, PdfReference fileSpecification) in retainedPairs) {
+        foreach ((PdfObject name, PdfObject fileSpecification) in retainedPairs) {
             flatNames.Items.Add(name);
             flatNames.Items.Add(fileSpecification);
         }
@@ -56,15 +60,15 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> targets,
-        List<(PdfObject Name, PdfReference FileSpecification)> retained,
+        List<(PdfObject Name, PdfObject FileSpecification)> retained,
         HashSet<PdfObject> visited) {
         PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
         if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return;
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
             for (int index = 0; index + 1 < names.Items.Count; index += 2) {
-                if (names.Items[index + 1] is PdfReference reference && !targets.Contains(reference.ObjectNumber)) {
-                    retained.Add((names.Items[index], reference));
-                }
+                PdfObject fileSpecification = names.Items[index + 1];
+                if (fileSpecification is PdfReference reference && targets.Contains(reference.ObjectNumber)) continue;
+                retained.Add((names.Items[index], fileSpecification));
             }
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;
@@ -145,4 +149,27 @@ internal static class PdfProvenanceGraphEditor {
         HashSet<PdfDictionary> removedDirectAnnotations) =>
         value is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber) ||
         value is PdfDictionary dictionary && removedDirectAnnotations.Contains(dictionary);
+
+    private static void RemoveEmptyAssociatedFileReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+        if (dictionary != null) {
+            foreach (string key in dictionary.Items.Keys.ToArray()) {
+                PdfObject child = dictionary.Items[key];
+                if (key == "AF" && PdfObjectLookup.Resolve(objects, child) is PdfArray associatedFiles && associatedFiles.Items.Count == 0) {
+                    dictionary.Items.Remove(key);
+                    continue;
+                }
+                if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited);
+            }
+            return;
+        }
+        if (value is not PdfArray array) return;
+        foreach (PdfObject child in array.Items) {
+            if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited);
+        }
+    }
 }

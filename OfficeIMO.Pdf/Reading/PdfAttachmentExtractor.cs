@@ -94,17 +94,20 @@ internal static class PdfAttachmentExtractor {
     internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(
         PdfReadDocument document,
         Func<PdfAttachmentInfo, bool> predicate,
-        long maxDecodedBytes) {
+        long maxDecodedBytes,
+        long? maxDecodedBytesPerAttachment = null) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(predicate, nameof(predicate));
         Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
+        if (maxDecodedBytesPerAttachment.HasValue) Guard.Positive(maxDecodedBytesPerAttachment.Value, nameof(maxDecodedBytesPerAttachment));
         document.DemandContentExtraction("attachment");
         IReadOnlyList<AttachmentDescriptor> descriptors = CollectAttachmentDescriptors(
             document.Objects,
             document.TrailerRaw,
             document.ReadOptions.Limits,
             out AttachmentExtractionBudget budget,
-            maxDecodedBytes);
+            maxDecodedBytes,
+            maxDecodedBytesPerAttachment);
         var attachments = new List<PdfExtractedAttachment>();
         foreach (AttachmentDescriptor descriptor in descriptors) {
             if (!predicate(descriptor.ToAttachmentInfo())) continue;
@@ -130,11 +133,12 @@ internal static class PdfAttachmentExtractor {
         string trailerRaw,
         PdfReadLimits? limits,
         out AttachmentExtractionBudget budget,
-        long? maxDecodedBytes = null) {
+        long? maxDecodedBytes = null,
+        long? maxDecodedBytesPerAttachment = null) {
         Guard.NotNull(objects, nameof(objects));
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         effectiveLimits.Validate();
-        budget = new AttachmentExtractionBudget(effectiveLimits, maxDecodedBytes);
+        budget = new AttachmentExtractionBudget(effectiveLimits, maxDecodedBytes, maxDecodedBytesPerAttachment);
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         if (catalog is null) {
             return Array.Empty<AttachmentDescriptor>();
@@ -458,13 +462,18 @@ internal static class PdfAttachmentExtractor {
     private sealed class AttachmentExtractionBudget {
         private readonly PdfReadLimits _limits;
         private readonly long _maxTotalAttachmentBytes;
+        private readonly long _maxSingleAttachmentBytes;
         private readonly Dictionary<PdfStream, byte[]> _decodedEmbeddedStreams = new();
         private int _attachmentCount;
         private long _decodedAttachmentBytes;
 
-        internal AttachmentExtractionBudget(PdfReadLimits limits, long? maxDecodedBytes = null) {
+        internal AttachmentExtractionBudget(
+            PdfReadLimits limits,
+            long? maxDecodedBytes = null,
+            long? maxDecodedBytesPerAttachment = null) {
             _limits = limits;
             _maxTotalAttachmentBytes = Math.Min(limits.MaxTotalAttachmentBytes, maxDecodedBytes ?? long.MaxValue);
+            _maxSingleAttachmentBytes = Math.Min(limits.MaxDecodedStreamBytes, maxDecodedBytesPerAttachment ?? long.MaxValue);
         }
 
         internal void ReserveAttachment() {
@@ -489,17 +498,19 @@ internal static class PdfAttachmentExtractor {
                     _maxTotalAttachmentBytes + 1L);
             }
 
-            int decodeLimit = (int)Math.Min(_limits.MaxDecodedStreamBytes, remainingBytes);
+            long effectiveLimit = Math.Min(_maxSingleAttachmentBytes, remainingBytes);
+            int decodeLimit = (int)effectiveLimit;
             byte[] bytes;
             try {
                 bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
-                remainingBytes < _limits.MaxDecodedStreamBytes) {
+                effectiveLimit < _limits.MaxDecodedStreamBytes) {
+                bool singleAttachmentLimitApplied = _maxSingleAttachmentBytes <= remainingBytes;
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.AttachmentBytes,
-                    _maxTotalAttachmentBytes,
-                    _decodedAttachmentBytes + exception.Actual);
+                    singleAttachmentLimitApplied ? _maxSingleAttachmentBytes : _maxTotalAttachmentBytes,
+                    singleAttachmentLimitApplied ? exception.Actual : _decodedAttachmentBytes + exception.Actual);
             }
 
             _decodedAttachmentBytes += bytes.LongLength;
