@@ -235,8 +235,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             return Math.Max(1D, style.MarginLeft + boxWidth + style.MarginRight);
         }
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
@@ -252,8 +252,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
-        if (style.MinWidth.HasValue) resolvedBoxWidth = Math.Max(resolvedBoxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) resolvedBoxWidth = Math.Min(resolvedBoxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) resolvedBoxWidth = Math.Max(resolvedBoxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         return Math.Max(1D, resolvedBoxWidth + style.MarginLeft + style.MarginRight);
     }
 

@@ -689,6 +689,8 @@ internal static partial class PdfWriter {
                                 };
                                 positionedRadioPlans[field.Name] = plan;
                                 formFieldIds.Add(plan.ParentFieldId);
+                            } else {
+                                ValidateCompatibleRadioFieldStyle(plan.Style, field.Style, field.Name);
                             }
                             if (field.Style.IsRequired) plan.Style.IsRequired = true;
 

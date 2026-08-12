@@ -544,8 +544,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = item.Style;
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             contribution = Math.Max(1D, boxWidth + style.MarginLeft + style.MarginRight);
             return true;
         }
@@ -564,8 +564,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double ResolveGridMeasuredContribution(HtmlRenderBoxStyle style, double measured) {
         double boxBasis = measured + style.HorizontalInsets;
-        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         double outer = boxBasis + style.MarginLeft + style.MarginRight;
         return Math.Max(1D, outer);
     }

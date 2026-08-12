@@ -360,9 +360,10 @@ public sealed class HtmlPdfTests {
         Assert.Contains("Second", searchableText, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void HtmlToPdf_MixedDisabledRadioGroupUsesTruthfulStaticFallback() {
-        const string html = "<label><input type='radio' name='delivery' value='email'>Email</label><label><input type='radio' name='delivery' value='post' disabled checked>Post</label>";
+    [Theory]
+    [InlineData("<label><input type='radio' name='delivery' value='email'>Email</label><label><input type='radio' name='delivery' value='post' disabled checked>Post</label>")]
+    [InlineData("<label><input type='radio' name='delivery' value='post' disabled checked>Post</label><label><input type='radio' name='delivery' value='email'>Email</label>")]
+    public void HtmlToPdf_MixedDisabledRadioGroupUsesTruthfulStaticFallback(string html) {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();

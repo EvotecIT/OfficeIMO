@@ -270,6 +270,7 @@ public sealed partial class HtmlRenderingTests {
               @container (width:200px) { #maximum { background:red; } }
               @container (width:300px) { #minimum { background:red; } }
               @container (width:180px) { #border-box { background:red; } }
+              @container (width:300px) { #conflict { background:red; } }
             </style>
             <section style="max-width:200px;container-type:inline-size">
               <div id="maximum" style="width:20px;height:20px;background:blue"></div>
@@ -280,6 +281,9 @@ public sealed partial class HtmlRenderingTests {
             <section style="box-sizing:border-box;max-width:240px;padding:20px;border:10px solid black;container-type:inline-size">
               <div id="border-box" style="width:20px;height:20px;background:blue"></div>
             </section>
+            <section id="width-conflict" style="width:100px;min-width:300px;max-width:200px;container-type:inline-size;background:lime">
+              <div id="conflict" style="width:20px;height:20px;background:blue"></div>
+            </section>
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D });
@@ -287,6 +291,51 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#maximum").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#conflict").Shape.FillColor);
+        Assert.Equal(300D, FindShape(rendered, "section#width-conflict").Width, 3);
+    }
+
+    [Fact]
+    public void HtmlRendering_ContainerQueriesApplyMinAndMaxHeightConstraintsToTheContentBox() {
+        const string html = """
+            <style>
+              @container (height:100px) { #maximum { background:red; } }
+              @container (height:300px) { #minimum { background:red; } }
+              @container (height:180px) { #border-box { background:red; } }
+              @container (height:300px) { #conflict-height { background:red; } }
+            </style>
+            <section style="width:200px;height:200px;max-height:100px;container-type:size">
+              <div id="maximum" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="width:200px;height:100px;min-height:300px;container-type:size">
+              <div id="minimum" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="box-sizing:border-box;width:200px;height:300px;max-height:240px;padding:20px;border:10px solid black;container-type:size">
+              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section id="height-conflict" style="width:200px;height:100px;min-height:300px;max-height:200px;container-type:size;background:lime">
+              <div id="conflict-height" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D, ViewportHeight = 1000D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#maximum").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#conflict-height").Shape.FillColor);
+        Assert.Equal(300D, FindShape(rendered, "section#height-conflict").Height, 3);
+    }
+
+    [Theory]
+    [InlineData("(container-name:card)", true)]
+    [InlineData("(container-name:-card)", true)]
+    [InlineData("(container-name:\\31 23)", true)]
+    [InlineData("(container-name:123)", false)]
+    [InlineData("(container-name:-9card)", false)]
+    [InlineData("(container:123 / size)", false)]
+    public void HtmlRendering_ContainerSupportsRequiresCustomIdentifiers(string condition, bool expected) {
+        Assert.Equal(expected, HtmlComputedStyleEngine.IsApplicableSupports(condition));
     }
 
     [Fact]

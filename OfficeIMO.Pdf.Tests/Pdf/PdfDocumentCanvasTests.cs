@@ -119,6 +119,41 @@ public class PdfDocumentCanvasTests {
         Assert.Equal(18D, field.Widgets[1].Height, 3);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CanvasRadioButtons_RejectMixedFieldLevelStateWithinOneGroup(bool disabledFirst) {
+        var enabled = new PdfFormFieldStyle();
+        var disabled = new PdfFormFieldStyle { IsReadOnly = true, IsNoExport = true };
+        PdfFormFieldStyle first = disabledFirst ? disabled : enabled;
+        PdfFormFieldStyle second = disabledFirst ? enabled : disabled;
+        PdfDocument document = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("MixedState", "First", false, 20D, 20D, 14D, 14D, first)
+                .RadioButton("MixedState", "Second", true, 50D, 20D, 14D, 14D, second));
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
+
+        Assert.Contains("consistent read-only and no-export", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_RejectMixedFieldLevelStateAcrossPages() {
+        PdfDocument document = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("MixedPages", "First", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton(
+                "MixedPages",
+                "Second",
+                true,
+                20D,
+                20D,
+                14D,
+                14D,
+                new PdfFormFieldStyle { IsReadOnly = true })));
+
+        Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
     [Fact]
     public void CanvasRadioButtons_CanSeparateAppearanceStatesFromUnicodeExportValues() {
         byte[] bytes = PdfDocument.Create()

@@ -276,15 +276,14 @@ public static partial class HtmlComputedStyleEngine {
             case "container-type":
                 return IsKnownKeyword(normalized, "normal", "size", "inline-size");
             case "container-name":
-                return normalized == "none" || normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)
-                    .All(IsContainerNameToken);
+                return normalized == "none" || TryParseContainerNameList(normalized, out _);
             case "container":
                 int slash = normalized.IndexOf('/');
-                if (slash < 0) return normalized == "none" || IsContainerNameToken(normalized);
+                if (slash < 0) return normalized == "none" || TryParseContainerNameList(normalized, out _);
                 string containerNames = normalized.Substring(0, slash).Trim();
                 string containerType = normalized.Substring(slash + 1).Trim();
                 return containerNames.Length > 0
-                    && containerNames.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).All(IsContainerNameToken)
+                    && (containerNames == "none" || TryParseContainerNameList(containerNames, out _))
                     && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
                 return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
@@ -361,9 +360,28 @@ public static partial class HtmlComputedStyleEngine {
     private static bool TryValidateCssLength(string value, out double length) =>
         HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out length);
 
-    private static bool IsContainerNameToken(string value) {
-        if (string.IsNullOrWhiteSpace(value) || value == "none" || value == "and" || value == "or" || value == "not" || value == "default") return false;
-        return value.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_');
+    private static bool TryParseContainerNameList(string value, out IReadOnlyList<string> names) {
+        var parsed = new List<string>();
+        int cursor = 0;
+        while (cursor < value.Length) {
+            while (cursor < value.Length && char.IsWhiteSpace(value[cursor])) cursor++;
+            if (cursor >= value.Length) break;
+            if (!HtmlCssIdentifierParser.TryRead(value, ref cursor, out string identifier) || !IsContainerNameIdentifier(identifier)) {
+                names = Array.Empty<string>();
+                return false;
+            }
+            if (cursor < value.Length && !char.IsWhiteSpace(value[cursor])) {
+                names = Array.Empty<string>();
+                return false;
+            }
+            parsed.Add(identifier);
+        }
+        names = parsed.AsReadOnly();
+        return parsed.Count > 0;
+    }
+
+    private static bool IsContainerNameIdentifier(string identifier) {
+        return !IsKnownKeyword(identifier.ToLowerInvariant(), "none", "and", "or", "not", "default", "inherit", "initial", "revert", "revert-layer", "unset");
     }
 
     private static CascadedProperty? ResolveLayerRevert(CascadedProperty property) {

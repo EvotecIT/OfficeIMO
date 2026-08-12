@@ -645,8 +645,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {
         double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(1D, availableWidth - style.HorizontalInsets));
         if (!style.BorderBox) width += style.HorizontalInsets;
-        if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         return Math.Max(1D, Math.Min(width, availableWidth));
     }
 
@@ -664,8 +664,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             height = contentHeight;
         }
         if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
-        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
+        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         return Math.Max(0.01D, height);
     }
 

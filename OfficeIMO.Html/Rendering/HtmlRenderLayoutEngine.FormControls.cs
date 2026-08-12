@@ -150,13 +150,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = style.BorderBox && style.ExplicitWidth.HasValue
             ? contentWidth
             : contentWidth + style.HorizontalInsets;
-        if (style.MinWidth.HasValue) {
-            double minimum = style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-            boxWidth = Math.Max(boxWidth, minimum);
-        }
         if (style.MaxWidth.HasValue) {
             double maximum = style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             boxWidth = Math.Min(boxWidth, maximum);
+        }
+        if (style.MinWidth.HasValue) {
+            double minimum = style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
+            boxWidth = Math.Max(boxWidth, minimum);
         }
         return Math.Max(1D, Math.Min(availableWidth, boxWidth));
     }
@@ -166,13 +166,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxHeight = style.BorderBox && style.ExplicitHeight.HasValue
             ? contentHeight
             : contentHeight + style.VerticalInsets;
-        if (style.MinHeight.HasValue) {
-            double minimum = style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets);
-            boxHeight = Math.Max(boxHeight, minimum);
-        }
         if (style.MaxHeight.HasValue) {
             double maximum = style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets);
             boxHeight = Math.Min(boxHeight, maximum);
+        }
+        if (style.MinHeight.HasValue) {
+            double minimum = style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets);
+            boxHeight = Math.Max(boxHeight, minimum);
         }
         return Math.Max(1D, boxHeight);
     }

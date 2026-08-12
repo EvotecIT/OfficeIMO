@@ -282,6 +282,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            ValidateCompatibleRadioFieldStyle(group.Style, candidate.Style, candidate.Name);
             RadioButtonWidgetAnnotation next = candidate.RadioWidgets[0];
             string option = candidate.Options[0];
             if (group.Options.Contains(option, StringComparer.Ordinal)) {
@@ -299,6 +300,16 @@ internal static partial class PdfWriter {
             fields.RemoveAt(index);
             index--;
         }
+    }
+
+    private static void ValidateCompatibleRadioFieldStyle(PdfFormFieldStyle established, PdfFormFieldStyle candidate, string fieldName) {
+        if (established.IsReadOnly == candidate.IsReadOnly
+            && established.IsNoExport == candidate.IsNoExport) {
+            return;
+        }
+
+        throw new ArgumentException(
+            "Canvas radio widgets sharing field name '" + fieldName + "' must use consistent read-only and no-export settings.");
     }
 
     private sealed class PageBookmark {

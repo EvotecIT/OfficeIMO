@@ -100,7 +100,7 @@ public static partial class HtmlComputedStyleEngine {
             value = (slash >= 0 ? shorthand.Substring(0, slash) : shorthand).Trim();
         }
         if (value.Length == 0 || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) return Array.Empty<string>();
-        return value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).ToList().AsReadOnly();
+        return TryParseContainerNameList(value, out IReadOnlyList<string> names) ? names : Array.Empty<string>();
     }
 
     private static double ResolveContainerElementWidth(HtmlComputedStyle style, double containingWidth, double fontSize, double rootFontSize, MediaEnvironment environment) {
@@ -115,30 +115,30 @@ public static partial class HtmlComputedStyleEngine {
             contentWidth = Math.Max(0D, containingWidth - horizontalInsets);
         }
 
-        if (TryResolveContainerWidthConstraint(style.GetValue("max-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double maximum)) {
+        if (TryResolveContainerDimensionConstraint(style.GetValue("max-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double maximum)) {
             contentWidth = Math.Min(contentWidth, maximum);
         }
-        if (TryResolveContainerWidthConstraint(style.GetValue("min-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double minimum)) {
+        if (TryResolveContainerDimensionConstraint(style.GetValue("min-width"), containingWidth, fontSize, rootFontSize, environment, horizontalInsets, borderBox, out double minimum)) {
             contentWidth = Math.Max(contentWidth, minimum);
         }
         return contentWidth;
     }
 
-    private static bool TryResolveContainerWidthConstraint(
+    private static bool TryResolveContainerDimensionConstraint(
         string value,
-        double containingWidth,
+        double containingSize,
         double fontSize,
         double rootFontSize,
         MediaEnvironment environment,
-        double horizontalInsets,
+        double insets,
         bool borderBox,
-        out double contentWidth) {
-        contentWidth = 0D;
-        if (!HtmlRenderCssValues.TryLength(value, containingWidth, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
+        out double contentSize) {
+        contentSize = 0D;
+        if (!HtmlRenderCssValues.TryLength(value, containingSize, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
             || resolved < 0D) {
             return false;
         }
-        contentWidth = Math.Max(0D, resolved - (borderBox ? horizontalInsets : 0D));
+        contentSize = Math.Max(0D, resolved - (borderBox ? insets : 0D));
         return true;
     }
 
@@ -147,7 +147,16 @@ public static partial class HtmlComputedStyleEngine {
         if (!HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
             || resolved < 0D) return null;
         ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out _, out double verticalInsets);
-        return Math.Max(0D, resolved - (IsBorderBox(style) ? verticalInsets : 0D));
+        bool borderBox = IsBorderBox(style);
+        double contentHeight = Math.Max(0D, resolved - (borderBox ? verticalInsets : 0D));
+        double containingSize = containingHeight ?? double.NaN;
+        if (TryResolveContainerDimensionConstraint(style.GetValue("max-height"), containingSize, fontSize, rootFontSize, environment, verticalInsets, borderBox, out double maximum)) {
+            contentHeight = Math.Min(contentHeight, maximum);
+        }
+        if (TryResolveContainerDimensionConstraint(style.GetValue("min-height"), containingSize, fontSize, rootFontSize, environment, verticalInsets, borderBox, out double minimum)) {
+            contentHeight = Math.Max(contentHeight, minimum);
+        }
+        return contentHeight;
     }
 
     private static bool IsBorderBox(HtmlComputedStyle style) =>

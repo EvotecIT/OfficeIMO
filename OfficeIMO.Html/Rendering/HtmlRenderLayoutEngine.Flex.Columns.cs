@@ -148,8 +148,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double measured = content.Length == 0 ? 1D : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         boxBasis = measured + style.HorizontalInsets;
 
-        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         double outer = boxBasis + style.MarginLeft + style.MarginRight;
         return Math.Max(1D, Math.Min(contentWidth, outer));
     }
