@@ -283,6 +283,23 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderInvalidInlineBaselineShiftPreservesTheLastValidCascadeValue() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 30'>"
+            + "<text x='2' y='20' font-size='10'>"
+            + "<tspan baseline-shift='4px' style='baseline-shift:bogus'>Attribute</tspan>"
+            + "<tspan baseline-shift='2px' style='baseline-shift:6px;baseline-shift:bogus'>Inline</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(2, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Attribute", "Inline" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 6D, 4D }, runs.Select(run => run.Y));
+    }
+
+    [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
             + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"

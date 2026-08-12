@@ -117,7 +117,8 @@ public static partial class OfficeSvgDrawingReader {
             foreach (string declaration in styleText!.Split(';')) {
                 int colon = declaration.IndexOf(':');
                 if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) continue;
-                value = declaration.Substring(colon + 1).Trim();
+                string candidate = declaration.Substring(colon + 1).Trim();
+                if (IsValidBaselineShiftValue(candidate)) value = candidate;
             }
         }
         if (string.IsNullOrWhiteSpace(value)) return 0D;
@@ -127,6 +128,12 @@ public static partial class OfficeSvgDrawingReader {
             || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) return 0D;
         return TryParseBaselineShift(normalized, out SvgBaselineShift shift) ? shift.Resolve(fontSize, lineHeight) : 0D;
     }
+
+    private static bool IsValidBaselineShiftValue(string value) =>
+        value.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("initial", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("unset", StringComparison.OrdinalIgnoreCase)
+        || TryParseBaselineShift(value, out _);
 
     private static bool TryReadTextLengthAdjustment(XElement element, out double textLength, ref int unsupported) {
         textLength = 0D;

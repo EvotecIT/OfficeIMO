@@ -278,7 +278,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (normalized == "normal") return 0D;
         return TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out double parsed)
             && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
-            ? Math.Max(-fontSize, Math.Min(fontSize * 10D, parsed))
+            ? parsed
             : 0D;
     }
 

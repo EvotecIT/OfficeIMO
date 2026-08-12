@@ -377,7 +377,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         string sourceDescription) {
-        if (HtmlCssBorderRadiusParser.TryResolve(style, width, height, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, out HtmlResolvedBorderRadii radii, out string detail)) {
+        if (HtmlCssBorderRadiusParser.TryResolve(
+            style,
+            width,
+            height,
+            _options.DefaultFontSize,
+            ActiveSurfaceWidth,
+            _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+            style.ContainerUnitWidth ?? double.NaN,
+            style.ContainerUnitHeight ?? double.NaN,
+            out HtmlResolvedBorderRadii radii,
+            out string detail)) {
             return radii;
         }
         if (_reportedBorderRadiusFallbacks.Add(sourceDescription)) {

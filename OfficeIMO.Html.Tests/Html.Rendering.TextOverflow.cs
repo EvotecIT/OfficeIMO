@@ -155,6 +155,26 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(glyphs, glyph => Assert.True((glyph.TextAdvanceWidth ?? glyph.Width) < 30D));
     }
 
+    [Fact]
+    public void HtmlRender_TextSpacingRetainsFiniteAuthoredLengthsOutsideFontRelativeRanges() {
+        const string html = "<p style='margin:0;font-family:Consolas;font-size:16px;letter-spacing:200px;word-spacing:-20px'>A B</p>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions()).Resolve(document.QuerySelector("p")!, 1000D);
+
+        IReadOnlyList<HtmlRenderText> glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 100D
+        }).Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(200D, style.LetterSpacing, 3);
+        Assert.Equal(-20D, style.WordSpacing, 3);
+        Assert.Equal(new[] { "A", " ", "B" }, glyphs.Select(glyph => glyph.Text));
+        Assert.True(glyphs[1].X - glyphs[0].X > 200D);
+        Assert.True(glyphs[2].X - glyphs[1].X > 180D);
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateTextOverflowVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;

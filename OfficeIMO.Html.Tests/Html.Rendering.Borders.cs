@@ -286,6 +286,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBorders_ContainerUnitsUseTheActiveQueryContainerForEveryRadiusAxis() {
+        const string html = "<section style='width:200px;height:80px;container-type:size'><div id='container-radius' style='width:100px;height:60px;border-radius:10cqw / 5cqh;background:red'></div></section>";
+
+        HtmlRenderShape shape = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 800D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#container-radius");
+
+        Assert.Equal(OfficeShapeKind.Path, shape.Shape.Kind);
+        Assert.Equal(20D, shape.Shape.PathCommands[0].Point.X, 3);
+        Assert.Equal(4D, shape.Shape.PathCommands[2].Point.Y, 3);
+    }
+
+    [Fact]
     public void HtmlBorders_RadiusOverlapUsesCssProportionalNormalization() {
         const string html = "<div id='normalized-radius' style='width:40px;height:20px;margin:0;border-radius:30px 20px 10px 5px / 20px 20px 10px 5px;background:#ff0000'></div>";
 
