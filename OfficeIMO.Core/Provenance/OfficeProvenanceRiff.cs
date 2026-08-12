@@ -52,6 +52,7 @@ internal static class OfficeProvenanceRiff {
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
                 if (!isLast) context?.Diagnostics.Add("The C2PA chunk is not the last chunk in the first RIFF container.");
                 bool remove = output != null && removalOptions != null && changes != null &&
+                    removalOptions.RemoveC2paManifests &&
                     (valid || !removalOptions.RequireStructurallyValidCarrier);
                 if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, total));
                 else output?.Write(data, offset, total);

@@ -99,6 +99,49 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void AiMetadataRemovalDoesNotRemoveDisabledC2paCarriers() {
+        var options = new OfficeProvenanceRemovalOptions {
+            RemoveC2paManifests = false,
+            RemoveAiSourceMetadata = true
+        };
+        byte[] manifest = CreateManifestStore();
+        byte[] webp = CreateWebp(CreateRiffChunk("VP8 ", new byte[] { 1, 2 }), CreateRiffChunk("C2PA", manifest));
+        byte[] tiff = CreateLittleEndianTiff(manifest);
+        byte[] svg = Encoding.UTF8.GetBytes(
+            $"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata><c2pa:manifest>{Convert.ToBase64String(manifest)}</c2pa:manifest></metadata></svg>");
+
+        OfficeProvenanceRemovalResult webpResult = OfficeProvenanceRemover.Remove(webp, "fixture.webp", options);
+        OfficeProvenanceRemovalResult tiffResult = OfficeProvenanceRemover.Remove(tiff, "fixture.tif", options);
+        OfficeProvenanceRemovalResult svgResult = OfficeProvenanceRemover.Remove(svg, "fixture.svg", options);
+
+        Assert.Equal(webp, webpResult.ToArray());
+        Assert.Equal(tiff, tiffResult.ToArray());
+        Assert.Equal(svg, svgResult.ToArray());
+        Assert.False(webpResult.WasChanged);
+        Assert.False(tiffResult.WasChanged);
+        Assert.False(svgResult.WasChanged);
+    }
+
+    [Fact]
+    public void ProgressiveJpegAllowsMarkerSegmentsBetweenScans() {
+        byte[] manifest = CreateManifestStore();
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegApp11(manifest, 0, manifest.Length, instance: 1, sequence: 1),
+            CreateJpegSegment(0xDA, new byte[] { 1, 2 }),
+            new byte[] { 0x11 },
+            CreateJpegSegment(0xC4, new byte[] { 0, 1 }),
+            CreateJpegSegment(0xDA, new byte[] { 3, 4 }),
+            new byte[] { 0x22, 0xFF, 0xD9 });
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "progressive.jpg");
+
+        Assert.Single(result.Before.Evidence);
+        Assert.True(result.Before.Evidence[0].IsStructurallyValid);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void GifRemovesOnlyTheExactC2paApplicationExtension() {
         byte[] manifest = CreateManifestStore();
         byte[] exact = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, manifest);

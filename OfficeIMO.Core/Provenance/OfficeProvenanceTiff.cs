@@ -63,7 +63,7 @@ internal static class OfficeProvenanceTiff {
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
                 bool valid = ifdIndex == ifds.Count - 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, out _);
-                if (valid || !options.RequireStructurallyValidCarrier) {
+                if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     changes.Add(new OfficeProvenanceChange(
                         OfficeProvenanceCarrierKind.C2paManifest,
                         $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}",

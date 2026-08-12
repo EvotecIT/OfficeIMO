@@ -216,16 +216,13 @@ internal static class OfficeProvenanceJpeg {
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) break;
             byte value = data[offset++];
-            if (value == 0x00 || (value >= 0xD0 && value <= 0xD7)) continue;
+            if (value == 0x00 || value == 0x01 || (value >= 0xD0 && value <= 0xD7)) continue;
             if (value == 0xD9) return offset;
-            if (value == 0xDA) {
-                if (data.Length - offset < 2) break;
-                int length = (data[offset] << 8) | data[offset + 1];
-                if (length < 2 || length > data.Length - offset) break;
-                offset += length;
-                continue;
-            }
-            throw new InvalidDataException($"Unexpected JPEG marker 0x{value:X2} in scan data at offset {markerOffset}.");
+            if (value == 0xD8) throw new InvalidDataException($"Unexpected JPEG SOI marker in scan data at offset {markerOffset}.");
+            if (data.Length - offset < 2) break;
+            int length = (data[offset] << 8) | data[offset + 1];
+            if (length < 2 || length > data.Length - offset) break;
+            offset += length;
         }
         throw new InvalidDataException("JPEG scan does not contain an end marker.");
     }

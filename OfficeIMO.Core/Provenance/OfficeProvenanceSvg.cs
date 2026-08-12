@@ -45,6 +45,7 @@ internal static class OfficeProvenanceSvg {
             XElement element = manifests[index];
             bool decoded = TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out byte[] manifest);
             bool valid = decoded && OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, out _);
+            if (!options.RemoveC2paManifests) continue;
             if (!valid && options.RequireStructurallyValidCarrier) continue;
             string location = $"SVG/metadata/c2pa:manifest[{index}]";
             element.Remove();
