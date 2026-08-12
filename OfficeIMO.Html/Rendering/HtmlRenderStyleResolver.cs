@@ -257,14 +257,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
             ) {
-            size = Math.Min(parsed, 100D);
+            size = parsed;
             isLength = false;
             return;
         }
         if (HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
             && TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out parsed)
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
-            size = Math.Min(parsed, Math.Max(1D, fontSize) * 100D);
+            size = parsed;
             isLength = true;
             return;
         }

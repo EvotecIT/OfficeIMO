@@ -29,7 +29,23 @@ internal sealed class CascadeLayerRegistry {
         return name;
     }
 
+    internal void RegisterStatement(string? prelude, string? parent) {
+        foreach (string name in (prelude ?? string.Empty).Split(',')) {
+            string trimmed = name.Trim();
+            if (trimmed.Length > 0) Register(Combine(parent, trimmed));
+        }
+    }
+
+    internal (string Path, CascadeLayerOrder Order) RegisterBlock(string? prelude, string? parent) {
+        string name = (prelude ?? string.Empty).Trim();
+        string path = name.Length == 0 ? RegisterAnonymous(parent) : Combine(parent, name);
+        return (path, GetOrder(path));
+    }
+
     internal CascadeLayerOrder GetOrder(string name) => Register(name);
+
+    private static string Combine(string? parent, string child) =>
+        string.IsNullOrWhiteSpace(parent) ? child : parent + "." + child;
 }
 
 internal sealed class CascadeLayerOrder : IEquatable<CascadeLayerOrder> {

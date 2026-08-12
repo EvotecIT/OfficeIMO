@@ -233,6 +233,18 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("@counter-style mark{system:cyclic;symbols:'U'}@layer themed{@counter-style mark{system:cyclic;symbols:'L'}}", "U. ")]
+    [InlineData("@layer override,base;@layer base{@counter-style mark{system:cyclic;symbols:'B'}}@layer override{@counter-style mark{system:cyclic;symbols:'O'}}", "B. ")]
+    [InlineData("@layer outer{@counter-style mark{system:cyclic;symbols:'D'}@layer child{@counter-style mark{system:cyclic;symbols:'C'}}}", "D. ")]
+    public void HtmlRendering_CounterStylesHonorCascadeLayerPrecedence(string css, string expectedMarker) {
+        string html = "<style>" + css + "</style><ol style='list-style-type:mark'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { expectedMarker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
     [InlineData("<ol start='2147483647' style='list-style-type:symbols(symbolic &quot;x&quot;)'><li>Item</li></ol>")]
     [InlineData("<style>@counter-style huge{system:symbolic;symbols:'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]
     [InlineData("<style>@counter-style huge{system:additive;additive-symbols:1 'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]

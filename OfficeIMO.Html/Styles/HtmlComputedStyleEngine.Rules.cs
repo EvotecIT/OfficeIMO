@@ -85,15 +85,10 @@ public static partial class HtmlComputedStyleEngine {
         var layerRule = rule as AngleSharp.Css.Dom.ICssLayerRule;
         if (layerRule != null) {
             if (layerRule.IsStatement) {
-                foreach (string declaredName in SplitLayerNames(layerRule.Name)) {
-                    layers.Register(CombineLayerName(currentLayer, declaredName));
-                }
+                layers.RegisterStatement(layerRule.Name, currentLayer);
                 return;
             }
-            string layerName = string.IsNullOrWhiteSpace(layerRule.Name)
-                ? layers.RegisterAnonymous(currentLayer)
-                : CombineLayerName(currentLayer, layerRule.Name.Trim());
-            layers.Register(layerName);
+            (string layerName, _) = layers.RegisterBlock(layerRule.Name, currentLayer);
             foreach (var childRule in layerRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, layerName, parentSelectors, containerConditions);
             }
@@ -259,16 +254,6 @@ public static partial class HtmlComputedStyleEngine {
         }
         return result.ToString();
     }
-
-    private static IReadOnlyList<string> SplitLayerNames(string value) =>
-        (value ?? string.Empty).Split(',')
-            .Select(name => name.Trim())
-            .Where(name => name.Length > 0)
-            .ToList()
-            .AsReadOnly();
-
-    private static string CombineLayerName(string? parent, string child) =>
-        string.IsNullOrWhiteSpace(parent) ? child : parent + "." + child;
 
     private static string RestoreRevertLayerKeyword(string value) =>
         string.Equals(value.Trim(), RevertLayerSentinel, StringComparison.OrdinalIgnoreCase)

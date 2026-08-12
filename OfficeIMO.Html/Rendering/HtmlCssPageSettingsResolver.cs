@@ -219,7 +219,7 @@ internal static class HtmlCssPageSettingsResolver {
             int boundary = FindRuleBoundary(css, nameEnd, end);
             if (boundary < 0 || css[boundary] == ';') {
                 if (boundary >= 0 && string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                    RegisterLayerStatement(layers, css.Substring(nameEnd, boundary - nameEnd), layerPath);
+                    layers.RegisterStatement(css.Substring(nameEnd, boundary - nameEnd), layerPath);
                 }
                 cursor = boundary < 0 ? end : boundary + 1;
                 continue;
@@ -237,7 +237,7 @@ internal static class HtmlCssPageSettingsResolver {
                     ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
                 }
             } else if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
-                (string nestedPath, CascadeLayerOrder nestedOrder) = RegisterLayerBlock(layers, prelude, layerPath);
+                (string nestedPath, CascadeLayerOrder nestedOrder) = layers.RegisterBlock(prelude, layerPath);
                 ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder);
             } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
                 string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
@@ -550,19 +550,4 @@ internal static class HtmlCssPageSettingsResolver {
         return end;
     }
 
-    private static void RegisterLayerStatement(CascadeLayerRegistry layers, string prelude, string? parentPath) {
-        foreach (string name in prelude.Split(',')) {
-            string trimmed = name.Trim();
-            if (trimmed.Length > 0) layers.Register(CombineLayerPath(parentPath, trimmed));
-        }
-    }
-
-    private static (string Path, CascadeLayerOrder Order) RegisterLayerBlock(CascadeLayerRegistry layers, string prelude, string? parentPath) {
-        string name = prelude.Trim();
-        string path = name.Length == 0 ? layers.RegisterAnonymous(parentPath) : CombineLayerPath(parentPath, name);
-        return (path, layers.GetOrder(path));
-    }
-
-    private static string CombineLayerPath(string? parentPath, string name) =>
-        string.IsNullOrEmpty(parentPath) ? name : parentPath + "." + name;
 }

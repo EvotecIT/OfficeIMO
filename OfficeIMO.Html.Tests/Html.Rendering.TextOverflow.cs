@@ -71,6 +71,32 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(b.X - a.X, 20D, 50D);
     }
 
+    [Theory]
+    [InlineData("200", 200D, false, "100")]
+    [InlineData("4000px", 4000D, true, "1200px")]
+    public void HtmlRender_PreservesLargeFiniteAuthoredTabStops(string value, double expected, bool isLength, string previousClamp) {
+        string html = "<pre style='margin:0;font-family:Consolas;font-size:12px;tab-size:" + value + "'>A\tB</pre>";
+        string clampedHtml = "<pre style='margin:0;font-family:Consolas;font-size:12px;tab-size:" + previousClamp + "'>A\tB</pre>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions()).Resolve(document.QuerySelector("pre")!, 5000D);
+        HtmlRenderText[] glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 5000D,
+            ViewportHeight = 100D
+        }).Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] clampedGlyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(clampedHtml, new HtmlRenderOptions {
+            ViewportWidth = 5000D,
+            ViewportHeight = 100D
+        }).Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Equal(expected, style.TabSize, 3);
+        Assert.Equal(isLength, style.TabSizeIsLength);
+        Assert.True(
+            Assert.Single(glyphs, glyph => glyph.Text == "B").X - Assert.Single(glyphs, glyph => glyph.Text == "A").X
+            > Assert.Single(clampedGlyphs, glyph => glyph.Text == "B").X - Assert.Single(clampedGlyphs, glyph => glyph.Text == "A").X);
+    }
+
     [Fact]
     public void HtmlRender_InheritedRelativeLengthTabStopsRetainTheParentsComputedLength() {
         const string html = "<div style='font-size:10px;tab-size:2em'><pre style='font-size:20px'>A\tB</pre></div>";

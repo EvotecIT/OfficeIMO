@@ -317,6 +317,10 @@ public static partial class HtmlComputedStyleEngine {
                 return normalized == "normal"
                     || HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
                     && TryValidateCssLength(normalized, out _);
+            case "image-orientation":
+                return HtmlCssReplacedElementParser.IsSupportedImageOrientationSyntax(normalized);
+            case "image-resolution":
+                return HtmlCssReplacedElementParser.IsSupportedImageResolutionSyntax(normalized);
             default:
                 return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
         }

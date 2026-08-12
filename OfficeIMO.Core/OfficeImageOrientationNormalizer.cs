@@ -70,7 +70,9 @@ public static class OfficeImageOrientationNormalizer {
             normalizedPng = Array.Empty<byte>();
             return false;
         }
-        if (applyEmbeddedOrientation && SwapsPhysicalAxes(orientation)) {
+        if (applyEmbeddedOrientation
+            && SwapsPhysicalAxes(orientation)
+            && sourceInfo.Format != OfficeImageFormat.Tiff) {
             if (!OfficePngReader.TryDecode(normalizedPng, out OfficeRasterImage? normalizedRaster) || normalizedRaster == null) {
                 normalizedPng = Array.Empty<byte>();
                 return false;

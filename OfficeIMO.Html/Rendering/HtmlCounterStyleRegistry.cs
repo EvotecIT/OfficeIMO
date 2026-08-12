@@ -8,10 +8,12 @@ namespace OfficeIMO.Html;
 /// <summary>Document-scoped author counter styles shared by lists and generated content.</summary>
 internal sealed class HtmlCounterStyleRegistry {
     private const int MaximumFallbackDepth = 32;
-    private readonly Dictionary<string, Definition> _definitions = new Dictionary<string, Definition>(StringComparer.Ordinal);
+    private readonly Dictionary<string, RegisteredDefinition> _definitions = new Dictionary<string, RegisteredDefinition>(StringComparer.Ordinal);
 
     internal static HtmlCounterStyleRegistry Parse(IHtmlDocument document, HtmlRenderOptions options) {
         var registry = new HtmlCounterStyleRegistry();
+        var layers = new CascadeLayerRegistry();
+        int sourceOrder = 0;
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
             int parameter = type.IndexOf(';');
@@ -27,7 +29,7 @@ internal sealed class HtmlCounterStyleRegistry {
 
             string css = styleElement.TextContent;
             IReadOnlyDictionary<int, int> closures = HtmlCssRuleBlockScanner.Scan(css, new HtmlCssProcessingBudget(null));
-            registry.Collect(css, 0, css.Length, closures, options);
+            registry.Collect(css, 0, css.Length, closures, options, layers, currentLayer: null, ref sourceOrder);
         }
         return registry;
     }
@@ -47,8 +49,8 @@ internal sealed class HtmlCounterStyleRegistry {
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
         if (!_definitions.ContainsKey(decodedName)) return false;
         if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation, out representationLimited, out string effectiveStyle)) return false;
-        marker = _definitions.TryGetValue(effectiveStyle, out Definition? effectiveDefinition)
-            ? effectiveDefinition.Prefix + representation + effectiveDefinition.Suffix
+        marker = _definitions.TryGetValue(effectiveStyle, out RegisteredDefinition? effectiveDefinition)
+            ? effectiveDefinition.Value.Prefix + representation + effectiveDefinition.Value.Suffix
             : representation + HtmlCounterStyleFormatter.MarkerSuffix(effectiveStyle, ordered: true);
         if (marker.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
             marker = value.ToString(CultureInfo.InvariantCulture) + ". ";
@@ -69,7 +71,8 @@ internal sealed class HtmlCounterStyleRegistry {
         representationLimited = false;
         effectiveStyle = string.Empty;
         string decodedName = HtmlCssEscapeDecoder.Decode(styleName.Trim());
-        if (!_definitions.TryGetValue(decodedName, out Definition? definition)) return false;
+        if (!_definitions.TryGetValue(decodedName, out RegisteredDefinition? registered)) return false;
+        Definition definition = registered.Value;
         if (depth >= MaximumFallbackDepth || !active.Add(decodedName)) {
             effectiveStyle = "decimal";
             return HtmlCounterStyleFormatter.TryFormat(value, effectiveStyle, out formatted, out representationLimited);
@@ -102,7 +105,10 @@ internal sealed class HtmlCounterStyleRegistry {
         int start,
         int end,
         IReadOnlyDictionary<int, int> closures,
-        HtmlRenderOptions options) {
+        HtmlRenderOptions options,
+        CascadeLayerRegistry layers,
+        string? currentLayer,
+        ref int sourceOrder) {
         int cursor = start;
         while (cursor < end) {
             SkipTrivia(css, ref cursor, end);
@@ -115,32 +121,54 @@ internal sealed class HtmlCounterStyleRegistry {
             string ruleName = atRule ? css.Substring(nameStart, cursor - nameStart).ToLowerInvariant() : string.Empty;
             int delimiter = FindRuleDelimiter(css, cursor, end, out char delimiterCharacter);
             if (delimiter < 0) break;
+            string prelude = css.Substring(cursor, delimiter - cursor).Trim();
             if (delimiterCharacter == ';') {
+                if (ruleName == "layer") layers.RegisterStatement(prelude, currentLayer);
                 cursor = delimiter + 1;
                 continue;
             }
             if (!closures.TryGetValue(delimiter, out int close) || close >= end) break;
 
-            string prelude = css.Substring(cursor, delimiter - cursor).Trim();
             if (ruleName == "counter-style") {
                 Definition? definition = Definition.TryCreate(prelude, css.Substring(delimiter + 1, close - delimiter - 1));
-                if (definition != null) _definitions[definition.Name] = definition;
+                if (definition != null) RegisterDefinition(
+                    definition,
+                    currentLayer == null ? null : layers.GetOrder(currentLayer),
+                    sourceOrder++);
             } else if (ruleName == "media") {
                 if (HtmlComputedStyleEngine.IsApplicableMedia(
                     prelude,
                     options.MediaContext,
                     options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth,
                     options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
-                    options.MediaFeatures)) Collect(css, delimiter + 1, close, closures, options);
+                    options.MediaFeatures)) Collect(css, delimiter + 1, close, closures, options, layers, currentLayer, ref sourceOrder);
             } else if (ruleName == "supports") {
-                if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) Collect(css, delimiter + 1, close, closures, options);
+                if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) Collect(css, delimiter + 1, close, closures, options, layers, currentLayer, ref sourceOrder);
             } else if (ruleName == "layer") {
-                Collect(css, delimiter + 1, close, closures, options);
+                (string nestedLayer, _) = layers.RegisterBlock(prelude, currentLayer);
+                Collect(css, delimiter + 1, close, closures, options, layers, nestedLayer, ref sourceOrder);
             }
 
             cursor = close + 1;
             if (cursor <= ruleStart) cursor = ruleStart + 1;
         }
+    }
+
+    private void RegisterDefinition(Definition definition, CascadeLayerOrder? layerOrder, int sourceOrder) {
+        var candidate = new RegisteredDefinition(definition, layerOrder, sourceOrder);
+        if (!_definitions.TryGetValue(definition.Name, out RegisteredDefinition? existing)
+            || ShouldReplace(existing, candidate)) {
+            _definitions[definition.Name] = candidate;
+        }
+    }
+
+    private static bool ShouldReplace(RegisteredDefinition existing, RegisteredDefinition candidate) {
+        if ((existing.LayerOrder != null) != (candidate.LayerOrder != null)) return candidate.LayerOrder == null;
+        if (existing.LayerOrder != null && candidate.LayerOrder != null) {
+            int layerComparison = candidate.LayerOrder.CompareTo(existing.LayerOrder);
+            if (layerComparison != 0) return layerComparison > 0;
+        }
+        return candidate.SourceOrder >= existing.SourceOrder;
     }
 
     private static int FindRuleDelimiter(string css, int start, int end, out char delimiter) {
@@ -182,6 +210,18 @@ internal sealed class HtmlCounterStyleRegistry {
 
     private static bool IsIdentifierCharacter(char value) =>
         char.IsLetterOrDigit(value) || value == '-' || value == '_' || value >= 0x80;
+
+    private sealed class RegisteredDefinition {
+        internal RegisteredDefinition(Definition value, CascadeLayerOrder? layerOrder, int sourceOrder) {
+            Value = value;
+            LayerOrder = layerOrder;
+            SourceOrder = sourceOrder;
+        }
+
+        internal Definition Value { get; }
+        internal CascadeLayerOrder? LayerOrder { get; }
+        internal int SourceOrder { get; }
+    }
 
     private sealed class Definition {
         private readonly string _system;

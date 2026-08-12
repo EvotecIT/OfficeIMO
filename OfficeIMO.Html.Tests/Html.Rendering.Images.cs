@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("bogus")]
     [InlineData("0dpi")]
-    public void HtmlImages_InvalidExplicitResolutionUsesInitialOneDppx(string resolution) {
+    public void HtmlImages_InvalidExplicitResolutionIsDiscardedToInitialOneDppx(string resolution) {
         var source = new OfficeRasterImage(300, 1);
         byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions { DpiX = 300D, DpiY = 300D });
         string html = "<body style='margin:0'><img id='invalid' src='data:image/jpeg;base64,"
@@ -94,9 +94,30 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Equal(300D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).Width, 3);
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
-            diagnostic.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported
-            && diagnostic.Detail == "image-resolution=" + resolution);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:" + resolution + ")"));
+    }
+
+    [Fact]
+    public void HtmlImages_InvalidMetadataDeclarationsRetainInheritedComputedValues() {
+        const string html = "<div style='image-orientation:none;image-resolution:300dpi'>"
+            + "<img style='image-orientation:banana;image-resolution:banana'></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        AngleSharp.Dom.IElement image = document.QuerySelector("img")!;
+        HtmlComputedStyle imageStyle = computed[image];
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 320D);
+        HtmlRenderBoxStyle resolved = resolver.Resolve(image, 320D, parent);
+
+        Assert.Equal("none", imageStyle.GetValue("image-orientation"));
+        Assert.Equal("300dpi", imageStyle.GetValue("image-resolution"));
+        Assert.False(resolved.ApplyEmbeddedImageOrientation);
+        Assert.Equal(300D, resolved.ImageResolutionDpi);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-orientation:banana)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:banana)"));
     }
 
     [Fact]

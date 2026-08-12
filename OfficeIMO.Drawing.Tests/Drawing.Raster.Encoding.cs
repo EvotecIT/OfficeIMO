@@ -191,6 +191,16 @@ public sealed class DrawingRasterEncodingTests {
         Assert.Equal((1, 2), (converted.Width, converted.Height));
         Assert.InRange(converted.DpiX, 149.98D, 150.02D);
         Assert.InRange(converted.DpiY, 299.98D, 300.02D);
+
+        Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(tiff, true, out _, out OfficeImageInfo? normalized));
+        Assert.Equal((1, 2), (normalized!.Width, normalized.Height));
+        Assert.InRange(normalized.DpiX, 149.98D, 150.02D);
+        Assert.InRange(normalized.DpiY, 299.98D, 300.02D);
+
+        Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(tiff, false, out _, out OfficeImageInfo? ignored));
+        Assert.Equal((2, 1), (ignored!.Width, ignored.Height));
+        Assert.InRange(ignored.DpiX, 299.98D, 300.02D);
+        Assert.InRange(ignored.DpiY, 149.98D, 150.02D);
     }
 
     [Fact]
