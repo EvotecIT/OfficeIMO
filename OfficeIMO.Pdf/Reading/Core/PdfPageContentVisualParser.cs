@@ -429,7 +429,7 @@ internal static class PdfPageContentVisualParser {
                     }
                     break;
                 case "cm":
-                    if (_args.Count >= 6) {
+                    if (HasTrailingFiniteNumbers(6)) {
                         Matrix2D matrix = new Matrix2D(
                             NumberAt(_args.Count - 6),
                             NumberAt(_args.Count - 5),
@@ -438,6 +438,8 @@ internal static class PdfPageContentVisualParser {
                             NumberAt(_args.Count - 2),
                             NumberAt(_args.Count - 1));
                         _state = _state.WithTransform(Matrix2D.Multiply(_state.Transform, matrix));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("cm");
                     }
 
                     break;
@@ -1728,6 +1730,14 @@ internal static class PdfPageContentVisualParser {
         }
 
         private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+
+        private bool HasTrailingFiniteNumbers(int count) {
+            if (_args.Count < count) return false;
+            for (int index = _args.Count - count; index < _args.Count; index++) {
+                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+            }
+            return true;
+        }
 
         private static byte ToByte(double value) {
             return (byte)Math.Round(Clamp01(value) * 255D);

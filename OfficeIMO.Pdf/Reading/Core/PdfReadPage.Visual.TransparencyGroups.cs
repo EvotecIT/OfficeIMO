@@ -82,7 +82,13 @@ public sealed partial class PdfReadPage {
             localTransform,
             localPageWidth,
             localPageHeight,
-            primitive => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count)),
+            primitive => {
+                if (primitive.ClipPath.HasValue && !primitive.ClipPath.Value.IsExact) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count));
+                }
+            },
             activeForms,
             activeType3Glyphs,
             renderedType3PaintOrders,

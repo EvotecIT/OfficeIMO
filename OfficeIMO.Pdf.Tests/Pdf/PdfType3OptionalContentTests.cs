@@ -114,6 +114,22 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_EvaluatesInlineAnyOffWhenEveryOptionalContentGroupIsOn() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOff >>",
+            includeUnsupportedConditionalContent: true,
+            allGroupsOn: true);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_IgnoresInexactDashUsedOnlyByHiddenOptionalContent() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
@@ -129,7 +145,8 @@ public class PdfType3OptionalContentTests {
         string? inlineMembershipDictionary = null,
         bool includeUnsupportedConditionalContent = true,
         string hiddenExtraContent = "",
-        string? indirectVisibilityExpression = null) {
+        string? indirectVisibilityExpression = null,
+        bool allGroupsOn = false) {
         string hiddenProperty = inlineMembershipDictionary ?? "/Hidden";
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -142,7 +159,7 @@ public class PdfType3OptionalContentTests {
             : inlineMembershipDictionary is not null ? "<< >>" : "<< /Properties << /Hidden 10 0 R >> >>";
         string glyphContent = nestedForm ? "500 0 d0 /Fm1 Do" : "500 0 d0 " + hiddenAndVisibleContent;
         var objects = new List<string> {
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R 11 0 R] /D << /ON [11 0 R] /OFF [10 0 R] >> >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R 11 0 R] /D << /ON [" + (allGroupsOn ? "10 0 R " : string.Empty) + "11 0 R] /OFF [" + (allGroupsOn ? string.Empty : "10 0 R") + "] >> >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj",
             StreamObject(4, "<<", "BT /FType3 18 Tf 20 100 Td (A) Tj ET"),

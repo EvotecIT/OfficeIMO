@@ -427,9 +427,8 @@ public sealed partial class PdfReadPage {
             contentNestingDepth: contentNestingDepth,
             pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
-            IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
-                PdfExtractedImage? image = FindImage(images, placements[i]);
+                PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true);
                 if (requireSupportedType3Content &&
                     (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources) || image!.HasUnresolvedTransparencyMask)) {
                     type3GlyphBudget.RecordFailure();

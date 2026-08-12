@@ -49,9 +49,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
         }
 
-        return hiddenProperties.Count == 0 && hiddenObjectNumbers.Count == 0
-            ? null
-            : new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects);
+        return new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects);
     }
 
     public bool IsHidden(string propertyName) =>

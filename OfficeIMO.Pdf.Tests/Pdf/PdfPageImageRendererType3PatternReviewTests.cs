@@ -130,6 +130,26 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_DecodesType3PatternImagesByEffectiveResourceContext() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /F1 8 0 R /F2 9 0 R >> >>", "/F1 Do q 1 0 0 1 5 0 cm /F2 Do Q");
+        string firstForm = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 5 10] /Resources << /ColorSpace << /CS1 [/Indexed /DeviceRGB 0 <FF0000>] >> /XObject << /Im1 10 0 R >> >>", "q 5 0 0 10 0 0 cm /Im1 Do Q");
+        string secondForm = BuildStreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 5 10] /Resources << /ColorSpace << /CS1 [/Indexed /DeviceRGB 0 <00FF00>] >> /XObject << /Im1 10 0 R >> >>", "q 5 0 0 10 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(10, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CS1 /BitsPerComponent 8 /Filter /ASCIIHexDecode", "00>");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, firstForm, secondForm, image);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        byte[][] scanlines = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf))
+            .Select(static item => PdfPngTestImages.DecodeStoredPngIdat(item.Bytes))
+            .ToArray();
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 255, 0, 0 }));
+        Assert.Contains(scanlines, bytes => bytes.SequenceEqual(new byte[] { 0, 0, 255, 0 }));
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedDctImageInsideType3Glyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
