@@ -6,7 +6,7 @@ internal static class PdfImageMaskSemantics {
         PdfDictionary dictionary,
         Dictionary<int, PdfIndirectObject> objects) {
         if (!dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return false;
-        PdfObject? resolved = PdfObjectLookup.Resolve(objects, softMaskObject);
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObject, out PdfObject? resolved)) return true;
         return resolved is not PdfNull &&
             (resolved is not PdfName softMaskName || !string.Equals(softMaskName.Name, "None", StringComparison.Ordinal));
     }
