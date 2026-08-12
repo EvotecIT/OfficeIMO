@@ -598,7 +598,8 @@ public sealed class PdfFormWidgetAction {
     /// <summary>Decoded source for a JavaScript action, or null for another action type or unreadable source.</summary>
     public string? JavaScript { get; }
 
-    internal string? Uri { get; }
+    /// <summary>Decoded target for a URI action, or null for another action type or unreadable target.</summary>
+    public string? Uri { get; }
 
     /// <summary>True when this is the widget's primary /A activation action.</summary>
     public bool IsPrimary => string.Equals(TriggerName, "A", StringComparison.Ordinal);

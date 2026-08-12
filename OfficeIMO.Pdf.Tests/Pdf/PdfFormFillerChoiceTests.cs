@@ -48,6 +48,7 @@ public partial class PdfFormFillerTests {
         Assert.True(field.AllowsMultipleSelection);
         Assert.Empty(field.Values);
         Assert.Empty(Assert.IsType<PdfArray>(dictionary.Items["V"]).Items);
+        Assert.False(dictionary.Items.ContainsKey("I"));
     }
 
     [Fact]

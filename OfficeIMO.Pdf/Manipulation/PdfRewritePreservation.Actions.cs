@@ -133,6 +133,7 @@ public static partial class PdfRewritePreservation {
                     if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
                     inventory.Add((field.Name ?? string.Empty) + "\u001f" +
                                   widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
+                                  (NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty) + "\u001f" +
                                   action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty));
                 }
             }

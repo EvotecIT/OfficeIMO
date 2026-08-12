@@ -363,6 +363,7 @@ internal static partial class PdfIncrementalUpdater {
 
         if (string.Equals(fieldType, "Ch", StringComparison.Ordinal) && value.IsMultiple) {
             field.Items["V"] = CreateIncrementalStringArray(value.StoredValues);
+            if (value.StoredValues.Length == 0) field.Items.Remove("I");
             return;
         }
 

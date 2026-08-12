@@ -182,6 +182,18 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Reader_ExposesSafeWidgetUriTarget() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            Encoding.ASCII.GetString(BuildUnsafeWidgetUriPdf())
+                .Replace("javascript:unsafe", "https://example.com", StringComparison.Ordinal));
+
+        PdfFormWidgetAction action = Assert.Single(Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets).Actions);
+
+        Assert.Equal("URI", action.ActionType);
+        Assert.Equal("https://example.com", action.Uri);
+    }
+
+    [Fact]
     public void Sanitize_PromotesAllowedDescendantFromForbiddenNextArrayEntry() {
         PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildAllowedRootWithForbiddenNextDescendantPdf());
 
