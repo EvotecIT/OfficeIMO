@@ -195,7 +195,7 @@ internal static partial class HtmlPdfRenderedConverter {
             bool fullyContained = !activeClip.HasValue || activeClip.Value.AllowsInteractiveWidgets && activeClip.Value.Contains(formField);
             AddFormField(canvas, formField, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls && fullyContained, cancellationToken, textAsSpan, activeClip);
         } else if (visual is HtmlRenderShape shape) {
-            AddShape(canvas, shape);
+            AddShape(canvas, shape, conversionReport, cancellationToken);
         } else if (visual is HtmlRenderText text) {
             AddText(canvas, text, webFonts, surfaceWidth, textAsSpan);
         } else if (visual is HtmlRenderImage image) {
@@ -450,9 +450,14 @@ internal static partial class HtmlPdfRenderedConverter {
             });
     }
 
-    private static void AddShape(PdfCore.PdfPageCanvas canvas, HtmlRenderShape visual) {
+    private static void AddShape(
+        PdfCore.PdfPageCanvas canvas,
+        HtmlRenderShape visual,
+        PdfCore.PdfConversionReport conversionReport,
+        CancellationToken cancellationToken) {
         var drawing = new OfficeDrawing(visual.Width, visual.Height);
         drawing.AddShape(visual.Shape.Clone(), 0D, 0D);
+        if (TryAddTranslucentGradient(canvas, visual, drawing, conversionReport, cancellationToken)) return;
         canvas.Drawing(
             drawing,
             visual.X * PointsPerCssPixel,

@@ -78,6 +78,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(150D, Assert.Single(images, image => image.Source == "img#explicit").Width, 3);
     }
 
+    [Theory]
+    [InlineData("bogus")]
+    [InlineData("0dpi")]
+    public void HtmlImages_InvalidExplicitResolutionUsesInitialOneDppx(string resolution) {
+        var source = new OfficeRasterImage(300, 1);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions { DpiX = 300D, DpiY = 300D });
+        string html = "<body style='margin:0'><img id='invalid' src='data:image/jpeg;base64,"
+            + Convert.ToBase64String(jpeg) + "' style='display:block;image-resolution:" + resolution + "'></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(300D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).Width, 3);
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported
+            && diagnostic.Detail == "image-resolution=" + resolution);
+    }
+
     [Fact]
     public void HtmlImages_SvgPartialIntrinsicDimensionsUseViewBoxRatioInSharedLayout() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' width='200' viewBox='0 0 100 50'><rect width='100' height='50' fill='red'/></svg>";

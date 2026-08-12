@@ -188,7 +188,7 @@ $artifacts = @(
     [ordered]@{
         id = 'html-renderer-gallery-source'
         source = (Join-Path $documentsRoot 'HtmlManagedRendererGallery.html')
-        destination = 'html/managed-renderer-gallery.html'
+        destination = 'html/managed-renderer-gallery.source.txt'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-renderer-gallery"
         evidence = 'Authored HTML and CSS source used for every managed renderer gallery output.'
     },

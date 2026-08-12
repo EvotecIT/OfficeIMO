@@ -45,14 +45,14 @@ internal static class HtmlCssReplacedElementParser {
             number = normalized.Substring(0, normalized.Length - 1);
         } else {
             unsupported = "image-resolution=" + normalized;
-            return null;
+            return 96D;
         }
         if (double.TryParse(number.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scalar)) {
             double dpi = scalar * multiplier;
             if (dpi > 0D && dpi <= 1000000D && !double.IsNaN(dpi) && !double.IsInfinity(dpi)) return dpi;
         }
         unsupported = "image-resolution=" + normalized;
-        return null;
+        return 96D;
     }
 
     internal static string NormalizeObjectPosition(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out string unsupported) {

@@ -603,7 +603,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         bool disabled = HtmlFormControlSemantics.IsEffectivelyDisabled(element);
         bool readOnly = disabled || element.HasAttribute("readonly") && HtmlFormControlSemantics.IsReadOnlyStateApplicable(tag, type);
-        bool required = element.HasAttribute("required") && HtmlFormControlSemantics.IsRequiredStateApplicable(tag, type);
+        bool required = element.HasAttribute("required")
+            && HtmlFormControlSemantics.IsRequiredStateApplicable(tag, type)
+            && !disabled
+            && !readOnly;
         string alternateName = ResolveFormFieldAccessibleName(element, name);
         OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
         formField = new HtmlRenderFormField(

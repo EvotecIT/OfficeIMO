@@ -131,6 +131,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_CounterStylePaddingIncludesNegativeAffixes() {
+        const string html = "<style>@counter-style signed{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';negative:'-';pad:3 '0';suffix:' '}</style><ol start='-1' style='list-style-type:signed'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "-01 ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_PreservesAuthorCounterStyleIdentifierCasing() {
         const string html = "<style>@counter-style MyStyle{system:cyclic;symbols:'X'}</style><ul style='list-style-type:MyStyle'><li>Item</li></ul>";
 

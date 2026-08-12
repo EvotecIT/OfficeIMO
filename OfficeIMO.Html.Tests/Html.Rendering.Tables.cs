@@ -150,6 +150,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_TopCaptionIsNotRepeatedWhenContinuationRelayoutChangesPageWidth() {
+        const string html = """
+            <style>
+              @page { size:300px 70px; margin:0; }
+              @page :left { size:180px 70px; }
+              table { width:100%; margin:0; font-size:8px; line-height:12px; }
+            </style>
+            <table><caption>OneCaption</caption><tbody>
+              <tr><td>Row one has enough text to participate in width-sensitive relayout.</td></tr>
+              <tr><td>Row two has enough text to participate in width-sensitive relayout.</td></tr>
+              <tr><td>Row three has enough text to participate in width-sensitive relayout.</td></tr>
+              <tr><td>Row four has enough text to participate in width-sensitive relayout.</td></tr>
+            </tbody></table>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Single(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()), text => text.Text == "OneCaption");
+    }
+
+    [Fact]
     public void HtmlTables_AutoLayoutAllocatesColumnsFromIntrinsicCellContent() {
         const string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
             + "<td id='wide' style='background:red'>WWWWWWWWWW</td><td id='narrow' style='background:blue'>i</td></tr></table>";

@@ -60,7 +60,7 @@
     },
     {
       "id": "html-renderer-gallery-source",
-      "path": "/downloads/showcase/html/managed-renderer-gallery.html",
+      "path": "/downloads/showcase/html/managed-renderer-gallery.source.txt",
       "bytes": 10323,
       "sha256": "cf460bd88707608ddde8c5dace7b7ed27d70a38bea9f15fae5f2ee26ad48b1b7",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",

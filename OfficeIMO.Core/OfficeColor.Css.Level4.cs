@@ -308,7 +308,7 @@ public readonly partial struct OfficeColor {
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
         double scale = perceptual ? 0.4D : 125D;
-        axis = Clamp(percentage ? number * scale / 100D : number, -scale, scale);
+        axis = percentage ? Clamp(number * scale / 100D, -scale, scale) : number;
         return true;
     }
 
@@ -318,7 +318,7 @@ public readonly partial struct OfficeColor {
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
         double scale = perceptual ? 0.4D : 150D;
-        chroma = Clamp(percentage ? number * scale / 100D : number, 0D, scale);
+        chroma = percentage ? Clamp(number * scale / 100D, 0D, scale) : Math.Max(0D, number);
         return true;
     }
 

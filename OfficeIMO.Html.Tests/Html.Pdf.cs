@@ -65,6 +65,30 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_DisabledAndReadOnlyControlsAreExcludedFromRequiredConstraintValidation() {
+        const string html = "<input name='enabled' required><input name='disabled' required disabled><textarea name='readonly' required readonly></textarea>";
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
+
+        Assert.True(Assert.Single(info.FormFields, field => field.Name == "enabled").IsRequired);
+        Assert.False(Assert.Single(info.FormFields, field => field.Name == "disabled").IsRequired);
+        Assert.False(Assert.Single(info.FormFields, field => field.Name == "readonly").IsRequired);
+    }
+
+    [Theory]
+    [InlineData("linear-gradient(90deg,transparent,blue)")]
+    [InlineData("radial-gradient(circle,transparent,blue)")]
+    public void HtmlToPdf_TranslucentGradientsUseFaithfulManagedRasterFallback(string gradient) {
+        string html = "<div style='width:40px;height:20px;background:" + gradient + "'></div>";
+
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        byte[] pdf = result.ToBytes();
+
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "HtmlPdfTranslucentGradientRasterized");
+        Assert.Contains("/SMask", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_PageRelayoutPreservesInteractiveFieldNameIdentity() {
         const string html = """
             <style>

@@ -15,6 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double tableWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
         TableCaptionLayout? caption = LayoutTableCaption(table, tableWidth, style, depth);
+        if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
         double topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
         double bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
         double tableY = style.MarginTop + topCaptionHeight;

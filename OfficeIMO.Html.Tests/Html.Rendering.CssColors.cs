@@ -67,4 +67,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("#4000bf", svg, StringComparison.OrdinalIgnoreCase);
         Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
     }
+
+    [Theory]
+    [InlineData("lab(50 200 0)", "lab(50 125 0)")]
+    [InlineData("lab(50 -200 0)", "lab(50 -125 0)")]
+    [InlineData("lch(50 250 300)", "lch(50 150 300)")]
+    [InlineData("oklab(.5 .8 0)", "oklab(.5 .4 0)")]
+    [InlineData("oklch(.5 .8 300)", "oklch(.5 .4 300)")]
+    public void HtmlCssColors_NumericLabAxesAndPositiveChromaAreNotClampedToPercentageRanges(string extended, string percentageBoundary) {
+        Assert.True(OfficeColor.TryParseCss(extended, out OfficeColor extendedColor));
+        Assert.True(OfficeColor.TryParseCss(percentageBoundary, out OfficeColor boundaryColor));
+
+        Assert.NotEqual(boundaryColor, extendedColor);
+    }
 }

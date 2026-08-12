@@ -321,6 +321,9 @@ internal sealed class HtmlCounterStyleRegistry {
                 return false;
             }
             int symbolCount = CountTextElements(representation);
+            if (negative) {
+                symbolCount += CountTextElements(_negativePrefix) + CountTextElements(_negativeSuffix);
+            }
             if (_padWidth > symbolCount) {
                 if (!HtmlCounterStyleFormatter.TryRepeatSymbol(_padSymbol, _padWidth - symbolCount, out string padding)
                     || padding.Length + representation.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
