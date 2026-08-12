@@ -66,7 +66,6 @@ namespace OfficeIMO.Excel.Fluent {
                 paths = ResolveExplicitDataTablePaths(flattener, options, sourceColumnNames);
             } else {
                 paths = ResolveProjectedDataTablePaths(
-                    flattener,
                     options,
                     sourceColumnNames,
                     configuredMaxColumns);
@@ -105,6 +104,8 @@ namespace OfficeIMO.Excel.Fluent {
             IReadOnlyList<string> sourceColumnNames) {
             var paths = new List<string>();
             var added = new HashSet<string>(StringComparer.Ordinal);
+            var selectedSourceColumns = ResolveDataTableFilterSelection(sourceColumnNames, options);
+            var selectedSourceColumnSet = new HashSet<string>(selectedSourceColumns, StringComparer.Ordinal);
             foreach (string candidate in options.Columns!) {
                 if (string.IsNullOrWhiteSpace(candidate)) continue;
                 string canonicalCandidate = ResolveDataTableRule(
@@ -112,8 +113,13 @@ namespace OfficeIMO.Excel.Fluent {
                     candidate,
                     nameof(options.Columns)) ?? candidate;
                 if (!added.Add(canonicalCandidate)) continue;
-                List<string> selected = flattener.ResolvePaths(new[] { canonicalCandidate }, options);
-                if (selected.Count == 0) continue;
+                bool isSourceColumn = sourceColumnNames.Contains(canonicalCandidate, StringComparer.Ordinal);
+                if (isSourceColumn) {
+                    if (!selectedSourceColumnSet.Contains(canonicalCandidate)) continue;
+                } else {
+                    List<string> selected = flattener.ResolvePaths(new[] { canonicalCandidate }, options);
+                    if (selected.Count == 0) continue;
+                }
                 if (paths.Count >= options.MaxColumns) {
                     EnsureDataTableColumnLimit(checked(paths.Count + 1), options.MaxColumns);
                 }
@@ -123,18 +129,114 @@ namespace OfficeIMO.Excel.Fluent {
         }
 
         private static List<string> ResolveProjectedDataTablePaths(
-            ObjectFlattener flattener,
             ObjectFlattenerOptions options,
             IReadOnlyList<string> sourceColumnNames,
             int configuredMaxColumns) {
-            var selected = new List<string>(sourceColumnNames.Count);
-            foreach (string sourceColumnName in sourceColumnNames) {
-                List<string> resolved = flattener.ResolvePaths(new[] { sourceColumnName }, options);
-                if (resolved.Count != 0) selected.Add(sourceColumnName);
-            }
-
+            List<string> selected = ResolveDataTableFilterSelection(sourceColumnNames, options);
             EnsureDataTableColumnLimit(selected.Count, configuredMaxColumns);
             return ApplyDataTableOrdering(selected, options);
+        }
+
+        private static List<string> ResolveDataTableFilterSelection(
+            IReadOnlyList<string> sourceColumnNames,
+            ObjectFlattenerOptions options) {
+            var selected = new List<string>(sourceColumnNames);
+            var ignored = ResolveDataTableFilterMatches(
+                sourceColumnNames,
+                options.Ignore,
+                nameof(options.Ignore),
+                prefixMatch: true);
+            var excluded = ResolveDataTableFilterMatches(
+                sourceColumnNames,
+                options.ExcludeProperties,
+                nameof(options.ExcludeProperties),
+                prefixMatch: false);
+            var removed = new HashSet<string>(ignored, StringComparer.Ordinal);
+            removed.UnionWith(excluded);
+            selected.RemoveAll(removed.Contains);
+
+            if (options.IncludeProperties.Length > 0) {
+                var included = new HashSet<string>(
+                    ResolveDataTableFilterMatches(
+                        sourceColumnNames,
+                        options.IncludeProperties,
+                        nameof(options.IncludeProperties),
+                        prefixMatch: false),
+                    StringComparer.Ordinal);
+                selected.RemoveAll(path => !included.Contains(path));
+            }
+
+            return selected;
+        }
+
+        private static List<string> ResolveDataTableFilterMatches(
+            IReadOnlyList<string> paths,
+            IEnumerable<string>? rules,
+            string optionName,
+            bool prefixMatch) {
+            var result = new List<string>();
+            var added = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string rule in rules ?? Array.Empty<string>()) {
+                if (string.IsNullOrWhiteSpace(rule)) continue;
+
+                List<string> exactPaths = paths
+                    .Where(path => prefixMatch
+                        ? path.StartsWith(rule, StringComparison.Ordinal)
+                        : string.Equals(path, rule, StringComparison.Ordinal))
+                    .ToList();
+                if (exactPaths.Count > 0) {
+                    foreach (string path in exactPaths) if (added.Add(path)) result.Add(path);
+                    continue;
+                }
+
+                if (!prefixMatch) {
+                    List<string> exactSegments = paths
+                        .Where(path => string.Equals(GetLastSegment(path), rule, StringComparison.Ordinal))
+                        .ToList();
+                    if (exactSegments.Count > 0) {
+                        foreach (string path in exactSegments) if (added.Add(path)) result.Add(path);
+                        continue;
+                    }
+                }
+
+                List<string> insensitivePaths = paths
+                    .Where(path => prefixMatch
+                        ? path.StartsWith(rule, StringComparison.OrdinalIgnoreCase)
+                        : string.Equals(path, rule, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (insensitivePaths.Count > 0) {
+                    EnsureUnambiguousDataTableFilterFallback(insensitivePaths, rule, optionName, prefixMatch);
+                    foreach (string path in insensitivePaths) if (added.Add(path)) result.Add(path);
+                    continue;
+                }
+
+                if (!prefixMatch) {
+                    List<string> insensitiveSegments = paths
+                        .Where(path => string.Equals(GetLastSegment(path), rule, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+                    if (insensitiveSegments.Count > 0) {
+                        EnsureUnambiguousDataTableFilterFallback(insensitiveSegments, rule, optionName, prefixMatch: false, compareLastSegment: true);
+                        foreach (string path in insensitiveSegments) if (added.Add(path)) result.Add(path);
+                    }
+                }
+            }
+            return result;
+        }
+
+        private static void EnsureUnambiguousDataTableFilterFallback(
+            IReadOnlyList<string> matches,
+            string rule,
+            string optionName,
+            bool prefixMatch,
+            bool compareLastSegment = false) {
+            var spellings = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string match in matches) {
+                string spelling = compareLastSegment
+                    ? GetLastSegment(match)
+                    : prefixMatch ? match.Substring(0, Math.Min(rule.Length, match.Length)) : match;
+                spellings.Add(spelling);
+            }
+            if (spellings.Count > 1) throw CreateAmbiguousDataTableRuleException(rule, optionName);
         }
 
         private static List<string> ApplyDataTableOrdering(

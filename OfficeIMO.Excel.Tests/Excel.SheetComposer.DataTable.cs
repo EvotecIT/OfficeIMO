@@ -248,6 +248,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_DataTableFiltersCaseDistinctColumnsByExactSchemaIdentity() {
+            var table = new DataTable("CaseDistinct");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("name", typeof(string));
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add("Upper", "Lower", 42);
+
+            using (var includeDocument = ExcelDocument.Create()) {
+                includeDocument.Compose("Data", composer => composer.TableFrom(
+                    table,
+                    configure: options => options.IncludeProperties = new[] { "Name" },
+                    freezeHeaderRow: false));
+                ExcelSheet sheet = includeDocument["Data"];
+                Assert.True(sheet.TryGetCellText(2, 1, out string? value));
+                Assert.Equal("Upper", value);
+                Assert.False(sheet.TryGetCellText(1, 2, out _));
+            }
+
+            foreach (bool useIgnore in new[] { false, true }) {
+                using var excludeDocument = ExcelDocument.Create();
+                excludeDocument.Compose("Data", composer => composer.TableFrom(
+                    table,
+                    configure: options => {
+                        if (useIgnore) options.Ignore = new[] { "Name" };
+                        else options.ExcludeProperties = new[] { "Name" };
+                    },
+                    freezeHeaderRow: false));
+                ExcelSheet sheet = excludeDocument["Data"];
+                Assert.True(sheet.TryGetCellText(2, 1, out string? lower));
+                Assert.True(sheet.TryGetCellText(2, 2, out string? number));
+                Assert.Equal("Lower", lower);
+                Assert.Equal("42", number);
+            }
+
+            using var ambiguousDocument = ExcelDocument.Create();
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ambiguousDocument.Compose("Data", composer => composer.TableFrom(
+                    table,
+                    configure: options => options.ExcludeProperties = new[] { "NAME" },
+                    freezeHeaderRow: false)));
+            Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("ExcludeProperties", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
             var table = new DataTable("Wide");
             for (int index = 0; index <= A1.MaxColumns; index++) {
