@@ -236,6 +236,19 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void MoveRejectsUnsupportedImagePaintState() {
+        byte[] source = BuildRawImagePdf(
+            "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalResources: "/ExtGState << /GS1 << /op true /OPM 1 >> >>");
+        PdfDocument document = PdfDocument.Open(source);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("paint effect", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SoftMaskNoneClearsAnActiveGraphicsStateMaskForLaterImageEditing() {
         byte[] source = BuildRawImagePdf(
             "/GSActive gs /GSClear gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",

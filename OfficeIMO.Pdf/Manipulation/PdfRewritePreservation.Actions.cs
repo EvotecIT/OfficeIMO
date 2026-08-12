@@ -79,12 +79,16 @@ public static partial class PdfRewritePreservation {
             CompareString(issues, prefix + ".Source", before.Source, after.Source);
             CompareString(issues, prefix + ".TriggerName", NormalizeFilteredActionPath(before.TriggerName, options), NormalizeFilteredActionPath(after.TriggerName, options));
             CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
-            CompareString(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
+            CompareActionPayload(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
         }
     }
 
     private static void ComparePageActions(List<PdfRewritePreservationIssue> issues, IReadOnlyList<PdfPageInfo> originalPages, IReadOnlyList<PdfPageInfo> rewrittenPages, PdfRewritePreservationOptions options) {
         if (!options.PreservePageActions) {
+            return;
+        }
+        if (HasUnprojectablePageAction(originalPages, options) || HasUnprojectablePageAction(rewrittenPages, options)) {
+            issues.Add(CreateIssue("PageActions.Payload", "projectable", "unprojectable"));
             return;
         }
 
@@ -123,7 +127,7 @@ public static partial class PdfRewritePreservation {
                 CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
                 CompareString(issues, prefix + ".ActionPath", NormalizeFilteredActionPath(before.ActionPath, options), NormalizeFilteredActionPath(after.ActionPath, options));
                 CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
-                CompareString(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
+                CompareActionPayload(issues, prefix + ".Payload", before.PayloadFingerprint, after.PayloadFingerprint);
             }
         }
     }
@@ -167,6 +171,10 @@ public static partial class PdfRewritePreservation {
 
     private static void CompareFormWidgetActions(List<PdfRewritePreservationIssue> issues, IReadOnlyList<PdfFormField> originalFields, IReadOnlyList<PdfFormField> rewrittenFields, PdfRewritePreservationOptions options) {
         if (!options.PreserveFormWidgetActions) return;
+        if (HasUnprojectableWidgetAction(originalFields, options) || HasUnprojectableWidgetAction(rewrittenFields, options)) {
+            issues.Add(CreateIssue("FormWidgetActions.Payload", "projectable", "unprojectable"));
+            return;
+        }
         string[] expected = CreateFormWidgetActionInventory(originalFields, options);
         string[] actual = CreateFormWidgetActionInventory(rewrittenFields, options);
         if (!expected.SequenceEqual(actual, StringComparer.Ordinal)) {
@@ -198,6 +206,45 @@ public static partial class PdfRewritePreservation {
         }
         inventory.Sort(StringComparer.Ordinal);
         return inventory.ToArray();
+    }
+
+    private static void CompareActionPayload(
+        List<PdfRewritePreservationIssue> issues,
+        string feature,
+        string? expected,
+        string? actual) {
+        if (expected is null || actual is null) {
+            issues.Add(CreateIssue(feature, expected ?? "unprojectable", actual ?? "unprojectable"));
+            return;
+        }
+        CompareString(issues, feature, expected, actual);
+    }
+
+    private static bool HasUnprojectableWidgetAction(
+        IReadOnlyList<PdfFormField> fields,
+        PdfRewritePreservationOptions options) {
+        for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++) {
+            foreach (PdfFormWidget widget in fields[fieldIndex].Widgets) {
+                foreach (PdfFormWidgetAction action in widget.Actions) {
+                    if (IsPreservedActionType(options, action.ActionType) &&
+                        (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri)) &&
+                        action.PayloadFingerprint is null) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static bool HasUnprojectablePageAction(
+        IReadOnlyList<PdfPageInfo> pages,
+        PdfRewritePreservationOptions options) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfPageAction[] actions = FilterPreservedActions(pages[pageIndex].PageActions, options);
+            for (int actionIndex = 0; actionIndex < actions.Length; actionIndex++) {
+                if (actions[actionIndex].PayloadFingerprint is null) return true;
+            }
+        }
+        return false;
     }
 
     private static string? NormalizeFilteredActionPath(string? value, PdfRewritePreservationOptions options) {

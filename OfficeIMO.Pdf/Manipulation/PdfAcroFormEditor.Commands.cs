@@ -154,6 +154,9 @@ internal static partial class PdfAcroFormEditor {
         if (field.WidgetObjectNumbers.Count != 1) throw new NotSupportedException("Moving a form field requires exactly one indirect widget.");
         PdfDictionary widget = RequireDictionary(objects, field.WidgetObjectNumbers[0]);
         bool pushButtonSizeChanged = IsPushButton(objects, field) && !HasSameRectangleSize(objects, widget, rectangle);
+        if (pushButtonSizeChanged && HasPushButtonIcon(objects, widget)) {
+            throw new NotSupportedException("Resizing a push button with an icon is not supported because its icon and layout semantics cannot be preserved safely.");
+        }
         RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
@@ -171,6 +174,16 @@ internal static partial class PdfAcroFormEditor {
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
         string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
         (ReadInheritedFieldFlags(objects, field.Dictionary) & FieldFlagPushButton) != 0;
+
+    private static bool HasPushButtonIcon(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+        PdfDictionary? characteristics = ResolveDictionary(
+            objects,
+            widget.Items.TryGetValue("MK", out PdfObject? characteristicsObject) ? characteristicsObject : null);
+        return characteristics != null &&
+            (characteristics.Items.ContainsKey("I") ||
+             characteristics.Items.ContainsKey("RI") ||
+             characteristics.Items.ContainsKey("IX"));
+    }
 
     private static bool HasSameRectangleSize(
         Dictionary<int, PdfIndirectObject> objects,
@@ -285,7 +298,7 @@ internal static partial class PdfAcroFormEditor {
             refillValues.Remove(name);
             return;
         }
-        QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
+        QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary), includeEmptyChoice: true);
     }
 
     private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value, bool includeEmptyChoice = false) {

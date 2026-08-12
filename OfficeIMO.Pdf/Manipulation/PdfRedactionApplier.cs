@@ -250,7 +250,7 @@ internal static partial class PdfRedactionApplier {
                 ? currentMatches
                 : currentMatches.Where(match => imageTargets.Any(target => MatchesExactImagePlacement(match, target))).ToArray();
             ImageRedactionMutation imageMutation = (mutationScope & RedactionMutationScope.Images) != 0
-                ? RemoveMatchedImageObjects(objects, pageDictionary, selectedImageMatches, options, ref nextObjectNumber)
+                ? RemoveMatchedImageObjects(objects, pageDictionary, selectedImageMatches, options, limits.MaxDecodedStreamBytes, ref nextObjectNumber)
                 : ImageRedactionMutation.None;
             foreach (PdfRedactionMatch removedImage in imageMutation.RemovedMatches) if (removedImage.ObjectNumber.HasValue) removedImageObjectNumbers.Add(removedImage.ObjectNumber.Value);
             if ((mutationScope & RedactionMutationScope.Images) != 0) ValidateImagePlacementMatches(selectedImageMatches, imageMutation.RemovedMatches, options);

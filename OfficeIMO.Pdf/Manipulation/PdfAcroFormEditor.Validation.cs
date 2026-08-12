@@ -27,6 +27,7 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.Flags:
                     if (!HasLaterFlagsEdit(commands, i, command.Name!) &&
+                        !IsFieldIdentityEndedLater(commands, i, command.Name!) &&
                         byName.TryGetValue(command.Name!, out PdfFormField? flagsField) &&
                         flagsField.Flags != command.Number) throw new InvalidOperationException("AcroForm flags readback validation failed for " + command.Name + ".");
                     break;
@@ -41,6 +42,7 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.Flatten:
                     for (int n = 0; n < command.Names!.Length; n++) {
+                        if (IsFieldIdentityEndedLater(commands, i, command.Names[n])) continue;
                         string flattenedName = ResolveLaterRenames(command.Names[n], commands, i);
                         if (byName.ContainsKey(flattenedName)) throw new InvalidOperationException("AcroForm flatten readback validation failed for " + flattenedName + ".");
                     }
@@ -60,6 +62,27 @@ internal static partial class PdfAcroFormEditor {
                 string.Equals(command.Name, current, StringComparison.Ordinal)) current = command.Value!;
         }
         return current;
+    }
+
+    private static bool IsFieldIdentityEndedLater(
+        IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands,
+        int index,
+        string name) {
+        string current = name;
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Rename &&
+                string.Equals(command.Name, current, StringComparison.Ordinal)) {
+                current = command.Value!;
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Remove &&
+                       IsFieldInSubtree(current, command.Name!)) {
+                return true;
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Flatten &&
+                       command.Names!.Any(flattened => IsFieldInSubtree(current, flattened))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static bool IsRemovedLater(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, string name) {

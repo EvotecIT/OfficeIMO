@@ -242,6 +242,19 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void ActionPayloadFingerprintSurfacesTraversalLimitAsUnprojectable() {
+        var fields = new PdfArray();
+        for (int index = 0; index < 4097; index++) fields.Items.Add(new PdfNumber(index));
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("SubmitForm");
+        action.Items["Fields"] = fields;
+
+        string? fingerprint = PdfActionPayloadFingerprint.Create(action, new Dictionary<int, PdfIndirectObject>());
+
+        Assert.Null(fingerprint);
+    }
+
+    [Fact]
     public void Assess_PreservesOnlyPubliclySelectedWidgetActionTypes() {
         byte[] source = BuildWidgetActionPreservationPdf("alpha");
         byte[] rewritten = BuildWidgetActionPreservationPdf("bravo");

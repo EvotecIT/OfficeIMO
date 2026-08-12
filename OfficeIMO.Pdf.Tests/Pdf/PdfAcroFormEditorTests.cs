@@ -56,6 +56,23 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_AllowsReplacingAFieldAfterEarlierFlagsAndFlattenCommands() {
+        byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
+
+        PdfAcroFormEditResult afterFlags = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetFlags("f", 1)
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flags replacement" }));
+        PdfAcroFormEditResult afterFlatten = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Flatten("f")
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flatten replacement" }));
+
+        Assert.Equal("flags replacement", Assert.Single(afterFlags.Fields).Value);
+        Assert.Equal("flatten replacement", Assert.Single(afterFlatten.Fields).Value);
+    }
+
+    [Fact]
     public void Edit_AppliesFieldTreeWidgetOrderAndSelectiveFlattenTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("Person.Name", value: "Ada")
@@ -226,6 +243,16 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_MoveRejectsResizingAnIconBearingPushButton() {
+        byte[] source = BuildIconPushButtonPdf();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Icon", 1, 20D, 80D, 120D, 40D)));
+
+        Assert.Contains("icon", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Edit_AllowsFurtherLayoutChangesToUnsignedSignatureField() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature page")).ToBytes();
         byte[] placed = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
@@ -277,6 +304,50 @@ public class PdfAcroFormEditorTests {
 
         Assert.Equal(2, Assert.Single(result.Fields).Flags);
     }
+
+    [Fact]
+    public void Edit_SetFlagsRegeneratesAppearanceFromInheritedValue() {
+        byte[] source = BuildInheritedValueFieldPdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Group.Name", 4096));
+        Assert.Equal("Inherited value", Assert.Single(result.Fields).Value);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Name").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+
+        Assert.Contains("496E686572697465642076616C7565", Encoding.ASCII.GetString(normalAppearance.Data), StringComparison.Ordinal);
+    }
+
+    private static byte[] BuildInheritedValueFieldPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Resources << /Font << /Helv 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+        "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+        "5 0 obj", "<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 8 0 R >> >> >>", "endobj",
+        "6 0 obj", "<< /FT /Tx /T (Group) /V (Inherited value) /Kids [7 0 R] >>", "endobj",
+        "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /T (Name) /Rect [20 100 220 125] /DA (/Helv 10 Tf 0 g) /F 4 >>", "endobj",
+        "8 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+    }));
+
+    private static byte[] BuildIconPushButtonPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+        "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+        "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+        "6 0 obj", "<< /FT /Btn /Ff 65536 /T (Icon) /Kids [7 0 R] >>", "endobj",
+        "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 100 100 125] /MK << /I 8 0 R >> /AP << /N 8 0 R >> /F 4 >>", "endobj",
+        "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 80 25] /Length 0 >>", "stream", "", "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+    }));
 
     [Fact]
     public void Edit_RejectsUndefinedTabOrderValuesAtThePublicBoundary() {

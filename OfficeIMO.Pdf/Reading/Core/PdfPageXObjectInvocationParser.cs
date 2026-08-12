@@ -1347,7 +1347,8 @@ internal static class PdfPageXObjectInvocationParser {
                 resource.StrokeLineCap ?? StrokeLineCap,
                 resource.StrokeLineJoin ?? StrokeLineJoin,
                 resource.BlendMode ?? BlendMode,
-                resource.BlendMode.HasValue || resource.HasUnsupportedBlendMode ? resource.HasUnsupportedBlendMode : HasUnsupportedBlendMode,
+                (resource.BlendMode.HasValue || resource.HasUnsupportedBlendMode ? resource.HasUnsupportedBlendMode : HasUnsupportedBlendMode) ||
+                    resource.HasUnsupportedTextRestampEffect,
                 resource.SoftMaskEnabled ?? HasSoftMask);
     }
 }

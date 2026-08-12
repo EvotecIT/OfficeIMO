@@ -821,7 +821,7 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
-    public void TextBatchStampPreservesTaggedCatalogEntries() {
+    public void TextAddRejectsTaggedCatalogWithoutOwnedStructureAssociation() {
         byte[] raw = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (tagged source) Tj ET\n",
             additionalObjects: "7 0 obj\n<< /Type /StructTreeRoot /K [] >>\nendobj\n");
@@ -829,16 +829,12 @@ public class PdfTextEditorTests {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 7 0 R >>");
 
-        PdfTextEditResult result = PdfDocument.Open(PdfEncoding.Latin1GetBytes(taggedText)).Text.Add(
-            new PdfPageRegion(1, 100D, 100D, 160D, 30D),
-            "new text");
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.Document.ToBytes(), null).Map;
-        PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects.Values.Single(static item =>
-            item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Catalog").Value);
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfDocument.Open(PdfEncoding.Latin1GetBytes(taggedText)).Text.Add(
+                new PdfPageRegion(1, 100D, 100D, 160D, 30D),
+                "new text"));
 
-        Assert.IsType<PdfDictionary>(catalog.Items["MarkInfo"]);
-        PdfReference structureReference = Assert.IsType<PdfReference>(catalog.Items["StructTreeRoot"]);
-        Assert.True(objects.ContainsKey(structureReference.ObjectNumber));
+        Assert.Contains("FullRewrite.TaggedContent", exception.Plan.BlockerCodes);
     }
 
     [Fact]
