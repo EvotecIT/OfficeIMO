@@ -60,7 +60,9 @@ internal static partial class PdfSanitizer {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
         };
-        if (policy.RemoveRichMedia) preservationOptions.ExcludedAnnotationSubtypes.Add("RichMedia");
+        if (policy.RemoveRichMedia) {
+            foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
+        }
         PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, readOptions);
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;

@@ -97,6 +97,23 @@ public class PdfSanitizerTests {
         Assert.Empty(result.RemainingFindings);
     }
 
+    [Theory]
+    [InlineData("RichMedia")]
+    [InlineData("Movie")]
+    [InlineData("Sound")]
+    [InlineData("Screen")]
+    [InlineData("3D")]
+    [InlineData("FileAttachment")]
+    public void Sanitize_ExcludesEveryPolicyRemovedRichAnnotationFromPreservation(string subtype) {
+        byte[] source = BuildSingleAnnotationPdf(subtype);
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+
+        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Empty(PdfInspector.Inspect(result.ToBytes()).Annotations);
+        Assert.Contains(result.RemovedFindings, finding => finding.Kind == PdfSanitizationFindingKind.RichMedia && finding.Detail == subtype);
+    }
+
     [Fact]
     public void RewritePreservation_CanCompareOnlyAllowlistedActionTypes() {
         byte[] source = BuildActiveContentPdf();
@@ -189,6 +206,18 @@ public class PdfSanitizerTests {
             "%%EOF"
         }) + "\n";
 
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSingleAnnotationPdf(string subtype) {
+        string annotation = "<< /Type /Annot /Subtype /" + subtype + " /Rect [20 20 180 60] >>";
+        string pdf = "%PDF-1.7\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+            "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+            "5 0 obj\n" + annotation + "\nendobj\n" +
+            "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n";
         return Encoding.ASCII.GetBytes(pdf);
     }
 }
