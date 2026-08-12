@@ -102,7 +102,11 @@ public sealed class ProvenanceSignatureMutationTests {
         manifest[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(manifest, 33);
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-        return Join(header, CreatePngChunk("caBX", manifest), CreatePngChunk("IEND", Array.Empty<byte>()));
+        return Join(
+            header,
+            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("caBX", manifest),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
     }
 
     private static byte[] CreatePngChunk(string type, byte[] payload) {
