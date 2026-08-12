@@ -3,6 +3,103 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal bool WouldAppendingTextChangeVisibleStacking(IReadOnlyList<PdfTextSpan> sourceSpans, IReadOnlyList<PdfAppendedTextBounds>? appendedBounds = null) {
+        if (sourceSpans.Count == 0) return false;
+        if (HasUnboundedUnsupportedPaint()) return true;
+        (double Width, double Height) size = GetVisualPageSize();
+        Matrix2D pageTransform = GetVisualPageTransform();
+        var textOutputBudget = CreateTextOutputBudget();
+        var pageContentBudget = new PageContentBudget(this);
+        var targetOrders = new HashSet<double>(sourceSpans.Select(static span => span.PaintOrder));
+        var targetBounds = new List<(double Left, double Top, double Right, double Bottom, double PaintOrder)>();
+        IReadOnlyList<PdfTextSpan> textSpans = GetVisualTextSpans(size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        if (appendedBounds != null) {
+            for (int index = 0; index < appendedBounds.Count; index++) {
+                PdfAppendedTextBounds bounds = appendedBounds[index];
+                PdfVisualBounds visual = TransformBoundsToVisual(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
+                targetBounds.Add((visual.Left, visual.Top, visual.Right, visual.Bottom, bounds.PaintOrder));
+            }
+        } else {
+            for (int index = 0; index < textSpans.Count; index++) {
+                PdfTextSpan span = textSpans[index];
+                if (!targetOrders.Contains(span.PaintOrder)) continue;
+                var bounds = GetTextVisualBounds(span, size.Height);
+                targetBounds.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, span.PaintOrder));
+            }
+        }
+        var laterBounds = new List<(double Left, double Top, double Right, double Bottom, double PaintOrder)>();
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        for (int index = 0; index < primitives.Count; index++) {
+            PdfPageVisualPrimitive primitive = primitives[index];
+            laterBounds.Add((primitive.X, primitive.Y, primitive.X + Math.Max(0.1D, primitive.Width), primitive.Y + Math.Max(0.1D, primitive.Height), primitive.PaintOrder));
+        }
+        for (int index = 0; index < textSpans.Count; index++) {
+            PdfTextSpan span = textSpans[index];
+            var bounds = GetTextVisualBounds(span, size.Height);
+            laterBounds.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, span.PaintOrder));
+        }
+        IReadOnlyList<PdfImagePlacement> images = GetVisualImagePlacements(size.Height, pageTransform, pageContentBudget);
+        for (int index = 0; index < images.Count; index++) {
+            PdfImagePlacement image = images[index];
+            laterBounds.Add((image.X, image.Y, image.X + Math.Max(0.1D, image.Width), image.Y + Math.Max(0.1D, image.Height), image.PaintOrder));
+        }
+        for (int targetIndex = 0; targetIndex < targetBounds.Count; targetIndex++) {
+            var target = targetBounds[targetIndex];
+            for (int elementIndex = 0; elementIndex < laterBounds.Count; elementIndex++) {
+                var later = laterBounds[elementIndex];
+                if (later.PaintOrder <= target.PaintOrder || targetOrders.Contains(later.PaintOrder)) continue;
+                if (later.Left < target.Right && later.Right > target.Left && later.Top < target.Bottom && later.Bottom > target.Top) return true;
+            }
+        }
+        return false;
+    }
+
+    private static (double Left, double Top, double Right, double Bottom) GetTextVisualBounds(PdfTextSpan span, double pageHeight) {
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        double ux = Math.Cos(radians);
+        double uy = Math.Sin(radians);
+        double nx = -uy;
+        double ny = ux;
+        double advance = Math.Max(0.1D, Math.Abs(span.Advance));
+        double restampFontSize = span.RestampFontSize > 0D && !double.IsNaN(span.RestampFontSize) && !double.IsInfinity(span.RestampFontSize)
+            ? span.RestampFontSize
+            : span.FontSize;
+        double fontSize = Math.Max(0.1D, restampFontSize);
+        double[] x = {
+            span.X - (nx * fontSize * 0.25D),
+            span.X + (ux * advance) - (nx * fontSize * 0.25D),
+            span.X + (nx * fontSize * 0.8D),
+            span.X + (ux * advance) + (nx * fontSize * 0.8D)
+        };
+        double[] y = {
+            span.Y - (ny * fontSize * 0.25D),
+            span.Y + (uy * advance) - (ny * fontSize * 0.25D),
+            span.Y + (ny * fontSize * 0.8D),
+            span.Y + (uy * advance) + (ny * fontSize * 0.8D)
+        };
+        return (x.Min(), pageHeight - y.Max(), x.Max(), pageHeight - y.Min());
+    }
+
+    private bool HasUnboundedUnsupportedPaint() => GetRenderCapabilityDiagnostics().Any(static diagnostic =>
+        diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId ||
+        diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+
+    internal readonly struct PdfAppendedTextBounds {
+        internal PdfAppendedTextBounds(double left, double bottom, double right, double top, double paintOrder) {
+            Left = left;
+            Bottom = bottom;
+            Right = right;
+            Top = top;
+            PaintOrder = paintOrder;
+        }
+
+        internal double Left { get; }
+        internal double Bottom { get; }
+        internal double Right { get; }
+        internal double Top { get; }
+        internal double PaintOrder { get; }
+    }
+
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>

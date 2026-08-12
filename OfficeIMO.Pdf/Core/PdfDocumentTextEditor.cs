@@ -15,27 +15,35 @@ public sealed class PdfDocumentTextEditor {
         PdfTextEditor.Find(_document.GetBytesForOperation(), text, options, readOptions ?? _document.ReadOptions);
 
     /// <summary>Adds text at the top-left of a page region without removing existing content.</summary>
-    public PdfTextEditResult Add(PdfPageRegion region, string text, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) =>
-        Apply(input => PdfTextEditor.Add(input, region, text, options, readOptions ?? _document.ReadOptions));
+    public PdfTextEditResult Add(PdfPageRegion region, string text, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) {
+        PdfReadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.Add(input, region, text, options, effectiveReadOptions), effectiveReadOptions);
+    }
 
     /// <summary>Removes text objects intersecting a region and adds replacement text in the detected style.</summary>
-    public PdfTextEditResult Replace(PdfPageRegion region, string text, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) =>
-        Apply(input => PdfTextEditor.Replace(input, region, text, options, readOptions ?? _document.ReadOptions));
+    public PdfTextEditResult Replace(PdfPageRegion region, string text, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) {
+        PdfReadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.Replace(input, region, text, options, effectiveReadOptions), effectiveReadOptions);
+    }
 
     /// <summary>Moves text objects intersecting a region by a PDF user-space offset.</summary>
-    public PdfTextEditResult Move(PdfPageRegion region, double deltaX, double deltaY, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) =>
-        Apply(input => PdfTextEditor.Move(input, region, deltaX, deltaY, options, readOptions ?? _document.ReadOptions));
+    public PdfTextEditResult Move(PdfPageRegion region, double deltaX, double deltaY, PdfTextEditOptions? options = null, PdfReadOptions? readOptions = null) {
+        PdfReadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.Move(input, region, deltaX, deltaY, options, effectiveReadOptions), effectiveReadOptions);
+    }
 
     /// <summary>Replaces every located occurrence while preserving exact unmatched source-span text and independent visual runs.</summary>
-    public PdfTextEditResult ReplaceAll(string text, string replacement, PdfTextSearchOptions? searchOptions = null, PdfTextEditOptions? editOptions = null, PdfReadOptions? readOptions = null) =>
-        Apply(input => PdfTextEditor.ReplaceAll(input, text, replacement, searchOptions, editOptions, readOptions ?? _document.ReadOptions));
+    public PdfTextEditResult ReplaceAll(string text, string replacement, PdfTextSearchOptions? searchOptions = null, PdfTextEditOptions? editOptions = null, PdfReadOptions? readOptions = null) {
+        PdfReadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.ReplaceAll(input, text, replacement, searchOptions, editOptions, effectiveReadOptions), effectiveReadOptions);
+    }
 
-    private PdfTextEditResult Apply(Func<byte[], PdfTextEditor.TextMutationResult> operation) {
+    private PdfTextEditResult Apply(Func<byte[], PdfTextEditor.TextMutationResult> operation, PdfReadOptions? readOptions) {
         PdfTextEditor.TextMutationResult? mutation = null;
         PdfDocument document = _document.ApplyMutation(input => {
             mutation = operation(input);
             return mutation.Bytes;
-        });
+        }, readOptions, operationName: "Text");
         if (mutation is null) throw new InvalidOperationException("PDF text edit did not produce a mutation result.");
         return new PdfTextEditResult(document, mutation.AffectedCount, mutation.Warnings);
     }

@@ -519,6 +519,7 @@ public sealed partial class PdfReadPage {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
+        bool initialUnsupportedTextEffect = false,
         bool useLogicalTextFilters = true,
         bool includeArtifactText = false,
         int contentNestingDepth = 0,
@@ -574,7 +575,8 @@ public sealed partial class PdfReadPage {
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
             textOutputBudget: textOutputBudget,
-            decodeWithFontWithinLimit: DecodeWithFontWithinLimit));
+            decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
+            initialUnsupportedEffect: initialUnsupportedTextEffect));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -593,6 +595,7 @@ public sealed partial class PdfReadPage {
                      initialStrokeOpacity,
                      initialTextRenderingMode,
                      initialClipPath,
+                     initialUnsupportedTextEffect,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands)) {
@@ -634,6 +637,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
+                    invocation.HasUnsupportedEffect,
                     useLogicalTextFilters,
                     includeArtifactText,
                     contentNestingDepth + 1,
