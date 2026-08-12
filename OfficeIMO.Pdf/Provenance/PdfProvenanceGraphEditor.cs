@@ -18,7 +18,7 @@ internal static class PdfProvenanceGraphEditor {
             removedObjectNumbers.UnionWith(removedAnnotationObjectNumbers);
             var visited = new HashSet<PdfObject>();
             foreach (PdfIndirectObject item in objects.Values.ToArray()) {
-                ScrubReferences(item.Value, removedObjectNumbers, removedDirectAnnotations, visited);
+                ScrubReferences(objects, item.Value, removedObjectNumbers, removedDirectAnnotations, visited);
             }
             visited.Clear();
             foreach (PdfIndirectObject item in objects.Values.ToArray()) {
@@ -62,7 +62,9 @@ internal static class PdfProvenanceGraphEditor {
             for (int pair = completePairCount - 1; pair >= 0; pair--) {
                 int index = pair * 2;
                 PdfObject fileSpecification = names.Items[index + 1];
-                if (fileSpecification is not PdfReference reference || !targets.Contains(reference.ObjectNumber)) continue;
+                if (fileSpecification is not PdfReference reference ||
+                    !targets.Contains(reference.ObjectNumber) ||
+                    !PdfObjectLookup.TryGet(objects, reference, out _)) continue;
                 names.Items.RemoveAt(index + 1);
                 names.Items.RemoveAt(index);
             }
@@ -127,7 +129,7 @@ internal static class PdfProvenanceGraphEditor {
             if (type != "Page" || PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray pageAnnotations) continue;
             foreach (PdfObject annotationValue in pageAnnotations.Items) {
                 PdfObject? annotation = PdfObjectLookup.Resolve(objects, annotationValue);
-                CollectFileAttachmentAnnotation(annotation, targets, annotations);
+                CollectFileAttachmentAnnotation(objects, annotation, targets, annotations);
                 if (annotationValue is PdfReference reference && annotation is PdfDictionary && annotations.Contains((PdfDictionary)annotation)) {
                     indirectObjectNumbers.Add(reference.ObjectNumber);
                 }
@@ -144,7 +146,7 @@ internal static class PdfProvenanceGraphEditor {
         foreach (PdfDictionary annotation in annotations.ToArray()) {
             if (!annotation.Items.TryGetValue("Popup", out PdfObject? popup)) continue;
             if (popup is PdfReference reference &&
-                objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) &&
+                PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
                 indirect.Value is PdfDictionary popupDictionary) {
                 annotations.Add(popupDictionary);
                 indirectObjectNumbers.Add(reference.ObjectNumber);
@@ -158,13 +160,16 @@ internal static class PdfProvenanceGraphEditor {
                 !string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) ||
                 !dictionary.Items.TryGetValue("Parent", out PdfObject? parent) ||
                 parent is not PdfReference parentReference ||
-                !indirectObjectNumbers.Contains(parentReference.ObjectNumber)) continue;
+                !PdfObjectLookup.TryGet(objects, parentReference, out PdfIndirectObject? parentIndirect) ||
+                parentIndirect.Value is not PdfDictionary parentDictionary ||
+                !annotations.Contains(parentDictionary)) continue;
             annotations.Add(dictionary);
             indirectObjectNumbers.Add(item.ObjectNumber);
         }
     }
 
     private static void CollectFileAttachmentAnnotation(
+        Dictionary<int, PdfIndirectObject> objects,
         PdfObject? value,
         HashSet<int> targets,
         HashSet<PdfDictionary> annotations) {
@@ -173,13 +178,17 @@ internal static class PdfProvenanceGraphEditor {
         if (dictionary != null) {
             if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) &&
                 dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecification) &&
-                fileSpecification is PdfReference reference && targets.Contains(reference.ObjectNumber)) {
+                fileSpecification is PdfReference reference && targets.Contains(reference.ObjectNumber) &&
+                PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+                indirect.Value is PdfDictionary fileSpecificationDictionary &&
+                (fileSpecificationDictionary.Get<PdfName>("Type")?.Name is null or "Filespec")) {
                 annotations.Add(dictionary);
             }
         }
     }
 
     private static void ScrubReferences(
+        Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> removedObjectNumbers,
         HashSet<PdfDictionary> removedDirectAnnotations,
@@ -189,11 +198,11 @@ internal static class PdfProvenanceGraphEditor {
         if (dictionary != null) {
             foreach (string key in dictionary.Items.Keys.ToArray()) {
                 PdfObject child = dictionary.Items[key];
-                if (IsRemoved(child, removedObjectNumbers, removedDirectAnnotations)) {
+                if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) {
                     dictionary.Items.Remove(key);
                     continue;
                 }
-                if (child is not PdfReference) ScrubReferences(child, removedObjectNumbers, removedDirectAnnotations, visited);
+                if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited);
                 if (key == "AF" && child is PdfArray array && array.Items.Count == 0) {
                     dictionary.Items.Remove(key);
                 }
@@ -203,16 +212,19 @@ internal static class PdfProvenanceGraphEditor {
         if (value is not PdfArray values) return;
         for (int index = values.Items.Count - 1; index >= 0; index--) {
             PdfObject child = values.Items[index];
-            if (IsRemoved(child, removedObjectNumbers, removedDirectAnnotations)) values.Items.RemoveAt(index);
-            else if (child is not PdfReference) ScrubReferences(child, removedObjectNumbers, removedDirectAnnotations, visited);
+            if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) values.Items.RemoveAt(index);
+            else if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited);
         }
     }
 
     private static bool IsRemoved(
+        Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> removedObjectNumbers,
         HashSet<PdfDictionary> removedDirectAnnotations) =>
-        value is PdfReference reference && removedObjectNumbers.Contains(reference.ObjectNumber) ||
+        value is PdfReference reference &&
+        removedObjectNumbers.Contains(reference.ObjectNumber) &&
+        PdfObjectLookup.TryGet(objects, reference, out _) ||
         value is PdfDictionary dictionary && removedDirectAnnotations.Contains(dictionary);
 
     private static void RemoveEmptyAssociatedFileReferences(

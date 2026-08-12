@@ -584,8 +584,8 @@ public sealed class PdfProvenanceTests {
             .ToBytes();
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = pdf.Length + 1L,
-            MaxManifestBytes = 96,
-            MaxExpandedContainerBytes = 96
+            MaxManifestBytes = 160,
+            MaxExpandedContainerBytes = 160
         };
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, options);
@@ -621,7 +621,7 @@ public sealed class PdfProvenanceTests {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = duplicated.LongLength + 1L,
-            MaxManifestBytes = 96,
+            MaxManifestBytes = 160,
             MaxExpandedContainerBytes = 1024 * 1024,
             MaxCarriers = 1
         };
@@ -636,7 +636,7 @@ public sealed class PdfProvenanceTests {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
-        options.Limits.MaxManifestBytes = 96;
+        options.Limits.MaxManifestBytes = 160;
         options.Limits.MaxExpandedContainerBytes = 128;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
@@ -807,7 +807,7 @@ public sealed class PdfProvenanceTests {
         (PdfObjectLookup.Resolve(objects, reference) as PdfDictionary)?.Get<PdfStringObj>("F")?.Value;
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[73];
+        byte[] data = new byte[126];
         WriteBigEndian(data, 0, data.Length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
         WriteBigEndian(data, 8, 30);
@@ -815,13 +815,22 @@ public sealed class PdfProvenanceTests {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
         data[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
-        WriteBigEndian(data, 38, 35);
+        WriteBigEndian(data, 38, data.Length - 38);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
         WriteBigEndian(data, 46, 27);
         Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
         new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
         data[70] = 0x02;
         data[71] = (byte)'m';
+        WriteBigEndian(data, 73, 53);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 77);
+        WriteBigEndian(data, 81, 36);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 85);
+        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 89);
+        data[105] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 106);
+        WriteBigEndian(data, 117, 9);
+        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 121);
         return data;
     }
 
