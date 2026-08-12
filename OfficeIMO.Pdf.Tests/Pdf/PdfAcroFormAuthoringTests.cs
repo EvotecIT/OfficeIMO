@@ -324,6 +324,19 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Reader_CountsSingleIndirectNextDictionaryAsOneNestingLevel() {
+        byte[] source = BuildShallowSingleIndirectNextWidgetActionPdf();
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxObjectNestingDepth = 1 }
+        };
+
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfReadDocument.Open(source, options).FormFields).Widgets);
+
+        Assert.Equal(new[] { "A", "A.Next" }, widget.Actions.Select(static action => action.TriggerName));
+        Assert.Equal(new[] { "GoTo", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
+    }
+
+    [Fact]
     public void Flatten_PrunesIndirectWidgetActionGraphButKeepsPublicRedactionAnalysisClean() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
@@ -350,6 +363,12 @@ public class PdfAcroFormAuthoringTests {
         byte[] nonWidgetAction = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx"));
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
+
+        byte[] outlineAction = BuildWidgetActionGraphPdf(includeOpenAction: false, includeOutlineAction: true);
+        PdfDocumentInfo outlineInfo = PdfDocument.Open(outlineAction).Inspect();
+        Assert.Empty(outlineInfo.CatalogActions);
+        Assert.Equal(0, outlineInfo.PageActionCount);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
     [Fact]
@@ -662,12 +681,13 @@ public class PdfAcroFormAuthoringTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction, bool useSingleIndirectNext = false) {
+    private static byte[] BuildWidgetActionGraphPdf(bool includeOpenAction, bool useSingleIndirectNext = false, bool includeOutlineAction = false) {
         using var output = new MemoryStream();
         string openAction = includeOpenAction ? " /OpenAction 11 0 R" : string.Empty;
+        string outlines = includeOutlineAction ? " /Outlines 13 0 R" : string.Empty;
         string nextAction = useSingleIndirectNext ? "9 0 R" : "[9 0 R 10 0 R]";
         WriteAscii(output, "%PDF-1.7\n");
-        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R" + openAction + " >>\nendobj\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R" + openAction + outlines + " >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
         WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /Helv 12 0 R >> >> /Annots [6 0 R] >>\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 12 0 R >> >> >>\nendobj\n");
@@ -677,7 +697,26 @@ public class PdfAcroFormAuthoringTests {
         WriteAscii(output, "10 0 obj\n<< /S /JavaScript /JS (app.alert\\('two'\\);) /Next 8 0 R >>\nendobj\n");
         WriteAscii(output, "11 0 obj\n<< /S /JavaScript /JS (app.alert\\('open'\\);) >>\nendobj\n");
         WriteAscii(output, "12 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
-        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 13 >>\n%%EOF\n");
+        if (includeOutlineAction) {
+            WriteAscii(output, "13 0 obj\n<< /Type /Outlines /First 14 0 R /Last 14 0 R /Count 1 >>\nendobj\n");
+            WriteAscii(output, "14 0 obj\n<< /Title (Run) /Parent 13 0 R /A 15 0 R >>\nendobj\n");
+            WriteAscii(output, "15 0 obj\n<< /S /JavaScript /JS (app.alert\\('outline'\\);) >>\nendobj\n");
+        }
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + (includeOutlineAction ? "16" : "13") + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildShallowSingleIndirectNextWidgetActionPdf() {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (run) /Rect [20 20 160 48] /P 3 0 R /A 7 0 R >>\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /S /GoTo /D [3 0 R /Fit] /Next 8 0 R >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /S /JavaScript /JS (app.alert\\('one'\\);) >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
         return output.ToArray();
     }
 
