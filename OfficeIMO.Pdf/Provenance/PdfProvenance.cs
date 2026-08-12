@@ -22,7 +22,7 @@ public static class PdfProvenance {
             document,
             IsCandidate,
             Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)));
-        HashSet<int> associatedFileSpecifications = CollectCatalogAssociatedFileSpecifications(document);
+        PdfC2paAssociationProfile associations = CollectAssociationProfile(document);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -31,7 +31,7 @@ public static class PdfProvenance {
             bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
                 string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
                 attachment.FileSpecObjectNumber > 0 &&
-                associatedFileSpecifications.Contains(attachment.FileSpecObjectNumber) &&
+                associations.IsValid(attachment.FileSpecObjectNumber) &&
                 OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
             if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
             evidence.Add(new OfficeProvenanceEvidence(
@@ -71,9 +71,7 @@ public static class PdfProvenance {
             document,
             IsCandidate,
             Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)));
-        IReadOnlyList<PdfAttachmentInfo> allAttachments = document.Attachments;
-        var removeIndices = new List<int>();
-        var usedAttachmentIndices = new HashSet<int>();
+        var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
         for (int index = 0; index < attachments.Count; index++) {
@@ -81,16 +79,16 @@ public static class PdfProvenance {
             if (!IsCandidate(attachment)) continue;
             OfficeProvenanceEvidence evidence = before.Evidence[evidenceIndex++];
             if (!evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
-            int attachmentIndex = FindAttachmentIndex(allAttachments, attachment, usedAttachmentIndices);
-            if (attachmentIndex < 0) throw new InvalidDataException("A PDF provenance attachment could not be matched to its descriptor.");
-            removeIndices.Add(attachmentIndex);
-            usedAttachmentIndices.Add(attachmentIndex);
+            if (attachment.FileSpecObjectNumber <= 0) {
+                throw new InvalidDataException("A direct PDF provenance filespec cannot be removed without risking unrelated associations.");
+            }
+            removeFileSpecifications.Add(attachment.FileSpecObjectNumber);
             changes.Add(new OfficeProvenanceChange(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 evidence.Location,
                 removedBytes: 0));
         }
-        if (removeIndices.Count == 0) {
+        if (removeFileSpecifications.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
         }
 
@@ -102,10 +100,7 @@ public static class PdfProvenance {
             throw new InvalidOperationException(detail);
         }
 
-        PdfAttachmentEditResult edit = PdfAttachmentEditor.Edit(pdf, session => {
-            for (int index = removeIndices.Count - 1; index >= 0; index--) session.RemoveAt(removeIndices[index]);
-        }, readOptions, options.Limits.MaxExpandedContainerBytes);
-        byte[] output = edit.ToBytes();
+        byte[] output = PdfProvenanceGraphEditor.RemoveFileSpecifications(pdf, removeFileSpecifications, readOptions);
         PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
         OfficeProvenanceReport after = Inspect(output, options.Limits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
@@ -134,31 +129,108 @@ public static class PdfProvenance {
         attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest ||
         string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase);
 
-    private static HashSet<int> CollectCatalogAssociatedFileSpecifications(PdfReadDocument document) {
-        var result = new HashSet<int>();
+    private static PdfC2paAssociationProfile CollectAssociationProfile(PdfReadDocument document) {
+        var documentLevel = new HashSet<int>();
+        var objectLevel = new HashSet<int>();
+        var secondaryDocumentReferences = new HashSet<int>();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(document.Objects, document.TrailerRaw);
-        if (catalog == null || !catalog.Items.TryGetValue("AF", out PdfObject? associatedObject) ||
-            PdfObjectLookup.Resolve(document.Objects, associatedObject) is not PdfArray associatedFiles) return result;
-        foreach (PdfObject item in associatedFiles.Items) {
-            if (item is PdfReference reference) result.Add(reference.ObjectNumber);
+        if (catalog == null) return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
+        AddReferencesFromArray(document.Objects, catalog.Items.TryGetValue("AF", out PdfObject? catalogAf) ? catalogAf : null, documentLevel);
+        CollectEmbeddedFilesNameTreeReferences(document.Objects, catalog, secondaryDocumentReferences);
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject item in document.Objects.Values) {
+            CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, secondaryDocumentReferences, visited);
         }
-        return result;
+        return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
     }
 
     private static long MultiplySaturating(long value, int multiplier) =>
         value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
-    private static int FindAttachmentIndex(
-        IReadOnlyList<PdfAttachmentInfo> attachments,
-        PdfExtractedAttachment target,
-        HashSet<int> usedIndices) {
-        for (int index = 0; index < attachments.Count; index++) {
-            if (usedIndices.Contains(index)) continue;
-            PdfAttachmentInfo candidate = attachments[index];
-            if (candidate.FileSpecObjectNumber == target.FileSpecObjectNumber &&
-                candidate.EmbeddedFileObjectNumber == target.EmbeddedFileObjectNumber) return index;
+    private static void CollectObjectAssociations(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfDictionary catalog,
+        HashSet<int> objectLevel,
+        HashSet<int> annotationReferences,
+        HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+        if (dictionary != null) {
+            if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(value, dictionary)) {
+                AddReferencesFromArray(objects, dictionary.Items.TryGetValue("AF", out PdfObject? associated) ? associated : null, objectLevel);
+            }
+            if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) &&
+                dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecification) && fileSpecification is PdfReference reference) {
+                annotationReferences.Add(reference.ObjectNumber);
+            }
+            foreach (PdfObject child in dictionary.Items.Values) {
+                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, annotationReferences, visited);
+            }
+            return;
         }
-        return -1;
+        if (value is PdfArray array) {
+            foreach (PdfObject child in array.Items) {
+                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, annotationReferences, visited);
+            }
+        }
+    }
+
+    private static bool IsInformationResource(PdfObject owner, PdfDictionary dictionary) {
+        string? type = dictionary.Get<PdfName>("Type")?.Name;
+        if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "XRef" or "ObjStm") return false;
+        if (owner is PdfStream) return true;
+        return string.Equals(type, "StructElem", StringComparison.Ordinal) || type == null;
+    }
+
+    private static void AddReferencesFromArray(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<int> result) {
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfArray array) return;
+        foreach (PdfObject item in array.Items) if (item is PdfReference reference) result.Add(reference.ObjectNumber);
+    }
+
+    private static void CollectEmbeddedFilesNameTreeReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
+        HashSet<int> result) {
+        if (PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is not PdfDictionary names ||
+            !names.Items.TryGetValue("EmbeddedFiles", out PdfObject? embeddedFiles)) return;
+        var visited = new HashSet<PdfObject>();
+        CollectNameTreeReferences(objects, embeddedFiles, result, visited);
+    }
+
+    private static void CollectNameTreeReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<int> result,
+        HashSet<PdfObject> visited) {
+        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return;
+        if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
+            for (int index = 1; index < names.Items.Count; index += 2) {
+                if (names.Items[index] is PdfReference reference) result.Add(reference.ObjectNumber);
+            }
+        }
+        if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;
+        foreach (PdfObject child in kids.Items) CollectNameTreeReferences(objects, child, result, visited);
+    }
+
+    private sealed class PdfC2paAssociationProfile {
+        private readonly HashSet<int> _documentLevel;
+        private readonly HashSet<int> _objectLevel;
+        private readonly HashSet<int> _secondaryDocumentReferences;
+
+        internal PdfC2paAssociationProfile(HashSet<int> documentLevel, HashSet<int> objectLevel, HashSet<int> secondaryDocumentReferences) {
+            _documentLevel = documentLevel;
+            _objectLevel = objectLevel;
+            _secondaryDocumentReferences = secondaryDocumentReferences;
+        }
+
+        internal bool IsValid(int fileSpecObjectNumber) => fileSpecObjectNumber > 0 &&
+            (_objectLevel.Contains(fileSpecObjectNumber) ||
+             _documentLevel.Contains(fileSpecObjectNumber) && _secondaryDocumentReferences.Contains(fileSpecObjectNumber));
     }
 
     private static byte[] ReadBounded(string filePath, long maximumBytes) {
