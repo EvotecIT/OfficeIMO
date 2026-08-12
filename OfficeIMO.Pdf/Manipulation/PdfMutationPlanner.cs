@@ -977,7 +977,6 @@ internal static class PdfMutationPlanner {
             operation == PdfMutationOperation.FlattenFormFields ||
             operation == PdfMutationOperation.FillAndFlattenFormFields) {
             return blocker != PdfRewriteBlockerKind.Forms &&
-                blocker != PdfRewriteBlockerKind.ActiveContent &&
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees;
         }
 

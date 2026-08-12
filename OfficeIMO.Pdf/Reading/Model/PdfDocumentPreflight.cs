@@ -193,6 +193,12 @@ public sealed partial class PdfDocumentPreflight {
     private bool HasOperationSpecificFormRewriteBlocker(PdfMutationOperation operation) {
         for (int i = 0; i < RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind kind = RewriteBlockers[i].Kind;
+            if (kind == PdfRewriteBlockerKind.ActiveContent &&
+                _documentInfo is not null &&
+                _documentInfo.AcroFormXfa is null &&
+                _documentInfo.HasOnlyWidgetOwnedActiveContent) {
+                continue;
+            }
             if (kind != PdfRewriteBlockerKind.Encryption &&
                 kind != PdfRewriteBlockerKind.Signatures &&
                 PdfMutationPlanner.IsFullRewriteBlockerForOperation(kind, operation)) {

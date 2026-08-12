@@ -94,6 +94,22 @@ public class PdfSanitizerTests {
         Assert.NotNull(info.OpenAction);
         Assert.Equal("Destination", info.OpenAction!.ActionType);
         Assert.Contains(info.Pages[0].PageActions, action => action.ActionType == "URI");
+        Assert.Contains(info.Pages[0].PageActions, action => action.ActionType == "GoTo");
+        PdfCatalogAction catalogUri = Assert.Single(info.CatalogActions, static action => action.ActionType == "URI");
+        Assert.Equal("https://example.com/catalog", catalogUri.Uri);
+    }
+
+    [Fact]
+    public void SanitizerPreservationFilterIncludesEveryPolicyRetainedActionType() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildSafeViewerActionPdf());
+        var actionTypes = new HashSet<string>(StringComparer.Ordinal);
+
+        PdfSanitizer.AddPolicyRetainedActionTypes(info, new PdfSanitizationOptions(), actionTypes);
+
+        Assert.Contains("Destination", actionTypes);
+        Assert.Contains("GoTo", actionTypes);
+        Assert.Contains("URI", actionTypes);
+        Assert.DoesNotContain("JavaScript", actionTypes);
     }
 
     [Fact]
@@ -249,9 +265,9 @@ public class PdfSanitizerTests {
 
     private static byte[] BuildSafeViewerActionPdf() {
         string pdf = "%PDF-1.7\n" +
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] >>\nendobj\n" +
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /AA << /WC << /S /URI /URI (https://example.com/catalog) >> >> >>\nendobj\n" +
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
-            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /AA << /O << /S /URI /URI (https://example.com/safe) >> >> >>\nendobj\n" +
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /AA << /O << /S /URI /URI (https://example.com/safe) >> /C << /S /GoTo /D [3 0 R /Fit] >> >> >>\nendobj\n" +
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n";
         return Encoding.ASCII.GetBytes(pdf);

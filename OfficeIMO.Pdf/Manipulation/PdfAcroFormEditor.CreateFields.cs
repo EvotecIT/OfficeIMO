@@ -40,6 +40,7 @@ internal static partial class PdfAcroFormEditor {
             helvetica.Items["Type"] = new PdfName("Font");
             helvetica.Items["Subtype"] = new PdfName("Type1");
             helvetica.Items["BaseFont"] = new PdfName("Helvetica");
+            helvetica.Items["Encoding"] = new PdfName("WinAnsiEncoding");
             fonts.Items[fontName] = helvetica;
         }
         resources.Items["Font"] = fonts;
@@ -51,7 +52,15 @@ internal static partial class PdfAcroFormEditor {
     private static bool IsHelveticaFontResource(Dictionary<int, PdfIndirectObject> objects, PdfObject fontObject) =>
         ResolveDictionary(objects, fontObject) is PdfDictionary font &&
         string.Equals(ReadName(font, "Subtype"), "Type1", StringComparison.Ordinal) &&
-        string.Equals(ReadName(font, "BaseFont"), "Helvetica", StringComparison.Ordinal);
+        string.Equals(ReadName(font, "BaseFont"), "Helvetica", StringComparison.Ordinal) &&
+        IsWinAnsiFontEncoding(objects, font);
+
+    private static bool IsWinAnsiFontEncoding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary font) {
+        if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return false;
+        PdfObject? encoding = PdfObjectLookup.Resolve(objects, encodingObject);
+        if (encoding is PdfName name) return string.Equals(name.Name, "WinAnsiEncoding", StringComparison.Ordinal);
+        return encoding is PdfDictionary dictionary && string.Equals(ReadName(dictionary, "BaseEncoding"), "WinAnsiEncoding", StringComparison.Ordinal);
+    }
 
     private static void ApplyCreateRadioButtonGroup(
         Dictionary<int, PdfIndirectObject> objects,
