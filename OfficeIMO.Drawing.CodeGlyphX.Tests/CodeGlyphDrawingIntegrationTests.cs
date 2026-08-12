@@ -21,7 +21,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
         Assert.Equal(0, unsupported);
-        Assert.NotEmpty(drawing!.Shapes);
+        Assert.NotEmpty(EnumerateElements(drawing!).OfType<OfficeDrawingShape>());
     }
 
     [Fact]
@@ -37,8 +37,9 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        Assert.True(drawing.Shapes.Count > 50);
-        Assert.Contains(drawing.Shapes, item => item.Shape.Kind == OfficeShapeKind.Ellipse);
+        OfficeDrawingShape[] shapes = EnumerateElements(drawing).OfType<OfficeDrawingShape>().ToArray();
+        Assert.True(shapes.Length > 50);
+        Assert.Contains(shapes, item => item.Shape.Kind == OfficeShapeKind.Ellipse);
     }
 
     [Fact]
@@ -57,7 +58,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
 
         Assert.Equal(177, qr.Modules.Width);
         Assert.Equal(0, unsupported);
-        Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+        Assert.True(EnumerateElements(drawing).OfType<OfficeDrawingShape>().Count() > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
     }
 
     [Fact]
@@ -72,7 +73,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        Assert.True(drawing.Shapes.Count > 40000);
+        Assert.True(EnumerateElements(drawing).OfType<OfficeDrawingShape>().Count() > 40000);
     }
 
     [Fact]
@@ -93,7 +94,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgba(36, 87, 166, 128));
+        Assert.Contains(EnumerateElements(drawing).OfType<OfficeDrawingShape>(), item => item.Shape.FillColor == OfficeColor.FromRgba(36, 87, 166, 128));
     }
 
     [Fact]
@@ -103,7 +104,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = modules.ToOfficeDrawing(out int unsupported, new MatrixSvgRenderOptions());
 
         Assert.Equal(0, unsupported);
-        Assert.NotEmpty(drawing.Shapes);
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
         Assert.True(drawing.Width > 0D);
         Assert.True(drawing.Height > 0D);
     }
@@ -115,7 +116,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = modules.ToOfficeDrawing(out int unsupported, new MatrixSvgRenderOptions());
 
         Assert.Equal(0, unsupported);
-        Assert.NotEmpty(drawing.Shapes);
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
         Assert.True(drawing.Width > drawing.Height);
     }
 
@@ -128,8 +129,8 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = barcode.ToOfficeDrawing(out int unsupported, options);
 
         Assert.Equal(0, unsupported);
-        Assert.NotEmpty(drawing.Shapes);
-        OfficeDrawingText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.NotEmpty(EnumerateElements(drawing).OfType<OfficeDrawingShape>());
+        OfficeDrawingText text = Assert.Single(EnumerateElements(drawing).OfType<OfficeDrawingText>());
         Assert.Equal(label, text.Text);
     }
 
@@ -140,7 +141,7 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawing drawing = barcode.ToOfficeDrawing(out int unsupported, new BarcodeSvgRenderOptions());
 
         Assert.Equal(0, unsupported);
-        Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+        Assert.True(EnumerateElements(drawing).OfType<OfficeDrawingShape>().Count() > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
     }
 
     [Fact]
@@ -149,5 +150,18 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         var options = new BarcodeSvgRenderOptions { HeightModules = 5_000 };
 
         Assert.Throws<InvalidOperationException>(() => barcode.ToOfficeDrawing(out _, options));
+    }
+
+    private static System.Collections.Generic.IEnumerable<OfficeDrawingElement> EnumerateElements(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            yield return element;
+            OfficeDrawing? nested = element switch {
+                OfficeDrawingGroup group => group.Drawing,
+                OfficeDrawingEffectGroup effect => effect.Drawing,
+                _ => null
+            };
+            if (nested == null) continue;
+            foreach (OfficeDrawingElement child in EnumerateElements(nested)) yield return child;
+        }
     }
 }

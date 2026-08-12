@@ -39,7 +39,14 @@ internal static partial class PdfWriter {
         });
     }
 
-    private static void RenderTableCellObjects(LayoutResult.Page page, TableCellLayout cell, PdfColumnAlign align, double textX, double innerWidth, double topY) {
+    private static void RenderTableCellObjects(
+        LayoutResult.Page page,
+        TableCellLayout cell,
+        PdfColumnAlign align,
+        double textX,
+        double innerWidth,
+        double topY,
+        System.Action<PageImage>? onImageAdded = null) {
         double yCursor = topY;
         int objectCount = 0;
         for (int index = 0; index < cell.Images.Count; index++) {
@@ -63,6 +70,7 @@ internal static partial class PdfWriter {
             };
             PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
             page.Images.Add(pageImage);
+            onImageAdded?.Invoke(pageImage);
             AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
             yCursor -= imageBox.Height;
             objectCount++;
