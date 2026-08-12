@@ -51,7 +51,9 @@ public sealed partial class PdfReadPage {
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
             ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" }) return null;
-        if (transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
+        bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
+            ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
+        if (transparency.Items.TryGetValue("I", out isolatedObject) &&
             ResolveEffectObject(isolatedObject) is not PdfBoolean) return null;
         if (transparency.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
             ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false }) return null;
@@ -74,7 +76,7 @@ public sealed partial class PdfReadPage {
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop, parentResources);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, parentResources);
     }
 
     private PdfObject? ResolveEffectObject(PdfObject? value) {
@@ -136,6 +138,7 @@ public sealed partial class PdfReadPage {
         double projectionPageHeight,
         TextContentParser.TextOutputBudget textOutputBudget) {
         if (resource == null) return true;
+        if (!resource.IsIsolated) return false;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);

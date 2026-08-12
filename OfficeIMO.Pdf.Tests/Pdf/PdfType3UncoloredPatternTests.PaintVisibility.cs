@@ -233,7 +233,7 @@ public partial class PdfType3UncoloredPatternTests {
                 "9 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj",
                 StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 1 0 rg 0 0 5 5 re f"),
                 StreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /ExtGState << /Mask << /SMask << /S /Alpha /G 12 0 R >> >> >> >>", "/Mask gs 20 w 0 100 m 500 100 l S"),
-                StreamObject(12, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", string.Empty)
+                StreamObject(12, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", string.Empty)
             });
 
         AssertRendersInheritedRedPattern(pdf);

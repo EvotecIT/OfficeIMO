@@ -110,7 +110,11 @@ public sealed partial class PdfReadPage {
 
                 if (type3GlyphBudget.FailureVersion != failureVersion) return false;
                 for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
+                    if (localPrimitives[primitiveIndex].Primitive.ClipPath is PdfPageClipPath { IsExact: false }) return false;
                     if (!CanRenderTilingPatterns(localPrimitives[primitiveIndex].Primitive, pageWidth, pageHeight)) return false;
+                }
+                for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
+                    if (localImages[imageIndex].Placement.ClipPath is PdfPageClipPath { IsExact: false }) return false;
                 }
 
                 var localEffects = new List<PdfPageDrawingEffectTransition>();
@@ -214,6 +218,7 @@ public sealed partial class PdfReadPage {
                     var pendingKeys = new HashSet<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext)>();
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
+                        if (placement.ClipPath is PdfPageClipPath { IsExact: false }) return false;
                         var key = GetType3ImageCacheKey(placement);
                         if (!extractedImageCache.ContainsKey(key) && pendingKeys.Add(key)) pendingPlacements.Add(placement);
                     }

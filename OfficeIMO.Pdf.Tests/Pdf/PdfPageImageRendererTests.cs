@@ -1058,7 +1058,7 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
         string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /" + modeName + " /G 8 0 R /BC [0] >> >>\nendobj";
-        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I false /CS /DeviceGray >> /Resources << >>", "0 0 500 700 re f");
+        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", "0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, graphicsState, softMask);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1157,10 +1157,10 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
         string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceGray >> /Resources << /XObject << /Fm1 9 0 R >> >>", "/Fm1 Do");
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << /XObject << /Fm1 9 0 R >> >>", "/Fm1 Do");
         string nestedForm = BuildStreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /ExtGState << /GS2 10 0 R >> >>", "/GS2 gs 0 0 500 700 re f");
         string nestedState = "10 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 11 0 R >> >>\nendobj";
-        string nestedMask = BuildStreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceGray >> /Resources << >>", "0 0 500 350 re f");
+        string nestedMask = BuildStreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", "0 0 500 350 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, nestedForm, nestedState, nestedMask);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1280,7 +1280,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
         string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency >> /Resources << /XObject << /Fm1 9 0 R >> /Pattern << /P1 12 0 R >> >>", "/Pattern cs /P1 scn /Fm1 Do");
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true >> /Resources << /XObject << /Fm1 9 0 R >> /Pattern << /P1 12 0 R >> >>", "/Pattern cs /P1 scn /Fm1 Do");
         string nestedForm = BuildStreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /Font << /Nested 10 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
         string nestedFont = "10 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 11 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(11, "<<", "500 0 d0 0 0 500 700 re f");
@@ -1299,7 +1299,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
         string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 50 Tf 200 200 Td (B) Tj ET 0 0 100 100 re f");
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /S /Transparency /I true >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 50 Tf 200 200 Td (B) Tj ET 0 0 100 100 re f");
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /XObject << /Bad 11 0 R >> >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 /Bad Do");
         string unsupportedGroup = BuildStreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "0 0 500 700 re f");
@@ -1315,7 +1315,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
         string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 50 Tf 20 100 Td (B) Tj ET");
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /I true >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 50 Tf 20 100 Td (B) Tj ET");
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdfWithPageEntries("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", "/Rotate 90", outerFont, outerGlyph, outerState, outerMask, nestedFont, nestedGlyph);
@@ -1397,7 +1397,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 q /GS1 gs 0 0 250 700 re f Q q 2 0 0 1 0 0 cm /GS1 gs 250 0 250 700 re f Q");
         string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceGray >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
+        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /Pattern << /P1 11 0 R >> >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 /Pattern CS /P1 SCN 10 w 0 0 m 500 700 l S");
         string radialPattern = "11 0 obj\n<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 3 /ColorSpace /DeviceRGB /Coords [250 350 0 250 350 250] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>\nendobj";
@@ -1411,7 +1411,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R /GS0 11 0 R >> /XObject << /Fm1 12 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 250 700 re f /GS0 gs /Fm1 Do");
         string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
-        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceGray >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
+        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << /Font << /Nested 9 0 R >> >>", "BT /Nested 500 Tf (B) Tj ET");
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 0 0 500 700 re f");
         string clearSoftMask = "11 0 obj\n<< /Type /ExtGState /SMask /None >>\nendobj";

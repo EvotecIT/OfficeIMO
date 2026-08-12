@@ -600,25 +600,31 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "re":
-                    if (_args.Count >= 4) {
+                    if (HasExactFiniteNumbers(4)) {
                         AddRectanglePath(NumberAt(_args.Count - 4), NumberAt(_args.Count - 3), NumberAt(_args.Count - 2), NumberAt(_args.Count - 1));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("re");
                     }
 
                     break;
                 case "m":
-                    if (_args.Count >= 2) {
+                    if (HasExactFiniteNumbers(2)) {
                         MoveTo(NumberAt(_args.Count - 2), NumberAt(_args.Count - 1));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("m");
                     }
 
                     break;
                 case "l":
-                    if (_args.Count >= 2) {
+                    if (HasExactFiniteNumbers(2)) {
                         LineTo(NumberAt(_args.Count - 2), NumberAt(_args.Count - 1));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("l");
                     }
 
                     break;
                 case "c":
-                    if (_args.Count >= 6) {
+                    if (HasExactFiniteNumbers(6)) {
                         CubicTo(
                             NumberAt(_args.Count - 6),
                             NumberAt(_args.Count - 5),
@@ -626,11 +632,13 @@ internal static class PdfPageContentVisualParser {
                             NumberAt(_args.Count - 3),
                             NumberAt(_args.Count - 2),
                             NumberAt(_args.Count - 1));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("c");
                     }
 
                     break;
                 case "v":
-                    if (_args.Count >= 4 && _path.Count > 0) {
+                    if (HasExactFiniteNumbers(4) && _path.Count > 0) {
                         (double X, double Y) current = _path[_path.Count - 1];
                         CubicTo(
                             current.X,
@@ -640,11 +648,13 @@ internal static class PdfPageContentVisualParser {
                             NumberAt(_args.Count - 2),
                             NumberAt(_args.Count - 1),
                             firstControlAlreadyTransformed: true);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("v");
                     }
 
                     break;
                 case "y":
-                    if (_args.Count >= 4) {
+                    if (HasExactFiniteNumbers(4)) {
                         double endX = NumberAt(_args.Count - 2);
                         double endY = NumberAt(_args.Count - 1);
                         CubicTo(
@@ -654,11 +664,17 @@ internal static class PdfPageContentVisualParser {
                             endY,
                             endX,
                             endY);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("y");
                     }
 
                     break;
                 case "h":
-                    ClosePath();
+                    if (_args.Count == 0) {
+                        ClosePath();
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("h");
+                    }
 
                     break;
                 case "W":
@@ -1738,6 +1754,8 @@ internal static class PdfPageContentVisualParser {
             }
             return true;
         }
+
+        private bool HasExactFiniteNumbers(int count) => _args.Count == count && HasTrailingFiniteNumbers(count);
 
         private static byte ToByte(double value) {
             return (byte)Math.Round(Clamp01(value) * 255D);
