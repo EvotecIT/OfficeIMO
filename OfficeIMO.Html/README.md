@@ -290,3 +290,7 @@ if (HtmlImageDataUri.TryParse(source, out var dataUri) && dataUri.IsBase64) {
 ```
 
 Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors a declared `charset` and uses UTF-8 only when the data URI does not declare one.
+
+## Content provenance
+
+`HtmlProvenance.Inspect(html)` reports embedded `<script type="application/c2pa">` carriers, external `<link rel="c2pa-manifest">` references, and provenance inside supported embedded image data URIs. `HtmlProvenance.Remove(html)` removes only selected, structurally valid carriers by default. Inspection and removal never fetch external resources. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
