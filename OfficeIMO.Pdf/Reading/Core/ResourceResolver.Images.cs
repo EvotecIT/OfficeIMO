@@ -27,6 +27,9 @@ internal static partial class ResourceResolver {
         bool isDct = dctFilter == DctFilterDeclaration.Single;
         if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
             if (isDct) return false;
+            if (!CanAllocateDecodedImageBuffer(image, components: 1, bitsPerComponent, maxDecodedStreamBytes)) {
+                return false;
+            }
             int indexedChannels = PdfImageMaskSemantics.HasSoftMask(image, objects) ||
                 PdfImageColorKeyMask.Create(image, 1, objects) is not null
                 ? 4
