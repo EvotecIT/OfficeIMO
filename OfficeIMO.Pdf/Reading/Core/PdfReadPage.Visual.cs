@@ -745,6 +745,7 @@ public sealed partial class PdfReadPage {
             (shading.Items.TryGetValue("Background", out PdfObject? backgroundObject) && ResolveObject(backgroundObject) is not null and not PdfNull) ||
             (shading.Items.TryGetValue("AntiAlias", out PdfObject? antiAliasObject) && ResolveObject(antiAliasObject) is PdfBoolean { Value: true }) ||
             !HasDefaultType3ShadingDomain(shading) ||
+            !HasSupportedType3ShadingCoordinates(shading, shadingType.Value) ||
             !shading.Items.TryGetValue("Function", out PdfObject? functionObject) ||
             !IsSupportedType3ShadingFunction(functionObject) ||
             !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
@@ -758,6 +759,13 @@ public sealed partial class PdfReadPage {
         if (!shading.Items.TryGetValue("Domain", out PdfObject? domainObject) || ResolveObject(domainObject) is PdfNull) return true;
         IReadOnlyList<double> domain = ReadNumberArray(domainObject);
         return domain.Count == 2 && domain[0] == 0D && domain[1] == 1D;
+    }
+
+    private bool HasSupportedType3ShadingCoordinates(PdfDictionary shading, int shadingType) {
+        if (!shading.Items.TryGetValue("Coords", out PdfObject? coordinatesObject)) return false;
+        IReadOnlyList<double> coordinates = ReadNumberArray(coordinatesObject);
+        if (coordinates.Count != (shadingType == 2 ? 4 : 6) || coordinates.Any(value => !IsFinite(value))) return false;
+        return shadingType != 3 || (coordinates[2] >= 0D && coordinates[5] >= 0D);
     }
 
     private bool IsSupportedType3ShadingFunction(PdfObject? value) {
@@ -782,6 +790,10 @@ public sealed partial class PdfReadPage {
             !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
             ResolveArray(functionsObject) is not PdfArray functions ||
             functions.Items.Count < 2 || functions.Items.Count > 32) return false;
+        IReadOnlyList<double> stitchedDomain = function.Items.TryGetValue("Domain", out PdfObject? stitchedDomainObject)
+            ? ReadNumberArray(stitchedDomainObject)
+            : Array.Empty<double>();
+        if (stitchedDomain.Count != 2 || stitchedDomain[0] != 0D || stitchedDomain[1] != 1D) return false;
         if (function.Items.TryGetValue("Range", out PdfObject? stitchedRangeObject) &&
             ResolveObject(stitchedRangeObject) is not PdfNull) return false;
         IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)

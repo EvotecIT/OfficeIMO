@@ -201,6 +201,41 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderDiagnostics_ReportsUnsupportedDirectShadingInsideType3Glyph() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Shading << /Sh1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Sh1 sh");
+        string shading = "7 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, shading);
+
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics();
+
+        Assert.Contains(diagnostics, diagnostic =>
+            diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForNonDefaultStitchedFunctionDomainInsideType3Glyph() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Shading << /Sh1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Sh1 sh");
+        string shading = "7 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 3 /Domain [0.25 0.75] /Functions [8 0 R 9 0 R] /Bounds [0.5] /Encode [0 1 0 1] >> /Extend [true true] >>\nendobj";
+        string firstFunction = "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 1 0] /N 1 >>\nendobj";
+        string secondFunction = "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 1 0] /C1 [0 0 1] /N 1 >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, shading, firstFunction, secondFunction);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForNegativeRadialRadiusInsideType3Glyph() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Shading << /Sh1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Sh1 sh");
+        string shading = "7 0 obj\n<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [0 0 -10 500 700 20] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, shading);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForUnsupportedShadingInsideType3PatternTile() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");

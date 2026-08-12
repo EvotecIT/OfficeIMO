@@ -216,6 +216,9 @@ public sealed partial class PdfReadPage {
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          unsupportedColorVisitor: () => supported = false,
+                         shadingInvocationVisitor: name => {
+                             if (requireImageMask || !IsSupportedType3DirectShading(resources, name)) supported = false;
+                         },
                          patternInvocationVisitor: name => {
                              if (!patternSupport.TryGetValue(name, out bool canProject)) {
                                  canProject = false;

@@ -57,6 +57,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action? unsupportedColorVisitor = null,
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
+        Action<string>? shadingInvocationVisitor = null,
         Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
         Action<PdfPagePatternSelection>? patternSelectionVisitor = null,
         Action<PdfPagePatternPaintInvocation>? patternPaintVisitor = null) {
@@ -64,7 +65,7 @@ internal static class PdfPageXObjectInvocationParser {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, patternSelectionVisitor, patternPaintVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, shadingInvocationVisitor, graphicsStateVisitor, patternSelectionVisitor, patternPaintVisitor);
         return parser.Parse();
     }
 
@@ -115,6 +116,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action? _unsupportedColorVisitor;
         private readonly Action<string>? _visibleFontVisitor;
         private readonly Action<string>? _patternInvocationVisitor;
+        private readonly Action<string>? _shadingInvocationVisitor;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
         private readonly Action<PdfPagePatternPaintInvocation>? _patternPaintVisitor;
@@ -157,6 +159,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action? unsupportedColorVisitor,
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
+            Action<string>? shadingInvocationVisitor,
             Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
             Action<PdfPagePatternSelection>? patternSelectionVisitor,
             Action<PdfPagePatternPaintInvocation>? patternPaintVisitor) {
@@ -185,6 +188,7 @@ internal static class PdfPageXObjectInvocationParser {
             _unsupportedColorVisitor = unsupportedColorVisitor;
             _visibleFontVisitor = visibleFontVisitor;
             _patternInvocationVisitor = patternInvocationVisitor;
+            _shadingInvocationVisitor = shadingInvocationVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
             _patternSelectionVisitor = patternSelectionVisitor;
             _patternPaintVisitor = patternPaintVisitor;
@@ -783,6 +787,15 @@ internal static class PdfPageXObjectInvocationParser {
                 case "TJ":
                     if (_args.Count >= 1) {
                         ShowTextArray(_args[_args.Count - 1]);
+                    }
+
+                    break;
+                case "sh":
+                    if (!HasHiddenContent() &&
+                        _args.Count >= 1 &&
+                        _args[_args.Count - 1] is string shadingName &&
+                        !string.IsNullOrEmpty(shadingName)) {
+                        _shadingInvocationVisitor?.Invoke(shadingName);
                     }
 
                     break;
