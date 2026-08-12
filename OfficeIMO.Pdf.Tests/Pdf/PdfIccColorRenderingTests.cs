@@ -644,6 +644,27 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void IccProfile_AcceptsNegativeSlopeInUnreachableLowerBranch() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, int length) = FindTag(profile, "rTRC");
+        Assert.True(length >= 40);
+        WriteUInt32(profile, offset, 0x70617261U);
+        profile[offset + 8] = 0;
+        profile[offset + 9] = 4;
+        profile[offset + 10] = 0;
+        profile[offset + 11] = 0;
+        WriteS15Fixed16(profile, offset + 12, 1D);
+        WriteS15Fixed16(profile, offset + 16, 1D);
+        WriteS15Fixed16(profile, offset + 20, 0D);
+        WriteS15Fixed16(profile, offset + 24, -1D);
+        WriteS15Fixed16(profile, offset + 28, 0D);
+        WriteS15Fixed16(profile, offset + 32, 0D);
+        WriteS15Fixed16(profile, offset + 36, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
     public void IccProfile_RejectsSingularRgbColorantMatrix() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         foreach (string tag in new[] { "rXYZ", "gXYZ", "bXYZ" }) {
@@ -652,6 +673,15 @@ public class PdfIccColorRenderingTests {
             WriteS15Fixed16(profile, offset + 12, 0D);
             WriteS15Fixed16(profile, offset + 16, 0D);
         }
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void IccProfile_RejectsRgbMatrixThatDoesNotReproducePcsWhite() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, _) = FindTag(profile, "rXYZ");
+        WriteS15Fixed16(profile, offset + 8, 0.6D);
 
         Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
     }

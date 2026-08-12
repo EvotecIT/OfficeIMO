@@ -141,7 +141,7 @@ public sealed partial class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x7258595AU, out XyzValue redColumn) && // rXYZ
             TryReadXyzTag(profileBytes, tags, 0x6758595AU, out XyzValue greenColumn) && // gXYZ
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
-            if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn) ||
+            if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn, whitePoint) ||
                 !TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue mediaWhitePoint) ||
                 !mediaWhitePoint.IsNormalizedMediaWhitePoint) return false;
             IPcsToDeviceTransform?[]? outputTransforms;
@@ -515,8 +515,8 @@ public sealed partial class OfficeIccColorProfile {
         if (functionType <= 2) return true;
         double slope = parameters[3];
         double boundary = parameters[4];
-        if (slope < 0D) return false;
         if (boundary <= 0D || boundary > 1D) return true;
+        if (slope < 0D) return false;
         double high = Math.Pow(parameters[1] * boundary + parameters[2], parameters[0]);
         double low = slope * boundary;
         if (functionType == 4) {
@@ -531,7 +531,7 @@ public sealed partial class OfficeIccColorProfile {
         Math.Abs(value.Y - D50Y) <= IlluminantTolerance &&
         Math.Abs(value.Z - D50Z) <= IlluminantTolerance;
 
-    private static bool IsUsableRgbMatrix(XyzValue red, XyzValue green, XyzValue blue) {
+    private static bool IsUsableRgbMatrix(XyzValue red, XyzValue green, XyzValue blue, XyzValue pcsWhite) {
         double scale = Math.Max(
             Math.Max(Math.Abs(red.X), Math.Max(Math.Abs(red.Y), Math.Abs(red.Z))),
             Math.Max(
@@ -542,7 +542,11 @@ public sealed partial class OfficeIccColorProfile {
             red.X * (green.Y * blue.Z - green.Z * blue.Y) -
             green.X * (red.Y * blue.Z - red.Z * blue.Y) +
             blue.X * (red.Y * green.Z - red.Z * green.Y);
-        return IsFinite(determinant) && Math.Abs(determinant) > scale * scale * scale * 1e-12D;
+        return IsFinite(determinant) &&
+            Math.Abs(determinant) > scale * scale * scale * 1e-12D &&
+            Math.Abs(red.X + green.X + blue.X - pcsWhite.X) <= IlluminantTolerance &&
+            Math.Abs(red.Y + green.Y + blue.Y - pcsWhite.Y) <= IlluminantTolerance &&
+            Math.Abs(red.Z + green.Z + blue.Z - pcsWhite.Z) <= IlluminantTolerance;
     }
 
     private static ushort ReadUInt16(byte[] bytes, int offset) =>
