@@ -11,7 +11,7 @@ internal static partial class PdfTextEditor {
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         IReadOnlyList<PdfTextSpan> selected = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
-            .Where(span => IsSafelyEditableSpan(span) && ContainsCenter(region, GetBounds(span)))
+            .Where(span => IsVisibleSearchSpan(span) && ContainsCenter(region, GetBounds(span)))
             .ToArray();
         return BuildRegionText(selected);
     }
@@ -151,7 +151,7 @@ internal static partial class PdfTextEditor {
                 SpanBounds bounds = GetBounds(span);
                 bool targeted = exactTargets is null
                     ? areas.Any(area => area.PageNumber == pageNumber && ContainsCenter(area, bounds))
-                    : exactTargets.Any(target => target.PageNumber == pageNumber && SameExactSourceSpan(span, target.Span));
+                    : exactTargets.Any(target => target.PageNumber == pageNumber && SameTargetSourceSpan(span, target.Span));
                 if (targeted && !IsSafelyEditableSpan(span)) {
                     throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
                 }
@@ -170,7 +170,7 @@ internal static partial class PdfTextEditor {
             PageTextSpanSnapshot candidate = original[index];
             if (candidate.Targeted) continue;
             List<PdfTextSpan> remaining = remainingByPage[candidate.PageNumber];
-            int matchIndex = remaining.FindIndex(span => SameExactSourceSpan(span, candidate.Span));
+            int matchIndex = remaining.FindIndex(span => SameSurvivingSourceSpan(span, candidate.Span));
             if (matchIndex >= 0) remaining.RemoveAt(matchIndex);
             else missing.Add(candidate);
         }
@@ -202,18 +202,12 @@ internal static partial class PdfTextEditor {
             .OrderByDescending(static group => group.Sum(static span => Math.Max(1, span.Text.Length)))
             .First()
             .First();
-        PdfTextSpan[] ordered = spans.OrderByDescending(static span => span.Y).ThenBy(static span => span.X).ToArray();
+        List<TextLayoutEngine.TextLine> layoutLines = BuildSearchLines(spans);
+        PdfTextSpan[] ordered = layoutLines.SelectMany(static line => line.Spans).ToArray();
         var builder = new System.Text.StringBuilder();
-        PdfTextSpan? previous = null;
-        for (int index = 0; index < ordered.Length; index++) {
-            PdfTextSpan span = ordered[index];
-            if (previous != null) {
-                bool newLine = Math.Abs(span.Y - previous.Y) > Math.Max(EffectiveFontSize(previous), EffectiveFontSize(span)) * 0.65D;
-                if (newLine) builder.Append('\n');
-                else if (span.X - (previous.X + Math.Max(0D, previous.Advance)) > Math.Max(1D, EffectiveFontSize(span) * 0.18D)) builder.Append(' ');
-            }
-            builder.Append(span.Text);
-            previous = span;
+        for (int lineIndex = 0; lineIndex < layoutLines.Count; lineIndex++) {
+            if (lineIndex > 0) builder.Append('\n');
+            builder.Append(new TextSearchUnit(layoutLines[lineIndex].Spans).Text);
         }
         return new PdfRegionText(builder.ToString(), ordered, ResolveStandardFont(dominant.BaseFont), dominant.BaseFont, EffectiveFontSize(dominant), ToPdfColor(dominant.Color), dominant.RotationDegrees, ordered[0].X, ordered[0].Y);
     }
@@ -261,7 +255,14 @@ internal static partial class PdfTextEditor {
                 PositionedRewrite rewrite = ordered[index];
                 double rewriteNormal = NormalPosition(rewrite.Source);
                 double tolerance = Math.Max(0.5D, Math.Min(2.5D, EffectiveFontSize(rewrite.Source) * 0.6D));
-                if (line.Count > 0 && Math.Abs(rewriteNormal - normal) > tolerance) {
+                bool startsIndependentFlow = false;
+                if (line.Count > 0 && Math.Abs(rewriteNormal - normal) <= tolerance) {
+                    PositionedRewrite previous = line[line.Count - 1];
+                    double gap = BaselinePosition(rewrite.Source) -
+                        (BaselinePosition(previous.Source) + Math.Abs(previous.Source.Advance));
+                    startsIndependentFlow = gap >= 24D;
+                }
+                if (line.Count > 0 && (Math.Abs(rewriteNormal - normal) > tolerance || startsIndependentFlow)) {
                     AddReflowedLineRequests(requests, line);
                     line.Clear();
                 }
@@ -394,10 +395,13 @@ internal static partial class PdfTextEditor {
         Math.Abs(EffectiveFontSize(left) - EffectiveFontSize(right)) <= 0.2D &&
         Math.Abs(left.RotationDegrees - right.RotationDegrees) <= 0.2D;
 
-    private static bool SameExactSourceSpan(PdfTextSpan left, PdfTextSpan right) =>
+    private static bool SameTargetSourceSpan(PdfTextSpan left, PdfTextSpan right) =>
+        SameSurvivingSourceSpan(left, right) &&
+        Math.Abs(left.PaintOrder - right.PaintOrder) <= 0.0001D;
+
+    private static bool SameSurvivingSourceSpan(PdfTextSpan left, PdfTextSpan right) =>
         SameTextPlacement(left, right) &&
         Math.Abs(left.Advance - right.Advance) <= 0.2D &&
-        Math.Abs(left.PaintOrder - right.PaintOrder) <= 0.0001D &&
         string.Equals(left.FontResource, right.FontResource, StringComparison.Ordinal) &&
         string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
         Nullable.Equals(left.Color, right.Color) &&
@@ -437,6 +441,12 @@ internal static partial class PdfTextEditor {
         span.TextRenderingMode == 0 &&
         (!span.Color.HasValue || span.Color.Value.A == byte.MaxValue) &&
         span.CanRestamp &&
+        !string.IsNullOrEmpty(span.Text);
+
+    private static bool IsVisibleSearchSpan(PdfTextSpan span) =>
+        span.IsVisible &&
+        !span.ClipPath.HasValue &&
+        (!span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);
 
     private static void ValidateRegionPage(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {

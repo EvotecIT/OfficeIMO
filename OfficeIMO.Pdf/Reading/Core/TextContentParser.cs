@@ -866,7 +866,9 @@ internal static class TextContentParser {
                 if (resource.HasSoftMask) {
                     hasSoftMask = resource.SoftMask != null;
                 }
-                hasUnsupportedEffect = resource.HasUnsupportedBlendMode || resource.HasUnsupportedSoftMask;
+                hasUnsupportedEffect = hasUnsupportedEffect ||
+                    resource.HasUnsupportedBlendMode ||
+                    resource.HasUnsupportedSoftMask;
             }
         }
         OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
@@ -1352,7 +1354,8 @@ internal static class TextContentParser {
 
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
-            hasUnsupportedEffect = resource.HasUnsupportedBlendMode ||
+            hasUnsupportedEffect = hasUnsupportedEffect ||
+                resource.HasUnsupportedBlendMode ||
                 resource.HasUnsupportedSoftMask ||
                 resource.BlendMode is OfficeBlendMode mode && mode != OfficeBlendMode.Normal ||
                 resource.SoftMask != null;

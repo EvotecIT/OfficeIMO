@@ -17,7 +17,7 @@ internal static partial class PdfTextEditor {
             int pageNumber = pages[pageIndex];
             IReadOnlyList<PdfTextSpan> spans = document.Pages[pageNumber - 1]
                 .GetTextSpans()
-                .Where(IsSafelyEditableSpan)
+                .Where(IsVisibleSearchSpan)
                 .ToArray();
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {

@@ -121,6 +121,29 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceAllDoesNotReflowIndependentColumns() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (cat) Tj ET\n" +
+            "BT /F1 12 Tf 350 700 Td (cat) Tj ET\n");
+        PdfTextMatch originalRight = Assert.Single(
+            PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }),
+            static match => match.X > 300D);
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "cat",
+            "a much longer replacement",
+            new PdfTextSearchOptions { MatchCase = true });
+        IReadOnlyList<PdfTextMatch> replacements = result.Document.Text.Find(
+            "a much longer replacement",
+            new PdfTextSearchOptions { MatchCase = true });
+
+        Assert.Equal(2, result.AffectedCount);
+        Assert.Equal(2, replacements.Count);
+        PdfTextMatch rewrittenRight = Assert.Single(replacements, static match => match.X > 300D);
+        Assert.InRange(rewrittenRight.X, originalRight.X - 0.1D, originalRight.X + 0.1D);
+    }
+
+    [Fact]
     public void ReplaceAllPreservesExactUnmatchedWhitespaceAndCarriesInputBudgetAcrossRewrites() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat  cat dog) Tj ET\n");
         var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
@@ -199,6 +222,18 @@ public class PdfTextEditorTests {
         PdfTextMatch phrase = Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
 
         Assert.InRange(phrase.RotationDegrees, 89.9D, 90.1D);
+    }
+
+    [Fact]
+    public void InspectOrdersRotatedSpansAlongTheirProjectedBaseline() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 0 1 -1 0 200 300 Tm (alpha) Tj ET\n" +
+            "BT /F1 12 Tf 0 1 -1 0 200 340 Tm (beta) Tj ET\n");
+
+        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(
+            new PdfPageRegion(1, 180D, 280D, 50D, 100D));
+
+        Assert.Equal("alpha beta", inspected.Text);
     }
 
     [Fact]
@@ -341,6 +376,18 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void FindReturnsVisibleTextThatMutationCannotSafelyRestamp() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td 2 Tc (spaced) Tj ET\n");
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "spaced",
+            new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
     public void MutationRejectsNonDefaultBlendAndSoftMaskTextEffects() {
         byte[] blend = BuildRawTextPdf(
             "/GSBlend gs BT /F1 12 Tf 50 700 Td (blended) Tj ET\n",
@@ -379,6 +426,33 @@ public class PdfTextEditorTests {
         var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
 
         Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void InnerGraphicsStateDoesNotClearAnInheritedUnsupportedFormEffect() {
+        const string formText = "/GSOpacity gs BT /F1 12 Tf 50 700 Td (form text) Tj ET\n";
+        byte[] source = BuildRawTextPdf(
+            "/GSBlend gs /Fm Do\n",
+            "/ExtGState << /GSBlend << /BM /Multiply >> >> /XObject << /Fm 7 0 R >>",
+            "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GSOpacity << /ca 0.5 >> >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
+        var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void EditingEarlierTextDoesNotDuplicateASurvivingLaterSpan() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (edit) Tj ET\n" +
+            "BT /F1 12 Tf 50 650 Td (survivor) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "edit",
+            "updated",
+            new PdfTextSearchOptions { MatchCase = true });
+
+        Assert.Single(result.Document.Text.Find("survivor", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(), static span => span.Text == "survivor");
     }
 
     [Fact]
