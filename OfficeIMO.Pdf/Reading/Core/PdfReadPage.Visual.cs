@@ -968,6 +968,19 @@ public sealed partial class PdfReadPage {
             ReadMatrixNumber(matrix, 5, 0D));
     }
 
+    private bool TryReadStrictPatternMatrix(PdfObject? matrixObject, out Matrix2D matrix) {
+        matrix = Matrix2D.Identity;
+        PdfArray? values = ResolveArray(matrixObject);
+        if (values == null || values.Items.Count != 6) return false;
+        var components = new double[6];
+        for (int index = 0; index < components.Length; index++) {
+            if (ResolveObject(values.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) return false;
+            components[index] = number.Value;
+        }
+        matrix = new Matrix2D(components[0], components[1], components[2], components[3], components[4], components[5]);
+        return true;
+    }
+
     private bool TryReadShading(PdfObject? value, out PdfPageShadingResource shading) {
         shading = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
