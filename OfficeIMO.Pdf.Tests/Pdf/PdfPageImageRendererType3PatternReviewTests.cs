@@ -41,6 +41,44 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderDiagnostics_ChargesNestedType3PatternGlyphsOnce() {
+        string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /FInner 8 0 R >> >>", "BT /FInner 8 Tf (A) Tj ET");
+        string innerFont = "8 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 9 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string innerGlyph = BuildStreamObject(9, "<<", "500 0 d0 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FOuter 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FOuter 5 0 R >> >>", outerFont, outerGlyph, pattern, innerFont, innerGlyph);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
+        });
+
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = document.Pages[0].GetRenderCapabilityDiagnostics();
+
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForShearedImageInsideType3Glyph() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 100 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "rgb");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForOptionalContentImageInsideType3Glyph() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /OC 8 0 R", "rgb");
+        string optionalContentGroup = "8 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image, optionalContentGroup);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedDctImageInsideType3Glyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
@@ -57,6 +95,22 @@ public partial class PdfPageImageRendererTests {
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /Im1 8 0 R >> >>", "q 10 0 0 10 0 0 cm /Im1 Do Q");
         string image = BuildStreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", "not-a-jpeg");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, image);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Theory]
+    [InlineData(0xC3)]
+    [InlineData(0xC9)]
+    public void RenderPage_FailsClosedForUnsupportedDctProcessInsideType3Glyph(int sofMarker) {
+        byte[] jpeg = CreateMinimalJpeg(1, 1);
+        ReplaceJpegStartOfFrameMarker(jpeg, (byte)sofMarker);
+        string marker = new string('J', jpeg.Length);
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", marker);
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image);
+        ReplaceAsciiPayload(pdf, marker, jpeg);
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
@@ -158,6 +212,38 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForUnhandledDirectShadingInsideType3PatternTile() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Shading << /Sh1 8 0 R >> >>", "/Sh1 sh");
+        string shading = "8 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Domain [0.25 0.75] /Coords [0 0 10 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, shading);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForDirectShadingInsideUncoloredType3PatternTile() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ColorSpace << /PatternRgb [/Pattern /DeviceRGB] >> /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /PatternRgb cs 0 0 1 /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Shading << /Sh1 8 0 R >> >>", "/Sh1 sh");
+        string shading = "8 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 10 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, shading);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForUnknownOperatorInsideType3PatternTile() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f MadeUp");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedMatrixInsideType3Pattern() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
@@ -248,5 +334,14 @@ public partial class PdfPageImageRendererTests {
             return;
         }
         throw new InvalidOperationException("Marker payload was not found.");
+    }
+
+    private static void ReplaceJpegStartOfFrameMarker(byte[] jpeg, byte replacement) {
+        for (int index = 0; index < jpeg.Length - 1; index++) {
+            if (jpeg[index] != 0xFF || jpeg[index + 1] != 0xC0) continue;
+            jpeg[index + 1] = replacement;
+            return;
+        }
+        throw new InvalidOperationException("JPEG start-of-frame marker was not found.");
     }
 }

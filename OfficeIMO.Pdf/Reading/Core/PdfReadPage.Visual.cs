@@ -427,7 +427,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         PdfContentOrderKey? contentOrderPrefix = null,
-        OfficeColor? uncoloredType3PaintColor = null) {
+        OfficeColor? uncoloredType3PaintColor = null,
+        bool rejectShadingContent = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         activeType3Glyphs ??= new HashSet<PdfStream>();
@@ -504,7 +505,13 @@ public sealed partial class PdfReadPage {
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
             scaleStrokeWidthWithTransform: requireSupportedType3Content,
-            unrenderedShadingVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null);
+            unrenderedShadingVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
+            shadingInvocationVisitor: requireSupportedType3Content
+                ? name => {
+                    if (rejectShadingContent || !IsSupportedType3DirectShading(resources, name)) type3GlyphBudget.RecordFailure();
+                }
+                : null,
+            unsupportedOperatorVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -683,7 +690,8 @@ public sealed partial class PdfReadPage {
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget,
                     contentOrderPrefix: invocationOrder,
-                    uncoloredType3PaintColor: uncoloredType3PaintColor);
+                    uncoloredType3PaintColor: uncoloredType3PaintColor,
+                    rejectShadingContent: rejectShadingContent);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -718,17 +726,38 @@ public sealed partial class PdfReadPage {
         if (pattern.Items.ContainsKey("ExtGState") ||
             (pattern.Items.TryGetValue("Matrix", out PdfObject? matrixObject) && !TryReadStrictPatternMatrix(matrixObject, out _)) ||
             !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
-            ResolveDictionary(shadingObject) is not PdfDictionary shading ||
+            ResolveDictionary(shadingObject) is not PdfDictionary shading) return false;
+        return IsSupportedType3ShadingDictionary(shading);
+    }
+
+    private bool IsSupportedType3DirectShading(PdfDictionary? resources, string name) {
+        if (resources == null ||
+            ResolveDictionary(resources.Items.TryGetValue("Shading", out PdfObject? shadingResourcesObject) ? shadingResourcesObject : null) is not PdfDictionary shadings ||
+            !shadings.Items.TryGetValue(name, out PdfObject? shadingObject) ||
+            ResolveDictionary(shadingObject) is not PdfDictionary shading) return false;
+        return IsSupportedType3ShadingDictionary(shading);
+    }
+
+    private bool IsSupportedType3ShadingDictionary(PdfDictionary shading) {
+        int? shadingType = TryReadInteger(shading.Items.TryGetValue("ShadingType", out PdfObject? shadingTypeObject) ? shadingTypeObject : null);
+        if (shadingType is not (2 or 3) ||
             (shading.Items.TryGetValue("BBox", out PdfObject? boundingBoxObject) && ResolveObject(boundingBoxObject) is not null and not PdfNull) ||
+            (shading.Items.TryGetValue("Background", out PdfObject? backgroundObject) && ResolveObject(backgroundObject) is not null and not PdfNull) ||
+            (shading.Items.TryGetValue("AntiAlias", out PdfObject? antiAliasObject) && ResolveObject(antiAliasObject) is PdfBoolean { Value: true }) ||
+            !HasDefaultType3ShadingDomain(shading) ||
             !shading.Items.TryGetValue("Function", out PdfObject? functionObject) ||
             !IsSupportedType3ShadingFunction(functionObject) ||
             !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
-            ResolveArray(extendObject) is not PdfArray { Items.Count: 2 } extend) {
-            return false;
-        }
+            ResolveArray(extendObject) is not PdfArray { Items.Count: 2 } extend) return false;
 
         return ResolveObject(extend.Items[0]) is PdfBoolean { Value: true } &&
             ResolveObject(extend.Items[1]) is PdfBoolean { Value: true };
+    }
+
+    private bool HasDefaultType3ShadingDomain(PdfDictionary shading) {
+        if (!shading.Items.TryGetValue("Domain", out PdfObject? domainObject) || ResolveObject(domainObject) is PdfNull) return true;
+        IReadOnlyList<double> domain = ReadNumberArray(domainObject);
+        return domain.Count == 2 && domain[0] == 0D && domain[1] == 1D;
     }
 
     private bool IsSupportedType3ShadingFunction(PdfObject? value) {

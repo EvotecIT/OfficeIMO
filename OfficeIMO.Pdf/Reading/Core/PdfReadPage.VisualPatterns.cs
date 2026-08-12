@@ -322,6 +322,7 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget: type3GlyphBudget,
             includeTilingPatterns: false,
             requireSupportedType3Content: requireSupportedType3Content,
+            rejectShadingContent: requireSupportedType3Content && rejectImageContent,
             unrenderedPatternVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
             type3ImageVisitor: (placement, image) => {
                 if (rejectImageContent) {

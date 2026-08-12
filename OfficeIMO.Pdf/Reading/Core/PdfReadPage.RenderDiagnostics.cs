@@ -244,7 +244,7 @@ public sealed partial class PdfReadPage {
                                                  seen,
                                                  activeStreams,
                                                  pageContentBudget,
-                                                 type3GlyphBudget,
+                                                 new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage),
                                                  depth,
                                                  name,
                                                  content),
@@ -424,6 +424,10 @@ public sealed partial class PdfReadPage {
                 paintOrder: invocation.PaintOrder,
                 effectiveResources: resources);
         }
+
+        if (!IsProjectableType3ImageTransform(placement) ||
+            (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
+             ResolveObject(optionalContentObject) is not null and not PdfNull)) return false;
 
         IReadOnlyList<PdfExtractedImage> images;
         try {

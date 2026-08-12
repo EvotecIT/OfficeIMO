@@ -187,7 +187,7 @@ public sealed partial class PdfReadPage {
 
     private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image) {
         if (!IsValidType3ImageFile(image)) return false;
-        if (image.IsImageMask) return true;
+        if (!IsProjectableType3ImageTransform(placement)) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
         PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources;
         if (imageDictionary == null && resources != null) {
@@ -197,10 +197,23 @@ public sealed partial class PdfReadPage {
                 imageDictionary = imageStream.Dictionary;
             }
         }
+        if (imageDictionary == null ||
+            (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
+             ResolveObject(optionalContentObject) is not null and not PdfNull)) return false;
+        if (image.IsImageMask) return true;
         return imageDictionary != null &&
             ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private static bool IsProjectableType3ImageTransform(PdfImagePlacement placement) {
+        if (IsPlainAxisAlignedImagePlacement(placement)) return placement.Width > 0D && placement.Height > 0D;
+        double columnLength = Math.Sqrt((placement.A * placement.A) + (placement.B * placement.B));
+        double rowLength = Math.Sqrt((placement.C * placement.C) + (placement.D * placement.D));
+        double dot = (placement.A * placement.C) + (placement.B * placement.D);
+        return IsFinite(columnLength) && IsFinite(rowLength) &&
+            columnLength > 0D && rowLength > 0D && NearlyEqual(dot, 0D);
     }
 
     private static (PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
