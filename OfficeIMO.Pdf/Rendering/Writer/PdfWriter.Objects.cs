@@ -248,6 +248,17 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.List<int> WidgetObjectIds { get; } = new();
     }
 
+    private static System.Collections.Generic.Dictionary<string, string> ResolvePositionedRadioButtonValues(
+        IEnumerable<FormFieldAnnotation> fields) {
+        var values = new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (FormFieldAnnotation field in fields) {
+            if (field.Kind != FormFieldAnnotationKind.RadioButtonGroup || field.RadioWidgets.Count == 0) continue;
+            if (!values.ContainsKey(field.Name)) values[field.Name] = "Off";
+            if (!string.Equals(field.Value, "Off", StringComparison.Ordinal)) values[field.Name] = field.Value;
+        }
+        return values;
+    }
+
     private sealed class AnnotationStructureReference {
         public int StructParentIndex { get; set; }
         public int StructElementIndex { get; set; }

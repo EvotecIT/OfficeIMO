@@ -78,6 +78,8 @@ internal static partial class PdfWriter {
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
+        System.Collections.Generic.Dictionary<string, string> positionedRadioValues = ResolvePositionedRadioButtonValues(
+            layout.Pages.SelectMany(page => page.FormFields));
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
 
@@ -678,9 +680,11 @@ internal static partial class PdfWriter {
                     double appearanceHeight = field.Y2 - field.Y1;
                     if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
                         if (field.RadioWidgets.Count > 0) {
+                            string selectedValue = positionedRadioValues[field.Name];
                             if (!positionedRadioPlans.TryGetValue(field.Name, out PositionedRadioButtonSerializationPlan? plan)) {
                                 plan = new PositionedRadioButtonSerializationPlan {
                                     ParentFieldId = ReserveObject(objects),
+                                    Value = selectedValue,
                                     Style = field.Style
                                 };
                                 positionedRadioPlans[field.Name] = plan;
@@ -712,7 +716,7 @@ internal static partial class PdfWriter {
                                     widgetFrame.Y2,
                                     plan.ParentFieldId,
                                     option,
-                                    field.Value,
+                                    selectedValue,
                                     positionedOffAppearanceId,
                                     positionedSelectedAppearanceId,
                                     widgetFrame.Style,
@@ -724,7 +728,6 @@ internal static partial class PdfWriter {
                                 plan.WidgetObjectIds.Add(widgetObjectId);
                                 pageAnnotIds.Add(widgetObjectId);
                             }
-                            if (!string.Equals(field.Value, "Off", StringComparison.Ordinal)) plan.Value = field.Value;
                             continue;
                         }
 

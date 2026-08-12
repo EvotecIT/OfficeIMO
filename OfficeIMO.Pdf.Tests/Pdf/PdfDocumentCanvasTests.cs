@@ -92,6 +92,19 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasRadioButtons_NormalizeMultipleCrossPageSelectionsToTheLastOption() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", true, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+
+        Assert.Equal("Second", field.Value);
+        Assert.Equal(new[] { "Off", "Second" }, field.Widgets.Select(widget => widget.AppearanceState).ToArray());
+    }
+
+    [Fact]
     public void CanvasRadioButtons_CanUseDifferentWidgetDimensionsWithinOneField() {
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas

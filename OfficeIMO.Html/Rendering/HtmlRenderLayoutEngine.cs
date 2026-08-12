@@ -455,7 +455,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             pageHeight = pageGeometry.Height;
                             contentHeight = pageGeometry.ContentHeight;
                         }
-                        if (Math.Abs(block.Width - pageGeometry.ContentWidth) > 0.0001D) {
+                        if (RequiresPageRelayout(block, pageGeometry)) {
                             if (continuationProgress.HasValue
                                 && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
                                 block = reflowed;

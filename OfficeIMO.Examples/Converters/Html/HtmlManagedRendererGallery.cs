@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Html {
                     @counter-style proof-steps {
                       system: fixed;
                       symbols: "01" "02" "03";
-                      suffix: "";
+                      suffix: ". ";
                     }
                     @layer reset {
                       * { box-sizing:border-box; }
@@ -118,8 +118,8 @@ namespace OfficeIMO.Examples.Html {
                       }
                       .step {
                         display:grid;
-                        grid-template-rows:subgrid;
-                        grid-row:span 3;
+                        grid-template-columns:subgrid;
+                        grid-column:span 1;
                         gap:5px;
                         padding:10px;
                         border:1px solid #d8e2f1;
@@ -161,7 +161,7 @@ namespace OfficeIMO.Examples.Html {
                         hyphens:auto;
                         hyphenate-limit-chars:6 3 3;
                       }
-                      .controls { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px; }
+                      .controls { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; margin-top:9px; }
                       .controls label { color:#475569; font-size:8px; font-weight:700; }
                       .controls > input[type=text],.controls > select {
                         display:block;
@@ -260,11 +260,12 @@ namespace OfficeIMO.Examples.Html {
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-            HtmlDiagnostic[] errors = rendered.Diagnostics
-                .Where(diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error)
+            HtmlDiagnostic[] fidelityDiagnostics = rendered.Diagnostics
+                .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info)
                 .ToArray();
-            if (errors.Length > 0) {
-                throw new InvalidOperationException("Managed renderer gallery emitted errors: " + string.Join("; ", errors.Select(error => error.Code)));
+            if (fidelityDiagnostics.Length > 0) {
+                throw new InvalidOperationException("Managed renderer gallery emitted fidelity diagnostics: " + string.Join("; ", fidelityDiagnostics.Select(diagnostic =>
+                    diagnostic.Code + " (" + diagnostic.Source + ": " + diagnostic.Detail + ")")));
             }
 
             File.WriteAllText(htmlPath, html);

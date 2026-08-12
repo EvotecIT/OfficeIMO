@@ -101,6 +101,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlText_DescendantNoWrapMovesAsOneUnbreakableRange() {
+        const string html = "<p style='margin:0;width:100px;font:16px Arial;line-height:18px'>prefix <span style='white-space:nowrap'>first second</span></p>";
+
+        IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        HtmlRenderText noWrap = Assert.Single(text, visual => visual.Text == "first second");
+        Assert.True(noWrap.Y > text.First(visual => visual.Text.Contains("prefix", StringComparison.Ordinal)).Y);
+    }
+
+    [Fact]
     public void HtmlText_BreakSpacesRetainsPreservedRunsBesideFloats() {
         const string html = "<p style='margin:0;width:36px;font:16px Arial;line-height:18px'><span style='float:left;width:12px;height:12px'></span>A<span style='white-space:break-spaces'>     </span>B</p>";
         var options = new HtmlRenderOptions {

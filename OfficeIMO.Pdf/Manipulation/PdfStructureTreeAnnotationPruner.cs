@@ -191,7 +191,8 @@ internal static class PdfStructureTreeAnnotationPruner {
             return;
         }
 
-        if (dictionary.Items.TryGetValue("Nums", out PdfObject? numsObject) && numsObject is PdfArray nums) {
+        if (dictionary.Items.TryGetValue("Nums", out PdfObject? numsObject) &&
+            PdfObjectLookup.Resolve(objects, numsObject) is PdfArray nums) {
             for (int i = nums.Items.Count - 2; i >= 0; i -= 2) {
                 bool removePair = nums.Items[i] is PdfNumber key &&
                     key.Value >= 0D && key.Value <= int.MaxValue &&
@@ -208,7 +209,8 @@ internal static class PdfStructureTreeAnnotationPruner {
             }
         }
 
-        if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) && kidsObject is PdfArray kids) {
+        if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) &&
+            PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
             foreach (PdfObject kid in kids.Items) {
                 PruneParentTree(objects, kid, structParentIndexes, removedStructElements, visited);
             }

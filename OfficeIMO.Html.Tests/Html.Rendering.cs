@@ -1274,6 +1274,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_ReflowsInlineContinuationsWhenOnlyThePageHeightChanges() {
+        string words = string.Join(" ", Enumerable.Range(0, 80).Select(index => "height" + index.ToString("D2")));
+        string html = """
+            <style>
+              @page { size:200px 200px; margin:20px; }
+              @page :first { size:200px 120px; margin:20px; }
+              p { margin:0; font-size:10vh; line-height:1; orphans:2; widows:2; }
+            </style>
+            <p>WORDS</p>
+            """.Replace("WORDS", words);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.True(rendered.Pages.Count >= 2);
+        HtmlRenderText firstPageText = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Take(1));
+        HtmlRenderText secondPageText = Assert.Single(
+            rendered.Pages[1].Visuals.OfType<HtmlRenderText>().Take(1));
+        Assert.Equal(12D, firstPageText.Font.Size, 3);
+        Assert.Equal(20D, secondPageText.Font.Size, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PagePseudoGeometryPending);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ReflowsInlineContinuationsAcrossAlternatingLeftAndRightMasters() {
         string expected = string.Join(" ", Enumerable.Range(0, 50).Select(index => "item" + index.ToString("D2")));
         string html = """

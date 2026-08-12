@@ -267,7 +267,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var lines = new List<InlineLine>();
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
+        int noWrapRangeStart = -1;
+        bool noWrapRangeStartedAfterContent = false;
         foreach (HtmlInlineRun run in runs) {
+            bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
+            if (!runPreventsWrapping && noWrapRangeStart >= 0) {
+                previousWasCollapsibleSpace = FinalizeNoWrapRange(
+                    lines,
+                    ref line,
+                    noWrapRangeStart,
+                    noWrapRangeStartedAfterContent,
+                    width);
+                noWrapRangeStart = -1;
+                noWrapRangeStartedAfterContent = false;
+            } else if (runPreventsWrapping && noWrapRangeStart < 0) {
+                noWrapRangeStart = line.Segments.Count;
+                noWrapRangeStartedAfterContent = line.HasFlowContent;
+            }
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 continue;
@@ -280,7 +296,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.AtomicBlock != null) {
                 previousWasCollapsibleSpace = false;
                 double atomicWidth = run.AtomicBlock.Width;
-                if (line.HasFlowContent && line.Width + atomicWidth > width) {
+                if (!paragraphStyle.PreventTextWrapping
+                    && !runPreventsWrapping
+                    && line.HasFlowContent
+                    && line.Width + atomicWidth > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -295,9 +314,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (string token in Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces)) {
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    if (noWrapRangeStart >= 0) {
+                        FinalizeNoWrapRange(
+                            lines,
+                            ref line,
+                            noWrapRangeStart,
+                            noWrapRangeStartedAfterContent,
+                            width);
+                    }
                     lines.Add(line);
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
+                    noWrapRangeStart = runPreventsWrapping ? 0 : -1;
+                    noWrapRangeStartedAfterContent = false;
                     continue;
                 }
 
@@ -345,7 +374,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 paintToken = hyphenation.PaintText;
                 string logicalPaintToken = hyphenation.LogicalText;
                 double measured = MeasureInlineText(paintToken, run.Style);
-                if (!paragraphStyle.PreventTextWrapping
+                bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
+                if (!preventTokenWrapping
                     && !whitespace
                     && measured > Math.Max(0D, width - line.Width)
                     && TryAddHyphenatedToken(
@@ -358,7 +388,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         tokenEnd)) {
                     continue;
                 }
-                if (!paragraphStyle.PreventTextWrapping
+                if (!preventTokenWrapping
                     && !whitespace
                     && measured > Math.Max(0D, width - line.Width)
                     && TryAddPreferredBreakToken(
@@ -374,7 +404,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
                     && measured > Math.Max(0D, width - line.Width);
-                if (!paragraphStyle.PreventTextWrapping
+                if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
                     && (measured > width || breakAllIntoRemainingSpace)) {
@@ -382,7 +412,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (!paragraphStyle.PreventTextWrapping && line.HasFlowContent && line.Width + measured > width) {
+                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > width) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -391,6 +421,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 line.Add(new InlineSegment(paintToken, measured, run, logicalPaintToken, logicalEndProgress: tokenEnd));
             }
+        }
+
+        if (noWrapRangeStart >= 0) {
+            FinalizeNoWrapRange(
+                lines,
+                ref line,
+                noWrapRangeStart,
+                noWrapRangeStartedAfterContent,
+                width);
         }
 
         TrimTrailingWhitespace(line);
@@ -932,6 +971,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (segment.Run.Style.BreakSpaces) break;
             line.RemoveAt(index);
         }
+    }
+
+    private static bool FinalizeNoWrapRange(
+        ICollection<InlineLine> lines,
+        ref InlineLine line,
+        int rangeStart,
+        bool startedAfterContent,
+        double width) {
+        if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > width + 0.0001D) {
+            var range = line.Segments.Skip(rangeStart).ToArray();
+            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
+            TrimTrailingWhitespace(line);
+            if (line.Segments.Count > 0) lines.Add(line);
+            line = new InlineLine();
+            foreach (InlineSegment segment in range) {
+                if (!line.HasFlowContent
+                    && segment.Run.RunningStringElement == null
+                    && IsWhitespaceToken(segment.Text)
+                    && !segment.Run.Style.PreserveWhitespace) {
+                    continue;
+                }
+                line.Add(segment);
+            }
+        }
+
+        for (int index = line.Segments.Count - 1; index >= 0; index--) {
+            InlineSegment segment = line.Segments[index];
+            if (segment.Run.RunningStringElement != null) continue;
+            return IsWhitespaceToken(segment.Text) && !segment.Run.Style.PreserveWhitespace;
+        }
+        return false;
     }
 
     private static double ResolveLineOffset(OfficeTextAlignment alignment, double width, double lineWidth) {

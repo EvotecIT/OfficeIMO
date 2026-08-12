@@ -119,6 +119,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_DescendantNoWrapMovesBelowTheObstructedLineAsOneRange() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='float' style='float:left;width:45px;height:20px;background:#ff0000'></span>"
+            + "Lead <span style='white-space:nowrap'><span>No wrap</span> range</span> tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        IReadOnlyList<HtmlRenderText> text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+        HtmlRenderText noWrapStart = Assert.Single(text, visual => visual.Text == "No wrap");
+        HtmlRenderText noWrapEnd = Assert.Single(text, visual => visual.Text == " range");
+
+        Assert.True(noWrapStart.Y >= floating.Y + floating.Height - 0.001D);
+        Assert.Equal(0D, noWrapStart.X, 3);
+        Assert.Equal(noWrapStart.Y, noWrapEnd.Y, 3);
+        Assert.True(noWrapEnd.X > noWrapStart.X);
+    }
+
+    [Fact]
     public void HtmlFloatImage_UsesIntrinsicAspectRatioWithoutConsumingTheLine() {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
         string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
