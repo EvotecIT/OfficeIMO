@@ -26,7 +26,7 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
                     ApplyRemove(objects, acroForm, fields, command.Name!);
-                    refillValues.Remove(command.Name!);
+                    RemoveQueuedSubtreeWork(refillValues, flattenNames, command.Name!);
                     operations.Add("Remove " + command.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Move:
@@ -118,13 +118,23 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static void ApplyRemove(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, string name) {
-        EditableField field = RequireField(objects, fields, name);
+        EditableField field = RequireFieldSubtree(objects, fields, name);
         field.Owner.Items.Remove(field.Reference);
         var removed = new HashSet<int>(field.ObjectNumbers);
         RemoveWidgetReferences(objects, removed);
         FilterReferenceArray(objects, acroForm, "CO", removed);
         foreach (int objectNumber in removed) objects.Remove(objectNumber);
         RemoveEmptyParents(objects, fields);
+    }
+
+    private static void RemoveQueuedSubtreeWork(Dictionary<string, string> refillValues, List<string> flattenNames, string name) {
+        string descendantPrefix = name + ".";
+        foreach (string queuedName in refillValues.Keys
+                     .Where(candidate => string.Equals(candidate, name, StringComparison.Ordinal) || candidate.StartsWith(descendantPrefix, StringComparison.Ordinal))
+                     .ToArray()) {
+            refillValues.Remove(queuedName);
+        }
+        flattenNames.RemoveAll(candidate => string.Equals(candidate, name, StringComparison.Ordinal) || candidate.StartsWith(descendantPrefix, StringComparison.Ordinal));
     }
 
     private static void ApplyMove(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, int[] pages, string name, int pageNumber, double[] rectangle, Dictionary<string, string> refillValues) {

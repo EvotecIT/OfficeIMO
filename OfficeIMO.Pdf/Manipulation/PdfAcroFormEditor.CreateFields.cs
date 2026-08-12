@@ -94,6 +94,14 @@ internal static partial class PdfAcroFormEditor {
         fieldOwner.Items.Add(new PdfReference(parentObjectNumber, 0));
 
         PdfArray annotations = EnsureAnnotationArray(objects, page);
+        PdfFormFiller.TextAppearanceFontPlan? sharedLabelFontPlan = PdfFormFiller.CreateAuthoredSharedTextAppearanceFontPlan(
+            objects,
+            acroForm,
+            page,
+            options.ChoiceOptions,
+            appearanceOptions,
+            options.Name,
+            ref nextObjectNumber);
         double top = options.Y + options.Height;
         for (int i = 0; i < options.ChoiceOptions.Count; i++) {
             string option = options.ChoiceOptions[i];
@@ -115,12 +123,12 @@ internal static partial class PdfAcroFormEditor {
             objects[offAppearanceObjectNumber] = new PdfIndirectObject(
                 offAppearanceObjectNumber,
                 0,
-                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: false, appearanceOptions, ref nextObjectNumber));
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: false, appearanceOptions, sharedLabelFontPlan, ref nextObjectNumber));
             int selectedAppearanceObjectNumber = nextObjectNumber++;
             objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(
                 selectedAppearanceObjectNumber,
                 0,
-                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: true, appearanceOptions, ref nextObjectNumber));
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: true, appearanceOptions, sharedLabelFontPlan, ref nextObjectNumber));
             var normalAppearances = new PdfDictionary();
             normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
             normalAppearances.Items[option] = new PdfReference(selectedAppearanceObjectNumber, 0);

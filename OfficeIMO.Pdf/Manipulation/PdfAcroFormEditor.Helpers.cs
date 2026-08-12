@@ -31,11 +31,13 @@ internal static partial class PdfAcroFormEditor {
         return acroForm;
     }
 
-    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: false) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
 
-    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) {
+    private static EditableField RequireFieldSubtree(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: true) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+
+    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, bool includeNonterminalFields) {
         var found = new List<EditableField>();
-        CollectFields(objects, fields, null, null, found, new HashSet<int>());
+        CollectFields(objects, fields, null, null, found, new HashSet<int>(), includeNonterminalFields);
         EditableField? match = null;
         for (int i = 0; i < found.Count; i++) {
             if (!string.Equals(found[i].FullName, name, StringComparison.Ordinal)) continue;
@@ -81,7 +83,7 @@ internal static partial class PdfAcroFormEditor {
             !acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsObject) || ResolveArray(objects, fieldsObject) is not PdfArray fields ||
             !acroForm.Items.TryGetValue("CO", out PdfObject? orderObject) || ResolveArray(objects, orderObject) is not PdfArray order) return Array.Empty<string>();
         var editable = new List<EditableField>();
-        CollectFields(objects, fields, null, null, editable, new HashSet<int>());
+        CollectFields(objects, fields, null, null, editable, new HashSet<int>(), includeNonterminalFields: false);
         var names = editable.Where(static field => field.Reference is PdfReference).ToDictionary(static field => ((PdfReference)field.Reference).ObjectNumber, static field => field.FullName);
         var result = new List<string>(order.Items.Count);
         for (int i = 0; i < order.Items.Count; i++) {
@@ -91,7 +93,7 @@ internal static partial class PdfAcroFormEditor {
         return result.AsReadOnly();
     }
 
-    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited) {
+    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited, bool includeNonterminalFields = false) {
         for (int i = 0; i < owner.Items.Count; i++) {
             PdfObject fieldObject = owner.Items[i];
             if (fieldObject is not PdfReference reference || !visited.Add(reference.ObjectNumber)) throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
@@ -105,7 +107,12 @@ internal static partial class PdfAcroFormEditor {
                 if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) { hasNamedFieldKids = true; break; }
             }
             if (kids is not null && hasNamedFieldKids) {
-                CollectFields(objects, kids, fullName, fieldType, result, visited);
+                if (includeNonterminalFields && !string.IsNullOrEmpty(fullName)) {
+                    var subtreeWidgetNumbers = new List<int>(); var subtreeObjectNumbers = new List<int>();
+                    CollectSubtreeObjects(objects, fieldObject, subtreeObjectNumbers, subtreeWidgetNumbers, new HashSet<int>());
+                    result.Add(new EditableField(fullName!, fieldType, field, owner, fieldObject, subtreeWidgetNumbers.AsReadOnly(), subtreeObjectNumbers.AsReadOnly()));
+                }
+                CollectFields(objects, kids, fullName, fieldType, result, visited, includeNonterminalFields);
                 continue;
             }
             if (string.IsNullOrEmpty(fullName)) continue;

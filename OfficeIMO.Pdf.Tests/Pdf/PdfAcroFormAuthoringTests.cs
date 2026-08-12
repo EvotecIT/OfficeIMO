@@ -646,6 +646,57 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Create_ReusesOneConfiguredAppearanceFontAcrossRadioStatesAndOptions() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath is null) return;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Shared radio appearance font")).ToBytes();
+        var appearanceOptions = new PdfFormFillerOptions().UseAppearanceFontFile("OfficeIMO Authoring Font", fontPath);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "shipping.method",
+            Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+            ChoiceOptions = new[] { "Courier", "Parcel", "Pickup" },
+            Value = "Parcel",
+            Width = 180,
+            Height = 90
+        }), appearanceOptions);
+
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Equal(1, CountOccurrences(raw, "/Subtype /Type0"));
+        Assert.Equal(1, CountOccurrences(raw, "/ToUnicode"));
+        PdfFormField radio = Assert.Single(result.Fields);
+        Assert.Equal(3, radio.WidgetCount);
+        Assert.All(radio.Widgets, static widget => Assert.True(widget.HasNormalAppearanceStates));
+    }
+
+    [Fact]
+    public void Create_ReusesOneFallbackAppearanceFontAcrossRadioStatesAndOptions() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath is null) return;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Shared fallback radio font")).ToBytes();
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("OfficeIMO Authoring Fallback", File.ReadAllBytes(fontPath)) },
+            new[] { PdfStandardFont.Helvetica });
+        var appearanceOptions = new PdfFormFillerOptions()
+            .UseAppearanceFont("Broken Authoring Font", new byte[] { 0, 1, 2, 3 })
+            .UseAppearanceFontFallbacks(fallbackSet);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "delivery.window",
+            Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+            ChoiceOptions = new[] { "Morning", "Afternoon", "Evening" },
+            Value = "Afternoon",
+            Width = 180,
+            Height = 90
+        }), appearanceOptions);
+
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Equal(1, CountOccurrences(raw, "/Subtype /Type0"));
+        Assert.Equal(1, CountOccurrences(raw, "/ToUnicode"));
+        Assert.Equal(3, Assert.Single(result.Fields).WidgetCount);
+    }
+
+    [Fact]
     public void Create_PreservesCheckBoxMarkColorThroughInitialRefill() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled checkbox")).ToBytes();
         var style = new PdfFormFieldStyle { MarkColor = PdfColor.FromRgb(22, 101, 52) };
@@ -686,6 +737,20 @@ public class PdfAcroFormAuthoringTests {
         Assert.Empty(result.Fields);
         Assert.DoesNotContain(PdfSanitizer.Analyze(result.ToBytes()), static finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction);
         Assert.DoesNotContain("app.alert", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Remove_CanDeleteANewlyCreatedParentSubtreeInTheSameTransaction() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Remove authored hierarchy")).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions { Name = "customer.name", Value = "Ada" })
+            .Create(new PdfFormFieldCreateOptions { Name = "customer.notes", Value = "Priority" })
+            .Remove("customer"));
+
+        Assert.Empty(result.Fields);
+        Assert.Empty(result.ToDocument().Inspect().FormFields);
+        Assert.DoesNotContain("/T <637573746F6D6572>", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -892,5 +957,15 @@ public class PdfAcroFormAuthoringTests {
     private static void WriteAscii(Stream stream, string value) {
         byte[] bytes = Encoding.ASCII.GetBytes(value);
         stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int startIndex = 0;
+        while ((startIndex = text.IndexOf(value, startIndex, StringComparison.Ordinal)) >= 0) {
+            count++;
+            startIndex += value.Length;
+        }
+        return count;
     }
 }

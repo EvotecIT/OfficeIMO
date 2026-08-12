@@ -146,7 +146,7 @@ internal static partial class PdfFormFiller {
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null) {
+    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null) {
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         if (richAppearanceRuns != null && !effectiveStyle.IsPassword && !effectiveStyle.IsComb) {
             return CreateRichTextAppearanceStream(richAppearanceRuns, width, height, effectiveStyle, fontSize);
@@ -154,7 +154,9 @@ internal static partial class PdfFormFiller {
 
         string displayValue = PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
         string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
-        bool hasEmbeddedAppearanceFont = TryCreateInheritedTextAppearanceFontPlan(objects, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources, displayValue, out TextAppearanceFontPlan? fontPlan);
+        TextAppearanceFontPlan? fontPlan = preparedFontPlan;
+        bool hasEmbeddedAppearanceFont = preparedFontPlan is not null ||
+            TryCreateInheritedTextAppearanceFontPlan(objects, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources, displayValue, out fontPlan);
         bool hasDefaultAppearanceSimpleFont = false;
         string? defaultAppearanceFontResourceName = null;
         PdfDictionary? defaultAppearanceFontResources = null;
@@ -211,11 +213,43 @@ internal static partial class PdfFormFiller {
         double fontSize,
         string fieldName,
         PdfFormFillerOptions? appearanceOptions,
-        ref int nextObjectNumber) {
+        ref int nextObjectNumber,
+        TextAppearanceFontPlan? preparedFontPlan = null) {
         PdfDictionary? defaultResources = ResolveDictionary(objects, acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) ? resourcesObject : null);
         PdfDictionary? pageResources = ResolveDictionary(objects, page.Items.TryGetValue("Resources", out PdfObject? pageResourcesObject) ? pageResourcesObject : null);
         string? defaultAppearance = TryReadText(objects, widget, "DA");
-        return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, appearanceOptions, fieldName, ref nextObjectNumber);
+        return CreateTextAppearanceStream(objects, defaultResources, null, pageResources, value, width, height, style, defaultAppearance, fontSize, appearanceOptions, fieldName, ref nextObjectNumber, preparedFontPlan: preparedFontPlan);
+    }
+
+    internal static TextAppearanceFontPlan? CreateAuthoredSharedTextAppearanceFontPlan(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        IReadOnlyList<string> values,
+        PdfFormFillerOptions? appearanceOptions,
+        string fieldName,
+        ref int nextObjectNumber) {
+        string displayValue = string.Concat(values);
+        if (displayValue.Length == 0) return null;
+
+        PdfDictionary? defaultResources = ResolveDictionary(objects, acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) ? resourcesObject : null);
+        PdfDictionary? pageResources = ResolveDictionary(objects, page.Items.TryGetValue("Resources", out PdfObject? pageResourcesObject) ? pageResourcesObject : null);
+        if (TryCreateInheritedTextAppearanceFontPlan(objects, defaultResources, null, pageResources, displayValue, out TextAppearanceFontPlan? fontPlan)) {
+            return fontPlan;
+        }
+
+        string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
+        bool hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+        if (!hasEmbeddedAppearanceFont) {
+            hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
+            if (!hasEmbeddedAppearanceFont &&
+                (appearanceOptions?.HasAppearanceFontFamily == true || appearanceOptions?.HasAppearanceFontFallbacks == true)) {
+                throw new InvalidOperationException(fallbackFontFailure ?? configuredFontFailure ?? "The configured appearance font could not be used for the form field appearance.");
+            }
+        }
+
+        fontPlan?.Materialize(objects);
+        return fontPlan;
     }
 
     private static PdfStream CreateRichTextAppearanceStream(IReadOnlyList<PdfFreeTextRichTextRun> richRuns, double width, double height, PdfFormFieldStyle style, double fontSize) {
@@ -285,6 +319,7 @@ internal static partial class PdfFormFiller {
         string fieldName,
         bool selected,
         PdfFormFillerOptions? appearanceOptions,
+        TextAppearanceFontPlan? preparedFontPlan,
         ref int nextObjectNumber) {
         double labelX = buttonSize + PdfRadioButtonLayout.GetLabelGap(buttonSize);
         PdfFormFieldStyle labelStyle = PdfAcroFormEditor.CreateButtonCaptionStyle(style);
@@ -304,7 +339,8 @@ internal static partial class PdfFormFiller {
             PdfRadioButtonLayout.GetLabelFontSize(requestedFontSize, buttonSize),
             fieldName,
             appearanceOptions,
-            ref nextObjectNumber);
+            ref nextObjectNumber,
+            preparedFontPlan);
         string radioContent = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(buttonSize, buttonSize, selected, style);
         string labelContent = PdfEncoding.Latin1GetString(labelAppearance.Data);
         string content = radioContent + "\nq\n1 0 0 1 " +
