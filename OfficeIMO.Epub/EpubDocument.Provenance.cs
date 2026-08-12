@@ -28,9 +28,9 @@ public sealed partial class EpubDocument {
         stream.Position = 0;
         bool hadSignatures = false;
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
-            ZipArchiveEntry? entry = archive.Entries.FirstOrDefault(item =>
-                item.FullName.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
-            if (entry != null) {
+            ZipArchiveEntry[] entries = archive.Entries.Where(item =>
+                item.FullName.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase)).ToArray();
+            foreach (ZipArchiveEntry entry in entries) {
                 hadSignatures = true;
                 entry.Delete();
             }

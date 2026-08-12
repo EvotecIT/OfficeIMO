@@ -18,7 +18,6 @@ public sealed class ProvenanceDocumentContracts {
         byte[] manifest = CreateManifestStore();
         byte[] image = CreatePngWithManifest(manifest);
         string html = "<!doctype html><html><head>" +
-            $"<script type=\"application/c2pa\">{Convert.ToBase64String(manifest)}</script>" +
             "<link rel=\"stylesheet c2pa-manifest\" href=\"https://example.test/claim.c2pa\">" +
             "</head><body>" +
             $"<img src=\"data:image/png;base64,{Convert.ToBase64String(image)}\" alt=\"kept\">" +
@@ -28,12 +27,40 @@ public sealed class ProvenanceDocumentContracts {
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
         string output = Encoding.UTF8.GetString(result.ToArray());
 
-        Assert.Equal(3, report.Evidence.Count);
+        Assert.Equal(2, report.Evidence.Count);
         Assert.Contains(report.Evidence, item => item.Location.StartsWith("HTML/img[src]", StringComparison.Ordinal));
         Assert.Empty(result.After.Evidence);
-        Assert.DoesNotContain("application/c2pa", output, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("c2pa-manifest", output, StringComparison.OrdinalIgnoreCase);
+        Assert.StartsWith("<!DOCTYPE html>", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rel=\"stylesheet\"", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("href=\"https://example.test/claim.c2pa\"", output, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("alt=\"kept\"", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRemovesASingleEmbeddedManifestAssociation() {
+        string html = $"<!doctype html><html><head><script type=\"application/c2pa\">{Convert.ToBase64String(CreateManifestStore())}</script></head><body>kept</body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain("application/c2pa", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("kept", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPreservesMultipleManifestAssociationsByDefault() {
+        string manifest = Convert.ToBase64String(CreateManifestStore());
+        string html = $"<html><head><script type=\"application/c2pa\">{manifest}</script><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.False(result.WasChanged);
+        Assert.Equal(2, result.Before.Evidence.Count);
+        Assert.All(result.Before.Evidence, item => Assert.False(item.IsStructurallyValid));
+        Assert.Contains(result.Before.Diagnostics, item => item.Contains("manifest.html.multipleManifests", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -46,6 +73,46 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Single(result.Before.Evidence);
         Assert.False(result.Before.Evidence[0].IsStructurallyValid);
         Assert.Equal(html, Encoding.UTF8.GetString(result.ToArray()));
+    }
+
+    [Fact]
+    public void HtmlUsesOnlyHeadAssociationsAndAcceptsSafeRelativeReferences() {
+        string html = "<html><head><link rel=\"c2pa-manifest\" href=\"claims/active.c2pa\"></head>" +
+            "<body><script type=\"application/c2pa\">not-a-head-carrier</script></body></html>";
+
+        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        OfficeProvenanceEvidence evidence = Assert.Single(report.Evidence);
+        Assert.True(evidence.IsStructurallyValid);
+        Assert.Equal("claims/active.c2pa", evidence.Value);
+        Assert.DoesNotContain("rel=\"c2pa-manifest\"", output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not-a-head-carrier", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFileRemovalPreservesDetectedLegacyEncoding() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string html = "<!doctype html><html><head><meta charset=\"windows-1252\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>café</body></html>";
+        string inputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        try {
+            File.WriteAllBytes(inputPath, windows1252.GetBytes(html));
+
+            OfficeProvenanceReport report = HtmlProvenance.InspectFile(inputPath);
+            OfficeProvenanceRemovalResult result = HtmlProvenance.RemoveFile(inputPath, outputPath);
+            string output = windows1252.GetString(File.ReadAllBytes(outputPath));
+
+            Assert.Single(report.Evidence);
+            Assert.True(result.WasChanged);
+            Assert.Contains("café", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("c2pa-manifest", output, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+        }
     }
 
     [Fact]
@@ -99,7 +166,7 @@ public sealed class ProvenanceDocumentContracts {
 
         using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
         Assert.True(result.WereInvalidatedSignaturesRemoved);
-        Assert.Null(archive.GetEntry(signaturePath));
+        Assert.DoesNotContain(archive.Entries, entry => entry.FullName.Equals(signaturePath, StringComparison.OrdinalIgnoreCase));
         Assert.Empty(result.After.Evidence);
         Assert.Equal("mimetype", archive.Entries[0].FullName);
         Assert.Equal(CompressionMethodStored, ReadCompressionMethod(result.ToArray(), archive.Entries[0].FullName));
@@ -155,6 +222,7 @@ public sealed class ProvenanceDocumentContracts {
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             WriteEntry(archive, "mimetype", extension == "odt" ? "application/vnd.oasis.opendocument.text" : "application/epub+zip", CompressionLevel.NoCompression);
             WriteEntry(archive, signaturePath, "<signatures/>", CompressionLevel.Optimal);
+            WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
             WriteEntry(archive, "media/provenance.png", image, CompressionLevel.Optimal);
         }
         return output.ToArray();
