@@ -7,6 +7,13 @@ namespace OfficeIMO.Html;
 
 /// <summary>Inspects and selectively removes standards-defined provenance from HTML documents.</summary>
 public static class HtmlProvenance {
+    private static readonly string[] EmbeddedImageSourceAttributes = {
+        "src", "data-src", "data-original", "data-original-src", "data-lazy-src"
+    };
+    private static readonly string[] EmbeddedImageSourceSetAttributes = {
+        "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"
+    };
+
     /// <summary>Inspects embedded and external C2PA carriers plus supported embedded image data URIs.</summary>
     public static OfficeProvenanceReport Inspect(string html, OfficeProvenanceOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
@@ -157,7 +164,7 @@ public static class HtmlProvenance {
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics) {
         int count = 0;
-        foreach (IElement element in document.QuerySelectorAll("img[src],source[src],img[srcset],source[srcset]")) {
+        foreach (IElement element in document.QuerySelectorAll("img,source")) {
             foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
@@ -189,7 +196,7 @@ public static class HtmlProvenance {
         List<OfficeProvenanceChange> changes) {
         int count = 0;
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
-        foreach (IElement element in document.QuerySelectorAll("img[src],source[src],img[srcset],source[srcset]")) {
+        foreach (IElement element in document.QuerySelectorAll("img,source")) {
             EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
@@ -205,7 +212,7 @@ public static class HtmlProvenance {
                         "asset" + dataUri.FileExtension,
                         CreateNestedRemovalOptions(options));
                     if (!nested.WasChanged) continue;
-                    string metadata = dataUri.IsBase64 ? dataUri.Metadata : dataUri.Metadata + ";base64";
+                    string metadata = CreateRewrittenDataUriMetadata(dataUri);
                     replacements.Add((reference, "data:" + metadata + "," + Convert.ToBase64String(nested.ToArray())));
                     foreach (OfficeProvenanceChange change in nested.Changes) {
                         changes.Add(new OfficeProvenanceChange(
@@ -222,21 +229,42 @@ public static class HtmlProvenance {
     }
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(IElement element) {
-        string? source = element.GetAttribute("src");
-        if (source != null) yield return new EmbeddedImageReference("src", source, 0, source.Length);
-        string? sourceSet = element.GetAttribute("srcset");
-        if (sourceSet == null) yield break;
-        foreach (EmbeddedImageReference reference in ParseSrcset(sourceSet)) yield return reference;
+        foreach (string attributeName in EmbeddedImageSourceAttributes) {
+            string? source = element.GetAttribute(attributeName);
+            if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
+        }
+        foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
+            string? sourceSet = element.GetAttribute(attributeName);
+            if (sourceSet == null) continue;
+            foreach (EmbeddedImageReference reference in ParseSrcset(attributeName, sourceSet)) yield return reference;
+        }
     }
 
-    private static IEnumerable<EmbeddedImageReference> ParseSrcset(string sourceSet) {
+    private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
         int searchOffset = 0;
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {
             int start = sourceSet.IndexOf(candidate.Url, searchOffset, StringComparison.Ordinal);
             if (start < 0) continue;
-            yield return new EmbeddedImageReference("srcset", candidate.Url, start, candidate.Url.Length);
+            yield return new EmbeddedImageReference(attributeName, candidate.Url, start, candidate.Url.Length);
             searchOffset = start + candidate.Url.Length;
         }
+    }
+
+    private static string CreateRewrittenDataUriMetadata(HtmlImageDataUri dataUri) {
+        string[] parts = dataUri.Metadata.Split(';');
+        var metadata = new List<string>(parts.Length + 1);
+        bool svg = string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
+        foreach (string part in parts) {
+            string trimmed = part.Trim();
+            if (trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase)) continue;
+            if (svg && trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) {
+                metadata.Add("charset=utf-8");
+            } else {
+                metadata.Add(trimmed);
+            }
+        }
+        metadata.Add("base64");
+        return string.Join(";", metadata);
     }
 
     private static void ApplyEmbeddedImageReplacements(

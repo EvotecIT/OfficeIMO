@@ -7,6 +7,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Provenance;
+using OfficeIMO.Security;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -252,6 +253,48 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
+    [Theory]
+    [InlineData("data-src", false)]
+    [InlineData("data-original", false)]
+    [InlineData("data-original-src", false)]
+    [InlineData("data-lazy-src", false)]
+    [InlineData("data-srcset", true)]
+    [InlineData("data-original-srcset", true)]
+    [InlineData("data-lazy-srcset", true)]
+    public void HtmlSanitizesSupportedLazyImageAttributes(string attributeName, bool sourceSet) {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string value = sourceSet ? dataUri + " 1x, retained.png 2x" : dataUri;
+        string html = $"<html><head></head><body><img {attributeName}=\"{value}\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.Contains(result.Before.Evidence, item => item.Location.Contains("[" + attributeName + "]", StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+        if (sourceSet) Assert.Contains("retained.png 2x", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string svg = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><rdf:Description " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></metadata></svg>";
+        string dataUri = "data:image/svg+xml;charset=windows-1252;base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
+        string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
+
+        string output = Encoding.UTF8.GetString(HtmlProvenance.Remove(html).ToArray());
+        int start = output.IndexOf("data:image/svg+xml", StringComparison.Ordinal);
+        int end = output.IndexOf('"', start);
+        Assert.True(HtmlDataUri.TryParse(output.Substring(start, end - start), out HtmlDataUri rewritten));
+
+        Assert.Contains("charset=utf-8", rewritten.Metadata, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("windows-1252", rewritten.Metadata, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("café", rewritten.DecodeText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
@@ -423,6 +466,28 @@ public sealed class ProvenanceDocumentContracts {
             WordDocument.RemoveProvenance(package, "document.docx", options));
 
         Assert.Contains("package part exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DanglingSignatureOriginRelationshipIsSignatureEvidence() {
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "[Content_Types].xml",
+                    "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/></Types>",
+                    CompressionLevel.Optimal);
+                WriteEntry(archive, "_rels/.rels",
+                    "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"sig\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin\" Target=\"_xmlsignatures/missing-origin.sigs\"/></Relationships>",
+                    CompressionLevel.Optimal);
+            }
+            package = output.ToArray();
+        }
+
+        OfficePackageSignatureInfo info = OfficePackageSignatureService.Inspect(package);
+
+        Assert.Equal(1, info.OriginRelationshipCount);
+        Assert.Equal(0, info.OriginPartCount);
+        Assert.True(info.HasSignatures);
     }
 
     [Fact]
