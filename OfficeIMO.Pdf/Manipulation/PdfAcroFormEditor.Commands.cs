@@ -146,7 +146,7 @@ internal static partial class PdfAcroFormEditor {
         RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
-        EnsureAnnotationArray(objects, page).Items.Add(new PdfReference(field.WidgetObjectNumbers[0], 0));
+        EnsureAnnotationArray(objects, page).Items.Add(CreateReference(objects, field.WidgetObjectNumbers[0]));
         if (IsPushButton(objects, field)) {
             RebuildPushButtonAppearance(objects, acroForm, page, field, widget, rectangle, appearanceOptions, ref nextObjectNumber);
             refillValues.Remove(name);
@@ -212,9 +212,14 @@ internal static partial class PdfAcroFormEditor {
             inheritedDefaultAppearance: defaultAppearance);
         int appearanceObjectNumber = nextObjectNumber++;
         objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
-        var appearances = new PdfDictionary();
+        PdfDictionary? appearances = widget.Items.TryGetValue("AP", out PdfObject? appearanceObject)
+            ? ResolveDictionary(objects, appearanceObject)
+            : null;
+        if (appearances is null) {
+            appearances = new PdfDictionary();
+            widget.Items["AP"] = appearances;
+        }
         appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
-        widget.Items["AP"] = appearances;
     }
 
     private static string? ReadResolvedText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>

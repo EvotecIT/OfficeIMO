@@ -75,6 +75,45 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Edit_UsesLastDefaultValueAssignedInTransaction() {
+        byte[] source = PdfDocument.Create().TextField("name", value: "Ada").ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetDefaultValue("name", "first")
+            .SetDefaultValue("name", "second"));
+
+        Assert.Equal("second", Assert.Single(result.Fields).DefaultValue);
+    }
+
+    [Fact]
+    public void Move_PreservesNonzeroWidgetGenerationInPageAnnotations() {
+        byte[] source = BuildNonzeroGenerationWidgetPdf();
+        Assert.Equal(2, PdfSyntax.ParseObjects(source, null).Map[6].Generation);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.Move("name", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary page = Assert.IsType<PdfDictionary>(objects[3].Value);
+        PdfArray annotations = Assert.IsType<PdfArray>(page.Items["Annots"]);
+        PdfReference widgetReference = Assert.IsType<PdfReference>(Assert.Single(annotations.Items));
+
+        Assert.Equal(objects[widgetReference.ObjectNumber].Generation, widgetReference.Generation);
+    }
+
+    [Fact]
+    public void Move_PreservesPushButtonRolloverAndDownAppearances() {
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
+            edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
+        PdfFormWidget widget = Assert.Single(Assert.Single(result.Fields).Widgets);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary widgetDictionary = Assert.IsType<PdfDictionary>(objects[widget.ObjectNumber!.Value].Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, widgetDictionary.Items["AP"]));
+
+        Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, appearances.Items["R"]));
+        Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, appearances.Items["D"]));
+    }
+
+    [Fact]
     public void RewritePreservation_ComparesPageActionContentsWhenPageCountsDiffer() {
         byte[] original = BuildPageActionPdf(pageCount: 2, "https://before.example/");
         byte[] rewritten = BuildPageActionPdf(pageCount: 1, "https://after.example/");
@@ -150,6 +189,8 @@ public class PdfAcroFormReviewRegressionTests {
 
     private static byte[] BuildInheritedPushButtonPdf() {
         const string appearance = "BT /F1 10 Tf (Run) Tj ET";
+        const string rollover = "BT /F1 10 Tf (Rollover) Tj ET";
+        const string down = "BT /F1 10 Tf (Down) Tj ET";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
@@ -158,9 +199,23 @@ public class PdfAcroFormReviewRegressionTests {
             "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
             "6 0 obj", "<< /FT /Btn /Ff 65536 /T (group) /Kids [7 0 R] >>", "endobj",
             "7 0 obj", "<< /Parent 6 0 R /T (run) /Kids [8 0 R] >>", "endobj",
-            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 120 40] /P 3 0 R /MK << /CA (Run) >> /AP << /N 9 0 R >> >>", "endobj",
+            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 120 40] /P 3 0 R /MK << /CA (Run) >> /AP << /N 9 0 R /R 10 0 R /D 11 0 R >> >>", "endobj",
             "9 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
-            "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
+            "10 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + rollover.Length + " >>", "stream", rollover, "endstream", "endobj",
+            "11 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + down.Length + " >>", "stream", down, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 12 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildNonzeroGenerationWidgetPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 2 R] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 2 R] >>", "endobj",
+            "6 2 obj", "<< /Type /Annot /Subtype /Widget /FT /Tx /T (name) /V (Ada) /Rect [20 20 120 40] /P 3 0 R >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));
     }
 

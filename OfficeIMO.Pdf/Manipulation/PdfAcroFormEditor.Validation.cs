@@ -19,7 +19,9 @@ internal static partial class PdfAcroFormEditor {
                     if (byName.Keys.Any(candidate => IsFieldInSubtree(candidate, command.Name!) && !IsIntroducedLater(commands, i, candidate))) throw new InvalidOperationException("AcroForm remove readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.DefaultValue:
-                    if (byName.TryGetValue(command.Name!, out PdfFormField? defaultField) && !string.Equals(defaultField.DefaultValue, command.Value, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm default-value readback validation failed for " + command.Name + ".");
+                    if (!HasLaterDefaultValueEdit(commands, i, command.Name!) &&
+                        byName.TryGetValue(command.Name!, out PdfFormField? defaultField) &&
+                        !string.Equals(defaultField.DefaultValue, command.Value, StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm default-value readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.Flags:
                     if (byName.TryGetValue(command.Name!, out PdfFormField? flagsField) && flagsField.Flags != command.Number) throw new InvalidOperationException("AcroForm flags readback validation failed for " + command.Name + ".");
@@ -65,6 +67,23 @@ internal static partial class PdfAcroFormEditor {
             if (command.Kind == PdfAcroFormEditSession.EditKind.Rename && string.Equals(command.Name, current, StringComparison.Ordinal)) {
                 current = command.Value!;
             } else if (command.Kind == PdfAcroFormEditSession.EditKind.Flags && string.Equals(command.Name, current, StringComparison.Ordinal)) {
+                return true;
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Remove && IsFieldInSubtree(current, command.Name!)) {
+                return false;
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.Flatten && command.Names!.Contains(current, StringComparer.Ordinal)) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static bool HasLaterDefaultValueEdit(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, string name) {
+        string current = name;
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Rename && string.Equals(command.Name, current, StringComparison.Ordinal)) {
+                current = command.Value!;
+            } else if (command.Kind == PdfAcroFormEditSession.EditKind.DefaultValue && string.Equals(command.Name, current, StringComparison.Ordinal)) {
                 return true;
             } else if (command.Kind == PdfAcroFormEditSession.EditKind.Remove && IsFieldInSubtree(current, command.Name!)) {
                 return false;
