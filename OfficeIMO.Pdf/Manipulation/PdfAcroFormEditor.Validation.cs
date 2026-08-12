@@ -40,10 +40,26 @@ internal static partial class PdfAcroFormEditor {
                         !calculationOrder.SequenceEqual(expectedOrder, StringComparer.Ordinal)) throw new InvalidOperationException("AcroForm calculation-order readback validation failed.");
                     break;
                 case PdfAcroFormEditSession.EditKind.Flatten:
-                    for (int n = 0; n < command.Names!.Length; n++) if (byName.ContainsKey(command.Names[n])) throw new InvalidOperationException("AcroForm flatten readback validation failed for " + command.Names[n] + ".");
+                    for (int n = 0; n < command.Names!.Length; n++) {
+                        string flattenedName = ResolveLaterRenames(command.Names[n], commands, i);
+                        if (byName.ContainsKey(flattenedName)) throw new InvalidOperationException("AcroForm flatten readback validation failed for " + flattenedName + ".");
+                    }
                     break;
             }
         }
+    }
+
+    private static string ResolveLaterRenames(
+        string name,
+        IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands,
+        int index) {
+        string current = name;
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.Rename &&
+                string.Equals(command.Name, current, StringComparison.Ordinal)) current = command.Value!;
+        }
+        return current;
     }
 
     private static bool IsRemovedLater(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, string name) {

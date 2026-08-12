@@ -42,6 +42,20 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_AllowsRecreatingOriginalNameAfterFlattenedFieldIsRenamed() {
+        byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Flatten("f")
+            .Rename("f", "g")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "new" }));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("f", field.Name);
+        Assert.Equal("new", field.Value);
+    }
+
+    [Fact]
     public void Edit_AppliesFieldTreeWidgetOrderAndSelectiveFlattenTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("Person.Name", value: "Ada")

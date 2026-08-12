@@ -348,6 +348,40 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void ImageValidationHonorsConfiguredContentNestingLimit() {
+        string nestedOperand = new string('[', 129) + "0" + new string(']', 129);
+        string unusedFormContent = nestedOperand + " n";
+        string unusedForm = "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length " +
+            Encoding.ASCII.GetByteCount(unusedFormContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + unusedFormContent + "\nendstream\nendobj\n";
+        byte[] source = BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalObjects: unusedForm);
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 256 } };
+        PdfDocument document = PdfDocument.Open(source, options);
+
+        PdfImageEditResult result = document.Images.Move(
+            Assert.Single(document.Images.Placements()),
+            10D,
+            0D,
+            readOptions: options);
+
+        Assert.Single(result.Document.Images.Placements());
+    }
+
+    [Fact]
+    public void DestructiveEditsRejectStructParentOnSelectedImage() {
+        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /StructParent 0"));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Remove(Assert.Single(document.Images.Placements())));
+
+        Assert.Contains("structure tree", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void XObjectRemovalSkipsUnrelatedInlineImagePayloadOperators() {
         PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
             "BI /W 1 /H 1 /BPC 8 /CS /RGB ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
@@ -456,7 +490,8 @@ public class PdfImageEditorTests {
         string additionalResources = "",
         byte[]? imageBytes = null,
         string imageEntries = "/ColorSpace /DeviceRGB /BitsPerComponent 8",
-        string pageEntries = "") {
+        string pageEntries = "",
+        string additionalObjects = "") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         imageBytes ??= new byte[] { 255, 0, 0 };
         using var output = new MemoryStream();
@@ -469,7 +504,9 @@ public class PdfImageEditorTests {
         WriteAscii(output, "endstream\nendobj\n");
         WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " + imageEntries + " /Length " + imageBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(imageBytes, 0, imageBytes.Length);
-        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, additionalObjects);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
         return output.ToArray();
     }
 

@@ -531,12 +531,18 @@ internal static partial class PdfRedactionApplier {
         return count;
     }
 
-    private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers) {
+    private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers, PdfReadLimits limits) {
         var invokedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfStream stream || string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal) || stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects));
-            foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) invokedNames.Add(invocation.Name);
+            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
+            foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(
+                content,
+                maxOperations: limits.MaxContentOperations,
+                maxNestingDepth: limits.MaxContentNestingDepth,
+                maxOperands: limits.MaxContentOperands)) {
+                invokedNames.Add(invocation.Name);
+            }
         }
         bool changed = false;
         foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;

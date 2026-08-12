@@ -145,8 +145,8 @@ internal static partial class PdfRedactionApplier {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
-        int maximumDecodedStreamBytes = readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes;
-        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, maximumDecodedStreamBytes, mutationScope, paintMarks, imageTargets);
+        PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
+        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, mutationScope, paintMarks, imageTargets);
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             return pdf.ToArray();
@@ -217,7 +217,7 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionPlan plan,
         PdfRedactionArea[] areas,
         PdfRedactionApplyOptions options,
-        int maximumDecodedStreamBytes,
+        PdfReadLimits limits,
         RedactionMutationScope mutationScope,
         bool paintMarks,
         IReadOnlyList<PdfImagePlacement>? imageTargets) {
@@ -263,7 +263,7 @@ internal static partial class PdfRedactionApplier {
                     pageAreas ?? Array.Empty<PdfRedactionArea>(),
                     ref nextObjectNumber) || pageChanged;
             }
-            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), maximumDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
+            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits.MaxDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
             if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
             PdfRedactionArea[] paintAreas = paintMarks
@@ -280,7 +280,7 @@ internal static partial class PdfRedactionApplier {
             changed = pageChanged || changed;
         }
 
-        if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers) || changed;
+        if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers, limits) || changed;
 
         return new RedactionMutation(changed);
     }
