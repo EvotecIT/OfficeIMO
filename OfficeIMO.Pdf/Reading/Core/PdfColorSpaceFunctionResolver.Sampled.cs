@@ -11,7 +11,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         double[] decode,
         byte[] samples,
         int outputCount,
-        out Func<double[], double[]?> evaluator,
+        out PdfColorFunctionEvaluator evaluator,
         out int cubicEvaluationCost) {
         evaluator = null!;
         cubicEvaluationCost = 0;
@@ -30,15 +30,21 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 samples,
                 out secondDerivatives)) return false;
 
-        evaluator = values => useCubic
-            ? EvaluateCubicSampled(values, domain, encode, sizes, interpolationBounds, strides, bitsPerSample, maximumSample, decode, samples, outputCount, secondDerivatives)
-            : EvaluateLinearSampled(values, domain, encode, sizes, strides, bitsPerSample, maximumSample, decode, samples, outputCount);
-        if (useCubic) cubicEvaluationCost = CalculateCubicEvaluationCost(interpolationBounds, outputCount);
+        evaluator = (values, output, outputOffset) => useCubic
+            ? EvaluateCubicSampled(values, output, outputOffset, domain, encode, sizes, interpolationBounds, strides, bitsPerSample, maximumSample, decode, samples, outputCount, secondDerivatives)
+            : EvaluateLinearSampled(values, output, outputOffset, domain, encode, sizes, strides, bitsPerSample, maximumSample, decode, samples, outputCount);
+        if (useCubic) {
+            cubicEvaluationCost = secondDerivatives != null
+                ? checked(2 * outputCount)
+                : CalculateCubicEvaluationCost(interpolationBounds, outputCount);
+        }
         return true;
     }
 
-    private static double[]? EvaluateLinearSampled(
+    private static bool EvaluateLinearSampled(
         double[] values,
+        double[] outputValues,
+        int outputOffset,
         double[] domain,
         double[] encode,
         int[] sizes,
@@ -48,9 +54,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
         double[] decode,
         byte[] samples,
         int outputCount) {
-        if (!TryCreateSampleCoordinates(values, domain, encode, sizes, interpolationBounds: null, out SampleCoordinates coordinates)) return null;
+        if (!TryCreateSampleCoordinates(values, domain, encode, sizes, interpolationBounds: null, out SampleCoordinates coordinates)) return false;
 
-        var result = new double[outputCount];
+        for (int output = 0; output < outputCount; output++) outputValues[outputOffset + output] = 0D;
         int cornerCount = 1 << sizes.Length;
         for (int corner = 0; corner < cornerCount; corner++) {
             double weight = 1D;
@@ -68,7 +74,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
 
             long sampleOffset = pointIndex * outputCount;
             for (int output = 0; output < outputCount; output++) {
-                result[output] += weight * ReadDecodedSample(
+                outputValues[outputOffset + output] += weight * ReadDecodedSample(
                     samples,
                     sampleOffset + output,
                     bitsPerSample,
@@ -77,11 +83,13 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     output);
             }
         }
-        return result;
+        return true;
     }
 
-    private static double[]? EvaluateCubicSampled(
+    private static bool EvaluateCubicSampled(
         double[] values,
+        double[] outputValues,
+        int outputOffset,
         double[] domain,
         double[] encode,
         int[] sizes,
@@ -93,11 +101,10 @@ internal static partial class PdfColorSpaceFunctionResolver {
         byte[] samples,
         int outputCount,
         double[]? secondDerivatives) {
-        if (!TryCreateSampleCoordinates(values, domain, encode, sizes, interpolationBounds, out SampleCoordinates coordinates)) return null;
+        if (!TryCreateSampleCoordinates(values, domain, encode, sizes, interpolationBounds, out SampleCoordinates coordinates)) return false;
 
-        var result = new double[outputCount];
         if (sizes.Length == 1) {
-            if (secondDerivatives == null) return null;
+            if (secondDerivatives == null) return false;
             int left = coordinates.GetLower(0);
             double fraction = coordinates.GetFraction(0);
             int splineStart = interpolationBounds.GetStart(0);
@@ -109,16 +116,16 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 double leftSecond = secondDerivatives[derivativeOffset];
                 double rightSecond = secondDerivatives[derivativeOffset + 1];
                 double complement = 1D - fraction;
-                result[output] = leftValue * complement + rightValue * fraction -
+                outputValues[outputOffset + output] = leftValue * complement + rightValue * fraction -
                     fraction * complement *
                     (leftSecond * (complement + 1D) + rightSecond * (fraction + 1D)) / 6D;
-                if (!IsFinite(result[output])) return null;
+                if (!IsFinite(outputValues[outputOffset + output])) return false;
             }
-            return result;
+            return true;
         }
 
         for (int output = 0; output < outputCount; output++) {
-            result[output] = InterpolateCubicTensor(
+            outputValues[outputOffset + output] = InterpolateCubicTensor(
                 sizes.Length - 1,
                 0L,
                 coordinates,
@@ -131,9 +138,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 decode,
                 outputCount,
                 output);
-            if (!IsFinite(result[output])) return null;
+            if (!IsFinite(outputValues[outputOffset + output])) return false;
         }
-        return result;
+        return true;
     }
 
     private static double InterpolateCubicTensor(
@@ -227,7 +234,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         int leafReads = 1;
         for (int input = 0; input < interpolationBounds.InputCount; input++) {
             int branchCount = interpolationBounds.UsesCubic(input)
-                ? 4
+                ? (interpolationBounds.GetEnd(input) - interpolationBounds.GetStart(input) + 1 >= 4 ? 4 : 3)
                 : interpolationBounds.GetStart(input) == interpolationBounds.GetEnd(input) ? 1 : 2;
             leafReads = checked(leafReads * branchCount);
         }
@@ -235,7 +242,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
     }
 
     private static int GetNaturalSplinePointCount(int order, int inputCount, double[] encode, int[] sizes) {
-        return order == 3 && inputCount == 1 && sizes[0] >= 4 ? sizes[0] : 0;
+        return order == 3 && inputCount == 1 && sizes[0] >= 3 ? sizes[0] : 0;
     }
 
     private static SampleInterpolationBounds CreateSampleInterpolationBounds(int order, double[] encode, int[] sizes) {
@@ -246,7 +253,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
         for (int input = 0; input < sizes.Length; input++) {
             starts[input] = 0;
             ends[input] = sizes[input] - 1;
-            cubic[input] = order == 3 && sizes[input] >= 4;
+            cubic[input] = order == 3 && sizes[input] >= 3;
             hasCubic |= cubic[input];
         }
         return new SampleInterpolationBounds(starts, ends, cubic, hasCubic);

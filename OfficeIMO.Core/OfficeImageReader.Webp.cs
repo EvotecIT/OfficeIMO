@@ -167,7 +167,7 @@ public static partial class OfficeImageReader {
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Webp, width, height, dpiX, dpiY);
-        return width > 0 && height > 0;
+        return OfficeRasterGuards.TryEnsurePixelCount(width, height, out _);
     }
 
     private static bool TryReadWebpAnimationFrame(

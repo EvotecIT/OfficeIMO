@@ -72,6 +72,33 @@ public class PdfImageExtractorTests {
         Assert.Equal(OfficeImageFormat.Jpeg, info.Format);
     }
 
+    [Theory]
+    [InlineData("SMask")]
+    [InlineData("Mask")]
+    public void ExtractedImageTreatsNullTransparencyMaskAsAbsentMetadata(string maskKey) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Image");
+        dictionary.Items["Width"] = new PdfNumber(1);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        dictionary.Items[maskKey] = PdfNull.Instance;
+
+        PdfExtractedImage image = ResourceResolver.BuildExtractedImage(
+            pageNumber: 1,
+            resourceName: "Im1",
+            objectNumber: 5,
+            directStreamIdentity: 0,
+            new PdfStream(dictionary, new byte[] { 255, 0, 0 }),
+            new Dictionary<int, PdfIndirectObject>());
+
+        Assert.True(image.IsImageFile);
+        Assert.False(image.HasTransparencyMask);
+        Assert.False(image.HasUnresolvedTransparencyMask);
+        Assert.Null(image.TransparencyMaskKind);
+    }
+
     [Fact]
     public void ExtractImages_NormalizesUnfilteredDeviceRgbImageStreamsToPngFiles() {
         byte[] source = BuildUnfilteredDeviceRgbImagePdf();
