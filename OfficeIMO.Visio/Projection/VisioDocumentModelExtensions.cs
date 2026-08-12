@@ -29,7 +29,7 @@ public static class VisioDocumentModelExtensions {
             Title = document.Title,
             Author = document.Author
         };
-        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot();
+        VisioInspectionSnapshot snapshot = document.CreateInspectionSnapshot(operation.MaxTableRows);
         OfficeDocumentModelBlock[] blocks = BuildBlocks(snapshot, logicalSourceName).ToArray();
         OfficeDocumentModelTable[] tables = BuildTables(snapshot, logicalSourceName, operation.MaxTableRows).ToArray();
         VisioPage[] orderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();
@@ -107,25 +107,23 @@ public static class VisioDocumentModelExtensions {
             VisioInspectionPageSnapshot page = snapshot.Pages[pageIndex];
             var rows = new List<IReadOnlyList<string>>();
             foreach (VisioInspectionShapeSnapshot shape in page.Shapes) {
-                AddShapeDataRows(rows, "shape", shape.Id, shape.Text, shape.ShapeData);
+                AddShapeDataRows(rows, maxTableRows,
+                    "shape", shape.Id, shape.Text, shape.ShapeData);
             }
             foreach (VisioInspectionConnectorSnapshot connector in page.Connectors) {
-                AddShapeDataRows(rows, "connector", connector.Id, connector.Label, connector.ShapeData);
+                AddShapeDataRows(rows, maxTableRows,
+                    "connector", connector.Id, connector.Label, connector.ShapeData);
             }
-            if (rows.Count == 0) continue;
+            if (page.TotalShapeDataRows == 0) continue;
 
-            int totalRowCount = rows.Count;
-            IReadOnlyList<IReadOnlyList<string>> visibleRows = rows.Count > maxTableRows
-                ? rows.Take(maxTableRows).ToArray()
-                : rows;
             yield return new OfficeDocumentModelTable {
                 Title = page.Name + " Shape Data",
                 Kind = "visio-shape-data",
                 Location = BuildLocation(sourceName, pageIndex, "shape-data", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-shape-data"),
                 Columns = new[] { "OwnerType", "OwnerId", "OwnerText", "Name", "Label", "Value", "Type", "Prompt" },
-                Rows = visibleRows,
-                TotalRowCount = totalRowCount,
-                Truncated = totalRowCount > visibleRows.Count
+                Rows = rows,
+                TotalRowCount = page.TotalShapeDataRows,
+                Truncated = page.TotalShapeDataRows > rows.Count
             };
         }
     }
@@ -393,11 +391,13 @@ public static class VisioDocumentModelExtensions {
 
     private static void AddShapeDataRows(
         List<IReadOnlyList<string>> rows,
+        int maxTableRows,
         string ownerType,
         string ownerId,
         string? ownerText,
         IReadOnlyList<VisioInspectionShapeDataSnapshot> shapeDataRows) {
         foreach (VisioInspectionShapeDataSnapshot row in shapeDataRows) {
+            if (rows.Count >= maxTableRows) continue;
             rows.Add(new[] {
                 ownerType,
                 ownerId,

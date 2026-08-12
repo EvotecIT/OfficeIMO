@@ -219,6 +219,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void PngTextBudgetsRejectOversizedCompressedAndTranslatedTextWithoutThrowing() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        byte[] oversized = new byte[1024 * 1024 + 1];
+        byte[] compressed = OfficeZlibCodec.Compress(oversized);
+        byte[] zText = Encoding.ASCII.GetBytes("Comment")
+            .Concat(new byte[] { 0, 0 })
+            .Concat(compressed)
+            .ToArray();
+        byte[] internationalText = Encoding.ASCII.GetBytes("Description")
+            .Concat(new byte[] { 0, 0, 0, 0 })
+            .Concat(oversized)
+            .Concat(new byte[] { 0 })
+            .ToArray();
+
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "zTXt", zText), "oversized-compressed-text.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "iTXt", internationalText), "oversized-translated-text.png", out _));
+    }
+
+    [Fact]
     public void PngContainerRequiresOneValidModificationTime() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] leapSecond = { 0x07, 0xE8, 2, 29, 23, 59, 60 };

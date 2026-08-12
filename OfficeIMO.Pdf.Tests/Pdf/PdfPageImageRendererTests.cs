@@ -1369,6 +1369,19 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsType2ShadingEndpointsToDeclaredRange() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "20 80 120 40 re\nW\nn\n/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /Range [0 1 0 1 0 1] /C0 [2 -1 0] /C1 [0 0 3] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
+
+        Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[1].Color);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesInvokedIccShadingAndFailsNoLossPolicy() {
         byte[] pdf = BuildSingleStreamPdf(
             "20 80 120 40 re\nW\nn\n/Sh1 sh",
@@ -2711,7 +2724,13 @@ public class PdfPageImageRendererTests {
         indexedColorSpace.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 255, 255, 255 }));
         var objects = new Dictionary<int, PdfIndirectObject>();
 
-        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
+        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(
+            8,
+            1,
+            maskStream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
         Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out _));
     }
 

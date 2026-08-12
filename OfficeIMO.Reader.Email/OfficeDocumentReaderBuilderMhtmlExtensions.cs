@@ -6,6 +6,8 @@ namespace OfficeIMO.Reader.Email;
 public static class OfficeDocumentReaderBuilderMhtmlExtensions {
     /// <summary>Stable MHTML handler identifier.</summary>
     public const string HandlerId = "officeimo.reader.mhtml";
+    /// <summary>Default maximum MHTML input size accepted by the aggregate reader.</summary>
+    public const long DefaultMaxInputBytes = 64L * 1024L * 1024L;
 
     /// <summary>Adds MHT and MHTML ingestion backed by OfficeIMO.Mhtml and the HTML projection.</summary>
     public static OfficeDocumentReaderBuilder AddMhtmlHandler(
@@ -21,6 +23,7 @@ public static class OfficeDocumentReaderBuilderMhtmlExtensions {
             Description = "MIME HTML archive projection using OfficeIMO.Mhtml and OfficeIMO.Reader.Html.",
             Kind = ReaderInputKind.Html,
             Extensions = new[] { ".mht", ".mhtml" },
+            DefaultMaxInputBytes = DefaultMaxInputBytes,
             ReadPath = (path, readerOptions, token) => MhtmlReaderAdapter.Read(path, readerOptions,
                 ReaderHtmlOptionsCloner.CloneNullable(registeredOptions), token),
             ReadStream = (stream, sourceName, readerOptions, token) => MhtmlReaderAdapter.Read(stream, sourceName,

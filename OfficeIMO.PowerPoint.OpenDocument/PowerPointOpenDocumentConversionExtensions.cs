@@ -28,6 +28,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
         int unsupportedShapeHyperlinks = 0;
         var textState = new PowerPointToOdpTextConversionState();
+        var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -51,7 +52,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
                             imageBytes,
                             imageFileName,
-                            out string storedFileName)) {
+                            out string storedFileName,
+                            imageValidationBudget)) {
                             unsupportedPictures++;
                             continue;
                         }

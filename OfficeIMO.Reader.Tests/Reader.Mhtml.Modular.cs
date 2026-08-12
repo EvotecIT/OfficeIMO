@@ -29,6 +29,9 @@ public sealed class ReaderMhtmlModularTests {
 
         Assert.Contains(".mht", capability.Extensions);
         Assert.Contains(".mhtml", capability.Extensions);
+        Assert.Equal(
+            OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes,
+            reader.GetHandlerDefaultMaxInputBytes("message.mhtml"));
     }
 
     [Fact]
@@ -78,6 +81,28 @@ public sealed class ReaderMhtmlModularTests {
             new ReaderOptions { MaxInputBytes = 32 }));
 
         Assert.Contains("MaxInputBytes", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ContentDetectedMhtmlUsesHandlerDefaultInputLimit() {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-mhtml-limit-" + Guid.NewGuid().ToString("N"));
+        try {
+            byte[] header = Encoding.ASCII.GetBytes("<html><body>content-detected archive</body></html>");
+            byte[] detectionPrefix = Enumerable.Repeat((byte)' ', 64 * 1024).ToArray();
+            Buffer.BlockCopy(header, 0, detectionPrefix, 0, header.Length);
+            using (var output = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                output.Write(detectionPrefix, 0, detectionPrefix.Length);
+                output.SetLength(OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes + 1L);
+            }
+
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMhtmlHandler().Build();
+
+            Exception exception = Assert.ThrowsAny<Exception>(() => reader.ReadDocument(path));
+
+            Assert.Contains("MaxInputBytes", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
     }
 
     private static byte[] CreateArchive() {

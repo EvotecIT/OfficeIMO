@@ -154,10 +154,12 @@ public sealed partial class PdfColorFunctionTests {
             1,
             objects,
             1024,
-            out Func<IReadOnlyList<double>, IReadOnlyList<double>?> indirectTransform));
+            out PdfColorSpaceTintTransform indirectTransform));
 
         Assert.Equal(0.5D, Assert.Single(directTransform(new[] { 0.5D })!), 8);
-        Assert.Equal(0.5D, Assert.Single(indirectTransform(new[] { 0.5D })!), 8);
+        var indirectOutput = new double[1];
+        Assert.True(indirectTransform(new[] { 0.5D }, indirectOutput));
+        Assert.Equal(0.5D, indirectOutput[0], 8);
     }
 
     [Fact]

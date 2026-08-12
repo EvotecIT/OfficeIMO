@@ -9,6 +9,25 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: bounded object-table and MHTML ingestion defaults
+
+Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and object-backed Excel and PowerPoint tables now default to at most 16,384 projected columns. Object tables additionally default to at most 1,000,000 cells, including the header row. Set `ObjectFlattenerOptions.MaxColumns` or `MaxCells` explicitly when a trusted workflow needs a different application-level limit. Excel output remains constrained by worksheet dimensions. The object and explicit-binding `PowerPointSlide.AddTable` overloads apply stricter format-safety ceilings of 1,024 columns and 100,000 cells; split larger trusted datasets into multiple tables.
+
+The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes`. Applications can lower or raise that limit by passing `new ReaderOptions { MaxInputBytes = ... }` to the read operation after registering `AddMhtmlHandler()`; use a larger value only for trusted archives with an application-owned resource policy.
+
+## OfficeIMO 3.2: bounded Visio shape-data projection
+
+Visio document projection now retains at most 200 Shape Data rows per page by default. The limit applies to projected tables, Markdown, and block text, preventing untrusted diagrams from causing unbounded row materialization.
+
+Trusted workflows that need more rows can set an explicit limit:
+
+```csharp
+OfficeDocumentModel model = document.ToOfficeDocumentModel(
+    options: new VisioDocumentProjectionOptions { MaxTableRows = 5_000 });
+```
+
+Use `int.MaxValue` only when trusted input must preserve the former effectively unbounded behavior and the application enforces its own resource policy.
+
 ## OfficeIMO 3.2: complete image validation at ingestion boundaries
 
 Excel file and URL image methods now validate the complete bounded payload instead of trusting a filename extension or image header. They throw `ArgumentException` for truncated, corrupt, or unsupported content that older versions could package. When a valid image has a misleading filename extension or remote content type, OfficeIMO uses the format detected from its payload.
@@ -19,7 +38,7 @@ Direct `OfficeImageExportResult` construction now applies the same complete-cont
 
 Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtfDocumentResult(...)` or `ToWordDocumentResult(...)`, inspect `Report`, and call `RequireNoLoss()` when omitted image content must stop the workflow.
 
-Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
+Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Each conversion validates at most 256 image payloads, 128 MiB of aggregate encoded image data, and 100 million aggregate raster pixels; later images are omitted and reported once a ceiling is reached. Split larger trusted documents before conversion when every image must be retained. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
 
 Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
 

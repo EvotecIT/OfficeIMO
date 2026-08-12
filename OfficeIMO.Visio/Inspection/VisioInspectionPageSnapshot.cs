@@ -12,6 +12,7 @@ namespace OfficeIMO.Visio {
             string? nameU,
             double width,
             double height,
+            int totalShapeDataRows,
             IReadOnlyList<string> layers,
             IReadOnlyList<VisioInspectionShapeSnapshot> shapes,
             IReadOnlyList<VisioInspectionConnectorSnapshot> connectors) {
@@ -20,6 +21,7 @@ namespace OfficeIMO.Visio {
             NameU = nameU;
             Width = width;
             Height = height;
+            TotalShapeDataRows = totalShapeDataRows;
             Layers = layers;
             Shapes = shapes;
             Connectors = connectors;
@@ -39,6 +41,9 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Page height in inches.</summary>
         public double Height { get; }
+
+        /// <summary>Total number of shape-data rows on the page, including rows omitted by a bounded snapshot.</summary>
+        public int TotalShapeDataRows { get; }
 
         /// <summary>Layer names used on the page.</summary>
         public IReadOnlyList<string> Layers { get; }

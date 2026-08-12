@@ -15,7 +15,7 @@ internal static class MhtmlReaderAdapter {
         if (!File.Exists(path)) throw new FileNotFoundException($"MHTML file '{path}' doesn't exist.", path);
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
-        ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
+        ReaderInputLimits.EnforceFileSize(path, GetMaxInputBytes(effective));
         HtmlReaderAdapter.SourceMetadata source = HtmlReaderAdapter.BuildSourceMetadataFromPath(path, effective.ComputeHashes);
         MhtmlDocument archive = MhtmlDocument.Load(path, CreateMhtmlReaderOptions(effective), cancellationToken: cancellationToken);
         return HtmlReaderAdapter.ReadContent(archive.Html, source, effective,
@@ -32,12 +32,13 @@ internal static class MhtmlReaderAdapter {
         if (!stream.CanRead) throw new ArgumentException("MHTML stream must be readable.", nameof(stream));
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
+        long maximumInputBytes = GetMaxInputBytes(effective);
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.mhtml" : sourceName!.Trim();
         var source = new HtmlReaderAdapter.SourceMetadata {
             Path = logicalSourceName,
             SourceId = HtmlReaderAdapter.BuildSourceId(logicalSourceName)
         };
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effective.MaxInputBytes,
+        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, maximumInputBytes,
             cancellationToken, out bool ownsParseStream);
         try {
             HtmlReaderAdapter.UpdateSourceMetadataFromSeekableStream(source, parseStream, effective.ComputeHashes);
@@ -60,7 +61,7 @@ internal static class MhtmlReaderAdapter {
         if (!File.Exists(path)) throw new FileNotFoundException($"MHTML file '{path}' doesn't exist.", path);
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
-        ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
+        ReaderInputLimits.EnforceFileSize(path, GetMaxInputBytes(effective));
         HtmlReaderAdapter.SourceMetadata source = HtmlReaderAdapter.BuildSourceMetadataFromPath(path, effective.ComputeHashes);
         MhtmlDocument archive = MhtmlDocument.Load(path, CreateMhtmlReaderOptions(effective), cancellationToken: cancellationToken);
         return ProjectDocument(archive, source, effective, htmlOptions, cancellationToken);
@@ -76,12 +77,13 @@ internal static class MhtmlReaderAdapter {
         if (!stream.CanRead) throw new ArgumentException("MHTML stream must be readable.", nameof(stream));
 
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
+        long maximumInputBytes = GetMaxInputBytes(effective);
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.mhtml" : sourceName!.Trim();
         var source = new HtmlReaderAdapter.SourceMetadata {
             Path = logicalSourceName,
             SourceId = HtmlReaderAdapter.BuildSourceId(logicalSourceName)
         };
-        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effective.MaxInputBytes,
+        Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, maximumInputBytes,
             cancellationToken, out bool ownsParseStream);
         try {
             HtmlReaderAdapter.UpdateSourceMetadataFromSeekableStream(source, parseStream, effective.ComputeHashes);
@@ -112,9 +114,11 @@ internal static class MhtmlReaderAdapter {
     }
 
     private static EmailReaderOptions CreateMhtmlReaderOptions(ReaderOptions options) {
-        long maxInputBytes = options.MaxInputBytes ?? EmailReaderOptions.Default.MaxInputBytes;
-        return new EmailReaderOptions(maxInputBytes: maxInputBytes);
+        return new EmailReaderOptions(maxInputBytes: GetMaxInputBytes(options));
     }
+
+    private static long GetMaxInputBytes(ReaderOptions options) =>
+        options.MaxInputBytes ?? OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes;
 
     private static ReaderHtmlOptions PrepareHtmlOptions(ReaderHtmlOptions? source, MhtmlDocument archive) {
         ReaderHtmlOptions options = ReaderHtmlOptionsCloner.CloneOrDefault(source);

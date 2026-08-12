@@ -97,6 +97,50 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void RowsFromStopsStreamingSourceAtCellLimit() {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+        int enumeratedRows = 0;
+
+        IEnumerable<WideSimpleRow> StreamingRows() {
+            while (true) {
+                enumeratedRows++;
+                yield return new WideSimpleRow { Left = enumeratedRows, Right = enumeratedRows };
+            }
+        }
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(StreamingRows(), options => {
+                    options.MaxRows = 5;
+                    options.MaxCells = 5;
+                })));
+
+        Assert.Contains("5-cell", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(2, enumeratedRows);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RowsFromEmptyInputSkipsUnrenderedProjectionLimits(bool constrainColumns) {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+
+        Exception? exception = Record.Exception(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(Array.Empty<WideSimpleRow>(), options => {
+                    if (constrainColumns) {
+                        options.MaxColumns = 1;
+                    } else {
+                        options.MaxCells = 1;
+                    }
+                })));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
     public void TableFromStopsUnboundedSourceEnumerationAtConfiguredLimit() {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
@@ -142,6 +186,30 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
     }
 
     [Fact]
+    public void RowsFromSimpleFastPathRejectsColumnsBeyondConfiguredLimit() {
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            SheetBuilder.EnsureRowsFromColumnLimit(2, 1));
+
+        Assert.Contains("1-column", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RowsFromHonorsFinalCellLimitDuringNestedExpansion() {
+        using var stream = new MemoryStream();
+        using ExcelDocument document = ExcelDocument.Create(stream);
+        var rows = new[] { new NestedRow { Name = "A", Values = new[] { 1, 2, 3 } } };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            document.AsFluent().Sheet("Data", sheet =>
+                sheet.RowsFrom(rows, options => {
+                    options.MaxCells = 5;
+                    options.CollectionMode = CollectionMode.ExpandRows;
+                })));
+
+        Assert.Contains("5-cell", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ObjectFlattenerStopsUnboundedNestedCollectionEnumeration() {
         var flattener = new ObjectFlattener();
         var options = new ObjectFlattenerOptions { MaxCollectionItems = 2 };
@@ -164,6 +232,11 @@ public sealed class ExcelAllSeverityBatch13SecurityTests {
 
     private sealed class SimpleRow {
         public int Value { get; set; }
+    }
+
+    private sealed class WideSimpleRow {
+        public int Left { get; set; }
+        public int Right { get; set; }
     }
 
     private sealed class NestedRow {
