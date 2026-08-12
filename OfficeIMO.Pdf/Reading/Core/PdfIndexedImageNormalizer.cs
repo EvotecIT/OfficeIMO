@@ -26,11 +26,13 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        if (!TryReadDecodedStreamBytes(stream, objects, out var indexedPixels)) {
+        if (!TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out var indexedPixels)) {
             return false;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
+        if (!PdfImageDecodeTransform.TryCreateIndexed(stream.Dictionary, objects, out PdfImageDecodeTransform? decodeTransform)) {
+            return false;
+        }
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
             return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, maxDecodedStreamBytes, out pngBytes);
         }
@@ -156,8 +158,9 @@ internal static class PdfIndexedImageNormalizer {
     private static bool TryReadDecodedStreamBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] bytes) {
-        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maxDecodedStreamBytes) && bytes.Length > 0;
     }
 
     private static bool TryBuildPngFileFromIndexedPixels(
@@ -338,7 +341,7 @@ internal static class PdfIndexedImageNormalizer {
             softMaskHeight != height ||
             softMaskBitsPerComponent != 8 ||
             !string.Equals(softMaskColorSpace, "DeviceGray", StringComparison.Ordinal) ||
-            !TryReadDecodedStreamBytes(softMask, objects, out var alphaPixels)) {
+            !TryReadDecodedStreamBytes(softMask, objects, maxDecodedStreamBytes, out var alphaPixels)) {
             return false;
         }
 
@@ -377,7 +380,9 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
+        if (!PdfImageDecodeTransform.TryCreateColor(softMask.Dictionary, 1, objects, out PdfImageDecodeTransform? alphaDecodeTransform)) {
+            return false;
+        }
         byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
         for (int row = 0; row < height; row++) {

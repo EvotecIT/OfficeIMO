@@ -41,7 +41,9 @@ internal static class PdfImageMaskNormalizer {
             return false;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
+        if (!PdfImageDecodeTransform.TryCreateIndexed(stream.Dictionary, objects, out PdfImageDecodeTransform? decodeTransform)) {
+            return false;
+        }
         byte[] scanlines = new byte[scanlineBytes];
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);

@@ -62,6 +62,23 @@ public class PdfRedactionImageCoverageTests {
     }
 
     [Fact]
+    public void Apply_PassesDecodedImageBudgetIntoIndexedNormalization() {
+        byte[] source = BuildImagePdf(
+            "q\n40 0 0 20 20 30 cm\n/ImTarget Do\nQ\n",
+            "/ColorSpace [/Indexed /DeviceRGB 1 <FF000000FF00>] /BitsPerComponent 8 /Filter /FlateDecode",
+            Compress(new byte[] { 0, 1, 0, 1, 1, 0, 1, 0 }));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfRedactionApplier.Apply(
+                source,
+                new[] { LeftHalfArea(source) },
+                new PdfRedactionApplyOptions { MaximumDecodedImageBytes = 7 }));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(7, exception.Limit);
+    }
+
+    [Fact]
     public void Apply_RoutesMalformedImagePredictorThroughUnsupportedImagePolicy() {
         byte[] malformedPredictorRows = Enumerable.Range(1, 26).Select(value => (byte)value).ToArray();
         malformedPredictorRows[0] = 9;
