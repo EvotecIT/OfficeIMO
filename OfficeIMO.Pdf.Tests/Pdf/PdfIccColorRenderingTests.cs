@@ -1361,6 +1361,63 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void ExtractImages_AppliesMultiHopColorKeyMask() {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 255, 0, 0 },
+            "/N 3",
+            imageEntries: "/Mask 7 0 R",
+            extraObjects: "7 0 obj\n8 0 R\nendobj\n8 0 obj\n[255 255 0 0 0 0]\nendobj\n");
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
+
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(0, raster!.GetPixel(0, 0).A);
+        Assert.Equal("color-key-mask", image.TransparencyMaskKind);
+        Assert.True(image.TransparencyMaskResolved);
+    }
+
+    [Fact]
+    public void ColorKeyDeclarationFailsClosedForMissingAndCyclicReferences() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Mask"] = new PdfReference(7, 0);
+
+        Assert.False(PdfImageColorKeyMask.TryCreateDeclaration(
+            dictionary,
+            componentCount: 3,
+            new Dictionary<int, PdfIndirectObject>(),
+            out _));
+
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, new PdfReference(7, 0))
+        };
+        Assert.False(PdfImageColorKeyMask.TryCreateDeclaration(
+            dictionary,
+            componentCount: 3,
+            objects,
+            out _));
+    }
+
+    [Fact]
+    public void CalculatorTintFunctionRejectsUndecodableFilteredPayload() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["FunctionType"] = new PdfNumber(4);
+        dictionary.Items["Domain"] = NumberArray(0, 1);
+        dictionary.Items["Range"] = NumberArray(0, 1);
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var stream = new PdfStream(dictionary, Encoding.ASCII.GetBytes("{}"));
+
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateTintTransform(
+            stream,
+            inputCount: 1,
+            outputCount: 1,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
+    }
+
+    [Fact]
     public void ExtractImages_AppliesIccBasedIndexedPalette() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         SwapTagPayload(profile, "rXYZ", "bXYZ");
