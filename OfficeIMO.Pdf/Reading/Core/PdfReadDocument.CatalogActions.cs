@@ -263,6 +263,7 @@ public sealed partial class PdfReadDocument {
             case "Movie":
             case "Rendition":
             case "RichMedia":
+            case "URI":
                 return true;
             default:
                 return false;
