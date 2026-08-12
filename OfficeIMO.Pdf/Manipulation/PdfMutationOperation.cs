@@ -60,5 +60,8 @@ public enum PdfMutationOperation {
     SynchronizeMetadata,
 
     /// <summary>Remove or quarantine active content and embedded payloads according to an explicit policy.</summary>
-    Sanitize
+    Sanitize,
+
+    /// <summary>Add, replace, or remove named document-level JavaScript through an explicit active-content edit.</summary>
+    ModifyJavaScript
 }
