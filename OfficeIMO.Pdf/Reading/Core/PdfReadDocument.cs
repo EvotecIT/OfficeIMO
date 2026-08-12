@@ -17,6 +17,7 @@ public sealed partial class PdfReadDocument {
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
     private readonly IReadOnlyList<PdfCatalogAction> _catalogActions;
+    private readonly IReadOnlyList<PdfJavaScript> _javaScripts;
     private readonly IReadOnlyList<PdfAttachmentInfo> _attachments;
     private readonly PdfTaggedContentInfo? _taggedContent;
     private readonly PdfOptionalContentProperties? _optionalContent;
@@ -46,7 +47,7 @@ public sealed partial class PdfReadDocument {
         _metadata = ExtractMetadata();
         _pageLabels = ExtractPageLabels();
         _namedDestinations = ExtractNamedDestinations();
-        _catalogActions = ExtractCatalogActions();
+        _catalogActions = ExtractCatalogActions(out _javaScripts);
         _attachments = ExtractAttachmentInfos();
         _outputIntents = ExtractOutputIntents();
         _xmpMetadata = ExtractXmpMetadata();
@@ -85,6 +86,9 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Catalog-level actions discovered from supported name trees.</summary>
     public IReadOnlyList<PdfCatalogAction> CatalogActions => ReadLogicalContent(_catalogActions);
+
+    /// <summary>Named document-level JavaScript actions discovered from the catalog name tree.</summary>
+    public IReadOnlyList<PdfJavaScript> JavaScripts => ReadLogicalContent(_javaScripts);
 
     /// <summary>Simple document open action discovered from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction => ReadLogicalContent(_openAction);
@@ -138,6 +142,7 @@ public sealed partial class PdfReadDocument {
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
     internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;
+    internal IReadOnlyList<PdfJavaScript> UncheckedJavaScripts => _javaScripts;
     internal IReadOnlyList<PdfAttachmentInfo> UncheckedAttachments => _attachments;
     internal PdfTaggedContentInfo? UncheckedTaggedContent => _taggedContent;
     internal PdfOptionalContentProperties? UncheckedOptionalContent => _optionalContent;

@@ -42,7 +42,11 @@ public static partial class PdfRewritePreservation {
     }
 
     private static void CompareCatalogActions(List<PdfRewritePreservationIssue> issues, IReadOnlyList<PdfCatalogAction> original, IReadOnlyList<PdfCatalogAction> rewritten, PdfRewritePreservationOptions options) {
-        if (!options.PreserveCatalogActions || original.Count != rewritten.Count) {
+        if (!options.PreserveCatalogActions) {
+            return;
+        }
+        if (original.Count != rewritten.Count) {
+            issues.Add(CreateIssue("CatalogActions.Count", original.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), rewritten.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             return;
         }
 
@@ -67,6 +71,10 @@ public static partial class PdfRewritePreservation {
             IReadOnlyList<PdfPageAction> original = originalPages[i].PageActions;
             IReadOnlyList<PdfPageAction> rewritten = rewrittenPages[i].PageActions;
             if (original.Count != rewritten.Count) {
+                issues.Add(CreateIssue(
+                    "PageActions[" + originalPages[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "].Count",
+                    original.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    rewritten.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 continue;
             }
 

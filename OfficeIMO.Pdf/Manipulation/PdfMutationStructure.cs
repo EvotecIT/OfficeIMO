@@ -45,5 +45,8 @@ public enum PdfMutationStructure {
     Encryption,
 
     /// <summary>Tagged-PDF structure and marked-content references.</summary>
-    TaggedContent
+    TaggedContent,
+
+    /// <summary>Executable document, catalog, page, annotation, or form actions.</summary>
+    ActiveContent
 }

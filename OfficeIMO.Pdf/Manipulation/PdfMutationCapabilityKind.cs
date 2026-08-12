@@ -27,5 +27,8 @@ public enum PdfMutationCapabilityKind {
     EncryptionChanges,
 
     /// <summary>Signature fields, byte ranges, permissions, timestamps, and validation evidence.</summary>
-    SignatureChanges
+    SignatureChanges,
+
+    /// <summary>Executable catalog, page, annotation, or form actions.</summary>
+    ActiveContentChanges
 }
