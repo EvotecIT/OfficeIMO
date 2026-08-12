@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using global::ChartForgeX.Primitives;
+using global::ChartForgeX.Raster;
 using global::ChartForgeX.SvgRaster;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
@@ -95,6 +96,35 @@ public sealed class OfficeVisualIntegrationTests {
         Assert.Equal(75D, rectangular.HeightPoints, 6);
         Assert.Equal(150D, rectangular.Drawing.Width, 6);
         Assert.Equal(75D, rectangular.Drawing.Height, 6);
+    }
+
+    [Fact]
+    public void RasterFallbackWithoutNaturalSizeUsesDecodedPngDimensions() {
+        VisualArtifact artifact = CreateArtifact();
+        artifact.NaturalSize = null;
+        var renderOptions = new VisualArtifactRenderOptions();
+        renderOptions.Watermarks.Add(VisualWatermark.FromImage(
+            CreateArtifact().ToPng(),
+            "image/png"));
+
+        OfficeVisualConversionResult result = artifact.ToOfficeVisual(new OfficeVisualConversionOptions {
+            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded,
+            RenderOptions = renderOptions
+        });
+
+        Assert.True(result.Report.UsedRasterFallback);
+        RgbaImage raster = RasterImageDecoder.Decode(result.GetPlacementBytes());
+        Assert.Equal(raster.Width * 0.75D, result.WidthPoints, 6);
+        Assert.Equal(raster.Height * 0.75D, result.HeightPoints, 6);
+        Assert.Equal(10D * result.WidthPoints / raster.Width, result.Regions[0].Left!.Value, 6);
+
+        OfficeVisualConversionResult widthOnly = artifact.ToOfficeVisual(new OfficeVisualConversionOptions {
+            WidthPoints = 300D,
+            SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded,
+            RenderOptions = renderOptions
+        });
+        Assert.Equal(300D, widthOnly.WidthPoints, 6);
+        Assert.Equal(300D * raster.Height / raster.Width, widthOnly.HeightPoints, 6);
     }
 
     [Fact]

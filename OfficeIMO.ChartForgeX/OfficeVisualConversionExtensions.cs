@@ -43,6 +43,12 @@ public static class OfficeVisualConversionExtensions {
             report.Warn("The SVG payload could not be imported as an Office drawing; the OfficeDrawing result uses PNG fallback.");
             placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
+            if (!artifact.NaturalSize.HasValue) {
+                RgbaImage raster = RasterImageDecoder.Decode(placementBytes);
+                sourceWidth = raster.Width;
+                sourceHeight = raster.Height;
+                (widthPoints, heightPoints) = options.ResolveSize(sourceWidth, sourceHeight);
+            }
             drawing = CreateRasterDrawing(placementBytes, widthPoints, heightPoints, ResolveAlternativeText(artifact));
             report.UsedRasterFallback = true;
         } else if (unsupportedFeatureCount > 0 && options.SvgPolicy == OfficeVisualSvgPolicy.RequireVector) {
