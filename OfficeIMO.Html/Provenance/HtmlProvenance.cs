@@ -374,24 +374,25 @@ public static class HtmlProvenance {
 
     private static string EscapeUnencodableCharacters(string value, Encoding encoding) {
         var builder = new StringBuilder(value.Length);
-        for (int index = 0; index < value.Length;) {
-            int codePoint;
-            int characterCount;
-            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) {
-                codePoint = char.ConvertToUtf32(value[index], value[index + 1]);
-                characterCount = 2;
-            } else {
-                codePoint = value[index];
-                characterCount = 1;
-            }
-            string character = value.Substring(index, characterCount);
+        char[] characters = value.ToCharArray();
+        int cursor = 0;
+        while (cursor < characters.Length) {
             try {
-                _ = encoding.GetByteCount(character);
-                builder.Append(character);
-            } catch (EncoderFallbackException) {
+                _ = encoding.GetByteCount(characters, cursor, characters.Length - cursor);
+                builder.Append(characters, cursor, characters.Length - cursor);
+                break;
+            } catch (EncoderFallbackException exception) {
+                int invalidIndex = exception.Index;
+                if (invalidIndex < cursor || invalidIndex >= characters.Length) invalidIndex = cursor;
+                if (invalidIndex > cursor) builder.Append(characters, cursor, invalidIndex - cursor);
+                int characterCount = char.IsHighSurrogate(characters[invalidIndex]) && invalidIndex + 1 < characters.Length &&
+                    char.IsLowSurrogate(characters[invalidIndex + 1]) ? 2 : 1;
+                int codePoint = characterCount == 2
+                    ? char.ConvertToUtf32(characters[invalidIndex], characters[invalidIndex + 1])
+                    : characters[invalidIndex];
                 builder.Append("&#x").Append(codePoint.ToString("X", System.Globalization.CultureInfo.InvariantCulture)).Append(';');
+                cursor = invalidIndex + characterCount;
             }
-            index += characterCount;
         }
         return builder.ToString();
     }
