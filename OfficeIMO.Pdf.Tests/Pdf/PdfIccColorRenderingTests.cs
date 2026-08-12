@@ -228,6 +228,66 @@ public class PdfIccColorRenderingTests {
         Assert.InRange(Assert.Single(drawing.Shapes).Shape.FillColor!.Value.R, 126, 129);
     }
 
+    [Theory]
+    [InlineData("[/CalRGB << /WhitePoint [0.9505 1 1.089] /Gamma null /Matrix 7 0 R >>]", "0.5 0.5 0.5 scn")]
+    [InlineData("[/CalGray << /WhitePoint [0.9505 1 1.089] /Gamma 7 0 R >>]", "0.5 scn")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /Range 7 0 R >>]", "50 0 0 scn")]
+    public void RenderPage_TreatsNullCalibratedOptionsAsAbsent(string colorSpace, string colorOperation) {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            colorOperation,
+            "7 0 obj\n8 0 R\nendobj\n8 0 obj\nnull\nendobj\n",
+            colorSpaceName: "CsCal",
+            colorSpaceResources: "/CsCal " + colorSpace);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+
+        Assert.Single(drawing.Shapes);
+        Assert.DoesNotContain(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsCal");
+    }
+
+    [Theory]
+    [InlineData("CalRGB", "Gamma")]
+    [InlineData("CalRGB", "Matrix")]
+    [InlineData("CalGray", "Gamma")]
+    [InlineData("Lab", "Range")]
+    public void ImageColorSpace_TreatsIndirectNullCalibratedOptionsAsAbsent(string name, string option) {
+        PdfArray colorSpace = CreateCalibratedColorSpace(name, option, new PdfReference(7, 0));
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, PdfNull.Instance)
+        };
+
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
+    }
+
+    [Fact]
+    public void ImageColorSpace_RejectsCyclicCalibratedOptionReference() {
+        PdfArray colorSpace = CreateCalibratedColorSpace("CalGray", "Gamma", new PdfReference(7, 0));
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, new PdfReference(7, 0))
+        };
+
+        Assert.False(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void SeparationImageConversionReusesTintOutputBuffers() {
@@ -1450,6 +1510,16 @@ public class PdfIccColorRenderingTests {
         var array = new PdfArray();
         for (int index = 0; index < values.Length; index++) array.Items.Add(new PdfNumber(values[index]));
         return array;
+    }
+
+    private static PdfArray CreateCalibratedColorSpace(string name, string option, PdfObject optionValue) {
+        var calibration = new PdfDictionary();
+        calibration.Items["WhitePoint"] = NumberArray(0.9505, 1, 1.089);
+        calibration.Items[option] = optionValue;
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName(name));
+        colorSpace.Items.Add(calibration);
+        return colorSpace;
     }
 
     private static byte[] Compress(byte[] bytes) => OfficeZlibCodec.Compress(bytes);

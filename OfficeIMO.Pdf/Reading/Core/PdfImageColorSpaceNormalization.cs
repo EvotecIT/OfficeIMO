@@ -297,12 +297,12 @@ internal sealed class PdfImageColorSpaceNormalization {
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
 
+        if (!TryResolveOptionalEntry(calibration, "Gamma", objects, out PdfObject? gammaObject, out bool hasGamma)) return false;
         double[]? gamma = null;
-        if (calibration.Items.ContainsKey("Gamma") &&
-            (!TryReadNumberArray(calibration, "Gamma", 3, objects, out gamma) || gamma.Any(value => value <= 0D))) return false;
+        if (hasGamma && (!TryReadNumberArray(gammaObject, 3, objects, out gamma) || gamma.Any(value => value <= 0D))) return false;
+        if (!TryResolveOptionalEntry(calibration, "Matrix", objects, out PdfObject? matrixObject, out bool hasMatrix)) return false;
         double[]? matrix = null;
-        if (calibration.Items.ContainsKey("Matrix") &&
-            !TryReadNumberArray(calibration, "Matrix", 9, objects, out matrix)) return false;
+        if (hasMatrix && !TryReadNumberArray(matrixObject, 9, objects, out matrix)) return false;
 
         normalization = new PdfImageColorSpaceNormalization(
             PdfPageColorSpace.CalRgb(whitePoint[0], whitePoint[1], whitePoint[2], gamma, matrix),
@@ -393,9 +393,10 @@ internal sealed class PdfImageColorSpaceNormalization {
             !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
+        if (!TryResolveOptionalEntry(calibration, "Gamma", objects, out PdfObject? gammaObject, out bool hasGamma)) return false;
         double gamma = 1D;
-        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
-            if (ResolveObject(gammaObject, objects) is not PdfNumber gammaNumber ||
+        if (hasGamma) {
+            if (gammaObject is not PdfNumber gammaNumber ||
                 double.IsNaN(gammaNumber.Value) || double.IsInfinity(gammaNumber.Value) || gammaNumber.Value <= 0D) return false;
             gamma = gammaNumber.Value;
         }
@@ -415,9 +416,10 @@ internal sealed class PdfImageColorSpaceNormalization {
             !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
+        if (!TryResolveOptionalEntry(calibration, "Range", objects, out PdfObject? rangeObject, out bool hasRange)) return false;
         double[] abRange = { -100D, 100D, -100D, 100D };
-        if (calibration.Items.ContainsKey("Range") &&
-            (!TryReadNumberArray(calibration, "Range", 4, objects, out abRange) ||
+        if (hasRange &&
+            (!TryReadNumberArray(rangeObject, 4, objects, out abRange) ||
              abRange[0] >= abRange[1] || abRange[2] >= abRange[3])) return false;
         double[] componentRanges = { 0D, 100D, abRange[0], abRange[1], abRange[2], abRange[3] };
         normalization = new PdfImageColorSpaceNormalization(
@@ -442,6 +444,37 @@ internal sealed class PdfImageColorSpaceNormalization {
                 double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return false;
             values[index] = number.Value;
         }
+        return true;
+    }
+
+    private static bool TryReadNumberArray(
+        PdfObject? value,
+        int count,
+        Dictionary<int, PdfIndirectObject> objects,
+        out double[] values) {
+        values = Array.Empty<double>();
+        if (ResolveObject(value, objects) is not PdfArray array || array.Items.Count != count) return false;
+        values = new double[count];
+        for (int index = 0; index < count; index++) {
+            if (ResolveObject(array.Items[index], objects) is not PdfNumber number ||
+                double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return false;
+            values[index] = number.Value;
+        }
+        return true;
+    }
+
+    private static bool TryResolveOptionalEntry(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfObject? value,
+        out bool hasValue) {
+        value = null;
+        hasValue = false;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? declaration)) return true;
+        value = ResolveObject(declaration, objects);
+        if (value == null) return false;
+        hasValue = value is not PdfNull;
         return true;
     }
 
