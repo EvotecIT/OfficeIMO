@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="itext" Version="9.7.0" />
+    <PackageReference Include="PdfPig" Version="0.1.15" />
+    <PackageReference Include="PDFsharp-MigraDoc" Version="6.2.4" />
+    <PackageReference Include="PeachPDF" Version="0.9.9" />
+    <PackageReference Include="QuestPDF" Version="2026.7.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf"
+          Link="Fonts\Carlito-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Corpus\pdf-corpus.json"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -241,6 +241,24 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void MergeEnforcesThePrimarySourcePageLimitOnReadback() {
+        byte[] first = BuildPdf();
+        byte[] second = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Second merge source"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Merge(
+                PdfDocument.Open(first, readOptions),
+                PdfDocument.Open(second)));
+
+        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+    }
+
+    [Fact]
     public void WebOptimizationAllowsItsOwnedCandidateBeyondTheSourceBudget() {
         byte[] pdf = BuildPdf();
         var readOptions = new PdfReadOptions {

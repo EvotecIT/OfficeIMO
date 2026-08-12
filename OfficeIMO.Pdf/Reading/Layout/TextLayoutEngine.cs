@@ -305,8 +305,7 @@ internal static class TextLayoutEngine {
             // drop duplicate shadows: if same text repeats with almost no gap
             if (text.Length > 0 && IsSameAsTail(text, s.Text) && i > 0) {
                 var prev = spans[i - 1];
-                double prevEnd = prev.X + Math.Max(0, prev.Advance);
-                if (s.X - prevEnd < 0.8) {
+                if (IsSubstantiallyOverlapping(prev, s)) {
                     continue;
                 }
             }
@@ -387,6 +386,19 @@ internal static class TextLayoutEngine {
     private static bool IsSameAsTail(StringBuilder sb, string s) {
         if (string.IsNullOrEmpty(s)) return false; int len = s.Length; if (sb.Length < len) return false;
         for (int i = 0; i < len; i++) if (sb[sb.Length - len + i] != s[i]) return false; return true;
+    }
+    private static bool IsSubstantiallyOverlapping(PdfTextSpan previous, PdfTextSpan current) {
+        double previousWidth = Math.Max(0, previous.Advance);
+        double currentWidth = Math.Max(0, current.Advance);
+        if (previousWidth <= 0 || currentWidth <= 0) {
+            return Math.Abs(previous.X - current.X) <= 0.8;
+        }
+
+        double previousEnd = previous.X + previousWidth;
+        double currentEnd = current.X + currentWidth;
+        double overlap = Math.Min(previousEnd, currentEnd) - Math.Max(previous.X, current.X);
+        double narrowerWidth = Math.Min(previousWidth, currentWidth);
+        return overlap > 0 && overlap / narrowerWidth >= 0.6;
     }
     private static bool ContainsDigit(string s) {
         if (string.IsNullOrEmpty(s)) return false;
