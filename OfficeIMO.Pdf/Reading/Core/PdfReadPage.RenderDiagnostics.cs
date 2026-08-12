@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
@@ -204,7 +206,7 @@ public sealed partial class PdfReadPage {
                                          activeStreams,
                                          diagnostics,
                                          seen,
-                                         depth + 1)) {
+                                         depth)) {
                                      supported = false;
                                  }
                              }
@@ -263,6 +265,11 @@ public sealed partial class PdfReadPage {
                              } else if (selection.ColorSpace.UsesIccApproximation) {
                                  AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, selection.Name);
                              }
+                         },
+                         patternPaintVisitor: paint => {
+                             if (!CanProjectType3PatternPaint(paint, tilingPatterns)) {
+                                 supported = false;
+                             }
                          })) {
                 if (invocation.FillPatternName != null || invocation.StrokePatternName != null) {
                     supported = false;
@@ -299,6 +306,81 @@ public sealed partial class PdfReadPage {
         } finally {
             activeStreams.Remove(stream);
         }
+    }
+
+    private bool CanProjectType3PatternPaint(
+        PdfPagePatternPaintInvocation paint,
+        Dictionary<string, PdfPageTilingPatternResource> tilingPatterns) {
+        PdfPageTilingPatternPaint? fillPattern = paint.FillPatternName != null &&
+            tilingPatterns.TryGetValue(paint.FillPatternName, out PdfPageTilingPatternResource? fillResource)
+                ? CreateTilingPatternPaint(fillResource, paint.Transform, GetPageSize().Height)
+                : null;
+        PdfPageTilingPatternPaint? strokePattern = paint.StrokePatternName != null &&
+            tilingPatterns.TryGetValue(paint.StrokePatternName, out PdfPageTilingPatternResource? strokeResource)
+                ? CreateTilingPatternPaint(strokeResource, paint.Transform, GetPageSize().Height)
+                : null;
+        if (fillPattern == null && strokePattern == null) return true;
+
+        double strokeWidth = GetRenderedType3StrokeWidth(paint.StrokeWidth, paint.Transform);
+        PdfPageVisualPrimitive primitive;
+        if (paint.PathCommands.Count == 2 &&
+            paint.PathCommands[0].Kind == OfficePathCommandKind.MoveTo &&
+            paint.PathCommands[1].Kind == OfficePathCommandKind.LineTo) {
+            OfficePoint start = paint.PathCommands[0].Point;
+            OfficePoint end = paint.PathCommands[1].Point;
+            primitive = PdfPageVisualPrimitive.Line(
+                start.X,
+                start.Y,
+                end.X,
+                end.Y,
+                null,
+                null,
+                null,
+                strokeWidth,
+                paint.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
+                paint.StrokeLineCap,
+                paint.StrokeLineJoin,
+                null,
+                paint.ClipPath,
+                strokeTilingPattern: strokePattern);
+        } else if (!PdfPageVisualPrimitive.TryCreatePath(
+                       paint.PathCommands,
+                       null,
+                       null,
+                       null,
+                       null,
+                       null,
+                       null,
+                       strokeWidth,
+                       paint.StrokeDashStyle ?? OfficeStrokeDashStyle.Solid,
+                       paint.StrokeLineCap,
+                       paint.StrokeLineJoin,
+                       null,
+                       null,
+                       paint.FillRule,
+                       paint.ClipPath,
+                       0D,
+                       fillPattern,
+                       strokePattern,
+                       retainPathCommands: true,
+                       out primitive)) {
+            return false;
+        }
+
+        (double Width, double Height) pageSize = GetPageSize();
+        return CanRenderTilingPatterns(primitive, pageSize.Width, pageSize.Height);
+    }
+
+    private static double GetRenderedType3StrokeWidth(double strokeWidth, Matrix2D transform) {
+        if (double.IsPositiveInfinity(strokeWidth)) return 0.25D;
+        if (strokeWidth <= 0D) return strokeWidth;
+        double squaredScale = ((transform.A * transform.A) +
+                               (transform.B * transform.B) +
+                               (transform.C * transform.C) +
+                               (transform.D * transform.D)) / 2D;
+        return squaredScale > 0D && !double.IsNaN(squaredScale) && !double.IsInfinity(squaredScale)
+            ? strokeWidth * Math.Sqrt(squaredScale)
+            : strokeWidth;
     }
 
     private bool CanProjectType3ImageInvocation(
@@ -359,7 +441,9 @@ public sealed partial class PdfReadPage {
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
         if (image == null || !IsValidType3ImageFile(image) || image.HasUnresolvedTransparencyMask ||
             requireImageMask && !image.IsImageMask ||
-            !image.IsImageMask && !ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects)) return false;
+            !image.IsImageMask && (!ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) ||
+                string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) &&
+                !ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects))) return false;
         return true;
     }
 

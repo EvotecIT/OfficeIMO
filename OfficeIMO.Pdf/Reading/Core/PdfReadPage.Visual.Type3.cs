@@ -119,6 +119,10 @@ public sealed partial class PdfReadPage {
                     }
                 }
 
+                for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
+                    if (!CanRenderTilingPatterns(localPrimitives[primitiveIndex], pageWidth, pageHeight)) return false;
+                }
+
                 for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                     PdfImagePlacement placement = localImagePlacements[imageIndex];
                     var cacheKey = GetType3ImageCacheKey(placement);

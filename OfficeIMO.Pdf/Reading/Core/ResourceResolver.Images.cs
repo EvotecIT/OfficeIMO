@@ -35,23 +35,31 @@ internal static partial class ResourceResolver {
         PdfDictionary image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
-            ResolveObject(decodeObject, objects) is null or PdfNull) {
-            return true;
-        }
-
         PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        if (!PdfImageColorSpaceNormalization.TryResolve(effectiveColorSpace, colorSpaceName, objects, out PdfImageColorSpaceNormalization normalization) ||
-            ResolveObject(decodeObject, objects) is not PdfArray decode ||
-            decode.Items.Count != normalization.SourceColorCount * 2) {
+        int componentCount = colorSpaceName switch {
+            "DeviceGray" or "G" => 1,
+            "DeviceRGB" or "RGB" => 3,
+            "DeviceCMYK" or "CMYK" => 4,
+            _ => 0
+        };
+        if (componentCount == 0) {
             return false;
         }
 
-        for (int component = 0; component < normalization.SourceColorCount; component++) {
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
+            ResolveObject(decodeObject, objects) is null or PdfNull) {
+            return true;
+        }
+        if (ResolveObject(decodeObject, objects) is not PdfArray decode ||
+            decode.Items.Count != componentCount * 2) {
+            return false;
+        }
+
+        for (int component = 0; component < componentCount; component++) {
             if (ResolveObject(decode.Items[component * 2], objects) is not PdfNumber { Value: 0D } ||
                 ResolveObject(decode.Items[component * 2 + 1], objects) is not PdfNumber { Value: 1D }) {
                 return false;

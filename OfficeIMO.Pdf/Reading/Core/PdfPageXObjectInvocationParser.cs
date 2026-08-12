@@ -58,12 +58,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
         Action<PdfPageGraphicsStateResource>? graphicsStateVisitor = null,
-        Action<PdfPagePatternSelection>? patternSelectionVisitor = null) {
+        Action<PdfPagePatternSelection>? patternSelectionVisitor = null,
+        Action<PdfPagePatternPaintInvocation>? patternPaintVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, patternSelectionVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, graphicsStateVisitor, patternSelectionVisitor, patternPaintVisitor);
         return parser.Parse();
     }
 
@@ -116,6 +117,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _patternInvocationVisitor;
         private readonly Action<PdfPageGraphicsStateResource>? _graphicsStateVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
+        private readonly Action<PdfPagePatternPaintInvocation>? _patternPaintVisitor;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
         private int _currentOperatorIndex;
@@ -156,7 +158,8 @@ internal static class PdfPageXObjectInvocationParser {
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
             Action<PdfPageGraphicsStateResource>? graphicsStateVisitor,
-            Action<PdfPagePatternSelection>? patternSelectionVisitor) {
+            Action<PdfPagePatternSelection>? patternSelectionVisitor,
+            Action<PdfPagePatternPaintInvocation>? patternPaintVisitor) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -184,6 +187,7 @@ internal static class PdfPageXObjectInvocationParser {
             _patternInvocationVisitor = patternInvocationVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
             _patternSelectionVisitor = patternSelectionVisitor;
+            _patternPaintVisitor = patternPaintVisitor;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -556,6 +560,7 @@ internal static class PdfPageXObjectInvocationParser {
                         !IsConformalStrokeTransform(_state.Transform)) {
                         _unsupportedGraphicsEffectVisitor?.Invoke();
                     }
+                    CapturePatternPaint(op);
                     ClearPath();
                     break;
                 case "gs":
@@ -952,6 +957,32 @@ internal static class PdfPageXObjectInvocationParser {
             _currentSubpathStartIndex = -1;
         }
 
+        private void CapturePatternPaint(string op) {
+            if (_patternPaintVisitor == null || HasHiddenContent() || _pathCommands.Count == 0) return;
+            bool fill = OperatorFillsPath(op) && _state.FillPatternName != null;
+            bool stroke = OperatorStrokesPath(op) && _state.StrokeWidth > 0D && _state.StrokePatternName != null;
+            if (!fill && !stroke) return;
+
+            var commands = new List<OfficePathCommand>(_pathCommands);
+            if ((op == "s" || op == "b" || op == "b*") &&
+                commands[commands.Count - 1].Kind != OfficePathCommandKind.Close) {
+                commands.Add(OfficePathCommand.Close());
+            }
+            _patternPaintVisitor(new PdfPagePatternPaintInvocation(
+                commands,
+                _state.Transform,
+                _state.ClipPath,
+                fill,
+                stroke,
+                op == "f*" || op == "B*" || op == "b*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero,
+                fill ? _state.FillPatternName : null,
+                stroke ? _state.StrokePatternName : null,
+                _state.StrokeWidth,
+                _state.StrokeDashStyle,
+                _state.StrokeLineCap,
+                _state.StrokeLineJoin));
+        }
+
         private (double X, double Y) TransformPoint(double x, double y) => _state.Transform.Transform(x, y);
 
         private double ToTop(double pdfY) => _pageHeight - pdfY;
@@ -1180,6 +1211,9 @@ internal static class PdfPageXObjectInvocationParser {
         private static bool OperatorStrokesPath(string op) =>
             op == "S" || op == "s" || op == "B" || op == "B*" || op == "b" || op == "b*";
 
+        private static bool OperatorFillsPath(string op) =>
+            op == "f" || op == "F" || op == "f*" || op == "B" || op == "B*" || op == "b" || op == "b*";
+
         private static bool IsConformalStrokeTransform(Matrix2D transform) {
             double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
             double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
@@ -1371,6 +1405,48 @@ internal static class PdfPageXObjectInvocationParser {
                 FillPatternName,
                 StrokePatternName);
     }
+}
+
+internal readonly struct PdfPagePatternPaintInvocation {
+    internal PdfPagePatternPaintInvocation(
+        IReadOnlyList<OfficePathCommand> pathCommands,
+        Matrix2D transform,
+        PdfPageClipPath? clipPath,
+        bool fill,
+        bool stroke,
+        OfficeFillRule fillRule,
+        string? fillPatternName,
+        string? strokePatternName,
+        double strokeWidth,
+        OfficeStrokeDashStyle? strokeDashStyle,
+        OfficeStrokeLineCap? strokeLineCap,
+        OfficeStrokeLineJoin? strokeLineJoin) {
+        PathCommands = pathCommands;
+        Transform = transform;
+        ClipPath = clipPath;
+        Fill = fill;
+        Stroke = stroke;
+        FillRule = fillRule;
+        FillPatternName = fillPatternName;
+        StrokePatternName = strokePatternName;
+        StrokeWidth = strokeWidth;
+        StrokeDashStyle = strokeDashStyle;
+        StrokeLineCap = strokeLineCap;
+        StrokeLineJoin = strokeLineJoin;
+    }
+
+    internal IReadOnlyList<OfficePathCommand> PathCommands { get; }
+    internal Matrix2D Transform { get; }
+    internal PdfPageClipPath? ClipPath { get; }
+    internal bool Fill { get; }
+    internal bool Stroke { get; }
+    internal OfficeFillRule FillRule { get; }
+    internal string? FillPatternName { get; }
+    internal string? StrokePatternName { get; }
+    internal double StrokeWidth { get; }
+    internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
+    internal OfficeStrokeLineCap? StrokeLineCap { get; }
+    internal OfficeStrokeLineJoin? StrokeLineJoin { get; }
 }
 
 internal readonly struct PdfPagePatternSelection {

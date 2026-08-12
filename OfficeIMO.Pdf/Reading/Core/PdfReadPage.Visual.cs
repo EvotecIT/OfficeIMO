@@ -715,6 +715,7 @@ public sealed partial class PdfReadPage {
             !patterns.Items.TryGetValue(name, out PdfObject? value) ||
             ResolveDictionary(value) is not PdfDictionary pattern) return false;
         if (pattern.Items.ContainsKey("ExtGState") ||
+            (pattern.Items.TryGetValue("Matrix", out PdfObject? matrixObject) && !TryReadStrictPatternMatrix(matrixObject, out _)) ||
             !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
             ResolveDictionary(shadingObject) is not PdfDictionary shading ||
             !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
