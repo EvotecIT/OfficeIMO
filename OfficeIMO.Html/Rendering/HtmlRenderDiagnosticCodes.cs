@@ -92,6 +92,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
     public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";
+    /// <summary>A form control with a whitespace-only name used static rendering because PDF field names must contain a non-whitespace character.</summary>
+    public const string FormFieldBlankNameStaticFallback = "HtmlRenderFormFieldBlankNameStaticFallback";
+    /// <summary>A checkbox or radio control with a blank submitted value used static rendering because PDF button export values must contain a non-whitespace character.</summary>
+    public const string FormFieldBlankButtonValueStaticFallback = "HtmlRenderFormFieldBlankButtonValueStaticFallback";
     /// <summary>A radio group with duplicate submitted values used static rendering because PDF appearance states must be unique.</summary>
     public const string RadioDuplicateValueStaticFallback = "HtmlRenderRadioDuplicateValueStaticFallback";
     /// <summary>A multi-select with duplicate selected submitted values used static rendering because value-only PDF choice selections cannot preserve both option identities.</summary>
@@ -214,6 +218,8 @@ public static class HtmlRenderDiagnosticCodes {
         TransformValueUnsupported,
         FormFieldTransformStaticFallback,
         FormFieldZeroMaximumLengthStaticFallback,
+        FormFieldBlankNameStaticFallback,
+        FormFieldBlankButtonValueStaticFallback,
         RadioDuplicateValueStaticFallback,
         ChoiceDuplicateSelectedValueStaticFallback,
         RadioMixedDisabledStateStaticFallback,

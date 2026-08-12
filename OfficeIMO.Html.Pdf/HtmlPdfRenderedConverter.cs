@@ -218,7 +218,12 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static void AddFormField(PdfCore.PdfPageCanvas canvas, HtmlRenderFormField field, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip) {
-        if (!interactiveFormControls || field.FieldKind == HtmlRenderFormFieldKind.Choice && field.Options.Count == 0) {
+        bool hasInvalidPdfButtonValue = (field.FieldKind == HtmlRenderFormFieldKind.CheckBox || field.FieldKind == HtmlRenderFormFieldKind.RadioButton)
+            && (string.IsNullOrWhiteSpace(field.Value) || string.IsNullOrWhiteSpace(field.RadioOption));
+        if (!interactiveFormControls
+            || string.IsNullOrWhiteSpace(field.Name)
+            || hasInvalidPdfButtonValue
+            || field.FieldKind == HtmlRenderFormFieldKind.Choice && field.Options.Count == 0) {
             foreach (HtmlRenderVisual child in field.Visuals.OrderBy(item => item.PaintOrder)) {
                 AddVisual(canvas, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, activeClip);
             }

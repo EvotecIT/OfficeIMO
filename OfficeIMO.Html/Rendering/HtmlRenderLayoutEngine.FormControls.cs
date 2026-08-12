@@ -517,8 +517,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
         else return false;
 
+        string? authoredName = element.GetAttribute("name");
+        if (authoredName != null && authoredName.Length > 0 && string.IsNullOrWhiteSpace(authoredName)) {
+            ReportBlankFormFieldNameFallback(source);
+            return false;
+        }
         if (_staticRepeatedControlGroupKeys.TryGetValue(element, out string? staticGroupKey)) {
             ReportRepeatedFormControlNameFallback(source, staticGroupKey);
+            return false;
+        }
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _blankValueRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
+            ReportBlankButtonValueFallback(source, staticGroupKey);
             return false;
         }
         if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _staticRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
@@ -531,7 +540,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         int nodeId = GetSemanticNodeId(element);
-        string mappingName = NormalizeControlText(element.GetAttribute("name"));
+        string mappingName = authoredName is { Length: > 0 } ? authoredName : string.Empty;
         if (mappingName.Length == 0) mappingName = NormalizeControlText(element.GetAttribute("id"));
         if (mappingName.Length == 0) mappingName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
         string name = fieldKind == HtmlRenderFormFieldKind.RadioButton
@@ -564,8 +573,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             value = values.FirstOrDefault() ?? string.Empty;
         } else if (fieldKind == HtmlRenderFormFieldKind.RadioButton) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                ReportBlankButtonValueFallback(source, null);
+                return false;
+            }
             radioOption = ResolveRadioOptionToken(value, nodeId);
         } else if (fieldKind == HtmlRenderFormFieldKind.CheckBox) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                ReportBlankButtonValueFallback(source, null);
+                return false;
+            }
             radioOption = ResolveButtonOptionToken(value, nodeId);
         }
 
@@ -664,6 +681,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "maxlength=0",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportBlankFormFieldNameFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldBlankNameStaticFallback,
+            "An HTML form control with a whitespace-only name was rendered as static content because PDF form field names must contain a non-whitespace character.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "whitespace-only name",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportBlankButtonValueFallback(string source, string? groupKey) {
+        if (groupKey != null && !_reportedStaticRadioGroups.Add(groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldBlankButtonValueStaticFallback,
+            "An HTML checkbox or radio control with an empty or whitespace-only submitted value was rendered as static content because PDF button export values must contain a non-whitespace character.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            groupKey == null ? "blank submitted value" : "group=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
             OfficeConversionLossKind.Approximation);
     }
 
@@ -769,25 +809,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void IdentifyStaticRadioGroups() {
         _staticRadioGroupKeys.Clear();
+        _blankValueRadioGroupKeys.Clear();
         _mixedDisabledRadioGroupKeys.Clear();
         _staticRepeatedControlGroupKeys.Clear();
         IElement[] radios = _document.QuerySelectorAll("input")
             .Where(element => NormalizeInputType(element) == "radio")
-            .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
+            .Where(element => element.GetAttribute("name") is { Length: > 0 })
             .ToArray();
         foreach (IGrouping<IElement?, IElement> ownerGroup in radios.GroupBy(HtmlFormControlSemantics.ResolveFormOwner)) {
             foreach (IGrouping<string, IElement> group in ownerGroup.GroupBy(
-                         element => NormalizeControlText(element.GetAttribute("name")),
+                         element => element.GetAttribute("name")!,
                          StringComparer.Ordinal)) {
                 IElement[] members = group.ToArray();
+                bool hasBlankValue = members.Any(element =>
+                    string.IsNullOrWhiteSpace(HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty));
                 bool hasDuplicateValue = members
                 .GroupBy(element => HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty, StringComparer.Ordinal)
                 .Any(values => values.Skip(1).Any());
                 bool hasDisabled = members.Any(HtmlFormControlSemantics.IsEffectivelyDisabled);
                 bool hasEnabled = members.Any(element => !HtmlFormControlSemantics.IsEffectivelyDisabled(element));
-                if (!hasDuplicateValue && !(hasDisabled && hasEnabled)) continue;
+                if (!hasBlankValue && !hasDuplicateValue && !(hasDisabled && hasEnabled)) continue;
                 string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
                 foreach (IElement element in members) {
+                    if (hasBlankValue) _blankValueRadioGroupKeys[element] = key;
                     if (hasDuplicateValue) _staticRadioGroupKeys[element] = key;
                     if (hasDisabled && hasEnabled) _mixedDisabledRadioGroupKeys[element] = key;
                 }
@@ -796,11 +840,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         IElement[] controls = _document.QuerySelectorAll("input,textarea,select")
             .Where(IsSupportedInteractiveFormControl)
-            .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
+            .Where(element => element.GetAttribute("name") is { Length: > 0 })
             .ToArray();
         foreach (IGrouping<IElement?, IElement> ownerGroup in controls.GroupBy(HtmlFormControlSemantics.ResolveFormOwner)) {
             foreach (IGrouping<string, IElement> group in ownerGroup.GroupBy(
-                         element => NormalizeControlText(element.GetAttribute("name")),
+                         element => element.GetAttribute("name")!,
                          StringComparer.Ordinal)) {
                 IElement[] members = group.ToArray();
                 if (members.Length < 2 || members.All(element => element.LocalName == "input" && NormalizeInputType(element) == "radio")) continue;

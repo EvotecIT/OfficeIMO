@@ -140,6 +140,19 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_RadioGroupsUseExactAuthoredNameWhitespace() {
+        const string html = "<form><input type='radio' name='a b' value='one' checked><input type='radio' name='a b' value='two'><input type='radio' name='a  b' value='three'><input type='radio' name='a  b' value='four' checked></form>";
+
+        PdfCore.PdfFormField[] fields = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields
+            .OrderBy(field => field.Name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(new[] { "a  b", "a b" }, fields.Select(field => field.Name).ToArray());
+        Assert.Equal(new[] { "four", "one" }, fields.Select(field => field.Value).ToArray());
+        Assert.All(fields, field => Assert.Equal(2, field.Widgets.Count));
+    }
+
+    [Fact]
     public void HtmlToPdf_DuplicateRadioValuesUseTruthfulStaticFallback() {
         const string html = "<input type='radio' name='answer' value='same'><input type='radio' name='answer' value='same' checked>";
 
@@ -202,6 +215,40 @@ public sealed class HtmlPdfTests {
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
         Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
+    }
+
+    [Fact]
+    public void HtmlToPdf_BlankCheckboxValuesUseTruthfulStaticFallback() {
+        const string html = "<input type='checkbox' name='empty' value='' checked><input type='checkbox' name='spaces' value='   ' checked>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankButtonValueStaticFallback));
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
+    public void HtmlToPdf_BlankRadioValueMakesWholeGroupStatic() {
+        const string html = "<input type='radio' name='answer' value='' checked><input type='radio' name='answer' value='yes'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankButtonValueStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
+    [Fact]
+    public void HtmlToPdf_MissingButtonValuesUseHtmlOnDefault() {
+        const string html = "<input type='checkbox' name='check' checked><input type='radio' name='radio' checked>";
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
+
+        Assert.Equal("on", Assert.Single(info.FormFields, field => field.Name == "check").Value);
+        Assert.Equal("on", Assert.Single(info.FormFields, field => field.Name == "radio").Value);
     }
 
     [Fact]
@@ -314,6 +361,31 @@ public sealed class HtmlPdfTests {
         Assert.Equal(2, statuses.Length);
         Assert.All(statuses, field => Assert.Equal(2, field.Widgets.Count));
         Assert.Equal(2, statuses.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void HtmlToPdf_AuthoredFieldNameWhitespaceIsPreservedExactly() {
+        const string html = "<form><input name='a b' value='one'><input name='a  b' value='two'><input name=' edge ' value='three'></form>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
+
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
+        Assert.Equal(new[] { " edge ", "a  b", "a b" }, info.FormFields.Select(field => field.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+        Assert.Equal(new[] { " edge ", "a  b", "a b" }, info.FormFields.Select(field => field.MappingName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public void HtmlToPdf_WhitespaceOnlyFieldNameUsesTruthfulStaticFallback() {
+        const string html = "<input name='   ' value='Authored value'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankNameStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Authored value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
