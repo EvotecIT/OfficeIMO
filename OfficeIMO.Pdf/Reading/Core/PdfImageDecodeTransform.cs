@@ -9,20 +9,50 @@ internal sealed class PdfImageDecodeTransform {
         _maximums = maximums;
     }
 
-    internal static PdfImageDecodeTransform? CreateColor(
+    internal static bool TryCreateColor(
         PdfDictionary dictionary,
         int componentCount,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageDecodeTransform? transform) {
         // An explicit identity Decode array is still authored behavior. Calibrated and ICCBased
         // spaces have non-unit default ranges, so callers must be able to distinguish it from an
         // omitted Decode entry.
-        return TryCreate(dictionary, componentCount, objects, out var transform) ? transform : null;
+        return TryCreate(dictionary, componentCount, objects, out transform);
     }
 
-    internal static PdfImageDecodeTransform? CreateIndexed(
+    internal static bool TryCreateIndexed(
         PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageDecodeTransform? transform) =>
+        TryCreate(dictionary, 1, objects, out transform);
+
+    internal static bool IsIdentityColorDecodeOrAbsent(
+        PdfDictionary dictionary,
+        int componentCount,
         Dictionary<int, PdfIndirectObject> objects) {
-        return TryCreate(dictionary, 1, objects, out var transform) ? transform : null;
+        if (!TryCreate(dictionary, componentCount, objects, out PdfImageDecodeTransform? transform)) return false;
+        if (transform is null) return true;
+        for (int component = 0; component < componentCount; component++) {
+            if (transform._minimums[component] != 0D || transform._maximums[component] != 1D) return false;
+        }
+        return true;
+    }
+
+    private static bool TryResolveReferenceChain(
+        PdfObject? value,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfObject? resolved) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) {
+                resolved = null;
+                return false;
+            }
+            resolved = indirect.Value;
+        }
+        return true;
     }
 
     internal byte TransformColorComponent(byte sample, int componentIndex) {
@@ -52,20 +82,24 @@ internal sealed class PdfImageDecodeTransform {
         PdfDictionary dictionary,
         int componentCount,
         Dictionary<int, PdfIndirectObject> objects,
-        out PdfImageDecodeTransform transform) {
-        transform = null!;
-        if (componentCount <= 0 ||
-            !dictionary.Items.TryGetValue("Decode", out var decodeObj) ||
-            PdfObjectLookup.Resolve(objects, decodeObj) is not PdfArray decodeArray ||
-            decodeArray.Items.Count < componentCount * 2) {
+        out PdfImageDecodeTransform? transform) {
+        transform = null;
+        if (componentCount <= 0) {
             return false;
         }
+
+        if (!dictionary.Items.TryGetValue("Decode", out PdfObject? decodeObj)) return true;
+        if (!TryResolveReferenceChain(decodeObj, objects, out PdfObject? resolvedDecode)) return false;
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decodeArray || decodeArray.Items.Count != componentCount * 2) return false;
 
         var minimums = new double[componentCount];
         var maximums = new double[componentCount];
         for (int component = 0; component < componentCount; component++) {
-            if (PdfObjectLookup.Resolve(objects, decodeArray.Items[component * 2]) is not PdfNumber minimum ||
-                PdfObjectLookup.Resolve(objects, decodeArray.Items[component * 2 + 1]) is not PdfNumber maximum) {
+            if (!TryResolveReferenceChain(decodeArray.Items[component * 2], objects, out PdfObject? resolvedMinimum) ||
+                resolvedMinimum is not PdfNumber minimum ||
+                !TryResolveReferenceChain(decodeArray.Items[component * 2 + 1], objects, out PdfObject? resolvedMaximum) ||
+                resolvedMaximum is not PdfNumber maximum) {
                 return false;
             }
 

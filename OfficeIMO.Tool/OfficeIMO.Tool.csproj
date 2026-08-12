@@ -5,7 +5,7 @@
     <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.</Description>
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
-    <VersionPrefix>3.2.0</VersionPrefix>
+    <VersionPrefix>3.2.1</VersionPrefix>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Tool</PackageId>

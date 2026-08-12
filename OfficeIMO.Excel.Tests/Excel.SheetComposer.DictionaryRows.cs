@@ -60,6 +60,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattener_EnforcesDictionaryColumnLimitBeforeProjection() {
+            var row = new ReadOnlyDictionaryRow(("A", 1), ("B", 2), ("C", 3));
+            var options = new ObjectFlattenerOptions {
+                MaxColumns = 2,
+                MaxCollectionItems = 100
+            };
+
+            Assert.Throws<InvalidDataException>(() =>
+                new ObjectFlattener().Flatten(row, options));
+        }
+
+        [Fact]
+        public void SheetComposer_EnforcesProjectedCellLimitBeforeWritingCells() {
+            using var stream = new MemoryStream();
+            using ExcelDocument document = ExcelDocument.Create(stream);
+            var rows = new[] {
+                new ReadOnlyDictionaryRow(("A", 1), ("B", 2)),
+                new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
+            };
+
+            Assert.Throws<InvalidDataException>(() => document.Compose("Report", composer =>
+                composer.TableFrom(rows, configure: options => options.MaxCells = 5)));
+        }
+
+        [Fact]
         public void SheetComposer_RendersDictionaryRowsAsRealColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             try {

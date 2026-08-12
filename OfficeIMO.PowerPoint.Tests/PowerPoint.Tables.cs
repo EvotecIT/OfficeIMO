@@ -24,6 +24,175 @@ namespace OfficeIMO.Tests {
 
         [Fact]
 
+        public void ObjectTableRejectsColumnsBeyondConfiguredLimit() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["A"] = 1,
+                    ["B"] = 2,
+                    ["C"] = 3
+                }
+            };
+
+            Assert.Throws<InvalidDataException>(() =>
+                slide.AddTable(rows, options => options.MaxColumns = 2));
+        }
+
+        [Fact]
+        public void ObjectTableRejectsNonPositiveRowLimitBeforeInspectingSource() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                slide.AddTable(Array.Empty<int>(), options => options.MaxRows = 0));
+
+            Assert.Equal("MaxRows", exception.ParamName);
+        }
+
+        [Fact]
+
+        public void ObjectTableRejectsFinalCellsDuringNestedExpansion() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "A",
+                    ["Values"] = new[] { 1, 2, 3 }
+                }
+            };
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(rows, options => {
+                options.MaxCells = 5;
+                options.CollectionMode = OfficeIMO.Data.CollectionMode.ExpandRows;
+            }));
+        }
+
+        [Fact]
+
+        public void ObjectTableWithoutHeadersCountsOnlyRenderedCells() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["A"] = 1,
+                    ["B"] = 2
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(
+                rows,
+                options => options.MaxCells = 2,
+                includeHeaders: false);
+
+            Assert.Equal(1, table.Rows);
+            Assert.Equal(2, table.Columns);
+            Assert.False(table.HeaderRow);
+        }
+
+        [Fact]
+
+        public void ObjectTableExplicitColumnsPreservesDistinctRequestedSchema() {
+
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "Alice"
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(rows, options => {
+                options.Columns = new[] { "Name", "Name", "Missing" };
+                options.MaxColumns = 2;
+            });
+
+            Assert.Equal(2, table.Columns);
+            Assert.Equal("Name", table.GetCell(0, 0).Text);
+            Assert.Equal("Missing", table.GetCell(0, 1).Text);
+            Assert.Equal("Alice", table.GetCell(1, 0).Text);
+            Assert.Equal(string.Empty, table.GetCell(1, 1).Text);
+        }
+
+        [Fact]
+        public void ObjectTableAppliesSelectionBeforeExplicitColumnLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = new[] {
+                new System.Collections.Generic.Dictionary<string, object?> {
+                    ["Name"] = "Alice",
+                    ["Status"] = "Active"
+                }
+            };
+
+            PowerPointTable table = slide.AddTable(rows, options => {
+                options.Columns = new[] { "Name", "Status" };
+                options.ExcludeProperties = new[] { "Status" };
+                options.MaxColumns = 1;
+            });
+
+            Assert.Equal(1, table.Columns);
+            Assert.Equal("Name", table.GetCell(0, 0).Text);
+            Assert.Equal("Alice", table.GetCell(1, 0).Text);
+        }
+
+        [Fact]
+        public void ObjectTableStopsStreamingRowsAtCellLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            int enumeratedRows = 0;
+
+            System.Collections.Generic.IEnumerable<System.Collections.Generic.Dictionary<string, object?>> Rows() {
+                while (true) {
+                    enumeratedRows++;
+                    var row = new System.Collections.Generic.Dictionary<string, object?>();
+                    for (int column = 0; column < 100; column++) row["Column" + column] = column;
+                    yield return row;
+                }
+            }
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(Rows(), options => {
+                options.MaxRows = 5;
+                options.MaxCells = 250;
+            }));
+            Assert.Equal(2, enumeratedRows);
+        }
+
+        [Fact]
+        public void ExplicitBindingTableStopsColumnEnumerationAtHardLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(
+                new[] { 1 },
+                InfiniteColumns()));
+        }
+
+        [Fact]
+        public void ExplicitBindingTableStopsRowEnumerationAtCellLimit() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTableColumn<int>[] columns = Enumerable.Range(0, 1_024)
+                .Select(index => PowerPointTableColumn<int>.Create("Column" + index, value => value))
+                .ToArray();
+
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(), columns));
+        }
+
+        [Fact]
+
         public void CanManipulateTableCellsAndPreserveStyle() {
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
@@ -395,6 +564,19 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        private static IEnumerable<PowerPointTableColumn<int>> InfiniteColumns() {
+            int index = 0;
+            while (true) {
+                int columnIndex = index++;
+                yield return PowerPointTableColumn<int>.Create("Column" + columnIndex, value => value);
+            }
+        }
+
+        private static IEnumerable<int> InfiniteRows() {
+            int value = 0;
+            while (true) yield return value++;
         }
 
         private sealed class SalesRow {

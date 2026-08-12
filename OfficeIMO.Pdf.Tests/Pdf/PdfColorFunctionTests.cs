@@ -93,6 +93,21 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type0_IgnoresDecodedBytesAfterTheRequiredSampleTable() {
+        PdfStream functionObject = SampledFunction(
+            inputCount: 1,
+            outputCount: 1,
+            sizes: new[] { 2 },
+            bitsPerSample: 8,
+            samples: new byte[] { 0, 255, 0xAA, 0xBB });
+
+        Assert.True(TryCreateTint(functionObject, 1, 1, out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform));
+
+        Assert.Equal(0D, Assert.Single(transform(new[] { 0D })!), 8);
+        Assert.Equal(1D, Assert.Single(transform(new[] { 1D })!), 8);
+    }
+
+    [Fact]
     public void Type0_AllowsAlternateColorOutputsOutsideTheUnitInterval() {
         PdfStream functionObject = SampledFunction(
             inputCount: 1,
@@ -168,6 +183,32 @@ public sealed partial class PdfColorFunctionTests {
         Assert.Equal(0.3996D, before![0], 5);
         Assert.Equal(0.8D, atEnd![0], 8);
         Assert.Contains(1D, function.Discontinuities);
+    }
+
+    [Fact]
+    public void Type0_ImageConversionReusesTintOutputBuffers() {
+        PdfStream sampled = SampledFunction(
+            inputCount: 1,
+            outputCount: 3,
+            sizes: new[] { 2 },
+            bitsPerSample: 8,
+            samples: new byte[] { 0, 0, 0, 0, 255, 0 });
+
+        AssertImageTintConversionReusesBuffers(sampled);
+    }
+
+    [Fact]
+    public void Type3_ImageConversionReusesTintOutputBuffers() {
+        PdfDictionary stitching = Dictionary(
+            ("FunctionType", Number(3)),
+            ("Domain", Numbers(0D, 1D)),
+            ("Functions", Array(
+                Type2(new[] { 0D, 0D, 0D }, new[] { 0D, 0D, 0D }),
+                Type2(new[] { 0D, 1D, 0D }, new[] { 0D, 1D, 0D }))),
+            ("Bounds", Numbers(0.5D)),
+            ("Encode", Numbers(0D, 1D, 0D, 1D)));
+
+        AssertImageTintConversionReusesBuffers(stitching);
     }
 
     [Fact]
@@ -251,6 +292,30 @@ public sealed partial class PdfColorFunctionTests {
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(20, exception.Actual);
+    }
+
+    [Fact]
+    public void Type3_AccountsDiscardedSamplePaddingAgainstOneFunctionBudget() {
+        PdfStream padded = SampledFunction(1, 1, new[] { 2 }, 8, new byte[10]);
+        PdfStream second = SampledFunction(1, 1, new[] { 2 }, 8, new byte[2]);
+        PdfDictionary stitching = Dictionary(
+            ("FunctionType", Number(3)),
+            ("Domain", Numbers(0D, 1D)),
+            ("Functions", Array(padded, second)),
+            ("Bounds", Numbers(0.5D)),
+            ("Encode", Numbers(0D, 1D, 0D, 1D)));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfColorSpaceFunctionResolver.TryCreateFunction(
+                stitching,
+                1,
+                1,
+                new Dictionary<int, PdfIndirectObject>(),
+                11,
+                out _));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(12, exception.Actual);
     }
 
     [Fact]
@@ -368,6 +433,34 @@ public sealed partial class PdfColorFunctionTests {
 
         Assert.Equal(0D, Assert.Single(function.Evaluate(new[] { 0D })!), 8);
         Assert.Equal(1D, Assert.Single(function.Evaluate(new[] { double.Epsilon })!), 8);
+        Assert.Contains(0D, function.Discontinuities);
+    }
+
+    [Fact]
+    public void Type3_PreservesNestedLeftEndpointDiscontinuity() {
+        PdfDictionary nested = Dictionary(
+            ("FunctionType", Number(3)),
+            ("Domain", Numbers(0D, 1D)),
+            ("Functions", Array(
+                Type2(new[] { 0D }, new[] { 0D }),
+                Type2(new[] { 1D }, new[] { 1D }))),
+            ("Bounds", Numbers(0D)),
+            ("Encode", Numbers(0D, 1D, 0D, 1D)));
+        PdfDictionary outer = Dictionary(
+            ("FunctionType", Number(3)),
+            ("Domain", Numbers(0D, 1D)),
+            ("Functions", Array(nested)),
+            ("Bounds", Numbers()),
+            ("Encode", Numbers(0D, 1D)));
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            outer,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024,
+            out PdfColorFunction function));
+
         Assert.Contains(0D, function.Discontinuities);
     }
 
@@ -625,14 +718,22 @@ public sealed partial class PdfColorFunctionTests {
         PdfObject function,
         int inputCount,
         int outputCount,
-        out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) =>
-        PdfColorSpaceFunctionResolver.TryCreateTintTransform(
-            function,
-            inputCount,
-            outputCount,
-            new Dictionary<int, PdfIndirectObject>(),
-            1024 * 1024,
-            out transform);
+        out Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) {
+        transform = null!;
+        if (!PdfColorSpaceFunctionResolver.TryCreateTintTransform(
+                function,
+                inputCount,
+                outputCount,
+                new Dictionary<int, PdfIndirectObject>(),
+                1024 * 1024,
+                out PdfColorSpaceTintTransform boundedTransform)) return false;
+
+        transform = components => {
+            var output = new double[outputCount];
+            return boundedTransform(components, output) ? output : null;
+        };
+        return true;
+    }
 
     private static PdfStream SampledFunction(
         int inputCount,
@@ -660,6 +761,37 @@ public sealed partial class PdfColorFunctionTests {
         ("C0", Numbers(c0)),
         ("C1", Numbers(c1)),
         ("N", Number(1D)));
+
+    private static void AssertImageTintConversionReusesBuffers(PdfObject function) {
+        PdfArray colorSpace = Array(
+            new PdfName("Separation"),
+            new PdfName("Spot"),
+            new PdfName("DeviceRGB"),
+            function);
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out PdfImageColorSpaceNormalization normalization));
+        PdfImageColorConversionBuffer conversionBuffer = normalization.CreateConversionBuffer();
+        byte[] sample = { 255 };
+        for (int index = 0; index < 32; index++) {
+            Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
+        }
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool converted = true;
+        OfficeColor color = OfficeColor.Black;
+        for (int index = 0; index < 4096; index++) {
+            converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
+        }
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(converted);
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
+        Assert.InRange(allocated, 0, 1024);
+    }
 
     private static PdfDictionary Dictionary(params (string Key, PdfObject Value)[] entries) {
         var dictionary = new PdfDictionary();

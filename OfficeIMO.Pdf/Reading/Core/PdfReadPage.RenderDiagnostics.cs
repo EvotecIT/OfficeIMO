@@ -52,6 +52,10 @@ public sealed partial class PdfReadPage {
                 invokedColorSpaces.Add(colorSpaceName);
             }
             if (operation.InlineImage is PdfContentInlineImage inlineImage) {
+                if (inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) &&
+                    colorSpaceObject is PdfName inlineColorSpaceName) {
+                    invokedColorSpaces.Add(inlineColorSpaceName.Name);
+                }
                 CollectImageColorSpaceCapabilityDiagnostic(
                     inlineImage.Dictionary,
                     resources,

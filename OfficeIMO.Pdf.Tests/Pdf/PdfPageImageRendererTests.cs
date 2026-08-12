@@ -823,6 +823,18 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ResolvesNamedColorSpaceBeforeScanningRawInlineImage() {
+        byte[] pdf = BuildInlineNamedDeviceRgbRawImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(new byte[] { 0, 82, 71, 66 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
     public void RenderPage_PreservesRotatedImageXObjectProjection() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
@@ -1366,6 +1378,19 @@ public class PdfPageImageRendererTests {
         OfficeColor rightPixel = raster.GetPixel(132, 100);
         Assert.True(leftPixel.R > leftPixel.B);
         Assert.True(rightPixel.B > rightPixel.R);
+    }
+
+    [Fact]
+    public void RenderPage_ClipsType2ShadingEndpointsToDeclaredRange() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "20 80 120 40 re\nW\nn\n/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /Range [0 1 0 1 0 1] /C0 [2 -1 0] /C1 [0 0 3] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
+
+        Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[1].Color);
     }
 
     [Fact]
@@ -2711,7 +2736,13 @@ public class PdfPageImageRendererTests {
         indexedColorSpace.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 255, 255, 255 }));
         var objects = new Dictionary<int, PdfIndirectObject>();
 
-        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
+        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(
+            8,
+            1,
+            maskStream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
         Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out _));
     }
 
@@ -2910,6 +2941,25 @@ public class PdfPageImageRendererTests {
         WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /CsRgb\n/BPC 8\n/F [/A85 /Fl]\nID\n");
         content.Write(encoded, 0, encoded.Length);
         WriteAscii(content, "\nEI\nQ");
+        byte[] contentBytes = content.ToArray();
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineNamedDeviceRgbRawImagePdf() {
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /CsRgb\n/BPC 8\nID\n");
+        content.Write(new byte[] { 82, 71, 66 }, 0, 3);
+        WriteAscii(content, "\nEI\nQ\n0 0 1 rg\n120 80 20 20 re\nf");
         byte[] contentBytes = content.ToArray();
 
         using var pdf = new MemoryStream();

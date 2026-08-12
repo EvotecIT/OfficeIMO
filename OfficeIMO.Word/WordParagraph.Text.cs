@@ -330,6 +330,23 @@ namespace OfficeIMO.Word {
         }
 
         private static string ReadVisibleText(OpenXmlElement element) {
+            if (element is Text text) {
+                return text.Text;
+            }
+
+            if (element is Run run && !IsHiddenCommentReferenceRun(run)) {
+                OpenXmlElementList children = run.ChildElements;
+                if (children.Count == 1 && children[0] is Text onlyText) {
+                    return onlyText.Text;
+                }
+
+                if (children.Count == 2 &&
+                    children[0] is RunProperties &&
+                    children[1] is Text formattedText) {
+                    return formattedText.Text;
+                }
+            }
+
             var builder = new StringBuilder();
             AppendVisibleText(builder, element);
             return builder.ToString();
