@@ -165,6 +165,9 @@ public sealed partial class PdfReadPage {
         out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 4 || componentCount < 1 || componentCount > MaxDeviceNComponents ||
+            (kind == PdfPageColorSpaceKind.Separation &&
+             (ResolveObject(array.Items[1]) is not PdfName colorant ||
+              string.Equals(colorant.Name, "None", StringComparison.Ordinal))) ||
             !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, out PdfPageColorSpace alternate) ||
             alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
             !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
@@ -184,12 +187,14 @@ public sealed partial class PdfReadPage {
     private int TryReadDeviceNComponentCount(PdfArray array) {
         if (array.Items.Count < 2 || ResolveObject(array.Items[1]) is not PdfArray names) return 0;
         if (names.Items.Count < 1 || names.Items.Count > MaxDeviceNComponents) return 0;
-        return names.Items.All(item => ResolveObject(item) is PdfName) ? names.Items.Count : 0;
+        return names.Items.All(item => ResolveObject(item) is PdfName name &&
+            !string.Equals(name.Name, "None", StringComparison.Ordinal)) ? names.Items.Count : 0;
     }
 
     private bool TryReadCalGrayColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
+            !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 
@@ -206,7 +211,8 @@ public sealed partial class PdfReadPage {
 
     private bool TryReadLabColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
+            !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 
