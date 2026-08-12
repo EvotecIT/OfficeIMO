@@ -27,6 +27,7 @@ public static class PdfProvenance {
             options.MaxCarriers,
             options.MaxContainerEntries);
         PdfC2paAssociationProfile associations = CollectAssociationProfile(document, options.MaxContainerEntries);
+        HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -35,7 +36,8 @@ public static class PdfProvenance {
             bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
                 string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
                 attachment.FileSpecObjectNumber > 0 &&
-                IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber) &&
+                IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber, pageTreeObjectNumbers) &&
+                HasOnlySelectedEmbeddedFileVariants(document.Objects, attachment) &&
                 associations.IsValid(attachment.FileSpecObjectNumber) &&
                 OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
             if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
@@ -356,8 +358,54 @@ public static class PdfProvenance {
         }
     }
 
-    private static bool IsFileSpecificationObject(Dictionary<int, PdfIndirectObject> objects, int objectNumber) =>
-        objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) && IsFileSpecificationValue(indirect.Value);
+    private static bool IsFileSpecificationObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        int objectNumber,
+        HashSet<int> pageTreeObjectNumbers) =>
+        !pageTreeObjectNumbers.Contains(objectNumber) &&
+        objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
+        IsFileSpecificationValue(indirect.Value);
+
+    private static bool HasOnlySelectedEmbeddedFileVariants(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfExtractedAttachment attachment) {
+        if (attachment.EmbeddedFileObjectNumber <= 0 ||
+            !objects.TryGetValue(attachment.FileSpecObjectNumber, out PdfIndirectObject? fileSpecObject) ||
+            fileSpecObject.Value is not PdfDictionary fileSpec ||
+            PdfObjectLookup.Resolve(objects, fileSpec.Items.TryGetValue("EF", out PdfObject? embeddedFilesValue) ? embeddedFilesValue : null) is not PdfDictionary embeddedFiles ||
+            !objects.TryGetValue(attachment.EmbeddedFileObjectNumber, out PdfIndirectObject? selectedEmbeddedFile) ||
+            selectedEmbeddedFile.Value is not PdfStream selectedStream ||
+            embeddedFiles.Items.Count == 0) return false;
+        foreach (PdfObject variant in embeddedFiles.Items.Values) {
+            if (!ReferenceEquals(PdfObjectLookup.Resolve(objects, variant), selectedStream)) return false;
+        }
+        return true;
+    }
+
+    private static HashSet<int> CollectPageTreeObjectNumbers(PdfReadDocument document, int maximumContainerEntries) {
+        var result = new HashSet<int>(document.Pages.Select(static page => page.ObjectNumber));
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(document.Objects, document.TrailerRaw);
+        if (catalog == null || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return result;
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(pages);
+        while (pending.Count > 0) {
+            PdfObject value = pending.Pop();
+            if (value is PdfReference reference) {
+                if (!PdfObjectLookup.TryGet(document.Objects, reference, out PdfIndirectObject? indirect) ||
+                    !result.Add(reference.ObjectNumber)) continue;
+                if (result.Count > maximumContainerEntries) {
+                    throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+                }
+                value = indirect.Value;
+            }
+            PdfObject? resolved = PdfObjectLookup.Resolve(document.Objects, value);
+            if (resolved is not PdfDictionary dictionary || !visited.Add(dictionary) ||
+                PdfObjectLookup.Resolve(document.Objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
+            foreach (PdfObject child in kids.Items) pending.Push(child);
+        }
+        return result;
+    }
 
     private static bool IsFileSpecificationValue(PdfObject value) {
         if (value is not PdfDictionary dictionary) return false;
