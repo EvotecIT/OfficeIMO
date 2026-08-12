@@ -165,6 +165,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool TryFindUnsupportedMathMlElement(IElement math, out string localName) {
         foreach (IElement element in math.QuerySelectorAll("*")) {
             string candidate = element.LocalName.ToLowerInvariant();
+            if (candidate == "menclose") {
+                string notation = element.GetAttribute("notation")?.Trim() ?? string.Empty;
+                if (!string.Equals(notation, "box", StringComparison.OrdinalIgnoreCase)) {
+                    localName = notation.Length == 0 ? "menclose[notation=longdiv]" : "menclose[notation=" + notation + "]";
+                    return true;
+                }
+            }
             if (IsSupportedMathMlElement(candidate)) continue;
             localName = candidate;
             return true;

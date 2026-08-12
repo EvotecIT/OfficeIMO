@@ -523,6 +523,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_AutoFitCollapsesLeadingAndInteriorEmptyTracksWithoutRenumberingLines() {
+        const string html = """
+            <div style="display:grid;width:450px;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));column-gap:10px;grid-auto-rows:20px">
+              <div id="second" style="grid-column:2;background:#ff0000"></div>
+              <div id="fourth" style="grid-column:4;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 470D);
+
+        HtmlRenderShape second = FindGridShape(rendered, "div#second");
+        HtmlRenderShape fourth = FindGridShape(rendered, "div#fourth");
+        Assert.Equal(0D, second.X, 3);
+        Assert.Equal(225D, second.Width, 3);
+        Assert.Equal(225D, fourth.X, 3);
+        Assert.Equal(225D, fourth.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_AlignsBaselinesWhenTheFirstTextIsInsideAVisualGroup() {
         const string html = """
             <div style="display:grid;width:200px;grid-template-columns:100px 100px;grid-template-rows:60px;align-items:baseline">

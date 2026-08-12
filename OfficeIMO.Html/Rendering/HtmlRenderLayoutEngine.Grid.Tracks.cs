@@ -52,6 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (arguments.Count == 2
                     && (string.Equals(arguments[0], "auto-fit", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(arguments[0], "auto-fill", StringComparison.OrdinalIgnoreCase))) {
+                    bool autoFit = string.Equals(arguments[0], "auto-fit", StringComparison.OrdinalIgnoreCase);
                     var pattern = new List<GridTrack>();
                     AddGridTrackTokens(arguments[1], reference, percentageReferenceIsDefinite, style, source, axis, pattern, depth + 1);
                     double responsiveGap = axis.IndexOf("columns", StringComparison.Ordinal) >= 0 ? style.ColumnGap : style.RowGap;
@@ -59,13 +60,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (!percentageReferenceIsDefinite || pattern.Count == 0 || patternMinimum <= 0D) {
                         ReportUnsupportedGridValue(source, axis + "=" + token);
                         if (pattern.Count == 0) pattern.Add(GridTrack.Auto("auto"));
-                        foreach (GridTrack track in pattern) AddGridTrack(tracks, track.Clone());
+                        foreach (GridTrack track in pattern) {
+                            GridTrack repeatedTrack = track.Clone();
+                            repeatedTrack.IsAutoFitCandidate = autoFit;
+                            AddGridTrack(tracks, repeatedTrack);
+                        }
                         continue;
                     }
 
                     int responsiveCount = Math.Max(1, (int)Math.Floor((reference + responsiveGap) / (patternMinimum + responsiveGap)));
                     for (int iteration = 0; iteration < responsiveCount; iteration++) {
-                        foreach (GridTrack track in pattern) AddGridTrack(tracks, track.Clone());
+                        foreach (GridTrack track in pattern) {
+                            GridTrack repeatedTrack = track.Clone();
+                            repeatedTrack.IsAutoFitCandidate = autoFit;
+                            AddGridTrack(tracks, repeatedTrack);
+                        }
                     }
                     continue;
                 }
@@ -84,15 +93,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return track.Minimum;
     }
 
-    private static void CollapseTrailingAutoFitColumns(
+    private static void CollapseEmptyAutoFitColumns(
         HtmlRenderBoxStyle style,
         IReadOnlyList<GridItem> items,
         IList<GridTrack> tracks,
         ref int columnCount) {
         if (style.GridTemplateColumns.IndexOf("repeat(auto-fit", StringComparison.OrdinalIgnoreCase) < 0) return;
-        int usedColumns = items.Count == 0 ? 1 : items.Max(item => item.Column + item.ColumnSpan);
-        columnCount = Math.Max(1, Math.Min(columnCount, usedColumns));
-        while (tracks.Count > columnCount) tracks.RemoveAt(tracks.Count - 1);
+        for (int index = 0; index < tracks.Count; index++) {
+            if (!tracks[index].IsAutoFitCandidate) continue;
+            tracks[index].IsCollapsed = !items.Any(item => item.Column <= index && item.Column + item.ColumnSpan > index);
+        }
+        columnCount = Math.Max(1, columnCount);
     }
 
     private void AddGridTrackToken(
@@ -206,18 +217,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableSize,
         double gap) {
         List<double> sizes = ResolveGridIntrinsicTrackBases(tracks, items, availableSize, gap, includeFractionTracks: false);
-        double trackSpace = Math.Max(0D, availableSize - gap * Math.Max(0, tracks.Count - 1));
+        double trackSpace = Math.Max(0D, availableSize - gap * CountGridBaseGaps(tracks));
         double used = sizes.Sum();
         double remaining = Math.Max(0D, trackSpace - used);
-        double fractionTotal = tracks.Where(track => track.Kind == GridTrackKind.Fraction).Sum(track => track.Value);
+        double fractionTotal = tracks.Where(track => !track.IsCollapsed && track.Kind == GridTrackKind.Fraction).Sum(track => track.Value);
         if (fractionTotal > 0D) {
             DistributeGridFractions(tracks, sizes, trackSpace);
             ReportFractionalMinimumFallbacks(tracks, items, sizes, gap, availableSize);
         } else {
-            int autoCount = tracks.Count(track => track.Kind == GridTrackKind.Auto);
+            int autoCount = tracks.Count(track => !track.IsCollapsed && track.Kind == GridTrackKind.Auto);
             if (autoCount > 0) {
                 double addition = remaining / autoCount;
-                for (int index = 0; index < tracks.Count; index++) if (tracks[index].Kind == GridTrackKind.Auto) sizes[index] += addition;
+                for (int index = 0; index < tracks.Count; index++) if (!tracks[index].IsCollapsed && tracks[index].Kind == GridTrackKind.Auto) sizes[index] += addition;
             }
         }
 
@@ -230,7 +241,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableSize,
         double gap,
         bool includeFractionTracks) {
-        var sizes = tracks.Select(track => Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
+        var sizes = tracks.Select(track => track.IsCollapsed ? 0D : Math.Max(0D, track.Kind == GridTrackKind.Fixed ? Math.Max(track.Value, track.Minimum) : track.Minimum)).ToList();
         foreach (GridItem item in items.OrderBy(item => item.ColumnSpan)) {
             IReadOnlyList<GridTrack> spannedTracks = tracks.Skip(item.Column).Take(item.ColumnSpan).ToList();
             bool usesMaxContentContribution = includeFractionTracks && spannedTracks.Any(track => track.Kind == GridTrackKind.Fraction)
@@ -585,8 +596,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {
-        var flexible = Enumerable.Range(0, tracks.Count).Where(index => tracks[index].Kind == GridTrackKind.Fraction).ToList();
-        double remaining = Math.Max(0D, trackSpace - Enumerable.Range(0, tracks.Count).Where(index => tracks[index].Kind != GridTrackKind.Fraction).Sum(index => sizes[index]));
+        var flexible = Enumerable.Range(0, tracks.Count).Where(index => !tracks[index].IsCollapsed && tracks[index].Kind == GridTrackKind.Fraction).ToList();
+        double remaining = Math.Max(0D, trackSpace - Enumerable.Range(0, tracks.Count).Where(index => tracks[index].IsCollapsed || tracks[index].Kind != GridTrackKind.Fraction).Sum(index => sizes[index]));
         while (flexible.Count > 0) {
             double factorTotal = flexible.Sum(index => tracks[index].Value);
             if (factorTotal <= 0D) return;
@@ -613,17 +624,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source,
         string property) {
         var sizes = sourceSizes.ToList();
-        double used = sizes.Sum() + gap * Math.Max(0, sizes.Count - 1);
+        int activeTrackCount = tracks.Count(track => !track.IsCollapsed);
+        double used = sizes.Sum() + gap * CountGridBaseGaps(tracks);
         double remaining = Math.Max(0D, availableSize - used);
         string normalized = alignment == "normal" ? "stretch" : alignment;
         double start = 0D;
-        double between = gap;
+        double distributedBetween = 0D;
         switch (normalized) {
             case "stretch":
-                int stretchCount = tracks.Count(track => track.Kind == GridTrackKind.Auto);
+                int stretchCount = tracks.Count(track => !track.IsCollapsed && track.Kind == GridTrackKind.Auto);
                 if (stretchCount > 0 && remaining > 0D) {
                     double addition = remaining / stretchCount;
-                    for (int index = 0; index < tracks.Count; index++) if (tracks[index].Kind == GridTrackKind.Auto) sizes[index] += addition;
+                    for (int index = 0; index < tracks.Count; index++) if (!tracks[index].IsCollapsed && tracks[index].Kind == GridTrackKind.Auto) sizes[index] += addition;
                 }
                 break;
             case "start":
@@ -637,26 +649,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 start = remaining / 2D;
                 break;
             case "space-between":
-                if (sizes.Count > 1) between += remaining / (sizes.Count - 1D);
+                if (activeTrackCount > 1) distributedBetween = remaining / (activeTrackCount - 1D);
                 break;
             case "space-around":
-                if (sizes.Count > 0) {
-                    double around = remaining / sizes.Count;
+                if (activeTrackCount > 0) {
+                    double around = remaining / activeTrackCount;
                     start = around / 2D;
-                    between += around;
+                    distributedBetween = around;
                 }
                 break;
             case "space-evenly":
-                double evenly = remaining / (sizes.Count + 1D);
+                double evenly = remaining / (activeTrackCount + 1D);
                 start = evenly;
-                between += evenly;
+                distributedBetween = evenly;
                 break;
             default:
                 ReportUnsupportedGridValue(source, property + "=" + alignment);
                 break;
         }
 
-        return new GridAxisLayout(sizes, start, between);
+        return new GridAxisLayout(tracks, sizes, start, gap, distributedBetween);
+    }
+
+    private static int CountGridBaseGaps(IReadOnlyList<GridTrack> tracks) {
+        int count = 0;
+        for (int index = 1; index < tracks.Count; index++) {
+            if (!tracks[index - 1].IsCollapsed && !tracks[index].IsCollapsed) count++;
+        }
+        return count;
     }
 
     private void ReportUnsupportedGridValue(string source, string detail) {
@@ -691,12 +711,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal GridIntrinsicSizing MaximumSizing { get; private set; }
         internal double? GrowthLimit { get; private set; }
         internal string Source { get; }
+        internal bool IsAutoFitCandidate { get; set; }
+        internal bool IsCollapsed { get; set; }
         internal GridTrack Clone() => new GridTrack(Kind, Value, Source) {
             Minimum = Minimum,
             MinimumSizing = MinimumSizing,
             HasExplicitMinimum = HasExplicitMinimum,
             MaximumSizing = MaximumSizing,
-            GrowthLimit = GrowthLimit
+            GrowthLimit = GrowthLimit,
+            IsAutoFitCandidate = IsAutoFitCandidate,
+            IsCollapsed = IsCollapsed
         };
         internal static GridTrack Fixed(double value, string source) => new GridTrack(GridTrackKind.Fixed, value, source);
         internal static GridTrack Fraction(double value, string source) => new GridTrack(GridTrackKind.Fraction, value, source);
@@ -713,21 +737,41 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class GridAxisLayout {
-        internal GridAxisLayout(IReadOnlyList<double> sizes, double start, double between) {
+        private readonly IReadOnlyList<double> _ends;
+
+        internal GridAxisLayout(IReadOnlyList<GridTrack> tracks, IReadOnlyList<double> sizes, double start, double gap, double distributedBetween) {
             Sizes = sizes;
-            Between = between;
+            Between = gap + distributedBetween;
             var positions = new List<double>(sizes.Count);
+            var ends = new List<double>(sizes.Count);
             double cursor = start;
-            foreach (double size in sizes) {
+            int previousActive = -1;
+            for (int index = 0; index < sizes.Count; index++) {
+                if (tracks[index].IsCollapsed) {
+                    positions.Add(cursor);
+                    ends.Add(cursor);
+                    continue;
+                }
+                if (previousActive >= 0) {
+                    cursor += distributedBetween;
+                    if (previousActive == index - 1) cursor += gap;
+                }
                 positions.Add(cursor);
-                cursor += size + between;
+                cursor += sizes[index];
+                ends.Add(cursor);
+                previousActive = index;
             }
             Positions = positions;
+            _ends = ends;
         }
 
         internal IReadOnlyList<double> Sizes { get; }
         internal IReadOnlyList<double> Positions { get; }
         internal double Between { get; }
-        internal double SpanSize(int start, int span) => Sizes.Skip(start).Take(span).Sum() + Between * Math.Max(0, span - 1);
+        internal double SpanSize(int start, int span) {
+            if (start < 0 || start >= Sizes.Count || span <= 0) return 0D;
+            int end = Math.Min(Sizes.Count - 1, start + span - 1);
+            return Math.Max(0D, _ends[end] - Positions[start]);
+        }
     }
 }

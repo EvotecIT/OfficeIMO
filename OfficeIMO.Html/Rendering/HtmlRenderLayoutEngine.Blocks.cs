@@ -335,9 +335,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
 
         if (usesBlockFormatting) {
+            string? childPageName = children.Count > 0 ? children[0].PageName : null;
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
+                if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+                }
+                childPageName = child.PageName;
                 if (child.BreakBefore != HtmlPageBreakTarget.None) {
                     forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, child.BreakBefore));
                 }
@@ -457,7 +462,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentYForBreaks,
                 group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
         string? pageName = style.PageName;
-        if (pageName == null && children.Count > 0 && children.All(child => string.Equals(child.PageName, children[0].PageName, StringComparison.OrdinalIgnoreCase))) {
+        if (pageName == null && children.Count > 0) {
             pageName = children[0].PageName;
         }
 

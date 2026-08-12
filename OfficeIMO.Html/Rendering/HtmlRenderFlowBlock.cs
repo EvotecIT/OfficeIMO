@@ -382,15 +382,19 @@ internal sealed class HtmlRenderFlowBlock {
 }
 
 internal sealed class HtmlRenderForcedBreak {
-    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target) {
+    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false) {
         Offset = offset;
         Target = target;
+        PageName = pageName;
+        ChangesPageName = changesPageName;
     }
 
     internal double Offset { get; }
     internal HtmlPageBreakTarget Target { get; }
+    internal string? PageName { get; }
+    internal bool ChangesPageName { get; }
 
-    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target);
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName);
 }
 
 internal sealed class HtmlRenderContinuationGroup {

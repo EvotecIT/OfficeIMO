@@ -299,7 +299,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             HtmlRenderFlowBlock block = blocks[index];
             bool hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
-            if (!string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
+            if (!string.Equals(currentPageName, block.PageName, StringComparison.Ordinal)) {
                 if (hasPageContent) CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 block = RelayoutTopLevelBlockForPage(block, pageGeometry);
@@ -359,7 +359,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (y > pageGeometry.Margins.Top + 0.0001D) {
                             CommitPage(pages, visuals, pageGeometry, currentPageName);
                             BeginPage(currentPageName);
-                            currentPageName = block.PageName;
                             continue;
                         }
 
@@ -446,8 +445,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                     if (blockOffset < block.Height - 0.0001D) {
                         HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
+                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
                         CommitPage(pages, visuals, pageGeometry, currentPageName);
-                        BeginPage(currentPageName);
+                        BeginPage(nextPageName);
+                        currentPageName = nextPageName;
+                        pageWidth = pageGeometry.Width;
+                        pageHeight = pageGeometry.Height;
+                        contentHeight = pageGeometry.ContentHeight;
                         HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
                         if (internalBreak != HtmlPageBreakTarget.None) {
                             EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
@@ -464,7 +468,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 ReportPageContinuationReflowPending(block, pageGeometry);
                             }
                         }
-                        currentPageName = block.PageName;
                     }
                 }
             }

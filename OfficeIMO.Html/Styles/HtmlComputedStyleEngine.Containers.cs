@@ -142,13 +142,22 @@ public static partial class HtmlComputedStyleEngine {
         return true;
     }
 
-    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double containingWidth, double? containingHeight, double fontSize, double rootFontSize, MediaEnvironment environment) {
+    private static double? ResolveContainerElementHeight(HtmlComputedStyle style, double contentWidth, double containingWidth, double? containingHeight, double fontSize, double rootFontSize, MediaEnvironment environment) {
         string height = style.GetValue("height");
-        if (!HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
-            || resolved < 0D) return null;
-        ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out _, out double verticalInsets);
+        ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, out double horizontalInsets, out double verticalInsets);
         bool borderBox = IsBorderBox(style);
-        double contentHeight = Math.Max(0D, resolved - (borderBox ? verticalInsets : 0D));
+        double contentHeight;
+        if (HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, out double resolved)
+            && resolved >= 0D) {
+            contentHeight = Math.Max(0D, resolved - (borderBox ? verticalInsets : 0D));
+        } else if (HtmlCssReplacedElementParser.TryParseAspectRatio(style.GetValue("aspect-ratio"), out double? ratio, out _, out _)
+            && ratio.HasValue) {
+            double ratioWidth = borderBox ? contentWidth + horizontalInsets : contentWidth;
+            double ratioHeight = ratioWidth / ratio.Value;
+            contentHeight = Math.Max(0D, ratioHeight - (borderBox ? verticalInsets : 0D));
+        } else {
+            return null;
+        }
         double containingSize = containingHeight ?? double.NaN;
         if (TryResolveContainerDimensionConstraint(style.GetValue("max-height"), containingSize, fontSize, rootFontSize, environment, verticalInsets, borderBox, out double maximum)) {
             contentHeight = Math.Min(contentHeight, maximum);

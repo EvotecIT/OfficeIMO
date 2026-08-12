@@ -356,6 +356,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_SizeContainerDerivesItsContentHeightFromWidthAndAspectRatio() {
+        const string html = """
+            <style>
+              @container (height:100px) { #content-box { background:red; } }
+              @container (height:70px) { #border-box { background:red; } }
+            </style>
+            <section style="width:200px;aspect-ratio:2;container-type:size">
+              <div id="content-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="box-sizing:border-box;width:200px;aspect-ratio:2;padding:10px;border:5px solid black;container-type:size">
+              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#content-box").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_CqhUsesTheSizeContainersContentBox() {
         const string html = "<section style='box-sizing:border-box;width:200px;height:200px;padding:20px;border:10px solid black;container-type:size'><div id='item' style='width:20px;height:50cqh;background:red'></div></section>";
 

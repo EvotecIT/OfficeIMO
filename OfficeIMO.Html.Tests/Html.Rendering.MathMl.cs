@@ -121,6 +121,31 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages[0].Visuals, item => item is HtmlRenderDrawing drawing && drawing.Source == "math#action");
     }
 
+    [Theory]
+    [InlineData("circle", "menclose[notation=circle]")]
+    [InlineData("", "menclose[notation=longdiv]")]
+    public void HtmlMathMl_DiagnosesMencloseNotationsThatTheSharedModelCannotRepresent(string notation, string expectedDetail) {
+        string attribute = notation.Length == 0 ? string.Empty : " notation='" + notation + "'";
+        string html = "<body style='margin:0'><math><menclose" + attribute + "><mi>x</mi></menclose></math></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 120D, ViewportHeight = 60D });
+
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        Assert.Equal(expectedDetail, diagnostic.Detail);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlMathMl_RepresentsBoxMencloseWithoutAContentWarning() {
+        const string html = "<body style='margin:0'><math><menclose notation='box'><mi>x</mi></menclose></math></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 120D, ViewportHeight = 60D });
+
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
+    }
+
     private static IEnumerable<HtmlRenderVisual> EnumerateMathMlScene(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;

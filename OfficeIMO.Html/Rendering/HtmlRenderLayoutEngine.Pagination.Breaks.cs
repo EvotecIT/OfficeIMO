@@ -96,4 +96,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return target;
     }
+
+    private static string? ResolvePageNameAt(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, double offset, string? currentPageName) {
+        string? pageName = currentPageName;
+        foreach (HtmlRenderForcedBreak forcedBreak in forcedBreaks) {
+            if (forcedBreak.Offset < offset - 0.0001D) continue;
+            if (forcedBreak.Offset > offset + 0.0001D) break;
+            if (forcedBreak.ChangesPageName) pageName = forcedBreak.PageName;
+        }
+        return pageName;
+    }
 }

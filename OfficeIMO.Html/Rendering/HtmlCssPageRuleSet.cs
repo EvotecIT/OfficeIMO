@@ -43,7 +43,7 @@ internal sealed class HtmlCssPageRuleSet {
         ApplySide(right, width, height, options.DefaultFontSize, ref resolvedRight);
         ApplySide(bottom, width, height, options.DefaultFontSize, ref resolvedBottom);
         ApplySide(left, width, height, options.DefaultFontSize, ref resolvedLeft);
-        return new HtmlCssPageGeometry(width, height, new HtmlRenderMargins(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom));
+        return new HtmlCssPageGeometry(width, height, HtmlRenderMargins.FromCssPageRule(resolvedLeft, resolvedTop, resolvedRight, resolvedBottom));
     }
 
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ResolveMarginBoxes(int pageNumber, string? pageName, HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
@@ -56,10 +56,17 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     private IEnumerable<HtmlCssPageRule> MatchingRules(int pageNumber, string? pageName) {
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic)) yield return rule;
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => rule.PageName == null && rule.Selector != HtmlCssPageSelector.Generic && Matches(rule.Selector, pageNumber))) yield return rule;
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => MatchesName(rule.PageName, pageName) && rule.Selector == HtmlCssPageSelector.Generic)) yield return rule;
-        foreach (HtmlCssPageRule rule in _rules.Where(rule => MatchesName(rule.PageName, pageName) && rule.Selector != HtmlCssPageSelector.Generic && Matches(rule.Selector, pageNumber))) yield return rule;
+        return _rules
+            .Where(rule => (rule.PageName == null || MatchesName(rule.PageName, pageName))
+                && (rule.Selector == HtmlCssPageSelector.Generic || Matches(rule.Selector, pageNumber)))
+            .OrderBy(PageSelectorSpecificity);
+    }
+
+    private static int PageSelectorSpecificity(HtmlCssPageRule rule) {
+        int specificity = rule.PageName == null ? 0 : 4;
+        if (rule.Selector == HtmlCssPageSelector.First) specificity += 2;
+        else if (rule.Selector == HtmlCssPageSelector.Left || rule.Selector == HtmlCssPageSelector.Right) specificity += 1;
+        return specificity;
     }
 
     private static void Apply(HtmlCssPageRule rule, IDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> target, HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
@@ -106,7 +113,7 @@ internal sealed class HtmlCssPageRuleSet {
             target = 0D;
         } else if (HasPageMarginLengthSyntax(value.Value)
             && HtmlRenderCssValues.TryLength(value.Value, width, fontSize, fontSize, width, height, out double parsed)) {
-            target = Math.Max(0D, parsed);
+            target = parsed;
         }
     }
 

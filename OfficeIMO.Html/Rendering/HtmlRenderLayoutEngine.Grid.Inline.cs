@@ -52,7 +52,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int explicitColumns = Math.Max(1, Math.Max(tracks.Count, areaColumnCount));
         int explicitRows = Math.Max(1, Math.Max(rows.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumns, explicitRows, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out _);
-        CollapseTrailingAutoFitColumns(style, items, tracks, ref columnCount);
+        CollapseEmptyAutoFitColumns(style, items, tracks, ref columnCount);
         EnsureGridTrackCount(tracks, columnCount, style.GridAutoColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
         List<double> sizes = ResolveGridIntrinsicTrackBases(
             tracks,
@@ -61,7 +61,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.ColumnGap,
             includeFractionTracks: true);
 
-        double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * Math.Max(0, columnCount - 1);
+        double intrinsicContentWidth = sizes.Sum() + style.ColumnGap * CountGridBaseGaps(tracks);
         double intrinsicBoxWidth = intrinsicContentWidth + style.HorizontalInsets;
         var intrinsicStyle = style.Clone();
         intrinsicStyle.ExplicitWidth = intrinsicStyle.BorderBox ? intrinsicBoxWidth : intrinsicContentWidth;

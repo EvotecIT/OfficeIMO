@@ -6,6 +6,59 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_UsesPageSelectorSpecificityBeforeSourceOrder() {
+        const string html = "<style>@page:first{size:200px 100px}@page:right{size:300px 150px}</style><p>Body</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(200D, rendered.Pages[0].Width, 3);
+        Assert.Equal(100D, rendered.Pages[0].Height, 3);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNegativeAuthoredMargins() {
+        const string html = "<style>@page{size:200px 100px;margin-left:-10px;margin-right:-20px;margin-top:0;margin-bottom:0}</style><div id='body' style='height:10px;background:red'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderShape body = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#body" && shape.Shape.FillColor == OfficeColor.Red);
+
+        Assert.Equal(-10D, body.X, 3);
+        Assert.Equal(230D, body.Width, 3);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNestedCaseSensitivePageNameTransitions() {
+        const string html = """
+            <style>
+              @page Invoice { size:200px 100px; margin:0; }
+              @page invoice { size:300px 120px; margin:0; }
+              section, div { margin:0; }
+              div { height:20px; }
+            </style>
+            <section>
+              <div style="page:Invoice">Upper</div>
+              <div style="page:invoice">Lower</div>
+              <div>Default</div>
+            </section>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 140D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.Equal(200D, rendered.Pages[0].Width, 3);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Upper");
+        Assert.Equal(300D, rendered.Pages[1].Width, 3);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Lower");
+        Assert.Equal(400D, rendered.Pages[2].Width, 3);
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Default");
+    }
+
+    [Fact]
     public void HtmlPagedMedia_WidowsCountTheImplicitFinalLineAtExactBlockHeight() {
         const string html = "<style>@page{size:100px 20px;margin:0}p{margin:0;font-size:8px;line-height:10px;orphans:2;widows:2}</style><p>wordA<br>wordB<br>wordC<br>wordD</p>";
 
