@@ -656,9 +656,13 @@ internal static class PdfColorSpaceFunctionResolver {
         int maxDecodedStreamBytes,
         out int duplicateCount) {
         duplicateCount = 0;
+        if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return false;
+        int decodeLimit = Math.Min(257, maxDecodedStreamBytes);
         byte[] bytes;
         try {
-            bytes = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, Math.Min(257, maxDecodedStreamBytes));
+            bytes = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit);
+        } catch (PdfReadLimitException) {
+            throw;
         } catch (InvalidDataException) {
             return false;
         }
