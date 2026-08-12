@@ -4,7 +4,8 @@ internal static class PdfProvenanceGraphEditor {
     internal static byte[] RemoveFileSpecifications(
         byte[] pdf,
         HashSet<int> fileSpecificationObjectNumbers,
-        PdfReadOptions? readOptions) {
+        PdfReadOptions? readOptions,
+        long maximumOutputBytes) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));
         if (fileSpecificationObjectNumbers.Count == 0) return (byte[])pdf.Clone();
@@ -27,7 +28,7 @@ internal static class PdfProvenanceGraphEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                 ? security.InfoObjectNumber
                 : null;
-        });
+        }, maximumOutputBytes);
     }
 
     private static void RemoveFromEmbeddedFilesNameTree(

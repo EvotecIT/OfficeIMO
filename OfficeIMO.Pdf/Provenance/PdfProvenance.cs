@@ -102,7 +102,11 @@ public static class PdfProvenance {
             throw new InvalidOperationException(detail);
         }
 
-        byte[] output = PdfProvenanceGraphEditor.RemoveFileSpecifications(pdf, removeFileSpecifications, readOptions);
+        byte[] output = PdfProvenanceGraphEditor.RemoveFileSpecifications(
+            pdf,
+            removeFileSpecifications,
+            readOptions,
+            options.Limits.MaxExpandedContainerBytes);
         PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
         OfficeProvenanceReport after = Inspect(output, options.Limits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);

@@ -336,6 +336,19 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void RemovalEnforcesExpandedContainerLimitDuringGraphRewrite() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
+        options.Limits.MaxManifestBytes = 64;
+        options.Limits.MaxExpandedContainerBytes = 128;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
+
+        Assert.Contains("expanded container limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RemovalPreservesDirectFileSpecificationsInTheEmbeddedFilesNameTree() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] directFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {

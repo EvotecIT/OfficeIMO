@@ -6,8 +6,10 @@ internal static class PdfDocumentObjectGraphRewriter {
         byte[] sourcePdf,
         PdfReadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
-        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null) {
+        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
+        long? maximumOutputBytes = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
+        if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(sourcePdf, sourceReadOptions);
         var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
@@ -69,20 +71,48 @@ internal static class PdfDocumentObjectGraphRewriter {
             objects,
             preserveRawStringBytes: true);
         var serializedObjects = new List<byte[]>(reachableObjectNumbers.Count);
+        long serializedObjectBytes = 0L;
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             int sourceObjectNumber = reachableObjectNumbers[i];
             byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
-            serializedObjects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, body));
+            ThrowIfOutputLimitExceeded(body.LongLength, maximumOutputBytes);
+            byte[] serializedObject = PdfObjectBytes.WrapIndirectObject(i + 1, body);
+            serializedObjectBytes = AddWithinOutputLimit(serializedObjectBytes, serializedObject.LongLength, maximumOutputBytes);
+            serializedObjects.Add(serializedObject);
         }
 
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
-        return PdfFileAssembler.Assemble(
+        if (!maximumOutputBytes.HasValue) {
+            return PdfFileAssembler.Assemble(
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption);
+        }
+        using var output = new MemoryStream();
+        using var boundedOutput = new PdfBoundedWriteStream(output, maximumOutputBytes);
+        PdfFileAssembler.Assemble(
+            boundedOutput,
             serializedObjects,
             rewrittenRootObjectNumber,
             rewrittenInfoObjectNumber,
             fileVersion,
             outputEncryption);
+        return output.ToArray();
+    }
+
+    private static long AddWithinOutputLimit(long current, long added, long? maximumOutputBytes) {
+        long total = current > long.MaxValue - added ? long.MaxValue : current + added;
+        ThrowIfOutputLimitExceeded(total, maximumOutputBytes);
+        return total;
+    }
+
+    private static void ThrowIfOutputLimitExceeded(long observedBytes, long? maximumOutputBytes) {
+        if (maximumOutputBytes.HasValue && observedBytes > maximumOutputBytes.Value) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
     }
 
     private static bool CatalogDeclaresAtLeast(
@@ -134,5 +164,40 @@ internal static class PdfDocumentObjectGraphRewriter {
         return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
             ? security.InfoObjectNumber
             : null;
+    }
+
+    private sealed class PdfBoundedWriteStream : Stream {
+        private readonly Stream _inner;
+        private readonly long? _maximumBytes;
+
+        internal PdfBoundedWriteStream(Stream inner, long? maximumBytes) {
+            _inner = inner;
+            _maximumBytes = maximumBytes;
+        }
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            AddWithinOutputLimit(_inner.Position, count, _maximumBytes);
+            _inner.Write(buffer, offset, count);
+        }
+
+        public override void WriteByte(byte value) {
+            AddWithinOutputLimit(_inner.Position, 1L, _maximumBytes);
+            _inner.WriteByte(value);
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Flush();
+            base.Dispose(disposing);
+        }
     }
 }
