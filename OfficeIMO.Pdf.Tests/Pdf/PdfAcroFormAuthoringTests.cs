@@ -186,7 +186,9 @@ public class PdfAcroFormAuthoringTests {
             Height = 24
         }));
 
-        Assert.Equal("Extra Large", result.ToDocument().Inspect().FormFieldsByName["size"].Value);
+        PdfFormField field = result.ToDocument().Inspect().FormFieldsByName["size"];
+        Assert.Equal("Extra Large", field.Value);
+        Assert.Null(field.DefaultValue);
     }
 
     [Fact]
@@ -466,15 +468,69 @@ public class PdfAcroFormAuthoringTests {
     public void ChoiceCreation_PreservesAnExplicitlyUnselectedValueWhenOptionsExist() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected choice")).ToBytes();
 
-        PdfFormField field = Assert.Single(PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "country",
             Kind = PdfFormFieldCreationKind.Choice,
             ChoiceOptions = new[] { "Poland", "Germany" },
             Value = string.Empty
-        })).Fields);
+        }));
+        PdfFormField field = Assert.Single(result.Fields);
 
         Assert.Equal(string.Empty, field.Value);
         Assert.Equal(new[] { "Poland", "Germany" }, field.Options.Select(static option => option.ExportValue));
+        int widgetObjectNumber = Assert.Single(field.Widgets).ObjectNumber!.Value;
+        Assert.True(result.ToDocument().Inspect().Annotations.Single(annotation => annotation.ObjectNumber == widgetObjectNumber).HasNormalAppearance);
+    }
+
+    [Fact]
+    public void Create_AllocatesHelveticaWithoutReplacingAnExistingHelvResource() {
+        byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
+            .Replace("/BaseFont /Helvetica", "/BaseFont /ZapfDingbats"));
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "caption",
+                Kind = PdfFormFieldCreationKind.Text,
+                Value = "Plain text"
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "caption2",
+                Kind = PdfFormFieldCreationKind.Text,
+                Value = "More text"
+            }));
+
+        PdfFormField created = result.Fields.Single(static field => field.Name == "caption");
+        Assert.StartsWith("/Helv1 ", created.DefaultAppearance, StringComparison.Ordinal);
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Equal("/Helv 10 Tf 0 g", result.Fields.Single(static field => field.Name == "run").DefaultAppearance);
+        Assert.Contains("/Helv1", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Helv2", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /ZapfDingbats", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Edit_ReusesRaisedJavaScriptLimitsForIntermediateReadbacks() {
+        byte[] source = BuildWidgetActionBudgetPdf(10_001);
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxJavaScripts = 10_002 }
+        };
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Rename("run", "renamed"));
+
+        Assert.Equal("renamed", Assert.Single(result.Fields).Name);
+        Assert.True(result.PreservationReport.IsPreserved);
+    }
+
+    [Fact]
+    public void Remove_DropsIndirectWidgetActionsThroughCatalogReachabilityRewrite() {
+        byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Remove("run"));
+
+        Assert.Empty(result.Fields);
+        Assert.DoesNotContain(PdfSanitizer.Analyze(result.ToBytes()), static finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction);
+        Assert.DoesNotContain("app.alert", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -622,6 +678,22 @@ public class PdfAcroFormAuthoringTests {
         WriteAscii(output, "11 0 obj\n<< /S /JavaScript /JS (app.alert\\('open'\\);) >>\nendobj\n");
         WriteAscii(output, "12 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 13 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildWidgetActionBudgetPdf(int javaScriptActionCount) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (run) /V (before) /Rect [20 20 160 48] /P 3 0 R /A << /S /GoTo /D [3 0 R /Fit] /Next [");
+        for (int i = 0; i < javaScriptActionCount; i++) {
+            WriteAscii(output, "<< /S /JavaScript /JS (x) >> ");
+        }
+        WriteAscii(output, "] >> >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
         return output.ToArray();
     }
 

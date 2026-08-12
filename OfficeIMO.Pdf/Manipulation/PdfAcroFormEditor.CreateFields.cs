@@ -19,24 +19,39 @@ internal static partial class PdfAcroFormEditor {
     private const int FieldFlagComb = 16777216;
     private const int FieldFlagCommitOnSelectionChange = 67108864;
 
-    private static void EnsureAcroFormAppearanceDefaults(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm) {
-        if (!acroForm.Items.ContainsKey("DA")) acroForm.Items["DA"] = new PdfStringObj("/Helv 10 Tf 0 g", true);
+    private static string EnsureAcroFormAppearanceDefaults(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm) {
         PdfDictionary resources = acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) && ResolveDictionary(objects, resourcesObject) is PdfDictionary existingResources
             ? existingResources
             : new PdfDictionary();
         PdfDictionary fonts = resources.Items.TryGetValue("Font", out PdfObject? fontsObject) && ResolveDictionary(objects, fontsObject) is PdfDictionary existingFonts
             ? existingFonts
             : new PdfDictionary();
-        if (!fonts.Items.ContainsKey("Helv")) {
+        string fontName = "Helv";
+        if (fonts.Items.TryGetValue(fontName, out PdfObject? existingFont) && !IsHelveticaFontResource(objects, existingFont)) {
+            int suffix = 1;
+            while (true) {
+                fontName = "Helv" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                suffix++;
+                if (!fonts.Items.TryGetValue(fontName, out existingFont) || IsHelveticaFontResource(objects, existingFont)) break;
+            }
+        }
+        if (!fonts.Items.ContainsKey(fontName)) {
             var helvetica = new PdfDictionary();
             helvetica.Items["Type"] = new PdfName("Font");
             helvetica.Items["Subtype"] = new PdfName("Type1");
             helvetica.Items["BaseFont"] = new PdfName("Helvetica");
-            fonts.Items["Helv"] = helvetica;
+            fonts.Items[fontName] = helvetica;
         }
         resources.Items["Font"] = fonts;
         acroForm.Items["DR"] = resources;
+        if (!acroForm.Items.ContainsKey("DA")) acroForm.Items["DA"] = new PdfStringObj("/" + fontName + " 10 Tf 0 g", true);
+        return fontName;
     }
+
+    private static bool IsHelveticaFontResource(Dictionary<int, PdfIndirectObject> objects, PdfObject fontObject) =>
+        ResolveDictionary(objects, fontObject) is PdfDictionary font &&
+        string.Equals(ReadName(font, "Subtype"), "Type1", StringComparison.Ordinal) &&
+        string.Equals(ReadName(font, "BaseFont"), "Helvetica", StringComparison.Ordinal);
 
     private static void ApplyCreateRadioButtonGroup(
         Dictionary<int, PdfIndirectObject> objects,
@@ -44,6 +59,7 @@ internal static partial class PdfAcroFormEditor {
         PdfArray fields,
         int[] pages,
         PdfFormFieldCreateOptions options,
+        string appearanceFontName,
         Dictionary<string, string> refillValues,
         ref int nextObjectNumber) {
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
@@ -54,8 +70,8 @@ internal static partial class PdfAcroFormEditor {
         parent.Items["T"] = new PdfStringObj(options.Name, true);
         parent.Items["Ff"] = new PdfNumber(GetCreateFieldFlags(options));
         parent.Items["V"] = new PdfName(selectedValue);
-        parent.Items["DV"] = new PdfName(options.DefaultValue ?? selectedValue);
-        ApplyCreateFieldStyle(parent, options, includeWidgetStyle: false);
+        if (options.DefaultValue is not null) parent.Items["DV"] = new PdfName(options.DefaultValue);
+        ApplyCreateFieldStyle(parent, options, appearanceFontName, includeWidgetStyle: false);
 
         var kids = new PdfArray();
         parent.Items["Kids"] = kids;
@@ -76,6 +92,7 @@ internal static partial class PdfAcroFormEditor {
             widget.Items["Rect"] = CreateRectangle(options.X, widgetBottom, options.X + options.Width, widgetTop);
             widget.Items["P"] = CreateReference(objects, pages[options.PageNumber - 1]);
             widget.Items["F"] = new PdfNumber(options.WidgetFlags);
+            widget.Items["DA"] = new PdfStringObj(BuildDefaultAppearance(appearanceFontName, options.FontSize, (options.Style ?? new PdfFormFieldStyle()).TextColor), true);
             widget.Items["AS"] = new PdfName(string.Equals(option, selectedValue, StringComparison.Ordinal) ? option : "Off");
             PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
             ApplyWidgetVisualStyle(widget, style, option);
@@ -133,7 +150,35 @@ internal static partial class PdfAcroFormEditor {
         widget.Items["AP"] = appearances;
     }
 
-    private static void ApplyCreateFieldStyle(PdfDictionary field, PdfFormFieldCreateOptions options, bool includeWidgetStyle) {
+    private static void AddTextWidgetAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        PdfDictionary widget,
+        PdfFormFieldCreateOptions options,
+        string value,
+        ref int nextObjectNumber) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
+            objects,
+            acroForm,
+            page,
+            widget,
+            value,
+            options.Width,
+            options.Height,
+            style,
+            options.FontSize,
+            options.Name,
+            ref nextObjectNumber);
+        int appearanceObjectNumber = nextObjectNumber++;
+        objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+        widget.Items["AP"] = appearances;
+    }
+
+    private static void ApplyCreateFieldStyle(PdfDictionary field, PdfFormFieldCreateOptions options, string appearanceFontName, bool includeWidgetStyle) {
         PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
         if (!string.IsNullOrWhiteSpace(style.AlternateName)) field.Items["TU"] = new PdfStringObj(style.AlternateName!, true);
         if (!string.IsNullOrWhiteSpace(style.MappingName)) field.Items["TM"] = new PdfStringObj(style.MappingName!, true);
@@ -141,8 +186,9 @@ internal static partial class PdfAcroFormEditor {
         if ((options.Kind == PdfFormFieldCreationKind.Text || options.Kind == PdfFormFieldCreationKind.Choice) && style.TextAlignment.HasValue) {
             field.Items["Q"] = new PdfNumber(GetQuadding(style.TextAlignment.Value));
         }
-        if (options.Kind == PdfFormFieldCreationKind.Text || options.Kind == PdfFormFieldCreationKind.Choice) {
-            field.Items["DA"] = new PdfStringObj(BuildDefaultAppearance(options.FontSize, style.TextColor), true);
+        if (options.Kind == PdfFormFieldCreationKind.Text || options.Kind == PdfFormFieldCreationKind.Choice ||
+            options.Kind == PdfFormFieldCreationKind.PushButton || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            field.Items["DA"] = new PdfStringObj(BuildDefaultAppearance(appearanceFontName, options.FontSize, style.TextColor), true);
         }
         if (includeWidgetStyle) ApplyWidgetVisualStyle(field, style, options.Kind == PdfFormFieldCreationKind.PushButton ? options.Caption : null);
     }
@@ -241,8 +287,8 @@ internal static partial class PdfAcroFormEditor {
         return array;
     }
 
-    private static string BuildDefaultAppearance(double fontSize, PdfColor textColor) =>
-        "/Helv " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf " +
+    private static string BuildDefaultAppearance(string fontResourceName, double fontSize, PdfColor textColor) =>
+        "/" + PdfSyntaxEscaper.Name(fontResourceName) + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf " +
         textColor.R.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
         textColor.G.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
         textColor.B.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " rg";

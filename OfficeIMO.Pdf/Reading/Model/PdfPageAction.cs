@@ -4,11 +4,12 @@ namespace OfficeIMO.Pdf;
 /// Metadata for an action attached to a page dictionary through the page /AA additional-actions entry.
 /// </summary>
 public sealed class PdfPageAction {
-    internal PdfPageAction(int? pageNumber, string triggerName, string actionType, string? actionPath = null) {
+    internal PdfPageAction(int? pageNumber, string triggerName, string actionType, string? actionPath = null, string? uri = null) {
         PageNumber = pageNumber;
         TriggerName = triggerName;
         ActionType = actionType;
         ActionPath = string.IsNullOrEmpty(actionPath) ? triggerName : actionPath!;
+        Uri = uri;
     }
 
     /// <summary>One-based source page number when the page context is known.</summary>
@@ -26,7 +27,10 @@ public sealed class PdfPageAction {
     /// <summary>True when this action was discovered through a chained /Next action.</summary>
     public bool IsChainedAction => !string.Equals(ActionPath, TriggerName, StringComparison.Ordinal);
 
+    /// <summary>URI target when this is a URI action.</summary>
+    public string? Uri { get; }
+
     internal PdfPageAction WithPageNumber(int pageNumber) {
-        return PageNumber == pageNumber ? this : new PdfPageAction(pageNumber, TriggerName, ActionType, ActionPath);
+        return PageNumber == pageNumber ? this : new PdfPageAction(pageNumber, TriggerName, ActionType, ActionPath, Uri);
     }
 }
