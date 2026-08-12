@@ -73,12 +73,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string>? visibleShadingVisitor = null,
         Action? invalidPatternSelectionVisitor = null,
         Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor = null,
+        Action<PdfPagePatternSelection>? patternSelectionVisitor = null,
         double? pageWidth = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor);
         return parser.Parse();
     }
 
@@ -147,6 +148,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<string>? _visibleShadingVisitor;
         private readonly Action<PdfPageGraphicsStateResource, Matrix2D>? _graphicsStateVisitor;
         private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
+        private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -205,7 +207,8 @@ internal static class PdfPageXObjectInvocationParser {
             Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver,
             Action<string>? visibleShadingVisitor,
             Action? invalidPatternSelectionVisitor,
-            Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor) {
+            Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor,
+            Action<PdfPagePatternSelection>? patternSelectionVisitor) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -244,6 +247,7 @@ internal static class PdfPageXObjectInvocationParser {
             _authoredPatternInvocationVisitor = authoredPatternInvocationVisitor;
             _invalidPatternSelectionVisitor = invalidPatternSelectionVisitor;
             _ordinaryTextPaintVisitor = ordinaryTextPaintVisitor;
+            _patternSelectionVisitor = patternSelectionVisitor;
             _type3PaintChannelResolver = type3PaintChannelResolver;
             _xObjectPaintChannelResolver = xObjectPaintChannelResolver;
             _softMaskVisibilityResolver = softMaskVisibilityResolver;
@@ -418,6 +422,7 @@ internal static class PdfPageXObjectInvocationParser {
                         font!, code, textState, _state.ClipPath,
                         _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity,
                         _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity,
+                        _patternState.Fill?.Name, _patternState.Stroke?.Name,
                         _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin));
                 }
 
@@ -1276,7 +1281,8 @@ internal static class PdfPageXObjectInvocationParser {
                  ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
                   (resource.HasSoftMask && resource.SoftMask != null))) ||
                 resource.HasUnsupportedSoftMask ||
-                resource.HasUnsupportedBlendMode) {
+                resource.HasUnsupportedBlendMode ||
+                resource.HasUnsupportedEntries) {
                 _unsupportedGraphicsEffectVisitor?.Invoke();
             }
         }
@@ -1702,6 +1708,7 @@ internal static class PdfPageXObjectInvocationParser {
         }
 
         private void ValidateDeferredPatternSelection(PdfPagePatternSelection selection) {
+            _patternSelectionVisitor?.Invoke(selection);
             if (!IsValidPatternSelection(
                     ResolveTilingPattern(selection.Name),
                     ResolveShadingPattern(selection.Name, selection.PaintTransform),
@@ -1939,12 +1946,14 @@ internal static class PdfPageXObjectInvocationParser {
             bool hasSoftMask,
             PdfPageSoftMaskResource? softMask,
             bool hasUnsupportedSoftMask,
+            bool hasUnsupportedEntries,
             Matrix2D softMaskTransform) {
             BlendMode = blendMode;
             HasUnsupportedBlendMode = hasUnsupportedBlendMode;
             HasSoftMask = hasSoftMask;
             SoftMask = softMask;
             HasUnsupportedSoftMask = hasUnsupportedSoftMask;
+            HasUnsupportedEntries = hasUnsupportedEntries;
             SoftMaskTransform = softMaskTransform;
         }
 
@@ -1953,12 +1962,14 @@ internal static class PdfPageXObjectInvocationParser {
         private bool HasSoftMask { get; }
         private PdfPageSoftMaskResource? SoftMask { get; }
         private bool HasUnsupportedSoftMask { get; }
+        private bool HasUnsupportedEntries { get; }
         internal Matrix2D SoftMaskTransform { get; }
         internal bool HasEffect =>
             (BlendMode.HasValue && BlendMode.Value != OfficeBlendMode.Normal) ||
             HasUnsupportedBlendMode ||
             HasSoftMask ||
-            HasUnsupportedSoftMask;
+            HasUnsupportedSoftMask ||
+            HasUnsupportedEntries;
 
         internal GraphicsEffectState Apply(PdfPageGraphicsStateResource resource, Matrix2D transform) {
             OfficeBlendMode? blendMode = BlendMode;
@@ -1971,6 +1982,7 @@ internal static class PdfPageXObjectInvocationParser {
             bool hasSoftMask = HasSoftMask;
             PdfPageSoftMaskResource? softMask = SoftMask;
             bool hasUnsupportedSoftMask = HasUnsupportedSoftMask;
+            bool hasUnsupportedEntries = HasUnsupportedEntries || resource.HasUnsupportedEntries;
             Matrix2D softMaskTransform = SoftMaskTransform;
             if (resource.HasSoftMask || resource.HasUnsupportedSoftMask) {
                 hasSoftMask = resource.HasSoftMask && resource.SoftMask != null;
@@ -1985,6 +1997,7 @@ internal static class PdfPageXObjectInvocationParser {
                 hasSoftMask,
                 softMask,
                 hasUnsupportedSoftMask,
+                hasUnsupportedEntries,
                 softMaskTransform);
         }
 
@@ -1999,7 +2012,8 @@ internal static class PdfPageXObjectInvocationParser {
             HasSoftMask,
             SoftMask,
             HasUnsupportedSoftMask,
-            HasUnsupportedBlendMode);
+            HasUnsupportedBlendMode,
+            HasUnsupportedEntries);
     }
 }
 

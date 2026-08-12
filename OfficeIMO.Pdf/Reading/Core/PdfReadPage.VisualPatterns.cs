@@ -17,6 +17,7 @@ public sealed partial class PdfReadPage {
             shapeClip = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, shapeClip);
         }
         if (!TryFitClipToDrawing(shapeClip, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
+        if (!IsWithinTilingPatternLimit(paint, fitted)) return;
         OfficeClipPath? clip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
         if (clip == null) return;
 
@@ -55,6 +56,7 @@ public sealed partial class PdfReadPage {
             strokeBounds = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, strokeBounds);
         }
         if (!TryFitClipToDrawing(strokeBounds, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
+        if (!IsWithinTilingPatternLimit(paint, fitted)) return;
 
         OfficeDrawing tile = paint.Resource.Tile.Clone();
         if (paint.Tint.HasValue) tile.ApplyColorTint(paint.Tint.Value);
@@ -76,6 +78,77 @@ public sealed partial class PdfReadPage {
             OfficeTransform.Translate(fitted.X, fitted.Y),
             OfficeBlendMode.Normal,
             new OfficeDrawingSoftMask(strokeMask));
+    }
+
+    private static bool CanRenderTilingPatterns(PdfPageVisualPrimitive primitive, double drawingWidth, double drawingHeight) {
+        if (primitive.FillTilingPattern != null &&
+            TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
+            !IsWithinTilingPatternLimit(primitive.FillTilingPattern, fillBounds)) return false;
+        if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D &&
+            TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
+            !IsWithinTilingPatternLimit(primitive.StrokeTilingPattern, strokeBounds)) return false;
+        return true;
+    }
+
+    private static bool TryGetTilingPatternFillBounds(
+        PdfPageVisualPrimitive primitive,
+        double drawingWidth,
+        double drawingHeight,
+        out PdfPageClipPath fitted) {
+        fitted = default;
+        if (primitive.Width <= 0D || primitive.Height <= 0D) return false;
+        PdfPageClipPath shapeClip;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            shapeClip = PdfPageClipPath.Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
+        } else if (!PdfPageClipPath.TryCreatePath(primitive.PathCommands, primitive.FillRule, out shapeClip)) {
+            return false;
+        }
+        if (primitive.ClipPath.HasValue) shapeClip = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, shapeClip);
+        return TryFitClipToDrawing(shapeClip, drawingWidth, drawingHeight, out fitted);
+    }
+
+    private static bool TryGetTilingPatternStrokeBounds(
+        PdfPageVisualPrimitive primitive,
+        double drawingWidth,
+        double drawingHeight,
+        out PdfPageClipPath fitted) {
+        fitted = default;
+        double strokeHalf = primitive.StrokeWidth / 2D;
+        double left = primitive.X - strokeHalf;
+        double top = primitive.Y - strokeHalf;
+        double width = primitive.Width + primitive.StrokeWidth;
+        double height = primitive.Height + primitive.StrokeWidth;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+            left = Math.Min(primitive.X1, primitive.X2) - strokeHalf;
+            top = Math.Min(primitive.Y1, primitive.Y2) - strokeHalf;
+            width = Math.Abs(primitive.X2 - primitive.X1) + primitive.StrokeWidth;
+            height = Math.Abs(primitive.Y2 - primitive.Y1) + primitive.StrokeWidth;
+        }
+        if (width <= 0D || height <= 0D) return false;
+        PdfPageClipPath bounds = PdfPageClipPath.Rectangle(left, top, width, height);
+        if (primitive.ClipPath.HasValue) bounds = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, bounds);
+        return TryFitClipToDrawing(bounds, drawingWidth, drawingHeight, out fitted);
+    }
+
+    private static bool IsWithinTilingPatternLimit(PdfPageTilingPatternPaint paint, PdfPageClipPath fitted) {
+        OfficeTransform transform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
+        if (!transform.TryInvert(out OfficeTransform inverse)) return false;
+        OfficePoint topLeft = inverse.TransformPoint(new OfficePoint(0D, 0D));
+        OfficePoint topRight = inverse.TransformPoint(new OfficePoint(fitted.Width, 0D));
+        OfficePoint bottomRight = inverse.TransformPoint(new OfficePoint(fitted.Width, fitted.Height));
+        OfficePoint bottomLeft = inverse.TransformPoint(new OfficePoint(0D, fitted.Height));
+        double minX = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomRight.X, bottomLeft.X));
+        double maxX = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomRight.X, bottomLeft.X));
+        double minY = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomRight.Y, bottomLeft.Y));
+        double maxY = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomRight.Y, bottomLeft.Y));
+        if (!TryGetTileRange(minX, maxX, 0D, paint.Resource.Tile.Width, paint.Resource.HorizontalStep, out long firstColumn, out long lastColumn) ||
+            !TryGetTileRange(minY, maxY, 0D, paint.Resource.Tile.Height, paint.Resource.VerticalStep, out long firstRow, out long lastRow)) return false;
+        double columns = (double)lastColumn - firstColumn + 1D;
+        double rows = (double)lastRow - firstRow + 1D;
+        return columns <= 0D || rows <= 0D ||
+            IsFinite(columns) && IsFinite(rows) &&
+            columns <= MaximumPatternVisibilityTiles && rows <= MaximumPatternVisibilityTiles &&
+            columns * rows <= MaximumPatternVisibilityTiles;
     }
 
     private static OfficeDrawing CreatePatternStrokeMask(PdfPageVisualPrimitive primitive, PdfPageClipPath fitted) {
@@ -209,6 +282,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
         bool allowNestedPatterns = (allowNestedPatternContent || requireSupportedType3Content) && paintType == 1;
+        bool rejectImageContent = requireSupportedType3Content && paintType == 2;
         OfficeDrawing tile = CreatePatternTileDrawing(
             stream,
             resources,
@@ -220,12 +294,20 @@ public sealed partial class PdfReadPage {
             type3GlyphBudget,
             resourceCache,
             requireSupportedType3Content,
+            rejectImageContent,
             allowNestedPatterns,
             contentNestingDepth);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
-        Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
-            ? ReadPatternMatrix(matrixObject)
-            : Matrix2D.Identity;
+        Matrix2D matrix;
+        if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            if (requireSupportedType3Content) {
+                if (!TryReadStrictPatternMatrix(matrixObject, out matrix)) return false;
+            } else {
+                matrix = ReadPatternMatrix(matrixObject);
+            }
+        } else {
+            matrix = Matrix2D.Identity;
+        }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         bool uncolored = paintType == 2;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored);
@@ -248,6 +330,7 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         TilingPatternResourceCache resourceCache,
         bool requireSupportedType3Content,
+        bool rejectImageContent,
         bool allowNestedPatterns,
         int contentNestingDepth) {
         var drawing = new OfficeDrawing(width, height);
@@ -277,6 +360,7 @@ public sealed partial class PdfReadPage {
             requireSupportedType3Content: requireSupportedType3Content,
             allowSupportedType3Patterns: allowNestedPatterns,
             allowSupportedType3TransparencyGroups: requireSupportedType3Content,
+            requireNestedType3Uncolored: rejectImageContent,
             unrenderedPatternVisitor: requireSupportedType3Content || allowNestedPatterns
                 ? null
                 : _ => type3GlyphBudget.RecordFailure(),
@@ -346,7 +430,8 @@ public sealed partial class PdfReadPage {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
-                if (requireSupportedType3Content && (image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask)) {
+                if (requireSupportedType3Content &&
+                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources) || image!.HasUnresolvedTransparencyMask)) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }

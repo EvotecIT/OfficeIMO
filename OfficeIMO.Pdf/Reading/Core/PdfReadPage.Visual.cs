@@ -568,6 +568,7 @@ public sealed partial class PdfReadPage {
                 pageWidth: pageWidth);
         }
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources);
+        Dictionary<string, PdfPageShadingResource> shadingResources = GetShadingResources(resources);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
             ? GetTilingPatternResources(
                 resources,
@@ -590,7 +591,7 @@ public sealed partial class PdfReadPage {
             pageHeight,
             GetGraphicsStateResources(resources),
             colorSpaceResources,
-            GetShadingResources(resources),
+            shadingResources,
             shadingPatternResources,
             tilingPatternResources,
             GetOptionalContentVisibility(resources),
@@ -619,7 +620,19 @@ public sealed partial class PdfReadPage {
                 ? type3GlyphBudget.RecordFailure
                 : null,
             requireExactType3ShadingProjection: requireSupportedType3Content,
-            authoredShadingInvocationVisitor: requireNestedType3Uncolored
+            authoredShadingInvocationVisitor: requireSupportedType3Content
+                ? name => {
+                    if (requireNestedType3Uncolored ||
+                        !shadingResources.TryGetValue(name, out PdfPageShadingResource shading) ||
+                        !shading.SupportsExactType3Projection) {
+                        type3GlyphBudget.RecordFailure();
+                    }
+                }
+                : null,
+            unrenderedShadingVisitor: requireSupportedType3Content
+                ? _ => type3GlyphBudget.RecordFailure()
+                : null,
+            unsupportedOperatorVisitor: requireSupportedType3Content
                 ? _ => type3GlyphBudget.RecordFailure()
                 : null,
             initialFillPattern: initialFillPattern,
@@ -661,6 +674,9 @@ public sealed partial class PdfReadPage {
                                   }
                               }
                           }
+                          int glyphContentNestingDepth = activeType3Glyphs.Count == 0
+                              ? contentNestingDepth + 1
+                              : contentNestingDepth;
                           bool rendered = RenderType3TextInvocation(
                               invocation,
                               pageWidth,
@@ -675,7 +691,7 @@ public sealed partial class PdfReadPage {
                               tilingPatternResourceCache,
                               textOutputBudget,
                               pageContentBudget,
-                              contentNestingDepth,
+                              glyphContentNestingDepth,
                               type3ImageVisitor,
                               type3PrimitiveVisitor,
                               type3GroupVisitor,
@@ -762,6 +778,11 @@ public sealed partial class PdfReadPage {
                     activeType3PaintChannelStreams,
                     pageContentBudget,
                     type3GlyphBudget) == PdfType3PaintChannels.None) {
+                continue;
+            }
+
+            if (requireSupportedType3Content && formStream.Dictionary.Items.ContainsKey("OC")) {
+                type3GlyphBudget.RecordFailure();
                 continue;
             }
 
@@ -940,10 +961,15 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        Matrix2D matrix = dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
-            ? ReadPatternMatrix(matrixObject)
-            : Matrix2D.Identity;
-        pattern = new PdfPageShadingPatternResource(shading, matrix);
+        bool hasExactMatrix = true;
+        Matrix2D matrix;
+        if (dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            matrix = ReadPatternMatrix(matrixObject);
+            hasExactMatrix = TryReadStrictPatternMatrix(matrixObject, out _);
+        } else {
+            matrix = Matrix2D.Identity;
+        }
+        pattern = new PdfPageShadingPatternResource(shading, matrix, hasExactMatrix);
         return true;
     }
 
@@ -1258,6 +1284,8 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
+            bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask"));
             bool hasSoftMask = state.Items.ContainsKey("SMask");
             PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state, resources) : null;
             bool clearsSoftMask = hasSoftMask &&
@@ -1272,7 +1300,7 @@ public sealed partial class PdfReadPage {
                 blendMode.HasValue ||
                 hasUnsupportedBlendMode ||
                 hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, hasSoftMask && !clearsSoftMask && softMask == null, hasUnsupportedBlendMode);
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask, hasSoftMask && !clearsSoftMask && softMask == null, hasUnsupportedBlendMode, hasUnsupportedEntries);
             }
         }
 

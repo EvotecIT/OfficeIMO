@@ -169,7 +169,7 @@ public sealed partial class PdfReadPage {
                                      type3GlyphBudget,
                                      pageWidth,
                                      pageHeight,
-                                     depth + 1);
+                                     depth);
                              }
                              return true;
                          },
@@ -183,7 +183,7 @@ public sealed partial class PdfReadPage {
                              type3GlyphBudget,
                              pageWidth,
                              pageHeight,
-                             depth + 1),
+                             depth),
                          xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                              resources,
                              name,

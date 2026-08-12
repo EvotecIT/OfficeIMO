@@ -90,7 +90,7 @@ public sealed partial class PdfReadPage {
                         initialStrokeDashStyle: glyph.StrokeDashStyle,
                         initialStrokeLineCap: glyph.StrokeLineCap,
                         initialStrokeLineJoin: glyph.StrokeLineJoin,
-                        contentNestingDepth: contentNestingDepth + 1,
+                        contentNestingDepth: contentNestingDepth,
                         includeTilingPatterns: includeTilingPatterns,
                         retainPrimitiveData: retainPrimitiveData,
                         requireSupportedType3Content: true,
@@ -109,6 +109,9 @@ public sealed partial class PdfReadPage {
                 }
 
                 if (type3GlyphBudget.FailureVersion != failureVersion) return false;
+                for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
+                    if (!CanRenderTilingPatterns(localPrimitives[primitiveIndex].Primitive, pageWidth, pageHeight)) return false;
+                }
 
                 var localEffects = new List<PdfPageDrawingEffectTransition>();
                 try {
@@ -120,7 +123,7 @@ public sealed partial class PdfReadPage {
                         localEffects,
                         new HashSet<PdfStream>(),
                         PdfPageDrawingEffect.Default,
-                        contentNestingDepth: contentNestingDepth + 1,
+                        contentNestingDepth: contentNestingDepth,
                         pageContentBudget: pageContentBudget,
                         contentOrderPrefix: glyphOrderPrefix,
                         skipTransparencyGroupForms: true);
@@ -172,7 +175,7 @@ public sealed partial class PdfReadPage {
                     0D,
                     1D,
                     initialClipPath: glyph.ClipPath,
-                    contentNestingDepth: contentNestingDepth + 1,
+                    contentNestingDepth: contentNestingDepth,
                     pageContentBudget: pageContentBudget,
                     contentOrderPrefix: glyphOrderPrefix,
                     skipTransparencyGroupForms: true);
@@ -219,14 +222,23 @@ public sealed partial class PdfReadPage {
                         }
                         for (int imageIndex = 0; imageIndex < pendingPlacements.Count; imageIndex++) {
                             PdfExtractedImage? image = FindImage(images, pendingPlacements[imageIndex]);
-                            if (image == null || !image.IsImageFile) return false;
+                            if (image == null || !IsSupportedType3Image(pendingPlacements[imageIndex], image, type3.Resources)) return false;
                             extractedImageCache[GetType3ImageCacheKey(pendingPlacements[imageIndex])] = image;
                         }
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfExtractedImage image = extractedImageCache[GetType3ImageCacheKey(localImagePlacements[imageIndex])];
+                        if (!IsSupportedType3Image(localImagePlacements[imageIndex], image, type3.Resources) || image.HasUnresolvedTransparencyMask) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
+                        if (!IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight) &&
+                            !TryCreateImageProjection(
+                                placement,
+                                pageHeight,
+                                pageWidth,
+                                pageHeight,
+                                out _,
+                                allowAxisAlignedFallback: false)) return false;
                         PdfPageDrawingEffect effect = ResolveDrawingEffect(localEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey);
                         localImages.Add((placement, image, effect));
                     }
@@ -278,6 +290,35 @@ public sealed partial class PdfReadPage {
             groupVisitor!(group.Drawing, group.Transform, group.PaintOrder, group.ContentOrderKey, group.Effect);
         }
         return true;
+    }
+
+    private static bool IsValidType3ImageFile(PdfExtractedImage image) {
+        if (!image.IsImageFile) return false;
+        return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
+            OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
+            validated.Format == OfficeImageFormat.Jpeg;
+    }
+
+    private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image, PdfDictionary? fallbackResources = null) {
+        if (!IsValidType3ImageFile(image)) return false;
+        PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
+        PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
+        if (imageDictionary == null && resources != null) {
+            PdfDictionary? xObjects = ResolveDictionary(
+                resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null);
+            if (xObjects?.Items.TryGetValue(placement.ResourceName, out PdfObject? imageObject) == true &&
+                ResolveObject(imageObject) is PdfStream imageStream) {
+                imageDictionary = imageStream.Dictionary;
+            }
+        }
+        if (imageDictionary != null &&
+            imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
+            ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+        if (image.IsImageMask) return true;
+        if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
+        return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
+            (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
+             ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
     }
 
     internal static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
@@ -917,7 +958,7 @@ public sealed partial class PdfReadPage {
                                      type3GlyphBudget,
                                      pageWidth,
                                      pageHeight,
-                                     depth + 1);
+                                     depth);
                              }
                              return true;
                          },

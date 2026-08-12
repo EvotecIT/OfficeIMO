@@ -1,10 +1,11 @@
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageShadingPatternResource {
-    public PdfPageShadingPatternResource(PdfPageShadingResource shading, Matrix2D matrix) {
+    public PdfPageShadingPatternResource(PdfPageShadingResource shading, Matrix2D matrix, bool hasExactMatrix = true) {
         Shading = shading;
         Matrix = matrix;
         IsSupported = true;
+        HasExactMatrix = hasExactMatrix;
     }
 
     public static PdfPageShadingPatternResource Unsupported => default;
@@ -15,5 +16,7 @@ internal readonly struct PdfPageShadingPatternResource {
 
     public bool IsSupported { get; }
 
-    public bool SupportsExactType3Projection => IsSupported && Shading.SupportsExactType3Projection;
+    public bool HasExactMatrix { get; }
+
+    public bool SupportsExactType3Projection => IsSupported && HasExactMatrix && Shading.SupportsExactType3Projection;
 }

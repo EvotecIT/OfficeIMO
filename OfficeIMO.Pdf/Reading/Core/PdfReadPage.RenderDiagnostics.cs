@@ -329,6 +329,12 @@ public sealed partial class PdfReadPage {
             double surfaceWidth = projectionPageWidth ?? visualPageSize.Width;
             double surfaceHeight = projectionPageHeight ?? visualPageSize.Height;
             bool supported = true;
+            if (initialFillPattern.HasValue && initialFillPatternBaseColorSpace?.UsesIccApproximation == true) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, initialFillPattern.Value.Name);
+            }
+            if (initialStrokePattern.HasValue && initialStrokePatternBaseColorSpace?.UsesIccApproximation == true) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, initialStrokePattern.Value.Name);
+            }
             validatedSoftMaskGroups ??= new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, Matrix2D Transform, double Width, double Height), int>();
             activeSoftMaskGroups ??= new HashSet<PdfStream>();
             activeSoftMaskForms ??= new HashSet<PdfStream>();
@@ -416,6 +422,7 @@ public sealed partial class PdfReadPage {
                 requireSupportedType3Content: true,
                 contentNestingDepth: depth);
             Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
+            Dictionary<string, PdfPageShadingResource> directShadings = GetShadingResources(resources);
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
             bool usesUnsupportedInheritedShadingStroke = false;
@@ -426,7 +433,7 @@ public sealed partial class PdfReadPage {
                 surfaceHeight,
                 graphicsStates,
                 colorSpaces,
-                GetShadingResources(resources),
+                directShadings,
                 shadingPatterns,
                 tilingPatterns,
                 GetOptionalContentVisibility(resources),
@@ -443,6 +450,7 @@ public sealed partial class PdfReadPage {
                 initialStrokeLineJoin: programState.StrokeLineJoin,
                 scaleStrokeWidthWithTransform: true,
                 primitiveVisitor: primitive => {
+                    if (!CanRenderTilingPatterns(primitive, surfaceWidth, surfaceHeight)) supported = false;
                     usesFillPaint |= primitive.HasFillPaint;
                     usesStrokePaint |= primitive.HasStrokePaint;
                     usesUnsupportedInheritedShadingStroke |=
@@ -556,7 +564,7 @@ public sealed partial class PdfReadPage {
                                          activeStreams,
                                          diagnostics,
                                          seen,
-                                         depth + 1,
+                                         depth,
                                          softMaskNestingDepth,
                                          validatedSoftMaskGroups,
                                          activeSoftMaskGroups,
@@ -628,7 +636,7 @@ public sealed partial class PdfReadPage {
                              activeType3PaintChannelStreams,
                              pageContentBudget,
                              type3GlyphBudget,
-                             depth + 1),
+                             depth),
                          xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
                              resources,
                              name,
@@ -650,7 +658,19 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
+                         visibleShadingVisitor: name => {
+                             if (requireImageMask ||
+                                 !directShadings.TryGetValue(name, out PdfPageShadingResource shading) ||
+                                 !shading.SupportsExactType3Projection) {
+                                 supported = false;
+                             }
+                         },
                          invalidPatternSelectionVisitor: () => supported = false,
+                         patternSelectionVisitor: selection => {
+                             if (selection.BaseColorSpace?.UsesIccApproximation == true) {
+                                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, selection.Name);
+                             }
+                         },
                          pageWidth: surfaceWidth)) {
                 PdfPageDrawingEffect invocationEffect = ResolveDrawingEffect(
                     drawingEffects,
@@ -818,6 +838,15 @@ public sealed partial class PdfReadPage {
         if (IsInvisibleImagePlacement(placement, projectionPageHeight, projectionPageWidth, projectionPageHeight)) {
             return true;
         }
+        if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
+            ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+        if (!TryCreateImageProjection(
+                placement,
+                projectionPageHeight,
+                projectionPageWidth,
+                projectionPageHeight,
+                out _,
+                allowAxisAlignedFallback: false)) return false;
 
         IReadOnlyList<PdfExtractedImage> images;
         try {
@@ -833,7 +862,7 @@ public sealed partial class PdfReadPage {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
         }
         CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
-        if (image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
+        if (image == null || !IsSupportedType3Image(placement, image, resources) || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
         if (!requireImageMask && image.IsImageMask && inheritedFillPattern.HasValue) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
