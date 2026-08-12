@@ -862,6 +862,10 @@ public sealed partial class PdfReadPage {
                     operation.Operands.Count > 0 &&
                     operation.Operands[operation.Operands.Count - 1] is string name) {
                     names.ColorSpaces.Add(name);
+                } else if (operation.InlineImage is PdfContentInlineImage inlineImage &&
+                    inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) &&
+                    colorSpaceObject is PdfName colorSpaceName) {
+                    names.ColorSpaces.Add(colorSpaceName.Name);
                 } else if (operation.Name == "sh" &&
                     operation.Operands.Count > 0 &&
                     operation.Operands[operation.Operands.Count - 1] is string shadingName) {
@@ -894,14 +898,16 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Gamma", out PdfObject? gammaObject, out bool hasGamma)) return false;
         IReadOnlyList<double>? gamma = null;
-        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
+        if (hasGamma) {
             gamma = ReadNumberArray(gammaObject);
             if (gamma.Count != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
         }
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Matrix", out PdfObject? matrixObject, out bool hasMatrix)) return false;
         IReadOnlyList<double>? matrix = null;
-        if (calibration.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+        if (hasMatrix) {
             matrix = ReadNumberArray(matrixObject);
             if (matrix.Count != 9 || matrix.Any(static value => !IsFinite(value))) return false;
         }

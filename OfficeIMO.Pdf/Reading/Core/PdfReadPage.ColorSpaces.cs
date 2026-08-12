@@ -121,6 +121,20 @@ public sealed partial class PdfReadPage {
         return resolved;
     }
 
+    private bool TryResolveOptionalColorSpaceEntry(
+        PdfDictionary dictionary,
+        string key,
+        out PdfObject? value,
+        out bool hasValue) {
+        value = null;
+        hasValue = false;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? declaration)) return true;
+        value = ResolveIccDeclaration(declaration);
+        if (value == null) return false;
+        hasValue = value is not PdfNull;
+        return true;
+    }
+
     private bool TryReadIndexedColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 4 ||
@@ -198,9 +212,10 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Gamma", out PdfObject? gammaObject, out bool hasGamma)) return false;
         double gamma = 1D;
-        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
-            if (ResolveObject(gammaObject) is not PdfNumber gammaNumber ||
+        if (hasGamma) {
+            if (gammaObject is not PdfNumber gammaNumber ||
                 !IsFinite(gammaNumber.Value) || gammaNumber.Value <= 0D) return false;
             gamma = gammaNumber.Value;
         }
@@ -216,8 +231,9 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
         if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
 
+        if (!TryResolveOptionalColorSpaceEntry(calibration, "Range", out PdfObject? rangeObject, out bool hasRange)) return false;
         IReadOnlyList<double> abRange = new[] { -100D, 100D, -100D, 100D };
-        if (calibration.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
+        if (hasRange) {
             abRange = ReadNumberArray(rangeObject);
             if (abRange.Count != 4 || abRange.Any(static value => !IsFinite(value)) ||
                 abRange[0] >= abRange[1] || abRange[2] >= abRange[3]) return false;
