@@ -107,10 +107,9 @@ public sealed partial class OfficeIccColorProfile {
         uint deviceColorSpace = ReadUInt32(profileBytes, 16);
         if (!hasAuthoredDeviceToPcsTransform &&
             deviceColorSpace == GraySignature && profileConnectionSpace == XyzSignature) {
-            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve)) return false; // kTRC
-            XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
-                ? authoredMediaWhite
-                : whitePoint;
+            if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve) || // kTRC
+                !TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue mediaWhitePoint) ||
+                !mediaWhitePoint.IsPositive) return false;
             profile = new OfficeIccColorProfile(
                 1,
                 grayCurve,
@@ -120,7 +119,7 @@ public sealed partial class OfficeIccColorProfile {
                 default,
                 default,
                 whitePoint,
-                mediaWhite);
+                mediaWhitePoint);
             return true;
         }
 
@@ -132,7 +131,7 @@ public sealed partial class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x7258595AU, out XyzValue redColumn) && // rXYZ
             TryReadXyzTag(profileBytes, tags, 0x6758595AU, out XyzValue greenColumn) && // gXYZ
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
-            XyzValue mediaWhite = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
+            XyzValue mediaWhitePoint = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
                 ? authoredMediaWhite
                 : whitePoint;
             profile = new OfficeIccColorProfile(
@@ -144,7 +143,7 @@ public sealed partial class OfficeIccColorProfile {
                 greenColumn,
                 blueColumn,
                 whitePoint,
-                mediaWhite);
+                mediaWhitePoint);
             return true;
         }
 
@@ -273,7 +272,8 @@ public sealed partial class OfficeIccColorProfile {
             }
             if (TryReadLutTransform(bytes, range, expectedInputChannels, pcsIsLab, out LutTransform lut)) {
                 transforms[index] = lut;
-            } else if (TryReadMabTransform(bytes, range, expectedInputChannels, pcsIsLab, out MabTransform mab)) {
+            } else if (bytes[8] >= 4 &&
+                TryReadMabTransform(bytes, range, expectedInputChannels, pcsIsLab, out MabTransform mab)) {
                 transforms[index] = mab;
             } else {
                 return false;
@@ -412,6 +412,7 @@ public sealed partial class OfficeIccColorProfile {
         var samples = new double[count];
         for (int index = 0; index < count; index++) {
             samples[index] = ReadUInt16(bytes, range.Offset + 12 + index * 2) / 65535D;
+            if (index > 0 && samples[index] < samples[index - 1]) return false;
         }
         curve = ToneCurve.FromSamples(samples);
         return true;
@@ -429,8 +430,9 @@ public sealed partial class OfficeIccColorProfile {
             if (!IsFinite(parameters[index])) return false;
         }
         if (parameters[0] <= 0D ||
-            (functionType > 0 && parameters[1] == 0D) ||
-            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters)) return false;
+            (functionType > 0 && parameters[1] <= 0D) ||
+            !IsParametricCurveDefinedOnUnitInterval(functionType, parameters) ||
+            !IsParametricCurveMonotonic(functionType, parameters)) return false;
         curve = ToneCurve.FromParameters(functionType, parameters);
         return true;
     }
@@ -463,6 +465,26 @@ public sealed partial class OfficeIccColorProfile {
         return IsFinite(start) && IsFinite(end);
     }
 
+    private static bool IsParametricCurveMonotonic(int functionType, double[] parameters) {
+        if (functionType <= 2) return true;
+        double slope = parameters[3];
+        double boundary = parameters[4];
+        if (slope < 0D) return false;
+        if (boundary <= 0D || boundary >= 1D) return true;
+        double high = Math.Pow(parameters[1] * boundary + parameters[2], parameters[0]);
+        double low = slope * boundary;
+        if (functionType == 4) {
+            high += parameters[5];
+            low += parameters[6];
+        }
+        return IsFinite(high) && IsFinite(low) && high >= low;
+    }
+
+    private static bool IsD50Illuminant(XyzValue value) =>
+        Math.Abs(value.X - D50X) <= IlluminantTolerance &&
+        Math.Abs(value.Y - D50Y) <= IlluminantTolerance &&
+        Math.Abs(value.Z - D50Z) <= IlluminantTolerance;
+
     private static ushort ReadUInt16(byte[] bytes, int offset) =>
         unchecked((ushort)((bytes[offset] << 8) | bytes[offset + 1]));
 
@@ -475,10 +497,6 @@ public sealed partial class OfficeIccColorProfile {
     private static double ReadS15Fixed16(byte[] bytes, int offset) => unchecked((int)ReadUInt32(bytes, offset)) / 65536D;
     private static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
-    private static bool IsD50Illuminant(XyzValue value) =>
-        Math.Abs(value.X - D50X) <= IlluminantTolerance &&
-        Math.Abs(value.Y - D50Y) <= IlluminantTolerance &&
-        Math.Abs(value.Z - D50Z) <= IlluminantTolerance;
 
     private readonly struct TagRange {
         internal TagRange(int offset, int length) {

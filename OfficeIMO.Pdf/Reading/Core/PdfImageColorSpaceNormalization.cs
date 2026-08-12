@@ -115,10 +115,10 @@ internal sealed class PdfImageColorSpaceNormalization {
             return _alternateNormalization.TryConvertComponents(alternateComponents, alternateBuffer, out color);
         }
         if (_colorSpace.Kind == PdfPageColorSpaceKind.DeviceCmyk) {
-            byte cyan = ToByte(components[0]);
-            byte magenta = ToByte(components[1]);
-            byte yellow = ToByte(components[2]);
-            byte black = ToByte(components[3]);
+            byte cyan = ToByte(ClipComponentToRange(components[0], 0));
+            byte magenta = ToByte(ClipComponentToRange(components[1], 1));
+            byte yellow = ToByte(ClipComponentToRange(components[2], 2));
+            byte black = ToByte(ClipComponentToRange(components[3], 3));
             color = OfficeColor.FromRgb(
                 ConvertDeviceCmykComponentToRgb(cyan, black),
                 ConvertDeviceCmykComponentToRgb(magenta, black),
@@ -148,6 +148,12 @@ internal sealed class PdfImageColorSpaceNormalization {
             clipped[index] = value < minimum ? minimum : value > maximum ? maximum : value;
         }
         return clipped;
+    }
+
+    private double ClipComponentToRange(double value, int component) {
+        double minimum = _componentRanges[component * 2];
+        double maximum = _componentRanges[component * 2 + 1];
+        return value < minimum ? minimum : value > maximum ? maximum : value;
     }
 
     internal static bool TryResolve(

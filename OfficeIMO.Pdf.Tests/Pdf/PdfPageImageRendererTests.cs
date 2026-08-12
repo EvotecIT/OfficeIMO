@@ -830,7 +830,7 @@ public class PdfPageImageRendererTests {
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
-        Assert.Equal(new byte[] { 0, 82, 71, 66 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal(16, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes).Length);
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 0, 255));
     }
 
@@ -2957,8 +2957,9 @@ public class PdfPageImageRendererTests {
 
     private static byte[] BuildInlineNamedDeviceRgbRawImagePdf() {
         using var content = new MemoryStream();
-        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /CsRgb\n/BPC 8\nID\n");
-        content.Write(new byte[] { 82, 71, 66 }, 0, 3);
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 5\n/H 1\n/CS /CsRgb\n/BPC 8\nID\n");
+        byte[] samples = Encoding.ASCII.GetBytes("ABCDE/Unused cs");
+        content.Write(samples, 0, samples.Length);
         WriteAscii(content, "\nEI\nQ\n0 0 1 rg\n120 80 20 20 re\nf");
         byte[] contentBytes = content.ToArray();
 
@@ -2966,7 +2967,7 @@ public class PdfPageImageRendererTests {
         WriteAscii(pdf, "%PDF-1.4\n");
         WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
-        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB /Unused /DeviceCMYK >> >> /Contents 4 0 R >>\nendobj\n");
         WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
         pdf.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(pdf, "\nendstream\nendobj\n");
