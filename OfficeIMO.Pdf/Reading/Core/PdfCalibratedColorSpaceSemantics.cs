@@ -2,6 +2,12 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Shared fail-closed semantics for calibrated color-space declarations.</summary>
 internal static class PdfCalibratedColorSpaceSemantics {
+    internal static bool IsValidWhitePoint(IReadOnlyList<double> values) =>
+        values.Count == 3 &&
+        values[0] > 0D && values[1] == 1D && values[2] > 0D &&
+        !double.IsNaN(values[0]) && !double.IsInfinity(values[0]) &&
+        !double.IsNaN(values[2]) && !double.IsInfinity(values[2]);
+
     internal static bool HasSupportedBlackPoint(
         PdfDictionary calibration,
         Dictionary<int, PdfIndirectObject> objects) {
