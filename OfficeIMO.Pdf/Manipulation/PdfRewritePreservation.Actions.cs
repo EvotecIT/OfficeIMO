@@ -60,10 +60,10 @@ public static partial class PdfRewritePreservation {
             PdfCatalogAction after = actual[i];
             string prefix = "CatalogActions[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
 
-            CompareString(issues, prefix + ".Name", before.Name, after.Name);
+            CompareString(issues, prefix + ".Name", NormalizeFilteredActionPath(before.Name, options), NormalizeFilteredActionPath(after.Name, options));
             CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
             CompareString(issues, prefix + ".Source", before.Source, after.Source);
-            CompareString(issues, prefix + ".TriggerName", before.TriggerName, after.TriggerName);
+            CompareString(issues, prefix + ".TriggerName", NormalizeFilteredActionPath(before.TriggerName, options), NormalizeFilteredActionPath(after.TriggerName, options));
             CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
         }
     }
@@ -90,9 +90,9 @@ public static partial class PdfRewritePreservation {
                 string prefix = "PageActions[" + originalPages[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + j.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
 
                 CompareNullableInt(issues, prefix + ".PageNumber", before.PageNumber, after.PageNumber);
-                CompareString(issues, prefix + ".TriggerName", before.TriggerName, after.TriggerName);
+                CompareString(issues, prefix + ".TriggerName", NormalizeFilteredActionPath(before.TriggerName, options), NormalizeFilteredActionPath(after.TriggerName, options));
                 CompareString(issues, prefix + ".ActionType", before.ActionType, after.ActionType);
-                CompareString(issues, prefix + ".ActionPath", before.ActionPath, after.ActionPath);
+                CompareString(issues, prefix + ".ActionPath", NormalizeFilteredActionPath(before.ActionPath, options), NormalizeFilteredActionPath(after.ActionPath, options));
                 CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
             }
         }
@@ -110,6 +110,26 @@ public static partial class PdfRewritePreservation {
         actions.Where(action =>
             (!options.FilterActionsByPreservedTypes && options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(action.ActionType)) &&
             (action.Uri is null || !options.ExcludedActionUris.Contains(action.Uri))).ToArray();
+
+    private static string? NormalizeFilteredActionPath(string? value, PdfRewritePreservationOptions options) {
+        if (!options.FilterActionsByPreservedTypes || value is null || value.Length == 0) return value;
+        const string nextMarker = ".Next.";
+        int markerIndex = value.IndexOf(nextMarker, StringComparison.Ordinal);
+        if (markerIndex < 0) return value;
+
+        var normalized = new System.Text.StringBuilder(value.Length);
+        int sourceIndex = 0;
+        while (markerIndex >= 0) {
+            int indexStart = markerIndex + nextMarker.Length;
+            int indexEnd = indexStart;
+            while (indexEnd < value.Length && value[indexEnd] >= '0' && value[indexEnd] <= '9') indexEnd++;
+            normalized.Append(value, sourceIndex, markerIndex - sourceIndex + ".Next".Length);
+            sourceIndex = indexEnd;
+            markerIndex = value.IndexOf(nextMarker, sourceIndex, StringComparison.Ordinal);
+        }
+        normalized.Append(value, sourceIndex, value.Length - sourceIndex);
+        return normalized.ToString();
+    }
 
     private static void CompareNullablePresence(List<PdfRewritePreservationIssue> issues, string feature, bool expectedPresent, bool actualPresent) {
         if (expectedPresent == actualPresent) {

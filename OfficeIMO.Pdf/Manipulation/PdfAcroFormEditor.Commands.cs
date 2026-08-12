@@ -8,7 +8,8 @@ internal static partial class PdfAcroFormEditor {
         IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands,
         Dictionary<string, string> refillValues,
         List<string> flattenNames,
-        List<string> operations) {
+        List<string> operations,
+        PdfFormFillerOptions? appearanceOptions) {
         PdfDictionary catalog = RequireCatalog(objects, security);
         PdfDictionary acroForm = EnsureAcroForm(objects, catalog, out PdfArray fields);
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
@@ -16,7 +17,7 @@ internal static partial class PdfAcroFormEditor {
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, refillValues, ref nextObjectNumber);
+                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, refillValues, appearanceOptions, ref nextObjectNumber);
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
@@ -60,12 +61,12 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, ref int nextObjectNumber) {
+    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FindField(objects, fields, options.Name) is not null) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
-            ApplyCreateRadioButtonGroup(objects, acroForm, fields, pages, options, appearanceFontName, refillValues, ref nextObjectNumber);
+            ApplyCreateRadioButtonGroup(objects, acroForm, fields, pages, options, appearanceFontName, refillValues, appearanceOptions, ref nextObjectNumber);
             if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
             return;
         }
@@ -87,13 +88,16 @@ internal static partial class PdfAcroFormEditor {
             SetDefaultValue(field, GetFieldType(options.Kind), options.DefaultValue, options.CheckedValueName, normalizeButtonValue: true);
         }
         ApplyWidgetJavaScript(field, options.JavaScript, usePrimaryAction: options.Kind == PdfFormFieldCreationKind.PushButton);
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox) {
+            AddCheckBoxAppearances(objects, field, options, ref nextObjectNumber);
+        }
         if (options.Kind == PdfFormFieldCreationKind.Choice && string.IsNullOrEmpty(ResolveInitialValue(options))) {
-            AddTextWidgetAppearance(objects, acroForm, page, field, options, string.Empty, ref nextObjectNumber);
+            AddTextWidgetAppearance(objects, acroForm, page, field, options, string.Empty, appearanceOptions, ref nextObjectNumber);
         }
         objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, field);
         var reference = new PdfReference(objectNumber, 0); fields.Items.Add(reference); EnsureAnnotationArray(objects, page).Items.Add(reference);
         if (options.Kind == PdfFormFieldCreationKind.PushButton) {
-            AddPushButtonAppearance(objects, acroForm, page, field, options, ref nextObjectNumber);
+            AddPushButtonAppearance(objects, acroForm, page, field, options, appearanceOptions, ref nextObjectNumber);
         } else if (options.Kind != PdfFormFieldCreationKind.Signature) {
             QueueRefillValue(refillValues, options.Name, GetFieldType(options.Kind), ReadSimpleValue(field));
         }

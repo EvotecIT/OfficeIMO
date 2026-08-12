@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Creates and transactionally edits AcroForm fields in existing PDFs.</summary>
 internal static partial class PdfAcroFormEditor {
     /// <summary>Applies field-tree, widget, calculation-order, tab-order, and selective-flatten edits as one validated full rewrite.</summary>
-    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfReadOptions? readOptions = null) {
+    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfReadOptions? readOptions = null, PdfFormFillerOptions? appearanceOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
@@ -20,14 +20,14 @@ internal static partial class PdfAcroFormEditor {
         var operations = new List<string>(session.Commands.Count);
         int[] pageObjectNumbers = source.Pages.Select(static page => page.ObjectNumber).ToArray();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
-            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations);
+            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations, appearanceOptions);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
 
         PdfReadOptions savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         _ = PdfReadDocument.Open(output, savedReadOptions).FormWidgetJavaScriptCount;
         if (refillValues.Count > 0) {
-            output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), readOptions: savedReadOptions);
+            output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions);
             savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
         if (flattenNames.Count > 0) {
