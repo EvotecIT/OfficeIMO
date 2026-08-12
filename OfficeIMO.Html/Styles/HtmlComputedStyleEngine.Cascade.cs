@@ -58,11 +58,11 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder)) {
-            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder));
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing));
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue);
     }
 
     private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
@@ -71,7 +71,14 @@ public static partial class HtmlComputedStyleEngine {
             || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name))) {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
-                ? CssKeywordResolution.ForValue(inheritedValue)
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
+                : CssKeywordResolution.Clear;
+        }
+
+        if (string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name)) {
+            string? inheritedValue;
+            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
                 : CssKeywordResolution.Clear;
         }
 

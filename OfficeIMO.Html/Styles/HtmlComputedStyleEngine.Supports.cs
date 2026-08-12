@@ -306,6 +306,10 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "ltr", "rtl");
             case "white-space":
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
+            case "tab-size":
+                return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
+                    ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
+                    : IsNonNegativeCssLength(normalized);
             default:
                 return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
         }
@@ -326,15 +330,27 @@ public static partial class HtmlComputedStyleEngine {
 
     private static IDictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
-        IReadOnlyDictionary<string, string>? parentProperties) {
+        IReadOnlyDictionary<string, string>? parentProperties,
+        out IReadOnlyCollection<string> inheritedProperties,
+        out IReadOnlyCollection<string> resetProperties) {
         var raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var inherited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var reset = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
-            if (effective?.HasValue == true) raw[pair.Key] = effective.Value;
+            if (effective?.HasValue == true) {
+                raw[pair.Key] = effective.Value;
+                if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) inherited.Add(pair.Key);
+            }
             else if (effective?.RevertsLayer == true
                 && IsInheritedProperty(pair.Key)
                 && parentProperties != null
-                && parentProperties.TryGetValue(pair.Key, out string? inherited)) raw[pair.Key] = inherited;
+                && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
+                raw[pair.Key] = inheritedValue;
+                inherited.Add(pair.Key);
+            } else {
+                reset.Add(pair.Key);
+            }
         }
         var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, string> pair in raw) {
@@ -354,6 +370,10 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
+        inherited.IntersectWith(resolved.Keys);
+        inheritedProperties = inherited;
+        reset.ExceptWith(resolved.Keys);
+        resetProperties = reset;
         return resolved;
     }
 

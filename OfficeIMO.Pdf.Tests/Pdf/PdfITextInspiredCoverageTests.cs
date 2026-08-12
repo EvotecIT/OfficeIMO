@@ -376,6 +376,107 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void FormFillers_MapCheckboxExportValuesBackToAppearanceStates() {
+        byte[] pdf = PdfDocument.Create()
+            .Canvas(canvas => canvas.CheckBoxWithExportValue("Accept", false, 20D, 20D, 14D, 14D, "Yes", "accepted"))
+            .ToBytes();
+        var values = new Dictionary<string, string> { ["Accept"] = "accepted" };
+
+        byte[] rewritten = PdfFormFiller.FillFields(pdf, values);
+        byte[] incrementallyUpdated = PdfIncrementalUpdater.UpdateFormFields(pdf, values);
+
+        AssertCheckboxExportValue(rewritten);
+        AssertCheckboxExportValue(incrementallyUpdated);
+    }
+
+    [Fact]
+    public void FormFillers_MapRadioExportValuesBackToAppearanceStates() {
+        byte[] pdf = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButtonWithExportValue("Preference", "First", "first-export", true, 20D, 20D, 14D, 14D)
+                .RadioButtonWithExportValue("Preference", "Second", "second-export", false, 50D, 20D, 14D, 14D))
+            .ToBytes();
+        var values = new Dictionary<string, string> { ["Preference"] = "second-export" };
+
+        byte[] rewritten = PdfFormFiller.FillFields(pdf, values);
+        byte[] incrementallyUpdated = PdfIncrementalUpdater.UpdateFormFields(pdf, values);
+
+        AssertRadioExportValue(rewritten);
+        AssertRadioExportValue(incrementallyUpdated);
+    }
+
+    [Fact]
+    public void FormFillers_PrioritizeZeroExportValuesOverOffAliases() {
+        byte[] pdf = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButtonWithExportValue("Preference", "First", "0", false, 20D, 20D, 14D, 14D)
+                .RadioButtonWithExportValue("Preference", "Second", "second-export", true, 50D, 20D, 14D, 14D))
+            .ToBytes();
+        var values = new Dictionary<string, string> { ["Preference"] = "0" };
+
+        foreach (byte[] updated in new[] {
+            PdfFormFiller.FillFields(pdf, values),
+            PdfIncrementalUpdater.UpdateFormFields(pdf, values)
+        }) {
+            PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+            Assert.Equal("First", field.Value);
+            Assert.Equal("First", field.Widgets[0].AppearanceState);
+            Assert.Equal("Off", field.Widgets[1].AppearanceState);
+            Assert.Equal("0", Assert.Single(PdfDocument.Open(updated).Forms.ExportData().Fields).Values[0]);
+        }
+    }
+
+    [Fact]
+    public void ButtonValueResolver_UsesInheritedExportsAndCanRepairMissingCheckboxAppearances() {
+        var options = new PdfArray();
+        options.Items.Add(new PdfStringObj("accepted", useTextStringEncoding: true));
+
+        string resolved = PdfButtonFieldValueResolver.Resolve(
+            new Dictionary<int, PdfIndirectObject>(),
+            new PdfDictionary(),
+            options,
+            Array.Empty<string>(),
+            isRadioButtonGroup: false,
+            "accepted");
+
+        Assert.Equal("Yes", resolved);
+    }
+
+    [Fact]
+    public void ButtonValueResolver_PrioritizesInheritedExportsOverCollidingAppearanceNames() {
+        PdfDictionary field = BuildButtonFieldWithStates("First", "Second");
+        var options = new PdfArray();
+        options.Items.Add(new PdfStringObj("Second", useTextStringEncoding: true));
+        options.Items.Add(new PdfStringObj("other", useTextStringEncoding: true));
+
+        string resolved = PdfButtonFieldValueResolver.Resolve(
+            new Dictionary<int, PdfIndirectObject>(),
+            field,
+            options,
+            new[] { "First", "Second" },
+            isRadioButtonGroup: true,
+            "Second");
+
+        Assert.Equal("First", resolved);
+    }
+
+    [Fact]
+    public void ButtonValueResolver_RejectsDuplicateExportValues() {
+        PdfDictionary field = BuildButtonFieldWithStates("First", "Second");
+        var options = new PdfArray();
+        options.Items.Add(new PdfStringObj("duplicate", useTextStringEncoding: true));
+        options.Items.Add(new PdfStringObj("duplicate", useTextStringEncoding: true));
+
+        Assert.Throws<ArgumentException>(() => PdfButtonFieldValueResolver.Resolve(
+            new Dictionary<int, PdfIndirectObject>(),
+            field,
+            options,
+            new[] { "First", "Second" },
+            isRadioButtonGroup: true,
+            "duplicate"));
+    }
+
+    [Fact]
     public void IncrementalUpdater_PreservesRadioWidgetOnStatesWhenRegeneratingAppearances() {
         byte[] pdf = PdfDocument.Create()
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
@@ -401,6 +502,38 @@ public class PdfITextInspiredCoverageTests {
         Assert.Contains(" c S", appended, StringComparison.Ordinal);
         Assert.Contains(" c f", appended, StringComparison.Ordinal);
         Assert.DoesNotContain("1.25 w", appended, StringComparison.Ordinal);
+    }
+
+    private static void AssertCheckboxExportValue(byte[] pdf) {
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
+        Assert.Equal("Yes", field.Value);
+        Assert.Equal("Yes", Assert.Single(field.Widgets).AppearanceState);
+        Assert.Equal("accepted", Assert.Single(PdfDocument.Open(pdf).Forms.ExportData().Fields).Values[0]);
+    }
+
+    private static void AssertRadioExportValue(byte[] pdf) {
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
+        Assert.Equal("Second", field.Value);
+        Assert.Equal("Off", field.Widgets[0].AppearanceState);
+        Assert.Equal("Second", field.Widgets[1].AppearanceState);
+        Assert.Equal("second-export", Assert.Single(PdfDocument.Open(pdf).Forms.ExportData().Fields).Values[0]);
+    }
+
+    private static PdfDictionary BuildButtonFieldWithStates(params string[] states) {
+        var field = new PdfDictionary();
+        var kids = new PdfArray();
+        foreach (string state in states) {
+            var normal = new PdfDictionary();
+            normal.Items["Off"] = new PdfDictionary();
+            normal.Items[state] = new PdfDictionary();
+            var appearance = new PdfDictionary();
+            appearance.Items["N"] = normal;
+            var kid = new PdfDictionary();
+            kid.Items["AP"] = appearance;
+            kids.Items.Add(kid);
+        }
+        field.Items["Kids"] = kids;
+        return field;
     }
 
     [Fact]

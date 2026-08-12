@@ -51,13 +51,60 @@ public sealed partial class HtmlRenderingTests {
         const string compact = "<div style='tab-size:2'><pre style='margin:0;font-family:Consolas;font-size:12px'>A\tB</pre></div>";
         const string wide = "<div style='tab-size:8'><pre style='margin:0;font-family:Consolas;font-size:12px'>A\tB</pre></div>";
 
-        HtmlRenderText compactText = Assert.Single(EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(compact).Pages[0].Scene).OfType<HtmlRenderText>());
-        HtmlRenderText wideText = Assert.Single(EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(wide).Pages[0].Scene).OfType<HtmlRenderText>());
+        HtmlRenderText[] compactText = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(compact).Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] wideText = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(wide).Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
 
-        Assert.DoesNotContain('\t', compactText.Text);
-        Assert.DoesNotContain('\t', wideText.Text);
-        Assert.True(wideText.TextAdvanceWidth > compactText.TextAdvanceWidth);
+        Assert.DoesNotContain('\t', string.Concat(compactText.Select(text => text.Text)));
+        Assert.DoesNotContain('\t', string.Concat(wideText.Select(text => text.Text)));
+        Assert.True(Assert.Single(wideText, text => text.Text == "B").X > Assert.Single(compactText, text => text.Text == "B").X);
         Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(wide).ToPdf(new HtmlPdfSaveOptions())).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_UsesInheritedAbsoluteLengthTabStops() {
+        const string html = "<div style='font-size:10px;tab-size:32px'><pre style='margin:0;font-family:Consolas;font-size:20px;letter-spacing:.01px'>A\tB</pre></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderText[] glyphs = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText a = Assert.Single(glyphs, glyph => glyph.Text == "A");
+        HtmlRenderText b = Assert.Single(glyphs, glyph => glyph.Text == "B");
+
+        Assert.InRange(b.X - a.X, 20D, 50D);
+    }
+
+    [Fact]
+    public void HtmlRender_InheritedRelativeLengthTabStopsRetainTheParentsComputedLength() {
+        const string html = "<div style='font-size:10px;tab-size:2em'><pre style='font-size:20px'>A\tB</pre></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
+        HtmlRenderBoxStyle child = resolver.Resolve(document.QuerySelector("pre")!, 120D, parent);
+
+        Assert.True(parent.TabSizeIsLength);
+        Assert.True(child.TabSizeIsLength);
+        Assert.Equal(20D, parent.TabSize, 3);
+        Assert.Equal(20D, child.TabSize, 3);
+    }
+
+    [Fact]
+    public void HtmlRender_TabSizeInitialResetsWhileInvalidDeclarationsRemainInherited() {
+        const string html = "<div style='font-size:10px;tab-size:2em'><pre id='reset' style='tab-size:initial'>A\tB</pre><pre id='invalid' style='tab-size:-1px'>A\tB</pre><pre id='revert' style='tab-size:revert'>A\tB</pre></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
+        HtmlRenderBoxStyle reset = resolver.Resolve(document.QuerySelector("#reset")!, 120D, parent);
+        HtmlRenderBoxStyle invalid = resolver.Resolve(document.QuerySelector("#invalid")!, 120D, parent);
+        HtmlRenderBoxStyle reverted = resolver.Resolve(document.QuerySelector("#revert")!, 120D, parent);
+
+        Assert.False(reset.TabSizeIsLength);
+        Assert.Equal(8D, reset.TabSize, 3);
+        Assert.True(invalid.TabSizeIsLength);
+        Assert.Equal(20D, invalid.TabSize, 3);
+        Assert.True(reverted.TabSizeIsLength);
+        Assert.Equal(20D, reverted.TabSize, 3);
     }
 
     [Fact]

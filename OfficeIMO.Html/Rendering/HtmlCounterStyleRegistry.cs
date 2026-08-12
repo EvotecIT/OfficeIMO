@@ -220,18 +220,37 @@ internal sealed class HtmlCounterStyleRegistry {
             IReadOnlyDictionary<string, string> descriptors = ParseDescriptors(body);
             if (name.Length == 0) return null;
             IReadOnlyList<string> systemParts = HtmlRenderCssValues.SplitWhitespace(GetDescriptor(descriptors, "system"));
-            if (!TryParseSystemDescriptor(systemParts, out string system, out int fixedFirst)) return null;
+            if (!TryParseSystemDescriptor(systemParts, out string system, out int fixedFirst)) {
+                system = "symbolic";
+                fixedFirst = 1;
+            }
 
-            if (!TryParseSymbols(GetDescriptor(descriptors, "symbols"), out IReadOnlyList<string> symbols)) return null;
-            if (!TryParseAdditiveSymbols(GetDescriptor(descriptors, "additive-symbols"), out IReadOnlyList<AdditiveSymbol> additive)) return null;
+            if (!TryParseSymbols(GetDescriptor(descriptors, "symbols"), out IReadOnlyList<string> symbols)) {
+                symbols = Array.Empty<string>();
+            }
+            if (!TryParseAdditiveSymbols(GetDescriptor(descriptors, "additive-symbols"), out IReadOnlyList<AdditiveSymbol> additive)) {
+                additive = Array.Empty<AdditiveSymbol>();
+            }
             if (system == "additive" && additive.Count == 0) return null;
             if (system != "additive" && symbols.Count == 0) return null;
             if (system is "numeric" or "alphabetic" && symbols.Count < 2) return null;
-            if (!TryParseRanges(GetDescriptor(descriptors, "range"), out IReadOnlyList<ValueRange> ranges)) return null;
-            if (!TryParseStringPair(GetDescriptor(descriptors, "negative"), "-", string.Empty, out string negativePrefix, out string negativeSuffix)) return null;
-            if (!TryParsePad(GetDescriptor(descriptors, "pad"), out int padWidth, out string padSymbol)) return null;
-            if (!TryParseSingleString(GetDescriptor(descriptors, "prefix"), string.Empty, out string prefix)) return null;
-            if (!TryParseSingleString(GetDescriptor(descriptors, "suffix"), ". ", out string suffix)) return null;
+            if (!TryParseRanges(GetDescriptor(descriptors, "range"), out IReadOnlyList<ValueRange> ranges)) {
+                ranges = Array.Empty<ValueRange>();
+            }
+            if (!TryParseStringPair(GetDescriptor(descriptors, "negative"), "-", string.Empty, out string negativePrefix, out string negativeSuffix)) {
+                negativePrefix = "-";
+                negativeSuffix = string.Empty;
+            }
+            if (!TryParsePad(GetDescriptor(descriptors, "pad"), out int padWidth, out string padSymbol)) {
+                padWidth = 0;
+                padSymbol = string.Empty;
+            }
+            if (!TryParseSingleString(GetDescriptor(descriptors, "prefix"), string.Empty, out string prefix)) {
+                prefix = string.Empty;
+            }
+            if (!TryParseSingleString(GetDescriptor(descriptors, "suffix"), ". ", out string suffix)) {
+                suffix = ". ";
+            }
             string fallback = HtmlCssEscapeDecoder.Decode(GetDescriptor(descriptors, "fallback").Trim());
             return new Definition(name, system, fixedFirst, symbols, additive, ranges, negativePrefix, negativeSuffix, padWidth, padSymbol, prefix, suffix, fallback);
         }

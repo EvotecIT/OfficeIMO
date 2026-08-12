@@ -58,6 +58,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_BreakAllSuppressesManualAndAutomaticHyphenation() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 120D,
+            TextHyphenationCallback = _ => throw new InvalidOperationException("break-all must suppress automatic hyphenation callbacks")
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:42px;font-size:12px;word-break:break-all;hyphens:auto;hyphenate-character:\"·\"'>ty\u00ADpography</div>",
+            options);
+        HtmlRenderText[] fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.True(fragments.Select(fragment => fragment.Y).Distinct().Count() > 1);
+        Assert.DoesNotContain("·", string.Concat(fragments.Select(fragment => fragment.Text)), StringComparison.Ordinal);
+        Assert.Equal("typography", string.Concat(fragments.Select(fragment => fragment.Text)));
+    }
+
+    [Fact]
     public void HtmlRendering_EmergencyWrappingRunsWhenNoAuthoredHyphenationPointFits() {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,

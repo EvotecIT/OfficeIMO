@@ -36,7 +36,7 @@ internal static partial class PdfIncrementalUpdater {
 
     private static void SetIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, IncrementalPreparedFieldValue value) {
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
-            string name = IsOffButtonValue(value.FirstStoredValue) ? "Off" : value.FirstStoredValue;
+            string name = value.FirstStoredValue;
             bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
             if (isRadioButtonGroup && !string.Equals(name, "Off", StringComparison.Ordinal)) {
                 HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
@@ -62,7 +62,7 @@ internal static partial class PdfIncrementalUpdater {
         field.Items["V"] = new PdfStringObj(value.FirstStoredValue, useTextStringEncoding: true);
     }
 
-    private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, PdfFormFieldValue value) {
+    private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, string? fieldType, int fieldFlags, PdfFormFieldValue value) {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
@@ -70,7 +70,7 @@ internal static partial class PdfIncrementalUpdater {
                 throw new ArgumentException("PDF button field cannot be filled with multiple values.", nameof(value));
             }
 
-            string buttonValue = PrepareIncrementalButtonFieldValue(objects, field, fieldFlags, firstValue);
+            string buttonValue = PrepareIncrementalButtonFieldValue(objects, field, inheritedOptions, fieldFlags, firstValue);
             return IncrementalPreparedFieldValue.Scalar(buttonValue, buttonValue);
         }
 
@@ -184,23 +184,10 @@ internal static partial class PdfIncrementalUpdater {
         field.Items["TI"] = new PdfNumber(selectedIndices[0]);
     }
 
-    private static string PrepareIncrementalButtonFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int fieldFlags, string value) {
-        if (IsOffButtonValue(value)) {
-            return "Off";
-        }
-
+    private static string PrepareIncrementalButtonFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, int fieldFlags, string value) {
         HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
         bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
-        if (availableStates.Contains(value)) {
-            return value;
-        }
-
-        if (!isRadioButtonGroup && IsTruthyButtonValue(value) && availableStates.Count == 1) {
-            return availableStates.Single();
-        }
-
-        string fieldKind = isRadioButtonGroup ? "radio button" : "checkbox";
-        throw new ArgumentException($"PDF {fieldKind} field cannot be filled with value '{value}' because it is not one of the available appearance states.", nameof(value));
+        return PdfButtonFieldValueResolver.Resolve(objects, field, inheritedOptions, availableStates, isRadioButtonGroup, value);
     }
 
     private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {
@@ -217,15 +204,4 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static bool IsOffButtonValue(string value) =>
-        string.IsNullOrWhiteSpace(value) ||
-        string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(value, "off", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(value, "0", StringComparison.Ordinal);
-
-    private static bool IsTruthyButtonValue(string value) =>
-        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(value, "on", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(value, "1", StringComparison.Ordinal);
 }

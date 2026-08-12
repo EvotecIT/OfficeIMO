@@ -96,6 +96,7 @@ internal static partial class PdfIncrementalUpdater {
                 null,
                 acroFormDefaultResources,
                 acroFormDefaultAppearance,
+                null,
                 fieldValues,
                 remaining,
                 changedObjectNumbers,
@@ -253,6 +254,7 @@ internal static partial class PdfIncrementalUpdater {
         int? inheritedMaxLength,
         PdfDictionary? inheritedDefaultResources,
         string? inheritedDefaultAppearance,
+        PdfArray? inheritedOptions,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         HashSet<string> remaining,
         HashSet<int> changedObjectNumbers,
@@ -280,9 +282,12 @@ internal static partial class PdfIncrementalUpdater {
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
+        PdfArray? fieldOptions = field.Items.TryGetValue("Opt", out PdfObject? optionsObject) && ResolveObject(objects, optionsObject) is PdfArray optionsArray
+            ? optionsArray
+            : inheritedOptions;
 
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
-            IncrementalPreparedFieldValue preparedValue = PrepareIncrementalFieldValue(objects, field, fieldType, fieldFlags, value);
+            IncrementalPreparedFieldValue preparedValue = PrepareIncrementalFieldValue(objects, field, fieldOptions, fieldType, fieldFlags, value);
             SetIncrementalFieldValue(objects, field, fieldType, fieldFlags, preparedValue);
             if (objectNumber.HasValue) {
                 changedObjectNumbers.Add(objectNumber.Value);
@@ -292,7 +297,7 @@ internal static partial class PdfIncrementalUpdater {
 
             if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
                 bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
-                string name = IsOffButtonValue(preparedValue.FirstStoredValue) ? "Off" : preparedValue.FirstStoredValue;
+                string name = preparedValue.FirstStoredValue;
                 SetIncrementalWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, options.GenerateAppearanceStreams, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber);
             } else if (options.GenerateAppearanceStreams) {
                 SetIncrementalTextWidgetAppearances(objects, field, preparedValue.AppearanceValue, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, preparedValue.ForceMultilineAppearance, changedObjectNumbers, new HashSet<int>(), ref nextObjectNumber, ref helveticaFontObjectNumber);
@@ -310,7 +315,7 @@ internal static partial class PdfIncrementalUpdater {
             ? kidsReference.ObjectNumber
             : objectNumber ?? containingObjectNumber;
         for (int i = 0; i < kids.Items.Count; i++) {
-            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
+            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
 

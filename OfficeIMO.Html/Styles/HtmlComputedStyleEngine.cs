@@ -355,7 +355,8 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         ApplyInlineDeclarations(properties, parent?.Properties, element.GetAttribute("style"));
-        var style = new HtmlComputedStyle(ResolveComputedProperties(properties, parent?.Properties));
+        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, parent?.Properties, out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties);
+        var style = new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties);
         computed[element] = style;
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget, containerContexts, environment);
 
@@ -425,9 +426,9 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        return matched
-            ? new HtmlComputedStyle(ResolveComputedProperties(properties, originatingStyle.Properties))
-            : null;
+        if (!matched) return null;
+        IDictionary<string, string> resolvedProperties = ResolveComputedProperties(properties, originatingStyle.Properties, out IReadOnlyCollection<string> inheritedProperties, out IReadOnlyCollection<string> resetProperties);
+        return new HtmlComputedStyle(resolvedProperties, inheritedProperties, resetProperties);
     }
 
 }

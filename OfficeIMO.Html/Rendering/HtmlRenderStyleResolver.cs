@@ -101,7 +101,6 @@ internal sealed partial class HtmlRenderStyleResolver {
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
             PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
-            TabSize = ResolveTabSize(computed.GetValue("tab-size"), parent?.TabSize ?? 8D),
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
@@ -115,6 +114,15 @@ internal sealed partial class HtmlRenderStyleResolver {
             HyphenateLimitLast = ResolveHyphenateLimitLast(computed.GetValue("hyphenate-limit-last"), parent?.HyphenateLimitLast),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
+        ResolveTabSize(
+            computed.GetValue("tab-size"),
+            computed.IsInheritedValue("tab-size"),
+            computed.IsResetValue("tab-size"),
+            parent?.TabSize ?? 8D,
+            parent?.TabSizeIsLength ?? false,
+            fontSize,
+            out style.TabSize,
+            out style.TabSizeIsLength);
         ResolveHyphenateLimitChars(computed.GetValue("hyphenate-limit-chars"), parent, style);
         style.HyphenateLimitZone = ResolveHyphenateLimitZone(computed.GetValue("hyphenate-limit-zone"), containingWidth, fontSize, parent?.HyphenateLimitZone ?? 0D);
         style.ContainerType = ResolveContainerTypeValue(computed);
@@ -226,13 +234,42 @@ internal sealed partial class HtmlRenderStyleResolver {
         return 0D;
     }
 
-    private static double ResolveTabSize(string value, double inherited) {
+    private void ResolveTabSize(
+        string value,
+        bool inheritsComputedValue,
+        bool resetsToInitial,
+        double inherited,
+        bool inheritedIsLength,
+        double fontSize,
+        out double size,
+        out bool isLength) {
+        if (resetsToInitial) {
+            size = 8D;
+            isLength = false;
+            return;
+        }
         string normalized = value.Trim().ToLowerInvariant();
-        if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
-        return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed)
+        if (inheritsComputedValue || normalized.Length == 0 || normalized == "inherit" || normalized == "unset") {
+            size = inherited;
+            isLength = inheritedIsLength;
+            return;
+        }
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
             && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
-            ? Math.Min(parsed, 100D)
-            : 8D;
+            ) {
+            size = Math.Min(parsed, 100D);
+            isLength = false;
+            return;
+        }
+        if (HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
+            && TryResolveLength(normalized, fontSize, fontSize, _options.DefaultFontSize, out parsed)
+            && parsed >= 0D && !double.IsNaN(parsed) && !double.IsInfinity(parsed)) {
+            size = Math.Min(parsed, Math.Max(1D, fontSize) * 100D);
+            isLength = true;
+            return;
+        }
+        size = 8D;
+        isLength = false;
     }
 
     private double ResolveTextSpacing(string value, double fontSize, double inherited) {

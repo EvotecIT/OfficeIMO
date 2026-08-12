@@ -175,6 +175,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
                 if (!preventTokenWrapping
                     && !whitespace
+                    && run.Style.WordBreak != "break-all"
                     && measured > Math.Max(0D, line.AvailableWidth - line.Width)
                     && TryAddHyphenatedFloatToken(
                         lines,
@@ -200,7 +201,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         hyphenation.LogicalText)) {
                     continue;
                 }
-                if (!preventTokenWrapping && !whitespace && measured > line.AvailableWidth && AllowsEmergencyTokenBreak(run.Style)) {
+                bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
+                    && line.HasFlowContent
+                    && measured > Math.Max(0D, line.AvailableWidth - line.Width);
+                if (!preventTokenWrapping
+                    && !whitespace
+                    && AllowsEmergencyTokenBreak(run.Style)
+                    && (measured > line.AvailableWidth || breakAllIntoRemainingSpace)) {
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
                     continue;
                 }

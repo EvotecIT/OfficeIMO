@@ -12,7 +12,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private sealed class CascadedProperty {
-        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null) {
+        internal CascadedProperty(string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder = null, IEnumerable<CascadedProperty>? alternatives = null, bool inheritsComputedValue = false) {
             Value = value;
             HasValue = true;
             IsImportant = isImportant;
@@ -20,6 +20,7 @@ public static partial class HtmlComputedStyleEngine {
             Order = order;
             LayerOrder = layerOrder;
             Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
+            InheritsComputedValue = inheritsComputedValue;
         }
 
         private CascadedProperty(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives, bool revertsLayer) {
@@ -31,6 +32,7 @@ public static partial class HtmlComputedStyleEngine {
             LayerOrder = layerOrder;
             Alternatives = new List<CascadedProperty>(alternatives ?? Array.Empty<CascadedProperty>()).AsReadOnly();
             RevertsLayer = revertsLayer;
+            InheritsComputedValue = false;
         }
 
         internal static CascadedProperty Clear(bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, IEnumerable<CascadedProperty>? alternatives) {
@@ -48,28 +50,32 @@ public static partial class HtmlComputedStyleEngine {
         internal CascadeLayerOrder? LayerOrder { get; }
         internal IReadOnlyList<CascadedProperty> Alternatives { get; }
         internal bool RevertsLayer { get; }
+        internal bool InheritsComputedValue { get; }
 
         internal CascadedProperty WithAlternative(CascadedProperty alternative) {
             var alternatives = new List<CascadedProperty>(Alternatives) { alternative };
             return RevertsLayer
                 ? RevertLayer(IsImportant, Specificity, Order, LayerOrder, alternatives)
                 : HasValue
-                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives)
+                    ? new CascadedProperty(Value, IsImportant, Specificity, Order, LayerOrder, alternatives, InheritsComputedValue)
                     : Clear(IsImportant, Specificity, Order, LayerOrder, alternatives);
         }
     }
 
     private readonly struct CssKeywordResolution {
-        private CssKeywordResolution(bool hasValue, string value) {
+        private CssKeywordResolution(bool hasValue, string value, bool inheritsComputedValue = false) {
             HasValue = hasValue;
             Value = value;
+            InheritsComputedValue = inheritsComputedValue;
         }
 
         internal static CssKeywordResolution Clear => new CssKeywordResolution(false, string.Empty);
         internal static CssKeywordResolution ForValue(string value) => new CssKeywordResolution(true, value);
+        internal static CssKeywordResolution ForInheritedValue(string value) => new CssKeywordResolution(true, value, inheritsComputedValue: true);
 
         internal bool HasValue { get; }
         internal string Value { get; }
+        internal bool InheritsComputedValue { get; }
     }
 
     private sealed class Specificity {

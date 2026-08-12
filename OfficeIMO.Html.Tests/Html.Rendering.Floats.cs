@@ -159,6 +159,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextHyphenationCallback = _ => throw new InvalidOperationException("break-all must suppress automatic hyphenation callbacks")
+        };
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px'>"
+            + "<span style='float:left;width:50px;height:28px'></span>"
+            + "<span style='word-break:break-all;hyphens:auto;hyphenate-character:\"·\"'>ty\u00ADpography</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.True(fragments.Select(fragment => fragment.Y).Distinct().Count() > 1);
+        Assert.InRange(fragments[0].X, 49.9D, 50.1D);
+        Assert.InRange(fragments[0].Y, -0.001D, 0.001D);
+        Assert.DoesNotContain("·", string.Concat(fragments.Select(fragment => fragment.Text)), StringComparison.Ordinal);
+        Assert.Equal("typography", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
     public void HtmlFloat_LineClampTruncatesFloatAwareLinesAndAddsEllipsis() {
         const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px;overflow:hidden;line-clamp:2'>"
             + "<span style='float:left;width:30px;height:28px'></span>one two three four five six seven eight nine ten eleven twelve</p>";

@@ -367,16 +367,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     whitespace = IsWhitespaceToken(normalizedToken);
                 }
 
-                string paintToken = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0
-                    ? ExpandTabs(normalizedToken, run.Style, line.Width)
+                bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
+                double tabExpandedWidth = 0D;
+                string paintToken = hasTabs
+                    ? ExpandTabs(normalizedToken, run.Style, line.Width, out tabExpandedWidth)
                     : normalizedToken;
                 HyphenationToken hyphenation = PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
                 paintToken = hyphenation.PaintText;
                 string logicalPaintToken = hyphenation.LogicalText;
-                double measured = MeasureInlineText(paintToken, run.Style);
+                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
                 if (!preventTokenWrapping
                     && !whitespace
+                    && run.Style.WordBreak != "break-all"
                     && measured > Math.Max(0D, width - line.Width)
                     && TryAddHyphenatedToken(
                         lines,
@@ -480,7 +483,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         var automaticBreaks = new SortedSet<int>();
-        if (style.Hyphens == "auto" && _options.TextHyphenationCallback != null) {
+        if (style.WordBreak != "break-all" && style.Hyphens == "auto" && _options.TextHyphenationCallback != null) {
             IReadOnlyList<int>? automatic = _options.TextHyphenationCallback(logical.ToString());
             if (automatic != null) {
                 foreach (int point in automatic) automaticBreaks.Add(point);
@@ -681,10 +684,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return start == paintToken.Length;
     }
 
-    private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth) {
+    private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth, out double expandedWidth) {
+        expandedWidth = MeasureInlineText(value, style);
         if (value.IndexOf('\t') < 0) return value;
         double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
-        double stopWidth = Math.Max(spaceWidth, style.TabSize * spaceWidth);
+        double stopWidth = style.TabSizeIsLength ? style.TabSize : style.TabSize * spaceWidth;
+        if (stopWidth <= 0D) {
+            string withoutTabs = value.Replace("\t", string.Empty);
+            expandedWidth = MeasureInlineText(withoutTabs, style);
+            return withoutTabs;
+        }
         double cursor = Math.Max(0D, currentWidth);
         var expanded = new StringBuilder();
         foreach (char character in value) {
@@ -694,10 +703,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
-            int spaces = Math.Max(1, (int)Math.Round((nextStop - cursor) / spaceWidth));
-            expanded.Append(' ', spaces);
-            cursor += spaces * spaceWidth;
+            cursor = nextStop;
         }
+        expandedWidth = Math.Max(0D, cursor - Math.Max(0D, currentWidth));
         return expanded.ToString();
     }
 
@@ -775,7 +783,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
         var merged = new List<InlineSegment>(segments.Count);
         foreach (InlineSegment segment in segments) {
-            if (segment.Run.AtomicBlock == null && merged.Count > 0 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
+            if (segment.Run.AtomicBlock == null
+                && segment.Text.Length > 0
+                && merged.Count > 0
+                && merged[merged.Count - 1].Text.Length > 0
+                && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
                 merged[merged.Count - 1] = new InlineSegment(
                     previous.Text + segment.Text,

@@ -53,20 +53,12 @@ internal static partial class PdfFormFiller {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
-            string name = string.IsNullOrEmpty(firstValue) ? "Off" : firstValue;
             bool isRadioButtonGroup = (fieldFlags & RadioButtonFlag) != 0;
-            if (isRadioButtonGroup) {
-                if (values.Count > 1) {
-                    throw new ArgumentException("PDF radio button field cannot be filled with multiple values.", nameof(value));
-                }
-
-                if (!string.Equals(name, "Off", StringComparison.Ordinal)) {
-                    HashSet<string> availableStates = CollectButtonNormalAppearanceStates(objects, field, new HashSet<int>());
-                    if (!availableStates.Contains(name)) {
-                        throw new ArgumentException($"PDF radio button field cannot be filled with value '{name}' because it is not one of the available appearance states.", nameof(value));
-                    }
-                }
+            if (values.Count > 1) {
+                throw new ArgumentException("PDF button field cannot be filled with multiple values.", nameof(value));
             }
+            HashSet<string> availableStates = CollectButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+            string name = PdfButtonFieldValueResolver.Resolve(objects, field, choiceOptions, availableStates, isRadioButtonGroup, firstValue);
 
             field.Items["V"] = new PdfName(name);
             field.Items["AS"] = new PdfName(name);
