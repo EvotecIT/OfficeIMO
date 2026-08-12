@@ -36,6 +36,8 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    internal bool RequiresColorManagedGradientSampling => _custom is not null || Kind == PdfPageColorSpaceKind.DeviceCmyk;
+
     public static PdfPageColorSpace CalRgb(
         double whiteX,
         double whiteY,

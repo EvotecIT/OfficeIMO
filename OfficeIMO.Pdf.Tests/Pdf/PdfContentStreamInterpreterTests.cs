@@ -17,6 +17,18 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void Interpreter_PreservesNamedColorSpaceThatMatchesAFilterAbbreviation() {
+        const string content = "BI /W 1 /H 1 /BPC 8 /CS /DCT /F /DCT ID A EI";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add);
+
+        PdfContentInlineImage image = Assert.IsType<PdfContentInlineImage>(Assert.Single(operations).InlineImage);
+        Assert.Equal("DCT", Assert.IsType<PdfName>(image.Dictionary.Items["ColorSpace"]).Name);
+        Assert.Equal("DCTDecode", Assert.IsType<PdfName>(image.Dictionary.Items["Filter"]).Name);
+    }
+
+    [Fact]
     public void Interpreter_EmitsTypedOperandsForAllVisitors() {
         const string content =
             "% comment\n" +

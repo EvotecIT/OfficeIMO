@@ -393,7 +393,7 @@ internal static class PdfContentStreamInterpreter {
                 string key = NormalizeInlineImageKey(ReadName());
                 CountOperand();
                 SkipWhitespaceAndComments();
-                if (TryReadInlineImageValue(out PdfObject? value) && value is not null) {
+                if (TryReadInlineImageValue(key, out PdfObject? value) && value is not null) {
                     dictionary.Items[key] = value;
                 }
             }
@@ -421,7 +421,7 @@ internal static class PdfContentStreamInterpreter {
             return new PdfContentInlineImage(dictionary, data);
         }
 
-        private bool TryReadInlineImageValue(out PdfObject? value) {
+        private bool TryReadInlineImageValue(string key, out PdfObject? value) {
             value = null;
             if (_index >= _content.Length) {
                 return false;
@@ -429,7 +429,7 @@ internal static class PdfContentStreamInterpreter {
 
             char current = _content[_index];
             if (current == '/') {
-                value = new PdfName(NormalizeInlineImageName(ReadName()));
+                value = new PdfName(NormalizeInlineImageName(ReadName(), key));
                 CountOperand();
                 return true;
             }
@@ -453,7 +453,7 @@ internal static class PdfContentStreamInterpreter {
                     ? numbers.Cast<object>()
                     : (IEnumerable<object>)arrayValue;
                 foreach (object item in items) {
-                    PdfObject? converted = ConvertToPdfObject(item);
+                    PdfObject? converted = ConvertToPdfObject(item, key);
                     if (converted is not null) {
                         array.Items.Add(converted);
                     }
@@ -526,13 +526,13 @@ internal static class PdfContentStreamInterpreter {
             return dictionary;
         }
 
-        private static PdfObject? ConvertToPdfObject(object value) {
+        private static PdfObject? ConvertToPdfObject(object value, string? ownerKey = null) {
             if (value is double number) {
                 return new PdfNumber(number);
             }
 
             if (value is string name) {
-                return new PdfName(NormalizeInlineImageName(name));
+                return new PdfName(NormalizeInlineImageName(name, ownerKey));
             }
 
             if (value is bool boolean) {
@@ -559,7 +559,7 @@ internal static class PdfContentStreamInterpreter {
             if (value is List<object> values) {
                 var array = new PdfArray();
                 foreach (object item in values) {
-                    PdfObject? converted = ConvertToPdfObject(item);
+                    PdfObject? converted = ConvertToPdfObject(item, ownerKey);
                     if (converted is not null) {
                         array.Items.Add(converted);
                     }
@@ -726,19 +726,27 @@ internal static class PdfContentStreamInterpreter {
             }
         }
 
-        private static string NormalizeInlineImageName(string name) {
-            switch (name) {
-                case "G": return "DeviceGray";
-                case "RGB": return "DeviceRGB";
-                case "CMYK": return "DeviceCMYK";
-                case "I": return "Indexed";
-                case "Fl": return "FlateDecode";
-                case "AHx": return "ASCIIHexDecode";
-                case "A85": return "ASCII85Decode";
-                case "RL": return "RunLengthDecode";
-                case "DCT": return "DCTDecode";
-                default: return name;
+        private static string NormalizeInlineImageName(string name, string? ownerKey) {
+            if (string.Equals(ownerKey, "ColorSpace", StringComparison.Ordinal)) {
+                switch (name) {
+                    case "G": return "DeviceGray";
+                    case "RGB": return "DeviceRGB";
+                    case "CMYK": return "DeviceCMYK";
+                    case "I": return "Indexed";
+                }
             }
+
+            if (string.Equals(ownerKey, "Filter", StringComparison.Ordinal)) {
+                switch (name) {
+                    case "Fl": return "FlateDecode";
+                    case "AHx": return "ASCIIHexDecode";
+                    case "A85": return "ASCII85Decode";
+                    case "RL": return "RunLengthDecode";
+                    case "DCT": return "DCTDecode";
+                }
+            }
+
+            return name;
         }
     }
 }

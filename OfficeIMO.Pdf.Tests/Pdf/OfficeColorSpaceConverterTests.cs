@@ -630,9 +630,14 @@ public class OfficeColorSpaceConverterTests {
         WriteSignature(nonpositiveWhitePoint, 16, "GRAY");
         RenameTag(nonpositiveWhitePoint, "rTRC", "kTRC");
         WriteS15Fixed16(nonpositiveWhitePoint, FindTagOffset(nonpositiveWhitePoint, "wtpt") + 8, 0D);
+        byte[] nonnormalizedWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(nonnormalizedWhitePoint, 16, "GRAY");
+        RenameTag(nonnormalizedWhitePoint, "rTRC", "kTRC");
+        WriteS15Fixed16(nonnormalizedWhitePoint, FindTagOffset(nonnormalizedWhitePoint, "wtpt") + 12, 2D);
 
         Assert.False(OfficeIccColorProfile.TryCreate(missingWhitePoint, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(nonnormalizedWhitePoint, out _));
     }
 
     [Fact]
@@ -641,9 +646,12 @@ public class OfficeColorSpaceConverterTests {
         RenameTag(missingWhitePoint, "wtpt", "desc");
         byte[] nonpositiveWhitePoint = PdfIccProfiles.SrgbIec6196621;
         WriteS15Fixed16(nonpositiveWhitePoint, FindTagOffset(nonpositiveWhitePoint, "wtpt") + 8, 0D);
+        byte[] nonnormalizedWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteS15Fixed16(nonnormalizedWhitePoint, FindTagOffset(nonnormalizedWhitePoint, "wtpt") + 12, 2D);
 
         Assert.False(OfficeIccColorProfile.TryCreate(missingWhitePoint, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(nonnormalizedWhitePoint, out _));
     }
 
     private static int FindTagOffset(byte[] profile, string signature) {

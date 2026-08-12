@@ -62,7 +62,7 @@ internal static partial class ResourceResolver {
                 return false;
             }
             int indexedChannels = PdfImageMaskSemantics.HasSoftMask(dictionary, objects) ||
-                PdfImageColorKeyMask.Create(dictionary, 1, objects) is not null
+                PdfImageColorKeyMask.Create(dictionary, 1, bitsPerComponent, objects) is not null
                 ? 4
                 : 3;
             if (!CanAllocateProjectedImageBuffer(dictionary, indexedChannels, maxDecodedStreamBytes)) return false;
@@ -112,7 +112,7 @@ internal static partial class ResourceResolver {
         if (baseChannels is not (1 or 3)) return false;
         string? transparencyMaskKind = GetTransparencyMaskKind(dictionary, objects);
         int channels = PdfImageMaskSemantics.HasSoftMask(dictionary, objects) ||
-            PdfImageColorKeyMask.Create(dictionary, normalization.SourceColorCount, objects) is not null
+            PdfImageColorKeyMask.Create(dictionary, normalization.SourceColorCount, bitsPerComponent, objects) is not null
             ? baseChannels + 1
             : baseChannels;
         bool requiresDctNormalization = isDctFilterChain &&

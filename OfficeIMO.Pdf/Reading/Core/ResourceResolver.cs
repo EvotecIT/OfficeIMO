@@ -998,7 +998,14 @@ internal static partial class ResourceResolver {
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
-            transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(transparencyMaskKind);
+            transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(
+                transparencyMaskKind,
+                stream.Dictionary,
+                effectiveColorSpaceObject,
+                colorSpace,
+                bitsPerComponent,
+                objects,
+                maxDecodedStreamBytes);
         }
 
         return new PdfExtractedImage(
@@ -1062,9 +1069,33 @@ internal static partial class ResourceResolver {
         return "mask";
     }
 
-    private static bool IsTransparencyMaskResolvedByPngNormalization(string? transparencyMaskKind) =>
-        string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal) ||
-        string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal);
+    private static bool IsTransparencyMaskResolvedByPngNormalization(
+        string? transparencyMaskKind,
+        PdfDictionary imageDictionary,
+        PdfObject? colorSpaceObject,
+        string colorSpace,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes) {
+        if (string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal)) return true;
+        if (!string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal)) return false;
+
+        int componentCount;
+        if (string.Equals(colorSpace, "Indexed", System.StringComparison.Ordinal)) {
+            componentCount = 1;
+        } else if (PdfImageColorSpaceNormalization.TryResolve(
+                colorSpaceObject,
+                colorSpace,
+                objects,
+                maxDecodedStreamBytes,
+                out PdfImageColorSpaceNormalization normalization)) {
+            componentCount = normalization.SourceColorCount;
+        } else {
+            return false;
+        }
+
+        return PdfImageColorKeyMask.Create(imageDictionary, componentCount, bitsPerComponent, objects) is not null;
+    }
 
     private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = PdfObjectLookup.ResolveChain(objects, obj);

@@ -1482,7 +1482,7 @@ public class PdfPageImageRendererTests {
         OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item => item.Shape.FillGradient != null);
         OfficeLinearGradient gradient = shape.Shape.FillGradient!;
         Assert.Equal(OfficeColor.White, gradient.Stops[0].Color);
-        Assert.Equal(OfficeColor.Black, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Black, gradient.Stops[gradient.Stops.Count - 1].Color);
     }
 
     [Fact]

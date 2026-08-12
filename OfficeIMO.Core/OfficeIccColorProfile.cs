@@ -119,7 +119,7 @@ public sealed partial class OfficeIccColorProfile {
             deviceColorSpace == GraySignature && profileConnectionSpace == XyzSignature) {
             if (!TryReadToneCurve(profileBytes, tags, 0x6B545243U, out ToneCurve grayCurve) || // kTRC
                 !TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue mediaWhitePoint) ||
-                !mediaWhitePoint.IsPositive) return false;
+                !mediaWhitePoint.IsNormalizedMediaWhitePoint) return false;
             profile = new OfficeIccColorProfile(
                 1,
                 grayCurve,
@@ -143,7 +143,7 @@ public sealed partial class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
             if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn) ||
                 !TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue mediaWhitePoint) ||
-                !mediaWhitePoint.IsPositive) return false;
+                !mediaWhitePoint.IsNormalizedMediaWhitePoint) return false;
             IPcsToDeviceTransform?[]? outputTransforms;
             if (HasAuthoredPcsToDeviceTransform(tags)) {
                 outputTransforms = TryReadPcsToDeviceTransforms(
@@ -577,6 +577,7 @@ public sealed partial class OfficeIccColorProfile {
         internal double Y { get; }
         internal double Z { get; }
         internal bool IsPositive => X > 0D && Y > 0D && Z > 0D;
+        internal bool IsNormalizedMediaWhitePoint => IsPositive && Math.Abs(Y - 1D) <= 1D / 65536D;
     }
 
     private interface IDeviceToPcsTransform {

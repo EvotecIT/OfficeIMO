@@ -12,27 +12,32 @@ internal sealed class PdfImageColorKeyMask {
     internal static PdfImageColorKeyMask? Create(
         PdfDictionary dictionary,
         int componentCount,
+        int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (componentCount <= 0 ||
+        if (componentCount <= 0 || bitsPerComponent <= 0 || bitsPerComponent > 16 ||
             !dictionary.Items.TryGetValue("Mask", out var maskObj) ||
             !PdfObjectLookup.TryResolveReferenceChain(objects, maskObj, out PdfObject? resolvedMask) ||
             resolvedMask is not PdfArray maskArray ||
-            maskArray.Items.Count < componentCount * 2) {
+            maskArray.Items.Count != componentCount * 2) {
             return null;
         }
 
+        int maximumSample = (1 << bitsPerComponent) - 1;
         var minimums = new int[componentCount];
         var maximums = new int[componentCount];
         for (int component = 0; component < componentCount; component++) {
             if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2], out PdfObject? resolvedMinimum) ||
                 resolvedMinimum is not PdfNumber minimum ||
                 !PdfObjectLookup.TryResolveReferenceChain(objects, maskArray.Items[component * 2 + 1], out PdfObject? resolvedMaximum) ||
-                resolvedMaximum is not PdfNumber maximum) {
+                resolvedMaximum is not PdfNumber maximum ||
+                !TryReadSample(minimum.Value, maximumSample, out int minimumSample) ||
+                !TryReadSample(maximum.Value, maximumSample, out int maximumSampleValue) ||
+                minimumSample > maximumSampleValue) {
                 return null;
             }
 
-            minimums[component] = ClampSample((int)minimum.Value);
-            maximums[component] = ClampSample((int)maximum.Value);
+            minimums[component] = minimumSample;
+            maximums[component] = maximumSampleValue;
         }
 
         return new PdfImageColorKeyMask(minimums, maximums);
@@ -100,11 +105,12 @@ internal sealed class PdfImageColorKeyMask {
             sample <= _maximums[0];
     }
 
-    private static int ClampSample(int value) {
-        if (value < 0) {
-            return 0;
+    private static bool TryReadSample(double value, int maximumSample, out int sample) {
+        sample = 0;
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value > maximumSample || value != Math.Truncate(value)) {
+            return false;
         }
-
-        return value > 255 ? 255 : value;
+        sample = (int)value;
+        return true;
     }
 }
