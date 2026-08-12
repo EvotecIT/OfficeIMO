@@ -192,6 +192,7 @@ public class PdfIccColorRenderingTests {
         Assert.InRange(Assert.Single(drawing.Shapes).Shape.FillColor!.Value.R, 126, 129);
     }
 
+#if NET8_0_OR_GREATER
     [Fact]
     public void SeparationImageConversionReusesTintOutputBuffers() {
         var function = new PdfDictionary();
@@ -229,6 +230,7 @@ public class PdfIccColorRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
         Assert.InRange(allocated, 0, 1024);
     }
+#endif
 
     [Fact]
     public void RenderPage_ClipsType2TintOutputsToDeclaredRange() {
@@ -960,6 +962,141 @@ public class PdfIccColorRenderingTests {
         OfficeImageExportResult result = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+    }
+
+    [Fact]
+    public void Type2TintUsesDefaultsForDirectAndReferenceChainedNullEntries() {
+        var function = new PdfDictionary();
+        function.Items["FunctionType"] = new PdfNumber(2);
+        function.Items["Domain"] = NumberArray(0, 1);
+        function.Items["Range"] = new PdfReference(10, 0);
+        function.Items["C0"] = PdfNull.Instance;
+        function.Items["C1"] = new PdfReference(7, 0);
+        function.Items["N"] = new PdfNumber(1);
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, PdfNull.Instance),
+            [10] = new PdfIndirectObject(10, 0, new PdfReference(11, 0)),
+            [11] = new PdfIndirectObject(11, 0, PdfNull.Instance)
+        };
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateTintTransform(
+            function,
+            inputCount: 1,
+            outputCount: 1,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out PdfColorSpaceTintTransform transform));
+        var output = new double[1];
+
+        Assert.True(transform(new[] { 1D }, output));
+        Assert.Equal(1D, output[0]);
+    }
+
+    [Fact]
+    public void RenderPage_RejectsNoneSeparationAcrossContentAndImageProjection() {
+        const string function =
+            "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj\n";
+        byte[] contentPdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            "1 scn",
+            extraObjects: function,
+            colorSpaceResources: "/CsIcc [/Separation /None /DeviceRGB 7 0 R]");
+        byte[] imagePdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 255 },
+            "/N 3",
+            imageColorSpace: "[/Separation /None /DeviceRGB 7 0 R]",
+            extraObjects: function);
+
+        Assert.Contains(
+            PdfReadDocument.Open(contentPdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.Contains(
+            PdfReadDocument.Open(imagePdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(imagePdf)).IsImageFile);
+    }
+
+    [Theory]
+    [InlineData("[/CalGray << /WhitePoint [0.9505 1 1.089] /BlackPoint [0.1 0 0] >>]")]
+    [InlineData("[/CalRGB << /WhitePoint [0.9505 1 1.089] /BlackPoint [0 0.1 0] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /BlackPoint [0 0 0.1] >>]")]
+    public void RenderPage_RejectsUnsupportedCalibratedBlackPointForImages(string colorSpace) {
+        byte[] pdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 128, 128, 128 },
+            "/N 3",
+            imageColorSpace: colorSpace);
+
+        Assert.Contains(
+            PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Theory]
+    [InlineData("[/CalGray << /WhitePoint [0.9505 1 1.089] /BlackPoint [0.1 0 0] >>]", "0.5 scn")]
+    [InlineData("[/CalRGB << /WhitePoint [0.9505 1 1.089] /BlackPoint [0 0.1 0] >>]", "0.5 0.5 0.5 scn")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /BlackPoint [0 0 0.1] >>]", "50 0 0 scn")]
+    public void RenderPage_RejectsUnsupportedCalibratedBlackPointForContent(string colorSpace, string operation) {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            operation,
+            colorSpaceResources: "/CsIcc " + colorSpace);
+
+        Assert.Contains(
+            PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Fact]
+    public void CalibratedBlackPointAcceptsDefaultAndNullButRejectsReferenceCycles() {
+        var calibration = new PdfDictionary();
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfReference(8, 0)),
+            [8] = new PdfIndirectObject(8, 0, PdfNull.Instance),
+            [9] = new PdfIndirectObject(9, 0, new PdfReference(10, 0)),
+            [10] = new PdfIndirectObject(10, 0, new PdfReference(9, 0))
+        };
+
+        calibration.Items["BlackPoint"] = NumberArray(0, 0, 0);
+        Assert.True(PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects));
+
+        calibration.Items["BlackPoint"] = new PdfReference(7, 0);
+        Assert.True(PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects));
+
+        calibration.Items["BlackPoint"] = new PdfReference(9, 0);
+        Assert.False(PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects));
+    }
+
+    [Fact]
+    public void ManagedImageDecodeHonorsCallerLimitBeforeAllocatingSourcePixels() {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Image");
+        dictionary.Items["Width"] = new PdfNumber(2);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["ColorSpace"] = new PdfName("DeviceCMYK");
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var stream = new PdfStream(dictionary, Compress(new byte[8]));
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.False(ResourceResolver.CanProjectImageColorSpace(dictionary, null, objects, maxDecodedStreamBytes: 7));
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            ResourceResolver.BuildExtractedImage(
+                pageNumber: 1,
+                resourceName: "Im1",
+                objectNumber: 5,
+                directStreamIdentity: 0,
+                stream,
+                objects,
+                maxDecodedStreamBytes: 7));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(7, exception.Limit);
     }
 
     private static byte[] BuildIccContentPdf(

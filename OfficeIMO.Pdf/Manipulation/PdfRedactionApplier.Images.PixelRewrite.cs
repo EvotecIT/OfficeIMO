@@ -527,7 +527,13 @@ internal static partial class PdfRedactionApplier {
         if (!string.Equals(extracted.TransparencyMaskKind, "explicit-mask-image", StringComparison.Ordinal) ||
             !imageStream.Dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
             PdfObjectLookup.Resolve(objects, maskObject) is not PdfStream maskStream ||
-            !PdfImageMaskNormalizer.TryBuildPngFile(width, height, maskStream, objects, out byte[] maskPng) ||
+            !PdfImageMaskNormalizer.TryBuildPngFile(
+                width,
+                height,
+                maskStream,
+                objects,
+                options.MaximumDecodedImageBytes,
+                out byte[] maskPng) ||
             !OfficeRasterImageDecoder.TryDecode(maskPng, out OfficeRasterImage? maskRaster) ||
             maskRaster is null ||
             maskRaster.Width != width ||

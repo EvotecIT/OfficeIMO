@@ -929,7 +929,15 @@ internal static partial class ResourceResolver {
             extension = "jpg";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg);
             isImageFile = true;
-        } else if (isImageMask && TryBuildExtractedImageMaskPng(stream, width, height, bitsPerComponent, objects, colorizeImageMask ? imageMaskColor : null, out var imageMaskPngBytes)) {
+        } else if (isImageMask && TryBuildExtractedImageMaskPng(
+            stream,
+            width,
+            height,
+            bitsPerComponent,
+            objects,
+            colorizeImageMask ? imageMaskColor : null,
+            maxDecodedStreamBytes,
+            out var imageMaskPngBytes)) {
             bytes = imageMaskPngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -1116,7 +1124,7 @@ internal static partial class ResourceResolver {
         var colorDecodeTransform = PdfImageDecodeTransform.CreateColor(stream.Dictionary, colorNormalization.SourceColorCount, objects);
         var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, colorNormalization.SourceColorCount, objects);
         if (colorKeyMask is not null) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
                 return false;
             }
             return TryBuildPngFileFromDecodedPixelsWithColorKeyMask(
@@ -1146,7 +1154,7 @@ internal static partial class ResourceResolver {
 
         int predictor = (int)(decodeParms?.Get<PdfNumber>("Predictor")?.Value ?? 1);
         if (predictor <= 1 || predictor == 2) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
                 return false;
             }
             return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
@@ -1160,13 +1168,13 @@ internal static partial class ResourceResolver {
             colorNormalization.RequiresColorConversion ||
             colorDecodeTransform is not null ||
             !CanWrapPngPredictorScanlines(decodeParms, width, bitsPerComponent, colorNormalization.SourceColorCount)) {
-            if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
+            if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
                 return false;
             }
             return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, colorDecodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
         }
 
-        if (!TryDecodeImageStream(stream, objects, out _)) {
+        if (!TryDecodeImageStream(stream, objects, out _, maxDecodedStreamBytes)) {
             return false;
         }
 
@@ -1198,7 +1206,7 @@ internal static partial class ResourceResolver {
         int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
-        if (!TryDecodeImageStream(stream, objects, out byte[] pixels)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] pixels, maxDecodedStreamBytes)) {
             return false;
         }
         return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization, decodeTransform, pixels, maxDecodedStreamBytes, out pngBytes);
@@ -1480,8 +1488,8 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!TryDecodeImageStream(stream, objects, out byte[] basePixels) ||
-            !TryDecodeImageStream(softMask, objects, out byte[] alphaPixels)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] basePixels, maxDecodedStreamBytes) ||
+            !TryDecodeImageStream(softMask, objects, out byte[] alphaPixels, maxDecodedStreamBytes)) {
             return false;
         }
         long baseRowLengthLong = (long)width * sourceColorCount;

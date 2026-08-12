@@ -56,9 +56,9 @@ if (OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? pro
 }
 ```
 
-The managed contract currently accepts bounded RGB and Gray matrix/TRC input profiles. `TryCreate`
-returns `false` for other profile classes and transform types so the caller can choose an explicit color
-management provider or fallback instead of receiving a silent approximation.
+The managed contract currently accepts bounded RGB and Gray matrix/TRC input-device and display-device
+profiles. `TryCreate` returns `false` for other profile classes and transform types so the caller can choose
+an explicit color management provider or fallback instead of receiving a silent approximation.
 
 ### Image metadata and complete-content validation
 
