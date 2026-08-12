@@ -15,6 +15,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("auto", 300D, 500D, 16D, out double automaticWidth, out double automaticHeight));
         Assert.Equal((300D, 500D), (automaticWidth, automaticHeight));
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape A4", 300D, 500D, 16D, out double namedWidth, out double namedHeight));
+        Assert.True(namedWidth > namedHeight);
     }
 
     [Fact]
@@ -59,6 +61,34 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal((200D, 120D), (page.Width, page.Height));
         Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_AppliesCssWideResetsToPageMarginSides() {
+        const string html = "<style>@page report { size:200px 100px; margin:12px; margin-top:unset; margin-left:initial; }</style><section style='page:report'>Body</section>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((0D, 12D, 12D, 0D), (page.Margins.Left, page.Margins.Right, page.Margins.Bottom, page.Margins.Top));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_InvalidNamedSizeDoesNotOverrideEarlierValidDeclaration() {
+        const string html = "<style>@page report { size:letter; } @page report { size:A4 bogus; }</style><section style='page:report'>Body</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+
+        Assert.Equal((816D, 1056D), (page.Width, page.Height));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
+    }
+
+    [Theory]
+    [InlineData("A4 landscape portrait")]
+    [InlineData("A4 bogus")]
+    [InlineData("200px 100px landscape")]
+    public void HtmlPagedMedia_RejectsExtraOrConflictingPageSizeTokens(string value) {
+        Assert.False(HtmlCssPageSettingsResolver.TryResolvePageSize(value, 300D, 500D, 16D, out _, out _));
     }
 
     [Fact]

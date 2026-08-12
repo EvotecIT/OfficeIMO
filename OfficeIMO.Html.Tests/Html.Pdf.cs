@@ -82,6 +82,19 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_BlankChoiceLabelsUseTruthfulStaticFallback() {
+        const string html = "<select name='choice'><option value='' selected></option><option value='one'>One</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceBlankLabelStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.DoesNotContain("Option 1", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_CanKeepStaticFormControlPaint() {
         const string html = "<label>Name <input name='name' value='Static Ada'></label>";
         var options = new HtmlPdfSaveOptions { InteractiveFormControls = false };
@@ -228,6 +241,19 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_ControlInsideRoundedClipUsesStaticAppearance() {
+        const string html = "<div style='position:relative;width:100px;height:40px;overflow:hidden;border-radius:20px'><input name='rounded' value='Rounded value' style='position:absolute;left:0;top:0;width:40px;height:18px'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Contains(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderPathClipGroup);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Roundedvalue", searchableText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_ControlOutsideClipDoesNotCreateAnInteractiveWidget() {
         const string html = "<div style='position:relative;width:80px;height:24px;overflow:hidden'><input name='outside' value='Outside value' style='position:absolute;left:100px;width:80px;height:20px'></div>";
 
@@ -272,22 +298,34 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
-    public void HtmlToPdf_RepeatedNamesRemainDistinctExceptWithinOneRadioGroup() {
+    public void HtmlToPdf_RepeatedNonRadioNamesUseTruthfulStaticFallback() {
         const string html = """
             <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>
             <form><input type="radio" name="status" value="Internal" checked><input type="radio" name="status" value="External"></form>
             <form><input type="radio" name="status" value="Public" checked><input type="radio" name="status" value="Private"></form>
             """;
 
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
 
-        PdfCore.PdfFormField[] tags = info.FormFields.Where(field => field.MappingName == "tag").ToArray();
-        Assert.Equal(2, tags.Length);
-        Assert.Equal(2, tags.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+        Assert.Empty(info.FormFields.Where(field => field.MappingName == "tag"));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
         PdfCore.PdfFormField[] statuses = info.FormFields.Where(field => field.MappingName == "status").ToArray();
         Assert.Equal(2, statuses.Length);
         Assert.All(statuses, field => Assert.Equal(2, field.Widgets.Count));
         Assert.Equal(2, statuses.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void HtmlToPdf_MixedControlTypesSharingOneNameUseTruthfulStaticFallback() {
+        const string html = "<form><input type='radio' name='answer' value='yes' checked><input type='checkbox' name='answer' value='details' checked></form>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
     }
 
     [Fact]

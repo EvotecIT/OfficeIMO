@@ -78,34 +78,49 @@ internal static class HtmlCssPageSettingsResolver {
         width = currentWidth;
         height = currentHeight;
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
-        if (parts.Count == 0) return false;
-        OfficePageSize? named = ResolveNamedSize(parts[0]);
-        bool landscape = parts.Any(part => string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase));
-        bool portrait = parts.Any(part => string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase));
+        if (parts.Count == 0 || parts.Count > 2) return false;
+        int landscapeCount = parts.Count(part => string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase));
+        int portraitCount = parts.Count(part => string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase));
+        bool landscape = landscapeCount == 1;
+        bool portrait = portraitCount == 1;
         bool automatic = parts.Any(part => string.Equals(part, "auto", StringComparison.OrdinalIgnoreCase));
         if (automatic) {
             if (parts.Count != 1 || landscape || portrait) return false;
             return true;
         }
-        if (named.HasValue) {
-            OfficePageSize resolved = landscape ? named.Value.Landscape() : portrait ? named.Value.Portrait() : named.Value;
+        if (landscapeCount > 1 || portraitCount > 1 || landscape && portrait) return false;
+
+        OfficePageSize? named = null;
+        int namedCount = 0;
+        foreach (string part in parts) {
+            OfficePageSize? candidate = ResolveNamedSize(part);
+            if (!candidate.HasValue) continue;
+            named = candidate;
+            namedCount++;
+        }
+        int orientationCount = landscapeCount + portraitCount;
+        if (namedCount > 0) {
+            if (namedCount != 1 || parts.Count != namedCount + orientationCount) return false;
+            OfficePageSize namedSize = named.GetValueOrDefault();
+            OfficePageSize resolved = landscape ? namedSize.Landscape() : portrait ? namedSize.Portrait() : namedSize;
             width = resolved.WidthInches * HtmlRenderOptions.CssPixelsPerInch;
             height = resolved.HeightInches * HtmlRenderOptions.CssPixelsPerInch;
             return true;
         }
 
-        var lengths = new List<double>();
-        foreach (string part in parts) {
-            if (string.Equals(part, "landscape", StringComparison.OrdinalIgnoreCase) || string.Equals(part, "portrait", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!HtmlRenderCssValues.TryLength(part, currentWidth, fontSize, fontSize, currentWidth, currentHeight, out double length) || length <= 0D) return false;
-            lengths.Add(length);
-        }
-
-        if (lengths.Count == 0 && (landscape || portrait) && landscape != portrait) {
+        if (orientationCount > 0) {
+            if (parts.Count != 1) return false;
             width = landscape ? Math.Max(currentWidth, currentHeight) : Math.Min(currentWidth, currentHeight);
             height = landscape ? Math.Min(currentWidth, currentHeight) : Math.Max(currentWidth, currentHeight);
             return true;
         }
+
+        var lengths = new List<double>();
+        foreach (string part in parts) {
+            if (!HtmlRenderCssValues.TryLength(part, currentWidth, fontSize, fontSize, currentWidth, currentHeight, out double length) || length <= 0D) return false;
+            lengths.Add(length);
+        }
+
         if (lengths.Count != 2) return false;
         var custom = new OfficePageSize(lengths[0] / HtmlRenderOptions.CssPixelsPerInch, lengths[1] / HtmlRenderOptions.CssPixelsPerInch);
         OfficePageSize customResolved = landscape ? custom.Landscape() : portrait ? custom.Portrait() : custom;
@@ -222,7 +237,7 @@ internal static class HtmlCssPageSettingsResolver {
         }
 
         var geometry = new HtmlCssPageGeometryDeclaration(
-            sizeDeclaration,
+            validSize ? sizeDeclaration : sizeDeclaration.WithValue(string.Empty),
             FindTopLevelDeclarationWithPriority(body, "margin"),
             FindTopLevelDeclarationWithPriority(body, "margin-top"),
             FindTopLevelDeclarationWithPriority(body, "margin-right"),

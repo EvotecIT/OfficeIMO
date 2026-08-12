@@ -100,6 +100,10 @@ public static class HtmlRenderDiagnosticCodes {
     public const string RadioMixedDisabledStateStaticFallback = "HtmlRenderRadioMixedDisabledStateStaticFallback";
     /// <summary>A select containing disabled options used static rendering because PDF choice fields cannot preserve disabled state per option.</summary>
     public const string ChoiceDisabledOptionStaticFallback = "HtmlRenderChoiceDisabledOptionStaticFallback";
+    /// <summary>Multiple HTML controls sharing one submitted name used static rendering because distinct PDF fields cannot preserve repeated form-data entries under one field name.</summary>
+    public const string FormFieldRepeatedNameStaticFallback = "HtmlRenderFormFieldRepeatedNameStaticFallback";
+    /// <summary>A select containing a blank option label used static rendering because PDF choice fields require non-empty display labels.</summary>
+    public const string ChoiceBlankLabelStaticFallback = "HtmlRenderChoiceBlankLabelStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -214,6 +218,8 @@ public static class HtmlRenderDiagnosticCodes {
         ChoiceDuplicateSelectedValueStaticFallback,
         RadioMixedDisabledStateStaticFallback,
         ChoiceDisabledOptionStaticFallback,
+        FormFieldRepeatedNameStaticFallback,
+        ChoiceBlankLabelStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

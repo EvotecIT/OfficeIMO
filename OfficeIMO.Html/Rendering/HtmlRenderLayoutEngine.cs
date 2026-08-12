@@ -43,6 +43,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _mixedDisabledRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _staticRepeatedControlGroupKeys = new Dictionary<IElement, string>();
     private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _radioFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
@@ -59,6 +60,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedTransformedFormFieldFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStaticRadioGroups = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);

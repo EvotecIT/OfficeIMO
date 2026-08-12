@@ -192,7 +192,7 @@ internal static partial class HtmlPdfRenderedConverter {
         ClipBounds? activeClip = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (visual is HtmlRenderFormField formField) {
-            bool fullyContained = !activeClip.HasValue || activeClip.Value.Contains(formField);
+            bool fullyContained = !activeClip.HasValue || activeClip.Value.AllowsInteractiveWidgets && activeClip.Value.Contains(formField);
             AddFormField(canvas, formField, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls && fullyContained, cancellationToken, textAsSpan, activeClip);
         } else if (visual is HtmlRenderShape shape) {
             AddShape(canvas, shape);
@@ -425,7 +425,8 @@ internal static partial class HtmlPdfRenderedConverter {
             group.X,
             group.Y,
             group.X + group.Width,
-            group.Y + group.Height));
+            group.Y + group.Height,
+            allowsInteractiveWidgets: false));
         canvas.Clip(
             group.ClipX * PointsPerCssPixel,
             group.ClipY * PointsPerCssPixel,
@@ -684,17 +685,19 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private readonly struct ClipBounds {
-        internal ClipBounds(double left, double top, double right, double bottom) {
+        internal ClipBounds(double left, double top, double right, double bottom, bool allowsInteractiveWidgets = true) {
             Left = left;
             Top = top;
             Right = right;
             Bottom = bottom;
+            AllowsInteractiveWidgets = allowsInteractiveWidgets;
         }
 
         private double Left { get; }
         private double Top { get; }
         private double Right { get; }
         private double Bottom { get; }
+        internal bool AllowsInteractiveWidgets { get; }
 
         internal bool Contains(HtmlRenderVisual visual) {
             double right = visual.X + visual.Width;
@@ -709,7 +712,8 @@ internal static partial class HtmlPdfRenderedConverter {
                 Math.Max(active.Value.Left, next.Left),
                 Math.Max(active.Value.Top, next.Top),
                 Math.Min(active.Value.Right, next.Right),
-                Math.Min(active.Value.Bottom, next.Bottom));
+                Math.Min(active.Value.Bottom, next.Bottom),
+                active.Value.AllowsInteractiveWidgets && next.AllowsInteractiveWidgets);
     }
 
     private static void AddImagePattern(PdfCore.PdfPageCanvas canvas, HtmlRenderImagePattern visual, CancellationToken cancellationToken) {

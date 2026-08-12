@@ -517,7 +517,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
         else return false;
 
-        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _staticRadioGroupKeys.TryGetValue(element, out string? staticGroupKey)) {
+        if (_staticRepeatedControlGroupKeys.TryGetValue(element, out string? staticGroupKey)) {
+            ReportRepeatedFormControlNameFallback(source, staticGroupKey);
+            return false;
+        }
+        if (fieldKind == HtmlRenderFormFieldKind.RadioButton && _staticRadioGroupKeys.TryGetValue(element, out staticGroupKey)) {
             ReportDuplicateRadioValueFallback(source, staticGroupKey);
             return false;
         }
@@ -550,6 +554,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return false;
             }
             ResolveChoiceFieldValues(element, out options, out optionValues, out values, out bool hasDuplicateSelectedValues);
+            if (options.Any(label => label.Length == 0)) {
+                ReportBlankChoiceLabelFallback(source);
+                return false;
+            }
             if (multiple && hasDuplicateSelectedValues) {
                 ReportDuplicateSelectedChoiceValueFallback(source);
                 return false;
@@ -681,6 +689,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
             OfficeConversionLossKind.Approximation);
     }
 
+    private void ReportRepeatedFormControlNameFallback(string source, string groupKey) {
+        if (!_reportedStaticRepeatedControlGroups.Add(groupKey)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback,
+            "HTML controls sharing one submitted name were rendered as static content because distinct PDF fields cannot preserve repeated form-data entries under one field name.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "name=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportBlankChoiceLabelFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.ChoiceBlankLabelStaticFallback,
+            "An HTML select containing a blank option label was rendered as static content because PDF choice fields require non-empty display labels.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "blank option label",
+            OfficeConversionLossKind.Approximation);
+    }
+
     private static bool IsInteractiveTextInputType(string type) {
         switch (type) {
             case "date":
@@ -717,8 +748,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < optionElements.Length; index++) {
             IElement option = optionElements[index];
             string label = NormalizeControlText(HtmlFormControlSemantics.GetOptionLabel(option));
-            if (label.Length == 0) label = NormalizeControlText(option.GetAttribute("value"));
-            if (label.Length == 0) label = "Option " + (index + 1).ToString(CultureInfo.InvariantCulture);
             string export = HtmlFormControlSemantics.GetOptionValue(option);
             labels.Add(label);
             exports.Add(export);
@@ -741,6 +770,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void IdentifyStaticRadioGroups() {
         _staticRadioGroupKeys.Clear();
         _mixedDisabledRadioGroupKeys.Clear();
+        _staticRepeatedControlGroupKeys.Clear();
         IElement[] radios = _document.QuerySelectorAll("input")
             .Where(element => NormalizeInputType(element) == "radio")
             .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
@@ -763,6 +793,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
         }
+
+        IElement[] controls = _document.QuerySelectorAll("input,textarea,select")
+            .Where(IsSupportedInteractiveFormControl)
+            .Where(element => NormalizeControlText(element.GetAttribute("name")).Length > 0)
+            .ToArray();
+        foreach (IGrouping<IElement?, IElement> ownerGroup in controls.GroupBy(HtmlFormControlSemantics.ResolveFormOwner)) {
+            foreach (IGrouping<string, IElement> group in ownerGroup.GroupBy(
+                         element => NormalizeControlText(element.GetAttribute("name")),
+                         StringComparer.Ordinal)) {
+                IElement[] members = group.ToArray();
+                if (members.Length < 2 || members.All(element => element.LocalName == "input" && NormalizeInputType(element) == "radio")) continue;
+                string key = HtmlRenderStyleResolver.DescribeSource(members[0]) + "\n" + group.Key;
+                foreach (IElement element in members) _staticRepeatedControlGroupKeys[element] = key;
+            }
+        }
+    }
+
+    private static bool IsSupportedInteractiveFormControl(IElement element) {
+        if (element.LocalName == "textarea" || element.LocalName == "select") return true;
+        if (element.LocalName != "input") return false;
+        string type = NormalizeInputType(element);
+        return type == "checkbox" || type == "radio" || IsInteractiveTextInputType(type);
     }
 
     private string ResolveRadioFieldName(IElement element, string mappingName, int nodeId) {
