@@ -714,7 +714,16 @@ public sealed partial class PdfReadPage {
             ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? patternObject) ? patternObject : null) is not PdfDictionary patterns ||
             !patterns.Items.TryGetValue(name, out PdfObject? value) ||
             ResolveDictionary(value) is not PdfDictionary pattern) return false;
-        return !pattern.Items.ContainsKey("ExtGState");
+        if (pattern.Items.ContainsKey("ExtGState") ||
+            !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
+            ResolveDictionary(shadingObject) is not PdfDictionary shading ||
+            !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
+            ResolveArray(extendObject) is not PdfArray { Items.Count: 2 } extend) {
+            return false;
+        }
+
+        return ResolveObject(extend.Items[0]) is PdfBoolean { Value: true } &&
+            ResolveObject(extend.Items[1]) is PdfBoolean { Value: true };
     }
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {

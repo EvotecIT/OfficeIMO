@@ -193,7 +193,10 @@ public sealed partial class PdfReadPage {
                 imageDictionary = imageStream.Dictionary;
             }
         }
-        return imageDictionary != null && ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects);
+        return imageDictionary != null &&
+            ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
+            (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
+             ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
     }
 
     private static (PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
