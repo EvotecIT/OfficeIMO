@@ -304,6 +304,24 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void ZipRemovalSkipsEmbeddedInspectionWhenDisabled() {
+        byte[] image = Join(
+            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+            CreatePngChunk("caBX", CreateManifestStore()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+        byte[] package = CreateZip(
+            ("META-INF/content_credential.c2pa", CreateManifestStore()),
+            ("word/media/image1.png", image));
+        var options = new OfficeProvenanceRemovalOptions { ProcessEmbeddedAssets = false };
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.docx", options);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.Equal(image, ReadZipEntry(result.ToArray(), "word/media/image1.png"));
+    }
+
+    [Fact]
     public void ZipPreservesMalformedEmbeddedSvgAndReportsADiagnostic() {
         byte[] malformedSvg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><broken></svg>");
         byte[] package = CreateZip(("word/media/image1.svg", malformedSvg));

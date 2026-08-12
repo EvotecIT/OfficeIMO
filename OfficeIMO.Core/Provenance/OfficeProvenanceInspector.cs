@@ -140,7 +140,8 @@ public static class OfficeProvenanceRemover {
             throw new InvalidDataException($"The asset exceeds the configured limit of {options.Limits.MaxAssetBytes} bytes.");
         }
 
-        OfficeProvenanceReport before = OfficeProvenanceInspector.InspectCore(data, fileName, options.Limits);
+        OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
+        OfficeProvenanceReport before = OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);
         var changes = new List<OfficeProvenanceChange>();
         byte[] output;
         bool reserialized = false;
@@ -175,9 +176,19 @@ public static class OfficeProvenanceRemover {
                 break;
         }
 
-        OfficeProvenanceReport after = OfficeProvenanceInspector.InspectCore(output, fileName, options.Limits);
+        OfficeProvenanceReport after = OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), reserialized);
     }
+
+    private static OfficeProvenanceOptions CreateInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+        MaxAssetBytes = source.Limits.MaxAssetBytes,
+        MaxManifestBytes = source.Limits.MaxManifestBytes,
+        MaxCarriers = source.Limits.MaxCarriers,
+        MaxContainerEntries = source.Limits.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
+    };
 
     /// <summary>Removes selected provenance from a file and atomically commits the output.</summary>
     public static OfficeProvenanceRemovalResult RemoveFile(
