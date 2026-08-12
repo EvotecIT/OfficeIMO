@@ -553,19 +553,21 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
+                var localPrimitives = requireVectorOnly ? new List<PdfPageVisualPrimitive>() : null;
+                var localRenderedType3PaintOrders = requireVectorOnly ? new HashSet<double>() : renderedType3PaintOrders;
                 CollectVisualPrimitivesAndForms(
                     formContent,
                     formResources,
                     formTransform,
                     pageWidth,
                     pageHeight,
-                    primitiveVisitor,
+                    localPrimitives is null ? primitiveVisitor : localPrimitives.Add,
                     activeForms,
                     activeType3Glyphs,
-                    renderedType3PaintOrders,
+                    localRenderedType3PaintOrders,
                     type3GlyphBudget,
-                    invocation.PaintOrder,
-                    paintOrderScale * 0.000000001D,
+                    requireVectorOnly ? 0D : invocation.PaintOrder,
+                    requireVectorOnly ? 1D : paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     initialFillColor: invocation.FillColor,
                     initialFillColorSpace: invocation.FillColorSpace,
@@ -584,6 +586,10 @@ public sealed partial class PdfReadPage {
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget);
+                if (localPrimitives is not null &&
+                    !TryPublishType3LocalPrimitives(localPrimitives, invocation.PaintOrder, paintOrderScale, primitiveVisitor)) {
+                    type3GlyphBudget.RecordFailure();
+                }
             } finally {
                 activeForms.Remove(formStream);
             }

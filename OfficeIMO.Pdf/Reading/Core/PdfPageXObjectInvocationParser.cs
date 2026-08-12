@@ -446,6 +446,12 @@ internal static class PdfPageXObjectInvocationParser {
                     }
 
                     break;
+                case "M":
+                    if (!HasHiddenContent()) {
+                        _unsupportedGraphicsEffectVisitor?.Invoke();
+                    }
+
+                    break;
                 case "d":
                     if (_args.Count >= 2 && TryGetNumberArray(_args[_args.Count - 2], out double[] dashArray)) {
                         _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
@@ -598,38 +604,50 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "rg":
-                    if (_args.Count >= 3) {
+                    if (HasTrailingNumbers(3)) {
                         _state = _state.WithFillColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "RG":
-                    if (_args.Count >= 3) {
+                    if (HasTrailingNumbers(3)) {
                         _state = _state.WithStrokeColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "g":
-                    if (_args.Count >= 1) {
+                    if (HasTrailingNumbers(1)) {
                         _state = _state.WithFillColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "G":
-                    if (_args.Count >= 1) {
+                    if (HasTrailingNumbers(1)) {
                         _state = _state.WithStrokeColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "k":
-                    if (_args.Count >= 4) {
+                    if (HasTrailingNumbers(4)) {
                         _state = _state.WithFillColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
                 case "K":
-                    if (_args.Count >= 4) {
+                    if (HasTrailingNumbers(4)) {
                         _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                    } else if (!HasHiddenContent()) {
+                        _unsupportedColorVisitor?.Invoke();
                     }
 
                     break;
@@ -916,6 +934,15 @@ internal static class PdfPageXObjectInvocationParser {
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
 
         private double NumberAt(int index) => _args[index] is double value ? value : 0D;
+
+        private bool HasTrailingNumbers(int count) {
+            if (_args.Count < count) return false;
+            for (int index = _args.Count - count; index < _args.Count; index++) {
+                if (_args[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+            }
+
+            return true;
+        }
 
         private void ApplyGraphicsStateResource(string name) {
             if (_graphicsStates == null || !_graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {

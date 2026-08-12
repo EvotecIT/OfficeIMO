@@ -73,7 +73,7 @@ public sealed partial class PdfReadPage {
                         initialStrokeDashStyle: glyph.StrokeDashStyle,
                         initialStrokeLineCap: glyph.StrokeLineCap,
                         initialStrokeLineJoin: glyph.StrokeLineJoin,
-                        contentNestingDepth: contentNestingDepth + 1,
+                        contentNestingDepth: contentNestingDepth,
                         includeTilingPatterns: includeTilingPatterns,
                         retainPrimitiveData: retainPrimitiveData,
                         requireVectorOnly: true,
@@ -116,6 +116,26 @@ public sealed partial class PdfReadPage {
         long bits = BitConverter.DoubleToInt64Bits(value);
         bits += value > 0D ? 1L : -1L;
         return BitConverter.Int64BitsToDouble(bits);
+    }
+
+    private static bool TryPublishType3LocalPrimitives(
+        List<PdfPageVisualPrimitive> localPrimitives,
+        double paintOrder,
+        double paintOrderScale,
+        Action<PdfPageVisualPrimitive> primitiveVisitor) {
+        if (localPrimitives.Count == 0) return true;
+
+        var ordered = new List<PdfPageVisualPrimitive>(localPrimitives);
+        ordered.Sort(static (left, right) => left.PaintOrder.CompareTo(right.PaintOrder));
+        double nextPaintOrder = paintOrder;
+        double paintOrderLimit = paintOrder + (Math.Abs(paintOrderScale) * 0.5D);
+        for (int index = 0; index < ordered.Count; index++) {
+            nextPaintOrder = NextRepresentablePaintOrder(nextPaintOrder);
+            if (nextPaintOrder >= paintOrderLimit) return false;
+            primitiveVisitor(ordered[index].WithPaintOrder(nextPaintOrder));
+        }
+
+        return true;
     }
 
     private sealed class Type3GlyphBudget {
