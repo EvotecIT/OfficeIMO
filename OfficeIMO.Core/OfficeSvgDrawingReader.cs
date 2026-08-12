@@ -582,7 +582,13 @@ public static partial class OfficeSvgDrawingReader {
             string name = declaration.Substring(0, colon).Trim();
             if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
             if (name.Equals("line-height", StringComparison.OrdinalIgnoreCase)) {
-                authoredLineHeight = declaration.Substring(colon + 1).Trim();
+                string inlineLineHeight = declaration.Substring(colon + 1).Trim();
+                if (inlineLineHeight.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+                    || TryParseLineHeight(inlineLineHeight, result.FontSize, out _)) {
+                    authoredLineHeight = inlineLineHeight;
+                } else {
+                    unsupported++;
+                }
                 continue;
             }
             ApplyProperty(name, declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);

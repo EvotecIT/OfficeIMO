@@ -165,6 +165,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool TryFindUnsupportedMathMlElement(IElement math, out string localName) {
         foreach (IElement element in math.QuerySelectorAll("*")) {
             string candidate = element.LocalName.ToLowerInvariant();
+            if (candidate == "mstyle" && TryFindIgnoredMathMlPresentationAttribute(element, out string attribute)) {
+                localName = "mstyle[" + attribute + "]";
+                return true;
+            }
             if (candidate == "menclose") {
                 string notation = element.GetAttribute("notation")?.Trim() ?? string.Empty;
                 if (!string.Equals(notation, "box", StringComparison.OrdinalIgnoreCase)) {
@@ -177,6 +181,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         localName = string.Empty;
+        return false;
+    }
+
+    private static bool TryFindIgnoredMathMlPresentationAttribute(IElement element, out string attribute) {
+        string[] presentationAttributes = {
+            "dir",
+            "displaystyle",
+            "mathbackground",
+            "mathcolor",
+            "mathsize",
+            "scriptlevel",
+            "scriptminsize",
+            "scriptsizemultiplier",
+            "style"
+        };
+        foreach (string name in presentationAttributes) {
+            if (string.IsNullOrWhiteSpace(element.GetAttribute(name))) continue;
+            attribute = name;
+            return true;
+        }
+        attribute = string.Empty;
         return false;
     }
 

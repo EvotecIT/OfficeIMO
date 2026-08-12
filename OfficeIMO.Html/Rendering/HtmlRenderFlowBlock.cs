@@ -65,9 +65,12 @@ internal sealed class HtmlRenderFlowBlock {
             .ToList()
             .AsReadOnly();
         var lineOffsets = new SortedSet<double>();
+        bool hasImplicitFinalLine = false;
         if (lineBreakOffsets != null) {
             foreach (double offset in lineBreakOffsets) {
-                if (offset > 0D && offset < height && !double.IsNaN(offset) && !double.IsInfinity(offset)) lineOffsets.Add(offset);
+                if (offset <= 0D || double.IsNaN(offset) || double.IsInfinity(offset)) continue;
+                if (offset < height - 0.0001D) lineOffsets.Add(offset);
+                else if (offset <= height + 0.0001D) hasImplicitFinalLine = true;
             }
         }
 
@@ -76,7 +79,7 @@ internal sealed class HtmlRenderFlowBlock {
         int resolvedWidows = Math.Max(1, widows);
         var groups = new List<HtmlRenderLineBreakGroup>();
         if (lineBreakGroups != null) groups.AddRange(lineBreakGroups);
-        if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(resolvedLineOffsets, resolvedOrphans, resolvedWidows));
+        if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(resolvedLineOffsets, resolvedOrphans, resolvedWidows, hasImplicitFinalLine));
         LineBreakGroups = groups.AsReadOnly();
         IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals ?? Array.Empty<HtmlRenderVisual>()).AsReadOnly();
         double repeatedHeight = Math.Max(0D, continuationHeight);
@@ -465,18 +468,20 @@ internal sealed class HtmlRenderTrailingGroup {
 }
 
 internal sealed class HtmlRenderLineBreakGroup {
-    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows) {
+    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows, bool hasImplicitFinalLine = false) {
         Offsets = new SortedSet<double>(offsets).ToList().AsReadOnly();
         Orphans = Math.Max(1, orphans);
         Widows = Math.Max(1, widows);
+        HasImplicitFinalLine = hasImplicitFinalLine;
     }
 
     internal IReadOnlyList<double> Offsets { get; }
     internal int Orphans { get; }
     internal int Widows { get; }
+    internal bool HasImplicitFinalLine { get; }
 
     internal HtmlRenderLineBreakGroup Translate(double offset) =>
-        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows);
+        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows, HasImplicitFinalLine);
 }
 
 internal sealed class HtmlInlineRun {

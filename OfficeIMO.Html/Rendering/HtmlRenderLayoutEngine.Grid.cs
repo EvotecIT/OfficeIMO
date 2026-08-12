@@ -334,7 +334,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static string ResolveGridAlignment(string self, string container) {
         string resolved = self == "auto" ? container : self;
-        return resolved == "normal" ? "stretch" : resolved;
+        if (resolved == "normal") return "stretch";
+        return resolved == "first baseline" ? "baseline" : resolved;
     }
 
     private static bool HasHorizontalAutoMargin(HtmlRenderBoxStyle style) => style.MarginLeftAuto || style.MarginRightAuto;

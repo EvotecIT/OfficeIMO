@@ -503,14 +503,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(35D, b.Y, 3);
     }
 
-    [Fact]
-    public void HtmlGrid_AlignsFirstTextBaselinesWithinEachRow() {
-        const string html = """
-            <div style="display:grid;width:200px;grid-template-columns:100px 100px;grid-template-rows:50px;align-items:baseline">
-              <span style="font-size:12px;line-height:18px">Small</span>
-              <span style="font-size:24px;line-height:30px">Large</span>
-            </div>
-            """;
+    [Theory]
+    [InlineData("align-items:baseline", "")]
+    [InlineData("align-items:first baseline", "")]
+    [InlineData("align-items:start", "align-self:first baseline")]
+    [InlineData("place-items:first baseline", "")]
+    public void HtmlGrid_AlignsFirstTextBaselinesWithinEachRow(string containerAlignment, string itemAlignment) {
+        string html = "<div style='display:grid;width:200px;grid-template-columns:100px 100px;grid-template-rows:50px;" + containerAlignment + "'>"
+            + "<span style='font-size:12px;line-height:18px;" + itemAlignment + "'>Small</span>"
+            + "<span style='font-size:24px;line-height:30px;" + itemAlignment + "'>Large</span></div>";
 
         HtmlRenderDocument rendered = RenderGrid(html, 220D);
         HtmlRenderText small = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Small");
@@ -520,6 +521,24 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(largeBaseline, smallBaseline, 3);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Theory]
+    [InlineData("manual", "typo&shy;graphy")]
+    [InlineData("auto", "typography")]
+    public void HtmlGrid_MinContentUsesManualAndAutomaticHyphenation(string hyphens, string content) {
+        string html = "<div style='display:grid;width:260px;grid-template-columns:min-content max-content;justify-content:start'>"
+            + "<span id='minimum' style='hyphens:" + hyphens + ";background:red'>" + content + "</span>"
+            + "<span id='maximum' style='hyphens:" + hyphens + ";background:blue'>" + content + "</span></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 280D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextHyphenationCallback = token => token == "typography" ? new[] { 4 } : Array.Empty<int>()
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.True(FindGridShape(rendered, "span#minimum").Width < FindGridShape(rendered, "span#maximum").Width, hyphens);
     }
 
     [Fact]

@@ -101,6 +101,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_WidowsDoNotCountAnExplicitRetainedFinalLineTwice() {
+        const string html = "<style>@page{size:100px 40px;margin:0}div{height:20px}p{margin:0;padding-bottom:1px;font-size:8px;line-height:10px;orphans:2;widows:2}</style>"
+            + "<div>Lead</div><p>wordA<br>wordB<br>wordC</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.StartsWith("word", StringComparison.Ordinal));
+        Assert.Equal(3, rendered.Pages[1].Visuals.OfType<HtmlRenderText>().Count(text => text.Text.StartsWith("word", StringComparison.Ordinal)));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_ResolvesOrientationOnlyAndAutomaticPageSizes() {
         Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape", 300D, 500D, 16D, out double landscapeWidth, out double landscapeHeight));
         Assert.Equal((500D, 300D), (landscapeWidth, landscapeHeight));

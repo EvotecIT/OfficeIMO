@@ -370,15 +370,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             current = 0D;
                         }
                     } else {
+                        HyphenationToken hyphenation = PrepareHyphenationToken(token, token, run.Style);
+                        string paintToken = hyphenation.PaintText;
+                        var hyphenationBreaks = new HashSet<int>(hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks));
+                        IReadOnlyList<int> preferredBreaks = OfficeTextLineBreaks.GetBreakPositions(
+                            paintToken,
+                            run.Style.WordBreak != "keep-all");
                         int segmentStart = 0;
-                        foreach (int end in OfficeTextLineBreaks.GetBreakPositions(token, run.Style.WordBreak != "keep-all")) {
-                            if (end <= segmentStart || end > token.Length) continue;
-                            current += MeasureInlineText(token.Substring(segmentStart, end - segmentStart), run.Style);
+                        foreach (int end in preferredBreaks.Concat(hyphenationBreaks).Distinct().OrderBy(point => point)) {
+                            if (end <= segmentStart || end > paintToken.Length) continue;
+                            string segment = paintToken.Substring(segmentStart, end - segmentStart);
+                            if (hyphenationBreaks.Contains(end)) segment += run.Style.HyphenateCharacter;
+                            current += MeasureInlineText(segment, run.Style);
                             maximum = Math.Max(maximum, current);
                             current = 0D;
                             segmentStart = end;
                         }
-                        if (segmentStart < token.Length) current += MeasureInlineText(token.Substring(segmentStart), run.Style);
+                        if (segmentStart < paintToken.Length) current += MeasureInlineText(paintToken.Substring(segmentStart), run.Style);
                         maximum = Math.Max(maximum, current);
                     }
                 }

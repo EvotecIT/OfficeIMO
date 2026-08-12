@@ -1049,8 +1049,20 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static void ApplyPlacePair(string value, ref string first, ref string second) {
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
         if (parts.Count == 0) return;
-        first = parts[0].Trim().ToLowerInvariant();
-        second = (parts.Count > 1 ? parts[1] : parts[0]).Trim().ToLowerInvariant();
+        int index = 0;
+        first = ReadPlaceComponent(parts, ref index);
+        second = index < parts.Count ? ReadPlaceComponent(parts, ref index) : first;
+    }
+
+    private static string ReadPlaceComponent(IReadOnlyList<string> parts, ref int index) {
+        string value = parts[index++].Trim().ToLowerInvariant();
+        if ((value == "first" || value == "last")
+            && index < parts.Count
+            && string.Equals(parts[index], "baseline", StringComparison.OrdinalIgnoreCase)) {
+            value += " baseline";
+            index++;
+        }
+        return value;
     }
 
     private static void OverrideGridValue(string value, ref string target) {

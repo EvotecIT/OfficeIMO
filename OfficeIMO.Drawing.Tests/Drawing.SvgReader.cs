@@ -299,6 +299,23 @@ public class DrawingSvgReaderTests {
         Assert.Equal(new[] { 6D, 4D }, runs.Select(run => run.Y));
     }
 
+    [Theory]
+    [InlineData("line-height='20px' style='line-height:bogus;baseline-shift:50%'", 20D)]
+    [InlineData("style='line-height:30px;line-height:bogus;baseline-shift:50%'", 15D)]
+    public void SvgReaderInvalidInlineLineHeightPreservesTheLastValidCascadeValue(string attributes, double expectedY) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 50'>"
+            + "<text x='2' y='40' font-size='10'>"
+            + "<tspan " + attributes + ">Text</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        OfficeDrawingText run = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Text", run.Text);
+        Assert.Equal(expectedY, run.Y, 6);
+    }
+
     [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"

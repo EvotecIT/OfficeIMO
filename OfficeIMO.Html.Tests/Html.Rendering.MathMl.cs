@@ -122,6 +122,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("displaystyle='true'", "displaystyle")]
+    [InlineData("mathbackground='yellow'", "mathbackground")]
+    [InlineData("mathcolor='red'", "mathcolor")]
+    [InlineData("mathsize='20px'", "mathsize")]
+    [InlineData("scriptlevel='1'", "scriptlevel")]
+    [InlineData("style='color:red'", "style")]
+    public void HtmlMathMl_DiagnosesIgnoredMstylePresentation(string attribute, string expectedAttribute) {
+        string html = "<math><mstyle " + attribute + "><mi>x</mi></mstyle></math>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlContentUnsupported);
+        Assert.Equal("mstyle[" + expectedAttribute + "]", diagnostic.Detail);
+        Assert.Contains("x", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("circle", "menclose[notation=circle]")]
     [InlineData("", "menclose[notation=longdiv]")]
     public void HtmlMathMl_DiagnosesMencloseNotationsThatTheSharedModelCannotRepresent(string notation, string expectedDetail) {
