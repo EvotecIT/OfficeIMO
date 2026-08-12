@@ -157,11 +157,26 @@ internal static partial class PdfAcroFormEditor {
 
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
         string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
-        field.Dictionary.Items.TryGetValue("Ff", out PdfObject? flagsObject) &&
-        PdfObjectLookup.Resolve(objects, flagsObject) is PdfNumber flags &&
-        flags.Value >= int.MinValue && flags.Value <= int.MaxValue &&
-        Math.Truncate(flags.Value) == flags.Value &&
-        ((int)flags.Value & FieldFlagPushButton) != 0;
+        (ReadInheritedFieldFlags(objects, field.Dictionary) & FieldFlagPushButton) != 0;
+
+    private static int ReadInheritedFieldFlags(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            if (current.Items.TryGetValue("Ff", out PdfObject? flagsObject) &&
+                PdfObjectLookup.Resolve(objects, flagsObject) is PdfNumber flags &&
+                flags.Value >= int.MinValue && flags.Value <= int.MaxValue &&
+                Math.Truncate(flags.Value) == flags.Value) {
+                return (int)flags.Value;
+            }
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return 0;
+    }
 
     private static void RebuildPushButtonAppearance(
         Dictionary<int, PdfIndirectObject> objects,

@@ -46,6 +46,12 @@ public sealed partial class PdfReadDocument {
                 pending.Push((stream.Dictionary, depth + 1, widgetRoot));
                 continue;
             }
+            if (current is PdfName name) {
+                for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
+                    if (string.Equals(name.Name, PdfActiveContentPolicy.MarkerNames[index], StringComparison.Ordinal)) return true;
+                }
+                continue;
+            }
             if (current is PdfArray array) {
                 for (int index = array.Items.Count - 1; index >= 0; index--) pending.Push((array.Items[index], depth + 1, false));
                 continue;
@@ -57,11 +63,6 @@ public sealed partial class PdfReadDocument {
             }
             foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
                 if (widgetRoot && (string.Equals(item.Key, "A", StringComparison.Ordinal) || string.Equals(item.Key, "AA", StringComparison.Ordinal))) continue;
-                if (item.Value is PdfName name) {
-                    for (int index = 0; index < PdfActiveContentPolicy.MarkerNames.Length; index++) {
-                        if (string.Equals(name.Name, PdfActiveContentPolicy.MarkerNames[index], StringComparison.Ordinal)) return true;
-                    }
-                }
                 pending.Push((item.Value, depth + 1, false));
             }
         }

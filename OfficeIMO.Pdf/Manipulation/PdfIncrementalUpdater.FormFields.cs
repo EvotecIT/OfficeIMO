@@ -125,6 +125,7 @@ internal static partial class PdfIncrementalUpdater {
                 inheritedFlags,
                 null,
                 null,
+                null,
                 acroFormDefaultResources,
                 acroFormDefaultAppearance,
                 fieldValues,
@@ -282,6 +283,7 @@ internal static partial class PdfIncrementalUpdater {
         int inheritedFlags,
         int? inheritedQuadding,
         int? inheritedMaxLength,
+        PdfArray? inheritedChoiceOptions,
         PdfDictionary? inheritedDefaultResources,
         string? inheritedDefaultAppearance,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
@@ -309,11 +311,15 @@ internal static partial class PdfIncrementalUpdater {
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
+        PdfArray? choiceOptions = field.Items.TryGetValue("Opt", out PdfObject? optionsObject) &&
+                                  ResolveObject(objects, optionsObject) is PdfArray declaredOptions
+            ? declaredOptions
+            : inheritedChoiceOptions;
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
 
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
-            IncrementalPreparedFieldValue preparedValue = PrepareIncrementalFieldValue(objects, field, fieldType, fieldFlags, value);
+            IncrementalPreparedFieldValue preparedValue = PrepareIncrementalFieldValue(objects, field, fieldType, fieldFlags, choiceOptions, value);
             SetIncrementalFieldValue(objects, field, fieldType, fieldFlags, preparedValue);
             if (objectNumber.HasValue) {
                 changedObjectNumbers.Add(objectNumber.Value);
@@ -341,7 +347,7 @@ internal static partial class PdfIncrementalUpdater {
             ? kidsReference.ObjectNumber
             : objectNumber ?? containingObjectNumber;
         for (int i = 0; i < kids.Items.Count; i++) {
-            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
+            UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, choiceOptions, defaultResources, defaultAppearance, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
 
@@ -370,7 +376,7 @@ internal static partial class PdfIncrementalUpdater {
         field.Items["V"] = new PdfStringObj(value.FirstStoredValue, useTextStringEncoding: true);
     }
 
-    private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, PdfFormFieldValue value) {
+    private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, PdfArray? choiceOptions, PdfFormFieldValue value) {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
@@ -400,7 +406,7 @@ internal static partial class PdfIncrementalUpdater {
         IncrementalChoiceFillValue explicitEmptyChoice = default;
         bool selectsExplicitEmptyOption = values.Count == 1 &&
             values[0].Length == 0 &&
-            TryResolveIncrementalChoiceOption(objects, field, values[0], out explicitEmptyChoice);
+            TryResolveIncrementalChoiceOption(objects, choiceOptions, values[0], out explicitEmptyChoice);
         if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
             return isMultiSelectChoice
                 ? IncrementalPreparedFieldValue.Multiple(Array.Empty<string>(), string.Empty)
@@ -409,7 +415,7 @@ internal static partial class PdfIncrementalUpdater {
 
         IReadOnlyList<IncrementalChoiceFillValue> choiceValues = selectsExplicitEmptyOption
             ? new[] { explicitEmptyChoice }
-            : ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
+            : ResolveIncrementalChoiceFillValues(objects, choiceOptions, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {
             return IncrementalPreparedFieldValue.Multiple(
                 choiceValues.Select(item => item.ExportValue).ToArray(),
@@ -420,10 +426,8 @@ internal static partial class PdfIncrementalUpdater {
         return IncrementalPreparedFieldValue.Scalar(choiceValue.ExportValue, choiceValue.DisplayValue);
     }
 
-    private static IReadOnlyList<IncrementalChoiceFillValue> ResolveIncrementalChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, bool isEditableChoice, IReadOnlyList<string> values) {
-        if (!field.Items.TryGetValue("Opt", out PdfObject? optionsObject) ||
-            ResolveObject(objects, optionsObject) is not PdfArray options ||
-            options.Items.Count == 0) {
+    private static IReadOnlyList<IncrementalChoiceFillValue> ResolveIncrementalChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, bool isEditableChoice, IReadOnlyList<string> values) {
+        if (options is null || options.Items.Count == 0) {
             return values.Select(static item => new IncrementalChoiceFillValue(item, item)).ToArray();
         }
 
@@ -449,11 +453,10 @@ internal static partial class PdfIncrementalUpdater {
 
     private static bool TryResolveIncrementalChoiceOption(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary field,
+        PdfArray? options,
         string value,
         out IncrementalChoiceFillValue fillValue) {
-        if (field.Items.TryGetValue("Opt", out PdfObject? optionsObject) &&
-            ResolveObject(objects, optionsObject) is PdfArray { Items.Count: > 0 } options) {
+        if (options is { Items.Count: > 0 }) {
             return TryResolveIncrementalChoiceFillValue(objects, options, value, out fillValue);
         }
 

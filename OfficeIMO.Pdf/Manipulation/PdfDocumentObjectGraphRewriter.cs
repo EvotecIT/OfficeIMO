@@ -46,6 +46,11 @@ internal static class PdfDocumentObjectGraphRewriter {
         }
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
+        if (reachableObjectNumbers.Any(objectNumber =>
+                objects[objectNumber].Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType")) {
+            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
+        }
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
         return PdfFileAssembler.Assemble(

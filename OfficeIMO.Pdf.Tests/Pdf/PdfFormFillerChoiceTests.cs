@@ -55,6 +55,27 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void AppendRevision_EmptyChoiceValueSelectsInheritedEmptyExportOption() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            PdfEncoding.Latin1GetString(BuildInheritedChoiceWidgetFormPdf())
+                .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]"));
+
+        byte[] appendable = PdfFormFiller.FillFields(
+            source,
+            new Dictionary<string, string> { ["Selection.Country"] = "PL" });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Selection.Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        PdfFormField field = Assert.Single(appended.Inspect().FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.Contains(
+            "<4E6F6E65> Tj",
+            GetFlattenedAppearanceStreamText(PdfFormFiller.FlattenFields(appended.ToBytes())),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AppendRevision_EmptyMultiSelectChoiceStoresAnEmptyArray() {
         byte[] appendable = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
             ["Country"] = PdfFormFieldValue.FromValues("PL", "US")

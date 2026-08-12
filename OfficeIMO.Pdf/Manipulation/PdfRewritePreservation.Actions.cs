@@ -88,13 +88,15 @@ public static partial class PdfRewritePreservation {
         }
 
         if (originalPages.Count != rewrittenPages.Count) {
-            int originalCount = originalPages.Sum(page => FilterPreservedActions(page.PageActions, options).Length);
-            int rewrittenCount = rewrittenPages.Sum(page => FilterPreservedActions(page.PageActions, options).Length);
-            if (originalCount != rewrittenCount) {
+            string[] expected = CreatePageActionInventory(originalPages, options);
+            string[] actual = CreatePageActionInventory(rewrittenPages, options);
+            if (expected.Length != actual.Length) {
                 issues.Add(CreateIssue(
                     "PageActions.Count",
-                    originalCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    rewrittenCount.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                    expected.Length.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    actual.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            } else if (!expected.SequenceEqual(actual, StringComparer.Ordinal)) {
+                issues.Add(CreateIssue("PageActions", string.Join(" | ", expected), string.Join(" | ", actual)));
             }
             return;
         }
@@ -122,6 +124,29 @@ public static partial class PdfRewritePreservation {
                 CompareString(issues, prefix + ".Uri", before.Uri, after.Uri);
             }
         }
+    }
+
+    private static string[] CreatePageActionInventory(
+        IReadOnlyList<PdfPageInfo> pages,
+        PdfRewritePreservationOptions options) {
+        var inventory = new List<string>();
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfPageAction[] actions = FilterPreservedActions(pages[pageIndex].PageActions, options);
+            var retainedOrdinals = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int actionIndex = 0; actionIndex < actions.Length; actionIndex++) {
+                PdfPageAction action = actions[actionIndex];
+                string triggerName = NormalizeFilteredActionPath(action.TriggerName, options) ?? string.Empty;
+                string actionPath = NormalizeFilteredActionPath(action.ActionPath, options) ?? string.Empty;
+                string identity = triggerName + "\u001f" + actionPath;
+                retainedOrdinals.TryGetValue(identity, out int retainedOrdinal);
+                retainedOrdinals[identity] = retainedOrdinal + 1;
+                inventory.Add(triggerName + "\u001f" + actionPath + "\u001f" +
+                              retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
+                              action.ActionType + "\u001f" + (action.Uri ?? string.Empty));
+            }
+        }
+        inventory.Sort(StringComparer.Ordinal);
+        return inventory.ToArray();
     }
 
     private static bool IsPreservedActionType(PdfRewritePreservationOptions options, string? actionType) =>
