@@ -8,6 +8,13 @@ internal static class PdfCalibratedColorSpaceSemantics {
         !double.IsNaN(values[0]) && !double.IsInfinity(values[0]) &&
         !double.IsNaN(values[2]) && !double.IsInfinity(values[2]);
 
+    internal static bool IsSupportedLabRange(IReadOnlyList<double> values) =>
+        values.Count == 4 &&
+        values[0] >= -128D && values[1] <= 127D &&
+        values[2] >= -128D && values[3] <= 127D &&
+        values[0] < values[1] && values[2] < values[3] &&
+        values.All(static value => !double.IsNaN(value) && !double.IsInfinity(value));
+
     internal static bool HasSupportedBlackPoint(
         PdfDictionary calibration,
         Dictionary<int, PdfIndirectObject> objects) {

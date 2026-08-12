@@ -69,14 +69,14 @@ public sealed partial class PdfReadPage {
             _ => PdfPageColorSpaceKind.Pattern
         };
         if (kind == PdfPageColorSpaceKind.Pattern) return false;
+        int componentCount = components.GetValueOrDefault();
         IReadOnlyList<double>? ranges = null;
         if (profile != null && profile.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
             PdfObject? resolvedRange = ResolveIccDeclaration(rangeObject);
             if (resolvedRange == null) return false;
             if (resolvedRange is not PdfNull) {
-                ranges = ReadNumberArray(resolvedRange);
-                if (ranges.Count != components * 2) return false;
-                for (int index = 0; index < components; index++) {
+                if (!TryReadIccRange(resolvedRange, componentCount, out ranges)) return false;
+                for (int index = 0; index < componentCount; index++) {
                     double minimum = ranges[index * 2];
                     double maximum = ranges[index * 2 + 1];
                     if (!IsFinite(minimum) || !IsFinite(maximum) || minimum >= maximum) return false;
@@ -119,6 +119,18 @@ public sealed partial class PdfReadPage {
             resolved = indirect.Value;
         }
         return resolved;
+    }
+
+    private bool TryReadIccRange(PdfObject value, int componentCount, out IReadOnlyList<double> ranges) {
+        ranges = Array.Empty<double>();
+        if (value is not PdfArray array || array.Items.Count != componentCount * 2) return false;
+        var values = new double[array.Items.Count];
+        for (int index = 0; index < values.Length; index++) {
+            if (ResolveIccDeclaration(array.Items[index]) is not PdfNumber number) return false;
+            values[index] = number.Value;
+        }
+        ranges = values;
+        return true;
     }
 
     private bool TryResolveOptionalColorSpaceEntry(
@@ -235,8 +247,7 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<double> abRange = new[] { -100D, 100D, -100D, 100D };
         if (hasRange) {
             abRange = ReadNumberArray(rangeObject);
-            if (abRange.Count != 4 || abRange.Any(static value => !IsFinite(value)) ||
-                abRange[0] >= abRange[1] || abRange[2] >= abRange[3]) return false;
+            if (!PdfCalibratedColorSpaceSemantics.IsSupportedLabRange(abRange)) return false;
         }
 
         colorSpace = PdfPageColorSpace.Lab(whitePoint[0], whitePoint[1], whitePoint[2], abRange);

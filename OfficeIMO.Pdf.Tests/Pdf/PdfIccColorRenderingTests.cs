@@ -521,6 +521,20 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ResolvesMultiHopIccRangeEndpoints() {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3 /Range [7 0 R 1 0 1 0 1]",
+            "1 0 0 scn",
+            "7 0 obj\n8 0 R\nendobj\n8 0 obj\n0\nendobj\n");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);
+        Assert.DoesNotContain(page.GetRenderCapabilityDiagnostics(), diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Fact]
     public void IccProfile_RejectsNonD50HeaderIlluminant() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         WriteS15Fixed16(profile, 68, 0.95047D);
@@ -583,6 +597,27 @@ public class PdfIccColorRenderingTests {
         WriteS15Fixed16(profile, offset + 28, 1D);
 
         Assert.False(OfficeIccColorProfile.TryCreate(profile, out _));
+    }
+
+    [Fact]
+    public void IccProfile_AcceptsUnreachableLowerBranchAtZeroBoundary() {
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+        (int offset, int length) = FindTag(profile, "rTRC");
+        Assert.True(length >= 40);
+        WriteUInt32(profile, offset, 0x70617261U);
+        profile[offset + 8] = 0;
+        profile[offset + 9] = 4;
+        profile[offset + 10] = 0;
+        profile[offset + 11] = 0;
+        WriteS15Fixed16(profile, offset + 12, 1D);
+        WriteS15Fixed16(profile, offset + 16, 1D);
+        WriteS15Fixed16(profile, offset + 20, 0D);
+        WriteS15Fixed16(profile, offset + 24, 1D);
+        WriteS15Fixed16(profile, offset + 28, 0D);
+        WriteS15Fixed16(profile, offset + 32, 0D);
+        WriteS15Fixed16(profile, offset + 36, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profile, out _));
     }
 
     [Fact]
@@ -2265,6 +2300,27 @@ public class PdfIccColorRenderingTests {
         Assert.Contains(
             PdfReadDocument.Open(pdf).Pages[0].GetRenderCapabilityDiagnostics(),
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    [Theory]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /Range [-129 127 -128 127] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /Range [-128 128 -128 127] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /Range [-128 127 -129 127] >>]")]
+    [InlineData("[/Lab << /WhitePoint [0.9505 1 1.089] /Range [-128 127 -128 128] >>]")]
+    public void RenderPage_RejectsLabRangesOutsideConverterDomainAcrossContentAndImages(string colorSpace) {
+        byte[] contentPdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            "50 0 0 scn",
+            colorSpaceResources: "/CsIcc " + colorSpace);
+        byte[] imagePdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 128, 128, 128 },
+            "/N 3",
+            imageColorSpace: colorSpace);
+
+        Assert.Contains(PdfReadDocument.Open(contentPdf).Pages[0].GetRenderCapabilityDiagnostics(), diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.Contains(PdfReadDocument.Open(imagePdf).Pages[0].GetRenderCapabilityDiagnostics(), diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
     }
 
     [Fact]

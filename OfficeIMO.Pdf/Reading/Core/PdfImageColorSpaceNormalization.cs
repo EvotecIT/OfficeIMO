@@ -504,7 +504,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         double[] abRange = { -100D, 100D, -100D, 100D };
         if (hasRange &&
             (!TryReadNumberArray(rangeObject, 4, objects, out abRange) ||
-             abRange[0] >= abRange[1] || abRange[2] >= abRange[3])) return false;
+             !PdfCalibratedColorSpaceSemantics.IsSupportedLabRange(abRange))) return false;
         double[] componentRanges = { 0D, 100D, abRange[0], abRange[1], abRange[2], abRange[3] };
         normalization = new PdfImageColorSpaceNormalization(
             PdfPageColorSpace.Lab(whitePoint[0], whitePoint[1], whitePoint[2], abRange),
