@@ -130,6 +130,12 @@ internal static class OfficeProvenanceBinary {
         return encoding.GetString(data);
     }
 
+    internal static string DecodeUtf8(byte[] data, int offset, int count) {
+        EnsureRange(data, offset, count);
+        var encoding = new UTF8Encoding(false, true);
+        return encoding.GetString(data, offset, count);
+    }
+
     internal static void ReadExactly(Stream stream, byte[] buffer, int offset, int count) {
         while (count > 0) {
             int read = stream.Read(buffer, offset, count);

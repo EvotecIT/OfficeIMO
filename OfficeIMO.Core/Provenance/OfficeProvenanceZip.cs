@@ -27,7 +27,8 @@ internal static class OfficeProvenanceZip {
                 }
                 ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
                 byte[] manifest = ReadEntry(entry, (int)entry.Length);
-                bool valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
+                bool valid = OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 context.Add(new OfficeProvenanceEvidence(
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"ZIP/{ManifestPath}[{index++}]",
@@ -77,7 +78,8 @@ internal static class OfficeProvenanceZip {
                 if (entry.Length > options.Limits.MaxManifestBytes || entry.Length > int.MaxValue) throw new InvalidDataException("ZIP provenance manifest exceeds the configured limit.");
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] manifest = ReadEntry(entry, (int)entry.Length);
-                bool valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, out _);
+                bool valid = OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     removable.Add(entry.FullName + "\0" + occurrence);
                     changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, $"ZIP/{ManifestPath}[{occurrence}]", 0));

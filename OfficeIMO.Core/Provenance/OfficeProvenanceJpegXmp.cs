@@ -34,8 +34,12 @@ internal static class OfficeProvenanceJpegXmp {
         var standards = new List<StandardPacket>();
         var extensions = new List<ExtendedChunk>();
         int offset = start;
+        int markerCount = 1; // SOI was consumed by the owning image walker.
         while (offset < data.Length && OfficeProvenanceJpeg.TryReadMarker(
             data, offset, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
+            if (++markerCount > options.MaxContainerEntries) {
+                throw new InvalidDataException($"The JPEG exceeds the configured container entry limit of {options.MaxContainerEntries}.");
+            }
             if (marker is 0xDA or 0xD9) break;
             if (marker == 0xE1 && Matches(data, payloadOffset, payloadLength, StandardHeader)) {
                 int packetLength = payloadLength - StandardHeader.Length;

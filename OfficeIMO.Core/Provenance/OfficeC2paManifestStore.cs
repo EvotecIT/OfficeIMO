@@ -20,9 +20,17 @@ internal static class OfficeC2paManifestStore {
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
 
-    internal static bool IsValid(byte[] data, int offset, int availableLength, long maximumBytes, out int storeLength) {
+    internal static bool IsValid(
+        byte[] data,
+        int offset,
+        int availableLength,
+        long maximumBytes,
+        int maximumEntries,
+        out int storeLength) {
         storeLength = 0;
+        int visitedBoxes = 0;
         if (offset < 0 || availableLength < 0 || offset > data.Length - availableLength || availableLength < 38) return false;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
             type != "jumb" || declaredLength > (ulong)maximumBytes || declaredLength != (ulong)availableLength || declaredLength > int.MaxValue) {
             return false;
@@ -31,6 +39,7 @@ internal static class OfficeC2paManifestStore {
         int totalLength = (int)declaredLength;
         int childOffset = offset + headerLength;
         int childAvailable = totalLength - headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         if (!TryReadBox(data, childOffset, childAvailable, out int childHeaderLength, out ulong childLength, out string childType) ||
             childType != "jumd" || childLength < (ulong)(childHeaderLength + 22) || childLength > (ulong)childAvailable) {
             return false;
@@ -51,12 +60,14 @@ internal static class OfficeC2paManifestStore {
         int nextChildOffset = childOffset + (int)childLength;
         bool hasManifest = false;
         while (nextChildOffset < storeEnd) {
+            if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = storeEnd - nextChildOffset;
             if (!TryReadBox(data, nextChildOffset, remaining, out _, out ulong nextChildLength, out string nextChildType) ||
                 nextChildLength > int.MaxValue) {
                 return false;
             }
-            if (nextChildType == "jumb" && IsManifestSuperbox(data, nextChildOffset, (int)nextChildLength)) {
+            if (nextChildType == "jumb" && IsManifestSuperbox(
+                data, nextChildOffset, (int)nextChildLength, ref visitedBoxes, maximumEntries)) {
                 hasManifest = true;
             }
             nextChildOffset += (int)nextChildLength;
@@ -67,11 +78,17 @@ internal static class OfficeC2paManifestStore {
         return true;
     }
 
-    private static bool IsManifestSuperbox(byte[] data, int offset, int availableLength) {
+    private static bool IsManifestSuperbox(
+        byte[] data,
+        int offset,
+        int availableLength,
+        ref int visitedBoxes,
+        int maximumEntries) {
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
             type != "jumb" || declaredLength != (ulong)availableLength) return false;
         int descriptionOffset = offset + headerLength;
         int descriptionAvailable = availableLength - headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         if (!TryReadBox(data, descriptionOffset, descriptionAvailable, out int descriptionHeaderLength,
             out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
             descriptionLength < (ulong)(descriptionHeaderLength + 18)) return false;
@@ -88,12 +105,13 @@ internal static class OfficeC2paManifestStore {
         int cursor = descriptionEnd;
         int claimCount = 0;
         while (cursor < manifestEnd) {
+            if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = manifestEnd - cursor;
             if (!TryReadBox(data, cursor, remaining, out _, out ulong childLength, out string childType) ||
                 childLength > int.MaxValue) return false;
             if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
                 claimCount++;
-                if (!IsClaimSuperbox(data, cursor, (int)childLength)) return false;
+                if (!IsClaimSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
             }
             cursor += (int)childLength;
         }
@@ -110,10 +128,16 @@ internal static class OfficeC2paManifestStore {
             Matches(data, descriptionOffset + descriptionHeaderLength, uuid);
     }
 
-    private static bool IsClaimSuperbox(byte[] data, int offset, int availableLength) {
+    private static bool IsClaimSuperbox(
+        byte[] data,
+        int offset,
+        int availableLength,
+        ref int visitedBoxes,
+        int maximumEntries) {
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
             type != "jumb" || declaredLength != (ulong)availableLength) return false;
         int descriptionOffset = offset + headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         if (!TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
             out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
             descriptionLength < (ulong)(descriptionHeaderLength + ClaimUuid.Length + 2)) return false;
@@ -129,9 +153,16 @@ internal static class OfficeC2paManifestStore {
         if (label != "c2pa.claim" && label != "c2pa.claim.v2") return false;
         int contentOffset = descriptionEnd;
         int contentAvailable = offset + availableLength - contentOffset;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         return TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength,
             out ulong contentLength, out string contentType) && contentType == "cbor" &&
             contentLength > (ulong)contentHeaderLength && contentLength == (ulong)contentAvailable;
+    }
+
+    private static bool TryReserveBox(ref int visitedBoxes, int maximumEntries) {
+        if (visitedBoxes >= maximumEntries) return false;
+        visitedBoxes++;
+        return true;
     }
 
     private static bool TryReadBox(

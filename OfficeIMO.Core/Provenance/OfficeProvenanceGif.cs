@@ -27,7 +27,9 @@ internal static class OfficeProvenanceGif {
         List<OfficeProvenanceChange>? changes) {
         int offset = GetBodyOffset(data);
         bool foundTrailer = false;
+        int entryCount = 0;
         while (offset < data.Length) {
+            ReserveEntry(ref entryCount, options.MaxContainerEntries);
             int blockStart = offset;
             byte introducer = data[offset++];
             if (introducer == 0x3B) {
@@ -46,7 +48,7 @@ internal static class OfficeProvenanceGif {
                 }
                 if (offset >= data.Length) throw new InvalidDataException("GIF image data is truncated.");
                 offset++; // LZW minimum code size.
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
                 output?.Write(data, blockStart, offset - blockStart);
                 continue;
             }
@@ -60,10 +62,12 @@ internal static class OfficeProvenanceGif {
                     data[offset + 8] == 0x01 && data[offset + 9] == 0x00 && data[offset + 10] == 0x00;
                 offset += headerLength;
                 int payloadStart = offset;
-                offset = SkipSubBlocks(data, offset, isC2pa ? options.MaxManifestBytes : options.MaxAssetBytes, out int payloadLength);
+                offset = SkipSubBlocks(data, offset, isC2pa ? options.MaxManifestBytes : options.MaxAssetBytes,
+                    ref entryCount, options.MaxContainerEntries, out int payloadLength);
                 if (isC2pa) {
                     byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
-                    bool valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
+                    bool valid = OfficeC2paManifestStore.IsValid(
+                        manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
                     context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
                     bool remove = output != null && removalOptions != null && changes != null &&
@@ -74,7 +78,7 @@ internal static class OfficeProvenanceGif {
                     output?.Write(data, blockStart, offset - blockStart);
                 }
             } else {
-                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, out _);
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
                 output?.Write(data, blockStart, offset - blockStart);
             }
         }
@@ -96,9 +100,16 @@ internal static class OfficeProvenanceGif {
         return offset;
     }
 
-    private static int SkipSubBlocks(byte[] data, int offset, long maximumPayload, out int payloadLength) {
+    private static int SkipSubBlocks(
+        byte[] data,
+        int offset,
+        long maximumPayload,
+        ref int entryCount,
+        int maximumEntries,
+        out int payloadLength) {
         long total = 0;
         while (true) {
+            ReserveEntry(ref entryCount, maximumEntries);
             if (offset >= data.Length) throw new InvalidDataException("GIF data sub-blocks are truncated.");
             int length = data[offset++];
             if (length == 0) break;
@@ -109,6 +120,13 @@ internal static class OfficeProvenanceGif {
         }
         payloadLength = (int)total;
         return offset;
+    }
+
+    private static void ReserveEntry(ref int entryCount, int maximumEntries) {
+        if (entryCount >= maximumEntries) {
+            throw new InvalidDataException($"The GIF exceeds the configured container entry limit of {maximumEntries}.");
+        }
+        entryCount++;
     }
 
     private static byte[] CollectSubBlocks(byte[] data, int offset, int payloadLength) {

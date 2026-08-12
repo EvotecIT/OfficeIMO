@@ -11,6 +11,7 @@ namespace OfficeIMO.Provenance;
 internal static class OfficeProvenanceSvg {
     private static readonly XNamespace C2paNamespace = "http://c2pa.org/manifest";
     private static readonly XNamespace XmpNamespace = "adobe:ns:meta/";
+    private static readonly XNamespace RdfNamespace = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string IptcNamespace = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/";
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
@@ -19,7 +20,8 @@ internal static class OfficeProvenanceSvg {
         foreach (XElement element in document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement)) {
             string value = element.Value.Trim();
             bool decoded = TryDecode(value, options.MaxManifestBytes, out byte[] manifest);
-            bool valid = decoded && OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
+            bool valid = decoded && OfficeC2paManifestStore.IsValid(
+                manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"SVG/metadata/c2pa:manifest[{index++}]",
@@ -56,7 +58,8 @@ internal static class OfficeProvenanceSvg {
         for (int index = 0; index < manifests.Length; index++) {
             XElement element = manifests[index];
             bool decoded = TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out byte[] manifest);
-            bool valid = decoded && OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, out _);
+            bool valid = decoded && OfficeC2paManifestStore.IsValid(
+                manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
             if (!options.RemoveC2paManifests) continue;
             if (!valid && options.RequireStructurallyValidCarrier) continue;
             string location = $"SVG/metadata/c2pa:manifest[{index}]";
@@ -124,10 +127,11 @@ internal static class OfficeProvenanceSvg {
         element.Name.NamespaceName == IptcNamespace ||
         element.Attributes().Any(attribute => attribute.Name.NamespaceName == IptcNamespace);
 
-    private static XElement GetDirectIptcScope(XElement element) =>
-        element.Name.NamespaceName == IptcNamespace && element.Parent != null
-            ? element.Parent
-            : element;
+    private static XElement GetDirectIptcScope(XElement element) {
+        XElement? rdf = element.AncestorsAndSelf().FirstOrDefault(ancestor => ancestor.Name == RdfNamespace + "RDF");
+        if (rdf != null) return rdf;
+        return element.Name.NamespaceName == IptcNamespace && element.Parent != null ? element.Parent : element;
+    }
 
     private static bool IsSvgMetadataElement(XElement element) =>
         element.Name.LocalName == "metadata" &&

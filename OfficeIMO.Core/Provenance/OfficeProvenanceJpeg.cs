@@ -31,7 +31,7 @@ internal static class OfficeProvenanceJpeg {
         while (searchOffset < data.Length) {
             int imageStart = imageIndex == 0
                 ? FindNextStart(data, searchOffset)
-                : FindNextCompleteStart(data, searchOffset);
+                : FindNextCompleteStart(data, searchOffset, options.MaxContainerEntries);
             if (imageStart < 0) {
                 if (output != null && searchOffset < data.Length) output.Write(data, searchOffset, data.Length - searchOffset);
                 return reserialized;
@@ -41,11 +41,13 @@ internal static class OfficeProvenanceJpeg {
             int offset = imageStart + 2;
             OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
                 data, offset, imageIndex, options, context, removalOptions, changes);
+            int markerCount = 1; // SOI
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
                     throw new InvalidDataException("JPEG contains an invalid marker sequence.");
                 }
+                ReserveMarker(ref markerCount, options.MaxContainerEntries);
                 if (marker == 0xD9) {
                     output?.Write(data, segmentStart, segmentEnd - segmentStart);
                     searchOffset = segmentEnd;
@@ -53,7 +55,7 @@ internal static class OfficeProvenanceJpeg {
                     break;
                 }
                 if (marker == 0xDA) {
-                    int imageEnd = FindEnd(data, segmentStart);
+                    int imageEnd = FindEnd(data, segmentStart, ref markerCount, options.MaxContainerEntries);
                     output?.Write(data, segmentStart, imageEnd - segmentStart);
                     searchOffset = imageEnd;
                     imageIndex++;
@@ -69,7 +71,7 @@ internal static class OfficeProvenanceJpeg {
                     continue;
                 }
 
-                if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options,
+                if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
                     out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
@@ -101,6 +103,7 @@ internal static class OfficeProvenanceJpeg {
         int payloadOffset,
         int payloadLength,
         OfficeProvenanceOptions options,
+        ref int markerCount,
         out int sequenceEnd,
         out int manifestLength,
         out bool structurallyValid) {
@@ -111,7 +114,8 @@ internal static class OfficeProvenanceJpeg {
             OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false) != 1) return false;
         int firstFragmentLength = payloadLength - 8;
         bool completeFirstFragment = OfficeC2paManifestStore.IsValid(
-            data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out int declaredManifestLength);
+            data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, options.MaxContainerEntries,
+            out int declaredManifestLength);
         int boxHeaderLength = GetJumbfHeaderLength(data, payloadOffset + 8, firstFragmentLength);
         if (!completeFirstFragment &&
             (boxHeaderLength == 0 || !HasC2paDescriptionPrefix(data, payloadOffset + 8, firstFragmentLength, boxHeaderLength))) return false;
@@ -133,6 +137,7 @@ internal static class OfficeProvenanceJpeg {
                 data[nextPayloadOffset] != 0x4A || data[nextPayloadOffset + 1] != 0x50 ||
                 data[nextPayloadOffset + 2] != instanceHigh || data[nextPayloadOffset + 3] != instanceLow ||
                 OfficeProvenanceBinary.ReadUInt32(data, nextPayloadOffset + 4, littleEndian: false) != expectedSequence) break;
+            ReserveMarker(ref markerCount, options.MaxContainerEntries);
             int fragmentLength = nextPayloadLength - 8;
             collected += fragmentLength;
             current = nextEnd;
@@ -156,7 +161,7 @@ internal static class OfficeProvenanceJpeg {
                 fragmentOffset = nextEnd;
             }
             structurallyValid = OfficeC2paManifestStore.IsValid(
-                reassembled, 0, reassembled.Length, options.MaxManifestBytes, out _);
+                reassembled, 0, reassembled.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
         }
         return true;
     }
@@ -227,32 +232,45 @@ internal static class OfficeProvenanceJpeg {
         return -1;
     }
 
-    private static int FindNextCompleteStart(byte[] data, int offset) {
+    private static int FindNextCompleteStart(byte[] data, int offset, int maximumEntries) {
+        int markerCount = 0;
         int candidate = FindNextStart(data, offset);
         while (candidate >= 0) {
-            if (TryFindCompleteImageEnd(data, candidate, out _)) return candidate;
+            ReserveMarker(ref markerCount, maximumEntries);
+            if (TryFindCompleteImageEnd(data, candidate, ref markerCount, maximumEntries, out _)) return candidate;
             candidate = FindNextStart(data, candidate + 2);
         }
         return -1;
     }
 
-    private static bool TryFindCompleteImageEnd(byte[] data, int imageStart, out int imageEnd) {
+    private static bool TryFindCompleteImageEnd(
+        byte[] data,
+        int imageStart,
+        ref int markerCount,
+        int maximumEntries,
+        out int imageEnd) {
         imageEnd = imageStart;
         int offset = imageStart + 2;
         while (offset < data.Length) {
             if (!TryReadMarker(data, offset, out byte marker, out _, out _, out int segmentEnd)) return false;
+            ReserveMarker(ref markerCount, maximumEntries);
             if (marker == 0xD8) return false;
             if (marker == 0xD9) {
                 imageEnd = segmentEnd;
                 return true;
             }
-            if (marker == 0xDA) return TryFindCompleteScanEnd(data, offset, out imageEnd);
+            if (marker == 0xDA) return TryFindCompleteScanEnd(data, offset, ref markerCount, maximumEntries, out imageEnd);
             offset = segmentEnd;
         }
         return false;
     }
 
-    private static bool TryFindCompleteScanEnd(byte[] data, int scanStart, out int imageEnd) {
+    private static bool TryFindCompleteScanEnd(
+        byte[] data,
+        int scanStart,
+        ref int markerCount,
+        int maximumEntries,
+        out int imageEnd) {
         imageEnd = scanStart;
         if (!TryReadMarker(data, scanStart, out byte marker, out _, out _, out int offset) || marker != 0xDA) return false;
         while (offset < data.Length - 1) {
@@ -261,6 +279,7 @@ internal static class OfficeProvenanceJpeg {
             if (offset >= data.Length) return false;
             byte value = data[offset++];
             if (value == 0x00 || value == 0x01 || (value >= 0xD0 && value <= 0xD7)) continue;
+            ReserveMarker(ref markerCount, maximumEntries);
             if (value == 0xD9) {
                 imageEnd = offset;
                 return true;
@@ -273,7 +292,7 @@ internal static class OfficeProvenanceJpeg {
         return false;
     }
 
-    private static int FindEnd(byte[] data, int scanStart) {
+    private static int FindEnd(byte[] data, int scanStart, ref int markerCount, int maximumEntries) {
         if (!TryReadMarker(data, scanStart, out byte marker, out _, out _, out int offset) || marker != 0xDA) {
             throw new InvalidDataException("JPEG scan marker is invalid.");
         }
@@ -284,6 +303,7 @@ internal static class OfficeProvenanceJpeg {
             if (offset >= data.Length) break;
             byte value = data[offset++];
             if (value == 0x00 || value == 0x01 || (value >= 0xD0 && value <= 0xD7)) continue;
+            ReserveMarker(ref markerCount, maximumEntries);
             if (value == 0xD9) return offset;
             if (value == 0xD8) throw new InvalidDataException($"Unexpected JPEG SOI marker in scan data at offset {markerOffset}.");
             if (data.Length - offset < 2) break;
@@ -292,5 +312,12 @@ internal static class OfficeProvenanceJpeg {
             offset += length;
         }
         throw new InvalidDataException("JPEG scan does not contain an end marker.");
+    }
+
+    private static void ReserveMarker(ref int markerCount, int maximumEntries) {
+        if (markerCount >= maximumEntries) {
+            throw new InvalidDataException($"The JPEG exceeds the configured container entry limit of {maximumEntries}.");
+        }
+        markerCount++;
     }
 }

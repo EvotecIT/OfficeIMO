@@ -93,10 +93,33 @@ public static class OfficeProvenanceInspector {
             return OfficeProvenanceAssetFormat.Pdf;
         }
         if (LooksLikeSvg(data, fileName)) return OfficeProvenanceAssetFormat.Svg;
-        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
+        if (LooksLikeHtml(data, fileName)) return OfficeProvenanceAssetFormat.Html;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;
+        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
         return OfficeProvenanceAssetFormat.Unknown;
+    }
+
+    private static bool LooksLikeHtml(byte[] data, string? fileName) {
+        string extension = Path.GetExtension(fileName ?? string.Empty);
+        if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return true;
+        int offset = 0;
+        if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) offset = 3;
+        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0C or 0x0D or 0x20) offset++;
+        return MatchesAsciiIgnoreCase(data, offset, "<!doctype html") || MatchesAsciiIgnoreCase(data, offset, "<html");
+    }
+
+    private static bool MatchesAsciiIgnoreCase(byte[] data, int offset, string expected) {
+        if (offset < 0 || expected.Length > data.Length - offset) return false;
+        for (int index = 0; index < expected.Length; index++) {
+            byte actual = data[offset + index];
+            byte wanted = (byte)expected[index];
+            if (actual >= (byte)'A' && actual <= (byte)'Z') actual = (byte)(actual + 32);
+            if (wanted >= (byte)'A' && wanted <= (byte)'Z') wanted = (byte)(wanted + 32);
+            if (actual != wanted) return false;
+        }
+        return true;
     }
 
     private static bool LooksLikeSvg(byte[] data, string? fileName) {

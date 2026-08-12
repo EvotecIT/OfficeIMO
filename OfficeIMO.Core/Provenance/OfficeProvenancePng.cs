@@ -50,7 +50,8 @@ internal static class OfficeProvenancePng {
             bool isC2pa = type == "caBX";
             if (isC2pa) {
                 bool valid = foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
-                    OfficeC2paManifestStore.IsValid(data, offset + 8, payloadLength, options.MaxManifestBytes, out _);
+                    OfficeC2paManifestStore.IsValid(
+                        data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"PNG/caBX@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
                 bool remove = output != null && removalOptions != null && changes != null && removalOptions.RemoveC2paManifests &&

@@ -35,7 +35,7 @@ internal static class OfficeProvenanceText {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         int structuredCount = 0;
-        foreach (StructuredBlock block in FindStructuredBlocks(data, options.MaxManifestBytes)) {
+        foreach (StructuredBlock block in FindStructuredBlocks(data, options.MaxManifestBytes, options.MaxContainerEntries)) {
             context.Add(new OfficeProvenanceEvidence(
                 block.IsExternal ? OfficeProvenanceCarrierKind.C2paExternalManifest : OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PA@{block.Start}",
@@ -45,7 +45,7 @@ internal static class OfficeProvenanceText {
             structuredCount++;
         }
         int wrapperCount = 0;
-        foreach (TextWrapper wrapper in FindWrappers(data, options.MaxManifestBytes, includeInvalid: true)) {
+        foreach (TextWrapper wrapper in FindWrappers(data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true)) {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PATextManifestWrapper@{wrapper.Start}",
@@ -60,7 +60,8 @@ internal static class OfficeProvenanceText {
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
         if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
         var ranges = new List<RemovalRange>();
-        foreach (StructuredBlock block in FindStructuredBlocks(data, options.Limits.MaxManifestBytes)) {
+        foreach (StructuredBlock block in FindStructuredBlocks(
+            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries)) {
             bool requested = block.IsExternal ? options.RemoveExternalC2paReferences : options.RemoveC2paManifests;
             if (!requested || (!block.IsValid && options.RequireStructurallyValidCarrier)) continue;
             ranges.Add(new RemovalRange(block.LineStart, block.LineEnd - block.LineStart));
@@ -70,7 +71,8 @@ internal static class OfficeProvenanceText {
                 block.LineEnd - block.LineStart));
         }
         if (options.RemoveC2paManifests) {
-            foreach (TextWrapper wrapper in FindWrappers(data, options.Limits.MaxManifestBytes, includeInvalid: true)) {
+            foreach (TextWrapper wrapper in FindWrappers(
+                data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true)) {
                 if (!wrapper.IsValid && options.RequireStructurallyValidCarrier) continue;
                 ranges.Add(new RemovalRange(wrapper.Start, wrapper.End - wrapper.Start));
                 changes.Add(new OfficeProvenanceChange(
@@ -92,7 +94,10 @@ internal static class OfficeProvenanceText {
         return output.ToArray();
     }
 
-    private static IEnumerable<StructuredBlock> FindStructuredBlocks(byte[] data, long maximumManifestBytes) {
+    private static IEnumerable<StructuredBlock> FindStructuredBlocks(
+        byte[] data,
+        long maximumManifestBytes,
+        int maximumContainerEntries) {
         int search = 0;
         int pendingEnd = -1;
         while (search < data.Length) {
@@ -134,17 +139,22 @@ internal static class OfficeProvenanceText {
                         byte[] manifest = Convert.FromBase64String(encoded);
                         manifestLength = manifest.Length;
                         valid = manifest.LongLength <= maximumManifestBytes &&
-                            OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, maximumManifestBytes, out _);
+                            OfficeC2paManifestStore.IsValid(
+                                manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
                     } catch (FormatException) {
                         valid = false;
                     }
                 }
             } else if (valueLength > 0) {
-                string value = Encoding.UTF8.GetString(data, contentStart, valueLength).Trim();
-                if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
-                    external = true;
-                    valid = true;
-                    externalUri = uri.AbsoluteUri;
+                try {
+                    string value = OfficeProvenanceBinary.DecodeUtf8(data, contentStart, valueLength).Trim();
+                    if (Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
+                        external = true;
+                        valid = true;
+                        externalUri = uri.AbsoluteUri;
+                    }
+                } catch (DecoderFallbackException) {
+                    valid = false;
                 }
             }
             int lineStart = FindLineStart(data, begin);
@@ -154,7 +164,11 @@ internal static class OfficeProvenanceText {
         }
     }
 
-    private static IEnumerable<TextWrapper> FindWrappers(byte[] data, long maximumManifestBytes, bool includeInvalid) {
+    private static IEnumerable<TextWrapper> FindWrappers(
+        byte[] data,
+        long maximumManifestBytes,
+        int maximumContainerEntries,
+        bool includeInvalid) {
         int offset = 0;
         while (offset < data.Length) {
             if (!TryReadCodePoint(data, offset, out int codePoint, out int prefixBytes) || codePoint != 0xFEFF) { offset++; continue; }
@@ -180,7 +194,8 @@ internal static class OfficeProvenanceText {
                 manifestLength = declared;
                 if (declared <= maximumManifestBytes && decoded.Count == 13L + declared) {
                     byte[] manifest = decoded.GetRange(13, (int)declared).ToArray();
-                    valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, maximumManifestBytes, out _);
+                    valid = OfficeC2paManifestStore.IsValid(
+                        manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
                 }
             }
             if (valid || includeInvalid) yield return new TextWrapper(offset, cursor, valid, manifestLength);

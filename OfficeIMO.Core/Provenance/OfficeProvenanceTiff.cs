@@ -24,7 +24,8 @@ internal static class OfficeProvenanceTiff {
                 }
                 if (entry.Tag != C2paTag) continue;
                 bool valid = ifdIndex == ifds.Count - 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
-                    OfficeC2paManifestStore.IsValid(data, payloadOffset, payloadLength, options.MaxManifestBytes, out _);
+                    OfficeC2paManifestStore.IsValid(
+                        data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}";
                 context.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, entry.Count > long.MaxValue ? long.MaxValue : (long)entry.Count));
                 if (ifdIndex != ifds.Count - 1) context.Diagnostics.Add($"The C2PA TIFF tag at IFD {ifdIndex} is not in the last main IFD.");
@@ -68,7 +69,8 @@ internal static class OfficeProvenanceTiff {
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
                 bool valid = ifdIndex == ifds.Count - 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
-                    OfficeC2paManifestStore.IsValid(data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, out _);
+                    OfficeC2paManifestStore.IsValid(
+                        data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     changes.Add(new OfficeProvenanceChange(
                         OfficeProvenanceCarrierKind.C2paManifest,

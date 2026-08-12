@@ -86,6 +86,7 @@ internal static class OfficeProvenanceXmp {
 
     private static IEnumerable<XmpValue> FindValues(XDocument document) {
         foreach (XElement element in document.Descendants()) {
+            if (!IsRdfPropertyContext(element)) continue;
             if (element.Name.NamespaceName == IptcNamespace && element.Name.LocalName == "DigitalSourceType") {
                 XAttribute? resource = element.Attribute(RdfNamespace + "resource");
                 string value = resource?.Value ?? element.Value;
@@ -97,6 +98,11 @@ internal static class OfficeProvenanceXmp {
                 }
             }
         }
+    }
+
+    private static bool IsRdfPropertyContext(XElement element) {
+        XElement? description = element.AncestorsAndSelf().FirstOrDefault(candidate => candidate.Name == RdfNamespace + "Description");
+        return description != null && description.Ancestors().Any(candidate => candidate.Name == RdfNamespace + "RDF");
     }
 
     private static bool TryLoad(byte[] packet, OfficeProvenanceOptions options, out XDocument? document) {

@@ -19,7 +19,7 @@ internal static class OfficeProvenancePackageMutation {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options,
-        Func<byte[], OfficeProvenanceSignatureStripResult> stripSignatures,
+        Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], bool>? hasSignatures = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
@@ -36,7 +36,7 @@ internal static class OfficeProvenancePackageMutation {
         byte[] data,
         string fileName,
         OfficeProvenanceRemovalOptions? options,
-        Func<byte[], OfficeProvenanceSignatureStripResult> stripSignatures,
+        Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], bool>? hasSignatures = null) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
@@ -57,7 +57,7 @@ internal static class OfficeProvenancePackageMutation {
             }
             return preview;
         }
-        OfficeProvenanceSignatureStripResult stripped = stripSignatures(data);
+        OfficeProvenanceSignatureStripResult stripped = stripSignatures(data, options.Limits);
         if (!hadSignatureEvidence && !stripped.HadSignatures) return preview;
         if (hadSignatureEvidence && !stripped.HadSignatures) {
             throw new InvalidOperationException("The package contains signature evidence that its owning adapter could not remove safely.");

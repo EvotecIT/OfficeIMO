@@ -80,6 +80,114 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void GifBlocksAndSubBlocksShareTheContainerEntryLimit() {
+        byte[] gif = Join(
+            Encoding.ASCII.GetBytes("GIF89a"),
+            new byte[] { 1, 0, 1, 0, 0, 0, 0 },
+            new byte[] { 0x21, 0xFE, 1, (byte)'a', 0 },
+            new byte[] { 0x21, 0xFE, 1, (byte)'b', 0 },
+            new byte[] { 0x3B });
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            gif,
+            "fixture.gif",
+            new OfficeProvenanceOptions { MaxContainerEntries = 6 }));
+        Assert.Empty(OfficeProvenanceInspector.Inspect(
+            gif,
+            "fixture.gif",
+            new OfficeProvenanceOptions { MaxContainerEntries = 7 }).Evidence);
+    }
+
+    [Fact]
+    public void JpegMarkerCountIsBoundedBeforeMetadataProcessing() {
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegSegment(0xE0, Array.Empty<byte>()),
+            CreateJpegSegment(0xE0, Array.Empty<byte>()),
+            new byte[] { 0xFF, 0xD9 });
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            jpeg,
+            "fixture.jpg",
+            new OfficeProvenanceOptions { MaxContainerEntries = 2 }));
+        Assert.Empty(OfficeProvenanceInspector.Inspect(
+            jpeg,
+            "fixture.jpg",
+            new OfficeProvenanceOptions { MaxContainerEntries = 4 }).Evidence);
+    }
+
+    [Fact]
+    public void JumbfChildBoxesShareTheContainerEntryLimit() {
+        byte[] png = CreatePngWithManifest(CreateManifestStore());
+
+        OfficeProvenanceReport bounded = OfficeProvenanceInspector.Inspect(
+            png,
+            "fixture.png",
+            new OfficeProvenanceOptions { MaxContainerEntries = 6 });
+        OfficeProvenanceReport accepted = OfficeProvenanceInspector.Inspect(
+            png,
+            "fixture.png",
+            new OfficeProvenanceOptions { MaxContainerEntries = 7 });
+
+        Assert.False(Assert.Single(bounded.Evidence).IsStructurallyValid);
+        Assert.True(Assert.Single(accepted.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void VariationSelectorWrapperWinsOverGenericTextExtension() {
+        byte[] wrapper = CreateTextWrapper(CreateManifestStore());
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(wrapper, "fixture.txt");
+
+        Assert.Equal(OfficeProvenanceAssetFormat.UnstructuredText, report.Format);
+        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void GenericRemovalPreservesHtmlTextThatLooksLikeAStructuredCarrier() {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<!doctype html><html><body><pre>\n-----BEGIN C2PA MANIFEST-----\nhttps://example.com/manifest.c2pa\n-----END C2PA MANIFEST-----\n</pre></body></html>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(html, "fixture.html");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(html, "fixture.html");
+
+        Assert.Equal(OfficeProvenanceAssetFormat.Html, report.Format);
+        Assert.Empty(report.Evidence);
+        Assert.Equal(html, result.ToArray());
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void StructuredExternalUriRequiresStrictUtf8() {
+        byte[] text = Join(
+            Encoding.ASCII.GetBytes("-----BEGIN C2PA MANIFEST-----\nhttps://example.com/"),
+            new byte[] { 0xFF },
+            Encoding.ASCII.GetBytes("\n-----END C2PA MANIFEST-----\n"));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(text, "fixture.md");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(text, "fixture.md");
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.Equal(text, result.ToArray());
+    }
+
+    [Fact]
+    public void XmpDigitalSourceTypeRequiresAnRdfDescriptionContext() {
+        byte[] packet = Encoding.UTF8.GetBytes(
+            "<root xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/>");
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegSegment(0xE1, Join(Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0"), packet)),
+            new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+
+        Assert.Empty(report.Evidence);
+        Assert.Equal(jpeg, result.ToArray());
+    }
+
+    [Fact]
     public void MalformedOversizedTextWrapperIsRemovedAsOneCompleteRun() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
         byte[] suffix = Encoding.UTF8.GetBytes("tail");
@@ -144,9 +252,9 @@ public sealed class ProvenanceReviewRegressionContracts {
     [Fact]
     public void XmpNodeBudgetAppliesBeforeStandardPacketMaterialization() {
         byte[] packet = Encoding.UTF8.GetBytes(
-            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\">" +
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><rdf:RDF><rdf:Description>" +
             string.Concat(Enumerable.Repeat("<x:n/>", 16)) +
-            "<iptc:DigitalSourceType>trainedAlgorithmicMedia</iptc:DigitalSourceType></x:xmpmeta>");
+            "<iptc:DigitalSourceType>trainedAlgorithmicMedia</iptc:DigitalSourceType></rdf:Description></rdf:RDF></x:xmpmeta>");
         byte[] jpeg = Join(
             new byte[] { 0xFF, 0xD8 },
             CreateJpegSegment(0xE1, Join(Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0"), packet)),
@@ -164,7 +272,7 @@ public sealed class ProvenanceReviewRegressionContracts {
     [Fact]
     public void SvgContentWinsOverGenericXmlFileExtension() {
         byte[] svg = Encoding.UTF8.GetBytes(
-            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><metadata><x iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></metadata></svg>");
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><metadata><x:xmpmeta><rdf:RDF><rdf:Description iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata></svg>");
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(svg, "fixture.xml");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.xml");
@@ -354,13 +462,13 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
-    public void SvgProcessesSeparateXmpAndDirectMetadataScopes() {
+    public void SvgProcessesRdfXmpAndPreservesDirectNonXmpIptc() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" " +
             "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
             "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\">" +
-            "<metadata><x:xmpmeta><rdf:RDF><rdf:Description/></rdf:RDF></x:xmpmeta></metadata>" +
-            "<metadata><rdf:Description iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></metadata>" +
+            "<metadata><x:xmpmeta><rdf:RDF><rdf:Description iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata>" +
+            "<metadata><direct iptc:DigitalSourceType=\"preserve-non-xmp\"/></metadata>" +
             "<rect width=\"1\" height=\"1\"/></svg>");
 
         OfficeProvenanceReport before = OfficeProvenanceInspector.Inspect(svg, "fixture.svg");
@@ -369,6 +477,7 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.Single(before.Evidence);
         Assert.True(result.WasChanged);
         Assert.Empty(result.After.Evidence);
+        Assert.Contains("preserve-non-xmp", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
 
     [Fact]
