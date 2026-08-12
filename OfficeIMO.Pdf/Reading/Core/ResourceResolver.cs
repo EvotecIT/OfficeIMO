@@ -1077,7 +1077,9 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes) {
-        if (string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal)) return true;
+        if (string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal)) {
+            return !PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(imageDictionary, objects);
+        }
         if (!string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal)) return false;
 
         int componentCount;
@@ -1175,6 +1177,10 @@ internal static partial class ResourceResolver {
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 || height <= 0) {
+            return false;
+        }
+
+        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(stream.Dictionary, objects)) {
             return false;
         }
 

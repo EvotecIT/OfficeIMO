@@ -30,8 +30,10 @@ internal static partial class ResourceResolver {
         if (dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
             ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
             return CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent: 1, maxDecodedStreamBytes) &&
-                CanAllocateProjectedImageBuffer(dictionary, channels: 2, maxDecodedStreamBytes);
+                CanAllocateProjectedImageBuffer(dictionary, channels: 4, maxDecodedStreamBytes);
         }
+
+        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(dictionary, objects)) return false;
 
         PdfObject? authoredColorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject

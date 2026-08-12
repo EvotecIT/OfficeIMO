@@ -192,7 +192,7 @@ public sealed partial class PdfReadPage {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 4 || componentCount < 1 || componentCount > MaxDeviceNComponents ||
             (kind == PdfPageColorSpaceKind.Separation &&
-             (ResolveObject(array.Items[1]) is not PdfName colorant ||
+             (ResolveColorSpaceDeclaration(array.Items[1]) is not PdfName colorant ||
               string.Equals(colorant.Name, "None", StringComparison.Ordinal))) ||
             !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, out PdfPageColorSpace alternate) ||
             alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
@@ -211,9 +211,9 @@ public sealed partial class PdfReadPage {
     }
 
     private int TryReadDeviceNComponentCount(PdfArray array) {
-        if (array.Items.Count < 2 || ResolveObject(array.Items[1]) is not PdfArray names) return 0;
+        if (array.Items.Count < 2 || ResolveColorSpaceDeclaration(array.Items[1]) is not PdfArray names) return 0;
         if (names.Items.Count < 1 || names.Items.Count > MaxDeviceNComponents) return 0;
-        return names.Items.All(item => ResolveObject(item) is PdfName name &&
+        return names.Items.All(item => ResolveColorSpaceDeclaration(item) is PdfName name &&
             !string.Equals(name.Name, "None", StringComparison.Ordinal)) ? names.Items.Count : 0;
     }
 
