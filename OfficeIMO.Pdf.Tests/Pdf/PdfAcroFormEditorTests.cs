@@ -208,17 +208,12 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
-    public void Edit_SetFlagsCanConvertAButtonFieldToPushButtonWithoutRefillingIt() {
+    public void Edit_SetFlagsRejectsConvertingAButtonFieldToPushButton() {
         byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
-            edit.SetFlags("Action", 1 << 16)
-                .Move("Action", 1, 80D, 420D, 120D, 32D));
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.SetFlags("Action", 1 << 16)));
 
-        PdfFormField field = Assert.Single(result.Fields);
-        Assert.True(field.IsPushButton);
-        Assert.Equal(1 << 16, field.Flags);
-        Assert.Equal(80D, Assert.Single(field.Widgets).X1, 3);
-        Assert.True(result.PreservationReport.IsPreserved);
+        Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -32,7 +32,7 @@ internal static class PdfMutationPlanner {
         bool supported = preflight.CanRead;
         for (int index = 0; supported && index < preflight.RewriteBlockers.Count; index++) {
             PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[index].Kind;
-            if (blocker == PdfRewriteBlockerKind.Forms) continue;
+            if (blocker == PdfRewriteBlockerKind.Forms || blocker == PdfRewriteBlockerKind.TaggedContent) continue;
             if (blocker == PdfRewriteBlockerKind.Encryption &&
                 CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.ModifyPageContent)) continue;
             supported = false;

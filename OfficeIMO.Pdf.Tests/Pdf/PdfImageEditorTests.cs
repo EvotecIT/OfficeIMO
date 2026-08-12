@@ -229,7 +229,70 @@ public class PdfImageEditorTests {
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             second.Images.Remove(Assert.Single(first.Images.Placements())));
 
-        Assert.Contains("does not exist", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("does not originate", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReplacementRejectsImageMasksAndOptionalContentMembership() {
+        PdfDocument imageMask = PdfDocument.Open(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: new byte[] { 0x80 },
+            imageEntries: "/ImageMask true /BitsPerComponent 1"));
+        PdfDocument optionalContent = PdfDocument.Open(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /OC << /Type /OCG /Name (Layer) >>"));
+
+        Assert.Throws<NotSupportedException>(() => imageMask.Images.Replace(
+            Assert.Single(imageMask.Images.Placements()),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)));
+        Assert.Throws<NotSupportedException>(() => optionalContent.Images.Replace(
+            Assert.Single(optionalContent.Images.Placements()),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)));
+    }
+
+    [Fact]
+    public void DestructiveEditsRejectTaggedAndHiddenOptionalContentContexts() {
+        PdfDocument tagged = PdfDocument.Open(BuildRawImagePdf(
+            "/Figure << /MCID 0 >> BDC q 40 0 0 20 20 30 cm /Im0 Do Q EMC\n"));
+        PdfDocument hiddenSibling = PdfDocument.Open(BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n/OC /Hidden BDC q 40 0 0 20 120 30 cm /Im0 Do Q EMC\n"));
+
+        Assert.Throws<NotSupportedException>(() => tagged.Images.Remove(Assert.Single(tagged.Images.Placements())));
+        PdfImagePlacement visible = hiddenSibling.Images.Placements().OrderBy(static placement => placement.X).First();
+        Assert.Throws<NotSupportedException>(() => hiddenSibling.Images.Remove(visible));
+    }
+
+    [Fact]
+    public void XObjectRemovalSkipsUnrelatedInlineImagePayloadOperators() {
+        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /RGB ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
+        PdfImagePlacement xObject = document.Images.Placements().Single(static placement => placement.ObjectNumber > 0);
+
+        PdfImageEditResult result = document.Images.Remove(xObject);
+
+        PdfImagePlacement remaining = Assert.Single(result.Document.Images.Placements());
+        Assert.NotNull(remaining.InlineImageStream);
+    }
+
+    [Fact]
+    public void SharedFormAcrossContentStreamsFailsClosed() {
+        PdfDocument document = PdfDocument.Open(BuildCrossStreamRepeatedFormImagePdf());
+        PdfImagePlacement selected = document.Images.Placements().OrderBy(static placement => placement.X).First();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
+
+        Assert.Contains("multiple content streams", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ImageEditsRecordPageContentMutation() {
+        PdfImageEditResult result = PdfDocument.Open(CreateTextPdf()).Images.Add(
+            new PdfPageRegion(1, 20D, 30D, 30D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0));
+
+        PdfPipelineStep mutation = Assert.Single(result.Document.Pipeline.Steps, static step => step.Kind == PdfPipelineStepKind.Mutation);
+        Assert.Equal("Image", mutation.Operation);
+        Assert.Equal(PdfMutationOperation.ModifyPageContent, mutation.MutationOperation);
     }
 
     [Fact]
@@ -316,6 +379,24 @@ public class PdfImageEditorTests {
             "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 7 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
             "7 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", imageBytes, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildCrossStreamRepeatedFormImagePdf() {
+        const string firstContent = "q 1 0 0 1 20 30 cm /Fx Do Q\n";
+        const string secondContent = "q 1 0 0 1 120 30 cm /Fx Do Q\n";
+        const string formContent = "q 10 0 0 10 0 0 cm /ImShared Do Q\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /Fx 6 0 R >> >> /Contents [4 0 R 5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(firstContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", firstContent.TrimEnd('\n'), "endstream", "endobj",
+            "5 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(secondContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", secondContent.TrimEnd('\n'), "endstream", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 7 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
         }) + "\n";
         return Encoding.ASCII.GetBytes(pdf);
     }

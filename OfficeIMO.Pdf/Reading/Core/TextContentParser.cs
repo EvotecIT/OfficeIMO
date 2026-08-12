@@ -790,7 +790,8 @@ internal static class TextContentParser {
                 decodedAdvances.Clear();
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool isArtifact = useLogicalTextFilters && !includeArtifactText && HasActiveArtifact();
+            bool hasActiveArtifact = HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
@@ -823,6 +824,7 @@ internal static class TextContentParser {
                 fillColorResolved &&
                 !HasActiveMcid() &&
                 !HasActiveOptionalContent() &&
+                !hasActiveArtifact &&
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
             IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
@@ -1018,8 +1020,8 @@ internal static class TextContentParser {
                 fillOpacity = resource.FillOpacity ?? fillOpacity;
                 strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
                 blendMode = resource.BlendMode ?? blendMode;
-                if (resource.HasSoftMask) {
-                    hasSoftMask = resource.SoftMask != null;
+                if (resource.SoftMaskEnabled.HasValue) {
+                    hasSoftMask = resource.SoftMaskEnabled == true && resource.SoftMask != null;
                 }
                 hasUnsupportedEffect = hasUnsupportedEffect ||
                     resource.HasUnsupportedBlendMode ||

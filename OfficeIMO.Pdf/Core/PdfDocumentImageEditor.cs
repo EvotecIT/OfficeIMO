@@ -41,7 +41,7 @@ public sealed class PdfDocumentImageEditor {
         PdfDocument document = _document.ApplyMutation(input => {
             mutation = operation(input);
             return mutation.Bytes;
-        }, readOptions);
+        }, readOptions, operationName: "Image");
         if (mutation is null) throw new InvalidOperationException("PDF image edit did not produce a mutation result.");
         return new PdfImageEditResult(document, mutation.AffectedCount);
     }

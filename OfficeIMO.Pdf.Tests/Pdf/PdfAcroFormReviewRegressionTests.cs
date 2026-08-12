@@ -42,6 +42,21 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Create_RejectsChildBelowTerminalFieldThatOnlyInheritsItsType() {
+        PdfDocument document = PdfDocument.Open(BuildInheritedTerminalFieldWithoutKidsPdf());
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => document.Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "section.existing.child",
+            Value = "new"
+        })));
+
+        Assert.Contains("terminal field", exception.Message, StringComparison.OrdinalIgnoreCase);
+        PdfFormField existing = Assert.Single(document.Inspect().FormFields);
+        Assert.Equal("section.existing", existing.Name);
+        Assert.Equal("before", existing.Value);
+    }
+
+    [Fact]
     public void RewritePreservation_DetectsWidgetActionTriggerChanges() {
         byte[] original = BuildWidgetUriActionPdf("U");
         byte[] rewritten = BuildWidgetUriActionPdf("D");
@@ -114,6 +129,20 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Move_PreservesCustomPushButtonNormalAppearanceWhenOnlyPositionChanges() {
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
+            edit.Move("group.run", pageNumber: 1, x: 80, y: 120, width: 100, height: 20));
+        PdfFormWidget widget = Assert.Single(Assert.Single(result.Fields).Widgets);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary widgetDictionary = Assert.IsType<PdfDictionary>(objects[widget.ObjectNumber!.Value].Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, widgetDictionary.Items["AP"]));
+        PdfStream normal = Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, appearances.Items["N"]));
+
+        Assert.Contains("(Run) Tj", PdfEncoding.Latin1GetString(normal.Data), StringComparison.Ordinal);
+        Assert.Equal(new[] { 0D, 0D, 100D, 20D }, Assert.IsType<PdfArray>(normal.Dictionary.Items["BBox"]).Items.Cast<PdfNumber>().Select(number => number.Value));
+    }
+
+    [Fact]
     public void Move_DetachesSharedPushButtonAppearanceDictionary() {
         byte[] source = BuildSharedPushButtonAppearancePdf();
 
@@ -144,6 +173,16 @@ public class PdfAcroFormReviewRegressionTests {
             PdfDocument.Open(authored).Forms.Edit(edit => edit.SetFlags("run", 0)));
 
         Assert.Contains("push-button flag", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_RejectsConvertingCheckBoxToPushButton() {
+        byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Action", 1 << 16)));
+
+        Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -216,6 +255,19 @@ public class PdfAcroFormReviewRegressionTests {
             "7 0 obj", "<< /Parent 6 0 R /T (existing) /V (before) /Kids [8 0 R] >>", "endobj",
             "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 160 48] /P 3 0 R >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildInheritedTerminalFieldWithoutKidsPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /FT /Tx /T (section) /Kids [7 0 R] >>", "endobj",
+            "7 0 obj", "<< /Parent 6 0 R /T (existing) /V (before) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
         }));
     }
 

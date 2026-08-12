@@ -209,7 +209,7 @@ internal static partial class PdfAcroFormEditor {
                 }
                 if (string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal) ||
                     hasUnnamedWidgetKids ||
-                    (matchingDictionary.Items.ContainsKey("FT") && !hasNamedFieldKids)) {
+                    (ReadInheritedFieldType(objects, matchingDictionary) is not null && !hasNamedFieldKids)) {
                     throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
                 }
             }
@@ -251,6 +251,19 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static PdfArray CreateRectangle(double x1, double y1, double x2, double y2) { var result = new PdfArray(); result.Items.Add(new PdfNumber(x1)); result.Items.Add(new PdfNumber(y1)); result.Items.Add(new PdfNumber(x2)); result.Items.Add(new PdfNumber(y2)); return result; }
+
+    private static string? ReadInheritedFieldType(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            string? fieldType = ReadName(current, "FT");
+            if (fieldType is not null) return fieldType;
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return null;
+    }
     private static PdfArray CreateStringArray(IReadOnlyList<string> values) { var result = new PdfArray(); for (int i = 0; i < values.Count; i++) result.Items.Add(new PdfStringObj(values[i], true)); return result; }
     private static string? ReadText(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfStringObj text ? text.Value : null;
     private static string? ReadName(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfName name ? name.Name : null;

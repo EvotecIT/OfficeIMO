@@ -111,6 +111,8 @@ public sealed class PdfImagePlacement {
 
     internal bool HasSoftMask { get; }
 
+    internal string? SourceDocumentIdentity { get; set; }
+
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;
 }

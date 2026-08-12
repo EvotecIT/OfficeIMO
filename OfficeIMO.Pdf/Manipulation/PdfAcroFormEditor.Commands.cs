@@ -143,12 +143,15 @@ internal static partial class PdfAcroFormEditor {
         EditableField field = RequireField(objects, fields, name);
         if (field.WidgetObjectNumbers.Count != 1) throw new NotSupportedException("Moving a form field requires exactly one indirect widget.");
         PdfDictionary widget = RequireDictionary(objects, field.WidgetObjectNumbers[0]);
+        bool pushButtonSizeChanged = IsPushButton(objects, field) && !HasSameRectangleSize(objects, widget, rectangle);
         RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         widget.Items["P"] = CreateReference(objects, pages[pageNumber - 1]); widget.Items["Rect"] = CreateRectangle(rectangle[0], rectangle[1], rectangle[2], rectangle[3]);
         EnsureAnnotationArray(objects, page).Items.Add(CreateReference(objects, field.WidgetObjectNumbers[0]));
         if (IsPushButton(objects, field)) {
-            RebuildPushButtonAppearance(objects, acroForm, page, field, widget, rectangle, appearanceOptions, ref nextObjectNumber);
+            if (pushButtonSizeChanged) {
+                RebuildPushButtonAppearance(objects, acroForm, page, field, widget, rectangle, appearanceOptions, ref nextObjectNumber);
+            }
             refillValues.Remove(name);
             return;
         }
@@ -158,6 +161,24 @@ internal static partial class PdfAcroFormEditor {
     private static bool IsPushButton(Dictionary<int, PdfIndirectObject> objects, EditableField field) =>
         string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
         (ReadInheritedFieldFlags(objects, field.Dictionary) & FieldFlagPushButton) != 0;
+
+    private static bool HasSameRectangleSize(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary widget,
+        double[] rectangle) {
+        if (!widget.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ||
+            PdfObjectLookup.Resolve(objects, rectangleObject) is not PdfArray existing ||
+            existing.Items.Count != 4 ||
+            existing.Items[0] is not PdfNumber x1 || existing.Items[1] is not PdfNumber y1 ||
+            existing.Items[2] is not PdfNumber x2 || existing.Items[3] is not PdfNumber y2) {
+            return false;
+        }
+        double oldWidth = Math.Abs(x2.Value - x1.Value);
+        double oldHeight = Math.Abs(y2.Value - y1.Value);
+        double newWidth = Math.Abs(rectangle[2] - rectangle[0]);
+        double newHeight = Math.Abs(rectangle[3] - rectangle[1]);
+        return Math.Abs(oldWidth - newWidth) <= 1e-9D && Math.Abs(oldHeight - newHeight) <= 1e-9D;
+    }
 
     private static int ReadInheritedFieldFlags(
         Dictionary<int, PdfIndirectObject> objects,
@@ -243,6 +264,11 @@ internal static partial class PdfAcroFormEditor {
             (previousFlags & FieldFlagPushButton) != 0 &&
             (flags & FieldFlagPushButton) == 0) {
             throw new NotSupportedException("Clearing the push-button flag is not supported because it changes the field's button semantics.");
+        }
+        if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+            (previousFlags & FieldFlagPushButton) == 0 &&
+            (flags & FieldFlagPushButton) != 0) {
+            throw new NotSupportedException("Converting a check box or radio button to a push button is not supported because it requires rebuilding the complete button state.");
         }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {

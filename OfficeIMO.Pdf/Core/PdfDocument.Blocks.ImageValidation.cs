@@ -94,6 +94,12 @@ public sealed partial class PdfDocument {
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
             if (PdfWriter.TryGetJpegComponentCount(data, out int componentCount) && componentCount == 4) {
+                if (!OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
+                        sourceInfo,
+                        OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                        out string? jpegTranscodeLimitReason)) {
+                    throw new NotSupportedException(SupportedImageMessage + " " + jpegTranscodeLimitReason);
+                }
                 if (!OfficeImagePngConverter.TryConvertToPng(data, out byte[] normalizedJpegPng) ||
                     !OfficeImageReader.TryIdentify(normalizedJpegPng, null, out OfficeImageInfo normalizedJpegInfo)) {
                     throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding.");

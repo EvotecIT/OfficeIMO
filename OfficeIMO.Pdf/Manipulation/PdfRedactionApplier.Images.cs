@@ -332,6 +332,10 @@ internal static partial class PdfRedactionApplier {
             }
 
             switch (op) {
+                case "BI":
+                    SkipInlineImage(content, ref index);
+                    args.Clear();
+                    break;
                 case "q":
                     graphicsState.Stack.Push(graphicsState.Transform);
                     args.Clear();
@@ -618,6 +622,47 @@ internal static partial class PdfRedactionApplier {
         }
 
         return content.Substring(start, index - start);
+    }
+
+    private static void SkipInlineImage(string content, ref int index) {
+        while (index < content.Length) {
+            SkipWhiteSpace(content, ref index);
+            if (index >= content.Length) return;
+            if (content[index] == '%') {
+                SkipComment(content, ref index);
+                continue;
+            }
+            if (content[index] == '/') {
+                _ = ReadNameOperand(content, ref index);
+                continue;
+            }
+            if (content[index] == '(') {
+                SkipLiteralString(content, ref index);
+                continue;
+            }
+            if (content[index] == '<') {
+                if (index + 1 < content.Length && content[index + 1] == '<') SkipDictionary(content, ref index);
+                else SkipHexString(content, ref index);
+                continue;
+            }
+            if (content[index] == '[') {
+                SkipArray(content, ref index);
+                continue;
+            }
+
+            string token = ReadOperator(content, ref index);
+            if (!string.Equals(token, "ID", StringComparison.Ordinal)) continue;
+            if (index < content.Length && char.IsWhiteSpace(content[index])) index++;
+            int dataLength = PdfInlineImageDataScanner.FindLength(content, index);
+            if (dataLength < 0) {
+                index = content.Length;
+                return;
+            }
+            index += dataLength;
+            SkipWhiteSpace(content, ref index);
+            if (PdfInlineImageDataScanner.IsTerminatorAt(content, index)) index += 2;
+            return;
+        }
     }
 
     private static void SkipLiteralString(string content, ref int index) {

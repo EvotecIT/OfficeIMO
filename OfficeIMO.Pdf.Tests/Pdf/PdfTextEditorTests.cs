@@ -660,15 +660,25 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
-    public void SearchAndMutationIncludeVisibleArtifactText() {
+    public void SearchIncludesVisibleArtifactTextButMutationFailsClosed() {
         byte[] source = BuildRawTextPdf("/Artifact BMC BT /F1 12 Tf 50 700 Td (visible footer) Tj ET EMC\n");
         PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.Replace(region, "updated footer");
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated footer"));
+    }
 
-        Assert.Empty(result.Document.Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
-        Assert.Single(result.Document.Text.Find("updated footer", new PdfTextSearchOptions { MatchCase = true }));
+    [Fact]
+    public void TextBatchStampIsolatesInheritedTransformAndClipState() {
+        byte[] source = BuildRawTextPdf("2 0 0 2 0 0 cm 0 0 10 10 re W n\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.Add(
+            new PdfPageRegion(1, 100D, 100D, 160D, 30D),
+            "isolated stamp");
+        PdfTextMatch match = Assert.Single(result.Document.Text.Find("isolated stamp", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.InRange(match.X, 99.9D, 100.1D);
+        Assert.InRange(match.Y, 113D, 117D);
     }
 
     [Fact]
@@ -782,6 +792,27 @@ public class PdfTextEditorTests {
         Assert.Equal("kept", field.Value);
         Assert.Single(result.Document.Text.Find("added text", new PdfTextSearchOptions { MatchCase = true }));
         Assert.Single(result.Document.Text.Find("updated text", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
+    public void TextBatchStampPreservesTaggedCatalogEntries() {
+        byte[] raw = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (tagged source) Tj ET\n",
+            additionalObjects: "7 0 obj\n<< /Type /StructTreeRoot /K [] >>\nendobj\n");
+        string taggedText = PdfEncoding.Latin1GetString(raw).Replace(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 7 0 R >>");
+
+        PdfTextEditResult result = PdfDocument.Open(PdfEncoding.Latin1GetBytes(taggedText)).Text.Add(
+            new PdfPageRegion(1, 100D, 100D, 160D, 30D),
+            "new text");
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.Document.ToBytes(), null).Map;
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects.Values.Single(static item =>
+            item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Catalog").Value);
+
+        Assert.IsType<PdfDictionary>(catalog.Items["MarkInfo"]);
+        PdfReference structureReference = Assert.IsType<PdfReference>(catalog.Items["StructTreeRoot"]);
+        Assert.True(objects.ContainsKey(structureReference.ObjectNumber));
     }
 
     [Fact]

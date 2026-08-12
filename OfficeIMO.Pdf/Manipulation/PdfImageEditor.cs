@@ -3,13 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Canonical placement discovery and mutation owner for images on existing PDF pages.</summary>
-internal static class PdfImageEditor {
+internal static partial class PdfImageEditor {
     private const double CoordinateTolerance = 0.01D;
     private const double TransformTolerance = 0.0001D;
 
     internal static IReadOnlyList<PdfImagePlacement> Placements(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(pdf, readOptions));
+        return BindSourceIdentity(PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(pdf, readOptions)), pdf);
     }
 
     internal static IReadOnlyList<PdfImagePlacement> Find(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
@@ -17,10 +17,11 @@ internal static class PdfImageEditor {
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
-        return document.Pages[region.PageNumber - 1]
+        document.DemandContentExtraction("image placement");
+        return BindSourceIdentity(document.Pages[region.PageNumber - 1]
             .GetImagePlacements(region.PageNumber)
             .Where(placement => Intersects(region, placement))
-            .ToArray();
+            .ToArray(), pdf);
     }
 
     internal static ImageMutationResult Add(byte[] pdf, PdfPageRegion target, byte[] imageBytes, PdfImageEditOptions? options, PdfReadOptions? readOptions) {
@@ -38,6 +39,7 @@ internal static class PdfImageEditor {
         Guard.NotNull(pdf, nameof(pdf));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
         EnsureRemovablePlacement(current);
+        EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: false, readOptions);
         byte[] output = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
         EnsurePlacementRemoved(output, current, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength));
         return new ImageMutationResult(output, 1);
@@ -48,6 +50,8 @@ internal static class PdfImageEditor {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
         EnsureRemovablePlacement(current);
+        EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: true, readOptions);
+        EnsureReplaceableSourceImage(pdf, current, readOptions);
         ImageTransform transform = ResolvePortableTransform(current);
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
         byte[] removed = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
@@ -67,6 +71,7 @@ internal static class PdfImageEditor {
         Guard.NotNull(pdf, nameof(pdf));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
         EnsureRemovablePlacement(current);
+        EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: true, readOptions);
         ImageTransform transform = ResolvePortableTransform(current);
         PdfExtractedImage image = ResolveMovableImage(pdf, current, readOptions);
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
@@ -83,6 +88,10 @@ internal static class PdfImageEditor {
 
     private static PdfImagePlacement ResolveUniquePlacement(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
         Guard.NotNull(placement, nameof(placement));
+        string sourceIdentity = ComputeSourceIdentity(pdf);
+        if (!string.Equals(placement.SourceDocumentIdentity, sourceIdentity, StringComparison.Ordinal)) {
+            throw new InvalidOperationException("The selected image placement does not originate from the current PDF document.");
+        }
         PdfImagePlacement[] matches = Placements(pdf, readOptions)
             .Where(candidate => SamePlacementIdentity(candidate, placement))
             .ToArray();
