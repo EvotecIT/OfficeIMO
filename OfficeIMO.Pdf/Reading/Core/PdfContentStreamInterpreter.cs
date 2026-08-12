@@ -736,6 +736,7 @@ internal static class PdfContentStreamInterpreter {
                 case "AHx": return "ASCIIHexDecode";
                 case "A85": return "ASCII85Decode";
                 case "RL": return "RunLengthDecode";
+                case "DCT": return "DCTDecode";
                 default: return name;
             }
         }

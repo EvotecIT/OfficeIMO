@@ -92,8 +92,9 @@ $caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
         Namespace = 'OfficeIMO.CSV.Benchmarks'
         Type = 'CsvDataReaderWriteBenchmarks'
         FullName = 'ignored'
+        Affinity = '11111111111111111111111111111111'
     }
-})
+}) -VariableName @('rowcount')
 if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
     $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Mixed' -or
     $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Quoted' -or

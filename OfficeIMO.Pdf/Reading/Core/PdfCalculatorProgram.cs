@@ -44,23 +44,30 @@ internal sealed partial class PdfCalculatorProgram {
     }
 
     internal double[]? Evaluate(double[] inputs, int outputCount) {
-        if (inputs == null || inputs.Length > MaxStackValues || outputCount < 1 || outputCount > MaxStackValues) return null;
+        if (outputCount < 1 || outputCount > MaxStackValues) return null;
+        var result = new double[outputCount];
+        return TryEvaluate(inputs, result, 0, outputCount) ? result : null;
+    }
+
+    internal bool TryEvaluate(double[] inputs, double[] output, int outputOffset, int outputCount) {
+        if (inputs == null || inputs.Length > MaxStackValues || output == null ||
+            outputCount < 1 || outputCount > MaxStackValues ||
+            outputOffset < 0 || outputOffset > output.Length - outputCount) return false;
         CalculatorStack stack = AcquireStack();
         try {
             for (int index = 0; index < inputs.Length; index++) {
-                if (!IsFinite(inputs[index]) || !stack.TryPush(Value.Real(inputs[index]))) return null;
+                if (!IsFinite(inputs[index]) || !stack.TryPush(Value.Real(inputs[index]))) return false;
             }
 
             int remainingSteps = MaxInstructions;
-            if (!TryExecute(_instructions, stack, depth: 0, ref remainingSteps) || stack.Count != outputCount) return null;
+            if (!TryExecute(_instructions, stack, depth: 0, ref remainingSteps) || stack.Count != outputCount) return false;
 
-            var result = new double[outputCount];
             for (int index = 0; index < outputCount; index++) {
                 Value value = stack[index];
-                if (!value.TryGetNumber(out double number) || !IsFinite(number)) return null;
-                result[index] = number;
+                if (!value.TryGetNumber(out double number) || !IsFinite(number)) return false;
+                output[outputOffset + index] = number;
             }
-            return result;
+            return true;
         } finally {
             stack.Release();
         }

@@ -26,21 +26,23 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        if (!TryReadDecodedStreamBytes(stream, objects, out var indexedPixels)) {
+        if (!TryReadDecodedStreamBytes(stream, objects, maxDecodedStreamBytes, out var indexedPixels)) {
             return false;
         }
 
-        var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, objects);
+        if (!PdfImageDecodeTransform.TryCreateIndexed(stream.Dictionary, objects, out PdfImageDecodeTransform? decodeTransform)) {
+            return false;
+        }
         if (PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects)) {
-            return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, out pngBytes);
+            return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, maxDecodedStreamBytes, out pngBytes);
         }
 
         var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, 1, objects);
         if (colorKeyMask is not null) {
-            return TryBuildPngFileFromIndexedPixelsWithColorKeyMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, colorKeyMask, indexedPixels, out pngBytes);
+            return TryBuildPngFileFromIndexedPixelsWithColorKeyMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, colorKeyMask, indexedPixels, maxDecodedStreamBytes, out pngBytes);
         }
 
-        return TryBuildPngFileFromIndexedPixels(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, out pngBytes);
+        return TryBuildPngFileFromIndexedPixels(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, maxDecodedStreamBytes, out pngBytes);
     }
 
     private static bool TryResolveIndexedPalette(
@@ -89,7 +91,7 @@ internal static class PdfIndexedImageNormalizer {
         if (!TryReadIndexedLookupBytes(
                 colorSpaceArray.Items[3],
                 objects,
-                expectedLookupLength,
+                Math.Min(expectedLookupLength, maxDecodedStreamBytes),
                 out var lookupBytes)) {
             return false;
         }
@@ -100,6 +102,7 @@ internal static class PdfIndexedImageNormalizer {
 
         rgbPalette = new byte[paletteEntryCount * 3];
         var components = new double[baseComponentCount];
+        PdfImageColorConversionBuffer conversionBuffer = baseColorSpace.CreateConversionBuffer();
         for (int entry = 0; entry < paletteEntryCount; entry++) {
             int lookupOffset = entry * baseComponentCount;
             int paletteOffset = entry * 3;
@@ -108,7 +111,7 @@ internal static class PdfIndexedImageNormalizer {
                     component,
                     lookupBytes[lookupOffset + component]);
             }
-            if (!baseColorSpace.TryConvertComponents(components, out OfficeColor color)) return false;
+            if (!baseColorSpace.TryConvertComponents(components, conversionBuffer, out OfficeColor color)) return false;
             rgbPalette[paletteOffset] = color.R;
             rgbPalette[paletteOffset + 1] = color.G;
             rgbPalette[paletteOffset + 2] = color.B;
@@ -156,8 +159,9 @@ internal static class PdfIndexedImageNormalizer {
     private static bool TryReadDecodedStreamBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] bytes) {
-        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maxDecodedStreamBytes) && bytes.Length > 0;
     }
 
     private static bool TryBuildPngFileFromIndexedPixels(
@@ -167,9 +171,20 @@ internal static class PdfIndexedImageNormalizer {
         byte[] rgbPalette,
         PdfImageDecodeTransform? decodeTransform,
         byte[] indexedPixels,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (indexedPixels.Length == 0 || rgbPalette.Length == 0 || rgbPalette.Length % 3 != 0) {
+            return false;
+        }
+
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                3,
+                maxDecodedStreamBytes,
+                out _,
+                out int scanlineBytes)) {
             return false;
         }
 
@@ -189,7 +204,7 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
@@ -229,9 +244,20 @@ internal static class PdfIndexedImageNormalizer {
         PdfImageDecodeTransform? decodeTransform,
         PdfImageColorKeyMask colorKeyMask,
         byte[] indexedPixels,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (indexedPixels.Length == 0 || rgbPalette.Length == 0 || rgbPalette.Length % 3 != 0) {
+            return false;
+        }
+
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                4,
+                maxDecodedStreamBytes,
+                out _,
+                out int scanlineBytes)) {
             return false;
         }
 
@@ -251,7 +277,7 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);
@@ -296,6 +322,7 @@ internal static class PdfIndexedImageNormalizer {
         byte[] indexedPixels,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
@@ -315,11 +342,21 @@ internal static class PdfIndexedImageNormalizer {
             softMaskHeight != height ||
             softMaskBitsPerComponent != 8 ||
             !string.Equals(softMaskColorSpace, "DeviceGray", StringComparison.Ordinal) ||
-            !TryReadDecodedStreamBytes(softMask, objects, out var alphaPixels)) {
+            !TryReadDecodedStreamBytes(softMask, objects, maxDecodedStreamBytes, out var alphaPixels)) {
             return false;
         }
 
         if (indexedPixels.Length == 0 || rgbPalette.Length == 0 || rgbPalette.Length % 3 != 0) {
+            return false;
+        }
+
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                4,
+                maxDecodedStreamBytes,
+                out _,
+                out int scanlineBytes)) {
             return false;
         }
 
@@ -344,8 +381,10 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
-        byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        if (!PdfImageDecodeTransform.TryCreateColor(softMask.Dictionary, 1, objects, out PdfImageDecodeTransform? alphaDecodeTransform)) {
+            return false;
+        }
+        byte[] scanlines = new byte[scanlineBytes];
         int paletteEntryCount = rgbPalette.Length / 3;
         for (int row = 0; row < height; row++) {
             int outputRow = row * (1 + outputRowLength);

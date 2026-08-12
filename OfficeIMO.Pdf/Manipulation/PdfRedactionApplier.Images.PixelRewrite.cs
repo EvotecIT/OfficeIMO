@@ -418,7 +418,8 @@ internal static partial class PdfRedactionApplier {
             0,
             imageStream,
             objects,
-            resources: resources);
+            resources: resources,
+            maxDecodedStreamBytes: options.MaximumDecodedImageBytes);
         if (!TryDecodeRedactionRaster(extracted, imageStream, objects, options, out int width, out int height, out byte[] rgba) ||
             !TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
             return false;
@@ -527,7 +528,13 @@ internal static partial class PdfRedactionApplier {
         if (!string.Equals(extracted.TransparencyMaskKind, "explicit-mask-image", StringComparison.Ordinal) ||
             !imageStream.Dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
             PdfObjectLookup.Resolve(objects, maskObject) is not PdfStream maskStream ||
-            !PdfImageMaskNormalizer.TryBuildPngFile(width, height, maskStream, objects, out byte[] maskPng) ||
+            !PdfImageMaskNormalizer.TryBuildPngFile(
+                width,
+                height,
+                maskStream,
+                objects,
+                options.MaximumDecodedImageBytes,
+                out byte[] maskPng) ||
             !OfficeRasterImageDecoder.TryDecode(maskPng, out OfficeRasterImage? maskRaster) ||
             maskRaster is null ||
             maskRaster.Width != width ||

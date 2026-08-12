@@ -68,7 +68,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             outputCount,
             domain,
             range,
-            values => program.Evaluate(values, outputCount),
+            (values, output, outputOffset) =>
+                program.TryEvaluate(values, output, outputOffset, outputCount),
             breakpoints,
             evaluationCost: program.MaximumEvaluationWork);
         return true;
