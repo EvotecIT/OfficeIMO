@@ -726,6 +726,32 @@ document.Compose("Report", composer => {
 document.Save();
 ```
 
+When rows already have a fixed schema, pass a `DataTable` directly. This keeps
+its column order, avoids generic object flattening, and does not apply the
+generic `MaxCells` materialization guard. Excel's worksheet row and column
+limits still apply; select or split data that exceeds them.
+
+```csharp
+using System.Data;
+using OfficeIMO.Excel;
+
+var rows = new DataTable("Members");
+rows.Columns.Add("Enabled", typeof(bool));
+rows.Columns.Add("AD State", typeof(string));
+rows.Rows.Add(true, "Enabled");
+rows.Rows.Add(false, "Disabled");
+
+using var document = ExcelDocument.Create("members.xlsx");
+document.Compose("Members", composer => {
+    composer.TableFrom(
+        rows,
+        title: "Members",
+        configure: options => options.Columns = new[] { "Enabled", "AD State" });
+    composer.Finish(autoFitColumns: true);
+});
+document.Save();
+```
+
 ## Managed image export
 
 Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:

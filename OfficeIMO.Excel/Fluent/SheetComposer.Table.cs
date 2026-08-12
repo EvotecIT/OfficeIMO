@@ -20,11 +20,25 @@ namespace OfficeIMO.Excel.Fluent {
 
             var opts = new ObjectFlattenerOptions();
             configure?.Invoke(opts);
+            int maximumDataRows = A1.MaxRows - _row;
+            Func<int, string?> maxRowsGuidance = requiredRows => requiredRows > maximumDataRows
+                ? $"Split the data across multiple worksheets; this table has room for at most {maximumDataRows} data rows after its title and header, and Excel's {A1.MaxRows}-row worksheet limit cannot be overridden."
+                : null;
+            opts.MaxRows = System.Math.Min(opts.MaxRows, maximumDataRows);
+            Func<int, string?> maxColumnsGuidance = requiredColumns => requiredColumns > A1.MaxColumns
+                ? $"Select fewer columns or split the data across multiple worksheets; Excel's {A1.MaxColumns}-column worksheet limit cannot be overridden."
+                : null;
             opts.MaxColumns = System.Math.Min(opts.MaxColumns, A1.MaxColumns);
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(
-                items, opts, "TableFrom", headerRowCount: 1, enforceEmptyProjectionLimits: false);
+                items,
+                opts,
+                "TableFrom",
+                headerRowCount: 1,
+                enforceEmptyProjectionLimits: false,
+                rowLimitGuidance: maxRowsGuidance,
+                columnLimitGuidance: maxColumnsGuidance);
             IReadOnlyList<System.Collections.Generic.Dictionary<string, object?>> rows = projection.Rows;
             if (rows.Count == 0) {
                 Sheet.Cell(_row, 1, "(no data)");
@@ -46,18 +60,8 @@ namespace OfficeIMO.Excel.Fluent {
 
             int headerRow = _row;
             var cells = new List<(int Row, int Column, object Value)>(System.Math.Max(1, (rows.Count + 1) * System.Math.Max(1, paths.Count)));
-            var headersT = paths.Select(p => TransformHeader(p, opts)).ToList();
-            // De-duplicate header captions to avoid Excel silently renaming duplicates
-            var usedHeaders = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-            for (int i = 0; i < headersT.Count; i++) {
-                string baseName = string.IsNullOrWhiteSpace(headersT[i]) ? $"Column{i + 1}" : headersT[i];
-                string candidate = baseName;
-                int suffix = 2;
-                while (!usedHeaders.Add(candidate)) {
-                    candidate = $"{baseName} ({suffix++})";
-                }
-                headersT[i] = candidate;
-            }
+            var headersT = BuildTransformedHeaders(paths, opts);
+            EnsureUniqueTableHeaders(headersT);
             for (int i = 0; i < headersT.Count; i++) {
                 cells.Add((_row, i + 1, headersT[i]));
             }
@@ -79,67 +83,7 @@ namespace OfficeIMO.Excel.Fluent {
 
             var tableName = title ?? "Table";
             Sheet.AddTable(range, hasHeader: true, name: tableName, style: style, includeAutoFilter: autoFilter);
-
-            var viz = new TableVisualOptions();
-            viz.FreezeHeaderRow = freezeHeaderRow; visuals?.Invoke(viz);
-            Sheet.SetTableStyle(range, style, viz.ShowFirstColumn, viz.ShowLastColumn, viz.ShowRowStripes, viz.ShowColumnStripes);
-            if (viz.FreezeHeaderRow) Sheet.Freeze(topRows: headerRow, leftCols: 0);
-
-            var headers = headersT; int startCol = 1;
-            for (int i = 0; i < headers.Count; i++) {
-                string hdr = headers[i];
-                string colRange = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
-
-                if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt)) {
-                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                        Sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
-                } else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec)) {
-                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                        Sheet.ColumnStyleByHeader(hdr).Number(dec);
-                }
-
-                if (viz.DataBars.TryGetValue(hdr, out var color))
-                    Sheet.AddConditionalDataBar(colRange, color);
-
-                if (viz.IconSets.TryGetValue(hdr, out var iconOpts))
-                    Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder, iconOpts.PercentThresholds, iconOpts.NumberThresholds);
-                else if (viz.IconSetColumns.Contains(hdr))
-                    Sheet.AddConditionalIconSet(colRange);
-
-                if (viz.TextBackgrounds.TryGetValue(hdr, out var map)) {
-                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
-                        Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map);
-                    } else {
-                        for (int r = headerRow + 1; r <= _row - 1; r++)
-                            if (Sheet.TryGetCellText(r, startCol + i, out var t) && t != null && map.TryGetValue(t, out var colorHex))
-                                Sheet.CellBackground(r, startCol + i, colorHex);
-                    }
-                }
-                if (viz.BoldByText.TryGetValue(hdr, out var boldSet)) {
-                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
-                        Sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet);
-                    } else {
-                        var setCI = new System.Collections.Generic.HashSet<string>(boldSet, System.StringComparer.OrdinalIgnoreCase);
-                        for (int r = headerRow + 1; r <= _row - 1; r++)
-                            if (Sheet.TryGetCellText(r, startCol + i, out var t) && !string.IsNullOrEmpty(t) && setCI.Contains(t))
-                                Sheet.CellBold(r, startCol + i, true);
-                    }
-                }
-            }
-
-            if (viz.AutoFormatDynamicCollections) {
-                for (int i = 0; i < paths.Count; i++) {
-                    if (paths[i].Contains('.')) {
-                        var hdr = headers[i];
-                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                            Sheet.ColumnStyleByHeader(hdr).Number(viz.AutoFormatDecimals);
-                        string colRangeAuto = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
-                        Sheet.AddConditionalDataBar(colRangeAuto, viz.AutoFormatDataBarColor);
-                    }
-                }
-            }
-            Spacer();
-            return range;
+            return CompleteTable(range, paths, headersT, headerRow, lastRow, style, freezeHeaderRow, visuals);
         }
 
     }

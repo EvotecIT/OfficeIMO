@@ -42,6 +42,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectTableExplainsHardColumnBoundary() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var row = Enumerable.Range(0, 1_025)
+                .ToDictionary(index => "Column" + index, index => (object?)index);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                slide.AddTable(new[] { row }, options => options.MaxColumns = int.MaxValue));
+
+            Assert.Contains("requires at least 1025 columns", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Select fewer columns or split the data across multiple tables", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("MaxColumns to at least 1025", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ObjectTableExplainsHardCellBoundary() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            PowerPointSlide slide = presentation.AddSlide();
+            var rows = Enumerable.Range(0, 100)
+                .Select(_ => new System.Collections.Generic.Dictionary<string, object?>())
+                .ToArray();
+            string[] columns = Enumerable.Range(0, 1_000)
+                .Select(index => "Column" + index)
+                .ToArray();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                slide.AddTable(rows, options => {
+                    options.Columns = columns;
+                    options.MaxCells = 50_000;
+                }));
+
+            Assert.Contains("requires at least 101000 cells", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Select fewer rows or columns, or split the data across multiple tables", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain("MaxCells to at least 101000", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ObjectTableRejectsNonPositiveRowLimitBeforeInspectingSource() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -67,10 +108,12 @@ namespace OfficeIMO.Tests {
                 }
             };
 
-            Assert.Throws<InvalidDataException>(() => slide.AddTable(rows, options => {
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => slide.AddTable(rows, options => {
                 options.MaxCells = 5;
                 options.CollectionMode = OfficeIMO.Data.CollectionMode.ExpandRows;
             }));
+            Assert.Contains("requires at least 6 cells", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("options.MaxCells = 6", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
