@@ -64,8 +64,8 @@ internal static class HtmlCssConicGradientParser {
         if (index < parts.Count && parts[index] == "at") {
             index++;
             int remaining = parts.Count - index;
-            if (remaining < 1 || remaining > 2) return false;
-            if (!TryPosition(parts.Skip(index).ToList(), out centerX, out centerY)) return false;
+            if (remaining < 1 || remaining > 4) return false;
+            if (!HtmlCssGradientPositionParser.TryParse(parts.Skip(index).ToList(), out centerX, out centerY)) return false;
             index = parts.Count;
         }
         return index == parts.Count;
@@ -88,32 +88,4 @@ internal static class HtmlCssConicGradientParser {
         return !double.IsNaN(degrees) && !double.IsInfinity(degrees);
     }
 
-    private static bool TryPosition(IReadOnlyList<string> parts, out string x, out string y) {
-        x = "50%";
-        y = "50%";
-        if (parts.Count == 1) {
-            if (TryHorizontal(parts[0], out x)) return true;
-            return TryVertical(parts[0], out y);
-        }
-        return TryHorizontal(parts[0], out x) && TryVertical(parts[1], out y)
-            || TryHorizontal(parts[1], out x) && TryVertical(parts[0], out y);
-    }
-
-    private static bool TryHorizontal(string value, out string result) {
-        if (value == "left") { result = "0%"; return true; }
-        if (value == "center") { result = "50%"; return true; }
-        if (value == "right") { result = "100%"; return true; }
-        if (value == "top" || value == "bottom") { result = string.Empty; return false; }
-        result = value;
-        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
-    }
-
-    private static bool TryVertical(string value, out string result) {
-        if (value == "top") { result = "0%"; return true; }
-        if (value == "center") { result = "50%"; return true; }
-        if (value == "bottom") { result = "100%"; return true; }
-        if (value == "left" || value == "right") { result = string.Empty; return false; }
-        result = value;
-        return HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
-    }
 }

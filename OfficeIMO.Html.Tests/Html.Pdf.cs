@@ -81,6 +81,20 @@ public sealed class HtmlPdfTests {
         Assert.Equal("first", pdfField.Value);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" multiple size='3'")]
+    public void HtmlToPdf_EmptySelectsUseTruthfulStaticFallback(string attributes) {
+        string html = "<select name='choice'" + attributes + "></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceEmptyOptionsStaticFallback);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+    }
+
     [Fact]
     public void HtmlToPdf_DisabledAndReadOnlyControlsAreExcludedFromRequiredConstraintValidation() {
         const string html = "<input name='enabled' required><input name='disabled' required disabled><textarea name='readonly' required readonly></textarea>";

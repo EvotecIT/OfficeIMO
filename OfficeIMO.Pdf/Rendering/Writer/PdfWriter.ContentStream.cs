@@ -131,6 +131,11 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder ClipPath(OfficeFillRule fillRule) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " W*" : " W");
+        return this;
+    }
+
     public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f) {
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')

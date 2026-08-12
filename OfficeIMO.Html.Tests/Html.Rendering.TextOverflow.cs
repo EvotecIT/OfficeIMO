@@ -46,6 +46,39 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(lines.Max(line => line.Y + line.Height) - lines.Min(line => line.Y), 35.9D, 36.1D);
     }
 
+    [Theory]
+    [InlineData("line-clamp")]
+    [InlineData("-webkit-line-clamp")]
+    public void HtmlRender_InvalidLaterLineClampKeepsTheEarlierValidDeclaration(string property) {
+        string html = "<p style='margin:0;width:100px;overflow:hidden;" + property + ":3;" + property + ":banana;font-size:14px;line-height:18px'>one two three four five six seven eight nine ten eleven twelve thirteen fourteen</p>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        IReadOnlyList<HtmlRenderText> lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal("3", computed[document.QuerySelector("p")!].GetValue(property));
+        Assert.Equal(3, lines.Select(line => line.Y).Distinct().Count());
+        Assert.EndsWith("\u2026", lines[lines.Count - 1].Text, StringComparison.Ordinal);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(" + property + ":banana)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(" + property + ":inherit)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(" + property + ":none)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(" + property + ":\"3\")"));
+    }
+
+    [Fact]
+    public void HtmlRender_InvalidLaterTextOverflowKeepsTheEarlierEllipsis() {
+        const string html = "<p style='margin:0;width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-overflow:banana;font-size:14px'>Alpha beta gamma delta</p>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        HtmlRenderText text = Assert.Single(EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderText>());
+
+        Assert.Equal("ellipsis", computed[document.QuerySelector("p")!].GetValue("text-overflow"));
+        Assert.EndsWith("\u2026", text.Text, StringComparison.Ordinal);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(text-overflow:banana)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(text-overflow:initial)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(text-overflow:\"ellipsis\")"));
+    }
+
     [Fact]
     public void HtmlRender_UsesInheritedNumericTabStopsForPreformattedText() {
         const string compact = "<div style='tab-size:2'><pre style='margin:0;font-family:Consolas;font-size:12px'>A\tB</pre></div>";

@@ -5,6 +5,41 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("hyphenate-character", "\"·\"")]
+    [InlineData("hyphenate-limit-chars", "8 3 2")]
+    [InlineData("hyphenate-limit-lines", "2")]
+    [InlineData("hyphenate-limit-last", "page")]
+    [InlineData("hyphenate-limit-zone", "20px")]
+    public void HtmlRendering_InvalidHyphenationControlsRetainInheritedValues(string property, string validValue) {
+        string html = "<div style='" + property + ":" + validValue + "'><span style='" + property + ":banana'>Text</span></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        AngleSharp.Dom.IElement parentElement = document.QuerySelector("div")!;
+        AngleSharp.Dom.IElement childElement = document.QuerySelector("span")!;
+
+        Assert.Equal(computed[parentElement].GetValue(property), computed[childElement].GetValue(property));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(" + property + ":banana)"));
+
+        if (property == "hyphenate-limit-zone") {
+            var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+            var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+            HtmlRenderBoxStyle parent = resolver.Resolve(parentElement, 120D);
+            HtmlRenderBoxStyle child = resolver.Resolve(childElement, 120D, parent);
+            Assert.Equal(20D, parent.HyphenateLimitZone, 3);
+            Assert.Equal(parent.HyphenateLimitZone, child.HyphenateLimitZone, 3);
+        }
+    }
+
+    [Fact]
+    public void HtmlRendering_HyphenationControlsAcceptTheirSupportedCssWideForms() {
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-zone:inherit)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-zone:10%)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-zone:-1px)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-lines:initial)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-last:unset)"));
+    }
+
     [Fact]
     public void HtmlComputedStyles_RejectInvalidHyphensValuesWithoutOverwritingInheritanceOrSupports() {
         var document = HtmlConversionDocument.Parse("<div style='hyphens:auto'><span style='hyphens:banana'>Typography</span></div>").CreateDocumentForRendering();

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ChartForgeXProjectPath)' != '' And Exists('$(ChartForgeXProjectPath)')">
+    <ProjectReference Include="$(ChartForgeXProjectPath)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ChartForgeXProjectPath)' == '' Or !Exists('$(ChartForgeXProjectPath)')">
+    <PackageReference Include="ChartForgeX" Version="[1.6.0,2.0.0)" />
+  </ItemGroup>
+</Project>

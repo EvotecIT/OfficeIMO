@@ -28,6 +28,26 @@ public static class OfficeStrokeDashStyleMapper {
     }
 
     /// <summary>
+    /// Maps a shared stroke dash style to the closest native Visio <c>LinePattern</c> value.
+    /// </summary>
+    /// <param name="dashStyle">Shared stroke dash style.</param>
+    /// <returns>The native Visio line-pattern integer value.</returns>
+    public static int ToVisioLinePattern(OfficeStrokeDashStyle dashStyle) {
+        switch (dashStyle) {
+            case OfficeStrokeDashStyle.Dot:
+                return 3;
+            case OfficeStrokeDashStyle.DashDot:
+                return 4;
+            case OfficeStrokeDashStyle.DashDotDot:
+                return 5;
+            case OfficeStrokeDashStyle.Dash:
+                return 2;
+            default:
+                return 1;
+        }
+    }
+
+    /// <summary>
     /// Maps an Office preset dash value name to the shared stroke dash style.
     /// </summary>
     /// <param name="presetDash">Preset dash value as an enum name or serialized token.</param>

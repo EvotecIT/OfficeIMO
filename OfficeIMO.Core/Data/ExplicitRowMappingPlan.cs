@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 
@@ -38,6 +39,45 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
             instance = binding.Entry.Apply(
                 instance,
                 getValue(binding.ColumnIndex),
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
+        }
+        return instance;
+    }
+
+    internal T MapValues(
+        object?[] values,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        T instance = new T();
+        foreach (MappingBinding binding in _bindings) {
+            instance = binding.Entry.Apply(
+                instance,
+                values[binding.ColumnIndex],
+                culture,
+                dateTimeFormats,
+                typeConverter,
+                errorValuePolicy);
+        }
+        return instance;
+    }
+
+    internal T MapReaderRow(
+        DbDataReader reader,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        T instance = new T();
+        foreach (MappingBinding binding in _bindings) {
+            instance = binding.Entry.ApplyReader(
+                instance,
+                reader,
+                binding.ColumnIndex,
                 culture,
                 dateTimeFormats,
                 typeConverter,

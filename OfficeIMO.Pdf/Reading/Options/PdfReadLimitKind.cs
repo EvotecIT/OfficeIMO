@@ -102,5 +102,8 @@ public enum PdfReadLimitKind {
     JavaScripts = 32,
 
     /// <summary>Aggregate decoded source bytes retained for named document-level JavaScript.</summary>
-    JavaScriptBytes = 33
+    JavaScriptBytes = 33,
+
+    /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
+    Type3GlyphInvocations = 34
 }

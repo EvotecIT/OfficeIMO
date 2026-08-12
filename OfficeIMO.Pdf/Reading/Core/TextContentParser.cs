@@ -1,6 +1,6 @@
+using OfficeIMO.Drawing;
 using System.Globalization;
 using System.Text;
-using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -208,6 +208,7 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool useLogicalTextFilters = true,
+        bool includeArtifactText = false,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
@@ -242,6 +243,7 @@ internal static class TextContentParser {
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
+        var pendingTextClipPaths = new List<PdfPageClipPath>();
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
@@ -260,8 +262,8 @@ internal static class TextContentParser {
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
             switch (op) {
-                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
-                case "ET": inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "ET": ApplyPendingTextClippingPath(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
@@ -529,6 +531,7 @@ internal static class TextContentParser {
                 default: args.Clear(); break;
             }
         }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
+        ApplyPendingTextClippingPath();
         return spans;
 
         // Helpers
@@ -603,7 +606,6 @@ internal static class TextContentParser {
             }
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             double advTotal = 0;
-            char prevChar = '\0';
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
             for (int idx = 0; idx < bytes.Length;) {
@@ -621,20 +623,8 @@ internal static class TextContentParser {
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
-                // Drop thin spaces between letters/digits (visual join) but still advance
-                double thinSpacePt = Math.Max(1.0, size * 0.12);
-                bool dropSpace = false;
-                if (ch == ' ') {
-                    // Keep explicit space glyphs; rely on higher-level normalization to fix accidental splits
-                } else if (advGlyph <= thinSpacePt && prevChar != '\0') {
-                    // Drop non-space thin separators
-                    dropSpace = true;
-                }
-                if (dropSpace) {
-                    // do not append, but keep advance
-                } else if (ch != '\0') {
+                if (ch != '\0') {
                     sbOut.Append(t);
-                    prevChar = t[t.Length - 1];
                 }
                 advTotal += advGlyph;
                 idx += step;
@@ -645,7 +635,7 @@ internal static class TextContentParser {
                 sbOut.Append(wholeDecoded);
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool isArtifact = useLogicalTextFilters && HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && HasActiveArtifact();
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
@@ -724,8 +714,15 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                pendingTextClipPaths.Add(textClipPath);
+            }
+        }
+
+        void ApplyPendingTextClippingPath() {
+            if (PdfPageClipPath.TryCombineTextClippingPaths(pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
                 clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
             }
+            pendingTextClipPaths.Clear();
         }
 
         MarkedContentState? GetActiveActualTextState() {
@@ -791,8 +788,7 @@ internal static class TextContentParser {
             if (list == null) return;
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b, paintOrder); }
-                else if (adjustKerningFromTJ && it is double num) {
+                if (it is byte[] b) { ShowTextRun(b, paintOrder); } else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space

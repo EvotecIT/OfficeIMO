@@ -271,7 +271,11 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
-        string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        string rawNormalized = value.Trim().ToLowerInvariant();
+        if (IsCssWideKeyword(rawNormalized)) {
+            return true;
+        }
+        string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
             case "container-type":
                 return IsKnownKeyword(normalized, "normal", "size", "inline-size");
@@ -308,6 +312,25 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
             case "hyphens":
                 return IsKnownKeyword(normalized, "none", "manual", "auto");
+            case "hyphenate-character":
+                return IsSupportedHyphenateCharacterSyntax(value.Trim());
+            case "hyphenate-limit-chars":
+                return IsSupportedHyphenateLimitCharsSyntax(normalized);
+            case "hyphenate-limit-lines":
+                return normalized == "no-limit"
+                    || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int hyphenatedLines)
+                    && hyphenatedLines > 0;
+            case "hyphenate-limit-last":
+                return IsKnownKeyword(normalized, "none", "always", "column", "page", "spread");
+            case "hyphenate-limit-zone":
+                return IsNonNegativeCssLengthOrPercentage(normalized);
+            case "text-overflow":
+                return IsKnownKeyword(normalized, "clip", "ellipsis");
+            case "line-clamp":
+            case "-webkit-line-clamp":
+                return normalized == "none"
+                    || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int clampedLines)
+                    && clampedLines > 0;
             case "tab-size":
                 return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
                     ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
@@ -325,6 +348,27 @@ public static partial class HtmlComputedStyleEngine {
                 return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
         }
     }
+
+    private static bool IsCssWideKeyword(string value) =>
+        IsKnownKeyword(value, "inherit", "initial", "revert", "revert-layer", "unset");
+
+    private static bool IsSupportedHyphenateCharacterSyntax(string value) {
+        if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return true;
+        if (value.Length < 2 || value[0] != value[value.Length - 1] || value[0] != '\'' && value[0] != '"') return false;
+        return HtmlCssEscapeDecoder.Decode(value.Substring(1, value.Length - 2)).Length <= 8;
+    }
+
+    private static bool IsSupportedHyphenateLimitCharsSyntax(string value) {
+        if (value == "auto") return true;
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
+        return parts.Count is >= 1 and <= 3
+            && parts.All(part => int.TryParse(part, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed) && parsed > 0);
+    }
+
+    private static bool IsNonNegativeCssLengthOrPercentage(string value) =>
+        HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+        && TryValidateCssLength(value, out double length)
+        && length >= 0D;
 
     private static bool IsKnownKeyword(string value, params string[] keywords) {
         foreach (string keyword in keywords) {

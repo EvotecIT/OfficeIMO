@@ -241,6 +241,24 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void MergeEnforcesThePrimarySourcePageLimitOnReadback() {
+        byte[] first = BuildPdf();
+        byte[] second = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Second merge source"))
+            .ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPages = 1 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Merge(
+                PdfDocument.Open(first, readOptions),
+                PdfDocument.Open(second)));
+
+        Assert.Equal(PdfReadLimitKind.Pages, exception.Kind);
+    }
+
+    [Fact]
     public void WebOptimizationAllowsItsOwnedCandidateBeyondTheSourceBudget() {
         byte[] pdf = BuildPdf();
         var readOptions = new PdfReadOptions {
@@ -918,10 +936,14 @@ public class PdfReadLimitTests {
         var attachmentBytesOptions = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 0 }
         };
+        var type3GlyphOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 0 }
+        };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, options));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentCountOptions));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, attachmentBytesOptions));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfReadDocument.Open(pdf, type3GlyphOptions));
     }
 
     [Fact]

@@ -193,9 +193,11 @@ public sealed class PdfPipelineReportTests {
 
         IReadOnlyList<PdfDocument> pages = opened.Pages.Split();
         PdfDocument range = Assert.Single(opened.Pages.Split(new[] { PdfPageRange.From(1, 2) }));
+        PdfDocument selection = Assert.Single(opened.Pages.Split(PdfPageSelection.Parse("3,1-2")));
 
         Assert.All(pages, part => AssertSplitLineage(part, source, expectedPageCount: 1));
         AssertSplitLineage(range, source, expectedPageCount: 2);
+        AssertSplitLineage(selection, source, expectedPageCount: 3);
     }
 
     [Fact]

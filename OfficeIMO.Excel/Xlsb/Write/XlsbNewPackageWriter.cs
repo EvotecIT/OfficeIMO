@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.IO.Compression;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Creates a new, first-party XLSB package from the supported workbook subset.</summary>
@@ -38,12 +39,81 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     hyperlinkPlans[index].Records);
             }
 
+            WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans);
+        }
+
+        internal static bool TryWriteDirectTabular(
+            ExcelDocument document,
+            ExcelDirectTabularSource source,
+            Stream destination,
+            CancellationToken cancellationToken) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (!destination.CanWrite) throw new ArgumentException("The XLSB destination must be writable.", nameof(destination));
+
+            ExcelSheet? sheet = document.GetOrCreateDeferredDirectTabularSheet(source.SheetName);
+            if (sheet == null) {
+                return false;
+            }
+            ExcelSheet[] sheets = [sheet];
+
+            ValidateDirectTabularWorkbook(document, sheets, source.SheetName);
+            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+            byte[]? stylesPart = null;
+            if (stylesheet != null) {
+                stylesPart = XlsbStylesheetPartWriter.Create(stylesheet, out _);
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!XlsbWorksheetPartWriter.TryCreateDirectTabular(
+                source,
+                cancellationToken,
+                out ArraySegment<byte> worksheetPart)) {
+                return false;
+            }
+
+            if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+            WriteDirectTabularPackage(document, destination, source.SheetName, stylesPart, worksheetPart);
+            if (destination.CanSeek) destination.SetLength(destination.Position);
+            return true;
+        }
+
+        private static void WriteDirectTabularPackage(
+            ExcelDocument document,
+            Stream destination,
+            string sheetName,
+            byte[]? stylesPart,
+            ArraySegment<byte> worksheetPart) {
             using var positionReportingDestination = destination.CanSeek
                 ? null
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Length, stylesPart != null));
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(worksheetCount: 1, hasStyles: stylesPart != null));
+                WriteEntry(archive, "_rels/.rels", RootRelationships);
+                WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.CreateDirectTabular(
+                    sheetName,
+                    document.DateSystem == ExcelDateSystem.NineteenFour));
+                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(worksheetCount: 1, hasStyles: stylesPart != null));
+                WriteEntry(archive, "xl/worksheets/sheet1.bin", worksheetPart);
+                if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
+            }
+        }
+
+        private static void WritePackage(
+            ExcelDocument document,
+            Stream destination,
+            IReadOnlyList<ExcelSheet> sheets,
+            byte[]? stylesPart,
+            IReadOnlyList<byte[]> worksheetParts,
+            IReadOnlyList<XlsbWorksheetHyperlinkPlan> hyperlinkPlans) {
+            using var positionReportingDestination = destination.CanSeek
+                ? null
+                : new ExcelPositionReportingWriteStream(destination);
+            Stream packageDestination = positionReportingDestination ?? destination;
+            using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null));
                 WriteEntry(archive, "_rels/.rels", RootRelationships);
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                     sheets,
@@ -52,8 +122,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
                     document.WorkbookRoot.GetFirstChild<DefinedNames>(),
                     document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
-                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
-                for (int index = 0; index < worksheetParts.Length; index++) {
+                WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null));
+                for (int index = 0; index < worksheetParts.Count; index++) {
                     WriteEntry(
                         archive,
                         "xl/worksheets/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin",
@@ -126,6 +196,33 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
+        private static void ValidateDirectTabularWorkbook(
+            ExcelDocument document,
+            IReadOnlyList<ExcelSheet> sheets,
+            string sheetName) {
+            if (sheets.Count != 1 || !string.Equals(sheets[0].Name, sheetName, StringComparison.Ordinal)) {
+                throw new NotSupportedException("Native XLSB direct tabular generation requires exactly one matching worksheet.");
+            }
+            if (document.HasPackagePropertiesDirty) {
+                throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
+            }
+            if (document.WorkbookRoot.ChildElements.Any(element => element is not Sheets)) {
+                throw new NotSupportedException("Native XLSB direct tabular generation requires default workbook metadata.");
+            }
+            if (document.WorkbookPartRoot.ExternalRelationships.Any()) {
+                throw new NotSupportedException("Native XLSB generation does not yet support external workbook relationships.");
+            }
+
+            OpenXmlPart? unsupportedPart = document.WorkbookPartRoot.Parts
+                .Select(pair => pair.OpenXmlPart)
+                .FirstOrDefault(part => part is not WorksheetPart
+                    && part is not SharedStringTablePart
+                    && part is not WorkbookStylesPart);
+            if (unsupportedPart != null) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support workbook part '{unsupportedPart.ContentType}'.");
+            }
+        }
+
         private static void ThrowIfDuplicateWorkbookElement<T>(Workbook workbook, string detail)
             where T : OpenXmlElement {
             if (workbook.Elements<T>().Skip(1).Any()) {
@@ -181,6 +278,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             entry.LastWriteTime = ReproducibleEntryTime;
             using Stream output = entry.Open();
             output.Write(content, 0, content.Length);
+        }
+
+        private static void WriteEntry(ZipArchive archive, string name, ArraySegment<byte> content) {
+            byte[] buffer = content.Array ?? throw new ArgumentException("The package part must have a backing buffer.", nameof(content));
+            ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            entry.LastWriteTime = ReproducibleEntryTime;
+            using Stream output = entry.Open();
+            output.Write(buffer, content.Offset, content.Count);
         }
 
         private const string RootRelationships =

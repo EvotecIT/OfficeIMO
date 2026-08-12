@@ -394,6 +394,19 @@ IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
 ```
 
+Text extraction excludes PDF artifact marked content by default, which is the
+logical-text behavior expected for decorative headers, footers, and chart
+labels. Opt into visual text when those marked artifacts are part of the
+required payload:
+
+```csharp
+PdfDocument visualTextPdf = PdfDocument.Open("spreadsheet-export.pdf", new PdfReadOptions {
+    IncludeArtifactText = true
+});
+
+IReadOnlyList<string> visualTextByPage = visualTextPdf.Read.TextByPage();
+```
+
 ### Split and extract pages
 
 ```csharp
@@ -780,7 +793,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper current-state areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, bounded Type 3 vector glyph-program rendering, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Unsupported Type 3 programs retain diagnosed font substitution; unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper current-state areas.
 
 For the current capability inventory, ownership boundaries, premium conversion
 contract, and remaining general engine work, read

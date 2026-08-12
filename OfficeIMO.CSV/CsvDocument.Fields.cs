@@ -244,7 +244,15 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(text));
         }
 
-        ReadFieldSpans(text.AsSpan(), ref fieldVisitor, options);
+        options = CreateRawRecordOptions(options);
+        if (options.DetectDelimiter)
+        {
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options, useHeaderDiscoveryForDelimiterDetection: false);
+            CsvParser.ReadFieldSpans(text, resolvedOptions, GetInitialRecordsToSkip(resolvedOptions), ref fieldVisitor);
+            return;
+        }
+
+        CsvParser.ReadFieldSpans(text, options, GetInitialRecordsToSkip(options), ref fieldVisitor);
     }
 
     /// <summary>
@@ -262,7 +270,7 @@ public sealed partial class CsvDocument
         {
             var sourceText = text.ToString();
             var resolvedOptions = ResolveLoadOptions(() => new StringReader(sourceText), options, useHeaderDiscoveryForDelimiterDetection: false);
-            CsvParser.ReadFieldSpans(sourceText.AsSpan(), resolvedOptions, GetInitialRecordsToSkip(resolvedOptions), ref fieldVisitor);
+            CsvParser.ReadFieldSpans(sourceText, resolvedOptions, GetInitialRecordsToSkip(resolvedOptions), ref fieldVisitor);
             return;
         }
 

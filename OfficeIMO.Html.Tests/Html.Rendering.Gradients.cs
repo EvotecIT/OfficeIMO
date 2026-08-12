@@ -548,6 +548,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGradientCentersResolveThreeAndFourComponentEdgeOffsets() {
+        Assert.True(HtmlCssConicGradientParser.TryParse(
+            "conic-gradient(at right 10px bottom 20px,red,blue)",
+            8,
+            out HtmlCssConicGradientDefinition? conicDefinition,
+            out bool conicLimitExceeded));
+        Assert.NotNull(conicDefinition);
+        Assert.False(conicLimitExceeded);
+        Assert.True(conicDefinition!.TryResolve(100D, 80D, 16D, 16D, 100D, 80D, out OfficeConicGradient? conic, out _));
+        Assert.NotNull(conic);
+        Assert.Equal(0.9D, conic!.CenterX, 6);
+        Assert.Equal(0.75D, conic.CenterY, 6);
+
+        Assert.True(HtmlCssRadialGradientParser.TryParse(
+            "radial-gradient(circle at left 15px bottom,red,blue)",
+            8,
+            out HtmlCssRadialGradientDefinition? radialDefinition,
+            out bool radialLimitExceeded));
+        Assert.NotNull(radialDefinition);
+        Assert.False(radialLimitExceeded);
+        Assert.True(radialDefinition!.TryResolve(100D, 80D, 16D, 16D, 100D, 80D, out OfficeRadialGradient? radial, out _));
+        Assert.NotNull(radial);
+        Assert.Equal(0.15D, radial!.EndX, 6);
+        Assert.Equal(1D, radial.EndY, 6);
+
+        Assert.False(HtmlCssConicGradientParser.TryParse(
+            "conic-gradient(at right 10px left 20px,red,blue)",
+            8,
+            out _,
+            out _));
+    }
+
+    [Fact]
     public void HtmlConicGradient_StylesheetShorthandFlowsThroughLayeredCascadeAndExports() {
         const string html = """
             <style>

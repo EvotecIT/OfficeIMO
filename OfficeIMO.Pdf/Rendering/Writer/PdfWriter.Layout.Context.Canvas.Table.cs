@@ -361,7 +361,17 @@ internal static partial class PdfWriter {
                 } else {
                     double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
                     double formFieldTop = cellTop - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
-                    RenderTableCellObjects(currentPage!, cell, align, cellX + padLeft, innerWidth, formFieldTop);
+                    RenderTableCellObjects(
+                        currentPage!,
+                        cell,
+                        align,
+                        cellX + padLeft,
+                        innerWidth,
+                        formFieldTop,
+                        pageImage => {
+                            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+                            sb.Append(pageImage.InlineDrawToken);
+                        });
                 }
             }
 

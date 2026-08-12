@@ -747,6 +747,55 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorDrawing_RendersScaledEffectGroupAsReadablePdfPage() {
+        var panel = OfficeShape.Rectangle(200, 80);
+        panel.FillColor = OfficeColor.WhiteSmoke;
+        panel.StrokeColor = OfficeColor.SteelBlue;
+        panel.StrokeWidth = 2D;
+
+        var source = new OfficeDrawing(200, 80)
+            .AddShape(panel, 0D, 0D)
+            .AddText("ScaledDrawing", 12D, 18D, 140D, 24D, font: new OfficeFontInfo("Helvetica", 14D))
+            .AddImage(
+                PdfPngTestImages.CreateRgbPng(2, 2),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(164D, 16D, 24D, 24D)),
+                alternativeText: "Status mark",
+                opacity: 0.75D);
+        var scaled = new OfficeDrawing(100, 40)
+            .AddEffectDrawing(source, OfficeTransform.Scale(0.5D, 0.5D));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180D,
+                PageHeight = 120D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D,
+                CompressContentStreams = false
+            })
+            .Drawing(scaled, align: PdfAlign.Center)
+            .ToBytes();
+
+        PdfReadDocument readback = PdfReadDocument.Open(bytes);
+        string raw = Encoding.ASCII.GetString(bytes);
+        using PdfPigDocument parsed = PdfPigDocument.Open(new MemoryStream(bytes));
+        var scaledLetters = parsed.GetPage(1).Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .ToList();
+
+        Assert.Single(readback.Pages);
+        Assert.Contains("ScaledDrawing", readback.ExtractText(), StringComparison.Ordinal);
+        Assert.NotEmpty(scaledLetters);
+        Assert.All(scaledLetters, letter => {
+            Assert.InRange(letter.StartBaseLine.X, 0D, 180D);
+            Assert.InRange(letter.StartBaseLine.Y, 0D, 120D);
+        });
+        Assert.Contains("/Group << /S /Transparency /I true /K false >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VectorShape_RejectsInvalidGeometry() {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfDocument.Create()

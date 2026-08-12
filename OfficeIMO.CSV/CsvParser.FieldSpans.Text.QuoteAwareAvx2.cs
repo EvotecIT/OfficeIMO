@@ -18,10 +18,12 @@ internal static partial class CsvParser
     private static bool TryReadTextQuoteAwareRecordFieldSpansAvx2<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,
+        bool trim,
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
         int recordStart,
+        int fieldSpanCapacity,
         ref int position,
         ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
@@ -37,7 +39,12 @@ internal static partial class CsvParser
             return false;
         }
 
-        Span<TextQuoteAwareFieldSpan> fields = stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity];
+        Span<TextQuoteAwareFieldSpan> fields = fieldSpanCapacity switch
+        {
+            16 => stackalloc TextQuoteAwareFieldSpan[16],
+            32 => stackalloc TextQuoteAwareFieldSpan[32],
+            _ => stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity],
+        };
         var fieldStart = recordStart;
         var quoteCount = 0;
         var delimiterVector = Vector256.Create((byte)delimiter);
@@ -45,6 +52,7 @@ internal static partial class CsvParser
             text,
             delimiter,
             delimiterVector,
+            trim,
             allowEmpty,
             emitFields,
             recordIndex,
@@ -64,6 +72,7 @@ internal static partial class CsvParser
     private static bool TryReadTextQuoteAwareRecordFieldSpansAvx2FromCurrentChunk<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,
+        bool trim,
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
@@ -122,6 +131,7 @@ internal static partial class CsvParser
             return CompleteTextQuoteAwareRecord(
                 text,
                 fields.Slice(0, fieldCount),
+                trim,
                 allowEmpty,
                 emitFields,
                 recordIndex,
@@ -138,6 +148,7 @@ internal static partial class CsvParser
             text,
             delimiter,
             delimiterVector,
+            trim,
             allowEmpty,
             emitFields,
             recordIndex,
@@ -158,6 +169,7 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         char delimiter,
         Vector256<byte> delimiterVector,
+        bool trim,
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
@@ -217,6 +229,7 @@ internal static partial class CsvParser
                     return CompleteTextQuoteAwareRecord(
                         text,
                         fields.Slice(0, fieldCount),
+                        trim,
                         allowEmpty,
                         emitFields,
                         recordIndex,
@@ -249,6 +262,7 @@ internal static partial class CsvParser
         return CompleteTextQuoteAwareRecord(
             text,
             fields.Slice(0, fieldCount),
+            trim,
             allowEmpty,
             emitFields,
             recordIndex,
@@ -404,7 +418,8 @@ internal static partial class CsvParser
 
     private static bool CompleteTextQuoteAwareRecord<TVisitor>(
         ReadOnlySpan<char> text,
-        ReadOnlySpan<TextQuoteAwareFieldSpan> fields,
+        Span<TextQuoteAwareFieldSpan> fields,
+        bool trim,
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
@@ -421,6 +436,14 @@ internal static partial class CsvParser
         if (fields.Length == 0)
         {
             return false;
+        }
+
+        if (trim)
+        {
+            for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
+            {
+                fields[fieldIndex] = NormalizeTextQuoteAwareField(text, fields[fieldIndex]);
+            }
         }
 
         if (emitFields && (allowEmpty || fields[^1].End > recordStart))
@@ -621,6 +644,25 @@ internal static partial class CsvParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static TextQuoteAwareFieldSpan NormalizeTextQuoteAwareField(
+        ReadOnlySpan<char> text,
+        TextQuoteAwareFieldSpan field)
+    {
+        var start = field.Start;
+        var end = field.End;
+        while (start < end && char.IsWhiteSpace(text[start]))
+        {
+            start++;
+        }
+        while (end > start && char.IsWhiteSpace(text[end - 1]))
+        {
+            end--;
+        }
+
+        return new TextQuoteAwareFieldSpan(start, end, field.QuoteCount);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryAddTextQuoteAwareField(
         Span<TextQuoteAwareFieldSpan> fields,
         ref int fieldCount,
@@ -652,5 +694,6 @@ internal static partial class CsvParser
 
         public int QuoteCount { get; }
     }
+
 #endif
 }

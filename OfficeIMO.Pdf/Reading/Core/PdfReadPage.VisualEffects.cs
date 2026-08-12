@@ -188,9 +188,10 @@ public sealed partial class PdfReadPage {
         Matrix2D pageTransform,
         Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         if (cache.TryGetValue(resource, out OfficeDrawingSoftMask? existing)) return existing;
-        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget);
+        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
         var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
         cache[resource] = mask;
         return mask;
@@ -202,7 +203,8 @@ public sealed partial class PdfReadPage {
         double height,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? pageResources;
@@ -213,6 +215,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
+        var renderedType3PaintOrders = new HashSet<double>();
         CollectVisualPrimitivesAndForms(
             content,
             resources,
@@ -221,6 +224,8 @@ public sealed partial class PdfReadPage {
             height,
             primitives.Add,
             activeForms,
+            renderedType3PaintOrders: renderedType3PaintOrders,
+            type3GlyphBudget: type3GlyphBudget,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -245,7 +250,10 @@ public sealed partial class PdfReadPage {
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
-        for (int i = 0; i < spans.Count; i++) elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
+        for (int i = 0; i < spans.Count; i++) {
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
+            elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
+        }
 
         var placements = new List<PdfImagePlacement>();
         CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);

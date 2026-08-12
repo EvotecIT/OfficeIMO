@@ -184,8 +184,7 @@ namespace OfficeIMO.Data {
             var result = new Dictionary<string, object?>(capacity, StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts, new HashSet<object>(ObjectReferenceComparer.Instance));
             if (result.Count > opts.MaxColumns) {
-                throw new InvalidDataException(
-                    $"Object flattening exceeds the {opts.MaxColumns}-column limit.");
+                throw CreateRawColumnLimitException("Object flattening", result.Count, opts.MaxColumns);
             }
 
             List<string> selectedPaths = ResolvePathsPrepared(result.Keys, opts);
@@ -234,8 +233,7 @@ namespace OfficeIMO.Data {
                     continue;
                 }
                 if (filtered.Count >= opts.MaxColumns) {
-                    throw new InvalidDataException(
-                        $"Resolved paths exceed the {opts.MaxColumns}-column limit.");
+                    throw CreateRawColumnLimitException("Path resolution", checked(filtered.Count + 1), opts.MaxColumns);
                 }
                 filtered.Add(path);
             }
@@ -558,8 +556,7 @@ namespace OfficeIMO.Data {
             if (!IsPathSelectedForMaterialization(path, opts)) return;
             if (!addedPaths.Add(path)) return;
             if (paths.Count >= opts.MaxColumns) {
-                throw new InvalidDataException(
-                    $"Object path discovery exceeds the {opts.MaxColumns}-column limit.");
+                throw CreateRawColumnLimitException("Object path discovery", checked(paths.Count + 1), opts.MaxColumns);
             }
             paths.Add(path);
         }
@@ -735,8 +732,7 @@ namespace OfficeIMO.Data {
             string path,
             ObjectFlattenerOptions options) {
             if (columns.Count >= options.MaxColumns && !columns.ContainsKey(path)) {
-                throw new InvalidDataException(
-                    $"Object flattening exceeds the {options.MaxColumns}-column limit.");
+                throw CreateRawColumnLimitException("Object flattening", checked(columns.Count + 1), options.MaxColumns);
             }
         }
 
@@ -1054,8 +1050,7 @@ namespace OfficeIMO.Data {
                 }
                 if (available.TryGetValue(column, out string? match) && added.Add(match)) {
                     if (result.Count >= maxColumns) {
-                        throw new InvalidDataException(
-                            $"Resolved explicit columns exceed the {maxColumns}-column limit.");
+                        throw CreateRawColumnLimitException("Explicit column resolution", checked(result.Count + 1), maxColumns);
                     }
                     result.Add(match);
                 }

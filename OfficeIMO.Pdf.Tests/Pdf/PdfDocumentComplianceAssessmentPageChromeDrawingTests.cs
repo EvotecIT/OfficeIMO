@@ -202,6 +202,80 @@ public partial class PdfDocumentComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedDrawingAlternativeTextOwnsNestedImageSemantics() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Drawing(drawing, style: new PdfDrawingStyle { AlternativeText = "Composite drawing alternative text" })
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.Equal(1, CountOccurrences(content, "/Figure << /Alt"));
+        Assert.Contains("/Alt <436F6D706F736974652064726177696E6720616C7465726E61746976652074657874>", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("4E657374656420696D61676520616C7465726E61746976652074657874", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedEffectDrawing_AssignsNestedImageMarkedContentToItsFormXObject() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing source = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+        OfficeDrawing drawing = new OfficeDrawing(48D, 24D)
+            .AddEffectDrawing(source, OfficeTransform.Scale(2D, 2D));
+
+        PdfDocument document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Drawing(drawing);
+        byte[] pdf = document.ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.Equal(1, CountOccurrences(content, "/StructParents"));
+        Assert.Contains("/StructParents 0 /Length", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /Figure[\s\S]+?/K << /Type /MCR /Pg \d+ 0 R /Stm (?<form>\d+) 0 R /MCID 0 >>", content);
+        Assert.Matches(@"/Nums \[0 \[(?<figure>\d+) 0 R\]\]", content);
+        Assert.Equal(
+            PdfComplianceRequirementStatus.Satisfied,
+            document.AssessCompliance(PdfComplianceProfile.PdfUa1).FindRequirement("generated-drawing-alternate-text")!.Status);
+    }
+
+    [Fact]
+    public void ImageOnlyDrawingUsesChildAlternativeTextForCompliance() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+        PdfDocument[] documents = {
+            PdfDocument.Create().Drawing(drawing),
+            PdfDocument.Create().Canvas(canvas => canvas.Drawing(drawing, 10D, 10D, 24D, 12D))
+        };
+
+        foreach (PdfDocument document in documents) {
+            PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
+
+            Assert.Equal(PdfComplianceRequirementStatus.Satisfied, report.FindRequirement("generated-image-alternate-text")!.Status);
+            Assert.Equal(PdfComplianceRequirementStatus.Satisfied, report.FindRequirement("generated-drawing-alternate-text")!.Status);
+            Assert.Equal(PdfComplianceRequirementStatus.Satisfied, report.FindRequirement("alternate-text")!.Status);
+        }
+    }
+
+    [Fact]
+    public void DecorativeDrawingSuppressesNestedImageSemanticsWithoutTaggedStructure() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 24D, 12D));
+        OfficeDrawing drawing = new OfficeDrawing(24D, 12D)
+            .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Drawing(drawing, style: new PdfDrawingStyle { Decorative = true })
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+        Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("4E657374656420696D61676520616C7465726E61746976652074657874", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TaggedDecorativeShapeAndDrawingEmitArtifactMarkedContent() {
         OfficeDrawing drawing = new OfficeDrawing(36, 18)
             .AddShape(CreateComplianceShape(36, 18), 0, 0);

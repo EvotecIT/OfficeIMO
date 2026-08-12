@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Write;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -58,6 +59,42 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("<x:Visible", vml, StringComparison.OrdinalIgnoreCase);
             } finally {
                 TryDelete(openXmlPath);
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_WritesCommentsAcrossNonAdjacentWorksheets() {
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using (ExcelDocument document = ExcelDocument.Create()) {
+                    ExcelSheet first = document.AddWorksheet("First");
+                    first.CellValue(1, 1, "First value");
+                    first.SetLegacyComment(1, 1, "First comment", "Reviewer", visible: false, anchor: null);
+
+                    ExcelSheet middle = document.AddWorksheet("Middle");
+                    middle.CellValue(1, 1, "No comment");
+
+                    ExcelSheet third = document.AddWorksheet("Third");
+                    third.CellValue(2, 2, "Third value");
+                    third.SetLegacyComment(2, 2, "Third comment", "Reviewer", visible: true, anchor: null);
+
+                    document.Save(xlsOutputPath, new ExcelSaveOptions { DisableFastPackageWriter = true });
+                }
+
+                AssertWorkbookOpensViaExcelComWhenAvailable(
+                    xlsOutputPath,
+                    "The BIFF8 workbook with comments on non-adjacent worksheets failed to open in desktop Excel.");
+
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
+                result.EnsureNoImportErrors();
+                Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
+                Assert.Equal(3, result.Workbook.Worksheets.Count);
+                Assert.Equal("First comment", Assert.Single(result.Workbook.Worksheets[0].Comments).Text);
+                Assert.Empty(result.Workbook.Worksheets[1].Comments);
+                Assert.Equal("Third comment", Assert.Single(result.Workbook.Worksheets[2].Comments).Text);
+            } finally {
                 TryDelete(xlsOutputPath);
             }
         }
@@ -296,6 +333,30 @@ namespace OfficeIMO.Tests {
             AssertNativeXlsSaveNotSupported("comment author payload lengths outside BIFF8 limits", (document, sheet) => {
                 sheet.CellValue(1, 1, "Comment");
                 sheet.SetLegacyComment(1, 1, "Supported text", new string('A', 9000), visible: false, anchor: null);
+            });
+        }
+
+        [Theory]
+        [InlineData(1023, true)]
+        [InlineData(1024, false)]
+        public void LegacyXls_CommentDrawingCountBoundary_MatchesOfficeArtCluster(int commentCount, bool expected) {
+            Assert.Equal(expected, LegacyXlsCommentWriter.SupportsCommentCount(commentCount));
+        }
+
+        [Theory]
+        [InlineData(4093, true)]
+        [InlineData(4094, false)]
+        public void LegacyXls_CommentDrawingSheetBoundary_MatchesOfficeArtIdentifierLimit(int sheetIndex, bool expected) {
+            Assert.Equal(expected, LegacyXlsCommentWriter.SupportsCommentDrawingSheetIndex(sheetIndex));
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksCommentCountsBeyondOneOfficeArtClusterBeforeWriting() {
+            AssertNativeXlsSaveNotSupported("comment counts outside BIFF8 limits", (document, sheet) => {
+                for (int row = 1; row <= 1024; row++) {
+                    sheet.CellValue(row, 1, row);
+                    sheet.SetLegacyComment(row, 1, "Comment " + row, "Reviewer", visible: false, anchor: null);
+                }
             });
         }
 

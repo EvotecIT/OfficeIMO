@@ -68,14 +68,18 @@ namespace OfficeIMO.Excel {
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
             bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            bool directWrite = false;
+            XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
                 ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb()
-                : GenerateNativeXlsb(options);
+                : GenerateNativeXlsb(options, CancellationToken.None, out directWrite, out generatedWorkbook);
             CommitPreparedPackageToFile(path, bytes);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(!existingSource
+            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            LastSaveDiagnostics = directWrite
+                ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard(!existingSource
                 ? "New workbook encoded with the first-party BIFF12 XLSB writer."
                 : unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
@@ -93,14 +97,18 @@ namespace OfficeIMO.Excel {
 
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
             bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
+            bool directWrite = false;
+            XlsbWorkbook? generatedWorkbook = null;
             byte[] bytes = existingSource
                 ? unchanged ? _xlsbOriginalPackageBytes! : RewriteNativeXlsb()
-                : GenerateNativeXlsb(options);
+                : GenerateNativeXlsb(options, cancellationToken, out directWrite, out generatedWorkbook);
             await CommitPreparedPackageToFileAsync(path, bytes, cancellationToken).ConfigureAwait(false);
             FilePath = path;
             _xlsbSourcePath = path;
-            AdoptNativeXlsbAfterWrite(bytes, path);
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(!existingSource
+            AdoptNativeXlsbAfterWrite(bytes, path, generatedWorkbook);
+            LastSaveDiagnostics = directWrite
+                ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard(!existingSource
                 ? "New workbook encoded with the first-party BIFF12 XLSB writer."
                 : unchanged
                 ? "Unmodified XLSB source copied byte-for-byte with all package parts preserved."
@@ -119,6 +127,16 @@ namespace OfficeIMO.Excel {
             bool existingSource = SourceFormat == ExcelFileFormat.Xlsb;
             bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
+                if (TryGetDirectTabularSaveSource(options, CancellationToken.None, "Xlsb", out ExcelDirectTabularSource source)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None)) {
+                        try { destination.Flush(); } catch (NotSupportedException) { }
+                        LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
+                        return true;
+                    }
+
+                    Execution.ReportInfo("Save.Xlsb.Direct skipped: the tabular values require the general BIFF12 value encoder.");
+                }
+
                 PrepareWorkbookForSave(options);
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
                 XlsbNewPackageWriter.Write(this, destination);
@@ -152,6 +170,16 @@ namespace OfficeIMO.Excel {
             bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, cancellationToken)) {
+                        try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+                        LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
+                        return true;
+                    }
+
+                    Execution.ReportInfo("Save.Xlsb.Direct skipped: the tabular values require the general BIFF12 value encoder.");
+                }
+
                 PrepareWorkbookForSave(options);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
@@ -180,17 +208,41 @@ namespace OfficeIMO.Excel {
                 _xlsbAdvancedWorkbook ?? throw new InvalidOperationException("The XLSB source model is unavailable."));
         }
 
-        private byte[] GenerateNativeXlsb(ExcelSaveOptions? options) {
+        private byte[] GenerateNativeXlsb(
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken,
+            out bool directWrite,
+            out XlsbWorkbook generatedWorkbook) {
+            directWrite = false;
+            if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
+                using var directOutput = new MemoryStream();
+                if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, directOutput, cancellationToken)) {
+                    byte[] directBytes = directOutput.ToArray();
+                    generatedWorkbook = XlsbWorkbookReader.Load(
+                        directBytes,
+                        new XlsbImportOptions { ReportPreservedRecords = false });
+                    directWrite = true;
+                    return directBytes;
+                }
+
+                Execution.ReportInfo("Save.Xlsb.Direct skipped: the tabular values require the general BIFF12 value encoder.");
+            }
+
             PrepareWorkbookForSave(options);
             using var output = new MemoryStream();
             XlsbNewPackageWriter.Write(this, output);
             byte[] bytes = output.ToArray();
-            XlsbWorkbookReader.Load(bytes, new XlsbImportOptions { ReportPreservedRecords = false });
+            generatedWorkbook = XlsbWorkbookReader.Load(
+                bytes,
+                new XlsbImportOptions { ReportPreservedRecords = false });
             return bytes;
         }
 
-        private void AdoptNativeXlsbAfterWrite(byte[] bytes, string? sourcePath) {
-            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
+        private void AdoptNativeXlsbAfterWrite(
+            byte[] bytes,
+            string? sourcePath,
+            XlsbWorkbook? generatedWorkbook = null) {
+            XlsbWorkbook workbook = generatedWorkbook ?? XlsbWorkbookReader.Load(bytes);
             if (workbook.Stylesheet != null) XlsbStylesheetProjector.Install(this, workbook.Stylesheet);
             MarkLoadedFromXlsb(sourcePath, workbook);
         }

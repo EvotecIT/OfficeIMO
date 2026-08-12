@@ -45,6 +45,34 @@ internal readonly struct PdfPageClipPath {
             : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
     }
 
+    public static bool TryCombineTextClippingPaths(IReadOnlyList<PdfPageClipPath> paths, out PdfPageClipPath clipPath) {
+        clipPath = default;
+        if (paths.Count == 0) return false;
+        if (paths.Count == 1) {
+            clipPath = paths[0];
+            return true;
+        }
+
+        var commands = new List<OfficePathCommand>();
+        for (int i = 0; i < paths.Count; i++) {
+            PdfPageClipPath path = paths[i];
+            if (!path.IsRectangle) {
+                commands.AddRange(path.Commands);
+                continue;
+            }
+
+            double right = path.X + path.Width;
+            double bottom = path.Y + path.Height;
+            commands.Add(OfficePathCommand.MoveTo(new OfficePoint(path.X, path.Y)));
+            commands.Add(OfficePathCommand.LineTo(new OfficePoint(right, path.Y)));
+            commands.Add(OfficePathCommand.LineTo(new OfficePoint(right, bottom)));
+            commands.Add(OfficePathCommand.LineTo(new OfficePoint(path.X, bottom)));
+            commands.Add(OfficePathCommand.Close());
+        }
+
+        return TryCreatePath(commands, OfficeFillRule.NonZero, out clipPath);
+    }
+
     private static bool IntersectClipBounds(PdfPageClipPath first, PdfPageClipPath second, out PdfPageClipPath intersection) {
         double left = Math.Max(first.X, second.X);
         double top = Math.Max(first.Y, second.Y);

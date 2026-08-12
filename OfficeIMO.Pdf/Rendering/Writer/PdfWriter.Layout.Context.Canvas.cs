@@ -422,42 +422,36 @@ internal static partial class PdfWriter {
             double topY = currentOpts.PageHeight - item.Y;
             double bottomY = topY - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
+            int imageStart = currentPage.Images.Count;
             bool rotated = item.RotationAngle != 0D;
             if (rotated) {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
 
             bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            double scaleX = item.Width / block.Drawing.Width;
-            double scaleY = item.Height / block.Drawing.Height;
-            bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
-            if (scaled) {
-                new ContentStreamBuilder(sb)
-                    .SaveState()
-                    .TransformMatrix(scaleX, 0D, 0D, scaleY, item.X, bottomY);
+            int? structElementIndex = AppendDrawingMarkedContentBegin(
+                style,
+                out markedContent,
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
+            bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
+            if (markedContent || style.Decorative) {
+                _suppressCanvasAccessibilityWrappers = true;
             }
-
-            for (int i = 0; i < block.Drawing.Elements.Count; i++) {
-                if (block.Drawing.Elements[i] is OfficeIMO.Drawing.OfficeDrawingShape drawingShape) {
-                    double xShape = scaled ? drawingShape.X : item.X + drawingShape.X;
-                    double shapeBottomY = scaled
-                        ? block.Drawing.Height - drawingShape.Y - drawingShape.Shape.Height
-                        : topY - drawingShape.Y - drawingShape.Shape.Height;
-                    DrawShapeGeometryAt(drawingShape.Shape, xShape, shapeBottomY);
-                } else if (block.Drawing.Elements[i] is OfficeIMO.Drawing.OfficeDrawingText drawingText) {
-                    double textX = scaled ? drawingText.X : item.X + drawingText.X;
-                    double textTopY = scaled ? block.Drawing.Height - drawingText.Y : topY - drawingText.Y;
-                    DrawDrawingTextAt(drawingText, textX, textTopY);
+            try {
+                double scaleX = item.Width / block.Drawing.Width;
+                double scaleY = item.Height / block.Drawing.Height;
+                bool scaled = Math.Abs(scaleX - 1D) > 0.0001D || Math.Abs(scaleY - 1D) > 0.0001D;
+                if (scaled) {
+                    var scaledDrawing = new OfficeDrawing(item.Width, item.Height)
+                        .AddEffectDrawing(block.Drawing, OfficeTransform.Scale(scaleX, scaleY));
+                    DrawDrawingElements(scaledDrawing, item.X, topY);
+                } else {
+                    DrawDrawingElements(block.Drawing, item.X, topY);
                 }
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
+                AppendDrawingMarkedContentEnd(markedContent);
             }
-
-            if (scaled) {
-                new ContentStreamBuilder(sb)
-                    .RestoreState();
-            }
-
-            AppendDrawingMarkedContentEnd(markedContent);
             if (!string.IsNullOrEmpty(block.LinkUri)) {
                 currentPage.Annotations.Add(new LinkAnnotation {
                     X1 = item.X,
@@ -473,6 +467,10 @@ internal static partial class PdfWriter {
             if (rotated) {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
+                TransformCanvasPageImageBounds(
+                    currentPage.Images,
+                    imageStart,
+                    CreateCanvasRotationTransform(item.X, bottomY, item.Width, item.Height, item.RotationAngle));
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -489,17 +487,13 @@ internal static partial class PdfWriter {
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
+            pageImage.StructureParentElementIndex = _canvasStructureParentElementIndex;
             pageImage.RotationAngle = item.RotationAngle;
             pageImage.HorizontalFlip = item.HorizontalFlip;
             pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
-            pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
+            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
-            if (!_suppressCanvasAccessibilityWrappers && !string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
-                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!, _canvasStructureParentElementIndex);
-                pageImage.MarkedContentId = markedContentId;
-                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
-            }
 
             int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
@@ -538,48 +532,6 @@ internal static partial class PdfWriter {
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
-
-        private void RenderCanvasEffect(PdfCanvasEffectItem item) {
-            OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight);
-            int annotationStart = currentPage!.Annotations.Count;
-            int textAnnotationStart = currentPage.TextAnnotations.Count;
-            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
-            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
-            int formFieldStart = currentPage.FormFields.Count;
-            string? opacityState = EnsureGraphicsState(item.Opacity, item.Opacity);
-            int contentStart = sb.Length;
-            _canvasClipDepth++;
-            try {
-                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
-            } finally {
-                _canvasClipDepth--;
-            }
-            string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
-            sb.Length = contentStart;
-            string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
-            currentPage.EffectGroups.Add(new PageEffectGroup {
-                Content = pageContents.Store(groupContent),
-                Token = token,
-                Transform = transform,
-                GraphicsStateName = opacityState
-            });
-            sb.Append(token);
-            TransformCanvasRectangles(currentPage.Annotations, annotationStart, transform);
-            TransformCanvasRectangles(currentPage.TextAnnotations, textAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.FreeTextAnnotations, freeTextAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.HighlightAnnotations, highlightAnnotationStart, transform);
-            TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
-            pageDirty = true;
-        }
-
-        private static OfficeTransform ConvertTopLeftCanvasTransform(OfficeTransform transform, double pageHeight) =>
-            new OfficeTransform(
-                transform.M11,
-                -transform.M12,
-                -transform.M21,
-                transform.M22,
-                transform.M21 * pageHeight + transform.OffsetX,
-                pageHeight * (1D - transform.M22) - transform.OffsetY);
 
         private static void TransformCanvasRectangles(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, OfficeTransform transform) {
             for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
@@ -737,10 +689,11 @@ internal static partial class PdfWriter {
             double clipTop = clipBottomY + clipHeight;
             for (int i = images.Count - 1; i >= startIndex; i--) {
                 PageImage image = images[i];
-                double x1 = System.Math.Max(image.X, clipX);
-                double y1 = System.Math.Max(image.Y, clipBottomY);
-                double x2 = System.Math.Min(image.X + image.W, clipRight);
-                double y2 = System.Math.Min(image.Y + image.H, clipTop);
+                (double effectiveX, double effectiveY, double effectiveW, double effectiveH) = EffectivePageImageBounds(image);
+                double x1 = System.Math.Max(effectiveX, clipX);
+                double y1 = System.Math.Max(effectiveY, clipBottomY);
+                double x2 = System.Math.Min(effectiveX + effectiveW, clipRight);
+                double y2 = System.Math.Min(effectiveY + effectiveH, clipTop);
                 if (x2 <= x1 || y2 <= y1) {
                     if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
                         sb.Replace(image.InlineDrawToken, string.Empty);
@@ -829,6 +782,13 @@ internal static partial class PdfWriter {
         }
 
         private void BeginRotatedCanvasFrame(double x, double bottomY, double width, double height, double rotationAngle) {
+            OfficeTransform transform = CreateCanvasRotationTransform(x, bottomY, width, height, rotationAngle);
+            new ContentStreamBuilder(sb)
+                .SaveState()
+                .TransformMatrix(transform);
+        }
+
+        private static OfficeTransform CreateCanvasRotationTransform(double x, double bottomY, double width, double height, double rotationAngle) {
             double angle = rotationAngle * Math.PI / 180D;
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
@@ -836,10 +796,7 @@ internal static partial class PdfWriter {
             double centerY = bottomY + height / 2D;
             double e = centerX - cos * centerX + sin * centerY;
             double f = centerY - sin * centerX - cos * centerY;
-
-            new ContentStreamBuilder(sb)
-                .SaveState()
-                .TransformMatrix(cos, sin, -sin, cos, e, f);
+            return new OfficeTransform(cos, sin, -sin, cos, e, f);
         }
 
         private static void RotateCanvasLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annotations, double x, double bottomY, double width, double height, double rotationAngle) {
@@ -866,6 +823,8 @@ internal static partial class PdfWriter {
                 return;
             }
 
+            OfficeTransform transform = CreateCanvasRotationTransform(x, bottomY, width, height, rotationAngle);
+            TransformCanvasPageImageBounds(images, startIndex, transform);
             double angle = rotationAngle * Math.PI / 180D;
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
@@ -873,6 +832,10 @@ internal static partial class PdfWriter {
             double centerY = bottomY + height / 2D;
             for (int i = startIndex; i < images.Count; i++) {
                 PageImage image = images[i];
+                if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
+                    continue;
+                }
+
                 double imageCenterX = image.X + image.W / 2D;
                 double imageCenterY = image.Y + image.H / 2D;
                 RotateCanvasPoint(imageCenterX, imageCenterY, centerX, centerY, cos, sin, out double rotatedCenterX, out double rotatedCenterY);

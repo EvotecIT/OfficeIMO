@@ -178,12 +178,19 @@ namespace OfficeIMO.PowerPoint {
 
             var options = new ObjectFlattenerOptions();
             configure?.Invoke(options);
+            Func<int, string?> maxColumnsGuidance = GetObjectTableColumnLimitGuidance;
+            Func<long, string?> maxCellsGuidance = GetObjectTableCellLimitGuidance;
             options.MaxColumns = Math.Min(options.MaxColumns, MaximumObjectTableColumns);
             options.MaxCells = Math.Min(options.MaxCells, MaximumObjectTableCells);
             var flattener = new ObjectFlattener();
 
             ObjectTableProjection projection = flattener.FlattenRows(
-                data, options, "PowerPoint AddTable", includeHeaders ? 1 : 0);
+                data,
+                options,
+                "PowerPoint AddTable",
+                includeHeaders ? 1 : 0,
+                columnLimitGuidance: maxColumnsGuidance,
+                cellLimitGuidance: maxCellsGuidance);
             IReadOnlyList<string> paths = projection.Columns;
 
             if (paths.Count == 0) {
@@ -210,7 +217,11 @@ namespace OfficeIMO.PowerPoint {
                                     $"PowerPoint AddTable nested expansion exceeds the {options.MaxRows}-row materialization limit.");
                             }
                             EnsureObjectTableCellLimit(
-                                rowsData.Count + 1, paths.Count, includeHeaders, options.MaxCells);
+                                rowsData.Count + 1,
+                                paths.Count,
+                                includeHeaders,
+                                options.MaxCells,
+                                maxCellsGuidance);
                             expanded = true;
                             var rowValues = paths.Select(p => p == collectionPath ? element :
                                 dict.TryGetValue(p, out var v) ? v :
@@ -224,7 +235,11 @@ namespace OfficeIMO.PowerPoint {
                                     $"PowerPoint AddTable exceeds the {options.MaxRows}-row materialization limit.");
                             }
                             EnsureObjectTableCellLimit(
-                                rowsData.Count + 1, paths.Count, includeHeaders, options.MaxCells);
+                                rowsData.Count + 1,
+                                paths.Count,
+                                includeHeaders,
+                                options.MaxCells,
+                                maxCellsGuidance);
                             rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
                                 (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
                         }
@@ -237,7 +252,11 @@ namespace OfficeIMO.PowerPoint {
                         $"PowerPoint AddTable exceeds the {options.MaxRows}-row materialization limit.");
                 }
                 EnsureObjectTableCellLimit(
-                    rowsData.Count + 1, paths.Count, includeHeaders, options.MaxCells);
+                    rowsData.Count + 1,
+                    paths.Count,
+                    includeHeaders,
+                    options.MaxCells,
+                    maxCellsGuidance);
                 rowsData.Add(paths.Select(p => dict.TryGetValue(p, out var v) ? v :
                     (options.DefaultValues.TryGetValue(p, out var d) ? d : null)).ToArray());
             }
@@ -278,11 +297,14 @@ namespace OfficeIMO.PowerPoint {
             int dataRowCount,
             int columnCount,
             bool includeHeaders,
-            long maximumCells) {
+            long maximumCells,
+            Func<long, string?>? limitGuidance = null) {
             long projectedCells = ((long)dataRowCount + (includeHeaders ? 1L : 0L)) * columnCount;
             if (projectedCells > maximumCells) {
+                string guidance = limitGuidance?.Invoke(projectedCells)
+                    ?? $"If this materialization is intentional, raise the limit with configure: options => options.MaxCells = {projectedCells}.";
                 throw new InvalidDataException(
-                    $"PowerPoint AddTable exceeds the {maximumCells}-cell materialization limit.");
+                    $"PowerPoint AddTable requires at least {projectedCells} cells, exceeding the {maximumCells}-cell materialization limit (MaxCells). {guidance}");
             }
         }
 
@@ -313,7 +335,12 @@ namespace OfficeIMO.PowerPoint {
                 data,
                 maximumDataRows,
                 $"PowerPoint AddTable exceeds the {MaximumObjectTableCells}-cell materialization limit.");
-            EnsureObjectTableCellLimit(items.Count, columnList.Count, includeHeaders, MaximumObjectTableCells);
+            EnsureObjectTableCellLimit(
+                items.Count,
+                columnList.Count,
+                includeHeaders,
+                MaximumObjectTableCells,
+                GetObjectTableCellLimitGuidance);
 
             int totalRows = items.Count + (includeHeaders ? 1 : 0);
             if (totalRows == 0) {
@@ -344,6 +371,16 @@ namespace OfficeIMO.PowerPoint {
             ApplyColumnWidths(table, width, columnList);
             return table;
         }
+
+        private static string? GetObjectTableColumnLimitGuidance(int requiredColumns) =>
+            requiredColumns > MaximumObjectTableColumns
+                ? $"Select fewer columns or split the data across multiple tables; PowerPoint AddTable's {MaximumObjectTableColumns}-column limit cannot be overridden."
+                : null;
+
+        private static string? GetObjectTableCellLimitGuidance(long requiredCells) =>
+            requiredCells > MaximumObjectTableCells
+                ? $"Select fewer rows or columns, or split the data across multiple tables; PowerPoint AddTable's {MaximumObjectTableCells}-cell limit cannot be overridden."
+                : null;
 
         private static List<TItem> MaterializeObjectTableItemsBounded<TItem>(
             IEnumerable<TItem> source,

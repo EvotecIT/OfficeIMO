@@ -51,6 +51,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly int _lastDataRow;
         private readonly CancellationToken _cancellationToken;
         private readonly XlsbLogicalRowReadBudget _logicalRowBudget;
+        private readonly XlsbValidatedRowPlan? _validatedRowPlan;
         private bool _closed;
         private bool _hasPendingRow;
         private bool _hasCurrentRow;
@@ -129,7 +130,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out actualFirstColumn,
                     out actualLastColumn,
                     out actualFirstDataRow,
-                    out actualLastDataRow);
+                    out actualLastDataRow,
+                    out _validatedRowPlan);
             } catch {
                 worksheetPart.Dispose();
                 throw;
@@ -282,7 +284,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget.Consume();
             _hasPendingRow = false;
             bool reachedRowBoundary = _options.CellValueConverter == null
-                ? ReadCurrentRowRecordsFast()
+                ? TryReadValidatedRowPlan(currentRowIndex) || ReadCurrentRowRecordsFast()
                 : ReadCurrentRowRecordsConverted();
 
             if (!reachedRowBoundary) {

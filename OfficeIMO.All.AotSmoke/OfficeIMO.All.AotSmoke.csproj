@@ -16,6 +16,7 @@
     <ProjectReference Include="..\OfficeIMO.AsciiDoc\OfficeIMO.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Pdf\OfficeIMO.AsciiDoc.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
@@ -113,6 +114,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc" />
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.ChartForgeX" />
     <TrimmerRootAssembly Include="OfficeIMO.Confluence" />
     <TrimmerRootAssembly Include="OfficeIMO.CSV" />
     <TrimmerRootAssembly Include="OfficeIMO.Core" />

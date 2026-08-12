@@ -57,23 +57,37 @@ namespace OfficeIMO.Excel {
                 values[c] = c < firstRow.Length ? firstRow[c] : null;
             }
 
-            for (int r = 1; r < rows.Count; r++) {
-                object? row = rows[r];
-                if (row == null || (!rowTypeIsSealed && row.GetType() != rowType)) {
-                    return false;
-                }
-
-                int rowOffset = r * columnCount;
-                if (!TryProjectPowerShellObjectExistingRow(
-                    row,
+            if (ShouldProjectPowerShellRowsInParallel(rows.Count)) {
+                if (!TryProjectPowerShellObjectRowsParallel(
+                    rows,
+                    rowType,
+                    rowTypeIsSealed,
                     plan,
-                    ref propertyPlanCache,
                     headerArray,
                     state.InferredColumnTypes,
                     values,
-                    rowOffset,
                     columnCount)) {
                     return false;
+                }
+            } else {
+                for (int r = 1; r < rows.Count; r++) {
+                    object? row = rows[r];
+                    if (row == null || (!rowTypeIsSealed && row.GetType() != rowType)) {
+                        return false;
+                    }
+
+                    int rowOffset = r * columnCount;
+                    if (!TryProjectPowerShellObjectExistingRow(
+                        row,
+                        plan,
+                        ref propertyPlanCache,
+                        headerArray,
+                        state.InferredColumnTypes,
+                        values,
+                        rowOffset,
+                        columnCount)) {
+                        return false;
+                    }
                 }
             }
 
@@ -87,8 +101,87 @@ namespace OfficeIMO.Excel {
                 rows.Count,
                 startRow,
                 includeHeaders,
-                range);
+                range,
+                includeCellReferences: false);
 
+        }
+
+        private bool ShouldProjectPowerShellRowsInParallel(int rowCount) {
+            ExcelExecutionMode mode = EffectiveExecution.Mode;
+            if (mode == ExcelExecutionMode.Automatic) {
+                mode = EffectiveExecution.Decide("InsertObjects.PowerShellProjection", rowCount);
+            }
+
+            return mode == ExcelExecutionMode.Parallel && rowCount > 1;
+        }
+
+        private bool TryProjectPowerShellObjectRowsParallel<T>(
+            IReadOnlyList<T> rows,
+            Type rowType,
+            bool rowTypeIsSealed,
+            PowerShellObjectExportPlan plan,
+            string[] headers,
+            Type?[] inferredColumnTypes,
+            object?[] values,
+            int columnCount) {
+            var completedWorkers = new ConcurrentBag<PowerShellProjectionWorkerState>();
+            int failed = 0;
+            var parallelOptions = new ParallelOptions {
+                MaxDegreeOfParallelism = EffectiveExecution.MaxDegreeOfParallelism ?? -1
+            };
+
+            Parallel.For(
+                1,
+                rows.Count,
+                parallelOptions,
+                () => new PowerShellProjectionWorkerState(columnCount),
+                (rowIndex, loopState, worker) => {
+                    if (Volatile.Read(ref failed) != 0) {
+                        loopState.Stop();
+                        return worker;
+                    }
+
+                    object? row = rows[rowIndex];
+                    if (row == null || (!rowTypeIsSealed && row.GetType() != rowType)) {
+                        Interlocked.Exchange(ref failed, 1);
+                        loopState.Stop();
+                        return worker;
+                    }
+
+                    PowerShellPropertyExportPlanCache propertyPlanCache = worker.PropertyPlanCache;
+                    bool projected = TryProjectPowerShellObjectExistingRow(
+                        row,
+                        plan,
+                        ref propertyPlanCache,
+                        headers,
+                        worker.InferredColumnTypes,
+                        values,
+                        rowIndex * columnCount,
+                        columnCount);
+                    worker.PropertyPlanCache = propertyPlanCache;
+                    if (!projected) {
+                        Interlocked.Exchange(ref failed, 1);
+                        loopState.Stop();
+                    }
+
+                    return worker;
+                },
+                completedWorkers.Add);
+
+            if (failed != 0) {
+                return false;
+            }
+
+            foreach (PowerShellProjectionWorkerState worker in completedWorkers) {
+                for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                    UpdateObjectExportColumnType(
+                        inferredColumnTypes,
+                        columnIndex,
+                        worker.InferredColumnTypes[columnIndex]);
+                }
+            }
+
+            return true;
         }
 
         private static bool TryProjectPowerShellObjectFirstRow(
@@ -453,6 +546,16 @@ namespace OfficeIMO.Excel {
                 _lastPropertyPlan = plan.GetPropertyPlan(propertyType);
                 return _lastPropertyPlan;
             }
+        }
+
+        private sealed class PowerShellProjectionWorkerState {
+            internal PowerShellProjectionWorkerState(int columnCount) {
+                InferredColumnTypes = new Type?[columnCount];
+            }
+
+            internal Type?[] InferredColumnTypes { get; }
+
+            internal PowerShellPropertyExportPlanCache PropertyPlanCache;
         }
 
         private static bool IsPowerShellObjectExportType(Type type)

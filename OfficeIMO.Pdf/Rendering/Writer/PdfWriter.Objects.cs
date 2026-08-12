@@ -129,6 +129,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }
             public int NextMarkedContentId { get; set; }
+            public int NextInlineImageTokenId { get; set; }
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
@@ -138,6 +139,9 @@ internal static partial class PdfWriter {
 
         public void Dispose() => _contentStore.Dispose();
     }
+
+    private static string AllocateInlineImageDrawToken(LayoutResult.Page page) =>
+        "\n%OIMO_INLINE_IMAGE_" + (++page.NextInlineImageTokenId).ToString("D6", System.Globalization.CultureInfo.InvariantCulture) + "\n";
 
     private sealed class LinkAnnotation {
         public double X1 { get; set; }
@@ -403,6 +407,12 @@ internal static partial class PdfWriter {
         public string? GraphicsStateName { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
+        public double BoundsLeft { get; set; }
+        public double BoundsBottom { get; set; }
+        public double BoundsRight { get; set; }
+        public double BoundsTop { get; set; }
+        public int? StructParentIndex { get; set; }
+        public System.Collections.Generic.List<int> MarkedContentIds { get; } = new();
     }
 
     private sealed class OutlineNode {
@@ -422,6 +432,10 @@ internal static partial class PdfWriter {
         public double Y { get; set; }
         public double W { get; set; }
         public double H { get; set; }
+        public double? EffectiveX { get; set; }
+        public double? EffectiveY { get; set; }
+        public double? EffectiveW { get; set; }
+        public double? EffectiveH { get; set; }
         public OfficeClipPath? ClipPath { get; set; }
         public double ClipX { get; set; }
         public double ClipY { get; set; }
@@ -432,11 +446,14 @@ internal static partial class PdfWriter {
         public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
+        public double? RotationCenterX { get; set; }
+        public double? RotationCenterY { get; set; }
         public bool HorizontalFlip { get; set; }
         public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
         public bool SuppressAccessibilityWrapper { get; set; }
+        public int? StructureParentElementIndex { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }

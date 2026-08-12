@@ -383,6 +383,38 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void StructTreeRootDictionaryBuilder_SortsParentTreeKeysAndRejectsDuplicates() {
+            var entries = new[] {
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(3, 9),
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(1, new[] { 7 }),
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(2, 8)
+            };
+
+            Assert.Equal("<< /Nums [1 [7 0 R] 2 8 0 R 3 9 0 R] >>\n", PdfStructTreeRootDictionaryBuilder.BuildParentTree(entries));
+            Assert.Throws<ArgumentException>(() => PdfStructTreeRootDictionaryBuilder.BuildParentTree(new[] {
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(1, 7),
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(1, 8)
+            }));
+        }
+
+        [Fact]
+        public void StructTreeRootDictionaryBuilder_AssignsMarkedContentStreamsPerMcid() {
+            string element = PdfStructTreeRootDictionaryBuilder.BuildTextStructElement(
+                parentId: 4,
+                pageId: 5,
+                structureType: "P",
+                markedContentId: 0,
+                additionalMarkedContentIds: new[] { 1, 2 },
+                contentStreamObjectId: 11,
+                additionalContentStreamObjectIds: new int?[] { null, 12 });
+
+            Assert.Contains("/Stm 11 0 R /MCID 0", element, StringComparison.Ordinal);
+            Assert.Contains("/Pg 5 0 R /MCID 1", element, StringComparison.Ordinal);
+            Assert.DoesNotContain("/Stm 11 0 R /MCID 1", element, StringComparison.Ordinal);
+            Assert.Contains("/Stm 12 0 R /MCID 2", element, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void EmbeddedFileDictionaryBuilder_EmitsDeterministicStreamParameters() {
             var file = new PdfEmbeddedFile(
                 "invoice.xml",

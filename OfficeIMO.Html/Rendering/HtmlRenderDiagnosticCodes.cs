@@ -110,6 +110,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldRepeatedNameStaticFallback = "HtmlRenderFormFieldRepeatedNameStaticFallback";
     /// <summary>A select containing a blank option label used static rendering because PDF choice fields require non-empty display labels.</summary>
     public const string ChoiceBlankLabelStaticFallback = "HtmlRenderChoiceBlankLabelStaticFallback";
+    /// <summary>An empty select used static rendering because interactive PDF choice fields require at least one option.</summary>
+    public const string ChoiceEmptyOptionsStaticFallback = "HtmlRenderChoiceEmptyOptionsStaticFallback";
     /// <summary>A form control with non-uniform or elliptical corner radii used truthful static rendering.</summary>
     public const string FormFieldNonUniformRadiusStaticFallback = "HtmlRenderFormFieldNonUniformRadiusStaticFallback";
     /// <summary>A form control with translucent widget paint used truthful static rendering.</summary>
@@ -237,6 +239,7 @@ public static class HtmlRenderDiagnosticCodes {
         ChoiceDisabledOptionStaticFallback,
         FormFieldRepeatedNameStaticFallback,
         ChoiceBlankLabelStaticFallback,
+        ChoiceEmptyOptionsStaticFallback,
         FormFieldNonUniformRadiusStaticFallback,
         FormFieldColorTransparencyStaticFallback,
         FormFieldBackgroundImageStaticFallback,

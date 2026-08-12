@@ -8,6 +8,72 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        internal string InsertTabularRowSourceAsTable(
+            IExcelSheetTabularRowSource source,
+            int startRow = 1,
+            int startColumn = 1,
+            bool includeHeaders = true,
+            string? tableName = null,
+            ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2,
+            bool includeAutoFilter = true,
+            CancellationToken ct = default) {
+            string range = InsertTabularRowSourceAsTableForDeferredMaterialization(
+                source,
+                startRow,
+                startColumn,
+                includeHeaders,
+                tableName,
+                style,
+                includeAutoFilter,
+                ct);
+            if (!string.IsNullOrEmpty(range)) return range;
+
+            DataTable fallback = MaterializeTabularRowSource(source, ct);
+            return InsertDataTableAsTable(
+                fallback,
+                startRow,
+                startColumn,
+                includeHeaders,
+                tableName,
+                style,
+                includeAutoFilter,
+                mode: null,
+                ct);
+        }
+
+        private static DataTable MaterializeTabularRowSource(
+            IExcelSheetTabularRowSource source,
+            CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
+            var table = new DataTable {
+                Locale = CultureInfo.InvariantCulture
+            };
+            for (int columnIndex = 0; columnIndex < source.ColumnCount; columnIndex++) {
+                ct.ThrowIfCancellationRequested();
+                // The fallback only transports already-materialized cell values. Object columns preserve
+                // those runtime values without forcing every caller-provided schema Type to root public
+                // members for trimming. InsertDataTableAsTable still infers cell kinds and date/time styles
+                // from each value, matching the direct row-source path.
+                table.Columns.Add(source.GetColumnName(columnIndex), typeof(object));
+            }
+
+            table.BeginLoadData();
+            try {
+                for (int rowIndex = 0; rowIndex < source.RowCount; rowIndex++) {
+                    ct.ThrowIfCancellationRequested();
+                    DataRow row = table.NewRow();
+                    for (int columnIndex = 0; columnIndex < source.ColumnCount; columnIndex++) {
+                        object? value = source.GetValue(rowIndex, columnIndex);
+                        row[columnIndex] = value ?? DBNull.Value;
+                    }
+                    table.Rows.Add(row);
+                }
+            } finally {
+                table.EndLoadData();
+            }
+            return table;
+        }
+
         internal string InsertTabularRowSourceAsTableForDeferredMaterialization(
             IExcelSheetTabularRowSource source,
             int startRow = 1,
@@ -74,7 +140,6 @@ namespace OfficeIMO.Excel {
             if (table == null) throw new ArgumentNullException(nameof(table));
 
             bool canRegisterDirectSave = !_excelDocument.IsMaterializingDeferredDataSetImport
-                && mode != ExcelExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
             int rowsCount = table.Rows.Count + (includeHeaders ? 1 : 0);
@@ -87,8 +152,8 @@ namespace OfficeIMO.Excel {
             string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
-            if (canRegisterDirectSave
-                && TryInsertDataTableAsDeferredDirectSave(
+            if (canRegisterDirectSave) {
+                if (TryInsertDataTableAsDeferredDirectSave(
                     table,
                     startRow,
                     startColumn,
@@ -98,8 +163,14 @@ namespace OfficeIMO.Excel {
                     tableName,
                     style,
                     includeAutoFilter,
+                    eagerValueSnapshot: mode == ExcelExecutionMode.Parallel,
                     ct)) {
-                return range;
+                    return range;
+                }
+
+                if (mode == ExcelExecutionMode.Parallel) {
+                    canRegisterDirectSave = false;
+                }
             }
 
             InsertDataTableCore(
@@ -121,7 +192,7 @@ namespace OfficeIMO.Excel {
             if (canRegisterDirectSave) {
                 DataTable directSaveTable = includeHeaders
                     ? table
-                    : CreateHeaderlessDirectSaveTable(table);
+                    : CreateHeaderlessDirectSaveTable(table, ct);
                 _excelDocument.RegisterDirectTabularSaveCandidate(
                     this,
                     directSaveTable,
@@ -138,20 +209,24 @@ namespace OfficeIMO.Excel {
             return range;
         }
 
-        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source) {
+        private static DataTable CreateHeaderlessDirectSaveTable(DataTable source, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             var table = new DataTable(source.TableName) {
                 Locale = CultureInfo.InvariantCulture
             };
 
             for (int i = 0; i < source.Columns.Count; i++) {
+                ct.ThrowIfCancellationRequested();
                 table.Columns.Add("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), source.Columns[i].DataType);
             }
 
             table.BeginLoadData();
             try {
                 foreach (DataRow sourceRow in source.Rows) {
+                    ct.ThrowIfCancellationRequested();
                     var row = table.NewRow();
                     for (int i = 0; i < source.Columns.Count; i++) {
+                        ct.ThrowIfCancellationRequested();
                         row[i] = sourceRow.IsNull(i) ? DBNull.Value : sourceRow[i];
                     }
 

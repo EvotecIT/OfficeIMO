@@ -150,7 +150,7 @@ internal static class CsvFile
         return CsvCompressionType.None;
     }
 
-    private static Stream OpenReadStream(string path, CsvLoadOptions options, int bufferSize, bool useAsync)
+    internal static Stream OpenReadStream(string path, CsvLoadOptions options, int bufferSize, bool useAsync)
     {
         var compressionType = ResolveCompression(options.CompressionType, path);
         EnsureCompressionSupported(compressionType);

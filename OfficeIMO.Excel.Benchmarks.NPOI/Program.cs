@@ -5,6 +5,7 @@ using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
@@ -12,6 +13,8 @@ using OfficeIMO.Excel.LegacyXls.Model;
 int rowCount = ParsePositiveOption(args, "--rows", "--row-count") ?? 2500;
 int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? 1;
 int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? 3;
+string? affinityMask = ParseOptionValue(args, "--affinity", "--processor-affinity");
+string? priorityName = ParseOptionValue(args, "--priority", "--process-priority");
 string outputPath = ParseOptionValue(args, "--out", "--output", "--output-path")
     ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.npoi-comparison.json");
 string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
@@ -37,6 +40,33 @@ var scenarioFilter = new HashSet<string>(scenarioFilters, StringComparer.Ordinal
 bool IncludeScenario(string name) => scenarioFilter.Count == 0 || scenarioFilter.Contains(name);
 
 var records = SalesRecord.Create(rowCount);
+if (HasSwitch(args, "--profile-xls-write-stages")) {
+    if (affinityMask != null) {
+        _ = BenchmarkProcessorAffinity.Apply(affinityMask);
+    }
+    if (priorityName != null) {
+        _ = BenchmarkProcessorAffinity.ApplyPriority(priorityName);
+    }
+    var stages = new List<(string Operation, TimeSpan Elapsed)>();
+    byte[] bytes = XlsWriteBenchmarkScenario.WriteOfficeImo(
+        records,
+        (operation, elapsed) => stages.Add((operation, elapsed)),
+        Console.WriteLine);
+    XlsWritePairedRunner.Validate(bytes, records, "OfficeIMO XLS stage profile");
+    foreach ((string operation, TimeSpan elapsed) in stages) {
+        Console.WriteLine($"{operation}: {elapsed.TotalMilliseconds.ToString("F3", CultureInfo.InvariantCulture)} ms");
+    }
+    return;
+}
+
+if (HasSwitch(args, "--paired-xls-write")) {
+    if (rowCount + 1 > 65_536) {
+        throw new ArgumentOutOfRangeException(nameof(rowCount), "The xls scenarios cannot exceed the BIFF8 worksheet row limit.");
+    }
+    XlsWritePairedRunner.Run(records, warmupIterations, measuredIterations, affinityMask, priorityName);
+    return;
+}
+
 var npoiXlsx = new Lazy<byte[]>(() => WriteNpoiXlsx(records));
 var npoiXls = new Lazy<byte[]>(() => WriteNpoiXls(records));
 var npoiFormulaXls = new Lazy<byte[]>(() => WriteNpoiFormulaXls(records));
@@ -60,6 +90,15 @@ var measurements = new List<NpoiComparisonMeasurement>();
 if (IncludeScenario("xlsx-write-cellvalues")) {
     AddScenario(measurements, "xlsx-write-cellvalues", "OfficeIMO.Excel", "Plain row/cell write to .xlsx through OfficeIMO CellValue.", () => WriteOfficeImoXlsx(records).Length, warmupIterations, measuredIterations);
     AddScenario(measurements, "xlsx-write-cellvalues", "NPOI XSSF", "Plain row/cell write to .xlsx through XSSFWorkbook.", () => WriteNpoiXlsx(records).Length, warmupIterations, measuredIterations);
+}
+
+if (IncludeScenario("xls-write-cellvalues")) {
+    byte[] officeBytes = XlsWriteBenchmarkScenario.WriteOfficeImo(records);
+    byte[] npoiBytes = XlsWriteBenchmarkScenario.WriteNpoi(records);
+    XlsWritePairedRunner.Validate(officeBytes, records, "OfficeIMO XLS setup validation");
+    XlsWritePairedRunner.Validate(npoiBytes, records, "NPOI XLS setup validation");
+    AddScenario(measurements, "xls-write-cellvalues", "OfficeIMO.Excel Legacy XLS", "Plain row/cell write to .xls through OfficeIMO CellValue and native BIFF8 save.", () => XlsWriteBenchmarkScenario.WriteOfficeImo(records).Length, warmupIterations, measuredIterations);
+    AddScenario(measurements, "xls-write-cellvalues", "NPOI HSSF", "Plain row/cell write to .xls through HSSFWorkbook.", () => XlsWriteBenchmarkScenario.WriteNpoi(records).Length, warmupIterations, measuredIterations);
 }
 
 if (IncludeScenario("xlsx-read-cellvalues")) {
@@ -396,10 +435,15 @@ static int ReadOfficeImoXlsx(byte[] workbookBytes, int rowCount) {
         InferSchema = false
     });
     int metric = 0;
+    int actualRows = 0;
     while (reader.Read()) {
         for (int column = 0; column < reader.FieldCount; column++) {
             metric = AddValueMetric(metric, reader.GetValue(column));
         }
+        actualRows++;
+    }
+    if (actualRows != rowCount + 1) {
+        throw new InvalidOperationException($"Expected {rowCount + 1} rows, got {actualRows}.");
     }
 
     return metric;
@@ -921,9 +965,12 @@ static void WriteUsage() {
     Console.WriteLine("  --iterations N");
     Console.WriteLine("  --scenario name");
     Console.WriteLine("  --out path");
+    Console.WriteLine("  --paired-xls-write --rows N --warmup N --iterations N [--affinity mask] [--priority High]");
+    Console.WriteLine("  --profile-xls-write-stages --rows N [--affinity mask] [--priority High]");
     Console.WriteLine();
     Console.WriteLine("Scenarios:");
     Console.WriteLine("  xlsx-write-cellvalues");
+    Console.WriteLine("  xls-write-cellvalues");
     Console.WriteLine("  xlsx-read-cellvalues");
     Console.WriteLine("  xls-read-cellvalues");
     Console.WriteLine("  xls-read-formulas");

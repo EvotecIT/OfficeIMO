@@ -616,6 +616,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return false;
             }
             ResolveChoiceFieldValues(element, out options, out optionValues, out values, out selectedOptionIndices, out bool hasDuplicateSelectedValues, out bool hasAmbiguousSelectedValue);
+            if (options.Count == 0) {
+                ReportEmptyChoiceOptionsFallback(source);
+                return false;
+            }
             if (options.Any(label => label.Length == 0)) {
                 ReportBlankChoiceLabelFallback(source);
                 return false;
@@ -853,6 +857,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "blank option label",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportEmptyChoiceOptionsFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.ChoiceEmptyOptionsStaticFallback,
+            "An empty HTML select was rendered as static content because interactive PDF choice fields require at least one option.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "empty option list",
             OfficeConversionLossKind.Approximation);
     }
 

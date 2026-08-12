@@ -96,60 +96,7 @@ internal static class HtmlCssRadialGradientParser {
     }
 
     private static bool TryParsePosition(IReadOnlyList<string> parts, out string x, out string y) {
-        x = "50%";
-        y = "50%";
-        if (parts.Count == 0) return true;
-        if (parts.Count > 2) return false;
-        if (parts.Count == 1) {
-            if (TryParseHorizontalPosition(parts[0], out x)) return true;
-            if (TryParseVerticalPosition(parts[0], out y)) return true;
-            return false;
-        }
-
-        if (TryParseHorizontalPosition(parts[0], out x) && TryParseVerticalPosition(parts[1], out y)) return true;
-        return TryParseHorizontalPosition(parts[1], out x) && TryParseVerticalPosition(parts[0], out y);
-    }
-
-    private static bool TryParseHorizontalPosition(string value, out string result) {
-        switch (value) {
-            case "left":
-                result = "0%";
-                return true;
-            case "center":
-                result = "50%";
-                return true;
-            case "right":
-                result = "100%";
-                return true;
-            case "top":
-            case "bottom":
-                result = string.Empty;
-                return false;
-            default:
-                result = value;
-                return IsLength(value);
-        }
-    }
-
-    private static bool TryParseVerticalPosition(string value, out string result) {
-        switch (value) {
-            case "top":
-                result = "0%";
-                return true;
-            case "center":
-                result = "50%";
-                return true;
-            case "bottom":
-                result = "100%";
-                return true;
-            case "left":
-            case "right":
-                result = string.Empty;
-                return false;
-            default:
-                result = value;
-                return IsLength(value);
-        }
+        return HtmlCssGradientPositionParser.TryParse(parts, out x, out y);
     }
 
     private static bool TryParseExtent(string value, out HtmlCssRadialGradientSize size) {

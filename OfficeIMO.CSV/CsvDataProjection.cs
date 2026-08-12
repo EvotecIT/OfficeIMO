@@ -297,7 +297,7 @@ internal static partial class CsvDataProjectionConverter
     private static bool TryParseDateTime(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats, out DateTime dateTime)
     {
         if (dateTimeFormats is { Count: > 0 } &&
-            DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out dateTime))
+            DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out dateTime))
         {
             return true;
         }
@@ -309,7 +309,7 @@ internal static partial class CsvDataProjectionConverter
             return true;
         }
 
-        return DateTime.TryParse(text, culture, DateTimeStyles.None, out dateTime);
+        return DateTime.TryParse(text, culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
 
     internal static bool TryParseDefaultInvariantDateTime(string text, out DateTime dateTime)
