@@ -62,7 +62,8 @@ internal static partial class PdfImageEditor {
             decodedStreams.Add((indirect.ObjectNumber, stream, content));
         }
 
-        HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, placement, limits);
+        Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+        HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, effectiveResourceOwners, placement, limits);
         if (HasStructureTreeAssociation(objects, placement, containingForms)) {
             throw new NotSupportedException("Editing an image associated with the structure tree is not supported because its tagged-content relationship cannot be preserved safely.");
         }
@@ -78,13 +79,13 @@ internal static partial class PdfImageEditor {
             if (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) &&
                 InvokesSelectedTargetInsideMarkedContent(
                     content,
-                    name => ResourceMapsToSelectedTarget(objects, stream.Dictionary, name, placement, containingForms),
+                    name => ResourceMapsToSelectedTarget(objects, GetEffectiveResourceOwners(effectiveResourceOwners, objectNumber, stream.Dictionary), name, placement, containingForms),
                     limits)) {
                 throw new NotSupportedException("Editing an image inside tagged, artifact, or optional marked content is not supported because its structural context cannot be preserved safely.");
             }
         }
 
-        EnsureFormInvocationIsIsolated(objects, decodedStreams, placement, limits);
+        EnsureFormInvocationIsIsolated(objects, decodedStreams, effectiveResourceOwners, placement, containingForms, limits);
     }
 
     private static bool InvokesSelectedTargetInsideMarkedContent(
@@ -127,7 +128,7 @@ internal static partial class PdfImageEditor {
 
     private static bool InvokesSelectedTargetInsideMarkedContentAcrossPageStreams(
         Dictionary<int, PdfIndirectObject> objects,
-        IReadOnlyList<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
         PdfImagePlacement placement,
         HashSet<int> containingForms,
         PdfReadLimits limits) {
@@ -170,16 +171,17 @@ internal static partial class PdfImageEditor {
     private static void EnsureFormInvocationIsIsolated(
         Dictionary<int, PdfIndirectObject> objects,
         List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners,
         PdfImagePlacement placement,
+        HashSet<int> containingForms,
         PdfReadLimits limits) {
-        HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, placement, limits);
         if (containingForms.Count == 0) return;
 
         var streamsByForm = new Dictionary<int, HashSet<int>>();
         for (int i = 0; i < decodedStreams.Count; i++) {
             foreach (string name in ReadInvokedResourceNames(decodedStreams[i].Content, limits)) {
                 foreach (int formObjectNumber in containingForms) {
-                    if (!ContentStreamMapsToObject(objects, decodedStreams[i].ObjectNumber, decodedStreams[i].Stream.Dictionary, name, formObjectNumber)) continue;
+                    if (!ResourceMapsToObject(objects, GetEffectiveResourceOwners(effectiveResourceOwners, decodedStreams[i].ObjectNumber, decodedStreams[i].Stream.Dictionary), name, formObjectNumber)) continue;
                     if (!streamsByForm.TryGetValue(formObjectNumber, out HashSet<int>? streams)) {
                         streams = new HashSet<int>();
                         streamsByForm[formObjectNumber] = streams;
@@ -201,13 +203,14 @@ internal static partial class PdfImageEditor {
     private static HashSet<int> CollectContainingForms(
         Dictionary<int, PdfIndirectObject> objects,
         List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners,
         PdfImagePlacement placement,
         PdfReadLimits limits) {
         var containingForms = new HashSet<int>();
         for (int i = 0; i < decodedStreams.Count; i++) {
             (int objectNumber, PdfStream stream, string content) = decodedStreams[i];
             if (string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) &&
-                ResourceMapsToSelectedImage(objects, stream.Dictionary, placement.ResourceName, placement) &&
+                ResourceMapsToSelectedImage(objects, GetEffectiveResourceOwners(effectiveResourceOwners, objectNumber, stream.Dictionary), placement.ResourceName, placement) &&
                 InvokesResource(content, placement.ResourceName, limits)) containingForms.Add(objectNumber);
         }
 
@@ -219,7 +222,7 @@ internal static partial class PdfImageEditor {
                 if (containingForms.Contains(objectNumber) ||
                     !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
                 foreach (string name in ReadInvokedResourceNames(content, limits)) {
-                    if (!ResourceMapsToAnyObject(objects, stream.Dictionary, name, containingForms)) continue;
+                    if (!ResourceMapsToAnyObject(objects, GetEffectiveResourceOwners(effectiveResourceOwners, objectNumber, stream.Dictionary), name, containingForms)) continue;
                     changed = containingForms.Add(objectNumber) || changed;
                     break;
                 }
@@ -227,6 +230,63 @@ internal static partial class PdfImageEditor {
         } while (changed);
         return containingForms;
     }
+
+    private static Dictionary<int, HashSet<PdfDictionary>> BuildEffectiveResourceOwners(
+        Dictionary<int, PdfIndirectObject> objects,
+        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        PdfReadLimits limits) {
+        var result = new Dictionary<int, HashSet<PdfDictionary>>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary page ||
+                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) AddEffectiveResourceOwner(result, reference.ObjectNumber, page);
+        }
+        for (int index = 0; index < decodedStreams.Count; index++) {
+            if (decodedStreams[index].Stream.Dictionary.Items.ContainsKey("Resources")) {
+                AddEffectiveResourceOwner(result, decodedStreams[index].ObjectNumber, decodedStreams[index].Stream.Dictionary);
+            }
+        }
+
+        bool changed;
+        do {
+            changed = false;
+            for (int index = 0; index < decodedStreams.Count; index++) {
+                (int callerObjectNumber, PdfStream caller, string content) = decodedStreams[index];
+                if (!result.TryGetValue(callerObjectNumber, out HashSet<PdfDictionary>? owners)) continue;
+                PdfDictionary[] ownerSnapshot = owners.ToArray();
+                foreach (string name in ReadInvokedResourceNames(content, limits)) {
+                    for (int ownerIndex = 0; ownerIndex < ownerSnapshot.Length; ownerIndex++) {
+                        if (!TryGetXObject(objects, ownerSnapshot[ownerIndex], name, out PdfObject? target) ||
+                            target is not PdfReference targetReference ||
+                            !objects.TryGetValue(targetReference.ObjectNumber, out PdfIndirectObject? targetIndirect) ||
+                            targetIndirect.Value is not PdfStream targetStream ||
+                            !string.Equals(targetStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+                        PdfDictionary effectiveOwner = targetStream.Dictionary.Items.ContainsKey("Resources")
+                            ? targetStream.Dictionary
+                            : ownerSnapshot[ownerIndex];
+                        changed = AddEffectiveResourceOwner(result, targetReference.ObjectNumber, effectiveOwner) || changed;
+                    }
+                }
+            }
+        } while (changed);
+        return result;
+    }
+
+    private static bool AddEffectiveResourceOwner(Dictionary<int, HashSet<PdfDictionary>> owners, int objectNumber, PdfDictionary owner) {
+        if (!owners.TryGetValue(objectNumber, out HashSet<PdfDictionary>? values)) {
+            values = new HashSet<PdfDictionary>();
+            owners.Add(objectNumber, values);
+        }
+        return values.Add(owner);
+    }
+
+    private static IEnumerable<PdfDictionary> GetEffectiveResourceOwners(
+        Dictionary<int, HashSet<PdfDictionary>> owners,
+        int objectNumber,
+        PdfDictionary fallback) => owners.TryGetValue(objectNumber, out HashSet<PdfDictionary>? values) && values.Count > 0
+            ? values
+            : new[] { fallback };
 
     private static int CountContentStreamOwners(Dictionary<int, PdfIndirectObject> objects, int streamObjectNumber) {
         int owners = 0;
@@ -262,6 +322,12 @@ internal static partial class PdfImageEditor {
                value is PdfReference reference && reference.ObjectNumber == objectNumber;
     }
 
+    private static bool ResourceMapsToObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<PdfDictionary> owners,
+        string resourceName,
+        int objectNumber) => owners.Any(owner => ResourceMapsToObject(objects, owner, resourceName, objectNumber));
+
     private static bool ResourceMapsToSelectedImage(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary owner,
@@ -274,6 +340,12 @@ internal static partial class PdfImageEditor {
         return value is PdfStream directStream &&
                PdfDirectStreamIdentity.Compute(directStream) == placement.DirectStreamIdentity;
     }
+
+    private static bool ResourceMapsToSelectedImage(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<PdfDictionary> owners,
+        string resourceName,
+        PdfImagePlacement placement) => owners.Any(owner => ResourceMapsToSelectedImage(objects, owner, resourceName, placement));
 
     private static bool ResourceMapsToSelectedTarget(
         Dictionary<int, PdfIndirectObject> objects,
@@ -290,6 +362,13 @@ internal static partial class PdfImageEditor {
                value is PdfStream directStream &&
                PdfDirectStreamIdentity.Compute(directStream) == placement.DirectStreamIdentity;
     }
+
+    private static bool ResourceMapsToSelectedTarget(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<PdfDictionary> owners,
+        string resourceName,
+        PdfImagePlacement placement,
+        HashSet<int> containingForms) => owners.Any(owner => ResourceMapsToSelectedTarget(objects, owner, resourceName, placement, containingForms));
 
     private static bool ContentStreamMapsToObject(
         Dictionary<int, PdfIndirectObject> objects,
@@ -316,6 +395,12 @@ internal static partial class PdfImageEditor {
         return TryGetXObject(objects, owner, resourceName, out PdfObject? value) &&
                value is PdfReference reference && objectNumbers.Contains(reference.ObjectNumber);
     }
+
+    private static bool ResourceMapsToAnyObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<PdfDictionary> owners,
+        string resourceName,
+        HashSet<int> objectNumbers) => owners.Any(owner => ResourceMapsToAnyObject(objects, owner, resourceName, objectNumbers));
 
     private static bool TryGetXObject(
         Dictionary<int, PdfIndirectObject> objects,

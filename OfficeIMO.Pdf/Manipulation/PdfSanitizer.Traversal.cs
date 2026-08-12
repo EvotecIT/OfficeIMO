@@ -115,6 +115,7 @@ internal static partial class PdfSanitizer {
         dictionary.Items.Remove("EmbeddedFiles");
         dictionary.Items.Remove("AF");
         dictionary.Items.Remove("EF");
+        bool actionTraversalAlreadyNormalized = actionBudget.WasNormalized(dictionary);
 
         if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
             Resolve(objects, annotationsObject) is PdfArray annotations) {
@@ -127,6 +128,7 @@ internal static partial class PdfSanitizer {
             if (!dictionary.Items.TryGetValue(key, out PdfObject? item)) {
                 continue;
             }
+            if (actionTraversalAlreadyNormalized && string.Equals(key, "Next", StringComparison.Ordinal)) continue;
 
             PdfObject? resolved = Resolve(objects, item);
             if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _)) {
@@ -219,6 +221,7 @@ internal static partial class PdfSanitizer {
         }
 
         if (actionObject is not PdfDictionary action) return new List<PdfDictionary>();
+        actionBudget.MarkNormalized(action);
         actionBudget.Consume();
         List<PdfDictionary> children = action.Items.TryGetValue("Next", out PdfObject? nextObject)
             ? CollectRetainedActions(objects, nextObject, policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences), actionBudget)
@@ -292,6 +295,7 @@ internal static partial class PdfSanitizer {
 
     private sealed class PdfSanitizerActionBudget {
         private readonly int _limit;
+        private readonly HashSet<PdfDictionary> _normalizedActions = new();
         private int _count;
 
         internal PdfSanitizerActionBudget(int limit) {
@@ -304,6 +308,10 @@ internal static partial class PdfSanitizer {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.WidgetActions, _limit, _count);
             }
         }
+
+        internal void MarkNormalized(PdfDictionary action) => _normalizedActions.Add(action);
+
+        internal bool WasNormalized(PdfDictionary action) => _normalizedActions.Contains(action);
     }
 
     private static void FilterAnnotations(

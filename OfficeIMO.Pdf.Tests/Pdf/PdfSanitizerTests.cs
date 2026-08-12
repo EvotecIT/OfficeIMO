@@ -260,6 +260,17 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_DoesNotRecountIndirectRetainedNextActionsDuringObjectSweep() {
+        byte[] source = BuildForbiddenOpenActionWithRetainedNextPdf();
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
+
+        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+
+        Assert.Equal("GoTo", result.ToDocument().Inspect().OpenAction?.ActionType);
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+    }
+
+    [Fact]
     public void Sanitize_CountsPromotedRetainedActionSiblingsOnce() {
         byte[] source = BuildForbiddenActionWithRetainedSiblingsPdf(actionCount: 5);
         var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 6 } };

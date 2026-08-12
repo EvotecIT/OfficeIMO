@@ -509,6 +509,12 @@ internal static partial class PdfTextEditor {
         PdfResolvedTextStyle sourceStyle,
         PdfResolvedTextStyle replacementStyle) {
         string source = sourceSpan.Text;
+        string authored = TrimAuthoredEdgeWhitespace(sourceSpan.RestampText);
+        int[]? authoredBoundaries = TryBuildAuthoredBoundaryMap(source, authored);
+        if (authoredBoundaries == null) {
+            authored = source;
+            authoredBoundaries = BuildIdentityBoundaryMap(source.Length);
+        }
         SpanTextEdit[] ordered = edits.OrderBy(static edit => edit.Start).ToArray();
         var fragments = new List<PositionedTextFragment>();
         AddPositionedFragment(fragments, GetLeadingWhitespace(sourceSpan.RestampText), sourceStyle);
@@ -516,11 +522,18 @@ internal static partial class PdfTextEditor {
         for (int index = 0; index < ordered.Length; index++) {
             SpanTextEdit edit = ordered[index];
             if (edit.Start < cursor) continue;
-            if (edit.Start > cursor) AddPositionedFragment(fragments, source.Substring(cursor, edit.Start - cursor), sourceStyle);
+            if (edit.Start > cursor) {
+                int authoredStart = authoredBoundaries[cursor];
+                int authoredEnd = authoredBoundaries[edit.Start];
+                AddPositionedFragment(fragments, authored.Substring(authoredStart, authoredEnd - authoredStart), sourceStyle);
+            }
             if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement, replacementStyle);
             cursor = edit.Start + edit.Length;
         }
-        if (cursor < source.Length) AddPositionedFragment(fragments, source.Substring(cursor), sourceStyle);
+        if (cursor < source.Length) {
+            int authoredStart = authoredBoundaries[cursor];
+            AddPositionedFragment(fragments, authored.Substring(authoredStart), sourceStyle);
+        }
         AddPositionedFragment(fragments, GetTrailingWhitespace(sourceSpan.RestampText), sourceStyle);
         return fragments.ToArray();
     }

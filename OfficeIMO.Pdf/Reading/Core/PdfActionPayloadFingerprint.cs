@@ -4,19 +4,23 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Pdf;
 
 internal static class PdfActionPayloadFingerprint {
     private const int MaximumDepth = 32;
     private const int MaximumNodes = 4096;
+    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookup> PageNumberLookups = new();
 
     internal static string? Create(
         PdfDictionary action,
         Dictionary<int, PdfIndirectObject> objects) {
         var builder = new StringBuilder();
         var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        Dictionary<int, int> pageNumbers = BuildPageNumberLookup(objects);
+        IReadOnlyDictionary<int, int> pageNumbers = PageNumberLookups.GetValue(
+            objects,
+            static source => new PageNumberLookup(BuildPageNumberLookup(source))).Value;
         int nodes = 0;
         bool complete = true;
         AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true);
@@ -179,4 +183,9 @@ internal static class PdfActionPayloadFingerprint {
 
     private static void AppendText(StringBuilder builder, char prefix, string value) =>
         builder.Append(prefix).Append(value.Length).Append(':').Append(value);
+
+    private sealed class PageNumberLookup {
+        internal PageNumberLookup(IReadOnlyDictionary<int, int> value) { Value = value; }
+        internal IReadOnlyDictionary<int, int> Value { get; }
+    }
 }

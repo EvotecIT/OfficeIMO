@@ -437,6 +437,16 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void SharedResourceLessFormUsesEachInvokingPageResourceContextAndFailsClosed() {
+        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.PageNumber == 1);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
+
+        Assert.Contains("multiple content streams", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ImageEditorCoordinatesAreRelativeToNonzeroPageBoxOrigin() {
         byte[] source = BuildRawImagePdf(
             string.Empty,
@@ -677,6 +687,24 @@ public class PdfImageEditorTests {
             "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Resources << /XObject << /Im0 9 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(innerContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", innerContent.TrimEnd('\n'), "endstream", "endobj",
             "9 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSharedResourceLessFormImagePdf() {
+        const string pageContent = "/Fm Do\n";
+        const string formContent = "q 40 0 0 20 20 30 cm /Im Do Q\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /Fm 7 0 R /Im 8 0 R >> >> >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>", "endobj",
+            "4 0 obj", "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>", "endobj",
+            "5 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
+            "6 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
+            "8 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         }) + "\n";
         return Encoding.ASCII.GetBytes(pdf);
     }
