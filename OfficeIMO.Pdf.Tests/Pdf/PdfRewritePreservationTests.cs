@@ -229,6 +229,33 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void Assess_PreservesOnlyPubliclySelectedWidgetActionTypes() {
+        byte[] source = BuildWidgetActionPreservationPdf("alpha");
+        byte[] rewritten = BuildWidgetActionPreservationPdf("bravo");
+        var options = new PdfRewritePreservationOptions { PreserveFormWidgetActions = true };
+        options.PreservedActionTypes.Add("URI");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.True(report.IsPreserved, report.Summary);
+    }
+
+    [Fact]
+    public void Assess_ReportsLostPageActionsWhenPageCountChanges() {
+        byte[] source = BuildPageActionPreservationPdf(includeSecondPage: true, includeAction: true);
+        byte[] rewritten = BuildPageActionPreservationPdf(includeSecondPage: false, includeAction: false);
+        var options = new PdfRewritePreservationOptions {
+            PreservePageCount = false,
+            PreservePageGeometry = false
+        };
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.Contains(report.Issues, static issue =>
+            issue.Feature == "PageActions.Count" && issue.Expected == "1" && issue.Actual == "0");
+    }
+
+    [Fact]
     public void Assess_PreservesSourceStructureForUnchangedPdf() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
@@ -424,6 +451,39 @@ public class PdfRewritePreservationTests {
         byte[] rewritten = (byte[])source.Clone();
         Array.Copy(newBytes, 0, rewritten, index, newBytes.Length);
         return rewritten;
+    }
+
+    private static byte[] BuildWidgetActionPreservationPdf(string script) {
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (Action) /Rect [20 20 120 44] /P 3 0 R /A << /S /URI /URI (https://example.com) >> /AA << /U << /S /JavaScript /JS (" + script + ") >> >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildPageActionPreservationPdf(bool includeSecondPage, bool includeAction) {
+        string kids = includeSecondPage ? "[3 0 R 5 0 R]" : "[3 0 R]";
+        string count = includeSecondPage ? "2" : "1";
+        string pageAction = includeAction ? " /AA << /O << /S /URI /URI (https://example.com) >> >>" : string.Empty;
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count " + count + " /Kids " + kids + " >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R" + pageAction + " >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+        };
+        if (includeSecondPage) {
+            lines.AddRange(new[] {
+                "5 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>", "endobj",
+                "6 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+            });
+        }
+        lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size " + (includeSecondPage ? "7" : "5") + " >>", "%%EOF" });
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", lines));
     }
 
     private static int IndexOf(byte[] source, byte[] value) {

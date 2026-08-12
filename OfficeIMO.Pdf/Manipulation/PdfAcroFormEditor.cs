@@ -27,6 +27,14 @@ internal static partial class PdfAcroFormEditor {
         PdfReadOptions savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         _ = PdfReadDocument.Open(output, savedReadOptions).FormWidgetJavaScriptCount;
         if (refillValues.Count > 0) {
+            IReadOnlyDictionary<string, PdfFormField> rewrittenFields = PdfInspector.Inspect(output, savedReadOptions).FormFieldsByName;
+            foreach (string fieldName in refillValues.Keys.ToArray()) {
+                if (rewrittenFields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
+                    refillValues.Remove(fieldName);
+                }
+            }
+        }
+        if (refillValues.Count > 0) {
             output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions);
             savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }

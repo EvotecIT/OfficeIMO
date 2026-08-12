@@ -2,14 +2,24 @@ namespace OfficeIMO.Pdf;
 
 public static partial class PdfRewritePreservation {
     private static void CompareViewerActionState(List<PdfRewritePreservationIssue> issues, PdfDocumentInfo original, PdfDocumentInfo rewritten, PdfRewritePreservationOptions options) {
-        CompareOpenAction(issues, original.OpenAction, rewritten.OpenAction, options);
+        CompareOpenAction(
+            issues,
+            original.OpenAction,
+            rewritten.OpenAction,
+            options,
+            allowPromotedRetainedAction: options.FilterActionsByPreservedTypes && options.PreserveCatalogActions);
         CompareViewerPreferences(issues, original.ViewerPreferences, rewritten.ViewerPreferences, options);
         CompareCatalogActions(issues, original.CatalogActions, rewritten.CatalogActions, options);
         ComparePageActions(issues, original.Pages, rewritten.Pages, options);
         CompareFormWidgetActions(issues, original.FormFields, rewritten.FormFields, options);
     }
 
-    private static void CompareOpenAction(List<PdfRewritePreservationIssue> issues, PdfDocumentOpenAction? original, PdfDocumentOpenAction? rewritten, PdfRewritePreservationOptions options) {
+    private static void CompareOpenAction(
+        List<PdfRewritePreservationIssue> issues,
+        PdfDocumentOpenAction? original,
+        PdfDocumentOpenAction? rewritten,
+        PdfRewritePreservationOptions options,
+        bool allowPromotedRetainedAction) {
         if (!options.PreserveOpenAction) {
             return;
         }
@@ -18,6 +28,9 @@ public static partial class PdfRewritePreservation {
         rewritten = IsPreservedActionType(options, rewritten?.ActionType) ? rewritten : null;
 
         if (original is null || rewritten is null) {
+            // Sanitization can promote a retained /Next descendant to the OpenAction root.
+            // Catalog-action preservation compares that normalized action graph separately.
+            if (allowPromotedRetainedAction && original is null && rewritten is not null) return;
             CompareNullablePresence(issues, "OpenAction", original is not null, rewritten is not null);
             return;
         }
@@ -70,7 +83,19 @@ public static partial class PdfRewritePreservation {
     }
 
     private static void ComparePageActions(List<PdfRewritePreservationIssue> issues, IReadOnlyList<PdfPageInfo> originalPages, IReadOnlyList<PdfPageInfo> rewrittenPages, PdfRewritePreservationOptions options) {
-        if (!options.PreservePageActions || originalPages.Count != rewrittenPages.Count) {
+        if (!options.PreservePageActions) {
+            return;
+        }
+
+        if (originalPages.Count != rewrittenPages.Count) {
+            int originalCount = originalPages.Sum(page => FilterPreservedActions(page.PageActions, options).Length);
+            int rewrittenCount = rewrittenPages.Sum(page => FilterPreservedActions(page.PageActions, options).Length);
+            if (originalCount != rewrittenCount) {
+                issues.Add(CreateIssue(
+                    "PageActions.Count",
+                    originalCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    rewrittenCount.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
             return;
         }
 
@@ -129,7 +154,7 @@ public static partial class PdfRewritePreservation {
                 PdfFormWidget widget = field.Widgets[widgetIndex];
                 for (int actionIndex = 0; actionIndex < widget.Actions.Count; actionIndex++) {
                     PdfFormWidgetAction action = widget.Actions[actionIndex];
-                    if (options.FilterActionsByPreservedTypes && !options.PreservedActionTypes.Contains(action.ActionType)) continue;
+                    if (!IsPreservedActionType(options, action.ActionType)) continue;
                     if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
                     inventory.Add((field.Name ?? string.Empty) + "\u001f" +
                                   widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +

@@ -71,9 +71,11 @@ internal static partial class PdfSanitizer {
     private static void SanitizeObjectGraph(
         Dictionary<int, PdfIndirectObject> objects,
         PdfSanitizationOptions policy,
-        int maximumActionDepth) {
+        int maximumActionDepth,
+        int maximumActionNodes) {
+        var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
-            SanitizeObject(objects, item.Value, policy, maximumActionDepth);
+            SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
         }
 
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
@@ -85,15 +87,16 @@ internal static partial class PdfSanitizer {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         PdfSanitizationOptions policy,
-        int maximumActionDepth) {
+        int maximumActionDepth,
+        PdfSanitizerActionBudget actionBudget) {
         if (value is PdfStream stream) {
-            SanitizeDictionary(objects, stream.Dictionary, policy, maximumActionDepth);
+            SanitizeDictionary(objects, stream.Dictionary, policy, maximumActionDepth, actionBudget);
         } else if (value is PdfDictionary dictionary) {
-            SanitizeDictionary(objects, dictionary, policy, maximumActionDepth);
+            SanitizeDictionary(objects, dictionary, policy, maximumActionDepth, actionBudget);
         } else if (value is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
                 if (array.Items[i] is not PdfReference) {
-                    SanitizeObject(objects, array.Items[i], policy, maximumActionDepth);
+                    SanitizeObject(objects, array.Items[i], policy, maximumActionDepth, actionBudget);
                 }
             }
         }
@@ -103,7 +106,8 @@ internal static partial class PdfSanitizer {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
         PdfSanitizationOptions policy,
-        int maximumActionDepth) {
+        int maximumActionDepth,
+        PdfSanitizerActionBudget actionBudget) {
         if (!policy.IsActionAllowed("JavaScript")) {
             dictionary.Items.Remove("JavaScript");
         }
@@ -127,20 +131,20 @@ internal static partial class PdfSanitizer {
             PdfObject? resolved = Resolve(objects, item);
             if (resolved is PdfDictionary action && TryGetForbiddenAction(objects, action, policy, out _, out _)) {
                 List<PdfDictionary> retained = action.Items.TryGetValue("Next", out PdfObject? next)
-                    ? CollectRetainedActions(objects, next, policy, maximumActionDepth, 0, new HashSet<(int ObjectNumber, int Generation)>())
+                    ? CollectRetainedActions(objects, next, policy, maximumActionDepth, 0, new HashSet<(int ObjectNumber, int Generation)>(), actionBudget)
                     : new List<PdfDictionary>();
                 if (retained.Count == 0) {
                     dictionary.Items.Remove(key);
                 } else {
                     PdfDictionary promoted = CreatePromotedActionRoot(retained);
-                    SanitizeDictionary(objects, promoted, policy, maximumActionDepth);
+                    SanitizeDictionary(objects, promoted, policy, maximumActionDepth, actionBudget);
                     dictionary.Items[key] = promoted;
                 }
                 continue;
             }
 
             if (key == "Next" && resolved is PdfArray nextActions) {
-                FilterActions(objects, nextActions, policy, maximumActionDepth);
+                FilterActions(objects, nextActions, policy, maximumActionDepth, actionBudget);
             }
 
             if (key == "URI" && resolved is PdfDictionary uriDictionary &&
@@ -149,7 +153,7 @@ internal static partial class PdfSanitizer {
             }
 
             if (item is not PdfReference) {
-                SanitizeObject(objects, item, policy, maximumActionDepth);
+                SanitizeObject(objects, item, policy, maximumActionDepth, actionBudget);
             }
         }
     }
@@ -160,27 +164,29 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumDepth,
         int depth,
-        HashSet<(int ObjectNumber, int Generation)> pathReferences) {
+        HashSet<(int ObjectNumber, int Generation)> pathReferences,
+        PdfSanitizerActionBudget actionBudget) {
         if (depth > maximumDepth) throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectNestingDepth, maximumDepth, depth);
 
         if (actionObject is PdfReference reference) {
             var key = (reference.ObjectNumber, reference.Generation);
             if (!pathReferences.Add(key) || !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return new List<PdfDictionary>();
             var nextPath = new HashSet<(int ObjectNumber, int Generation)>(pathReferences);
-            return CollectRetainedActions(objects, indirect.Value, policy, maximumDepth, depth + 1, nextPath);
+            return CollectRetainedActions(objects, indirect.Value, policy, maximumDepth, depth + 1, nextPath, actionBudget);
         }
 
         if (actionObject is PdfArray array) {
             var retained = new List<PdfDictionary>();
             for (int i = 0; i < array.Items.Count; i++) {
-                retained.AddRange(CollectRetainedActions(objects, array.Items[i], policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences)));
+                retained.AddRange(CollectRetainedActions(objects, array.Items[i], policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences), actionBudget));
             }
             return retained;
         }
 
         if (actionObject is not PdfDictionary action) return new List<PdfDictionary>();
+        actionBudget.Consume();
         List<PdfDictionary> children = action.Items.TryGetValue("Next", out PdfObject? nextObject)
-            ? CollectRetainedActions(objects, nextObject, policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences))
+            ? CollectRetainedActions(objects, nextObject, policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences), actionBudget)
             : new List<PdfDictionary>();
         if (TryGetForbiddenAction(objects, action, policy, out _, out _)) return children;
 
@@ -232,7 +238,8 @@ internal static partial class PdfSanitizer {
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray actions,
         PdfSanitizationOptions policy,
-        int maximumActionDepth) {
+        int maximumActionDepth,
+        PdfSanitizerActionBudget actionBudget) {
         var retained = new List<PdfDictionary>();
         for (int i = 0; i < actions.Items.Count; i++) {
             retained.AddRange(CollectRetainedActions(
@@ -241,10 +248,27 @@ internal static partial class PdfSanitizer {
                 policy,
                 maximumActionDepth,
                 depth: 0,
-                new HashSet<(int ObjectNumber, int Generation)>()));
+                new HashSet<(int ObjectNumber, int Generation)>(),
+                actionBudget));
         }
         actions.Items.Clear();
         for (int i = 0; i < retained.Count; i++) actions.Items.Add(retained[i]);
+    }
+
+    private sealed class PdfSanitizerActionBudget {
+        private readonly int _limit;
+        private int _count;
+
+        internal PdfSanitizerActionBudget(int limit) {
+            _limit = limit;
+        }
+
+        internal void Consume() {
+            _count++;
+            if (_count > _limit) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.WidgetActions, _limit, _count);
+            }
+        }
     }
 
     private static void FilterAnnotations(

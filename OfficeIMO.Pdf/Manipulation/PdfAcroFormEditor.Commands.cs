@@ -157,6 +157,10 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {
         EditableField field = RequireField(objects, fields, name); field.Dictionary.Items["Ff"] = new PdfNumber(flags);
+        if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {
+            refillValues.Remove(name);
+            return;
+        }
         QueueRefillValue(refillValues, name, field.FieldType, ReadSimpleValue(field.Dictionary), includeEmptyChoice: true);
     }
 

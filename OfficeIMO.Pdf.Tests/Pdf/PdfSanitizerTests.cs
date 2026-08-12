@@ -223,6 +223,30 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_PromotesRetainedOpenActionDescendantWithoutAFalsePreservationFailure() {
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildForbiddenOpenActionWithRetainedNextPdf());
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+
+        Assert.NotNull(info.OpenAction);
+        Assert.Equal("GoTo", info.OpenAction!.ActionType);
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+        Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
+    }
+
+    [Fact]
+    public void Sanitize_BoundsSharedRetainedActionDagExpansion() {
+        byte[] source = BuildSharedRetainedActionDagPdf(depth: 8);
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 16 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source, readOptions).Sanitize());
+
+        Assert.Equal(PdfReadLimitKind.WidgetActions, exception.Kind);
+        Assert.Equal(16, exception.Limit);
+        Assert.Equal(17, exception.Actual);
+    }
+
+    [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
         var readOptions = new PdfReadOptions {
@@ -404,6 +428,46 @@ public class PdfSanitizerTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R" + pageEntry + " >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
             "7 0 obj", "<< /S /JavaScript /JS (app.alert\\('remove'\\);) /Next 8 0 R >>", "endobj",
+            "8 0 obj", "<< /S /GoTo /D [3 0 R /Fit] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildSharedRetainedActionDagPdf(int depth) {
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O 7 0 R >> >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+        };
+        for (int index = 0; index < depth; index++) {
+            int objectNumber = 7 + index;
+            string next = index + 1 < depth
+                ? " /Next [" + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R " +
+                    (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R]"
+                : string.Empty;
+            string action = index == 0
+                ? "<< /S /JavaScript /JS (remove)" + next + " >>"
+                : "<< /S /URI /URI (https://example.test/)" + next + " >>";
+            lines.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj");
+            lines.Add(action);
+            lines.Add("endobj");
+        }
+        lines.Add("trailer");
+        lines.Add("<< /Root 1 0 R /Size " + (7 + depth).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>");
+        lines.Add("%%EOF");
+        return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildForbiddenOpenActionWithRetainedNextPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OpenAction 7 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "7 0 obj", "<< /S /JavaScript /JS (remove) /Next 8 0 R >>", "endobj",
             "8 0 obj", "<< /S /GoTo /D [3 0 R /Fit] >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         }));

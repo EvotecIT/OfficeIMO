@@ -181,4 +181,19 @@ public class PdfAcroFormEditorTests {
         Assert.Contains("does not modify XFA packets", exception.Message, StringComparison.Ordinal);
         Assert.Contains("unsupported-packet", Encoding.ASCII.GetString(source), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Edit_SetFlagsCanConvertAButtonFieldToPushButtonWithoutRefillingIt() {
+        byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.SetFlags("Action", 1 << 16)
+                .Move("Action", 1, 80D, 420D, 120D, 32D));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.True(field.IsPushButton);
+        Assert.Equal(1 << 16, field.Flags);
+        Assert.Equal(80D, Assert.Single(field.Widgets).X1, 3);
+        Assert.True(result.PreservationReport.IsPreserved);
+    }
 }

@@ -952,6 +952,7 @@ internal static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
                 blocker != PdfRewriteBlockerKind.CatalogUri &&
+                blocker != PdfRewriteBlockerKind.OpenActions &&
                 blocker != PdfRewriteBlockerKind.Forms;
         }
 

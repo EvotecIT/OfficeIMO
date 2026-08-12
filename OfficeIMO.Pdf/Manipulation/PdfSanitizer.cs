@@ -30,13 +30,15 @@ internal static partial class PdfSanitizer {
             ? PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions))
             : Array.Empty<PdfExtractedAttachment>();
 
-        int maximumActionDepth = (readOptions?.Limits ?? new PdfReadLimits()).MaxObjectNestingDepth;
+        PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
+        int maximumActionDepth = readLimits.MaxObjectNestingDepth;
+        int maximumActionNodes = readLimits.MaxWidgetActions;
         byte[] sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
             pdf,
             sourceReadOptions: readOptions,
             outputEncryption: null,
             (objects, security) => {
-                SanitizeObjectGraph(objects, policy, maximumActionDepth);
+                SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
                 return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                     ? security.InfoObjectNumber
                     : null;
