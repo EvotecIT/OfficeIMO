@@ -115,8 +115,11 @@ internal static partial class PdfAcroFormEditor {
         if (!string.Equals(oldParent, newParent, StringComparison.Ordinal)) throw new NotSupportedException("Renaming a hierarchical field must preserve its parent path.");
         string partialName = ReadText(field.Dictionary, "T") ?? string.Empty;
         field.Dictionary.Items["T"] = new PdfStringObj(string.Equals(partialName, field.FullName, StringComparison.Ordinal) ? newName : LeafName(newName), true);
-        string? value = ReadSimpleValue(field.Dictionary);
-        refillValues.Remove(name); QueueRefillValue(refillValues, newName, field.FieldType, value);
+        string? value = refillValues.TryGetValue(name, out string? queuedValue)
+            ? queuedValue
+            : ReadInheritedSimpleValue(objects, field.Dictionary);
+        refillValues.Remove(name);
+        QueueRefillValue(refillValues, newName, field.FieldType, value);
         for (int i = 0; i < flattenNames.Count; i++) {
             if (string.Equals(flattenNames[i], name, StringComparison.Ordinal)) {
                 flattenNames[i] = newName;

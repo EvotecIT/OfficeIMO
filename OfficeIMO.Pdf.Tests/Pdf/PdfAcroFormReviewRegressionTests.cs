@@ -90,6 +90,19 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void MoveThenRenamePreservesQueuedInheritedFieldValue() {
+        byte[] source = BuildInheritedTerminalFieldPdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Move("section.existing", pageNumber: 1, x: 40, y: 80, width: 180, height: 40)
+            .Rename("section.existing", "section.renamed"));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("section.renamed", field.Name);
+        Assert.Equal("before", field.Value);
+    }
+
+    [Fact]
     public void Edit_UsesLastDefaultValueAssignedInTransaction() {
         byte[] source = PdfDocument.Create().TextField("name", value: "Ada").ToBytes();
 
@@ -211,6 +224,16 @@ public class PdfAcroFormReviewRegressionTests {
 
         Assert.False(report.IsPreserved);
         Assert.Contains(report.Issues, static issue => issue.Feature == "PageActions");
+    }
+
+    [Fact]
+    public void RewritePreservation_NormalizesPageReferencesInsideActionDestinations() {
+        byte[] original = BuildPageDestinationActionPdf(firstPageObjectNumber: 3, secondPageObjectNumber: 4);
+        byte[] rewritten = BuildPageDestinationActionPdf(firstPageObjectNumber: 8, secondPageObjectNumber: 9);
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(original, rewritten);
+
+        Assert.True(report.IsPreserved);
     }
 
     [Fact]
@@ -360,6 +383,17 @@ public class PdfAcroFormReviewRegressionTests {
         }
         lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF" });
         return Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildPageDestinationActionPdf(int firstPageObjectNumber, int secondPageObjectNumber) {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [" + firstPageObjectNumber + " 0 R " + secondPageObjectNumber + " 0 R] >>", "endobj",
+            firstPageObjectNumber + " 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /AA << /O << /S /GoTo /D [" + secondPageObjectNumber + " 0 R /Fit] >> >> >>", "endobj",
+            secondPageObjectNumber + " 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size " + (secondPageObjectNumber + 1) + " >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildWidgetWithIndirectActiveMarkerPdf() {

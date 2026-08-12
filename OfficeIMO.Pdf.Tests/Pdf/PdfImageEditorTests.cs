@@ -315,6 +315,39 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void MoveRejectsOptionalContentInheritedFromContainingForm() {
+        PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf("/OC << /Type /OCG /Name (Layer) >>"));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("optional-content", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkedContentCheckUsesTheSelectedResourceScope() {
+        PdfDocument document = PdfDocument.Open(BuildCollidingFormImagePdf(markSecondImage: true));
+        PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.ObjectNumber == 8);
+
+        PdfImageEditResult result = document.Images.Remove(selected);
+
+        Assert.Single(result.Document.Images.Placements());
+    }
+
+    [Fact]
+    public void ImageValidationHonorsConfiguredDecodedStreamLimit() {
+        byte[] source = BuildRawImagePdf(new string(' ', 96) + "q 40 0 0 20 20 30 cm /Im0 Do Q\n");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Images.Move(placement, 10D, 0D, readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
     public void XObjectRemovalSkipsUnrelatedInlineImagePayloadOperators() {
         PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
             "BI /W 1 /H 1 /BPC 8 /CS /RGB ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
@@ -492,9 +525,10 @@ public class PdfImageEditorTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildCollidingFormImagePdf() {
+    private static byte[] BuildCollidingFormImagePdf(bool markSecondImage = false) {
         const string pageContent = "q /F1 Do Q\nq /F2 Do Q\n";
         const string formContent = "q 40 0 0 20 20 30 cm /Im0 Do Q\n";
+        string secondFormContent = markSecondImage ? "/Figure BMC " + formContent.TrimEnd('\n') + " EMC\n" : formContent;
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
@@ -502,7 +536,7 @@ public class PdfImageEditorTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /F1 6 0 R /F2 7 0 R >> >> /Contents 5 0 R >>", "endobj",
             "5 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
             "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Resources << /XObject << /Im0 8 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
-            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Resources << /XObject << /Im0 9 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Resources << /XObject << /Im0 9 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(secondFormContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", secondFormContent.TrimEnd('\n'), "endstream", "endobj",
             "8 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
             "9 0 obj", "<< /Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 6 >>", "stream", "xyzuvw", "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
@@ -542,7 +576,7 @@ public class PdfImageEditorTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
-    private static byte[] BuildMarkedFormImagePdf() {
+    private static byte[] BuildMarkedFormImagePdf(string formDictionaryEntries = "") {
         const string pageContent = "/Figure << /MCID 0 >> BDC /Fx Do EMC\n";
         const string formContent = "q 40 0 0 20 20 30 cm /Im0 Do Q\n";
         string pdf = string.Join("\n", new[] {
@@ -551,7 +585,7 @@ public class PdfImageEditorTests {
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /Fx 6 0 R >> >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
-            "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] /Resources << /XObject << /Im0 7 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 200 120] " + formDictionaryEntries + " /Resources << /XObject << /Im0 7 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", formContent.TrimEnd('\n'), "endstream", "endobj",
             "7 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
         }) + "\n";

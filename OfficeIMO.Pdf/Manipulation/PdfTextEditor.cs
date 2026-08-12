@@ -270,10 +270,13 @@ internal static partial class PdfTextEditor {
 
     private static void AddReflowedRewriteRequests(List<PdfStamper.TextStampRequest> requests, IReadOnlyList<PositionedRewrite> rewrites) {
         foreach (IGrouping<RewriteLineKey, PositionedRewrite> rotationGroup in rewrites.GroupBy(static rewrite => RewriteLineKey.Create(rewrite))) {
-            PositionedRewrite[] ordered = rotationGroup
-                .OrderByDescending(static rewrite => NormalPosition(rewrite.Source))
-                .ThenBy(static rewrite => BaselinePosition(rewrite.Source))
-                .ToArray();
+            PositionedRewrite[] candidates = rotationGroup.ToArray();
+            bool rightToLeft = UsesRightToLeftReadingOrder(candidates.Select(static rewrite => rewrite.Source).ToArray());
+            PositionedRewrite[] ordered = rightToLeft
+                ? candidates.OrderByDescending(static rewrite => NormalPosition(rewrite.Source))
+                    .ThenByDescending(static rewrite => BaselinePosition(rewrite.Source)).ToArray()
+                : candidates.OrderByDescending(static rewrite => NormalPosition(rewrite.Source))
+                    .ThenBy(static rewrite => BaselinePosition(rewrite.Source)).ToArray();
             var line = new List<PositionedRewrite>();
             double normal = 0D;
             for (int index = 0; index < ordered.Length; index++) {
@@ -283,8 +286,10 @@ internal static partial class PdfTextEditor {
                 bool startsIndependentFlow = false;
                 if (line.Count > 0 && Math.Abs(rewriteNormal - normal) <= tolerance) {
                     PositionedRewrite previous = line[line.Count - 1];
-                    double gap = BaselinePosition(rewrite.Source) -
-                        (BaselinePosition(previous.Source) + Math.Abs(previous.Source.Advance));
+                    double gap = rightToLeft
+                        ? BaselinePosition(previous.Source) - Math.Abs(previous.Source.Advance) - BaselinePosition(rewrite.Source)
+                        : BaselinePosition(rewrite.Source) -
+                            (BaselinePosition(previous.Source) + Math.Abs(previous.Source.Advance));
                     startsIndependentFlow = IsIndependentFlowGap(gap, previous.Source, rewrite.Source);
                 }
                 if (line.Count > 0 && (Math.Abs(rewriteNormal - normal) > tolerance || startsIndependentFlow)) {
@@ -320,7 +325,10 @@ internal static partial class PdfTextEditor {
     }
 
     private static void AddReflowedLineRequests(List<PdfStamper.TextStampRequest> requests, List<PositionedRewrite> line) {
-        PositionedRewrite[] ordered = line.OrderBy(static rewrite => BaselinePosition(rewrite.Source)).ToArray();
+        bool rightToLeft = UsesRightToLeftReadingOrder(line.Select(static rewrite => rewrite.Source).ToArray());
+        PositionedRewrite[] ordered = rightToLeft
+            ? line.OrderByDescending(static rewrite => BaselinePosition(rewrite.Source)).ToArray()
+            : line.OrderBy(static rewrite => BaselinePosition(rewrite.Source)).ToArray();
         double offsetX = 0D;
         double offsetY = 0D;
         for (int index = 0; index < ordered.Length; index++) {
@@ -340,8 +348,14 @@ internal static partial class PdfTextEditor {
             }
             double sourceEndX = rewrite.Source.X + ux * Math.Abs(rewrite.Source.Advance);
             double sourceEndY = rewrite.Source.Y + uy * Math.Abs(rewrite.Source.Advance);
-            offsetX = cursorX - sourceEndX;
-            offsetY = cursorY - sourceEndY;
+            double deltaX = cursorX - sourceEndX;
+            double deltaY = cursorY - sourceEndY;
+            double baselineDelta = deltaX * ux + deltaY * uy;
+            double normalDeltaX = deltaX - baselineDelta * ux;
+            double normalDeltaY = deltaY - baselineDelta * uy;
+            double baselineDirection = rightToLeft ? -1D : 1D;
+            offsetX = normalDeltaX + baselineDirection * baselineDelta * ux;
+            offsetY = normalDeltaY + baselineDirection * baselineDelta * uy;
         }
     }
 
