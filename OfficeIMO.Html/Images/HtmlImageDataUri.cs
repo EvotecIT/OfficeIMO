@@ -55,6 +55,9 @@ public sealed class HtmlImageDataUri {
     /// <summary>Estimates decoded byte count without allocating decoded content when possible.</summary>
     public long EstimateDecodedByteCount() => _dataUri.EstimateDecodedByteCount();
 
+    /// <summary>Attempts to estimate decoded byte count without throwing for malformed payloads.</summary>
+    public bool TryEstimateDecodedByteCount(out long byteCount) => _dataUri.TryEstimateDecodedByteCount(out byteCount);
+
     private static string GetImageExtension(string mediaType) {
         return mediaType.ToLowerInvariant() switch {
             "image/jpeg" => ".jpg",

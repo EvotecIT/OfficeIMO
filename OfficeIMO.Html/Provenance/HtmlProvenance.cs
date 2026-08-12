@@ -11,9 +11,14 @@ public static class HtmlProvenance {
     public static OfficeProvenanceReport Inspect(string html, OfficeProvenanceOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         options ??= new OfficeProvenanceOptions();
+        return InspectCore(html, options, enforceUtf8Size: true);
+    }
+
+    private static OfficeProvenanceReport InspectCore(string html, OfficeProvenanceOptions options, bool enforceUtf8Size) {
         OfficeProvenanceBinary.ValidateLimits(options);
-        byte[] encoded = Encoding.UTF8.GetBytes(html);
-        if (encoded.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
+        if (enforceUtf8Size && Encoding.UTF8.GetByteCount(html) > options.MaxAssetBytes) {
+            throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
+        }
 
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var evidence = new List<OfficeProvenanceEvidence>();
@@ -60,16 +65,21 @@ public static class HtmlProvenance {
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] data = ReadBounded(filePath, options.MaxAssetBytes);
-        return Inspect(DecodeHtml(data, out _, out _), options);
+        return InspectCore(DecodeHtml(data, out _, out _), options, enforceUtf8Size: false);
     }
 
     /// <summary>Removes selected HTML provenance and provenance in supported embedded image data URIs.</summary>
     public static OfficeProvenanceRemovalResult Remove(string html, OfficeProvenanceRemovalOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         options ??= new OfficeProvenanceRemovalOptions();
+        return RemoveCore(html, options, enforceUtf8Size: true);
+    }
+
+    private static OfficeProvenanceRemovalResult RemoveCore(string html, OfficeProvenanceRemovalOptions options, bool enforceUtf8Size) {
         OfficeProvenanceBinary.ValidateLimits(options.Limits);
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
-        OfficeProvenanceReport before = Inspect(html, options.Limits);
+        OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
+        OfficeProvenanceReport before = InspectCore(html, inspectionOptions, enforceUtf8Size);
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         var changes = new List<OfficeProvenanceChange>();
         IElement? head = document.Head;
@@ -111,8 +121,8 @@ public static class HtmlProvenance {
 
         string outputHtml = document.ToHtml();
         byte[] output = Encoding.UTF8.GetBytes(outputHtml);
-        if (output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
-        OfficeProvenanceReport after = Inspect(outputHtml, options.Limits);
+        if (enforceUtf8Size && output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+        OfficeProvenanceReport after = InspectCore(outputHtml, inspectionOptions, enforceUtf8Size);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
 
@@ -126,7 +136,7 @@ public static class HtmlProvenance {
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes);
         string html = DecodeHtml(input, out Encoding encoding, out bool hadPreamble);
-        OfficeProvenanceRemovalResult result = Remove(html, options);
+        OfficeProvenanceRemovalResult result = RemoveCore(html, options, enforceUtf8Size: false);
         if (!result.WasChanged) {
             OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), input);
             return new OfficeProvenanceRemovalResult(
@@ -147,23 +157,28 @@ public static class HtmlProvenance {
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics) {
         int count = 0;
-        foreach (IElement element in document.QuerySelectorAll("img[src],source[src]")) {
-            if (!HtmlImageDataUri.TryParse(element.GetAttribute("src"), out HtmlImageDataUri dataUri)) continue;
-            count++;
-            if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
-            if (dataUri.EstimateDecodedByteCount() > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
-            if (!dataUri.TryDecodeBytes(out byte[] image)) {
-                diagnostics.Add($"HTML/{element.LocalName}[src][{count - 1}]: embedded image data URI could not be decoded.");
-                continue;
-            }
-            try {
-                OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
-                foreach (OfficeProvenanceEvidence item in nested.Evidence) {
-                    AddEvidence(evidence, options, Prefix($"HTML/{element.LocalName}[src][{count - 1}]", item));
+        foreach (IElement element in document.QuerySelectorAll("img[src],source[src],img[srcset],source[srcset]")) {
+            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element)) {
+                if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
+                int index = count++;
+                string location = $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]";
+                if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
+                if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) {
+                    diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
+                    continue;
                 }
-                foreach (string diagnostic in nested.Diagnostics) diagnostics.Add($"HTML/{element.LocalName}[src][{count - 1}]: {diagnostic}");
-            } catch (InvalidDataException exception) {
-                diagnostics.Add($"HTML/{element.LocalName}[src][{count - 1}]: embedded image was preserved because inspection failed: {exception.Message}");
+                if (estimatedBytes > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                if (!dataUri.TryDecodeBytes(out byte[] image)) {
+                    diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
+                    continue;
+                }
+                try {
+                    OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
+                    foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
+                    foreach (string diagnostic in nested.Diagnostics) diagnostics.Add($"{location}: {diagnostic}");
+                } catch (InvalidDataException exception) {
+                    diagnostics.Add($"{location}: embedded image was preserved because inspection failed: {exception.Message}");
+                }
             }
         }
     }
@@ -173,28 +188,69 @@ public static class HtmlProvenance {
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes) {
         int count = 0;
-        foreach (IElement element in document.QuerySelectorAll("img[src],source[src]")) {
-            if (!HtmlImageDataUri.TryParse(element.GetAttribute("src"), out HtmlImageDataUri dataUri)) continue;
-            count++;
-            if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
-            if (dataUri.EstimateDecodedByteCount() > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
-            if (!dataUri.TryDecodeBytes(out byte[] image)) continue;
-            try {
-                OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(
-                    image,
-                    "asset" + dataUri.FileExtension,
-                    CreateNestedRemovalOptions(options));
-                if (!nested.WasChanged) continue;
-                element.SetAttribute("src", "data:" + dataUri.MediaType + ";base64," + Convert.ToBase64String(nested.ToArray()));
-                foreach (OfficeProvenanceChange change in nested.Changes) {
-                    changes.Add(new OfficeProvenanceChange(
-                        change.Carrier,
-                        $"HTML/{element.LocalName}[src][{count - 1}]/{change.Location}",
-                        change.RemovedBytes));
+        foreach (IElement element in document.QuerySelectorAll("img[src],source[src],img[srcset],source[srcset]")) {
+            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
+            var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
+            foreach (EmbeddedImageReference reference in references) {
+                if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
+                int index = count++;
+                if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
+                if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
+                if (estimatedBytes > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                if (!dataUri.TryDecodeBytes(out byte[] image)) continue;
+                try {
+                    OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(
+                        image,
+                        "asset" + dataUri.FileExtension,
+                        CreateNestedRemovalOptions(options));
+                    if (!nested.WasChanged) continue;
+                    replacements.Add((reference, "data:" + dataUri.MediaType + ";base64," + Convert.ToBase64String(nested.ToArray())));
+                    foreach (OfficeProvenanceChange change in nested.Changes) {
+                        changes.Add(new OfficeProvenanceChange(
+                            change.Carrier,
+                            $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
+                            change.RemovedBytes));
+                    }
+                } catch (InvalidDataException) {
+                    // Preserve malformed embedded data; structural diagnostics are available through Inspect.
                 }
-            } catch (InvalidDataException) {
-                // Preserve malformed embedded data; structural diagnostics are available through Inspect.
             }
+            ApplyEmbeddedImageReplacements(element, replacements);
+        }
+    }
+
+    private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(IElement element) {
+        string? source = element.GetAttribute("src");
+        if (source != null) yield return new EmbeddedImageReference("src", source, 0, source.Length);
+        string? sourceSet = element.GetAttribute("srcset");
+        if (sourceSet == null) yield break;
+        foreach (EmbeddedImageReference reference in ParseSrcset(sourceSet)) yield return reference;
+    }
+
+    private static IEnumerable<EmbeddedImageReference> ParseSrcset(string sourceSet) {
+        int cursor = 0;
+        while (cursor < sourceSet.Length) {
+            while (cursor < sourceSet.Length && (char.IsWhiteSpace(sourceSet[cursor]) || sourceSet[cursor] == ',')) cursor++;
+            if (cursor >= sourceSet.Length) yield break;
+            int start = cursor;
+            while (cursor < sourceSet.Length && !char.IsWhiteSpace(sourceSet[cursor])) cursor++;
+            int end = cursor;
+            while (end > start && sourceSet[end - 1] == ',') end--;
+            if (end > start) yield return new EmbeddedImageReference("srcset", sourceSet.Substring(start, end - start), start, end - start);
+            while (cursor < sourceSet.Length && sourceSet[cursor] != ',') cursor++;
+            if (cursor < sourceSet.Length) cursor++;
+        }
+    }
+
+    private static void ApplyEmbeddedImageReplacements(
+        IElement element,
+        List<(EmbeddedImageReference Reference, string Value)> replacements) {
+        foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
+            string value = element.GetAttribute(group.Key) ?? string.Empty;
+            foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
+                value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
+            }
+            element.SetAttribute(group.Key, value);
         }
     }
 
@@ -247,6 +303,16 @@ public static class HtmlProvenance {
 
     private static OfficeProvenanceEvidence Prefix(string prefix, OfficeProvenanceEvidence item) =>
         new OfficeProvenanceEvidence(item.Carrier, prefix + "/" + item.Location, item.IsStructurallyValid, item.PayloadLength, item.Value, item.DigitalSourceKind);
+
+    private static OfficeProvenanceOptions CreateInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+        MaxAssetBytes = source.Limits.MaxAssetBytes,
+        MaxManifestBytes = source.Limits.MaxManifestBytes,
+        MaxCarriers = source.Limits.MaxCarriers,
+        MaxContainerEntries = source.Limits.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = source.MaxEmbeddedAssets
+    };
 
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.MaxAssetBytes,
@@ -301,5 +367,19 @@ public static class HtmlProvenance {
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);
         Buffer.BlockCopy(body, 0, output, preamble.Length, body.Length);
         return output;
+    }
+
+    private sealed class EmbeddedImageReference {
+        internal EmbeddedImageReference(string attributeName, string value, int start, int length) {
+            AttributeName = attributeName;
+            Value = value;
+            Start = start;
+            Length = length;
+        }
+
+        internal string AttributeName { get; }
+        internal string Value { get; }
+        internal int Start { get; }
+        internal int Length { get; }
     }
 }

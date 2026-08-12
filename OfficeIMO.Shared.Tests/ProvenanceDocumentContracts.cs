@@ -116,6 +116,66 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlFileInspectionUsesTheBoundedSourceEncodingSize() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string html = "<html><head><meta charset=\"windows-1252\"></head><body>café</body></html>";
+        byte[] data = windows1252.GetBytes(html);
+        string inputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        try {
+            File.WriteAllBytes(inputPath, data);
+
+            OfficeProvenanceReport report = HtmlProvenance.InspectFile(inputPath, new OfficeProvenanceOptions {
+                MaxAssetBytes = data.Length,
+                MaxManifestBytes = data.Length
+            });
+
+            Assert.Equal(OfficeProvenanceAssetFormat.Html, report.Format);
+        } finally {
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+        }
+    }
+
+    [Fact]
+    public void HtmlMalformedEmbeddedDataUriIsDiagnosticInsteadOfAnException() {
+        const string html = "<html><head></head><body><img src=\"data:image/png,%ZZ\"></body></html>";
+
+        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Contains(report.Diagnostics, item => item.Contains("could not be decoded", StringComparison.Ordinal));
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
+    public void HtmlSanitizesEmbeddedImagesInResponsiveSourceSets() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head></head><body><picture><source srcset=\"{dataUri} 1x, image.png 2x\"></picture></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.Contains(result.Before.Evidence, item => item.Location.Contains("[srcset]", StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+        Assert.Contains("image.png 2x", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRemovalSkipsEmbeddedAssetsWhenDisabled() {
+        string html = "<html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head>" +
+            "<body><img src=\"data:image/png;base64," + new string('A', 512) + "\"></body></html>";
+        var options = new OfficeProvenanceRemovalOptions { ProcessEmbeddedAssets = false };
+        options.Limits.MaxAssetBytes = Encoding.UTF8.GetByteCount(html) + 32;
+        options.Limits.MaxManifestBytes = 32;
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html, options);
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
@@ -151,8 +211,44 @@ public sealed class ProvenanceDocumentContracts {
         }
     }
 
+    [Fact]
+    public void GenericZipPreservePolicyDoesNotParseMalformedOpcSignatureMetadata() {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            WriteEntry(archive, "[Content_Types].xml", "<Types", CompressionLevel.Optimal);
+            WriteEntry(archive, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
+        }
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(output.ToArray(), "package.zip", new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+        });
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void OpenXmlOwnerFailsClosedWhenOrphanSignatureEvidenceCannotBeRemoved() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.docx");
+        try {
+            CreateOpenXmlPackage(path, "docx");
+            AddZipEntry(path, "_xmlsignatures/orphan.xml", Encoding.UTF8.GetBytes("<signature/>"));
+            AddZipEntry(path, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()));
+            byte[] package = File.ReadAllBytes(path);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                WordDocument.RemoveProvenance(package, options: new OfficeProvenanceRemovalOptions {
+                    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+                }));
+
+            Assert.Contains("could not remove", exception.Message, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     [Theory]
-    [InlineData("odt", "META-INF/documentsignatures.xml")]
+    [InlineData("odt", "META-INF/customsignatures.xml")]
     [InlineData("epub", "META-INF/signatures.xml")]
     public void ZipDocumentOwnersRemoveInvalidatedNativeSignatures(string extension, string signaturePath) {
         byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()));

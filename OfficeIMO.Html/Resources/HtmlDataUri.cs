@@ -103,6 +103,17 @@ public sealed class HtmlDataUri {
         return ((long)payload.Length / 4L * 3L) - padding;
     }
 
+    /// <summary>Attempts to calculate decoded byte count without allocating the decoded payload.</summary>
+    public bool TryEstimateDecodedByteCount(out long byteCount) {
+        byteCount = 0;
+        try {
+            byteCount = EstimateDecodedByteCount();
+            return true;
+        } catch (FormatException) {
+            return false;
+        }
+    }
+
     private static byte[] DecodePercentEncodedBytes(string data) {
         using var stream = new MemoryStream();
         var text = new StringBuilder();

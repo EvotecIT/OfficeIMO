@@ -28,14 +28,12 @@ public abstract partial class OdfDocument {
         stream.Position = 0;
         bool hadSignatures = false;
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) {
-            foreach (string name in new[] { "META-INF/documentsignatures.xml", "META-INF/macrosignatures.xml" }) {
-                ZipArchiveEntry[] entries = archive.Entries
-                    .Where(item => item.FullName.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    .ToArray();
-                foreach (ZipArchiveEntry entry in entries) {
-                    hadSignatures = true;
-                    entry.Delete();
-                }
+            ZipArchiveEntry[] entries = archive.Entries.Where(item =>
+                item.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
+                item.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase)).ToArray();
+            foreach (ZipArchiveEntry entry in entries) {
+                hadSignatures = true;
+                entry.Delete();
             }
         }
         return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
