@@ -56,6 +56,29 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_DefaultResolutionUsesOneCssPixelPerImagePixel() {
+        var source = new OfficeRasterImage(300, 1);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions { DpiX = 300D, DpiY = 300D });
+        string data = Convert.ToBase64String(jpeg);
+        string html = "<body style='margin:0'>"
+            + $"<img id='default' src='data:image/jpeg;base64,{data}' style='display:block'>"
+            + $"<img id='metadata' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:from-image'>"
+            + $"<img id='explicit' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:2dppx'>"
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        IReadOnlyList<HtmlRenderImage> images = HtmlRenderTestDriver.Render(html, options).Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
+
+        Assert.Equal(300D, Assert.Single(images, image => image.Source == "img#default").Width, 3);
+        Assert.Equal(96D, Assert.Single(images, image => image.Source == "img#metadata").Width, 3);
+        Assert.Equal(150D, Assert.Single(images, image => image.Source == "img#explicit").Width, 3);
+    }
+
+    [Fact]
     public void HtmlImages_SvgPartialIntrinsicDimensionsUseViewBoxRatioInSharedLayout() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' width='200' viewBox='0 0 100 50'><rect width='100' height='50' fill='red'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));

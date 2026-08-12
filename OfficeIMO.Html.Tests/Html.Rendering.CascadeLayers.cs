@@ -127,6 +127,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCascadeLayers_UnlayeredRevertLayerRollsBackTheAuthorOrigin() {
+        const string html = "<style>@layer base { p { color:blue; margin-left:12px; } } p { color:revert-layer; margin-left:revert-layer; }</style><p>Rollback</p>";
+        var document = HtmlDocumentParser.ParseDocument(html);
+
+        HtmlComputedStyle style = HtmlComputedStyleEngine.Compute(document)[document.QuerySelector("p")!];
+
+        Assert.Equal(string.Empty, style.GetValue("color"));
+        Assert.Equal(string.Empty, style.GetValue("margin-left"));
+    }
+
+    [Fact]
     public void HtmlCssNesting_CombinesParentListsAmpersandsAndImplicitDescendants() {
         const string html = """
             <style>

@@ -27,7 +27,7 @@ internal static class HtmlCssReplacedElementParser {
 
     internal static double? ResolveImageResolution(string value, out string unsupported) {
         unsupported = string.Empty;
-        string normalized = string.IsNullOrWhiteSpace(value) ? "from-image" : value.Trim().ToLowerInvariant();
+        string normalized = string.IsNullOrWhiteSpace(value) ? "1dppx" : value.Trim().ToLowerInvariant();
         if (normalized == "from-image") return null;
         double multiplier;
         string number;

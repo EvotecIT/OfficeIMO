@@ -73,7 +73,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? containingWidth
             : parent?.ContainerUnitWidth ?? viewportWidth;
         _activeContainerHeight = parent?.ContainerType == "size"
-            ? parent.ExplicitHeight ?? viewportHeight
+            ? ResolveDefiniteContentHeight(parent) ?? viewportHeight
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
@@ -99,6 +99,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             WordSpacing = ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
+            BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
             PreventTextWrapping = PreventsTextWrapping(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             TabSize = ResolveTabSize(computed.GetValue("tab-size"), parent?.TabSize ?? 8D),
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),

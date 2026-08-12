@@ -291,9 +291,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             int logicalOffset = 0;
-            foreach (string token in Tokenize(run.Text, paragraphStyle.PreserveWhitespace)) {
+            bool preserveWhitespace = run.Style.PreserveWhitespace;
+            foreach (string token in Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces)) {
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
-                if (token == "\u2028" || paragraphStyle.PreserveWhitespace && (token == "\n" || token == "\r\n")) {
+                if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     lines.Add(line);
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
@@ -301,15 +302,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 bool whitespace = IsWhitespaceToken(token);
-                string normalizedToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : token;
-                string normalizedLogicalToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : logicalToken;
-                bool contributesCanonicalProgress = paragraphStyle.PreserveWhitespace
+                string normalizedToken = !preserveWhitespace && whitespace ? " " : token;
+                string normalizedLogicalToken = !preserveWhitespace && whitespace ? " " : logicalToken;
+                bool contributesCanonicalProgress = preserveWhitespace
                     || !whitespace
                     || canonicalHasContent && !canonicalPreviousWasCollapsibleSpace;
                 int tokenStart = canonicalProgress;
                 if (contributesCanonicalProgress) canonicalProgress += normalizedLogicalToken.Length;
                 int tokenEnd = canonicalProgress;
-                if (!paragraphStyle.PreserveWhitespace) {
+                if (!preserveWhitespace) {
                     if (whitespace) {
                         canonicalPreviousWasCollapsibleSpace = true;
                     } else {
@@ -318,7 +319,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 }
 
-                if (!paragraphStyle.PreserveWhitespace && whitespace) {
+                if (!preserveWhitespace && whitespace) {
                     if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
                 } else {
@@ -337,7 +338,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     whitespace = IsWhitespaceToken(normalizedToken);
                 }
 
-                string paintToken = paragraphStyle.PreserveWhitespace && normalizedToken.IndexOf('\t') >= 0
+                string paintToken = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0
                     ? ExpandTabs(normalizedToken, run.Style, line.Width)
                     : normalizedToken;
                 HyphenationToken hyphenation = PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
@@ -379,7 +380,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
-                    if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
+                    if (whitespace && !preserveWhitespace) continue;
                 }
 
                 line.Add(new InlineSegment(paintToken, measured, run, logicalPaintToken, logicalEndProgress: tokenEnd));
@@ -846,7 +847,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return null;
     }
 
-    private static IEnumerable<string> Tokenize(string text, bool preserveWhitespace) {
+    private static IEnumerable<string> Tokenize(string text, bool preserveWhitespace, bool breakSpaces) {
         if (text.Length == 0) yield break;
         var token = new StringBuilder();
         bool? whitespace = null;
@@ -876,6 +877,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             bool currentWhitespace = char.IsWhiteSpace(current);
+            if (breakSpaces && currentWhitespace) {
+                if (token.Length > 0) {
+                    yield return token.ToString();
+                    token.Clear();
+                }
+                whitespace = null;
+                yield return current.ToString();
+                continue;
+            }
             if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
                 yield return token.ToString();
                 token.Clear();
@@ -912,6 +922,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineSegment segment = line.Segments[index];
             if (segment.Run.RunningStringElement != null) continue;
             if (!IsWhitespaceToken(segment.Text)) break;
+            if (segment.Run.Style.BreakSpaces) break;
             line.RemoveAt(index);
         }
     }

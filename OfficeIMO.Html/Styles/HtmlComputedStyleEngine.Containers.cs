@@ -97,7 +97,7 @@ public static partial class HtmlComputedStyleEngine {
         if (value.Length == 0) {
             string shorthand = style.GetValue("container");
             int slash = shorthand.IndexOf('/');
-            if (slash >= 0) value = shorthand.Substring(0, slash).Trim();
+            value = (slash >= 0 ? shorthand.Substring(0, slash) : shorthand).Trim();
         }
         if (value.Length == 0 || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)) return Array.Empty<string>();
         return value.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries).ToList().AsReadOnly();

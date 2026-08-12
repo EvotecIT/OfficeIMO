@@ -80,4 +80,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
         Assert.StartsWith("<svg", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void HtmlText_BreakSpacesWrapsAndRetainsEveryPreservedSpace() {
+        const string html = "<p style='margin:0;width:18px;font:16px Arial;line-height:18px'>A<span style='white-space:break-spaces'>     </span>B</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 40D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, options).Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .OrderBy(visual => visual.PaintOrder)
+            .ToList();
+
+        Assert.Equal("A     B", string.Concat(text.Select(visual => visual.Text)));
+        Assert.True(text.Select(visual => Math.Round(visual.Y, 3)).Distinct().Count() >= 2);
+        Assert.Contains(text, visual => visual.Text.Length > 0 && (char.IsWhiteSpace(visual.Text[0]) || char.IsWhiteSpace(visual.Text[visual.Text.Length - 1])));
+    }
+
+    [Fact]
+    public void HtmlText_BreakSpacesRetainsPreservedRunsBesideFloats() {
+        const string html = "<p style='margin:0;width:36px;font:16px Arial;line-height:18px'><span style='float:left;width:12px;height:12px'></span>A<span style='white-space:break-spaces'>     </span>B</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 50D,
+            ViewportHeight = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        IReadOnlyList<HtmlRenderText> text = HtmlRenderTestDriver.Render(html, options).Pages[0].Visuals
+            .OfType<HtmlRenderText>()
+            .OrderBy(visual => visual.PaintOrder)
+            .ToList();
+
+        Assert.Equal("A     B", string.Concat(text.Select(visual => visual.Text)));
+        Assert.True(text.Select(visual => Math.Round(visual.Y, 3)).Distinct().Count() >= 2);
+    }
 }

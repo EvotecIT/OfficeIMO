@@ -381,6 +381,7 @@ public static partial class HtmlComputedStyleEngine {
                 }
             }
             if (current?.RevertsLayer != true) return current;
+            if (current.LayerOrder == null) return current;
             revertedLayers.Add(current.LayerOrder);
         }
     }

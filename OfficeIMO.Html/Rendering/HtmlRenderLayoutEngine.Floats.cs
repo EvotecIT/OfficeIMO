@@ -107,16 +107,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            foreach (string token in Tokenize(run.Text, paragraphStyle.PreserveWhitespace)) {
-                if (token == "\u2028" || paragraphStyle.PreserveWhitespace && (token == "\n" || token == "\r\n")) {
+            bool preserveWhitespace = run.Style.PreserveWhitespace;
+            foreach (string token in Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces)) {
+                if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight, includeEmpty: true);
                     previousWasCollapsibleSpace = false;
                     continue;
                 }
 
                 bool whitespace = IsWhitespaceToken(token);
-                string normalizedToken = !paragraphStyle.PreserveWhitespace && whitespace ? " " : token;
-                if (!paragraphStyle.PreserveWhitespace && whitespace) {
+                string normalizedToken = !preserveWhitespace && whitespace ? " " : token;
+                if (!preserveWhitespace && whitespace) {
                     if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
                 } else {
@@ -130,7 +131,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 if (line.HasFlowContent && line.Width + measured > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
-                    if (whitespace && !paragraphStyle.PreserveWhitespace) continue;
+                    if (whitespace && !preserveWhitespace) continue;
                 }
                 line.Add(new InlineSegment(normalizedToken, measured, run));
             }

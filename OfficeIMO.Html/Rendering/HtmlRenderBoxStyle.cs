@@ -133,6 +133,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedReplacedElementLayout = string.Empty;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
+    internal bool BreakSpaces;
     internal bool PreventTextWrapping;
     internal double TabSize = 8D;
     internal string TextOverflow = "clip";
