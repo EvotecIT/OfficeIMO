@@ -5,7 +5,6 @@ using System.IO;
 namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceJpeg {
-    private static readonly byte[] XmpHeader = System.Text.Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         Walk(data, options, context, output: null, removalOptions: null, changes: null);
@@ -38,6 +37,8 @@ internal static class OfficeProvenanceJpeg {
             if (output != null && searchOffset < imageStart) output.Write(data, searchOffset, imageStart - searchOffset);
             output?.Write(data, imageStart, 2);
             int offset = imageStart + 2;
+            OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
+                data, offset, imageIndex, options, context, removalOptions, changes);
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
@@ -57,23 +58,11 @@ internal static class OfficeProvenanceJpeg {
                     break;
                 }
 
-                if (marker == 0xE1 && HasXmpHeader(data, payloadOffset, payloadLength)) {
-                    int packetOffset = payloadOffset + XmpHeader.Length;
-                    int packetLength = payloadLength - XmpHeader.Length;
-                    byte[] packet = new byte[packetLength];
-                    Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
-                    string location = $"JPEG[{imageIndex}]/APP1-XMP@{segmentStart}";
-                    if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
-                    if (output != null && removalOptions != null && changes != null &&
-                        OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, changes, out byte[] cleaned)) {
-                        byte[] payload = new byte[XmpHeader.Length + cleaned.Length];
-                        Buffer.BlockCopy(XmpHeader, 0, payload, 0, XmpHeader.Length);
-                        Buffer.BlockCopy(cleaned, 0, payload, XmpHeader.Length, cleaned.Length);
-                        WriteSegment(output, marker, payload);
+                if (marker == 0xE1 && xmpResult.SegmentStarts.Contains(segmentStart)) {
+                    if (output != null && xmpResult.Replacements.TryGetValue(segmentStart, out byte[]? replacement)) {
+                        output.Write(replacement, 0, replacement.Length);
                         reserialized = true;
-                    } else {
-                        output?.Write(data, segmentStart, segmentEnd - segmentStart);
-                    }
+                    } else output?.Write(data, segmentStart, segmentEnd - segmentStart);
                     offset = segmentEnd;
                     continue;
                 }
@@ -102,22 +91,6 @@ internal static class OfficeProvenanceJpeg {
             if (offset >= data.Length && searchOffset <= imageStart) throw new InvalidDataException("JPEG does not contain an end marker.");
         }
         return reserialized;
-    }
-
-    private static bool HasXmpHeader(byte[] data, int payloadOffset, int payloadLength) {
-        if (payloadLength < XmpHeader.Length) return false;
-        for (int index = 0; index < XmpHeader.Length; index++) if (data[payloadOffset + index] != XmpHeader[index]) return false;
-        return true;
-    }
-
-    private static void WriteSegment(Stream output, byte marker, byte[] payload) {
-        if (payload.Length > ushort.MaxValue - 2) throw new InvalidDataException("JPEG XMP packet exceeds the APP1 segment limit.");
-        output.WriteByte(0xFF);
-        output.WriteByte(marker);
-        int length = payload.Length + 2;
-        output.WriteByte((byte)(length >> 8));
-        output.WriteByte((byte)length);
-        output.Write(payload, 0, payload.Length);
     }
 
     private static bool TryGetC2paSequence(
@@ -204,7 +177,7 @@ internal static class OfficeProvenanceJpeg {
             data[togglesOffset + 5] == 0;
     }
 
-    private static bool TryReadMarker(byte[] data, int start, out byte marker, out int payloadOffset, out int payloadLength, out int end) {
+    internal static bool TryReadMarker(byte[] data, int start, out byte marker, out int payloadOffset, out int payloadLength, out int end) {
         marker = 0;
         payloadOffset = payloadLength = 0;
         end = start;

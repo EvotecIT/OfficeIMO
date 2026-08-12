@@ -14,9 +14,9 @@ internal static class OfficeProvenanceZip {
         ((data[2] == 0x03 && data[3] == 0x04) || (data[2] == 0x05 && data[3] == 0x06) || (data[2] == 0x07 && data[3] == 0x08));
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
+        ValidateEntryCount(data, options.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        if (archive.Entries.Count > options.MaxContainerEntries) throw new InvalidDataException("ZIP package exceeds the configured entry limit.");
         int index = 0;
         int embeddedCount = 0;
         long expandedBytes = 0;
@@ -61,9 +61,9 @@ internal static class OfficeProvenanceZip {
         out bool reserialized) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
+        ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
-        if (input.Entries.Count > options.Limits.MaxContainerEntries) throw new InvalidDataException("ZIP package exceeds the configured entry limit.");
         var removable = new HashSet<string>(StringComparer.Ordinal);
         var embeddedRewrites = new Dictionary<ZipArchiveEntry, byte[]>();
         int occurrence = 0;
@@ -123,6 +123,7 @@ internal static class OfficeProvenanceZip {
                 if (isManifest && removable.Contains(key)) continue;
                 bool isMimetype = entry.FullName.Equals("mimetype", StringComparison.Ordinal);
                 ZipArchiveEntry target = output.CreateEntry(entry.FullName, isMimetype ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
+                CopyExternalAttributes(entry, target);
                 if (!isMimetype) target.LastWriteTime = entry.LastWriteTime;
                 using Stream destination = target.Open();
                 if (embeddedRewrites.TryGetValue(entry, out byte[]? rewritten)) {
@@ -136,6 +137,60 @@ internal static class OfficeProvenanceZip {
         }
         reserialized = true;
         return outputStream.ToArray();
+    }
+
+    private static void CopyExternalAttributes(ZipArchiveEntry source, ZipArchiveEntry target) {
+        System.Reflection.PropertyInfo? property = typeof(ZipArchiveEntry).GetProperty("ExternalAttributes");
+        if (property?.CanRead == true && property.CanWrite) property.SetValue(target, property.GetValue(source, null), null);
+    }
+
+    private static void ValidateEntryCount(byte[] data, int maximumEntries) {
+        const uint endOfCentralDirectorySignature = 0x06054B50;
+        const uint zip64LocatorSignature = 0x07064B50;
+        const uint zip64EndOfCentralDirectorySignature = 0x06064B50;
+        int minimumOffset = Math.Max(0, data.Length - (22 + ushort.MaxValue));
+        int endOffset = -1;
+        for (int offset = data.Length - 22; offset >= minimumOffset; offset--) {
+            if (OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: true) != endOfCentralDirectorySignature) continue;
+            ushort commentLength = OfficeProvenanceBinary.ReadUInt16(data, offset + 20, littleEndian: true);
+            if (offset + 22 + commentLength != data.Length) continue;
+            endOffset = offset;
+            break;
+        }
+        if (endOffset < 0) throw new InvalidDataException("ZIP package does not contain a valid end-of-central-directory record.");
+
+        ushort diskNumber = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 4, littleEndian: true);
+        ushort directoryDisk = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 6, littleEndian: true);
+        ushort entriesOnDisk = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 8, littleEndian: true);
+        ushort totalEntries = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 10, littleEndian: true);
+        if (diskNumber != 0 || directoryDisk != 0 || entriesOnDisk != totalEntries) {
+            throw new InvalidDataException("Multi-disk ZIP packages are not supported.");
+        }
+
+        ulong entryCount = totalEntries;
+        if (totalEntries == ushort.MaxValue) {
+            int locatorOffset = endOffset - 20;
+            if (locatorOffset < 0 ||
+                OfficeProvenanceBinary.ReadUInt32(data, locatorOffset, littleEndian: true) != zip64LocatorSignature ||
+                OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 4, littleEndian: true) != 0 ||
+                OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 16, littleEndian: true) != 1) {
+                throw new InvalidDataException("ZIP64 package does not contain a valid locator.");
+            }
+            ulong recordOffset = OfficeProvenanceBinary.ReadUInt64(data, locatorOffset + 8, littleEndian: true);
+            if (data.Length < 56 || recordOffset > (ulong)(data.Length - 56)) {
+                throw new InvalidDataException("ZIP64 end-of-central-directory record is outside the package.");
+            }
+            int zip64Offset = (int)recordOffset;
+            if (OfficeProvenanceBinary.ReadUInt32(data, zip64Offset, littleEndian: true) != zip64EndOfCentralDirectorySignature ||
+                OfficeProvenanceBinary.ReadUInt32(data, zip64Offset + 16, littleEndian: true) != 0 ||
+                OfficeProvenanceBinary.ReadUInt32(data, zip64Offset + 20, littleEndian: true) != 0) {
+                throw new InvalidDataException("ZIP64 end-of-central-directory record is invalid.");
+            }
+            ulong entriesOnZip64Disk = OfficeProvenanceBinary.ReadUInt64(data, zip64Offset + 24, littleEndian: true);
+            entryCount = OfficeProvenanceBinary.ReadUInt64(data, zip64Offset + 32, littleEndian: true);
+            if (entriesOnZip64Disk != entryCount) throw new InvalidDataException("Multi-disk ZIP64 packages are not supported.");
+        }
+        if (entryCount > (ulong)maximumEntries) throw new InvalidDataException("ZIP package exceeds the configured entry limit.");
     }
 
     private static bool IsSignatureEntry(ZipArchiveEntry entry) =>

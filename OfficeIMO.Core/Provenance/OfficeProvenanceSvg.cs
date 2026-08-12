@@ -110,16 +110,25 @@ internal static class OfficeProvenanceSvg {
         element.Parent.Name.NamespaceName == "http://www.w3.org/2000/svg";
 
     private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
-        XElement[] roots = document.Descendants(XmpNamespace + "xmpmeta").ToArray();
-        if (roots.Length > 0) return roots;
-        return document.Descendants()
-            .Where(element => element.Name.LocalName == "metadata" &&
-                element.Name.NamespaceName == "http://www.w3.org/2000/svg" &&
-                element.DescendantsAndSelf().Any(candidate =>
-                    candidate.Name.NamespaceName == IptcNamespace ||
-                    candidate.Attributes().Any(attribute => attribute.Name.NamespaceName == IptcNamespace)))
+        var roots = new List<XElement>();
+        roots.AddRange(document.Descendants(XmpNamespace + "xmpmeta"));
+        XElement[] directIptcScopes = document.Descendants()
+            .Where(ContainsDirectIptcDeclaration)
+            .Where(element => !element.Ancestors().Any(ancestor => ancestor.Name == XmpNamespace + "xmpmeta"))
+            .Where(element => element.Ancestors().Any(IsSvgMetadataElement))
             .ToArray();
+        roots.AddRange(directIptcScopes.Where(element =>
+            !element.Ancestors().Any(ancestor => directIptcScopes.Contains(ancestor))));
+        return roots;
     }
+
+    private static bool ContainsDirectIptcDeclaration(XElement element) =>
+        element.Name.NamespaceName == IptcNamespace ||
+        element.Attributes().Any(attribute => attribute.Name.NamespaceName == IptcNamespace);
+
+    private static bool IsSvgMetadataElement(XElement element) =>
+        element.Name.LocalName == "metadata" &&
+        element.Name.NamespaceName == "http://www.w3.org/2000/svg";
 
     private static byte[] SerializeElement(XElement element) {
         using var output = new MemoryStream();

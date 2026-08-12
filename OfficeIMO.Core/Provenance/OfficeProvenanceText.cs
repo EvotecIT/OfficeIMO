@@ -157,17 +157,21 @@ internal static class OfficeProvenanceText {
             int selectorOffset = offset + prefixBytes;
             var decoded = new List<byte>();
             int cursor = selectorOffset;
+            long maximumBufferedBytes = maximumManifestBytes > long.MaxValue - 13L
+                ? long.MaxValue
+                : maximumManifestBytes + 13L;
+            bool exceededLimit = false;
             while (TryReadCodePoint(data, cursor, out int selector, out int selectorBytes) && TrySelectorToByte(selector, out byte value)) {
-                decoded.Add(value);
+                if (decoded.Count < maximumBufferedBytes && decoded.Count < int.MaxValue) decoded.Add(value);
+                else exceededLimit = true;
                 cursor += selectorBytes;
-                if (decoded.Count > maximumManifestBytes + 13L || decoded.Count > int.MaxValue) break;
             }
             bool hasMagic = decoded.Count >= WrapperMagic.Length;
             for (int index = 0; hasMagic && index < WrapperMagic.Length; index++) hasMagic = decoded[index] == WrapperMagic[index];
             if (!hasMagic) { offset += prefixBytes; continue; }
             bool valid = false;
             long manifestLength = 0;
-            if (decoded.Count >= 13 && decoded[8] == 1) {
+            if (!exceededLimit && decoded.Count >= 13 && decoded[8] == 1) {
                 uint declared = ((uint)decoded[9] << 24) | ((uint)decoded[10] << 16) | ((uint)decoded[11] << 8) | decoded[12];
                 manifestLength = declared;
                 if (declared <= maximumManifestBytes && decoded.Count == 13L + declared) {

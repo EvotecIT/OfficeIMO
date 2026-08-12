@@ -101,7 +101,11 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 CommentHandling = JsonCommentHandling.Disallow,
                 MaxDepth = 128
             });
-            string? activeManifest = FindStringProperty(document.RootElement, "active_manifest");
+            string? activeManifest = document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("active_manifest", out JsonElement activeManifestElement) &&
+                activeManifestElement.ValueKind == JsonValueKind.String
+                    ? activeManifestElement.GetString()
+                    : null;
             var findings = new List<string>();
             CollectValidationFindings(document.RootElement, findings);
             if (string.IsNullOrWhiteSpace(activeManifest)) {
@@ -140,22 +144,6 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         }
     }
 
-    private static string? FindStringProperty(JsonElement element, string name) {
-        if (element.ValueKind == JsonValueKind.Object) {
-            foreach (JsonProperty property in element.EnumerateObject()) {
-                if (property.NameEquals(name) && property.Value.ValueKind == JsonValueKind.String) return property.Value.GetString();
-                string? nested = FindStringProperty(property.Value, name);
-                if (nested != null) return nested;
-            }
-        } else if (element.ValueKind == JsonValueKind.Array) {
-            foreach (JsonElement item in element.EnumerateArray()) {
-                string? nested = FindStringProperty(item, name);
-                if (nested != null) return nested;
-            }
-        }
-        return null;
-    }
-
     private static void CollectValidationFindings(JsonElement element, List<string> findings) {
         if (element.ValueKind == JsonValueKind.Object) {
             foreach (JsonProperty property in element.EnumerateObject()) {
@@ -187,8 +175,12 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     }
 
     private static bool IsTrustFinding(string finding) {
-        string normalized = finding.ToUpperInvariant();
-        return normalized.Contains("UNTRUSTED") || normalized.Contains("TRUST");
+        int separator = finding.IndexOf(':');
+        string code = separator < 0 ? finding : finding.Substring(0, separator);
+        return code.StartsWith("signingCredential.", StringComparison.Ordinal) ||
+            code == "timeStamp.untrusted" ||
+            code == "timeStamp.outsideValidity" ||
+            code == "cawg.ica.untrusted_issuer";
     }
 
     private static OfficeProvenanceVerificationResult Result(

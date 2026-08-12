@@ -35,6 +35,18 @@ internal static class OfficeC2paManifestStore {
             return false;
         }
 
+        int storeEnd = offset + totalLength;
+        int nextChildOffset = childOffset + (int)childLength;
+        while (nextChildOffset < storeEnd) {
+            int remaining = storeEnd - nextChildOffset;
+            if (!TryReadBox(data, nextChildOffset, remaining, out _, out ulong nextChildLength, out _) ||
+                nextChildLength > int.MaxValue) {
+                return false;
+            }
+            nextChildOffset += (int)nextChildLength;
+        }
+        if (nextChildOffset != storeEnd) return false;
+
         storeLength = totalLength;
         return true;
     }

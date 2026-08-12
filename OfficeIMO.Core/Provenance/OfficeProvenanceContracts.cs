@@ -206,10 +206,10 @@ public sealed class OfficeProvenanceRemovalResult {
         OfficeProvenanceReport after,
         IReadOnlyList<OfficeProvenanceChange> changes,
         bool wasReserialized) {
-        _data = data ?? throw new ArgumentNullException(nameof(data));
+        _data = (byte[])(data ?? throw new ArgumentNullException(nameof(data))).Clone();
         Before = before ?? throw new ArgumentNullException(nameof(before));
         After = after ?? throw new ArgumentNullException(nameof(after));
-        Changes = changes ?? throw new ArgumentNullException(nameof(changes));
+        Changes = new List<OfficeProvenanceChange>(changes ?? throw new ArgumentNullException(nameof(changes))).AsReadOnly();
         WasReserialized = wasReserialized;
     }
 
