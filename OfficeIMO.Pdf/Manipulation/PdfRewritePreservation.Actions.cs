@@ -13,6 +13,9 @@ public static partial class PdfRewritePreservation {
             return;
         }
 
+        original = IsPreservedActionType(options, original?.ActionType) ? original : null;
+        rewritten = IsPreservedActionType(options, rewritten?.ActionType) ? rewritten : null;
+
         if (original is null || rewritten is null) {
             CompareNullablePresence(issues, "OpenAction", original is not null, rewritten is not null);
             return;
@@ -45,14 +48,16 @@ public static partial class PdfRewritePreservation {
         if (!options.PreserveCatalogActions) {
             return;
         }
-        if (original.Count != rewritten.Count) {
-            issues.Add(CreateIssue("CatalogActions.Count", original.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), rewritten.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        IReadOnlyList<PdfCatalogAction> expected = FilterPreservedActions(original, options);
+        IReadOnlyList<PdfCatalogAction> actual = FilterPreservedActions(rewritten, options);
+        if (expected.Count != actual.Count) {
+            issues.Add(CreateIssue("CatalogActions.Count", expected.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), actual.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)));
             return;
         }
 
-        for (int i = 0; i < original.Count; i++) {
-            PdfCatalogAction before = original[i];
-            PdfCatalogAction after = rewritten[i];
+        for (int i = 0; i < expected.Count; i++) {
+            PdfCatalogAction before = expected[i];
+            PdfCatalogAction after = actual[i];
             string prefix = "CatalogActions[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
 
             CompareString(issues, prefix + ".Name", before.Name, after.Name);
@@ -68,8 +73,8 @@ public static partial class PdfRewritePreservation {
         }
 
         for (int i = 0; i < originalPages.Count; i++) {
-            IReadOnlyList<PdfPageAction> original = originalPages[i].PageActions;
-            IReadOnlyList<PdfPageAction> rewritten = rewrittenPages[i].PageActions;
+            IReadOnlyList<PdfPageAction> original = FilterPreservedActions(originalPages[i].PageActions, options);
+            IReadOnlyList<PdfPageAction> rewritten = FilterPreservedActions(rewrittenPages[i].PageActions, options);
             if (original.Count != rewritten.Count) {
                 issues.Add(CreateIssue(
                     "PageActions[" + originalPages[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "].Count",
@@ -90,6 +95,15 @@ public static partial class PdfRewritePreservation {
             }
         }
     }
+
+    private static bool IsPreservedActionType(PdfRewritePreservationOptions options, string? actionType) =>
+        actionType is not null && (options.PreservedActionTypes.Count == 0 || options.PreservedActionTypes.Contains(actionType));
+
+    private static IReadOnlyList<PdfCatalogAction> FilterPreservedActions(IReadOnlyList<PdfCatalogAction> actions, PdfRewritePreservationOptions options) =>
+        options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
+
+    private static IReadOnlyList<PdfPageAction> FilterPreservedActions(IReadOnlyList<PdfPageAction> actions, PdfRewritePreservationOptions options) =>
+        options.PreservedActionTypes.Count == 0 ? actions : actions.Where(action => options.PreservedActionTypes.Contains(action.ActionType)).ToArray();
 
     private static void CompareNullablePresence(List<PdfRewritePreservationIssue> issues, string feature, bool expectedPresent, bool actualPresent) {
         if (expectedPresent == actualPresent) {

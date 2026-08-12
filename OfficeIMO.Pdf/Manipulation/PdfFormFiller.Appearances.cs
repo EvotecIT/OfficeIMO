@@ -282,7 +282,7 @@ internal static partial class PdfFormFiller {
         bool selected,
         ref int nextObjectNumber) {
         double labelX = buttonSize + PdfRadioButtonLayout.GetLabelGap(buttonSize);
-        PdfFormFieldStyle labelStyle = style.Clone();
+        PdfFormFieldStyle labelStyle = PdfAcroFormEditor.CreateButtonCaptionStyle(style);
         labelStyle.BackgroundColor = null;
         labelStyle.BorderColor = null;
         labelStyle.BorderWidth = 0D;

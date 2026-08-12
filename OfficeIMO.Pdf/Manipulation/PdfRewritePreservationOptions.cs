@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfRewritePreservationOptions {
     private readonly List<string> _requiredTextMarkers = new List<string>();
     private readonly HashSet<string> _allowedMetadataChanges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _preservedActionTypes = new HashSet<string>(StringComparer.Ordinal);
 
     /// <summary>Read options used to inspect the original document, including its password when encrypted.</summary>
     public PdfReadOptions? OriginalReadOptions { get; set; }
@@ -66,6 +67,9 @@ public sealed class PdfRewritePreservationOptions {
 
     /// <summary>True when page-level additional action metadata must not be changed.</summary>
     public bool PreservePageActions { get; set; } = true;
+
+    /// <summary>Action types compared when action preservation is enabled. An empty set compares every action type.</summary>
+    public ISet<string> PreservedActionTypes => _preservedActionTypes;
 
     /// <summary>True when viewer preference values must not be changed.</summary>
     public bool PreserveViewerPreferences { get; set; } = true;

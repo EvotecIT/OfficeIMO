@@ -40,7 +40,8 @@ internal static partial class PdfSanitizer {
                     ? security.InfoObjectNumber
                     : null;
             });
-        IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, readOptions: null);
+        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
+        IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
         if (remaining.Count > 0) {
             throw new InvalidOperationException(
                 "PDF sanitization post-save validation found " + remaining.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -49,15 +50,17 @@ internal static partial class PdfSanitizer {
 
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
+            RewrittenReadOptions = rewrittenReadOptions,
             PreserveLinkAnnotations = false,
             PreserveAnnotations = !policy.RemoveRichMedia,
             PreserveEmbeddedFiles = false,
-            PreserveCatalogActions = false,
-            PreservePageActions = false,
-            PreserveOpenAction = false,
+            PreserveCatalogActions = policy.AllowedActionTypes.Count > 0,
+            PreservePageActions = policy.AllowedActionTypes.Count > 0,
+            PreserveOpenAction = policy.AllowedActionTypes.Count > 0,
             PreserveRevisionStructure = false,
             PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
         };
+        foreach (string actionType in policy.AllowedActionTypes) preservationOptions.PreservedActionTypes.Add(actionType);
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined);
