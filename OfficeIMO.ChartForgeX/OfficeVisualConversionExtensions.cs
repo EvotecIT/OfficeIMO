@@ -41,6 +41,7 @@ public static class OfficeVisualConversionExtensions {
                 throw new InvalidOperationException("ChartForgeX SVG could not be imported as an Office drawing.");
             }
             report.Warn("The SVG payload could not be imported as an Office drawing; the OfficeDrawing result uses PNG fallback.");
+            ThrowIfRasterFallbackIsUnsafe(svgBytes, readerOptions);
             placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
             if (!artifact.NaturalSize.HasValue) {
@@ -55,6 +56,7 @@ public static class OfficeVisualConversionExtensions {
             throw new NotSupportedException("ChartForgeX SVG contains " + unsupportedFeatureCount + " feature(s) that OfficeIMO.Drawing cannot preserve.");
         } else if (unsupportedFeatureCount > 0 && options.SvgPolicy == OfficeVisualSvgPolicy.RasterizeWhenNeeded) {
             report.Warn("The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the OfficeDrawing result uses PNG fallback.");
+            ThrowIfRasterFallbackIsUnsafe(svgBytes, readerOptions);
             placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
             drawing = CreateRasterDrawing(placementBytes, widthPoints, heightPoints, ResolveAlternativeText(artifact));
@@ -110,6 +112,7 @@ public static class OfficeVisualConversionExtensions {
             throw new NotSupportedException("SVG content cannot be fully preserved as an Office drawing.");
         }
         if (rasterize) {
+            ThrowIfRasterFallbackIsUnsafe(svgBytes, readerOptions);
             placementBytes = SvgRasterizer.ToPng(svgBytes, options: options.RenderOptions?.Raster);
             if (!imported || importedDrawing == null) {
                 RgbaImage raster = RasterImageDecoder.Decode(placementBytes);
@@ -174,6 +177,12 @@ public static class OfficeVisualConversionExtensions {
             return;
         }
 
+        ThrowIfRasterFallbackIsUnsafe(svgBytes, configuredOptions);
+    }
+
+    private static void ThrowIfRasterFallbackIsUnsafe(
+        byte[] svgBytes,
+        OfficeSvgDrawingReaderOptions configuredOptions) {
         if (OfficeSvgDrawingReader.IsWithinSafetyLimits(svgBytes, configuredOptions)) {
             return;
         }

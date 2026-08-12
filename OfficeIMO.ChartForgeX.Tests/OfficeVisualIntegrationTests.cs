@@ -170,7 +170,7 @@ public sealed class OfficeVisualIntegrationTests {
 
     [Fact]
     public void PortableSvgSourceRejectsOverNestedMarkupBeforeRasterFallback() {
-        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg'>");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>");
         for (int index = 0; index < 130; index++) svg.Append("<g>");
         svg.Append("<rect width='16' height='8'/>");
         for (int index = 0; index < 130; index++) svg.Append("</g>");
@@ -185,7 +185,7 @@ public sealed class OfficeVisualIntegrationTests {
 
     [Fact]
     public void PortableSvgSourceRejectsOverBudgetPathBeforeRasterFallback() {
-        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg'><path d='M0 0");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='M0 0");
         for (int index = 0; index < 20001; index++) svg.Append(" L1 1");
         svg.Append("'/></svg>");
 
