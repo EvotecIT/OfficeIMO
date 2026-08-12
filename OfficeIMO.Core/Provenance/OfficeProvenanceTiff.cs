@@ -16,7 +16,7 @@ internal static class OfficeProvenanceTiff {
             TiffIfd ifd = ifds[ifdIndex];
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
-                    TryGetPayload(data, entry, options.MaxManifestBytes, out int xmpOffset, out int xmpLength)) {
+                    TryGetPayload(data, entry, options.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     OfficeProvenanceXmp.Inspect(packet, options, context, $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}");
@@ -42,7 +42,7 @@ internal static class OfficeProvenanceTiff {
             var retained = new List<TiffEntry>(ifd.Entries.Count);
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
-                    TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int xmpOffset, out int xmpLength)) {
+                    TryGetPayload(data, entry, options.Limits.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     if (OfficeProvenanceXmp.TryRemoveAiDeclarations(

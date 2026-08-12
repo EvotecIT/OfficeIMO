@@ -137,9 +137,15 @@ internal static class OfficeProvenanceJpeg {
         int firstFragmentLength = payloadLength - 8;
         bool completeFirstFragment = OfficeC2paManifestStore.IsValid(
             data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out int declaredManifestLength);
-        bool hasDeclaredLength = completeFirstFragment ||
-            (TryReadDeclaredJumbfLength(data, payloadOffset + 8, firstFragmentLength, options.MaxManifestBytes, out declaredManifestLength) &&
-             HasC2paDescriptionPrefix(data, payloadOffset + 8, firstFragmentLength));
+        int boxHeaderLength = GetJumbfHeaderLength(data, payloadOffset + 8, firstFragmentLength);
+        if (!completeFirstFragment &&
+            (boxHeaderLength == 0 || !HasC2paDescriptionPrefix(data, payloadOffset + 8, firstFragmentLength, boxHeaderLength))) return false;
+        bool hasDeclaredLength = completeFirstFragment || TryReadDeclaredJumbfLength(
+            data,
+            payloadOffset + 8,
+            firstFragmentLength,
+            options.MaxManifestBytes,
+            out declaredManifestLength);
 
         long collected = firstFragmentLength;
         int current = payloadOffset + payloadLength;
@@ -166,17 +172,36 @@ internal static class OfficeProvenanceJpeg {
         length = 0;
         if (available < 8 || !OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "jumb")) return false;
         uint value = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
-        if (value == 0 || value == 1 || value > maximum || value > int.MaxValue) return false;
+        if (value == 0) return false;
+        if (value == 1) {
+            if (available < 16) return false;
+            ulong extended = OfficeProvenanceBinary.ReadUInt64(data, offset + 8, littleEndian: false);
+            if (extended > (ulong)maximum || extended > int.MaxValue) return false;
+            length = (int)extended;
+            return length >= 46;
+        }
+        if (value > maximum || value > int.MaxValue) return false;
         length = (int)value;
         return length >= 38;
     }
 
-    private static bool HasC2paDescriptionPrefix(byte[] data, int offset, int available) {
-        if (available < 38 || !OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "jumb") ||
-            !OfficeProvenanceBinary.MatchesAscii(data, offset + 12, "jumd")) return false;
+    private static int GetJumbfHeaderLength(byte[] data, int offset, int available) {
+        if (available < 8 || !OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "jumb")) return 0;
+        return OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false) == 1 && available >= 16 ? 16 : 8;
+    }
+
+    private static bool HasC2paDescriptionPrefix(byte[] data, int offset, int available, int boxHeaderLength) {
+        int descriptionOffset = offset + boxHeaderLength;
+        if (boxHeaderLength is not (8 or 16) || available < boxHeaderLength + 30 ||
+            !OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "jumb") ||
+            !OfficeProvenanceBinary.MatchesAscii(data, descriptionOffset + 4, "jumd")) return false;
         byte[] uuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
-        for (int index = 0; index < uuid.Length; index++) if (data[offset + 16 + index] != uuid[index]) return false;
-        return (data[offset + 32] & 0x02) != 0 && OfficeProvenanceBinary.MatchesAscii(data, offset + 33, "c2pa") && data[offset + 37] == 0;
+        int descriptionPayloadOffset = descriptionOffset + 8;
+        for (int index = 0; index < uuid.Length; index++) if (data[descriptionPayloadOffset + index] != uuid[index]) return false;
+        int togglesOffset = descriptionPayloadOffset + uuid.Length;
+        return (data[togglesOffset] & 0x02) != 0 &&
+            OfficeProvenanceBinary.MatchesAscii(data, togglesOffset + 1, "c2pa") &&
+            data[togglesOffset + 5] == 0;
     }
 
     private static bool TryReadMarker(byte[] data, int start, out byte marker, out int payloadOffset, out int payloadLength, out int end) {

@@ -30,6 +30,8 @@ internal static class OfficeProvenancePng {
         bool reserialized = false;
         int offset = SignatureLength;
         bool foundEnd = false;
+        bool foundHeader = false;
+        bool foundImageData = false;
         while (offset < data.Length) {
             if (data.Length - offset < 12) throw new InvalidDataException("PNG contains a truncated chunk.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
@@ -40,9 +42,10 @@ internal static class OfficeProvenancePng {
             long totalValue = 12L + payloadLength;
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
             int total = (int)totalValue;
-            bool isC2pa = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX");
+            string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
+            bool isC2pa = type == "caBX";
             if (isC2pa) {
-                bool valid = HasValidCrc(data, offset, payloadLength) &&
+                bool valid = foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
                     OfficeC2paManifestStore.IsValid(data, offset + 8, payloadLength, options.MaxManifestBytes, out _);
                 string location = $"PNG/caBX@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
@@ -72,7 +75,8 @@ internal static class OfficeProvenancePng {
             } else {
                 output?.Write(data, offset, total);
             }
-            string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
+            if (type == "IHDR") foundHeader = true;
+            else if (type == "IDAT") foundImageData = true;
             offset += total;
             if (type == "IEND") { foundEnd = true; break; }
         }

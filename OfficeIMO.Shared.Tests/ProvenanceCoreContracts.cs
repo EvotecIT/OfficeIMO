@@ -42,8 +42,9 @@ public sealed class ProvenanceCoreContracts {
 
     [Fact]
     public void JpegCanRemoveRecognizableMalformedApp11SequenceWhenExplicitlyRequested() {
-        byte[] malformedPayload = { 0x4A, 0x50, 0, 7, 0, 0, 0, 1, 1, 2, 3 };
-        byte[] app11 = CreateJpegSegment(0xEB, malformedPayload);
+        byte[] malformedManifest = CreateManifestStore();
+        WriteBigEndian(malformedManifest, 0, malformedManifest.Length + 10);
+        byte[] app11 = CreateJpegApp11(malformedManifest, 0, malformedManifest.Length, instance: 7, sequence: 1);
         byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, app11, new byte[] { 0xFF, 0xD9 });
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
@@ -56,6 +57,40 @@ public sealed class ProvenanceCoreContracts {
         Assert.False(report.Evidence[0].IsStructurallyValid);
         Assert.Equal(jpeg, preserved.ToArray());
         Assert.Equal(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, removed.ToArray());
+    }
+
+    [Fact]
+    public void JpegIgnoresGenericApp11JumbfWithoutTheC2paIdentity() {
+        byte[] generic = CreateManifestStore();
+        generic[16] ^= 0x01;
+        byte[] app11 = CreateJpegApp11(generic, 0, generic.Length, instance: 7, sequence: 1);
+        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, app11, new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg", new OfficeProvenanceRemovalOptions {
+            RequireStructurallyValidCarrier = false
+        });
+
+        Assert.Empty(report.Evidence);
+        Assert.False(result.WasChanged);
+        Assert.Equal(jpeg, result.ToArray());
+    }
+
+    [Fact]
+    public void JpegAcceptsFragmentedExtendedLengthJumbf() {
+        byte[] manifest = CreateExtendedManifestStore(80);
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegApp11(manifest, 0, 50, instance: 9, sequence: 1),
+            CreateJpegApp11(manifest, 50, manifest.Length - 50, instance: 9, sequence: 2),
+            new byte[] { 0xFF, 0xD9 });
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
+
+        Assert.Single(result.Before.Evidence);
+        Assert.True(result.Before.Evidence[0].IsStructurallyValid);
+        Assert.Equal(manifest.Length, result.Before.Evidence[0].PayloadLength);
+        Assert.Empty(result.After.Evidence);
     }
 
     [Fact]
@@ -100,6 +135,23 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.Single(result.Before.Evidence);
         Assert.False(result.Before.Evidence[0].IsStructurallyValid);
+        Assert.Equal(png, result.ToArray());
+    }
+
+    [Fact]
+    public void PngPreservesCabxPlacedAfterImageDataByDefault() {
+        byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] png = Join(
+            header,
+            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("caBX", CreateManifestStore()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
+
+        Assert.False(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
         Assert.Equal(png, result.ToArray());
     }
 
@@ -201,6 +253,21 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void GifAppliesTheManifestLimitOnlyToTheC2paApplicationExtension() {
+        byte[] unrelated = CreateGifApplication("OTHERAPP", new byte[] { 1, 0, 0 }, new byte[512]);
+        byte[] c2pa = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, CreateManifestStore());
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, c2pa, new byte[] { 0x3B });
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.MaxAssetBytes = gif.Length + 1L;
+        options.Limits.MaxManifestBytes = 64;
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif", options);
+
+        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, new byte[] { 0x3B }), result.ToArray());
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void TiffRemovesTheC2paTagWithoutMovingUnrelatedPayload() {
         byte[] manifest = CreateManifestStore();
         byte[] tiff = CreateLittleEndianTiff(manifest);
@@ -246,6 +313,24 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void SvgXmpUsesTheAssetLimitInsteadOfTheManifestLimit() {
+        string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"><metadata>" +
+            Encoding.UTF8.GetString(CreateXmpPacket()) +
+            "</metadata><desc>" + new string('x', 256) + "</desc></svg>";
+        byte[] data = Encoding.UTF8.GetBytes(svg);
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.MaxAssetBytes = data.Length + 1L;
+        options.Limits.MaxManifestBytes = 64;
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(data, "fixture.svg", options);
+
+        Assert.True(result.Before.HasGenerativeAiDeclaration);
+        Assert.False(result.After.HasGenerativeAiDeclaration);
+        Assert.Contains(result.After.Evidence, item => item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.DigitalCapture);
+        Assert.Contains(new string('x', 256), Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ZipRemovesOnlyTheExactCaseSensitiveManifestEntry() {
         byte[] package = CreateZip(
             ("word/document.xml", Encoding.UTF8.GetBytes("<document/>")),
@@ -288,7 +373,11 @@ public sealed class ProvenanceCoreContracts {
     [Fact]
     public void ZipInspectsAndSanitizesSupportedEmbeddedImages() {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-        byte[] image = Join(header, CreatePngChunk("caBX", CreateManifestStore()), CreatePngChunk("IEND", Array.Empty<byte>()));
+        byte[] image = Join(
+            header,
+            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("caBX", CreateManifestStore()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(
             ("word/document.xml", Encoding.UTF8.GetBytes("<document/>")),
             ("word/media/image1.png", image));
@@ -307,6 +396,7 @@ public sealed class ProvenanceCoreContracts {
     public void ZipRemovalSkipsEmbeddedInspectionWhenDisabled() {
         byte[] image = Join(
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+            CreatePngChunk("IHDR", new byte[13]),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(
@@ -359,6 +449,23 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void ZipRewriteUsesTheExpandedContainerLimitForUnrelatedEntries() {
+        byte[] unrelated = new byte[64 * 1024];
+        byte[] package = CreateCompressedZip(
+            ("large-unrelated.bin", unrelated),
+            ("META-INF/content_credential.c2pa", CreateManifestStore()));
+        var options = new OfficeProvenanceRemovalOptions();
+        options.Limits.MaxAssetBytes = package.Length + 1L;
+        options.Limits.MaxManifestBytes = 64;
+        options.Limits.MaxExpandedContainerBytes = 128 * 1024;
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.docx", options);
+
+        Assert.Empty(result.After.Evidence);
+        Assert.Equal(unrelated, ReadZipEntry(result.ToArray(), "large-unrelated.bin"));
+    }
+
+    [Fact]
     public void StructuredTextRemovesManifestBlockAndPreservesSurroundingText() {
         string block = "-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
@@ -396,6 +503,21 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.False(result.WasChanged);
         Assert.Equal(text, result.ToArray());
+    }
+
+    [Fact]
+    public void StructuredTextResynchronizesAtANewerStandaloneBeginDelimiter() {
+        string validBlock = "-----BEGIN C2PA MANIFEST-----\n" +
+            "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
+            "-----END C2PA MANIFEST-----\n";
+        byte[] text = Encoding.UTF8.GetBytes("-----BEGIN C2PA MANIFEST-----\nstale\n" + validBlock + "after\n");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(text, "fixture.md");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(text, "fixture.md");
+
+        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.Equal("-----BEGIN C2PA MANIFEST-----\nstale\nafter\n", Encoding.UTF8.GetString(result.ToArray()));
+        Assert.Empty(result.After.Evidence);
     }
 
     [Fact]
@@ -495,6 +617,20 @@ public sealed class ProvenanceCoreContracts {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
         data[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
+        return data;
+    }
+
+    private static byte[] CreateExtendedManifestStore(int length) {
+        if (length < 46) throw new ArgumentOutOfRangeException(nameof(length));
+        byte[] data = new byte[length];
+        WriteBigEndian(data, 0, 1);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
+        WriteBigEndian64(data, 8, (ulong)length);
+        WriteBigEndian(data, 16, 30);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 20);
+        new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 24);
+        data[40] = 0x02;
+        Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 41);
         return data;
     }
 
@@ -626,6 +762,18 @@ public sealed class ProvenanceCoreContracts {
         return stream.ToArray();
     }
 
+    private static byte[] CreateCompressedZip(params (string Name, byte[] Data)[] entries) {
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach ((string name, byte[] data) in entries) {
+                ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+                using Stream target = entry.Open();
+                target.Write(data, 0, data.Length);
+            }
+        }
+        return stream.ToArray();
+    }
+
     private static byte[] ReadZipEntry(byte[] package, string name) {
         using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
         ZipArchiveEntry entry = archive.GetEntry(name) ?? throw new InvalidDataException("ZIP fixture entry was not found.");
@@ -653,6 +801,17 @@ public sealed class ProvenanceCoreContracts {
         data[offset + 1] = (byte)(value >> 16);
         data[offset + 2] = (byte)(value >> 8);
         data[offset + 3] = (byte)value;
+    }
+
+    private static void WriteBigEndian64(byte[] data, int offset, ulong value) {
+        data[offset] = (byte)(value >> 56);
+        data[offset + 1] = (byte)(value >> 48);
+        data[offset + 2] = (byte)(value >> 40);
+        data[offset + 3] = (byte)(value >> 32);
+        data[offset + 4] = (byte)(value >> 24);
+        data[offset + 5] = (byte)(value >> 16);
+        data[offset + 6] = (byte)(value >> 8);
+        data[offset + 7] = (byte)value;
     }
 
     private static byte[] Join(params byte[][] parts) {

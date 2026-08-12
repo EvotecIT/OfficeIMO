@@ -14,6 +14,23 @@ namespace OfficeIMO.Security;
 /// <c>c2patool</c> command-line application. The executable is supplied by the host and is not bundled.
 /// </summary>
 public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
+    private static readonly HashSet<string> SuccessfulValidationCodes = new(StringComparer.Ordinal) {
+        "claimSignature.validated",
+        "claimSignature.insideValidity",
+        "signingCredential.trusted",
+        "signingCredential.ocsp.notRevoked",
+        "timeStamp.trusted",
+        "timeStamp.validated",
+        "assertion.hashedURI.match",
+        "assertion.dataHash.match",
+        "assertion.bmffHash.match",
+        "assertion.accessible",
+        "assertion.boxesHash.match",
+        "assertion.collectionHash.match",
+        "ingredient.manifest.validated",
+        "ingredient.manifest.missing",
+        "ingredient.claimSignature.validated"
+    };
     private readonly IC2paToolProcessRunner _runner;
 
     /// <summary>Creates a verifier for an installed or explicitly downloaded c2patool executable.</summary>
@@ -151,6 +168,11 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                         string? explanation = status.TryGetProperty("explanation", out JsonElement explanationElement) && explanationElement.ValueKind == JsonValueKind.String
                             ? explanationElement.GetString()
                             : null;
+                        bool? explicitSuccess = status.TryGetProperty("success", out JsonElement successElement) &&
+                            (successElement.ValueKind == JsonValueKind.True || successElement.ValueKind == JsonValueKind.False)
+                            ? successElement.GetBoolean()
+                            : null;
+                        if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
                         string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
                         if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
                         if (!findings.Contains(finding, StringComparer.Ordinal)) findings.Add(finding);

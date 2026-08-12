@@ -60,7 +60,7 @@ internal static class OfficeProvenanceGif {
                     data[offset + 8] == 0x01 && data[offset + 9] == 0x00 && data[offset + 10] == 0x00;
                 offset += headerLength;
                 int payloadStart = offset;
-                offset = SkipSubBlocks(data, offset, options.MaxManifestBytes, out int payloadLength);
+                offset = SkipSubBlocks(data, offset, isC2pa ? options.MaxManifestBytes : options.MaxAssetBytes, out int payloadLength);
                 if (isC2pa) {
                     byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
                     bool valid = OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);

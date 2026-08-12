@@ -10,6 +10,8 @@ namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceSvg {
     private static readonly XNamespace C2paNamespace = "http://c2pa.org/manifest";
+    private static readonly XNamespace XmpNamespace = "adobe:ns:meta/";
+    private const string IptcNamespace = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/";
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         XDocument document = Load(data, options);
@@ -24,7 +26,10 @@ internal static class OfficeProvenanceSvg {
                 valid,
                 decoded ? manifest.Length : 0));
         }
-        OfficeProvenanceXmp.Inspect(data, options, context, "SVG/XMP");
+        int xmpIndex = 0;
+        foreach (XElement xmp in FindXmpRoots(document)) {
+            OfficeProvenanceXmp.Inspect(SerializeElement(xmp), options, context, $"SVG/XMP[{xmpIndex++}]");
+        }
     }
 
     internal static byte[] Remove(
@@ -34,12 +39,19 @@ internal static class OfficeProvenanceSvg {
         out bool reserialized) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
-        byte[] working = data;
-        if (OfficeProvenanceXmp.TryRemoveAiDeclarations(data, options, "SVG/XMP", changes, out byte[] cleanedXmp)) {
-            working = cleanedXmp;
+        XDocument document = Load(data, options.Limits);
+        XElement[] xmpRoots = FindXmpRoots(document).ToArray();
+        for (int index = 0; index < xmpRoots.Length; index++) {
+            XElement xmp = xmpRoots[index];
+            if (!OfficeProvenanceXmp.TryRemoveAiDeclarations(
+                SerializeElement(xmp),
+                options,
+                $"SVG/XMP[{index}]",
+                changes,
+                out byte[] cleanedXmp)) continue;
+            xmp.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
             reserialized = true;
         }
-        XDocument document = Load(working, options.Limits);
         XElement[] manifests = document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement).ToArray();
         for (int index = 0; index < manifests.Length; index++) {
             XElement element = manifests[index];
@@ -96,4 +108,41 @@ internal static class OfficeProvenanceSvg {
     private static bool IsManifestElement(XElement element) => element.Parent != null &&
         element.Parent.Name.LocalName == "metadata" &&
         element.Parent.Name.NamespaceName == "http://www.w3.org/2000/svg";
+
+    private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
+        XElement[] roots = document.Descendants(XmpNamespace + "xmpmeta").ToArray();
+        if (roots.Length > 0) return roots;
+        return document.Descendants()
+            .Where(element => element.Name.LocalName == "metadata" &&
+                element.Name.NamespaceName == "http://www.w3.org/2000/svg" &&
+                element.DescendantsAndSelf().Any(candidate =>
+                    candidate.Name.NamespaceName == IptcNamespace ||
+                    candidate.Attributes().Any(attribute => attribute.Name.NamespaceName == IptcNamespace)))
+            .ToArray();
+    }
+
+    private static byte[] SerializeElement(XElement element) {
+        using var output = new MemoryStream();
+        var settings = new XmlWriterSettings {
+            Encoding = new UTF8Encoding(false),
+            Indent = false,
+            OmitXmlDeclaration = true,
+            NewLineHandling = NewLineHandling.None
+        };
+        using (XmlWriter writer = XmlWriter.Create(output, settings)) element.Save(writer);
+        return output.ToArray();
+    }
+
+    private static XElement LoadElement(byte[] data, OfficeProvenanceOptions options) {
+        var settings = new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = options.MaxAssetBytes,
+            MaxCharactersFromEntities = 0,
+            IgnoreWhitespace = false
+        };
+        using var stream = new MemoryStream(data, writable: false);
+        using XmlReader reader = XmlReader.Create(stream, settings);
+        return XElement.Load(reader, LoadOptions.PreserveWhitespace);
+    }
 }

@@ -97,12 +97,12 @@ internal static class OfficeProvenanceXmp {
 
     private static bool TryLoad(byte[] packet, OfficeProvenanceOptions options, out XDocument? document) {
         document = null;
-        if (packet.LongLength > options.MaxManifestBytes) return false;
+        if (packet.LongLength > options.MaxAssetBytes) return false;
         try {
             var settings = new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                MaxCharactersInDocument = options.MaxManifestBytes,
+                MaxCharactersInDocument = options.MaxAssetBytes,
                 MaxCharactersFromEntities = 0,
                 IgnoreWhitespace = false
             };

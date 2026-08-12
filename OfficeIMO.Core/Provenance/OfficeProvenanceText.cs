@@ -104,6 +104,11 @@ internal static class OfficeProvenanceText {
             int contentStart = begin + BeginDelimiter.Length;
             int end = IndexOf(data, EndDelimiter, contentStart);
             if (end < 0) yield break;
+            int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart);
+            if (newerBegin >= 0 && newerBegin < end) {
+                search = newerBegin;
+                continue;
+            }
             if (!IsStandaloneDelimiter(data, end, EndDelimiter.Length)) {
                 search = end + EndDelimiter.Length;
                 continue;
@@ -207,6 +212,17 @@ internal static class OfficeProvenanceText {
             int index = 0;
             while (index < pattern.Length && data[offset + index] == pattern[index]) index++;
             if (index == pattern.Length) return offset;
+        }
+        return -1;
+    }
+
+    private static int FindStandaloneDelimiter(byte[] data, byte[] delimiter, int start) {
+        int search = start;
+        while (search < data.Length) {
+            int offset = IndexOf(data, delimiter, search);
+            if (offset < 0) return -1;
+            if (IsStandaloneDelimiter(data, offset, delimiter.Length)) return offset;
+            search = offset + delimiter.Length;
         }
         return -1;
     }

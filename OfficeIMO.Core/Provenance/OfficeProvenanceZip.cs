@@ -130,7 +130,7 @@ internal static class OfficeProvenanceZip {
                     destination.Write(rewritten, 0, rewritten.Length);
                 } else {
                     using Stream source = entry.Open();
-                    CopyBounded(source, destination, options.Limits.MaxAssetBytes, options.Limits.MaxExpandedContainerBytes, ref expandedBytes);
+                    CopyBounded(source, destination, options.Limits.MaxExpandedContainerBytes, ref expandedBytes);
                 }
             }
         }
@@ -195,14 +195,11 @@ internal static class OfficeProvenanceZip {
         return data;
     }
 
-    private static void CopyBounded(Stream source, Stream destination, long maximumEntryBytes, long maximumTotalBytes, ref long totalBytes) {
+    private static void CopyBounded(Stream source, Stream destination, long maximumTotalBytes, ref long totalBytes) {
         byte[] buffer = new byte[81920];
-        long entryBytes = 0;
         while (true) {
             int read = source.Read(buffer, 0, buffer.Length);
             if (read <= 0) break;
-            if (entryBytes > maximumEntryBytes - read) throw new InvalidDataException("ZIP entry exceeds the configured copy limit.");
-            entryBytes += read;
             ReserveExpandedBytes(ref totalBytes, read, maximumTotalBytes);
             destination.Write(buffer, 0, read);
         }
