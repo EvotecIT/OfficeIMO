@@ -63,6 +63,10 @@ internal static class PdfStructureTreeAnnotationPruner {
             if (dictionary.Items.TryGetValue("ParentTree", out PdfObject? parentTree)) {
                 PruneParentTree(objects, parentTree, structParentIndexes, removedStructElements, new HashSet<int>());
             }
+            if (dictionary.Items.TryGetValue("IDTree", out PdfObject? idTree) &&
+                !PruneIdTree(objects, idTree, removedStructElements, new HashSet<int>(), out _, out _)) {
+                dictionary.Items.Remove("IDTree");
+            }
         }
 
         foreach (int objectNumber in removedStructElements) {
@@ -218,5 +222,78 @@ internal static class PdfStructureTreeAnnotationPruner {
                 PruneParentTree(objects, kid, structParentIndexes, removedStructElements, visited);
             }
         }
+    }
+
+    private static bool PruneIdTree(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<int> removedStructElements,
+        HashSet<int> visited,
+        out PdfStringObj? firstKey,
+        out PdfStringObj? lastKey) {
+        firstKey = null;
+        lastKey = null;
+        if (value is PdfReference reference) {
+            if (!visited.Add(reference.ObjectNumber)) return true;
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return true;
+            return PruneIdTree(objects, indirect.Value, removedStructElements, visited, out firstKey, out lastKey);
+        }
+        if (value is not PdfDictionary dictionary) return true;
+
+        bool hasEntries = false;
+        if (dictionary.Items.TryGetValue("Names", out PdfObject? namesObject)) {
+            if (PdfObjectLookup.Resolve(objects, namesObject) is PdfArray names && names.Items.Count % 2 == 0) {
+                for (int index = names.Items.Count - 2; index >= 0; index -= 2) {
+                    if (names.Items[index + 1] is not PdfReference target ||
+                        !removedStructElements.Contains(target.ObjectNumber)) {
+                        continue;
+                    }
+                    names.Items.RemoveAt(index + 1);
+                    names.Items.RemoveAt(index);
+                }
+                if (names.Items.Count == 0) {
+                    dictionary.Items.Remove("Names");
+                } else {
+                    hasEntries = true;
+                    firstKey = names.Items[0] as PdfStringObj;
+                    lastKey = names.Items[names.Items.Count - 2] as PdfStringObj;
+                }
+            } else {
+                // Preserve malformed or unresolved name arrays rather than deleting unrelated structure.
+                hasEntries = true;
+            }
+        }
+
+        if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)) {
+            if (PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
+                var emptyKids = new List<int>();
+                for (int index = 0; index < kids.Items.Count; index++) {
+                    PdfObject kid = kids.Items[index];
+                    if (PruneIdTree(objects, kid, removedStructElements, visited, out PdfStringObj? childFirst, out PdfStringObj? childLast)) {
+                        hasEntries = true;
+                        firstKey ??= childFirst;
+                        if (childLast != null) lastKey = childLast;
+                    } else {
+                        emptyKids.Add(index);
+                    }
+                }
+                for (int index = emptyKids.Count - 1; index >= 0; index--) kids.Items.RemoveAt(emptyKids[index]);
+                if (kids.Items.Count == 0) dictionary.Items.Remove("Kids");
+            } else {
+                hasEntries = true;
+            }
+        }
+
+        if (!hasEntries) {
+            dictionary.Items.Remove("Limits");
+            return false;
+        }
+        if (firstKey != null && lastKey != null) {
+            var limits = new PdfArray();
+            limits.Items.Add(firstKey);
+            limits.Items.Add(lastKey);
+            dictionary.Items["Limits"] = limits;
+        }
+        return true;
     }
 }

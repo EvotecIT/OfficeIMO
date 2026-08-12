@@ -11,9 +11,10 @@ internal static class HtmlCssPageSettingsResolver {
         var pageRules = new HtmlCssPageRuleSet();
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
         var parser = new CssParser();
+        var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePrintMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules);
+            ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers);
             var sheet = parser.ParseStyleSheet(styleElement.TextContent);
             foreach (ICssRule rule in sheet.Rules) ApplyRule(rule, options, diagnostics);
         }
@@ -169,10 +170,24 @@ internal static class HtmlCssPageSettingsResolver {
             options.PageHeight,
             options.MediaFeatures);
 
-    private static void ApplyRawPageRules(string css, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) =>
-        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules);
+    private static void ApplyRawPageRules(
+        string css,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        HtmlCssPageRuleSet pageRules,
+        CascadeLayerRegistry layers) =>
+        ScanRawRules(css, 0, css.Length, options, diagnostics, pageRules, layers, null, null);
 
-    private static void ScanRawRules(string css, int start, int end, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) {
+    private static void ScanRawRules(
+        string css,
+        int start,
+        int end,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        HtmlCssPageRuleSet pageRules,
+        CascadeLayerRegistry layers,
+        string? layerPath,
+        CascadeLayerOrder? layerOrder) {
         int cursor = start;
         while (cursor < end) {
             if (IsCommentStart(css, cursor)) {
@@ -203,6 +218,9 @@ internal static class HtmlCssPageSettingsResolver {
             string name = css.Substring(nameStart, nameEnd - nameStart);
             int boundary = FindRuleBoundary(css, nameEnd, end);
             if (boundary < 0 || css[boundary] == ';') {
+                if (boundary >= 0 && string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
+                    RegisterLayerStatement(layers, css.Substring(nameEnd, boundary - nameEnd), layerPath);
+                }
                 cursor = boundary < 0 ? end : boundary + 1;
                 continue;
             }
@@ -212,47 +230,55 @@ internal static class HtmlCssPageSettingsResolver {
             string prelude = css.Substring(nameEnd, boundary - nameEnd).Trim();
             if (string.Equals(name, "media", StringComparison.OrdinalIgnoreCase)) {
                 if (IsApplicablePrintMedia(prelude, options)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
                 }
             } else if (string.Equals(name, "supports", StringComparison.OrdinalIgnoreCase)) {
                 if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) {
-                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules);
+                    ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, layerPath, layerOrder);
                 }
+            } else if (string.Equals(name, "layer", StringComparison.OrdinalIgnoreCase)) {
+                (string nestedPath, CascadeLayerOrder nestedOrder) = RegisterLayerBlock(layers, prelude, layerPath);
+                ScanRawRules(css, boundary + 1, closeBrace, options, diagnostics, pageRules, layers, nestedPath, nestedOrder);
             } else if (string.Equals(name, "page", StringComparison.OrdinalIgnoreCase)) {
                 string body = css.Substring(boundary + 1, closeBrace - boundary - 1);
-                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules);
+                ApplyRawPageRule(prelude, body, options, diagnostics, pageRules, layerOrder);
             }
 
             cursor = closeBrace + 1;
         }
     }
 
-    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules) {
+    private static void ApplyRawPageRule(string selectorText, string body, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlCssPageRuleSet pageRules, CascadeLayerOrder? layerOrder) {
         if (!TryParsePageSelector(selectorText, out string? pageName, out HtmlCssPageSelector selector)) {
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSelectorPending, "A complex page selector could not be applied to individual pages.", HtmlDiagnosticSeverity.Warning, selectorText.Length == 0 ? "@page" : selectorText);
             return;
         }
 
-        HtmlCssPageDeclaration sizeDeclaration = FindTopLevelDeclarationWithPriority(body, "size");
-        string size = sizeDeclaration.Value;
         bool appliesToBasePage = pageName == null && selector == HtmlCssPageSelector.Generic;
-        bool validSize = size.Length == 0
-            || appliesToBasePage && TryApplyPageSize(size, options)
-            || !appliesToBasePage && TryResolvePageSize(size, options.PageWidth, options.PageHeight, options.DefaultFontSize, out _, out _);
-        if (!validSize) {
+        bool IsValidSize(string value) => TryResolvePageSize(
+            value,
+            options.PageWidth,
+            options.PageHeight,
+            options.DefaultFontSize,
+            out _,
+            out _);
+        HtmlCssPageDeclaration authoredSize = FindTopLevelDeclarationWithPriority(body, "size");
+        HtmlCssPageDeclaration sizeDeclaration = FindTopLevelDeclarationWithPriority(body, "size", IsValidSize);
+        if (authoredSize.Value.Length > 0 && !IsValidSize(authoredSize.Value)) {
             string source = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
-            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, size);
+            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, authoredSize.Value);
         }
+        if (appliesToBasePage && sizeDeclaration.Value.Length > 0) TryApplyPageSize(sizeDeclaration.Value, options);
 
         var geometry = new HtmlCssPageGeometryDeclaration(
-            validSize ? sizeDeclaration : sizeDeclaration.WithValue(string.Empty),
-            FindTopLevelDeclarationWithPriority(body, "margin"),
-            FindTopLevelDeclarationWithPriority(body, "margin-top"),
-            FindTopLevelDeclarationWithPriority(body, "margin-right"),
-            FindTopLevelDeclarationWithPriority(body, "margin-bottom"),
-            FindTopLevelDeclarationWithPriority(body, "margin-left"));
+            sizeDeclaration,
+            FindTopLevelDeclarationWithPriority(body, "margin", value => HtmlCssPageRuleSet.TryExpandMargin(value, out _)),
+            FindTopLevelDeclarationWithPriority(body, "margin-top", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            FindTopLevelDeclarationWithPriority(body, "margin-right", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            FindTopLevelDeclarationWithPriority(body, "margin-bottom", HtmlCssPageRuleSet.IsValidPageMarginComponent),
+            FindTopLevelDeclarationWithPriority(body, "margin-left", HtmlCssPageRuleSet.IsValidPageMarginComponent));
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics);
-        if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry));
+        if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry, layerOrder));
     }
 
     private static bool TryParsePageSelector(string selectorText, out string? pageName, out HtmlCssPageSelector selector) {
@@ -340,10 +366,13 @@ internal static class HtmlCssPageSettingsResolver {
                 continue;
             }
 
-            HtmlCssPageDeclaration content = FindTopLevelDeclarationWithPriority(marginBody, "content");
-            if (content.Value.Length > 0 && !HtmlCssGeneratedContentTemplate.TryParse(content.Value, out _)) {
-                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, content.Value);
-                content = content.WithValue(string.Empty);
+            HtmlCssPageDeclaration authoredContent = FindTopLevelDeclarationWithPriority(marginBody, "content");
+            HtmlCssPageDeclaration content = FindTopLevelDeclarationWithPriority(
+                marginBody,
+                "content",
+                value => HtmlCssGeneratedContentTemplate.TryParse(value, out _));
+            if (authoredContent.Value.Length > 0 && !HtmlCssGeneratedContentTemplate.TryParse(authoredContent.Value, out _)) {
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, authoredContent.Value);
             }
 
             ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
@@ -433,7 +462,10 @@ internal static class HtmlCssPageSettingsResolver {
     private static string FindTopLevelDeclaration(string body, string propertyName) =>
         FindTopLevelDeclarationWithPriority(body, propertyName).Value;
 
-    private static HtmlCssPageDeclaration FindTopLevelDeclarationWithPriority(string body, string propertyName) {
+    private static HtmlCssPageDeclaration FindTopLevelDeclarationWithPriority(
+        string body,
+        string propertyName,
+        Func<string, bool>? isValid = null) {
         body = HtmlComputedStyleEngine.StripCssCommentsOutsideStrings(body);
         int start = 0;
         int depth = 0;
@@ -456,7 +488,7 @@ internal static class HtmlCssPageSettingsResolver {
                 if (separator > 0 && string.Equals(declaration.Substring(0, separator).Trim(), propertyName, StringComparison.OrdinalIgnoreCase)) {
                     string value = declaration.Substring(separator + 1).Trim();
                     bool important = TryStripImportant(ref value);
-                    if (important || !resolved.IsImportant) {
+                    if ((isValid == null || isValid(value)) && (important || !resolved.IsImportant)) {
                         resolved = new HtmlCssPageDeclaration(value, important, declarationOrder);
                     }
                 }
@@ -517,4 +549,20 @@ internal static class HtmlCssPageSettingsResolver {
 
         return end;
     }
+
+    private static void RegisterLayerStatement(CascadeLayerRegistry layers, string prelude, string? parentPath) {
+        foreach (string name in prelude.Split(',')) {
+            string trimmed = name.Trim();
+            if (trimmed.Length > 0) layers.Register(CombineLayerPath(parentPath, trimmed));
+        }
+    }
+
+    private static (string Path, CascadeLayerOrder Order) RegisterLayerBlock(CascadeLayerRegistry layers, string prelude, string? parentPath) {
+        string name = prelude.Trim();
+        string path = name.Length == 0 ? layers.RegisterAnonymous(parentPath) : CombineLayerPath(parentPath, name);
+        return (path, layers.GetOrder(path));
+    }
+
+    private static string CombineLayerPath(string? parentPath, string name) =>
+        string.IsNullOrEmpty(parentPath) ? name : parentPath + "." + name;
 }

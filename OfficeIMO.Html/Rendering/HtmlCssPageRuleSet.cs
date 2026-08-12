@@ -5,7 +5,10 @@ namespace OfficeIMO.Html;
 internal sealed class HtmlCssPageRuleSet {
     private readonly List<HtmlCssPageRule> _rules = new List<HtmlCssPageRule>();
 
-    internal void Add(HtmlCssPageRule rule) => _rules.Add(rule);
+    internal void Add(HtmlCssPageRule rule) {
+        rule.SourceOrder = _rules.Count;
+        _rules.Add(rule);
+    }
 
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         IReadOnlyList<HtmlCssPageRule> matching = MatchingRules(pageNumber, pageName).ToList();
@@ -14,19 +17,19 @@ internal sealed class HtmlCssPageRuleSet {
         var right = new HtmlCssPageCascadeValue();
         var bottom = new HtmlCssPageCascadeValue();
         var left = new HtmlCssPageCascadeValue();
-        for (int precedence = 0; precedence < matching.Count; precedence++) {
-            HtmlCssPageGeometryDeclaration geometry = matching[precedence].Geometry;
-            Consider(ref size, geometry.Size, precedence);
+        foreach (HtmlCssPageRule rule in matching) {
+            HtmlCssPageGeometryDeclaration geometry = rule.Geometry;
+            Consider(ref size, geometry.Size, rule);
             if (TryExpandMargin(geometry.Margin.Value, out string[] marginValues)) {
-                Consider(ref top, geometry.Margin.WithValue(marginValues[0]), precedence);
-                Consider(ref right, geometry.Margin.WithValue(marginValues[1]), precedence);
-                Consider(ref bottom, geometry.Margin.WithValue(marginValues[2]), precedence);
-                Consider(ref left, geometry.Margin.WithValue(marginValues[3]), precedence);
+                Consider(ref top, geometry.Margin.WithValue(marginValues[0]), rule);
+                Consider(ref right, geometry.Margin.WithValue(marginValues[1]), rule);
+                Consider(ref bottom, geometry.Margin.WithValue(marginValues[2]), rule);
+                Consider(ref left, geometry.Margin.WithValue(marginValues[3]), rule);
             }
-            Consider(ref top, geometry.MarginTop, precedence);
-            Consider(ref right, geometry.MarginRight, precedence);
-            Consider(ref bottom, geometry.MarginBottom, precedence);
-            Consider(ref left, geometry.MarginLeft, precedence);
+            Consider(ref top, geometry.MarginTop, rule);
+            Consider(ref right, geometry.MarginRight, rule);
+            Consider(ref bottom, geometry.MarginBottom, rule);
+            Consider(ref left, geometry.MarginLeft, rule);
         }
 
         double width = options.PageWidth;
@@ -49,13 +52,13 @@ internal sealed class HtmlCssPageRuleSet {
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ResolveMarginBoxes(int pageNumber, string? pageName, HtmlCssPageGeometry geometry, HtmlRenderOptions options) {
         IReadOnlyList<HtmlCssPageRule> matching = MatchingRules(pageNumber, pageName).ToList();
         var cascaded = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginCascade>();
-        for (int precedence = 0; precedence < matching.Count; precedence++) {
-            foreach (KeyValuePair<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> pair in matching[precedence].MarginBoxes) {
+        foreach (HtmlCssPageRule rule in matching) {
+            foreach (KeyValuePair<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> pair in rule.MarginBoxes) {
                 if (!cascaded.TryGetValue(pair.Key, out HtmlCssPageMarginCascade? margin)) {
                     margin = new HtmlCssPageMarginCascade();
                     cascaded[pair.Key] = margin;
                 }
-                margin.Consider(pair.Value, precedence);
+                margin.Consider(pair.Value, rule);
             }
         }
 
@@ -70,10 +73,8 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     private IEnumerable<HtmlCssPageRule> MatchingRules(int pageNumber, string? pageName) {
-        return _rules
-            .Where(rule => (rule.PageName == null || MatchesName(rule.PageName, pageName))
-                && (rule.Selector == HtmlCssPageSelector.Generic || Matches(rule.Selector, pageNumber)))
-            .OrderBy(PageSelectorSpecificity);
+        return _rules.Where(rule => (rule.PageName == null || MatchesName(rule.PageName, pageName))
+            && (rule.Selector == HtmlCssPageSelector.Generic || Matches(rule.Selector, pageNumber)));
     }
 
     private static int PageSelectorSpecificity(HtmlCssPageRule rule) {
@@ -83,17 +84,26 @@ internal sealed class HtmlCssPageRuleSet {
         return specificity;
     }
 
-    private static void Consider(ref HtmlCssPageCascadeValue current, HtmlCssPageDeclaration candidate, int precedence) {
+    private static void Consider(ref HtmlCssPageCascadeValue current, HtmlCssPageDeclaration candidate, HtmlCssPageRule rule) {
         if (candidate.Value.Length == 0) return;
-        if (!current.HasValue
-            || candidate.IsImportant && !current.IsImportant
-            || candidate.IsImportant == current.IsImportant && (precedence > current.Precedence
-                || precedence == current.Precedence && candidate.Order >= current.DeclarationOrder)) {
-            current = new HtmlCssPageCascadeValue(candidate.Value, candidate.IsImportant, precedence, candidate.Order);
-        }
+        int specificity = PageSelectorSpecificity(rule);
+        if (!current.HasValue || ShouldReplace(current, candidate, rule.LayerOrder, specificity, rule.SourceOrder))
+            current = new HtmlCssPageCascadeValue(candidate.Value, candidate.IsImportant, rule.LayerOrder, specificity, rule.SourceOrder, candidate.Order);
     }
 
-    private static bool TryExpandMargin(string value, out string[] sides) {
+    private static bool ShouldReplace(HtmlCssPageCascadeValue current, HtmlCssPageDeclaration candidate, CascadeLayerOrder? layerOrder, int specificity, int sourceOrder) {
+        if (candidate.IsImportant != current.IsImportant) return candidate.IsImportant;
+        if ((layerOrder != null) != (current.LayerOrder != null)) return candidate.IsImportant ? layerOrder != null : layerOrder == null;
+        if (layerOrder != null && current.LayerOrder != null) {
+            int layerComparison = layerOrder.CompareTo(current.LayerOrder);
+            if (layerComparison != 0) return candidate.IsImportant ? layerComparison < 0 : layerComparison > 0;
+        }
+        if (specificity != current.Specificity) return specificity > current.Specificity;
+        if (sourceOrder != current.SourceOrder) return sourceOrder > current.SourceOrder;
+        return candidate.Order >= current.DeclarationOrder;
+    }
+
+    internal static bool TryExpandMargin(string value, out string[] sides) {
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
         if (parts.Count < 1 || parts.Count > 4) {
             sides = Array.Empty<string>();
@@ -125,7 +135,7 @@ internal sealed class HtmlCssPageRuleSet {
         }
     }
 
-    private static bool IsValidPageMarginComponent(string value) {
+    internal static bool IsValidPageMarginComponent(string value) {
         if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "initial", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase)) {
@@ -149,17 +159,21 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     private readonly struct HtmlCssPageCascadeValue {
-        internal HtmlCssPageCascadeValue(string value, bool isImportant, int precedence, int declarationOrder) {
+        internal HtmlCssPageCascadeValue(string value, bool isImportant, CascadeLayerOrder? layerOrder, int specificity, int sourceOrder, int declarationOrder) {
             Value = value;
             IsImportant = isImportant;
-            Precedence = precedence;
+            LayerOrder = layerOrder;
+            Specificity = specificity;
+            SourceOrder = sourceOrder;
             DeclarationOrder = declarationOrder;
             HasValue = true;
         }
 
         internal string Value { get; }
         internal bool IsImportant { get; }
-        internal int Precedence { get; }
+        internal CascadeLayerOrder? LayerOrder { get; }
+        internal int Specificity { get; }
+        internal int SourceOrder { get; }
         internal int DeclarationOrder { get; }
         internal bool HasValue { get; }
     }
@@ -173,14 +187,14 @@ internal sealed class HtmlCssPageRuleSet {
         private HtmlCssPageCascadeValue _color;
         private HtmlCssPageCascadeValue _textAlign;
 
-        internal void Consider(HtmlCssPageMarginRule rule, int precedence) {
-            HtmlCssPageRuleSet.Consider(ref _content, rule.Content, precedence);
-            HtmlCssPageRuleSet.Consider(ref _fontFamily, rule.FontFamily, precedence);
-            HtmlCssPageRuleSet.Consider(ref _fontSize, rule.FontSize, precedence);
-            HtmlCssPageRuleSet.Consider(ref _fontWeight, rule.FontWeight, precedence);
-            HtmlCssPageRuleSet.Consider(ref _fontStyle, rule.FontStyle, precedence);
-            HtmlCssPageRuleSet.Consider(ref _color, rule.Color, precedence);
-            HtmlCssPageRuleSet.Consider(ref _textAlign, rule.TextAlign, precedence);
+        internal void Consider(HtmlCssPageMarginRule marginRule, HtmlCssPageRule pageRule) {
+            HtmlCssPageRuleSet.Consider(ref _content, marginRule.Content, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _fontFamily, marginRule.FontFamily, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _fontSize, marginRule.FontSize, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _fontWeight, marginRule.FontWeight, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _fontStyle, marginRule.FontStyle, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _color, marginRule.Color, pageRule);
+            HtmlCssPageRuleSet.Consider(ref _textAlign, marginRule.TextAlign, pageRule);
         }
 
         internal bool TryBuild(HtmlCssPageMarginPosition position, HtmlCssPageGeometry geometry, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
@@ -229,17 +243,21 @@ internal sealed class HtmlCssPageRule {
         string? pageName,
         HtmlCssPageSelector selector,
         IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes,
-        HtmlCssPageGeometryDeclaration geometry) {
+        HtmlCssPageGeometryDeclaration geometry,
+        CascadeLayerOrder? layerOrder) {
         PageName = pageName;
         Selector = selector;
         MarginBoxes = marginBoxes;
         Geometry = geometry;
+        LayerOrder = layerOrder;
     }
 
     internal string? PageName { get; }
     internal HtmlCssPageSelector Selector { get; }
     internal IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> MarginBoxes { get; }
     internal HtmlCssPageGeometryDeclaration Geometry { get; }
+    internal CascadeLayerOrder? LayerOrder { get; }
+    internal int SourceOrder { get; set; }
 }
 
 internal readonly struct HtmlCssPageGeometry {

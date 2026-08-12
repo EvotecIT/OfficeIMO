@@ -311,7 +311,7 @@ public static partial class HtmlComputedStyleEngine {
             return minimum ? actual >= expected : maximum ? actual <= expected : Math.Abs(actual - expected) <= 0.000001D;
         }
 
-        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(feature);
+        if (!TryTokenizeContainerRange(feature, out IReadOnlyList<string> parts)) return false;
         if (parts.Count == 3) {
             if (TryGetContainerFeatureValue(parts[0], context, out double actual)
                 && TryParseContainerFeatureValue(parts[0], parts[2], context, environment, out double expected)) {
@@ -329,6 +329,57 @@ public static partial class HtmlComputedStyleEngine {
             return CompareContainerValues(lower, middle, parts[1]) && CompareContainerValues(middle, upper, parts[3]);
         }
         return false;
+    }
+
+    private static bool TryTokenizeContainerRange(string feature, out IReadOnlyList<string> parts) {
+        var tokens = new List<string>();
+        int segmentStart = 0;
+        int depth = 0;
+        char quote = '\0';
+        for (int index = 0; index < feature.Length; index++) {
+            char current = feature[index];
+            if (quote != '\0') {
+                if (current == quote && (index == 0 || feature[index - 1] != '\\')) quote = '\0';
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (current == '(') {
+                depth++;
+                continue;
+            }
+            if (current == ')' && depth > 0) {
+                depth--;
+                continue;
+            }
+            if (depth != 0 || current != '<' && current != '>' && current != '=') continue;
+
+            string operand = feature.Substring(segmentStart, index - segmentStart).Trim();
+            if (operand.Length == 0) {
+                parts = Array.Empty<string>();
+                return false;
+            }
+            tokens.Add(operand);
+            int operatorLength = current != '=' && index + 1 < feature.Length && feature[index + 1] == '=' ? 2 : 1;
+            tokens.Add(feature.Substring(index, operatorLength));
+            index += operatorLength - 1;
+            segmentStart = index + 1;
+        }
+
+        string finalOperand = feature.Substring(segmentStart).Trim();
+        if (tokens.Count == 0 || finalOperand.Length == 0) {
+            parts = Array.Empty<string>();
+            return false;
+        }
+        tokens.Add(finalOperand);
+        if (tokens.Count != 3 && tokens.Count != 5) {
+            parts = Array.Empty<string>();
+            return false;
+        }
+        parts = tokens;
+        return true;
     }
 
     private static bool TryGetContainerFeatureValue(string name, ContainerQueryContext context, out double value) {

@@ -94,6 +94,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerRangeQueriesAcceptCompactComparisonOperators() {
+        const string html = "<style>@container (width>=300px){#minimum{background:red}}@container (300px<=width<400px){#range{background:red}}@container (width<300px){#outside{background:red}}</style><section style='width:360px;container-type:inline-size'><div id='minimum' style='width:20px;height:20px;background:blue'></div><div id='range' style='width:20px;height:20px;background:blue'></div><div id='outside' style='width:20px;height:20px;background:blue'></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 420D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#minimum").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#range").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#outside").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerQueryThresholdUnitsUseTheQueriedContainer() {
         const string html = """
             <style>@container (width > 50cqw) { .item { background:red; } }</style>

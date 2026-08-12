@@ -65,6 +65,32 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_PrunesIdTreeEntriesForDeletedStructureElements() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIdTreePdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructElem" &&
+            dictionary.Get<PdfName>("S")?.Name == "Form");
+        PdfDictionary root = Assert.IsType<PdfDictionary>(objects.Values.Single(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructTreeRoot").Value);
+        PdfDictionary idTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, root.Items["IDTree"]));
+        PdfArray rootKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, idTree.Items["Kids"]));
+        PdfDictionary leaf = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, Assert.Single(rootKids.Items)));
+        PdfArray names = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, leaf.Items["Names"]));
+        Assert.Equal(2, names.Items.Count);
+        Assert.Equal("document-id", Assert.IsType<PdfStringObj>(names.Items[0]).Value);
+        PdfReference retainedReference = Assert.IsType<PdfReference>(names.Items[1]);
+        PdfDictionary retainedElement = Assert.IsType<PdfDictionary>(objects[retainedReference.ObjectNumber].Value);
+        Assert.Equal("Document", retainedElement.Get<PdfName>("S")?.Name);
+        Assert.Equal("document-id", retainedElement.Get<PdfStringObj>("ID")?.Value);
+        PdfArray limits = Assert.IsType<PdfArray>(leaf.Items["Limits"]);
+        Assert.All(limits.Items, item => Assert.Equal("document-id", Assert.IsType<PdfStringObj>(item).Value));
+    }
+
+    [Fact]
     public void FlattenFields_SynthesizesMaskedPasswordTextAppearanceWhenMissing() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildPasswordTextWidgetWithoutAppearancePdf());
 
