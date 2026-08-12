@@ -33,6 +33,7 @@ public static class PdfProvenance {
             bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
                 string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
                 attachment.FileSpecObjectNumber > 0 &&
+                IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber) &&
                 associations.IsValid(attachment.FileSpecObjectNumber) &&
                 OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
             if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
@@ -146,17 +147,47 @@ public static class PdfProvenance {
         AddReferencesFromArray(document.Objects, catalog.Items.TryGetValue("AF", out PdfObject? catalogAf) ? catalogAf : null, documentLevel);
         CollectEmbeddedFilesNameTreeReferences(document.Objects, catalog, secondaryDocumentReferences);
         PdfIndirectObject catalogObject = document.Objects.Values.First(item => ReferenceEquals(item.Value, catalog));
-        var collector = new PdfPageExtractor.ObjectCollector(document.Objects);
-        collector.CollectObjectGraph(new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
-        var reachableObjectNumbers = new HashSet<int>(collector.ObjectIds);
+        HashSet<int> reachableObjectNumbers = CollectReachableObjectNumbers(
+            document.Objects,
+            new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
         HashSet<PdfObject> structuralAssociationSites = CollectEmbeddedFileStructuralDictionaries(
             document.Objects, reachableObjectNumbers);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited, structuralAssociationSites);
         }
-        CollectPageAnnotationReferences(document.Objects, catalog, secondaryDocumentReferences);
+        CollectPageAnnotationReferences(
+            document.Objects,
+            catalog,
+            secondaryDocumentReferences,
+            document.ReadOptions.Limits.MaxAnnotationsPerPage);
         return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
+    }
+
+    private static HashSet<int> CollectReachableObjectNumbers(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReference root) {
+        var result = new HashSet<int>();
+        var visitedDirectObjects = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(root);
+        while (pending.Count > 0) {
+            PdfObject value = pending.Pop();
+            if (value is PdfReference reference) {
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    !result.Add(reference.ObjectNumber)) continue;
+                pending.Push(indirect.Value);
+                continue;
+            }
+            if (!visitedDirectObjects.Add(value)) continue;
+            PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+            if (dictionary != null) {
+                foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+            } else if (value is PdfArray array) {
+                foreach (PdfObject child in array.Items) pending.Push(child);
+            }
+        }
+        return result;
     }
 
     private static long MultiplySaturating(long value, int multiplier) =>
@@ -223,7 +254,8 @@ public static class PdfProvenance {
     private static void CollectPageAnnotationReferences(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary catalog,
-        HashSet<int> result) {
+        HashSet<int> result,
+        int maximumAnnotationsPerPage) {
         if (!catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return;
         var pending = new Stack<PdfObject>();
         var visited = new HashSet<PdfObject>();
@@ -239,13 +271,27 @@ public static class PdfProvenance {
                 continue;
             }
             if (type != "Page" || PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) continue;
+            if (annotations.Items.Count > maximumAnnotationsPerPage) {
+                throw new InvalidDataException("PDF page annotations exceed the configured per-page limit.");
+            }
             foreach (PdfObject annotationValue in annotations.Items) {
                 if (PdfObjectLookup.Resolve(objects, annotationValue) is not PdfDictionary annotation ||
                     !string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) ||
-                    !annotation.Items.TryGetValue("FS", out PdfObject? fileSpecification) || fileSpecification is not PdfReference reference) continue;
+                    !annotation.Items.TryGetValue("FS", out PdfObject? fileSpecification) || fileSpecification is not PdfReference reference ||
+                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    !IsFileSpecificationValue(indirect.Value)) continue;
                 result.Add(reference.ObjectNumber);
             }
         }
+    }
+
+    private static bool IsFileSpecificationObject(Dictionary<int, PdfIndirectObject> objects, int objectNumber) =>
+        objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) && IsFileSpecificationValue(indirect.Value);
+
+    private static bool IsFileSpecificationValue(PdfObject value) {
+        if (value is not PdfDictionary dictionary) return false;
+        string? type = dictionary.Get<PdfName>("Type")?.Name;
+        return type == null || string.Equals(type, "Filespec", StringComparison.Ordinal);
     }
 
     private static void AddReferencesFromArray(
@@ -253,7 +299,11 @@ public static class PdfProvenance {
         PdfObject? value,
         HashSet<int> result) {
         if (PdfObjectLookup.Resolve(objects, value) is not PdfArray array) return;
-        foreach (PdfObject item in array.Items) if (item is PdfReference reference) result.Add(reference.ObjectNumber);
+        foreach (PdfObject item in array.Items) {
+            if (item is PdfReference reference &&
+                PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+                IsFileSpecificationValue(indirect.Value)) result.Add(reference.ObjectNumber);
+        }
     }
 
     private static void CollectEmbeddedFilesNameTreeReferences(
@@ -276,7 +326,9 @@ public static class PdfProvenance {
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
             for (int index = 1; index < names.Items.Count; index += 2) {
                 if (PdfObjectLookup.Resolve(objects, names.Items[index - 1]) is PdfStringObj &&
-                    names.Items[index] is PdfReference reference) result.Add(reference.ObjectNumber);
+                    names.Items[index] is PdfReference reference &&
+                    PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
+                    IsFileSpecificationValue(indirect.Value)) result.Add(reference.ObjectNumber);
             }
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;

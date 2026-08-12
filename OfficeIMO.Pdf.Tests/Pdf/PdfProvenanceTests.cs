@@ -300,6 +300,86 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void StaleGenerationFileAttachmentAnnotationDoesNotSatisfyTheDocumentProfile() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] validAnnotation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            names.Items.Remove("EmbeddedFiles");
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values.Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            var annotation = new PdfDictionary();
+            annotation.Items["Type"] = new PdfName("Annot");
+            annotation.Items["Subtype"] = new PdfName("FileAttachment");
+            annotation.Items["FS"] = candidate;
+            int annotationNumber = objects.Keys.Max() + 1;
+            objects[annotationNumber] = new PdfIndirectObject(annotationNumber, 0, annotation);
+            var annotations = new PdfArray();
+            annotations.Items.Add(new PdfReference(annotationNumber, 0));
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+        string validText = Encoding.ASCII.GetString(validAnnotation);
+        System.Text.RegularExpressions.Match activeReference = System.Text.RegularExpressions.Regex.Match(
+            validText,
+            @"/FS\s+\d+\s+0\s+R",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        Assert.True(activeReference.Success);
+        string staleReference = System.Text.RegularExpressions.Regex.Replace(
+            activeReference.Value,
+            @"\s0\s+R$",
+            " 1 R",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        byte[] staleAnnotation = Encoding.ASCII.GetBytes(validText.Remove(activeReference.Index, activeReference.Length)
+            .Insert(activeReference.Index, staleReference));
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(staleAnnotation);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void ProvenanceInspectionEnforcesThePerPageAnnotationLimit() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] withAnnotations = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values.Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            var annotations = new PdfArray();
+            annotations.Items.Add(new PdfDictionary());
+            annotations.Items.Add(new PdfDictionary());
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxAnnotationsPerPage = 1 } };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            PdfProvenance.Inspect(withAnnotations, readOptions: readOptions));
+
+        Assert.Contains("annotation", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ActivePageDictionaryCannotMasqueradeAsAFileSpecification() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] contradictory = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items["Type"] = new PdfName("Page");
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(contradictory);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(contradictory);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void CatalogExtensionFileAttachmentDoesNotSatisfyTheDocumentProfile() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] extensionReferenced = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -504,8 +584,8 @@ public sealed class PdfProvenanceTests {
             .ToBytes();
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = pdf.Length + 1L,
-            MaxManifestBytes = 64,
-            MaxExpandedContainerBytes = 64
+            MaxManifestBytes = 96,
+            MaxExpandedContainerBytes = 96
         };
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, options);
@@ -541,7 +621,7 @@ public sealed class PdfProvenanceTests {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = duplicated.LongLength + 1L,
-            MaxManifestBytes = 64,
+            MaxManifestBytes = 96,
             MaxExpandedContainerBytes = 1024 * 1024,
             MaxCarriers = 1
         };
@@ -556,7 +636,7 @@ public sealed class PdfProvenanceTests {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
-        options.Limits.MaxManifestBytes = 64;
+        options.Limits.MaxManifestBytes = 96;
         options.Limits.MaxExpandedContainerBytes = 128;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
@@ -727,7 +807,7 @@ public sealed class PdfProvenanceTests {
         (PdfObjectLookup.Resolve(objects, reference) as PdfDictionary)?.Get<PdfStringObj>("F")?.Value;
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[38];
+        byte[] data = new byte[73];
         WriteBigEndian(data, 0, data.Length);
         Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
         WriteBigEndian(data, 8, 30);
@@ -735,6 +815,13 @@ public sealed class PdfProvenanceTests {
         new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
         data[32] = 0x02;
         Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
+        WriteBigEndian(data, 38, 35);
+        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
+        WriteBigEndian(data, 46, 27);
+        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
+        new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
+        data[70] = 0x02;
+        data[71] = (byte)'m';
         return data;
     }
 
