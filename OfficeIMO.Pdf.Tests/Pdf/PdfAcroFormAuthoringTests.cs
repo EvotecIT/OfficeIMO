@@ -258,7 +258,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void WidgetOwnedActiveContentTraversalInspectsNonActionWidgetEntries() {
         byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
-            .Replace(" /A 8 0 R >>", " /A 8 0 R /OfficeIMO << /S /Launch >> >>", StringComparison.Ordinal));
+            .Replace(" /A 8 0 R >>", " /A 8 0 R /OfficeIMO << /S /Launch >> >>"));
 
         PdfReadDocument readDocument = PdfReadDocument.Open(source);
         PdfDocument document = PdfDocument.Open(source);

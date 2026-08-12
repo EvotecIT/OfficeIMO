@@ -280,7 +280,7 @@ public partial class PdfFormFillerTests {
 
     private static byte[] BuildChoiceWidgetFormPdfWithEmptyOption() {
         string pdf = PdfEncoding.Latin1GetString(BuildChoiceWidgetFormPdf())
-            .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]", StringComparison.Ordinal);
+            .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]");
         return Encoding.ASCII.GetBytes(pdf);
     }
 }
