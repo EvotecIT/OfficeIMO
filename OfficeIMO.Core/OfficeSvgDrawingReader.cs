@@ -41,36 +41,33 @@ public static partial class OfficeSvgDrawingReader {
         byte[]? bytes,
         OfficeSvgDrawingReaderOptions? options,
         out OfficeDrawing? drawing,
+        out int unsupportedFeatureCount) =>
+        TryReadCore(bytes, options, allowUnresolvedViewport: false, out drawing, out unsupportedFeatureCount);
+
+    private static bool TryReadCore(
+        byte[]? bytes,
+        OfficeSvgDrawingReaderOptions? options,
+        bool allowUnresolvedViewport,
+        out OfficeDrawing? drawing,
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
-        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
-        int maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
-        double maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
-        double maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
-        if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
-        if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
-            maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
+        if (!TryReadBoundedDocument(
+                bytes,
+                options,
+                allowUnresolvedViewport,
+                out XElement root,
+                out int maximumElements,
+                out double maximumViewportDimension,
+                out double maximumViewportPixels,
+                out double viewX,
+                out double viewY,
+                out double viewWidth,
+                out double viewHeight,
+                out double viewportWidth,
+                out double viewportHeight)) return false;
 
         try {
-            var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = MaximumInputBytes
-            };
-            XDocument document;
-            using (var stream = new MemoryStream(bytes, writable: false))
-            using (XmlReader reader = XmlReader.Create(stream, settings)) {
-                document = XDocument.Load(reader, LoadOptions.None);
-            }
-
-            XElement? root = document.Root;
-            if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
-            if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
-            if (!TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels,
-                    out double viewX, out double viewY, out double viewWidth, out double viewHeight,
-                    out double viewportWidth, out double viewportHeight)) return false;
-
             var scene = new OfficeDrawing(viewWidth, viewHeight);
             int visited = 0;
             int pathCommands = 0;
@@ -106,11 +103,71 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
+    /// <summary>
+    /// Returns whether an SVG payload is well formed and stays within the supplied parser and viewport safety limits,
+    /// regardless of whether every valid SVG shape can be imported into an <see cref="OfficeDrawing"/>.
+    /// </summary>
+    public static bool IsWithinSafetyLimits(byte[]? bytes, OfficeSvgDrawingReaderOptions? options = null) =>
+        TryReadCore(bytes, options, allowUnresolvedViewport: true, out _, out _);
+
+    private static bool TryReadBoundedDocument(
+        byte[]? bytes,
+        OfficeSvgDrawingReaderOptions? options,
+        bool allowUnresolvedViewport,
+        out XElement root,
+        out int maximumElements,
+        out double maximumViewportDimension,
+        out double maximumViewportPixels,
+        out double viewX,
+        out double viewY,
+        out double viewWidth,
+        out double viewHeight,
+        out double viewportWidth,
+        out double viewportHeight) {
+        root = null!;
+        maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
+        maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
+        maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
+        viewX = viewY = viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
+        if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
+            maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
+
+        try {
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = MaximumInputBytes
+            };
+            XDocument document;
+            using (var stream = new MemoryStream(bytes, writable: false))
+            using (XmlReader reader = XmlReader.Create(stream, settings)) {
+                document = XDocument.Load(reader, LoadOptions.None);
+            }
+
+            XElement? documentRoot = document.Root;
+            if (documentRoot == null || !string.Equals(documentRoot.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
+            root = documentRoot;
+            if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
+            return TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels, allowUnresolvedViewport,
+                out viewX, out viewY, out viewWidth, out viewHeight,
+                out viewportWidth, out viewportHeight);
+        } catch (XmlException) {
+            return false;
+        } catch (InvalidOperationException) {
+            return false;
+        } catch (ArgumentException) {
+            return false;
+        }
+    }
+
     private static bool TryResolveViewport(
         byte[] bytes,
         XElement root,
         double maximumViewportDimension,
         double maximumViewportPixels,
+        bool allowUnresolvedViewport,
         out double viewX,
         out double viewY,
         out double viewWidth,
@@ -141,13 +198,22 @@ public static partial class OfficeSvgDrawingReader {
 
         bool hasIntrinsicWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double intrinsicWidth);
         bool hasIntrinsicHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double intrinsicHeight);
+        if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
+            (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
+            return false;
+        }
         if (hasIntrinsicWidth && hasIntrinsicHeight) {
             viewWidth = viewportWidth = intrinsicWidth;
             viewHeight = viewportHeight = intrinsicHeight;
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
-        if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) return false;
+        if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) {
+            if (!allowUnresolvedViewport) return false;
+            viewWidth = viewportWidth = hasIntrinsicWidth ? intrinsicWidth : 300D;
+            viewHeight = viewportHeight = hasIntrinsicHeight ? intrinsicHeight : 150D;
+            return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
+        }
         viewWidth = viewportWidth = info.Width * 96D / Math.Max(1D, info.DpiX);
         viewHeight = viewportHeight = info.Height * 96D / Math.Max(1D, info.DpiY);
         return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);

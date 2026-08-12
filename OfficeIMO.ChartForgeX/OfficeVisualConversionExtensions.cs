@@ -174,12 +174,16 @@ public static class OfficeVisualConversionExtensions {
             return;
         }
 
+        if (OfficeSvgDrawingReader.IsWithinSafetyLimits(svgBytes, configuredOptions)) {
+            return;
+        }
+
         var hardLimits = new OfficeSvgDrawingReaderOptions {
             MaximumElements = OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
             MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension,
             MaximumViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels
         };
-        if (!OfficeSvgDrawingReader.TryRead(svgBytes, hardLimits, out _)) {
+        if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(svgBytes, hardLimits)) {
             throw new InvalidOperationException("SVG content is invalid or exceeds the hard import safety limits and cannot be rasterized.");
         }
 

@@ -51,7 +51,6 @@ public sealed partial class CsvRowWriter
         {
             throw new InvalidOperationException("Data reader must expose at least one field.");
         }
-        int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
         if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(
                 reader,
@@ -60,6 +59,8 @@ public sealed partial class CsvRowWriter
             WriteDataReader(reader, cancellationToken);
             return;
         }
+
+        int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
         var columns = new string[fieldCount];
         for (int index = 0; index < fieldCount; index++)

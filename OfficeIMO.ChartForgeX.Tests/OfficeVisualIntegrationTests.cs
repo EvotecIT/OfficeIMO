@@ -158,6 +158,17 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRasterizesSafeMarkupThatTheVectorImporterCannotProject() {
+        const string noIntrinsicViewport = "<svg xmlns='http://www.w3.org/2000/svg'><rect width='16' height='8' fill='#2563eb'/></svg>";
+
+        OfficeVisualConversionResult result = new OfficeVisualSource(noIntrinsicViewport).ToOfficeVisual(
+            new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded });
+
+        Assert.True(result.Report.UsedRasterFallback);
+        Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
+    }
+
+    [Fact]
     public void PlacementCreatesReadableWordExcelPowerPointAndPdfPackages() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

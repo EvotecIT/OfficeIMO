@@ -136,6 +136,29 @@ public class CsvParallelWriteTests
     }
 
     [Fact]
+    public void WriteDataReaderParallel_WideUnsafeProviderUsesSequentialFallbackOutsideBatchBudget()
+    {
+        var shared = new MutableFormattable { Value = "safe" };
+        using var reader = new ThrowingGetValuesDataReader(
+            ["First", "Second", "Third"],
+            [[shared, shared, shared]]);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReaderParallel(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" },
+            new CsvWriteParallelOptions
+            {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 4096,
+                MaximumBufferedCellsPerBatch = 2
+            });
+
+        Assert.Equal("First,Second,Third\nsafe,safe,safe\n", writer.ToString());
+    }
+
+    [Fact]
     public void WriteDataReaderParallel_EmptyReaderMatchesSequentialHeader()
     {
         using var table = new DataTable("Empty");
