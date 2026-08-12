@@ -28,6 +28,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         int transformedShapes = 0, skippedBasicFormatting = 0, skippedNotes = 0;
         int unsupportedShapeHyperlinks = 0;
         var textState = new PowerPointToOdpTextConversionState();
+        var imageValidationBudget = new OdfImageValidationBudget();
         for (int slideIndex = 0; slideIndex < source.Slides.Count; slideIndex++) {
             PowerPointSlide sourceSlide = source.Slides[slideIndex];
             OdpSlide targetSlide = target.AddSlide("Slide" + (slideIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -46,7 +47,17 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 } else if (shape is PowerPointPicture picture) {
                     if (!effective.IncludeImages) { unsupportedPictures++; continue; }
                     try {
-                        OdpImage converted = targetSlide.AddImage(picture.GetImageBytes(), FileNameForContentType(picture.ContentType), ToOdfRect(picture), picture.Name);
+                        byte[] imageBytes = picture.GetImageBytes();
+                        string imageFileName = FileNameForContentType(picture.ContentType);
+                        if (!OdfImagePayloadValidator.TryResolvePreservedFileName(
+                            imageBytes,
+                            imageFileName,
+                            out string storedFileName,
+                            imageValidationBudget)) {
+                            unsupportedPictures++;
+                            continue;
+                        }
+                        OdpImage converted = targetSlide.AddImage(imageBytes, storedFileName, ToOdfRect(picture), picture.Name);
                         CopyShapeAppearance(picture, converted, effective);
                         if (picture.CropLeftRatio > 0D || picture.CropTopRatio > 0D || picture.CropRightRatio > 0D || picture.CropBottomRatio > 0D) {
                             converted.Crop = new OdfInsets(

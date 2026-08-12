@@ -110,7 +110,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Skips_Loaded_Unsupported_Png_Images() {
+    public void SaveAsPdf_OfficeIMOEngine_Skips_Loaded_Corrupt_Png_Images() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -125,7 +125,7 @@ public partial class Word {
             document.Save();
         }
 
-        ReplaceFirstMainDocumentImagePart(docPath, CreateUnsupportedInterlacedPng());
+        ReplaceFirstMainDocumentImagePart(docPath, CreateCorruptInterlacedPng());
 
         using (WordDocument document = WordDocument.Load(docPath)) {
             var result = document.ToPdfDocumentResult(options);
@@ -212,9 +212,27 @@ public partial class Word {
         imagePart.FeedData(stream);
     }
 
-    private static byte[] CreateUnsupportedInterlacedPng() {
-        byte[] bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAABGdBTAAAACklEQVR42mP8z8AABQMBgA4uA1sAAAAASUVORK5CYII=");
+    private static byte[] CreateCorruptInterlacedPng() {
+        byte[] bytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEUlEQVR4nGP4z8DwH4QZYAwAR8oH+WdZbrcAAAAASUVORK5CYII=");
         bytes[28] = 1;
+        WritePngHeaderCrc(bytes);
         return bytes;
+    }
+
+    private static void WritePngHeaderCrc(byte[] bytes) {
+        uint crc = 0xFFFFFFFFU;
+        for (int index = 12; index < 29; index++) {
+            crc ^= bytes[index];
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1U) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
+            }
+        }
+
+        crc ^= 0xFFFFFFFFU;
+        bytes[29] = (byte)(crc >> 24);
+        bytes[30] = (byte)(crc >> 16);
+        bytes[31] = (byte)(crc >> 8);
+        bytes[32] = (byte)crc;
     }
 }

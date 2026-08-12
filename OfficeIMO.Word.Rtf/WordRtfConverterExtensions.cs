@@ -679,16 +679,16 @@ public static partial class WordRtfConverterExtensions {
         RtfParagraph destination = activeCapture?.Result ?? paragraph;
         if (revisionKind != RtfRevisionKind.None && !IsEquationFieldInstruction(instruction)) {
             RtfRun? flattenedPreviousRun = null;
-            foreach (Run childRun in simpleField.Elements<Run>()) {
-                AppendWordRun(
-                    new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
-                    destination,
-                    ref flattenedPreviousRun,
-                    rtfDocument,
-                    revisionAuthorIndexes,
-                    revisionKind,
-                    revisionAuthorIndex);
-            }
+            AppendInlineContainerContent(
+                wordParagraph,
+                simpleField,
+                destination,
+                ref flattenedPreviousRun,
+                rtfDocument,
+                revisionAuthorIndexes,
+                new Stack<ComplexFieldCapture>(),
+                revisionKind,
+                revisionAuthorIndex);
             if (activeCapture != null) {
                 activeCapture.PreviousRun = flattenedPreviousRun;
             }
@@ -697,16 +697,16 @@ public static partial class WordRtfConverterExtensions {
 
         RtfField field = destination.AddField(instruction.Trim());
         RtfRun? previousRun = null;
-        foreach (Run childRun in simpleField.Elements<Run>()) {
-            AppendWordRun(
-                new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
-                field.Result,
-                ref previousRun,
-                rtfDocument,
-                revisionAuthorIndexes,
-                revisionKind,
-                revisionAuthorIndex);
-        }
+        AppendInlineContainerContent(
+            wordParagraph,
+            simpleField,
+            field.Result,
+            ref previousRun,
+            rtfDocument,
+            revisionAuthorIndexes,
+            new Stack<ComplexFieldCapture>(),
+            revisionKind,
+            revisionAuthorIndex);
         if (activeCapture != null) {
             activeCapture.PreviousRun = null;
         }
@@ -775,14 +775,15 @@ public static partial class WordRtfConverterExtensions {
             return previousRun == null;
         }
 
-        if (wordRun.IsImage && wordRun.Image != null) {
-            RtfImage? image = CreateRtfImage(wordRun);
-            if (image == null) {
-                return false;
-            }
-
-            RtfImage copy = paragraph.AddImage(image.Format, image.Data);
-            CopyImage(image, copy);
+        bool appendedImage = false;
+        foreach (WordImage wordImage in wordRun.EnumerateImages()) {
+            RtfImage? image = CreateRtfImage(wordImage, out _, out _);
+            if (image == null) continue;
+            CopyImage(image, paragraph.AddImage(image.Format, image.Data));
+            appendedImage = true;
+        }
+        if (wordRun.IsImage) {
+            if (!appendedImage) return false;
             previousRun = null;
             return true;
         }

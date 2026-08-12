@@ -106,6 +106,25 @@ public sealed class DrawingOfficeArtBlipTests {
         Assert.True(entry.WasImageRejectedBySizeLimit);
     }
 
+    [Fact]
+    public void ReaderPreservesCompressedMetafileDecodedSizeRejection() {
+        byte[] metafile = BuildMinimalEmf();
+        byte[] blip = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(
+            metafile,
+            "image/x-emf");
+        WriteUInt32(blip, 8 + 16, 0);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(
+            BuildFbse(blip, uint.MaxValue),
+            0x0002,
+            out OfficeArtBlipStoreEntry? entry,
+            maximumDecodedImageBytes: metafile.Length - 1));
+
+        Assert.NotNull(entry);
+        Assert.Empty(entry!.ImageBytes);
+        Assert.True(entry.WasImageRejectedBySizeLimit);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

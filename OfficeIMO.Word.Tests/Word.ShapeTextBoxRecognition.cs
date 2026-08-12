@@ -87,7 +87,8 @@ namespace OfficeIMO.Tests {
                 var drawing = run.Descendants<WordDrawing>().First();
                 var fallbackDrawing = (WordDrawing)drawing.CloneNode(true);
                 drawing.Remove();
-                var choice = new AlternateContentChoice() { Requires = "wps" };
+                var choice = new AlternateContentChoice() { Requires = "future" };
+                choice.AddNamespaceDeclaration("future", "urn:officeimo:unsupported-word-feature");
                 choice.Append(new Run(new Text("placeholder")));
                 var fallback = new AlternateContentFallback();
                 fallback.Append(fallbackDrawing);

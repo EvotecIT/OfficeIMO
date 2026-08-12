@@ -752,7 +752,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelTemplate_RepeatsTemplateSheetForModels() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingSheets.xlsx");
-            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Region Template");
@@ -996,7 +996,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelTemplate_RepeatsTemplateSheetPreservesChartDrawingParts() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingSheets.ChartDrawingPart.xlsx");
-            byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Chart Template");
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelTemplate_RepeatsTemplateSheetPreservesDiagramDrawingParts() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingSheets.DiagramDrawingParts.xlsx");
-            byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
             string dataXml = "<dgm:dataModel xmlns:dgm=\"http://schemas.openxmlformats.org/drawingml/2006/diagram\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><dgm:ptLst /><dgm:cxnLst /><dgm:bg /><dgm:whole /></dgm:dataModel>";
             string layoutXml = "<dgm:layoutDef uniqueId=\"urn:officeimo:test:layout\" xmlns:dgm=\"http://schemas.openxmlformats.org/drawingml/2006/diagram\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><dgm:title val=\"\" /><dgm:desc val=\"\" /><dgm:catLst><dgm:cat type=\"list\" pri=\"400\" /></dgm:catLst><dgm:layoutNode name=\"diagram\" /></dgm:layoutDef>";
             string colorsXml = "<dgm:colorsDef uniqueId=\"urn:officeimo:test:colors\" xmlns:dgm=\"http://schemas.openxmlformats.org/drawingml/2006/diagram\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><dgm:title val=\"\" /><dgm:desc val=\"\" /><dgm:catLst><dgm:cat type=\"accent1\" pri=\"11200\" /></dgm:catLst></dgm:colorsDef>";
@@ -1164,7 +1164,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelTemplate_ImageMarkersBindBytesAndStreams() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.ImageMarkers.xlsx");
-            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Template");

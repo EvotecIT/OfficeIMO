@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Data;
 using Xunit;
@@ -81,6 +82,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerResolvePathsStopsEnumerationAtColumnLimit() {
+            int enumeratedPaths = 0;
+
+            IEnumerable<string> Paths() {
+                while (true) yield return "Column" + enumeratedPaths++;
+            }
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().ResolvePaths(
+                    Paths(),
+                    new ObjectFlattenerOptions { MaxColumns = 1 }));
+            Assert.Equal(2, enumeratedPaths);
+        }
+
+        [Fact]
         public void ObjectFlattenerGetPathsAppliesSelectionAndOrdering() {
             var flattener = new ObjectFlattener();
             var opts = new ObjectFlattenerOptions {
@@ -125,6 +141,204 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObjectFlattenerCollectionMapColumnsStopsAtColumnLimit() {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            options.CollectionMapColumns["Metrics"] = new CollectionColumnMapping {
+                KeyProperty = nameof(ObjectFlattenerMetric.Name),
+                ValueProperty = nameof(ObjectFlattenerMetric.Value)
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().Flatten(new ObjectFlattenerMetricsRow(), options));
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsCountsResolvedDistinctPaths() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name", "Name", "Missing" },
+                MaxColumns = 1
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerSinglePropertyRow { Name = "Alice" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsProjectsSubsetBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name" },
+                MaxColumns = 1
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerWideRow { Name = "Alice", Status = "Active" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void ObjectFlattenerAppliesIncludeAndExcludeBeforeColumnLimit(bool useInclude) {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            if (useInclude) {
+                options.IncludeProperties = new[] { "Name" };
+            } else {
+                options.ExcludeProperties = new[] { "Status" };
+            }
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                new ObjectFlattenerWideRow { Name = "Alice", Status = "Active" }, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsProjectsDictionarySubsetBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name" },
+                MaxColumns = 1
+            };
+            var row = new Dictionary<string, object?> {
+                ["Status"] = "Active",
+                ["Name"] = "Alice"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(row, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerAppliesDictionaryIgnoreBeforeColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                Ignore = new[] { "Status" },
+                MaxColumns = 1
+            };
+            var row = new Dictionary<string, object?> {
+                ["Status"] = "Active",
+                ["Name"] = "Alice"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(row, options);
+
+            Assert.Single(values);
+            Assert.Equal("Alice", values["Name"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerCountsDistinctResolvedDictionaryPathsAtColumnLimit() {
+            var row = new Dictionary<string, object?>(StringComparer.Ordinal) {
+                ["Name"] = "first",
+                ["name"] = "last"
+            };
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                row,
+                new ObjectFlattenerOptions {
+                    MaxColumns = 1,
+                    MaxCollectionItems = 2
+                });
+
+            Assert.Single(values);
+            Assert.Equal("last", values["Name"]);
+            Assert.Equal("Name", Assert.Single(values).Key);
+
+            var heterogeneousKeys = new Dictionary<object, object?> {
+                [1] = "number",
+                ["1"] = "text"
+            };
+            Dictionary<string, object?> heterogeneousValues = new ObjectFlattener().Flatten(
+                heterogeneousKeys,
+                new ObjectFlattenerOptions {
+                    MaxColumns = 1,
+                    MaxCollectionItems = 2
+                });
+
+            Assert.Single(heterogeneousValues);
+            Assert.True(heterogeneousValues.ContainsKey("1"));
+        }
+
+        [Fact]
+        public void ObjectFlattenerIndexesMaximumWidthExplicitColumnSelection() {
+            const int columnCount = ObjectFlattenerOptions.DefaultMaxColumns;
+            string[] columns = Enumerable.Range(0, columnCount)
+                .Select(index => "Column" + index)
+                .ToArray();
+            var row = columns.ToDictionary(
+                column => column,
+                column => (object?)column,
+                StringComparer.Ordinal);
+
+            Dictionary<string, object?> values = new ObjectFlattener().Flatten(
+                row,
+                new ObjectFlattenerOptions {
+                    Columns = columns,
+                    MaxColumns = columnCount,
+                    MaxCollectionItems = columnCount
+                });
+
+            Assert.Equal(columnCount, values.Count);
+            Assert.Equal("Column0", values["Column0"]);
+            Assert.Equal("Column16383", values["Column16383"]);
+        }
+
+        [Fact]
+        public void ObjectFlattenerStopsRecursiveProjectionAtColumnLimit() {
+            var options = new ObjectFlattenerOptions { MaxColumns = 1 };
+            options.ExpandProperties.Add(nameof(ObjectFlattenerBranch.Left));
+            options.ExpandProperties.Add(nameof(ObjectFlattenerBranch.Right));
+            var row = new ObjectFlattenerBranch {
+                Value = 1,
+                Left = new ObjectFlattenerBranch { Value = 2 },
+                Right = new ObjectFlattenerBranch { Value = 3 }
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().Flatten(row, options));
+            Assert.False(row.WasRightRead());
+        }
+
+        [Fact]
+        public void ObjectFlattenerStopsRecursiveTypePathDiscoveryAtColumnLimit() {
+            var options = new ObjectFlattenerOptions {
+                MaxColumns = 1,
+                MaxDepth = 12
+            };
+            options.ExpandProperties.Add(nameof(ObjectFlattenerRecursiveType.Left));
+            options.ExpandProperties.Add(nameof(ObjectFlattenerRecursiveType.Right));
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().GetPaths(typeof(ObjectFlattenerRecursiveType), options));
+        }
+
+        [Fact]
+        public void ObjectFlattenerTypePathDiscoveryCountsCaseInsensitiveDistinctPaths() {
+            List<string> paths = new ObjectFlattener().GetPaths(
+                typeof(ObjectFlattenerCaseDistinctRow),
+                new ObjectFlattenerOptions { MaxColumns = 1 });
+
+            Assert.Equal("A", Assert.Single(paths));
+        }
+
+        [Fact]
+        public void ObjectFlattenerExplicitColumnsRejectsResolvedDistinctPathsBeyondLimit() {
+            var options = new ObjectFlattenerOptions {
+                Columns = new[] { "Name", "Status" },
+                MaxColumns = 1
+            };
+
+            Assert.Throws<System.IO.InvalidDataException>(() =>
+                new ObjectFlattener().ResolvePaths(new[] { "Name", "Status" }, options));
+        }
+
+        [Fact]
         public void ObjectFlattenerValueTuplePreservesItemPaths() {
             var flattener = new ObjectFlattener();
             var options = new ObjectFlattenerOptions();
@@ -141,6 +355,49 @@ namespace OfficeIMO.Tests {
             public List<string?> Tags { get; } = new() { "a", null, "b" };
 
             public string[] Empty { get; } = Array.Empty<string>();
+        }
+
+        private sealed class ObjectFlattenerSinglePropertyRow {
+            public string Name { get; set; } = string.Empty;
+        }
+
+        private sealed class ObjectFlattenerWideRow {
+            public string Name { get; set; } = string.Empty;
+
+            public string Status { get; set; } = string.Empty;
+        }
+
+        private sealed class ObjectFlattenerBranch {
+            private ObjectFlattenerBranch? _right;
+            private bool _rightWasRead;
+
+            public int Value { get; set; }
+
+            public ObjectFlattenerBranch? Left { get; set; }
+
+            public ObjectFlattenerBranch? Right {
+                get {
+                    _rightWasRead = true;
+                    return _right;
+                }
+                set => _right = value;
+            }
+
+            public bool WasRightRead() => _rightWasRead;
+        }
+
+        private sealed class ObjectFlattenerRecursiveType {
+            public ObjectFlattenerRecursiveType? Left { get; set; }
+
+            public ObjectFlattenerRecursiveType? Right { get; set; }
+
+            public int Value { get; set; }
+        }
+
+        private sealed class ObjectFlattenerCaseDistinctRow {
+            public int A { get; set; }
+
+            public int a { get; set; }
         }
 
         private sealed class ObjectFlattenerSelectionPathRow {

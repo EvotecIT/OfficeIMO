@@ -11,6 +11,9 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
+    internal const int DefaultMaxJavaScriptBytes = 4_000_000;
+    internal const int DefaultMaxJavaScripts = 10_000;
+    internal const long DefaultMaxTotalJavaScriptBytes = 32L * 1024L * 1024L;
     internal const int DefaultMaxAttachments = 100_000;
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
@@ -75,6 +78,15 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested PDF name-tree depth. Default: 128.</summary>
     public int MaxNameTreeDepth { get; init; } = DefaultMaxNameTreeDepth;
 
+    /// <summary>Maximum decoded source bytes retained for one document-level JavaScript action. Default: 4,000,000.</summary>
+    public int MaxJavaScriptBytes { get; init; } = DefaultMaxJavaScriptBytes;
+
+    /// <summary>Maximum named document-level JavaScript entries discovered in one PDF. Default: 10,000.</summary>
+    public int MaxJavaScripts { get; init; } = DefaultMaxJavaScripts;
+
+    /// <summary>Maximum aggregate decoded source bytes retained for document-level JavaScript. Default: 32 MiB.</summary>
+    public long MaxTotalJavaScriptBytes { get; init; } = DefaultMaxTotalJavaScriptBytes;
+
     /// <summary>Maximum attachment records discovered across name trees, associated files, and annotations. Default: 100,000.</summary>
     public int MaxAttachments { get; init; } = DefaultMaxAttachments;
 
@@ -123,6 +135,9 @@ public sealed class PdfReadLimits {
             MaxFormFieldDepth = MaxFormFieldDepth,
             MaxNameTreeNodes = MaxNameTreeNodes,
             MaxNameTreeDepth = MaxNameTreeDepth,
+            MaxJavaScriptBytes = MaxJavaScriptBytes,
+            MaxJavaScripts = MaxJavaScripts,
+            MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
             MaxAttachments = MaxAttachments,
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = MaxFormFieldAppearanceStates,
@@ -180,6 +195,11 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxFormFieldDepth, nameof(MaxFormFieldDepth), "Maximum form-field depth must be positive.");
         ValidatePositive(MaxNameTreeNodes, nameof(MaxNameTreeNodes), "Maximum name-tree nodes must be positive.");
         ValidatePositive(MaxNameTreeDepth, nameof(MaxNameTreeDepth), "Maximum name-tree depth must be positive.");
+        ValidatePositive(MaxJavaScriptBytes, nameof(MaxJavaScriptBytes), "Maximum document JavaScript bytes must be positive.");
+        ValidatePositive(MaxJavaScripts, nameof(MaxJavaScripts), "Maximum document JavaScript entries must be positive.");
+        if (MaxTotalJavaScriptBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalJavaScriptBytes), MaxTotalJavaScriptBytes, "Maximum aggregate document JavaScript bytes must be positive.");
+        }
         ValidatePositive(MaxAttachments, nameof(MaxAttachments), "Maximum attachments must be positive.");
         if (MaxTotalAttachmentBytes <= 0L) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalAttachmentBytes), MaxTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");

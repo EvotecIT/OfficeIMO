@@ -1,6 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Security;
 
@@ -33,7 +34,7 @@ public static class CmsEnvelopedDataService {
 
         var processable = new CmsProcessableByteArray(content);
         string algorithm = GetContentEncryptionAlgorithm(options.ContentEncryptionAlgorithm);
-        return generator.Generate(processable, algorithm).GetEncoded();
+        return generator.Generate(processable, new DerObjectIdentifier(algorithm)).GetEncoded();
     }
 
     /// <summary>Decrypts content for a matching RSA recipient certificate.</summary>

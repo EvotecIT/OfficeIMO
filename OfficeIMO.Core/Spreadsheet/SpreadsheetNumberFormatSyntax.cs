@@ -195,20 +195,20 @@ public sealed class SpreadsheetNumberFormatSyntax {
     }
 
     private static void ClassifyCommas(List<SpreadsheetNumberFormatToken> tokens) {
-        for (int index = 0; index < tokens.Count; index++) {
+        bool followingIntegerPlaceholder = false;
+        for (int index = tokens.Count - 1; index >= 0; index--) {
             SpreadsheetNumberFormatToken token = tokens[index];
-            if (token.Kind != SpreadsheetNumberFormatTokenKind.GroupSeparator) continue;
-            bool followingIntegerPlaceholder = false;
-            for (int lookahead = index + 1; lookahead < tokens.Count; lookahead++) {
-                SpreadsheetNumberFormatToken next = tokens[lookahead];
-                if (next.Kind == SpreadsheetNumberFormatTokenKind.SectionSeparator
-                    || next.Kind == SpreadsheetNumberFormatTokenKind.DecimalSeparator) break;
-                if (next.Kind == SpreadsheetNumberFormatTokenKind.Placeholder) {
-                    followingIntegerPlaceholder = true;
-                    break;
-                }
+            if (token.Kind == SpreadsheetNumberFormatTokenKind.SectionSeparator
+                || token.Kind == SpreadsheetNumberFormatTokenKind.DecimalSeparator) {
+                followingIntegerPlaceholder = false;
+                continue;
             }
-            if (!followingIntegerPlaceholder) {
+            if (token.Kind == SpreadsheetNumberFormatTokenKind.Placeholder) {
+                followingIntegerPlaceholder = true;
+                continue;
+            }
+            if (token.Kind == SpreadsheetNumberFormatTokenKind.GroupSeparator
+                && !followingIntegerPlaceholder) {
                 tokens[index] = new SpreadsheetNumberFormatToken(
                     SpreadsheetNumberFormatTokenKind.ScalingSeparator,
                     token.Text,

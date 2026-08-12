@@ -44,6 +44,7 @@ namespace OfficeIMO.Visio {
             if (data == null || data.Length == 0) {
                 return false;
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             XDocument document;
             try {
@@ -73,10 +74,23 @@ namespace OfficeIMO.Visio {
                 diagnosticSink,
                 diagnosticSource,
                 cancellationToken);
-            SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
+            SvgRenderContext context = SvgRenderContext.Create(
+                root,
+                new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight),
+                imageResolver,
+                cancellationToken);
+            if (context.StyleSheet.HasUnsupportedConditionalRules) {
+                context.ReportUnsupportedFeature();
+            }
+            if (IsElementDisplayNone(root, context)) {
+                return false;
+            }
             double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
             if (rootOpacity <= 0D) {
                 return false;
+            }
+            if (context.StyleSheet.HasActiveVisualEffect(root)) {
+                context.ReportUnsupportedFeature();
             }
 
             bool useRootOpacityLayer = rootOpacity < 1D;
@@ -84,6 +98,7 @@ namespace OfficeIMO.Visio {
             SvgTransform transform = CreateViewBoxTransform(viewLeft, viewTop, viewWidth, viewHeight, 0D, 0D, width, height, root.Attribute("preserveAspectRatio")?.Value);
             using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
             using IDisposable rootFillRule = context.PushFillRule(ResolveFillRule(root, context));
+            using IDisposable rootVisibilityScope = context.PushVisibility(ReadVisibilityOverride(root, context));
             OfficeRasterCanvas targetCanvas = canvas;
             OfficeRasterImage? rootLayer = null;
             if (useRootOpacityLayer) {
@@ -91,7 +106,25 @@ namespace OfficeIMO.Visio {
                 targetCanvas = CreateLayerCanvas(canvas, rootLayer);
             }
 
+            using IDisposable rootPaintBoundsScope = context.PushPaintBounds(context.ViewportBounds);
+            using IDisposable? rootClipScope = PushClipPath(targetCanvas, root, transform, context);
             bool rendered = RenderChildren(targetCanvas, root, inherited, transform, context);
+            if (context.RenderBudgetExceeded) {
+                AddSvgLossDiagnostic(
+                    diagnosticSink,
+                    diagnosticSource,
+                    "The embedded SVG preview exceeded a bounded rendering depth, element, or selector-work budget and was omitted.",
+                    OfficeConversionLossKind.Omission);
+                return false;
+            }
+            if (context.UnsupportedFeatureCount > 0) {
+                AddSvgLossDiagnostic(
+                    diagnosticSink,
+                    diagnosticSource,
+                    context.UnsupportedFeatureCount.ToString(CultureInfo.InvariantCulture) +
+                    " embedded SVG feature(s) were not represented completely by the dependency-free preview renderer.",
+                    OfficeConversionLossKind.Approximation);
+            }
             if (!rendered) {
                 return false;
             }
@@ -116,13 +149,18 @@ namespace OfficeIMO.Visio {
             return rendered;
         }
 
-        private static bool RenderElement(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+        private static bool RenderElementWithinBudget(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
             canvas.CancellationToken.ThrowIfCancellationRequested();
             string name = element.Name.LocalName;
+            if ((!string.IsNullOrEmpty(element.Name.NamespaceName) &&
+                 !string.Equals(element.Name.NamespaceName, "http://www.w3.org/2000/svg", StringComparison.Ordinal))) {
+                context.ReportUnsupportedFeature();
+            }
             if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase)) {
+                string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "metadata", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
@@ -146,6 +184,10 @@ namespace OfficeIMO.Visio {
             if (!context.IsVisible && !CanHiddenElementHaveVisibleDescendants(name)) {
                 return false;
             }
+            bool hasActiveVisualEffect = context.StyleSheet.HasActiveVisualEffect(element);
+            if (context.IsVisible && hasActiveVisualEffect) {
+                context.ReportUnsupportedFeature();
+            }
 
             if (useElementOpacityLayer) {
                 OfficeRasterImage layer = new(canvas.Width, canvas.Height, OfficeColor.Transparent);
@@ -154,6 +196,9 @@ namespace OfficeIMO.Visio {
                 if (!rendered) {
                     return false;
                 }
+                if (!context.IsVisible && hasActiveVisualEffect) {
+                    context.ReportUnsupportedFeature();
+                }
 
                 using IDisposable? groupClipScope = PushClipPath(canvas, element, localTransform, context);
                 canvas.DrawImage(ApplyImageOpacity(layer, elementOpacity), 0D, 0D, canvas.Width, canvas.Height);
@@ -161,7 +206,11 @@ namespace OfficeIMO.Visio {
             }
 
             using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
-            return RenderElementCore(canvas, element, name, paint, localTransform, context);
+            bool renderedWithoutLayer = RenderElementCore(canvas, element, name, paint, localTransform, context);
+            if (renderedWithoutLayer && !context.IsVisible && hasActiveVisualEffect) {
+                context.ReportUnsupportedFeature();
+            }
+            return renderedWithoutLayer;
         }
 
         private static OfficeRasterCanvas CreateLayerCanvas(
@@ -178,7 +227,7 @@ namespace OfficeIMO.Visio {
                 parent.CancellationToken);
 
         private static bool CanApplyElementOpacity(string name) =>
-            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            IsGroupingElement(name) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "image", StringComparison.OrdinalIgnoreCase) ||
@@ -192,7 +241,7 @@ namespace OfficeIMO.Visio {
             string.Equals(name, "path", StringComparison.OrdinalIgnoreCase);
 
         private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
-            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            IsGroupingElement(name) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "text", StringComparison.OrdinalIgnoreCase) ||
@@ -284,7 +333,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool RenderElementCore(OfficeRasterCanvas canvas, XElement element, string name, SvgPaint paint, SvgTransform localTransform, SvgRenderContext context) {
-            if (string.Equals(name, "g", StringComparison.OrdinalIgnoreCase)) {
+            if (IsGroupingElement(name)) {
                 return RenderChildren(canvas, element, paint, localTransform, context);
             }
 
@@ -341,8 +390,13 @@ namespace OfficeIMO.Visio {
                 return RenderPath(canvas, element, contours, paint, localTransform, context);
             }
 
+            context.ReportUnsupportedFeature();
             return RenderChildren(canvas, element, paint, localTransform, context);
         }
+
+        private static bool IsGroupingElement(string name) =>
+            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "a", StringComparison.OrdinalIgnoreCase);
 
         private static bool RenderUse(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
             string? href = ReadHref(element);

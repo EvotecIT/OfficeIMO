@@ -341,7 +341,7 @@ public sealed class ReaderOfficeRichMappingTests {
     [Fact]
     public void DocumentReader_PowerPointRichMapping_HonorsHiddenShapeFilteringAcrossArtifacts() {
         byte[] png = Convert.FromBase64String(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         uint hiddenImageFillId;
         using var stream = new MemoryStream();
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {

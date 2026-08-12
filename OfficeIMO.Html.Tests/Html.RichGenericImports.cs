@@ -10,7 +10,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class HtmlRichGenericImports {
-    private const string PixelPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAEAQH/69DjmQAAAABJRU5ErkJggg==";
+    private const string PixelPng = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
 
     [Fact]
     public void ExcelHtml_GenericImportPreservesRichRunsStylesAndLinks() {

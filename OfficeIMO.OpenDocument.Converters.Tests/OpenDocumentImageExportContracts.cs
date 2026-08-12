@@ -75,4 +75,23 @@ public sealed class OpenDocumentImageExportContracts {
             OfficeImageExportFormat.Png,
             result.Format));
     }
+
+    [Fact]
+    public void ConversionDiagnosticsPreserveBatchSequenceMetadata() {
+        OfficeImageExportResult? sequenced = null;
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        OfficeImageExportBatchProcessor.Run(
+            new OfficeImageExportOptions(),
+            (accept, _) => accept(new OfficeImageExportResult(OfficeImageExportFormat.Png, 1, 1, png)),
+            result => sequenced = result,
+            expectedOutputCount: 1);
+        var report = new OdfConversionReport("ODT", "Word")
+            .Add("tracked-changes", OdfConversionMappingStatus.Unsupported);
+
+        OfficeImageExportResult attached = OdfImageExportDiagnostics.Attach(sequenced!, report);
+
+        Assert.Equal(0, attached.SequenceIndex);
+        Assert.Equal(1, attached.SequenceCount);
+        Assert.Single(attached.Diagnostics);
+    }
 }

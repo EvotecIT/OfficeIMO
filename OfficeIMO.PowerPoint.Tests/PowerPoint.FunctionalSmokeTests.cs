@@ -15,7 +15,7 @@ using PptImagePartType = OfficeIMO.Drawing.OfficeImageFormat;
 namespace OfficeIMO.Tests {
     public class PowerPointFunctionalSmokeTests {
         private static readonly byte[] OnePixelPng = Convert.FromBase64String(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/6X4nKkAAAAASUVORK5CYII=");
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=");
 
         [Fact]
         public void CanBuildRichDeckAndValidate() {

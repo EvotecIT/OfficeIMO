@@ -98,6 +98,12 @@ public enum PdfReadLimitKind {
     /// <summary>Aggregate decoded bytes retained for unique embedded attachment streams.</summary>
     AttachmentBytes = 31,
 
+    /// <summary>Named document-level JavaScript entries discovered in the catalog name tree.</summary>
+    JavaScripts = 32,
+
+    /// <summary>Aggregate decoded source bytes retained for named document-level JavaScript.</summary>
+    JavaScriptBytes = 33,
+
     /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
-    Type3GlyphInvocations = 32
+    Type3GlyphInvocations = 34
 }

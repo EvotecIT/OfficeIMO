@@ -48,6 +48,22 @@ public partial class WordRtfConverterTests {
     }
 
     [Fact]
+    public void Rtf_ToWord_Result_Reports_Unsupported_Image_Omission() {
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddImage(RtfImageFormat.Unknown, new byte[] { 1, 2, 3 });
+
+        RtfConversionResult<WordDocument> result = rtf.ToWordDocumentResult();
+        using (result.Value) {
+            Assert.Empty(result.Value.Images);
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "RtfWordImagesOmitted" &&
+                diagnostic.Action == RtfConversionAction.Omitted &&
+                diagnostic.Count == 1);
+            Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        }
+    }
+
+    [Fact]
     public void Word_Rtf_Read_Result_Combines_Core_Policy_And_Bridge_Diagnostics() {
         const string rtf = @"{\rtf1{\object\objemb{\*\objdata 0102}}Visible}";
 

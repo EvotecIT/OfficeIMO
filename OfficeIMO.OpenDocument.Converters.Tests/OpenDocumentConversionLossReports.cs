@@ -285,7 +285,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
-    public void WordAutomaticColorsAndUnsupportedImagesDoNotAbortConversion() {
+    public void WordAutomaticColorsAndTiffImagesDoNotAbortConversion() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Automatic color").ColorHex = "auto";
         byte[] tiffBytes = OfficeTiffCodec.Encode(new OfficeRasterImage(
@@ -298,8 +298,45 @@ public sealed class OpenDocumentConversionLossReportTests {
 
         Assert.Equal("Automatic color", target.Paragraphs.First().Text);
         Assert.Null(target.Paragraphs.First().Spans.Single().Color);
-        Assert.Empty(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+        OdtImage convertedImage = Assert.Single(target.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.EndsWith(".tiff", convertedImage.Path, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Theory]
+    [InlineData("UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=")]
+    [InlineData("UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=")]
+    [InlineData("UklGRhIAAABXRUJQVlA4TAUAAAAvAAAAAAA=")]
+    [InlineData("UklGRhYAAABXRUJQVlA4IAoAAAAAAACdASoBAAEA")]
+    public void WebpImagesOutsideTheManagedDecoderSubsetAreReportedByOfficeToOpenDocumentBridges(string encodedWebp) {
+        byte[] webp = Convert.FromBase64String(encodedWebp);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        Assert.False(OfficeWebpCodec.TryDecode(webp, out _));
+
+        using WordDocument word = WordDocument.Create();
+        using (var image = new MemoryStream(png, writable: false)) {
+            word.AddParagraph().AddImage(image, "imported.png", 10, 10);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdtDocument> wordConversion = word.ToOpenDocumentResult();
+        Assert.Empty(wordConversion.Value.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.Contains(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+            new MemoryStream(), new PowerPointCreateOptions());
+        using (var image = new MemoryStream(png, writable: false)) {
+            presentation.AddSlide().AddPicture(image, OfficeImageFormat.Png);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdpPresentation> presentationConversion = presentation.ToOpenDocumentResult();
+        Assert.Empty(Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
+        Assert.Contains(presentationConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
@@ -307,8 +344,14 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void OdtToWordPreservesRelativeLinksAndSkipsUnsupportedImages() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddHyperlink("Relative", "docs/page.html");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
-        source.AddParagraph("Image").AddImage(webp, "pixel.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
+        OdtImage image = source.AddParagraph("Image").AddImage(
+            png,
+            "pixel.png",
+            OdfLength.Centimeters(1),
+            OdfLength.Centimeters(1));
+        source.Package.AddOrReplaceEntry(image.Path, webp, "image/webp");
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
@@ -350,7 +393,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Fact]
-    public void UnsupportedPowerPointImageFormatsAreReportedWithoutAbortingConversion() {
+    public void IncompletePowerPointTiffImagesAreReportedWithoutAbortingConversion() {
         using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });

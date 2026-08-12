@@ -8,14 +8,7 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void AppendWordComments(WordParagraph wordParagraph, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
-        List<string> commentIds = wordParagraph._paragraph
-            .Descendants<CommentRangeStart>()
-            .Select(start => start.Id?.Value)
-            .Concat(wordParagraph._paragraph.Descendants<CommentReference>().Select(reference => reference.Id?.Value))
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct(StringComparer.Ordinal)
-            .Cast<string>()
-            .ToList();
+        HashSet<string> commentIds = CollectReferencedCommentIds(new[] { wordParagraph._paragraph });
 
         if (commentIds.Count == 0) {
             return;
@@ -33,6 +26,17 @@ public static partial class WordRtfConverterExtensions {
 
             AttachAnnotation(paragraph, CreateAnnotation(comment, rtfDocument, revisionAuthorIndexes));
         }
+    }
+
+    private static HashSet<string> CollectReferencedCommentIds(IEnumerable<OpenXmlElement> roots) {
+        var commentIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OpenXmlElement root in roots) {
+            foreach (string? id in root.Descendants<CommentRangeStart>().Select(start => start.Id?.Value)
+                         .Concat(root.Descendants<CommentReference>().Select(reference => reference.Id?.Value))) {
+                if (!string.IsNullOrWhiteSpace(id)) commentIds.Add(id!);
+            }
+        }
+        return commentIds;
     }
 
     private static RtfNote CreateAnnotation(WordComment comment, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {

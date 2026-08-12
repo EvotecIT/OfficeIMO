@@ -176,14 +176,9 @@ internal static partial class OdfValidator {
 
     private static string? ExpectedMediaType(string path) {
         string extension = Path.GetExtension(path).ToLowerInvariant();
+        if (OdfImageFormats.TryGetMediaType(extension, out string imageMediaType)) return imageMediaType;
         switch (extension) {
             case ".xml": return "text/xml";
-            case ".png": return "image/png";
-            case ".jpg": case ".jpeg": return "image/jpeg";
-            case ".gif": return "image/gif";
-            case ".svg": return "image/svg+xml";
-            case ".bmp": return "image/bmp";
-            case ".tif": case ".tiff": return "image/tiff";
             default: return null;
         }
     }

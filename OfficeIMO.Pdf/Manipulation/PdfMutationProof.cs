@@ -51,5 +51,8 @@ public enum PdfMutationProof {
     LongTermValidationReadback,
 
     /// <summary>The post-save active-content and embedded-payload inventory must match the sanitization policy.</summary>
-    SanitizationReadback
+    SanitizationReadback,
+
+    /// <summary>Named scripts, exact source text, and untouched name-tree entry/action graphs must match after readback.</summary>
+    JavaScriptReadback
 }
