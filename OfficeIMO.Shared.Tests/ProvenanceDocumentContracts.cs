@@ -325,6 +325,32 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlSanitizesCssCustomPropertyUsedAcrossStyleBlocks() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlSanitizesTransitiveCssCustomPropertyImageAcrossStyleBlocks() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head><style>:root{{--source:url('{dataUri}')}}</style><style>:root{{--hero:var(--source)}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlSanitizesImageInsideIframeSrcdoc() {
         byte[] image = CreatePngWithManifest(CreateManifestStore());
         string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);

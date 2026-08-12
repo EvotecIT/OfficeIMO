@@ -174,8 +174,10 @@ public static class HtmlProvenance {
         List<string> diagnostics,
         ref int count,
         int srcDocDepth) {
-        foreach (IElement element in GetEmbeddedImageElements(document)) {
-            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element)) {
+        IElement[] elements = GetEmbeddedImageElements(document).ToArray();
+        HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
+        foreach (IElement element in elements) {
+            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedImageProperties)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
                 string location = $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]";
@@ -222,8 +224,10 @@ public static class HtmlProvenance {
         ref int count,
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
-        foreach (IElement element in GetEmbeddedImageElements(document)) {
-            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
+        IElement[] elements = GetEmbeddedImageElements(document).ToArray();
+        HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
+        foreach (IElement element in elements) {
+            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedImageProperties).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -263,10 +267,14 @@ public static class HtmlProvenance {
         }
     }
 
-    private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(IElement element) {
+    private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(
+        IElement element,
+        ISet<string> usedImageProperties) {
         string localName = element.LocalName.ToLowerInvariant();
         if (localName == "style") {
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(element.TextContent)) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
+                element.TextContent,
+                usedImageProperties)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;
@@ -274,7 +282,9 @@ public static class HtmlProvenance {
 
         string? inlineStyle = element.GetAttribute("style");
         if (inlineStyle != null) {
-            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(inlineStyle)) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
+                inlineStyle,
+                usedImageProperties)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
         }
@@ -327,6 +337,15 @@ public static class HtmlProvenance {
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
         document.QuerySelectorAll("img,source,video,input,image,feimage,use,link,[background],style,[style]").Distinct();
+
+    private static HashSet<string> GetUsedCssImageCustomProperties(IEnumerable<IElement> elements) =>
+        HtmlResourcePipeline.CollectProvenanceCssImageCustomProperties(elements.SelectMany(element => {
+            var styles = new List<string>(2);
+            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) styles.Add(element.TextContent);
+            string? inlineStyle = element.GetAttribute("style");
+            if (inlineStyle != null) styles.Add(inlineStyle);
+            return styles;
+        }));
 
     private static bool IsImageLink(IElement element) {
         string? rel = element.GetAttribute("rel");

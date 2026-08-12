@@ -4,10 +4,45 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
-    internal static IEnumerable<HtmlCssImageReference> EnumerateProvenanceCssImageReferences(string css) {
+    internal static HashSet<string> CollectProvenanceCssImageCustomProperties(IEnumerable<string> styles) {
+        var usedImageProperties = new HashSet<string>(StringComparer.Ordinal);
+        var dependencies = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (string css in styles) {
+            if (string.IsNullOrWhiteSpace(css)) continue;
+            string masked = MaskCssComments(css);
+            foreach (Match variable in CssVarExpression.Matches(masked)) {
+                if (!IsCssFunctionNameAt(masked, variable.Index, "var") || IsInsideCssString(masked, variable.Index)) continue;
+                string referencedProperty = DecodeCssEscapes(variable.Groups["name"].Value);
+                if (ClassifyCssUrl(masked, variable.Index) == HtmlResourceKind.Image) usedImageProperties.Add(referencedProperty);
+                if (!TryGetCustomPropertyName(masked, variable.Index, out string ownerProperty)) continue;
+                ownerProperty = DecodeCssEscapes(ownerProperty);
+                if (!dependencies.TryGetValue(ownerProperty, out HashSet<string>? referencedProperties)) {
+                    referencedProperties = new HashSet<string>(StringComparer.Ordinal);
+                    dependencies.Add(ownerProperty, referencedProperties);
+                }
+                referencedProperties.Add(referencedProperty);
+            }
+        }
+
+        var pending = new Queue<string>(usedImageProperties);
+        while (pending.Count > 0) {
+            string property = pending.Dequeue();
+            if (!dependencies.TryGetValue(property, out HashSet<string>? referencedProperties)) continue;
+            foreach (string referencedProperty in referencedProperties) {
+                if (usedImageProperties.Add(referencedProperty)) pending.Enqueue(referencedProperty);
+            }
+        }
+        return usedImageProperties;
+    }
+
+    internal static IEnumerable<HtmlCssImageReference> EnumerateProvenanceCssImageReferences(
+        string css,
+        ISet<string>? documentUsedImageProperties = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
-        var usedImageProperties = new HashSet<string>(StringComparer.Ordinal);
+        var usedImageProperties = documentUsedImageProperties == null
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : new HashSet<string>(documentUsedImageProperties, StringComparer.Ordinal);
         foreach (Match variable in CssVarExpression.Matches(masked)) {
             if (IsCssFunctionNameAt(masked, variable.Index, "var") &&
                 !IsInsideCssString(masked, variable.Index) &&
