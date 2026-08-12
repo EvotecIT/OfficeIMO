@@ -610,7 +610,11 @@ internal static partial class PdfRedactionApplier {
             return true;
         }
 
-        if (PdfObjectLookup.Resolve(objects, softMaskObject) is PdfName softMaskName &&
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObject, out PdfObject? resolvedSoftMask)) {
+            return false;
+        }
+        if (resolvedSoftMask is PdfNull ||
+            resolvedSoftMask is PdfName softMaskName &&
             string.Equals(softMaskName.Name, "None", StringComparison.Ordinal)) {
             return true;
         }

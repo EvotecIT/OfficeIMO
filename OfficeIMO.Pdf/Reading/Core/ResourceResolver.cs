@@ -1034,13 +1034,11 @@ internal static partial class ResourceResolver {
             if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObj, out PdfObject? resolvedSoftMask)) {
                 return "soft-mask";
             }
-            if (resolvedSoftMask is PdfNull ||
-                resolvedSoftMask is PdfName softMaskName &&
-                string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal)) {
-                return null;
+            if (resolvedSoftMask is not PdfNull &&
+                (resolvedSoftMask is not PdfName softMaskName ||
+                 !string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal))) {
+                return "soft-mask";
             }
-
-            return "soft-mask";
         }
 
         if (!dictionary.Items.TryGetValue("Mask", out var maskObj)) {
