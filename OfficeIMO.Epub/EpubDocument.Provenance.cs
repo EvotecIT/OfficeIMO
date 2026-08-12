@@ -24,7 +24,7 @@ public sealed partial class EpubDocument {
     private static bool HasPackageSignatures(byte[] data) => OfficeProvenanceZip.HasEntry(data, path =>
         path.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
         return OfficeProvenanceZip.RemoveEntries(data, path =>
             path.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
     }

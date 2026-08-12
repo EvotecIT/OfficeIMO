@@ -21,7 +21,7 @@ public abstract partial class OdfDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
         return OfficeProvenanceZip.RemoveEntries(data, path =>
             path.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
             path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase));

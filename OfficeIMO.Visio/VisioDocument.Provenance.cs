@@ -27,7 +27,7 @@ public partial class VisioDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
@@ -57,7 +57,7 @@ public partial class VisioDocument {
                         using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings {
                             DtdProcessing = DtdProcessing.Prohibit,
                             XmlResolver = null,
-                            MaxCharactersInDocument = 16L * 1024L * 1024L
+                            MaxCharactersInDocument = limits.MaxAssetBytes
                         });
                         document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
                     }

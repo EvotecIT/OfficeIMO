@@ -22,7 +22,7 @@ public sealed partial class PowerPointPresentation {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
         using var stream = new MemoryStream(data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;

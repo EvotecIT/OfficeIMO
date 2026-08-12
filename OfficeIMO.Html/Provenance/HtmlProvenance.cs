@@ -41,7 +41,8 @@ public static class HtmlProvenance {
             if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
             TryDecodeManifest(script.TextContent, options.MaxManifestBytes, out byte[] manifest);
             bool valid = manifestElements.Length == 1 && manifest.Length != 0 &&
-                OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.MaxManifestBytes, out _);
+                OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             AddEvidence(evidence, options, new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"HTML/script[type=application/c2pa][{carrierIndex++}]",
@@ -103,7 +104,8 @@ public static class HtmlProvenance {
             if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
             TryDecodeManifest(script.TextContent, options.Limits.MaxManifestBytes, out byte[] manifest);
             bool valid = manifestElementCount == 1 && manifest.Length != 0 &&
-                OfficeC2paManifestStore.IsValid(manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, out _);
+                OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
             string location = $"HTML/script[type=application/c2pa][{carrierIndex++}]";
             if (!options.RemoveC2paManifests || (!valid && options.RequireStructurallyValidCarrier)) continue;
             script.Remove();

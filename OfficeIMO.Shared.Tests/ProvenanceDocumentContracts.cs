@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.IO.Packaging;
 using OfficeIMO;
 using OfficeIMO.Epub;
 using OfficeIMO.Excel;
@@ -8,6 +9,7 @@ using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Provenance;
 using OfficeIMO.Security;
+using OfficeIMO.Visio;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -368,9 +370,9 @@ public sealed class ProvenanceDocumentContracts {
     public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);
-        string svg = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
-            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><rdf:Description " +
-            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></metadata></svg>";
+        string svg = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><x:xmpmeta><rdf:RDF><rdf:Description " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata></svg>";
         string dataUri = "data:image/svg+xml;charset=windows-1252;base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
         string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
 
@@ -570,6 +572,22 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void VisioSignatureMetadataUsesTheConfiguredAssetLimit() {
+        byte[] package = CreateSignedVisioProvenancePackage(16 * 1024 * 1024 + 1);
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        options.Limits.MaxAssetBytes = 32L * 1024L * 1024L;
+        options.Limits.MaxManifestBytes = 1024L * 1024L;
+        options.Limits.MaxExpandedContainerBytes = 64L * 1024L * 1024L;
+
+        OfficeProvenanceRemovalResult result = VisioDocument.RemoveProvenance(package, options: options);
+
+        Assert.True(result.WereInvalidatedSignaturesRemoved);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void DanglingSignatureOriginRelationshipIsSignatureEvidence() {
         byte[] package;
         using (var output = new MemoryStream()) {
@@ -626,6 +644,49 @@ public sealed class ProvenanceDocumentContracts {
             default:
                 throw new ArgumentOutOfRangeException(nameof(extension));
         }
+    }
+
+    private static byte[] CreateSignedVisioProvenancePackage(int paddingCharacters) {
+        using var output = new MemoryStream();
+        using (Package package = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
+            Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
+            using (Stream target = package.CreatePart(manifestUri, "application/c2pa", CompressionOption.Maximum).GetStream()) {
+                byte[] manifest = CreateManifestStore();
+                target.Write(manifest, 0, manifest.Length);
+            }
+
+            Uri originUri = PackUriHelper.CreatePartUri(new Uri("/_xmlsignatures/origin.sigs", UriKind.Relative));
+            PackagePart origin = package.CreatePart(
+                originUri,
+                "application/vnd.openxmlformats-package.digital-signature-origin",
+                CompressionOption.Maximum);
+            package.CreateRelationship(
+                originUri,
+                TargetMode.Internal,
+                "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
+            Uri signatureUri = PackUriHelper.CreatePartUri(new Uri("/_xmlsignatures/sig1.xml", UriKind.Relative));
+            PackagePart signature = package.CreatePart(
+                signatureUri,
+                "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml",
+                CompressionOption.Maximum);
+            using (Stream target = signature.GetStream()) {
+                byte[] xml = Encoding.UTF8.GetBytes("<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"/>");
+                target.Write(xml, 0, xml.Length);
+            }
+            origin.CreateRelationship(
+                signatureUri,
+                TargetMode.Internal,
+                "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature");
+
+            Uri appUri = PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative));
+            PackagePart app = package.CreatePart(appUri, "application/vnd.openxmlformats-officedocument.extended-properties+xml", CompressionOption.Maximum);
+            using (var writer = new StreamWriter(app.GetStream(), new UTF8Encoding(false), 4096, leaveOpen: false)) {
+                writer.Write("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\">");
+                writer.Write(new string(' ', paddingCharacters));
+                writer.Write("<DigSig>signature</DigSig></Properties>");
+            }
+        }
+        return output.ToArray();
     }
 
     private static OfficeProvenanceReport InspectOpenXml(string path, string extension) => extension switch {
