@@ -169,6 +169,34 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRejectsOverNestedMarkupBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg'>");
+        for (int index = 0; index < 130; index++) svg.Append("<g>");
+        svg.Append("<rect width='16' height='8'/>");
+        for (int index = 0; index < 130; index++) svg.Append("</g>");
+        svg.Append("</svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRejectsOverBudgetPathBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg'><path d='M0 0");
+        for (int index = 0; index < 20001; index++) svg.Append(" L1 1");
+        svg.Append("'/></svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlacementCreatesReadableWordExcelPowerPointAndPdfPackages() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

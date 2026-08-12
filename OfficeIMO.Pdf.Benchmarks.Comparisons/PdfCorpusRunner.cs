@@ -489,9 +489,9 @@ internal static partial class PdfCorpusRunner {
     private static void ValidateEntryIds(IReadOnlyList<PdfCorpusEntry> entries) {
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (PdfCorpusEntry entry in entries) {
-            if (string.IsNullOrWhiteSpace(entry.Id) || !CorpusIdRegex().IsMatch(entry.Id)) {
+            if (!IsSafeCorpusId(entry.Id)) {
                 throw new InvalidDataException(
-                    "PDF corpus entry IDs must be 1-128 ASCII letters, digits, dots, underscores, or hyphens and must start with a letter or digit.");
+                    "PDF corpus entry IDs must be 1-128 ASCII letters, digits, dots, underscores, or hyphens, must start with a letter or digit, and must not use a reserved Windows device name.");
             }
             if (!ids.Add(entry.Id)) {
                 throw new InvalidDataException($"PDF corpus entry ID '{entry.Id}' is duplicated.");
@@ -500,7 +500,7 @@ internal static partial class PdfCorpusRunner {
     }
 
     private static string GetEntryOutputPath(string directory, string entryId, string suffix) {
-        if (!CorpusIdRegex().IsMatch(entryId)) {
+        if (!IsSafeCorpusId(entryId)) {
             throw new InvalidDataException($"PDF corpus entry ID '{entryId}' is not safe for artifact paths.");
         }
 
@@ -514,6 +514,19 @@ internal static partial class PdfCorpusRunner {
             throw new InvalidDataException($"PDF corpus artifact path for '{entryId}' escapes its output directory.");
         }
         return candidate;
+    }
+
+    private static bool IsSafeCorpusId(string? entryId) {
+        if (string.IsNullOrWhiteSpace(entryId) || !CorpusIdRegex().IsMatch(entryId)) return false;
+        string baseName = entryId.Split('.')[0];
+        if (baseName.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("NUL", StringComparison.OrdinalIgnoreCase)) return false;
+        return !(baseName.Length == 4 &&
+            (baseName.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+             baseName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
+            baseName[3] is >= '1' and <= '9');
     }
 
     private static bool HasOption(string[] args, string option) =>

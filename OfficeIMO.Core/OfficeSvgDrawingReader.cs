@@ -80,6 +80,8 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
+            if (allowUnresolvedViewport &&
+                (pathCommands >= MaximumSvgPathCommands || ExceedsSvgElementNestingLimit(root))) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
             } else {
@@ -227,6 +229,17 @@ public static partial class OfficeSvgDrawingReader {
         width > 0D && height > 0D &&
         width <= maximumViewportDimension && height <= maximumViewportDimension &&
         width * height <= maximumViewportPixels;
+
+    private static bool ExceedsSvgElementNestingLimit(XElement root) {
+        var pending = new Stack<(XElement Element, int Depth)>();
+        foreach (XElement child in root.Elements()) pending.Push((child, 0));
+        while (pending.Count > 0) {
+            (XElement element, int depth) = pending.Pop();
+            if (depth > MaximumSvgNestingDepth) return true;
+            foreach (XElement child in element.Elements()) pending.Push((child, depth + 1));
+        }
+        return false;
+    }
 
     private static void AddChildren(
         XElement parent,
