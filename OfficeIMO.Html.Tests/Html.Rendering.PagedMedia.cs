@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_PageMarginBoxesCascadePropertiesAndExpandFontShorthand() {
+        const string html = """
+            <style>
+              @page {
+                size:3in 2in;
+                margin:24px;
+                @top-center { content:"Inherited title"; color:#224466; font:italic 9px Arial !important; }
+                @top-center { text-align:right; }
+              }
+              @page :first {
+                @top-center { color:red; font-size:20px; font-style:normal; }
+              }
+            </style>
+            <p style="margin:0">Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Inherited title", margin.Text);
+        Assert.Equal(9D, margin.Font.Size, 3);
+        Assert.True((margin.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.Equal(OfficeColor.Red, margin.Color);
+        Assert.Equal(OfficeTextAlignment.Right, margin.Alignment);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_UsesPageSelectorSpecificityBeforeSourceOrder() {
         const string html = "<style>@page:first{size:200px 100px}@page:right{size:300px 150px}</style><p>Body</p>";
 

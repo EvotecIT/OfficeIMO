@@ -37,24 +37,24 @@
     {
       "id": "html-pdf-output",
       "path": "/downloads/showcase/html/invoice.pdf",
-      "bytes": 159103,
-      "sha256": "7de7480de7b871bb9089fa59b50b1e8994031bab8b45627730b8057411a0fb0d",
+      "bytes": 162718,
+      "sha256": "7375be4bb2ca55e72fd5a5393e8b81ff8974351d1965c69e25b39f2759d60f79",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "Three-page searchable purchase report with wrapped rows, repeated table headers, page counters, and one totals block."
     },
     {
       "id": "html-png-output",
       "path": "/downloads/showcase/html/invoice.png",
-      "bytes": 105716,
-      "sha256": "f0f1852a8a8fcfae5130d0e92775fc7f12f029de09b2eebb12005e52caa2a70c",
+      "bytes": 104280,
+      "sha256": "ce504ed926c801ac8a39b6a33119893ef0590aeb4924c22bfb831bc1d6e8417e",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "First-page PNG generated from the same parsed HTML and options object as the multi-page PDF."
     },
     {
       "id": "html-svg-output",
       "path": "/downloads/showcase/html/invoice.svg",
-      "bytes": 31565,
-      "sha256": "a23b8457bdfc44086f2f279fd8d992250946f39c479acec269bb517117180fa2",
+      "bytes": 33800,
+      "sha256": "32f7cf8fc9c5ec2f5e7bae7fdeee3b64b67393c29d6c5e2e2349d9943c995d11",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-invoice",
       "evidence": "First-page SVG generated from the same parsed HTML and options object as the multi-page PDF."
     },

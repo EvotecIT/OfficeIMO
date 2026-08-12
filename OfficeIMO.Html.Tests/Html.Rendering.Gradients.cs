@@ -447,7 +447,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(22, gradient.Stops.Count);
         Assert.Equal(0D, gradient.Stops[0].Offset, 6);
         Assert.Equal(1D, gradient.Stops[gradient.Stops.Count - 1].Offset, 6);
-        Assert.Equal((byte)128, gradient.Stops.Last(stop => stop.Offset == 0D).Color.A);
+        OfficeGradientStop[] boundaryStops = gradient.Stops.Where(stop => stop.Offset == 0D).ToArray();
+        Assert.Equal(2, boundaryStops.Length);
+        Assert.Equal((byte)255, boundaryStops[0].Color.A);
+        Assert.Equal((byte)128, boundaryStops[1].Color.A);
         Assert.NotEqual(raster.GetPixel(12, 15), raster.GetPixel(23, 15));
         Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
         Assert.Contains("RepeatingLinear", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);

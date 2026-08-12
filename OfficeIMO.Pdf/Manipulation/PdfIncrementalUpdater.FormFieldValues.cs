@@ -87,7 +87,7 @@ internal static partial class PdfIncrementalUpdater {
             throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
         }
 
-        IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
+        IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, inheritedOptions, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {
             if (choiceValues.All(item => item.OptionIndex.HasValue)) {
                 choiceValues = choiceValues.OrderBy(item => item.OptionIndex!.Value).ToArray();
@@ -109,10 +109,12 @@ internal static partial class PdfIncrementalUpdater {
             choiceValue.OptionIndex.HasValue ? new[] { choiceValue.OptionIndex.Value } : Array.Empty<int>());
     }
 
-    private static IReadOnlyList<IncrementalChoiceFillValue> ResolveIncrementalChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, bool isEditableChoice, IReadOnlyList<string> values) {
-        if (!field.Items.TryGetValue("Opt", out PdfObject? optionsObject) ||
-            ResolveObject(objects, optionsObject) is not PdfArray options ||
-            options.Items.Count == 0) {
+    private static IReadOnlyList<IncrementalChoiceFillValue> ResolveIncrementalChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, bool isEditableChoice, IReadOnlyList<string> values) {
+        PdfArray? options = field.Items.TryGetValue("Opt", out PdfObject? optionsObject)
+            ? ResolveObject(objects, optionsObject) as PdfArray
+            : null;
+        options ??= inheritedOptions;
+        if (options == null || options.Items.Count == 0) {
             return values.Select(static item => new IncrementalChoiceFillValue(item, item, null)).ToArray();
         }
 

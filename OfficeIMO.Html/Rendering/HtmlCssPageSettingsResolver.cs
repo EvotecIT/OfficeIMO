@@ -247,7 +247,7 @@ internal static class HtmlCssPageSettingsResolver {
             FindTopLevelDeclarationWithPriority(body, "margin-right"),
             FindTopLevelDeclarationWithPriority(body, "margin-bottom"),
             FindTopLevelDeclarationWithPriority(body, "margin-left"));
-        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> marginBoxes = ExtractMarginBoxes(body, selectorText, options, diagnostics);
+        IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> marginBoxes = ExtractMarginBoxes(body, selectorText, diagnostics);
         if (marginBoxes.Count > 0 || !geometry.IsEmpty) pageRules.Add(new HtmlCssPageRule(pageName, selector, marginBoxes, geometry));
     }
 
@@ -297,8 +297,8 @@ internal static class HtmlCssPageSettingsResolver {
         || FindTopLevelDeclaration(body, "margin-bottom").Length > 0
         || FindTopLevelDeclaration(body, "margin-left").Length > 0;
 
-    private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        var boxes = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginTemplate>();
+    private static IReadOnlyDictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> ExtractMarginBoxes(string pageBody, string pageSelector, HtmlDiagnosticReport diagnostics) {
+        var boxes = new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule>();
         int cursor = 0;
         while (cursor < pageBody.Length) {
             if (IsCommentStart(pageBody, cursor)) {
@@ -336,37 +336,40 @@ internal static class HtmlCssPageSettingsResolver {
                 continue;
             }
 
-            string contentValue = FindTopLevelDeclaration(marginBody, "content");
-            if (!HtmlCssGeneratedContentTemplate.TryParse(contentValue, out HtmlCssGeneratedContentTemplate content)) {
-                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, contentValue);
-                cursor = close + 1;
-                continue;
+            HtmlCssPageDeclaration content = FindTopLevelDeclarationWithPriority(marginBody, "content");
+            if (content.Value.Length > 0 && !HtmlCssGeneratedContentTemplate.TryParse(content.Value, out _)) {
+                diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, content.Value);
+                content = content.WithValue(string.Empty);
             }
 
-            boxes[position] = CreateMarginTemplate(position, content, marginBody, options);
+            ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
+            var marginRule = new HtmlCssPageMarginRule(
+                content,
+                ReadStyleDeclaration(style, "font-family", cursor),
+                ReadStyleDeclaration(style, "font-size", cursor),
+                ReadStyleDeclaration(style, "font-weight", cursor),
+                ReadStyleDeclaration(style, "font-style", cursor),
+                ReadStyleDeclaration(style, "color", cursor),
+                ReadStyleDeclaration(style, "text-align", cursor));
+            if (!marginRule.IsEmpty) {
+                boxes[position] = boxes.TryGetValue(position, out HtmlCssPageMarginRule? earlier)
+                    ? HtmlCssPageMarginRule.Merge(earlier, marginRule)
+                    : marginRule;
+            }
             cursor = close + 1;
         }
 
         return boxes;
     }
 
-    private static HtmlCssPageMarginTemplate CreateMarginTemplate(HtmlCssPageMarginPosition position, HtmlCssGeneratedContentTemplate content, string body, HtmlRenderOptions options) {
-        string family = HtmlRenderCssValues.FontFamilyList(FindTopLevelDeclaration(body, "font-family"), options.DefaultFontFamily);
-        string fontSizeValue = FindTopLevelDeclaration(body, "font-size");
-        double fontSize = options.DefaultFontSize;
-        HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out fontSize);
-        if (fontSize <= 0D) fontSize = options.DefaultFontSize;
-        OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-        string weight = FindTopLevelDeclaration(body, "font-weight");
-        if (string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase) || int.TryParse(weight, out int numericWeight) && numericWeight >= 600) fontStyle |= OfficeFontStyle.Bold;
-        string style = FindTopLevelDeclaration(body, "font-style");
-        if (style.StartsWith("italic", StringComparison.OrdinalIgnoreCase) || style.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) fontStyle |= OfficeFontStyle.Italic;
-        OfficeColor color = HtmlRenderCssValues.TryColor(FindTopLevelDeclaration(body, "color"), out OfficeColor parsedColor) ? parsedColor : OfficeColor.Black;
-        OfficeTextAlignment alignment = ResolveMarginAlignment(position, FindTopLevelDeclaration(body, "text-align"));
-        return new HtmlCssPageMarginTemplate(position, content, new OfficeFontInfo(family, fontSize, fontStyle), color, alignment, fontSizeValue);
+    private static HtmlCssPageDeclaration ReadStyleDeclaration(ICssStyleDeclaration? style, string propertyName, int order) {
+        if (style == null) return new HtmlCssPageDeclaration(string.Empty, false, order);
+        string value = style.GetPropertyValue(propertyName);
+        bool important = string.Equals(style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase);
+        return new HtmlCssPageDeclaration(value, important, order);
     }
 
-    private static OfficeTextAlignment ResolveMarginAlignment(HtmlCssPageMarginPosition position, string value) {
+    internal static OfficeTextAlignment ResolveMarginAlignment(HtmlCssPageMarginPosition position, string value) {
         if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
         if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
         if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;

@@ -302,7 +302,7 @@ internal sealed class HtmlCssGradientStops {
                 }
             }
         }
-        expanded.Sort((left, right) => left.Offset.CompareTo(right.Offset));
+        expanded = expanded.OrderBy(stop => stop.Offset).ToList();
         OfficeColor start = SampleRepeating(source, period, 0D);
         OfficeColor end = SampleRepeating(source, period, 1D);
         if (expanded.Count == 0 || expanded[0].Offset > 0D) expanded.Insert(0, new ResolvedStop(0D, start));

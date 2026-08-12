@@ -186,6 +186,30 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_ChoiceDisplayTextUsesInheritedOptionsAndStoresItsIndex() {
+        byte[] source = PdfFormFiller.FillFields(
+            BuildInheritedChoiceWidgetFormPdf(),
+            new Dictionary<string, string> {
+                ["Selection.Country"] = "Poland"
+            });
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(
+            source,
+            new Dictionary<string, string> {
+                ["Selection.Country"] = "United States"
+            });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+        string output = Encoding.ASCII.GetString(updated);
+
+        Assert.Equal("Selection.Country", field.Name);
+        Assert.Equal("US", field.Value);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+        Assert.Matches(@"/I\s*\[\s*2\s*\]", output);
+        Assert.Matches(@"/TI\s+2(?:\D|$)", output);
+    }
+
+    [Fact]
     public void FillAndFlattenFields_MultiSelectChoiceValuesPaintDisplayText() {
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
             ["Country"] = PdfFormFieldValue.FromValues("Germany", "United States")
