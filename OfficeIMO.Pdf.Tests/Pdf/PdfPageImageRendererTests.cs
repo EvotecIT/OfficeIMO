@@ -9,7 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfPageImageRendererTests {
+public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsGeneratedPdfContentToSharedDrawingAndImages() {
         byte[] pdf = PdfDocument.Create()

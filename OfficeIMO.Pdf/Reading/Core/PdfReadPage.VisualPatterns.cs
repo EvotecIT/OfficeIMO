@@ -120,7 +120,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
         Type3GlyphBudget? type3GlyphBudget = null,
-        bool requireSupportedType3Content = false) {
+        bool requireSupportedType3Content = false,
+        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor = null) {
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var result = new Dictionary<string, PdfPageTilingPatternResource>(StringComparer.Ordinal);
@@ -149,6 +150,7 @@ public sealed partial class PdfReadPage {
                 pageContentBudget,
                 type3GlyphBudget,
                 requireSupportedType3Content,
+                materializedPatternVisitor,
                 out PdfPageTilingPatternResource? parsed)
                 ? parsed
                 : null;
@@ -169,6 +171,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         bool requireSupportedType3Content,
+        Action<PdfStream, PdfDictionary, string>? materializedPatternVisitor,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -185,14 +188,23 @@ public sealed partial class PdfReadPage {
         double width = box.X2 - box.X1;
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
-        PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
+        PdfDictionary resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
-        OfficeDrawing tile = CreatePatternTileDrawing(stream, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content);
+        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
+        OfficeDrawing tile = CreatePatternTileDrawing(stream, content, resources, box, width, height, textOutputBudget ?? CreateTextOutputBudget(), pageContentBudget, type3GlyphBudget, requireSupportedType3Content);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
-        Matrix2D matrix = stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
-            ? ReadPatternMatrix(matrixObject)
-            : Matrix2D.Identity;
+        Matrix2D matrix;
+        if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            if (requireSupportedType3Content) {
+                if (!TryReadStrictPatternMatrix(matrixObject, out matrix)) return false;
+            } else {
+                matrix = ReadPatternMatrix(matrixObject);
+            }
+        } else {
+            matrix = Matrix2D.Identity;
+        }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
+        materializedPatternVisitor?.Invoke(stream, resources, content);
         bool uncolored = paintType == 2;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored);
         return true;
@@ -205,6 +217,7 @@ public sealed partial class PdfReadPage {
 
     private OfficeDrawing CreatePatternTileDrawing(
         PdfStream stream,
+        string content,
         PdfDictionary? resources,
         (double X1, double Y1, double X2, double Y2) box,
         double width,
@@ -215,7 +228,6 @@ public sealed partial class PdfReadPage {
         bool requireSupportedType3Content) {
         var drawing = new OfficeDrawing(width, height);
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
-        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
         Matrix2D transform = Matrix2D.Translation(-box.X1, -box.Y1);
         var activeForms = new HashSet<PdfStream>();

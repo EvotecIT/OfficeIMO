@@ -124,7 +124,7 @@ public sealed partial class PdfReadPage {
                     var cacheKey = GetType3ImageCacheKey(placement);
                     if (!extractedImageCache.TryGetValue(cacheKey, out PdfExtractedImage? image)) {
                         image = TryExtractType3Image(placement);
-                        if (image == null || !image.IsImageFile) return false;
+                        if (image == null || !IsValidType3ImageFile(image)) return false;
                         extractedImageCache[cacheKey] = image;
                     }
                     if ((type3.IsUncolored && !image.IsImageMask) || image.HasUnresolvedTransparencyMask) return false;
@@ -132,7 +132,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++)
-                    if (localImages[imageIndex].Image.HasUnresolvedTransparencyMask) return false;
+                    if (!IsValidType3ImageFile(localImages[imageIndex].Image) || localImages[imageIndex].Image.HasUnresolvedTransparencyMask) return false;
 
                 if (!TryPublishType3GlyphContent(
                         localPrimitives,
@@ -165,12 +165,20 @@ public sealed partial class PdfReadPage {
                 0,
                 new[] { placement },
                 colorizeImageMasks: true);
-            return FindImage(images, placement);
+            PdfExtractedImage? image = FindImage(images, placement);
+            return image != null && IsValidType3ImageFile(image) ? image : null;
         } catch (IOException exception) when (exception is not PdfReadLimitException) {
             return null;
         } catch (NotSupportedException) {
             return null;
         }
+    }
+
+    private static bool IsValidType3ImageFile(PdfExtractedImage image) {
+        if (!image.IsImageFile) return false;
+        return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
+            OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
+            validated.Format == OfficeImageFormat.Jpeg;
     }
 
     private static (PdfDictionary? Resources, int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor) GetType3ImageCacheKey(PdfImagePlacement placement) =>
