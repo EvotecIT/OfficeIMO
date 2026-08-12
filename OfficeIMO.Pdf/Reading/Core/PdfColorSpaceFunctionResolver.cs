@@ -6,6 +6,9 @@ internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> componen
 
 /// <summary>Resolves the bounded tint functions shared by content and image color-space projection.</summary>
 internal static class PdfColorSpaceFunctionResolver {
+    private static readonly double[] DefaultC0 = { 0D };
+    private static readonly double[] DefaultC1 = { 1D };
+
     internal static bool TryCreateTintTransform(
         PdfObject? value,
         int inputCount,
@@ -14,7 +17,7 @@ internal static class PdfColorSpaceFunctionResolver {
         int maxDecodedStreamBytes,
         out PdfColorSpaceTintTransform transform) {
         transform = null!;
-        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
+        PdfObject? resolved = ResolveObject(value, objects);
         PdfDictionary? dictionary = resolved switch {
             PdfStream stream => stream.Dictionary,
             PdfDictionary direct => direct,
@@ -24,20 +27,16 @@ internal static class PdfColorSpaceFunctionResolver {
 
         int? functionType = TryReadInteger(dictionary.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null, objects);
         if (functionType == 2 && inputCount == 1) {
-            double[] c0 = dictionary.Items.TryGetValue("C0", out PdfObject? c0Value)
-                ? ReadNumberArray(c0Value, objects)
-                : new[] { 0D };
-            double[] c1 = dictionary.Items.TryGetValue("C1", out PdfObject? c1Value)
-                ? ReadNumberArray(c1Value, objects)
-                : new[] { 1D };
-            if (!dictionary.Items.TryGetValue("N", out PdfObject? exponentValue) ||
-                PdfObjectLookup.Resolve(objects, exponentValue) is not PdfNumber exponentNumber) return false;
+            if (!TryReadOptionalNumberArray(dictionary, "C0", DefaultC0, objects, out double[] c0) ||
+                !TryReadOptionalNumberArray(dictionary, "C1", DefaultC1, objects, out double[] c1) ||
+                !dictionary.Items.TryGetValue("N", out PdfObject? exponentValue) ||
+                ResolveObject(exponentValue, objects) is not PdfNumber exponentNumber) return false;
             double exponent = exponentNumber.Value;
             if (c0.Length != outputCount || c1.Length != outputCount ||
                 c0.Any(value => !IsFinite(value)) || c1.Any(value => !IsFinite(value)) ||
                 !IsFinite(exponent) || exponent <= 0D ||
                 !HasUnitFunctionBounds(dictionary, inputCount, outputCount, requireRange: false, objects)) return false;
-            bool clipOutputsToUnitRange = dictionary.Items.ContainsKey("Range");
+            if (!TryResolveOptionalEntry(dictionary, "Range", objects, out _, out bool clipOutputsToUnitRange)) return false;
             transform = (components, output) => EvaluateType2(components, output, c0, c1, exponent, clipOutputsToUnitRange);
             return true;
         }
@@ -60,8 +59,8 @@ internal static class PdfColorSpaceFunctionResolver {
         Dictionary<int, PdfIndirectObject> objects) {
         if (!dictionary.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
             !HasUnitIntervals(ReadNumberArray(domainObject, objects), inputCount)) return false;
-        if (!dictionary.Items.TryGetValue("Range", out PdfObject? rangeObject)) return !requireRange;
-        return HasUnitIntervals(ReadNumberArray(rangeObject, objects), outputCount);
+        if (!TryResolveOptionalEntry(dictionary, "Range", objects, out PdfObject? rangeObject, out bool hasRange)) return false;
+        return hasRange ? HasUnitIntervals(ReadNumberArray(rangeObject, objects), outputCount) : !requireRange;
     }
 
     private static bool HasUnitIntervals(double[] values, int count) {
@@ -128,20 +127,59 @@ internal static class PdfColorSpaceFunctionResolver {
     }
 
     private static int? TryReadInteger(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) {
-        if (PdfObjectLookup.Resolve(objects, value) is not PdfNumber number ||
+        if (ResolveObject(value, objects) is not PdfNumber number ||
             !IsFinite(number.Value) || Math.Truncate(number.Value) != number.Value ||
             number.Value < int.MinValue || number.Value > int.MaxValue) return null;
         return (int)number.Value;
     }
 
     private static double[] ReadNumberArray(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) {
-        if (PdfObjectLookup.Resolve(objects, value) is not PdfArray array) return Array.Empty<double>();
+        if (ResolveObject(value, objects) is not PdfArray array) return Array.Empty<double>();
         var result = new double[array.Items.Count];
         for (int index = 0; index < result.Length; index++) {
-            if (PdfObjectLookup.Resolve(objects, array.Items[index]) is not PdfNumber number) return Array.Empty<double>();
+            if (ResolveObject(array.Items[index], objects) is not PdfNumber number) return Array.Empty<double>();
             result[index] = number.Value;
         }
         return result;
+    }
+
+    private static bool TryReadOptionalNumberArray(
+        PdfDictionary dictionary,
+        string key,
+        double[] defaultValue,
+        Dictionary<int, PdfIndirectObject> objects,
+        out double[] values) {
+        values = defaultValue;
+        if (!TryResolveOptionalEntry(dictionary, key, objects, out PdfObject? resolved, out bool hasValue)) return false;
+        if (!hasValue) return true;
+        values = ReadNumberArray(resolved, objects);
+        return true;
+    }
+
+    private static bool TryResolveOptionalEntry(
+        PdfDictionary dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        out PdfObject? resolved,
+        out bool hasValue) {
+        resolved = null;
+        hasValue = false;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return true;
+        resolved = ResolveObject(value, objects);
+        if (resolved == null) return false;
+        hasValue = resolved is not PdfNull;
+        return true;
+    }
+
+    private static PdfObject? ResolveObject(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        PdfObject? resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return null;
+            resolved = indirect.Value;
+        }
+        return resolved;
     }
 
     private static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;

@@ -181,13 +181,17 @@ internal sealed class PdfImageColorSpaceNormalization {
             case "I":
                 return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, depth, out normalization);
             case "Separation":
+                if (colorSpaceArray.Items.Count < 2 ||
+                    ResolveObject(colorSpaceArray.Items[1], objects) is not PdfName colorant ||
+                    string.Equals(colorant.Name, "None", StringComparison.Ordinal)) return false;
                 return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, depth, out normalization);
             case "DeviceN":
             case "NChannel":
                 if (colorSpaceArray.Items.Count < 2 ||
                     ResolveObject(colorSpaceArray.Items[1], objects) is not PdfArray names ||
                     names.Items.Count < 1 || names.Items.Count > 32 ||
-                    names.Items.Any(item => ResolveObject(item, objects) is not PdfName)) return false;
+                    names.Items.Any(item => ResolveObject(item, objects) is not PdfName name ||
+                        string.Equals(name.Name, "None", StringComparison.Ordinal))) return false;
                 return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, depth, out normalization);
             default:
                 return false;
@@ -276,6 +280,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         normalization = null!;
         if (colorSpaceArray.Items.Count < 2 ||
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
+            !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
 
@@ -368,6 +373,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         normalization = null!;
         if (colorSpaceArray.Items.Count < 2 ||
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
+            !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
         double gamma = 1D;
@@ -389,6 +395,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         normalization = null!;
         if (colorSpaceArray.Items.Count < 2 ||
             ResolveObject(colorSpaceArray.Items[1], objects) is not PdfDictionary calibration ||
+            !PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, objects) ||
             !TryReadNumberArray(calibration, "WhitePoint", 3, objects, out double[] whitePoint) ||
             whitePoint.Any(value => value <= 0D)) return false;
         double[] abRange = { -100D, 100D, -100D, 100D };
