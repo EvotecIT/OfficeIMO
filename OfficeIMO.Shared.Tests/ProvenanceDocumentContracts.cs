@@ -275,6 +275,23 @@ public sealed class ProvenanceDocumentContracts {
         if (sourceSet) Assert.Contains("retained.png 2x", output, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("<html><body><video poster=\"{0}\"></video></body></html>", "poster")]
+    [InlineData("<html><body><input type=\"image\" src=\"{0}\"></body></html>", "src")]
+    [InlineData("<html><body><svg><image href=\"{0}\"/></svg></body></html>", "href")]
+    [InlineData("<html><head><link rel=\"icon\" href=\"{0}\"></head><body></body></html>", "href")]
+    public void HtmlSanitizesEverySupportedEmbeddedImageCarrier(string template, string attributeName) {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = string.Format(System.Globalization.CultureInfo.InvariantCulture, template, dataUri);
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Contains(result.Before.Evidence, item => item.Location.Contains("[" + attributeName + "]", StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);

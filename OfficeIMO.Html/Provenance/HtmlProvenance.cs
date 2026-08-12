@@ -164,7 +164,7 @@ public static class HtmlProvenance {
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics) {
         int count = 0;
-        foreach (IElement element in document.QuerySelectorAll("img,source")) {
+        foreach (IElement element in GetEmbeddedImageElements(document)) {
             foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
@@ -196,7 +196,7 @@ public static class HtmlProvenance {
         List<OfficeProvenanceChange> changes) {
         int count = 0;
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
-        foreach (IElement element in document.QuerySelectorAll("img,source")) {
+        foreach (IElement element in GetEmbeddedImageElements(document)) {
             EmbeddedImageReference[] references = GetEmbeddedImageReferences(element).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
@@ -229,15 +229,52 @@ public static class HtmlProvenance {
     }
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(IElement element) {
-        foreach (string attributeName in EmbeddedImageSourceAttributes) {
+        string localName = element.LocalName.ToLowerInvariant();
+        if (localName is "img" or "source") {
+            foreach (string attributeName in EmbeddedImageSourceAttributes) {
+                string? source = element.GetAttribute(attributeName);
+                if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
+            }
+            foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
+                string? sourceSet = element.GetAttribute(attributeName);
+                if (sourceSet == null) continue;
+                foreach (EmbeddedImageReference reference in ParseSrcset(attributeName, sourceSet)) yield return reference;
+            }
+            yield break;
+        }
+
+        string[] attributeNames;
+        if (localName == "video") {
+            attributeNames = new[] { "poster", "data-poster" };
+        } else if (localName == "input" && string.Equals(
+            HtmlFormControlSemantics.GetEffectiveType("input", element.GetAttribute("type")),
+            "image",
+            StringComparison.Ordinal)) {
+            attributeNames = new[] { "src", "data-src" };
+        } else if (localName == "image") {
+            attributeNames = new[] { "href", "xlink:href", "src" };
+        } else if (localName is "feimage" or "use") {
+            attributeNames = new[] { "href", "xlink:href" };
+        } else if (localName == "link" && IsImageLink(element)) {
+            attributeNames = new[] { "href" };
+        } else {
+            yield break;
+        }
+
+        foreach (string attributeName in attributeNames) {
             string? source = element.GetAttribute(attributeName);
             if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
         }
-        foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
-            string? sourceSet = element.GetAttribute(attributeName);
-            if (sourceSet == null) continue;
-            foreach (EmbeddedImageReference reference in ParseSrcset(attributeName, sourceSet)) yield return reference;
-        }
+    }
+
+    private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
+        document.QuerySelectorAll("img,source,video,input,image,feimage,use,link");
+
+    private static bool IsImageLink(IElement element) {
+        string? rel = element.GetAttribute("rel");
+        return HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
+            HasRelationship(rel, "shortcut icon") ||
+            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon");
     }
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
