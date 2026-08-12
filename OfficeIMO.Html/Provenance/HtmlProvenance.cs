@@ -189,10 +189,11 @@ public static class HtmlProvenance {
                     continue;
                 }
                 if (estimatedBytes > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
-                if (!dataUri.TryDecodeBytes(out byte[] image)) {
+                if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) {
                     diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
                     continue;
                 }
+                if (image.LongLength > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 try {
                     OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
                     foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
@@ -237,7 +238,8 @@ public static class HtmlProvenance {
                 if (count > maxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
                 if (estimatedBytes > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
-                if (!dataUri.TryDecodeBytes(out byte[] image)) continue;
+                if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) continue;
+                if (image.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 try {
                     OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(
                         image,
@@ -385,6 +387,30 @@ public static class HtmlProvenance {
         }
         metadata.Add("base64");
         return string.Join(";", metadata);
+    }
+
+    private static bool TryDecodeEmbeddedImage(HtmlImageDataUri dataUri, out byte[] image) {
+        if (!string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+            return dataUri.TryDecodeBytes(out image);
+        }
+        if (!dataUri.TryDecodeText(out string text)) {
+            image = Array.Empty<byte>();
+            return false;
+        }
+        int declarationEnd = text.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
+            ? text.IndexOf("?>", StringComparison.Ordinal)
+            : -1;
+        if (declarationEnd >= 0) {
+            string declaration = text.Substring(0, declarationEnd + 2);
+            string normalized = System.Text.RegularExpressions.Regex.Replace(
+                declaration,
+                "(\\bencoding\\s*=\\s*[\"'])[^\"']*([\"'])",
+                "$1utf-8$2",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            text = normalized + text.Substring(declarationEnd + 2);
+        }
+        image = Encoding.UTF8.GetBytes(text);
+        return true;
     }
 
     private static void ApplyEmbeddedImageReplacements(

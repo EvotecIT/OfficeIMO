@@ -387,6 +387,28 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlEmbeddedSvgHonorsTheDataUriCharsetWithoutAnXmlDeclaration() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><x:xmpmeta><rdf:RDF><rdf:Description " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata></svg>";
+        string dataUri = "data:image/svg+xml;charset=windows-1252;base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
+        string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+        int start = output.IndexOf("data:image/svg+xml", StringComparison.Ordinal);
+        int end = output.IndexOf('"', start);
+        Assert.True(HtmlDataUri.TryParse(output.Substring(start, end - start), out HtmlDataUri rewritten));
+
+        Assert.True(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.Empty(result.After.Evidence);
+        Assert.Contains("charset=utf-8", rewritten.Metadata, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("café", rewritten.DecodeText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
@@ -588,6 +610,19 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void VisioSignatureRemovalSkipsExternalSignatureRelationships() {
+        byte[] package = CreateSignedVisioProvenancePackage(0, includeExternalSignatureRelationship: true);
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+
+        OfficeProvenanceRemovalResult result = VisioDocument.RemoveProvenance(package, options: options);
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void DanglingSignatureOriginRelationshipIsSignatureEvidence() {
         byte[] package;
         using (var output = new MemoryStream()) {
@@ -646,7 +681,7 @@ public sealed class ProvenanceDocumentContracts {
         }
     }
 
-    private static byte[] CreateSignedVisioProvenancePackage(int paddingCharacters) {
+    private static byte[] CreateSignedVisioProvenancePackage(int paddingCharacters, bool includeExternalSignatureRelationship = false) {
         using var output = new MemoryStream();
         using (Package package = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
             Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
@@ -677,6 +712,12 @@ public sealed class ProvenanceDocumentContracts {
                 signatureUri,
                 TargetMode.Internal,
                 "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature");
+            if (includeExternalSignatureRelationship) {
+                origin.CreateRelationship(
+                    new Uri("https://example.invalid/external-signature.xml", UriKind.Absolute),
+                    TargetMode.External,
+                    "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature");
+            }
 
             Uri appUri = PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative));
             PackagePart app = package.CreatePart(appUri, "application/vnd.openxmlformats-officedocument.extended-properties+xml", CompressionOption.Maximum);

@@ -36,10 +36,15 @@ public partial class VisioDocument {
             PackageRelationship[] origins = package.GetRelationshipsByType(SignatureOriginRelationship).ToArray();
             foreach (PackageRelationship relationship in origins) {
                 hadSignatures = true;
+                if (relationship.TargetMode == TargetMode.External) {
+                    package.DeleteRelationship(relationship.Id);
+                    continue;
+                }
                 Uri originUri = PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri);
                 if (package.PartExists(originUri)) {
                     PackagePart origin = package.GetPart(originUri);
                     foreach (PackageRelationship signature in origin.GetRelationshipsByType(SignaturePartRelationship).ToArray()) {
+                        if (signature.TargetMode == TargetMode.External) continue;
                         Uri signatureUri = PackUriHelper.ResolvePartUri(origin.Uri, signature.TargetUri);
                         if (package.PartExists(signatureUri)) package.DeletePart(signatureUri);
                     }
