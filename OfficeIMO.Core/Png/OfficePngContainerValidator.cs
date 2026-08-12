@@ -313,6 +313,7 @@ internal static class OfficePngContainerValidator {
         string name = new(nameCharacters);
         if (!names.Add(name)) return false;
         int sampleDepthOffset = offset + nameLength + 1;
+        if (sampleDepthOffset >= offset + length) return false;
         int sampleDepth = bytes[sampleDepthOffset];
         int entrySize = sampleDepth == 8 ? 6 : sampleDepth == 16 ? 10 : 0;
         int entriesLength = length - nameLength - 2;
@@ -437,6 +438,7 @@ internal static class OfficePngContainerValidator {
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
+            exception is OfficeDecompressionSizeLimitException ||
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
@@ -489,7 +491,10 @@ internal static class OfficePngContainerValidator {
         if (languageEnd < 0 || !HasValidLanguageTag(bytes, languageOffset, languageEnd - languageOffset)) return false;
         int translatedOffset = languageEnd + 1;
         int translatedEnd = FindNull(bytes, translatedOffset, end);
-        if (translatedEnd < 0 || !HasValidUtf8(bytes, translatedOffset, translatedEnd - translatedOffset)) return false;
+        int translatedLength = translatedEnd - translatedOffset;
+        if (translatedEnd < 0 ||
+            !TryAddDecodedTextBytes(ref decodedTextBytes, translatedLength) ||
+            !HasValidUtf8(bytes, translatedOffset, translatedLength)) return false;
         int textOffset = translatedEnd + 1;
         int textLength = end - textOffset;
         if (bytes[flagOffset] == 1) {
@@ -515,6 +520,7 @@ internal static class OfficePngContainerValidator {
         } catch (Exception exception) when (
             exception is ArgumentException ||
             exception is FormatException ||
+            exception is OfficeDecompressionSizeLimitException ||
             exception is InvalidDataException ||
             exception is NotSupportedException ||
             exception is OverflowException) {
@@ -558,7 +564,7 @@ internal static class OfficePngContainerValidator {
 
     private static bool HasValidUtf8(byte[] bytes, int offset, int length) {
         try {
-            _ = StrictUtf8.GetString(bytes, offset, length);
+            _ = StrictUtf8.GetCharCount(bytes, offset, length);
             return true;
         } catch (DecoderFallbackException) {
             return false;

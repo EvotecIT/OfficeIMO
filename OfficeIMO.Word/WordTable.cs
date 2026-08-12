@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Runtime.CompilerServices;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -258,11 +259,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordTableRow> Rows {
             get {
-                var list = new List<WordTableRow>();
+                var list = new List<WordTableRow>(_table.ChildElements.Count);
 
                 foreach (TableRow row in _table.ChildElements.OfType<TableRow>()) {
-                    WordTableRow tableRow = new WordTableRow(this, row, _document);
-                    list.Add(tableRow);
+                    list.Add(GetOrCreateRow(row, initializeCells: true));
                 }
 
                 return list;
@@ -287,6 +287,23 @@ namespace OfficeIMO.Word {
         }
 
         internal Table _table;
+        private readonly ConditionalWeakTable<TableRow, WordTableRow> _rowCache = new();
+
+        internal void TrackRow(WordTableRow row) {
+            if (!_rowCache.TryGetValue(row._tableRow, out _)) {
+                _rowCache.Add(row._tableRow, row);
+            }
+        }
+
+        private WordTableRow GetOrCreateRow(TableRow row, bool initializeCells) {
+            if (_rowCache.TryGetValue(row, out WordTableRow? cachedRow)) {
+                return cachedRow;
+            }
+
+            var wordRow = new WordTableRow(this, row, _document, initializeCells);
+            _rowCache.Add(row, wordRow);
+            return wordRow;
+        }
 
         internal TableProperties? _tableProperties {
             get {
@@ -389,7 +406,7 @@ namespace OfficeIMO.Word {
 
             if (initializeChildren) {
                 foreach (TableRow row in table.ChildElements.OfType<TableRow>().ToList()) {
-                    new WordTableRow(this, row, document);
+                    GetOrCreateRow(row, initializeCells: true);
                 }
             }
 

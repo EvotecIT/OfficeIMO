@@ -172,8 +172,10 @@ public sealed partial class OfficeIccColorProfile {
         int grid1 = bytes[start + 1];
         int grid2 = bytes[start + 2];
         int grid3 = inputChannels == 4 ? bytes[start + 3] : 1;
-        if (grid0 is < 2 or > 33 || grid1 is < 2 or > 33 || grid2 is < 2 or > 33 ||
-            (inputChannels == 4 && grid3 is < 2 or > 33)) return false;
+        if (grid0 is < 2 or > MaximumMabClutGridPoints ||
+            grid1 is < 2 or > MaximumMabClutGridPoints ||
+            grid2 is < 2 or > MaximumMabClutGridPoints ||
+            (inputChannels == 4 && grid3 is < 2 or > MaximumMabClutGridPoints)) return false;
         for (int index = inputChannels; index < 16; index++) {
             if (bytes[start + index] != 0) return false;
         }
@@ -212,18 +214,25 @@ public sealed partial class OfficeIccColorProfile {
             }
         }
 
-        int tagEnd = checked(tagRange.Offset + tagRange.Length);
-        for (int offset = tagRange.Offset + 32; offset < tagEnd; offset++) {
-            bool covered = false;
-            for (int index = 0; index < regionCount; index++) {
-                if (offset >= regions[index].Range.Start && offset < regions[index].Range.End) {
-                    covered = true;
-                    break;
-                }
+        for (int index = 1; index < regionCount; index++) {
+            ElementRegion current = regions[index];
+            int insertion = index;
+            while (insertion > 0 && regions[insertion - 1].Range.Start > current.Range.Start) {
+                regions[insertion] = regions[insertion - 1];
+                insertion--;
             }
-            if (!covered && bytes[offset] != 0) return false;
+            regions[insertion] = current;
         }
-        return true;
+
+        int cursor = tagRange.Offset + 32;
+        for (int index = 0; index < regionCount; index++) {
+            ElementRange region = regions[index].Range;
+            if (region.Start > cursor && !AreZero(bytes, cursor, region.Start - cursor)) return false;
+            if (region.End > cursor) cursor = region.End;
+        }
+
+        int tagEnd = checked(tagRange.Offset + tagRange.Length);
+        return cursor <= tagEnd && AreZero(bytes, cursor, tagEnd - cursor);
     }
 
     private static int ReadRelativeOffset(byte[] bytes, int offset) {

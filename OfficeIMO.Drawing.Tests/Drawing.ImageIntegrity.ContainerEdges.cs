@@ -141,6 +141,19 @@ public partial class DrawingTests {
         Assert.False(OfficeImageReader.TryValidateContent(duplicate, "duplicate-palette.png", out _));
         Assert.False(OfficeImageReader.TryValidateContent(
             InsertPngChunkBefore(png, "IDAT", "sPLT", Array.Empty<byte>()), "empty-palette.png", out _));
+        Assert.False(OfficeImageReader.TryValidateContent(
+            InsertPngChunkBefore(png, "IDAT", "sPLT", new byte[] { (byte)'p', 0 }),
+            "missing-palette-depth.png",
+            out _));
+    }
+
+    [Fact]
+    public void AnimatedWebpCanvasMustStayWithinPixelLimits() {
+        byte[] animated = Convert.FromBase64String(
+            "UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=");
+        for (int index = 24; index <= 29; index++) animated[index] = 0xFF;
+
+        Assert.False(OfficeImageReader.TryIdentifyByContent(animated, "oversized-animation.webp", out _));
     }
 
     [Fact]
