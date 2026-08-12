@@ -146,6 +146,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SheetComposer_DataTableProjectionRulesPreserveAndOrderCaseDistinctColumns() {
+            var table = new DataTable("CaseDistinct");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("name", typeof(string));
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add("Upper", "Lower", 42);
+            using ExcelDocument document = ExcelDocument.Create();
+
+            document.Compose("Data", composer => {
+                string range = composer.TableFrom(
+                    table,
+                    configure: options => {
+                        options.Ignore = new[] { "Missing" };
+                        options.PinnedFirst = new[] { "name" };
+                        options.PropertyPriority["Value"] = -1;
+                    },
+                    freezeHeaderRow: false);
+                Assert.Equal("A1:C2", range);
+            });
+
+            ExcelSheet sheet = document["Data"];
+            Assert.True(sheet.TryGetCellText(1, 1, out string? firstHeader));
+            Assert.True(sheet.TryGetCellText(1, 2, out string? secondHeader));
+            Assert.True(sheet.TryGetCellText(1, 3, out string? thirdHeader));
+            Assert.True(sheet.TryGetCellText(2, 1, out string? firstValue));
+            Assert.True(sheet.TryGetCellText(2, 2, out string? secondValue));
+            Assert.True(sheet.TryGetCellText(2, 3, out string? thirdValue));
+            Assert.Equal("Name", firstHeader);
+            Assert.Equal("Value", secondHeader);
+            Assert.Equal("Name (2)", thirdHeader);
+            Assert.Equal("Lower", firstValue);
+            Assert.Equal("42", secondValue);
+            Assert.Equal("Upper", thirdValue);
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableProjectionRulesRejectAmbiguousCaseInsensitiveTargets() {
+            var table = new DataTable("CaseDistinct");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("name", typeof(string));
+            table.Rows.Add("Upper", "Lower");
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Data", composer =>
+                    composer.TableFrom(
+                        table,
+                        configure: options => options.PinnedFirst = new[] { "NAME" },
+                        freezeHeaderRow: false)));
+
+            Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("exact full column name and casing", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void SheetComposer_DataTableExplainsHardExcelColumnBoundary() {
             var table = new DataTable("Wide");
             for (int index = 0; index <= A1.MaxColumns; index++) {

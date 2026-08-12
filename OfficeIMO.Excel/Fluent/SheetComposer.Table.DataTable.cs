@@ -65,14 +65,11 @@ namespace OfficeIMO.Excel.Fluent {
             } else if (hasExplicitColumns) {
                 paths = ResolveExplicitDataTablePaths(flattener, options);
             } else {
-                try {
-                    paths = flattener.ResolvePaths(sourceColumnNames, options);
-                } catch (InvalidDataException exception) {
-                    if (exception.Data["OfficeIMO.RequiredColumns"] is int requiredColumns) {
-                        EnsureDataTableColumnLimit(requiredColumns, configuredMaxColumns);
-                    }
-                    throw;
-                }
+                paths = ResolveProjectedDataTablePaths(
+                    flattener,
+                    options,
+                    sourceColumnNames,
+                    configuredMaxColumns);
             }
             if (paths.Count == 0) {
                 Sheet.Cell(_row, 1, "(no tabular columns for the DataTable schema)");
@@ -122,6 +119,108 @@ namespace OfficeIMO.Excel.Fluent {
             }
             return paths;
         }
+
+        private static List<string> ResolveProjectedDataTablePaths(
+            ObjectFlattener flattener,
+            ObjectFlattenerOptions options,
+            IReadOnlyList<string> sourceColumnNames,
+            int configuredMaxColumns) {
+            var selected = new List<string>(sourceColumnNames.Count);
+            foreach (string sourceColumnName in sourceColumnNames) {
+                List<string> resolved = flattener.ResolvePaths(new[] { sourceColumnName }, options);
+                if (resolved.Count != 0) selected.Add(sourceColumnName);
+            }
+
+            EnsureDataTableColumnLimit(selected.Count, configuredMaxColumns);
+            return ApplyDataTableOrdering(selected, options);
+        }
+
+        private static List<string> ApplyDataTableOrdering(
+            IReadOnlyList<string> paths,
+            ObjectFlattenerOptions options) {
+            if (paths.Count == 0) return new List<string>();
+
+            var pinnedFirst = ResolveDataTableRules(paths, options.PinnedFirst, nameof(options.PinnedFirst));
+            var pinnedLast = ResolveDataTableRules(paths, options.PinnedLast, nameof(options.PinnedLast));
+            var firstSet = new HashSet<string>(pinnedFirst, StringComparer.Ordinal);
+            var lastSet = new HashSet<string>(pinnedLast, StringComparer.Ordinal);
+            lastSet.ExceptWith(firstSet);
+
+            var priorities = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, int> priority in options.PropertyPriority) {
+                string? path = ResolveDataTableRule(paths, priority.Key, nameof(options.PropertyPriority));
+                if (path != null && !priorities.ContainsKey(path)) priorities[path] = priority.Value;
+            }
+
+            var remaining = paths
+                .Select((path, index) => new {
+                    Path = path,
+                    Index = index,
+                    Priority = priorities.TryGetValue(path, out int priority) ? priority : 0
+                })
+                .Where(item => !firstSet.Contains(item.Path) && !lastSet.Contains(item.Path))
+                .OrderBy(item => item.Priority)
+                .ThenBy(item => item.Index)
+                .Select(item => item.Path);
+
+            var result = new List<string>(paths.Count);
+            result.AddRange(pinnedFirst);
+            result.AddRange(remaining);
+            result.AddRange(pinnedLast.Where(path => !firstSet.Contains(path)));
+            return result;
+        }
+
+        private static List<string> ResolveDataTableRules(
+            IReadOnlyList<string> paths,
+            IEnumerable<string>? rules,
+            string optionName) {
+            var result = new List<string>();
+            var added = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string rule in rules ?? Array.Empty<string>()) {
+                string? path = ResolveDataTableRule(paths, rule, optionName);
+                if (path != null && added.Add(path)) result.Add(path);
+            }
+            return result;
+        }
+
+        private static string? ResolveDataTableRule(
+            IReadOnlyList<string> paths,
+            string rule,
+            string optionName) {
+            if (string.IsNullOrWhiteSpace(rule)) return null;
+
+            string? exactPath = paths.FirstOrDefault(path => string.Equals(path, rule, StringComparison.Ordinal));
+            if (exactPath != null) return exactPath;
+
+            List<string> exactSegments = paths
+                .Where(path => string.Equals(GetLastSegment(path), rule, StringComparison.Ordinal))
+                .ToList();
+            if (exactSegments.Count == 1) return exactSegments[0];
+            if (exactSegments.Count > 1) throw CreateAmbiguousDataTableRuleException(rule, optionName);
+
+            List<string> insensitivePaths = paths
+                .Where(path => string.Equals(path, rule, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (insensitivePaths.Count == 1) return insensitivePaths[0];
+            if (insensitivePaths.Count > 1) throw CreateAmbiguousDataTableRuleException(rule, optionName);
+
+            List<string> insensitiveSegments = paths
+                .Where(path => string.Equals(GetLastSegment(path), rule, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (insensitiveSegments.Count == 1) return insensitiveSegments[0];
+            if (insensitiveSegments.Count > 1) throw CreateAmbiguousDataTableRuleException(rule, optionName);
+            return null;
+        }
+
+        private static string GetLastSegment(string path) {
+            int separator = path.LastIndexOf('.');
+            return separator >= 0 ? path.Substring(separator + 1) : path;
+        }
+
+        private static InvalidDataException CreateAmbiguousDataTableRuleException(string rule, string optionName) =>
+            new InvalidDataException(
+                $"DataTable column rule '{rule}' in {optionName} is ambiguous because the schema contains case-distinct or repeated matches. "
+                + "Use the exact full column name and casing in the projection rule.");
 
         private static void EnsureDataTableColumnLimit(int requiredColumns, int configuredMaxColumns) {
             if (requiredColumns <= configuredMaxColumns && requiredColumns <= A1.MaxColumns) return;
