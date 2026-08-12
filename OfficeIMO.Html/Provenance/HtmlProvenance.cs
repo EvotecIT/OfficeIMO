@@ -205,7 +205,8 @@ public static class HtmlProvenance {
                         "asset" + dataUri.FileExtension,
                         CreateNestedRemovalOptions(options));
                     if (!nested.WasChanged) continue;
-                    replacements.Add((reference, "data:" + dataUri.MediaType + ";base64," + Convert.ToBase64String(nested.ToArray())));
+                    string metadata = dataUri.IsBase64 ? dataUri.Metadata : dataUri.Metadata + ";base64";
+                    replacements.Add((reference, "data:" + metadata + "," + Convert.ToBase64String(nested.ToArray())));
                     foreach (OfficeProvenanceChange change in nested.Changes) {
                         changes.Add(new OfficeProvenanceChange(
                             change.Carrier,

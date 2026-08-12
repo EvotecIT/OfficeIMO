@@ -225,6 +225,19 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlEmbeddedRewritePreservesDataUriMediaTypeParameters() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;charset=utf-8;name=source.png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+
+        Assert.Contains("data:image/png;charset=utf-8;name=source.png;base64,", output, StringComparison.Ordinal);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
@@ -349,6 +362,52 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Single(result.Before.Evidence);
         Assert.Empty(result.After.Evidence);
         Assert.True(result.WereInvalidatedSignaturesRemoved);
+    }
+
+    [Fact]
+    public void SignatureRemovalPreviewHonorsNestedEmbeddedAssetLimit() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
+                WriteEntry(archive, "media/first.png", image, CompressionLevel.Optimal);
+                WriteEntry(archive, "media/second.png", image, CompressionLevel.Optimal);
+            }
+            package = output.ToArray();
+        }
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        options.Limits.MaxEmbeddedAssets = 1;
+
+        Assert.Throws<InvalidDataException>(() => OdfDocument.RemoveProvenance(package, "document.odt", options));
+    }
+
+    [Fact]
+    public void SignatureStripAdapterRejectsOversizedExpandedPackagePart() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "[Content_Types].xml", new string('A', 128 * 1024), CompressionLevel.Optimal);
+                WriteEntry(archive, "_xmlsignatures/orphan.xml", "<signature/>", CompressionLevel.Optimal);
+                WriteEntry(archive, "word/media/provenance.png", image, CompressionLevel.Optimal);
+            }
+            package = output.ToArray();
+        }
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        options.Limits.MaxAssetBytes = Math.Max(package.LongLength + 1024, 16 * 1024);
+        options.Limits.MaxManifestBytes = 8 * 1024;
+        options.Limits.MaxExpandedContainerBytes = 512 * 1024;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            WordDocument.RemoveProvenance(package, "document.docx", options));
+
+        Assert.Contains("package part exceeds", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
