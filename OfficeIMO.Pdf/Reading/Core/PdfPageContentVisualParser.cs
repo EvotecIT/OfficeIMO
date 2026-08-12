@@ -210,6 +210,7 @@ internal static class PdfPageContentVisualParser {
         private readonly Action<string>? _unsupportedOperatorVisitor;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
+        private readonly Stack<bool> _inexactDashStack = new Stack<bool>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, Matrix2D FillTransform, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase, Matrix2D StrokeTransform)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, Matrix2D FillTransform, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase, Matrix2D StrokeTransform)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
@@ -239,6 +240,7 @@ internal static class PdfPageContentVisualParser {
         private readonly int _maxNestingDepth;
         private readonly int _maxOperands;
         private int _compatibilityDepth;
+        private bool _hasInexactDash;
 
         public Parser(
             string content,
@@ -399,10 +401,12 @@ internal static class PdfPageContentVisualParser {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _inexactDashStack.Push(_hasInexactDash);
                     _tilingStack.Push((_fillTilingPattern, _fillTilingTint, _fillPatternBaseColorSpace, _fillPatternPaintTransform, _strokeTilingPattern, _strokeTilingTint, _strokePatternBaseColorSpace, _strokePatternPaintTransform));
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
+                    _hasInexactDash = _inexactDashStack.Count > 0 && _inexactDashStack.Pop();
                     if (_tilingStack.Count > 0) {
                         (PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, Matrix2D FillTransform, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase, Matrix2D StrokeTransform) restored = _tilingStack.Pop();
                         _fillTilingPattern = restored.Fill;
@@ -459,12 +463,13 @@ internal static class PdfPageContentVisualParser {
                     if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray && _args[_args.Count - 1] is double dashPhase) {
                         if (TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
                             _state = _state.WithStrokeDashStyle(exactStyle);
+                            _hasInexactDash = false;
                         } else {
-                            _unsupportedOperatorVisitor?.Invoke("d");
                             _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                            _hasInexactDash = true;
                         }
                     } else {
-                        _unsupportedOperatorVisitor?.Invoke("d");
+                        _hasInexactDash = true;
                     }
 
                     break;
@@ -767,6 +772,8 @@ internal static class PdfPageContentVisualParser {
                 ClearPath();
                 return;
             }
+
+            if (stroke && _hasInexactDash) _unsupportedOperatorVisitor?.Invoke("d");
 
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
                 PdfPageTilingPatternPaint? fillTilingPaint = fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null;

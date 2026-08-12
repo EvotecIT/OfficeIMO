@@ -202,9 +202,6 @@ public sealed partial class PdfReadPage {
                     visiblePlacements.Add(placements[i]);
                 }
             }
-            IReadOnlyList<PdfExtractedImage> images = visiblePlacements.Count == 0
-                ? Array.Empty<PdfExtractedImage>()
-                : GetImagesForResources(resources, 0, visiblePlacements, colorizeImageMasks: true);
             var paintChannelCache = new Type3PaintChannelCache();
             var activePaintStreams = new HashSet<PdfStream>();
             for (int i = 0; i < visiblePlacements.Count; i++) {
@@ -227,7 +224,7 @@ public sealed partial class PdfReadPage {
                 if (suppressedBySoftMask) {
                     continue;
                 }
-                PdfExtractedImage? image = FindImage(images, placement);
+                PdfExtractedImage? image = GetImageForPlacement(resources, placement, colorizeImageMasks: true);
                 if (image == null ||
                     !image.IsImageFile ||
                     !IsSupportedType3Image(placement, image, resources) ||
@@ -239,6 +236,10 @@ public sealed partial class PdfReadPage {
                         localPageHeight,
                         out _,
                         allowAxisAlignedFallback: false)) {
+                    groupDrawing = null!;
+                    return Type3TransparencyGroupDrawingResult.Unsupported;
+                }
+                if (image.IsImageMask && placement.FillPattern.HasValue) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }

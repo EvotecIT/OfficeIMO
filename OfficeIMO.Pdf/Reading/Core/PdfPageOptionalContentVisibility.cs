@@ -3,10 +3,14 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfPageOptionalContentVisibility {
     private readonly Dictionary<string, bool> _hiddenProperties;
     private readonly HashSet<int> _hiddenObjectNumbers;
+    private readonly Dictionary<int, bool> _groupVisibility;
+    private readonly Dictionary<int, PdfIndirectObject> _objects;
 
-    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers) {
+    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects) {
         _hiddenProperties = hiddenProperties;
         _hiddenObjectNumbers = hiddenObjectNumbers;
+        _groupVisibility = groupVisibility;
+        _objects = objects;
     }
 
     public static PdfPageOptionalContentVisibility? Create(
@@ -47,7 +51,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         return hiddenProperties.Count == 0 && hiddenObjectNumbers.Count == 0
             ? null
-            : new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers);
+            : new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects);
     }
 
     public bool IsHidden(string propertyName) =>
@@ -65,9 +69,20 @@ internal sealed class PdfPageOptionalContentVisibility {
 
     public bool IsHidden(PdfInlineOptionalContentReferences references) {
         if (references.IsMembershipDictionary) {
-            if (!string.IsNullOrWhiteSpace(references.VisibilityExpression) &&
-                TryEvaluateInlineVisibilityExpression(references.VisibilityExpression!, out bool expressionVisible)) {
-                return !expressionVisible;
+            if (!string.IsNullOrWhiteSpace(references.VisibilityExpression)) {
+                string expression = references.VisibilityExpression!;
+                if (TryEvaluateInlineVisibilityExpression(expression, out bool expressionVisible)) return !expressionVisible;
+                int index = 0;
+                SkipInlineWhitespace(expression, ref index);
+                if (TryReadInlineReference(expression, ref index, out int objectNumber)) {
+                    SkipInlineWhitespace(expression, ref index);
+                    if (index == expression.Length &&
+                        _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
+                        indirect.Value is PdfArray &&
+                        TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), out expressionVisible)) {
+                        return !expressionVisible;
+                    }
+                }
             }
 
             return IsMembershipHidden(references.ObjectNumbers, references.Policy);

@@ -98,16 +98,44 @@ public class PdfType3OptionalContentTests {
         Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
     }
 
+    [Fact]
+    public void RenderPage_EvaluatesIndirectVisibilityExpressionBeforeMembershipPolicy() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE 12 0 R >>",
+            indirectVisibilityExpression: "[/Not 11 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresInexactDashUsedOnlyByHiddenOptionalContent() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            hiddenExtraContent: " [3 1] 2 d 0 0 m 500 700 l S");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private static byte[] BuildType3OptionalContentPdf(
         bool nestedForm,
         string? inlineMembershipDictionary = null,
-        bool includeUnsupportedConditionalContent = true) {
+        bool includeUnsupportedConditionalContent = true,
+        string hiddenExtraContent = "",
+        string? indirectVisibilityExpression = null) {
         string hiddenProperty = inlineMembershipDictionary ?? "/Hidden";
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
             : string.Empty;
         string hiddenAndVisibleContent =
-            "/OC " + hiddenProperty + " BDC 1 0 0 rg 0 0 500 700 re f" + unsupportedConditionalContent + " EMC " +
+            "/OC " + hiddenProperty + " BDC 1 0 0 rg 0 0 500 700 re f" + hiddenExtraContent + unsupportedConditionalContent + " EMC " +
             "0 1 0 rg 250 0 250 700 re f";
         string type3Resources = nestedForm
             ? "<< /XObject << /Fm1 7 0 R >> >>"
@@ -130,6 +158,9 @@ public class PdfType3OptionalContentTests {
         }
         objects.Add("10 0 obj\n<< /Type /OCG /Name (Hidden Type 3 layer) >>\nendobj");
         objects.Add("11 0 obj\n<< /Type /OCG /Name (Visible Type 3 layer) >>\nendobj");
+        if (indirectVisibilityExpression is not null) {
+            objects.Add("12 0 obj\n" + indirectVisibilityExpression + "\nendobj");
+        }
         return Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
     }
 

@@ -100,6 +100,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
+        private readonly Stack<bool> _inexactDashStack = new Stack<bool>();
         private readonly Stack<GraphicsEffectState> _graphicsEffectStack = new Stack<GraphicsEffectState>();
         private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
@@ -155,6 +156,7 @@ internal static class PdfPageXObjectInvocationParser {
         private int _currentOperatorIndex;
         private PdfPageSoftMaskResource? _softMask;
         private Matrix2D? _softMaskTransform;
+        private bool _hasInexactDash;
 
         public Parser(
             string content,
@@ -588,6 +590,7 @@ internal static class PdfPageXObjectInvocationParser {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _inexactDashStack.Push(_hasInexactDash);
                     _graphicsEffectStack.Push(_graphicsEffectState);
                     _patternStack.Push(_patternState);
                     _textStack.Push(CaptureTextState());
@@ -595,6 +598,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
+                    _hasInexactDash = _inexactDashStack.Count > 0 && _inexactDashStack.Pop();
                     _graphicsEffectState = _graphicsEffectStack.Count > 0 ? _graphicsEffectStack.Pop() : default;
                     _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
@@ -641,12 +645,13 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[_args.Count - 1] is double dashPhase) {
                         if (PdfPageContentVisualParser.TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
                             _state = _state.WithStrokeDashStyle(exactStyle);
+                            _hasInexactDash = false;
                         } else {
-                            _unsupportedGraphicsEffectVisitor?.Invoke();
                             _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                            _hasInexactDash = true;
                         }
                     } else {
-                        _unsupportedGraphicsEffectVisitor?.Invoke();
+                        _hasInexactDash = true;
                     }
 
                     break;
@@ -746,6 +751,9 @@ internal static class PdfPageXObjectInvocationParser {
                             (channels & PdfType3PaintChannels.Fill) != 0,
                             (channels & PdfType3PaintChannels.Stroke) != 0);
                         if (channels != PdfType3PaintChannels.None) PublishActiveGraphicsEffectUse();
+                        if (_hasInexactDash && (channels & PdfType3PaintChannels.Stroke) != 0) {
+                            _unsupportedGraphicsEffectVisitor?.Invoke();
+                        }
                     }
                     if (!HasHiddenContent() &&
                         !IsCurrentPaintSuppressedBySoftMask() &&
@@ -1059,7 +1067,8 @@ internal static class PdfPageXObjectInvocationParser {
                         bool needsPaintAnalysis =
                             _patternState.FillDeferredVisibleUse ||
                             _patternState.StrokeDeferredVisibleUse ||
-                            _graphicsEffectState.HasEffect;
+                            _graphicsEffectState.HasEffect ||
+                            _hasInexactDash;
                         PdfType3PaintChannels channels = needsPaintAnalysis
                             ? IsCurrentPaintSuppressedBySoftMask()
                                 ? PdfType3PaintChannels.None
@@ -1082,6 +1091,9 @@ internal static class PdfPageXObjectInvocationParser {
                         }
                         if (_graphicsEffectState.HasEffect && channels != PdfType3PaintChannels.None) {
                             PublishActiveGraphicsEffectUse();
+                        }
+                        if (_hasInexactDash && (channels & PdfType3PaintChannels.Stroke) != 0) {
+                            _unsupportedGraphicsEffectVisitor?.Invoke();
                         }
                         _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _patternState.Fill, _patternState.FillBaseColorSpace, _state.FillOpacity, _state.StrokeColor, _state.StrokeColorSpace, _patternState.Stroke, _patternState.StrokeBaseColorSpace, _state.StrokeOpacity, _state.StrokeWidth, _state.StrokeDashStyle, _state.StrokeLineCap, _state.StrokeLineJoin, paintOrder, _currentOperatorIndex));
                     }

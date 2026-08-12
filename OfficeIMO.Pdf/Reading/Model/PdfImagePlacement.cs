@@ -28,6 +28,7 @@ public sealed class PdfImagePlacement {
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
         PdfContentOrderKey? contentOrderKey = null,
+        PdfPagePatternSelection? fillPattern = null,
         PdfDictionary? effectiveResources = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
@@ -50,6 +51,7 @@ public sealed class PdfImagePlacement {
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
         ContentOrderKey = contentOrderKey;
+        FillPattern = fillPattern;
         EffectiveResources = effectiveResources;
     }
 
@@ -109,6 +111,8 @@ public sealed class PdfImagePlacement {
 
     internal PdfContentOrderKey? ContentOrderKey { get; }
 
+    internal PdfPagePatternSelection? FillPattern { get; }
+
     internal PdfDictionary? EffectiveResources { get; }
 
     internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
@@ -122,7 +126,7 @@ public sealed class PdfImagePlacement {
             PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
             A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
             ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
-            PaintOrder, contentOrderKey, EffectiveResources);
+            PaintOrder, contentOrderKey, FillPattern, EffectiveResources);
 
     private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
         new PdfImagePlacement(
@@ -147,6 +151,7 @@ public sealed class PdfImagePlacement {
             InlineImageResources,
             paintOrder,
             ContentOrderKey,
+            FillPattern,
             EffectiveResources);
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>

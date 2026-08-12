@@ -214,16 +214,14 @@ public sealed partial class PdfReadPage {
                     if (pendingPlacements.Count > 0) {
                         for (int imageIndex = 0; imageIndex < pendingPlacements.Count; imageIndex++) {
                             PdfImagePlacement placement = pendingPlacements[imageIndex];
-                            PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? type3.Resources;
-                            IReadOnlyList<PdfExtractedImage> images;
+                            PdfExtractedImage? image;
                             try {
-                                images = GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks: true);
+                                image = GetImageForPlacement(type3.Resources, placement, colorizeImageMasks: true);
                             } catch (IOException exception) when (exception is not PdfReadLimitException) {
                                 return false;
                             } catch (NotSupportedException) {
                                 return false;
                             }
-                            PdfExtractedImage? image = FindImage(images, placement);
                             if (image == null || !IsSupportedType3Image(placement, image, type3.Resources)) return false;
                             extractedImageCache[GetType3ImageCacheKey(placement)] = image;
                         }
@@ -231,6 +229,7 @@ public sealed partial class PdfReadPage {
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfExtractedImage image = extractedImageCache[GetType3ImageCacheKey(localImagePlacements[imageIndex])];
                         if (!IsSupportedType3Image(localImagePlacements[imageIndex], image, type3.Resources) || image.HasUnresolvedTransparencyMask) return false;
+                        if (image.IsImageMask && localImagePlacements[imageIndex].FillPattern.HasValue) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
                         if (!IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight) &&

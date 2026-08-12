@@ -2359,6 +2359,16 @@ public sealed partial class PdfReadPage {
         return null;
     }
 
+    private PdfExtractedImage? GetImageForPlacement(
+        PdfDictionary? fallbackResources,
+        PdfImagePlacement placement,
+        bool colorizeImageMasks) {
+        PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
+        return FindImage(
+            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks),
+            placement);
+    }
+
     private static bool HasPositiveArea(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
         width > 0D &&
         height > 0D &&
