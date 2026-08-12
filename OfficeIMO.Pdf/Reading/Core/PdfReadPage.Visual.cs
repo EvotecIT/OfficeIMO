@@ -426,7 +426,8 @@ public sealed partial class PdfReadPage {
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
-        PdfContentOrderKey? contentOrderPrefix = null) {
+        PdfContentOrderKey? contentOrderPrefix = null,
+        OfficeColor? uncoloredType3PaintColor = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         activeType3Glyphs ??= new HashSet<PdfStream>();
@@ -556,7 +557,8 @@ public sealed partial class PdfReadPage {
                               pageContentBudget,
                               contentNestingDepth,
                               type3ImageVisitor,
-                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex));
+                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex),
+                              uncoloredType3PaintColor);
                           if (!rendered) type3GlyphBudget.RecordFailure();
                           return rendered;
                       },
@@ -679,7 +681,8 @@ public sealed partial class PdfReadPage {
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: invocationOrder);
+                    contentOrderPrefix: invocationOrder,
+                    uncoloredType3PaintColor: uncoloredType3PaintColor);
             } finally {
                 activeForms.Remove(formStream);
             }

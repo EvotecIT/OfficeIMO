@@ -19,7 +19,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         int contentNestingDepth,
         Action<PdfImagePlacement, PdfExtractedImage>? imageVisitor,
-        PdfContentOrderKey? contentOrderPrefix) {
+        PdfContentOrderKey? contentOrderPrefix,
+        OfficeColor? uncoloredPaintColor) {
         if (invocation.Glyphs.Count == 0) return false;
 
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -40,6 +41,9 @@ public sealed partial class PdfReadPage {
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
             PdfPageType3GlyphInvocation glyph = invocation.Glyphs[i];
             PdfType3FontResource type3 = glyph.Font.Type3!;
+            OfficeColor effectiveFillColor = type3.IsUncolored && uncoloredPaintColor.HasValue
+                ? uncoloredPaintColor.Value
+                : glyph.FillColor;
             _ = type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream);
             if (!activeType3Glyphs.Add(glyphStream)) return false;
             try {
@@ -72,7 +76,7 @@ public sealed partial class PdfReadPage {
                         0D,
                         1D,
                         initialClipPath: glyph.ClipPath,
-                        initialFillColor: glyph.FillColor,
+                        initialFillColor: effectiveFillColor,
                         initialFillColorSpace: glyph.FillColorSpace,
                         initialFillOpacity: glyph.FillOpacity,
                         initialStrokeColor: glyph.StrokeColor,
@@ -93,7 +97,8 @@ public sealed partial class PdfReadPage {
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
                         pageContentBudget: pageContentBudget,
-                        contentOrderPrefix: glyphOrderPrefix);
+                        contentOrderPrefix: glyphOrderPrefix,
+                        uncoloredType3PaintColor: type3.IsUncolored ? effectiveFillColor : null);
                 } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
                     return false;
                 }
@@ -102,18 +107,15 @@ public sealed partial class PdfReadPage {
 
                 if (type3.IsUncolored) {
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
-                        localImagePlacements[imageIndex] = localImagePlacements[imageIndex].WithImageMaskColor(glyph.FillColor);
+                        localImagePlacements[imageIndex] = localImagePlacements[imageIndex].WithImageMaskColor(effectiveFillColor);
                     }
                     for (int imageIndex = 0; imageIndex < localImages.Count; imageIndex++) {
                         (PdfImagePlacement Placement, PdfExtractedImage Image) image = localImages[imageIndex];
-                        if (!image.Image.IsImageMask) return false;
-                        PdfImagePlacement placement = image.Placement.WithImageMaskColor(glyph.FillColor);
-                        PdfExtractedImage? recolored = TryExtractType3Image(placement);
-                        if (recolored == null || !recolored.IsImageFile || !recolored.IsImageMask || recolored.HasUnresolvedTransparencyMask) return false;
-                        localImages[imageIndex] = (placement, recolored);
+                        if (!image.Image.IsImageMask || !image.Image.ImageMaskColor.Equals(effectiveFillColor)) return false;
+                        localImages[imageIndex] = (image.Placement.WithImageMaskColor(effectiveFillColor), image.Image);
                     }
                     for (int primitiveIndex = 0; primitiveIndex < localPrimitives.Count; primitiveIndex++) {
-                        localPrimitives[primitiveIndex] = localPrimitives[primitiveIndex].WithPaintColors(glyph.FillColor, glyph.StrokeColor);
+                        localPrimitives[primitiveIndex] = localPrimitives[primitiveIndex].WithPaintColors(effectiveFillColor, glyph.StrokeColor);
                     }
                 }
 

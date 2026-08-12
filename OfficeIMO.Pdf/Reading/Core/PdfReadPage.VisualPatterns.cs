@@ -221,6 +221,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
+        var placements = new List<PdfImagePlacement>();
         var renderedType3PaintOrders = new HashSet<double>();
         CollectVisualPrimitivesAndForms(
             content,
@@ -236,6 +237,7 @@ public sealed partial class PdfReadPage {
             requireSupportedType3Content: requireSupportedType3Content,
             unrenderedPatternVisitor: requireSupportedType3Content ? _ => type3GlyphBudget.RecordFailure() : null,
             type3ImageVisitor: (placement, image) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count)),
+            type3ImagePlacementVisitor: requireSupportedType3Content ? placements.Add : null,
             textOutputBudget: textOutputBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -263,8 +265,9 @@ public sealed partial class PdfReadPage {
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 
-        var placements = new List<PdfImagePlacement>();
-        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
+        if (!requireSupportedType3Content) {
+            CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
+        }
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {

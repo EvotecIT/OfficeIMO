@@ -941,6 +941,26 @@ public class PdfPageImageRendererTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(24, 94));
     }
 
+    [Fact]
+    public void RenderPage_PropagatesOuterColorThroughDeepNestedUncoloredImageMask() {
+        string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /Nested 7 0 R >> >> >>\nendobj";
+        string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 1 0 0 rg BT /Nested 500 Tf (B) Tj ET");
+        string nestedFont = "7 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 8 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << /Font << /Inner 9 0 R >> >> >>\nendobj";
+        string nestedGlyph = BuildStreamObject(8, "<<", "500 0 d0 0 1 0 rg BT /Inner 500 Tf (C) Tj ET");
+        string innerFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /C 10 0 R >> /Encoding << /Differences [67 /C] >> /FirstChar 67 /LastChar 67 /Widths [500] /Resources << /XObject << /Im1 11 0 R >> >> >>\nendobj";
+        string innerGlyph = BuildStreamObject(10, "<<", "500 0 d0 1 0 1 rg q 500 0 0 700 0 0 cm /Im1 Do Q");
+        string imageMask = BuildStreamObject(11, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x");
+        byte[] pdf = BuildSingleStreamPdf("0 0 1 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, nestedFont, nestedGlyph, innerFont, innerGlyph, imageMask);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeDrawingImage image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(new byte[] { 0, 0, 0, 255, 255 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+    }
+
     [Theory]
     [InlineData("/DeviceRGB cs /P1 scn 0 0 500 700 re f")]
     [InlineData("/DeviceRGB CS /P1 SCN 20 w 0 0 500 700 re S")]
@@ -965,6 +985,21 @@ public class PdfPageImageRendererTests {
 
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(24, 94));
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsRasterImageInsideType3TilingPattern() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /Im1 8 0 R >> >>", "q 10 0 0 10 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, pattern, image);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.FromRgb(120, 120, 120), raster.GetPixel(24, 94));
     }
 
     [Theory]
