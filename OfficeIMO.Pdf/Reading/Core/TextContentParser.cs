@@ -580,7 +580,10 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
+        },
+        inlineImageComponentCount: name => ResolveInlineImageComponentCount(colorSpaces, name),
+        maxNestingDepth: maxNestingDepth,
+        maxOperands: maxOperands);
         return spans;
 
         // Helpers
@@ -998,6 +1001,13 @@ internal static class TextContentParser {
     private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
         string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
 
+    private static int ResolveInlineImageComponentCount(
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
+        string colorSpaceName) =>
+        colorSpaces != null && colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)
+            ? colorSpace.ComponentCount
+            : 1;
+
     public static List<FormInvocation> ExtractFormInvocations(
         string content,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
@@ -1020,7 +1030,8 @@ internal static class TextContentParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
-        PdfPaintColorSelection? initialStrokeColorSelection = null) {
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        System.Func<string, int>? inlineImageComponentCount = null) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1339,7 +1350,10 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
+        },
+        inlineImageComponentCount: inlineImageComponentCount ?? (name => ResolveInlineImageComponentCount(colorSpaces, name)),
+        maxNestingDepth: maxNestingDepth,
+        maxOperands: maxOperands);
 
         return invocations;
 
