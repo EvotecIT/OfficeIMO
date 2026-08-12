@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.IO;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Security.Tests;
@@ -104,6 +106,30 @@ public sealed class C2paToolProvenanceVerifierTests {
         } finally {
             File.Delete(assetPath);
         }
+    }
+
+    [Fact]
+    public void ProcessRunnerBoundsInheritedOutputHandlesAfterTheParentExits() {
+        string executable;
+        IReadOnlyList<string> arguments;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            executable = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+            arguments = new[] { "/d", "/c", "start /b ping 127.0.0.1 -n 6" };
+        } else {
+            executable = "/bin/sh";
+            arguments = new[] { "-c", "(sleep 5) & exit 0" };
+        }
+        var request = new C2paToolProcessRequest(
+            executable,
+            arguments,
+            Path.GetTempPath(),
+            TimeSpan.FromMilliseconds(300),
+            1024 * 1024);
+        var timer = Stopwatch.StartNew();
+
+        Assert.Throws<TimeoutException>(() => new C2paToolProcessRunner().Run(request));
+
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Runner blocked for {timer.Elapsed}.");
     }
 
     private static string CreateAsset() {

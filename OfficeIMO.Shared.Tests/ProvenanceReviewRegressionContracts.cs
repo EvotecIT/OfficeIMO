@@ -88,7 +88,42 @@ public sealed class ProvenanceReviewRegressionContracts {
         using var rewritten = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
 
         Assert.Equal(unchecked((int)0x81ED0000), rewritten.GetEntry("bin/run.sh")!.ExternalAttributes);
+        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "bin/run.sh");
+        Assert.Equal(3, result.ToArray()[centralHeader + 5]);
     }
+
+    [Fact]
+    public void VerificationResultSnapshotsMutableFindings() {
+        var findings = new List<string> { "initial" };
+        var result = new OfficeProvenanceVerificationResult(
+            OfficeProvenanceVerificationStatus.Valid, "test", findings);
+
+        findings[0] = "changed";
+        findings.Add("added");
+
+        Assert.Equal(new[] { "initial" }, result.Findings);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void IncompleteExtendedXmpDoesNotAllocateTheDeclaredPacketLength() {
+        const string guid = "0123456789ABCDEF0123456789ABCDEF";
+        byte[] standardPacket = Encoding.UTF8.GetBytes(
+            $"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:xmpNote=\"http://ns.adobe.com/xmp/note/\" xmpNote:HasExtendedXMP=\"{guid}\"/>");
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8 },
+            CreateJpegSegment(0xE1, Join(Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0"), standardPacket)),
+            CreateExtendedXmpSegment(guid, new byte[] { 1 }, 128 * 1024 * 1024),
+            new byte[] { 0xFF, 0xD9 });
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Empty(report.Evidence);
+        Assert.True(allocated < 8L * 1024L * 1024L, $"Inspection allocated {allocated} bytes.");
+    }
+#endif
 
     [Fact]
     public void ZipEmbeddedAssetsShareTheTopLevelCarrierLimit() {
@@ -205,14 +240,28 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     private static byte[] CreateExtendedXmpSegment(string guid, byte[] packet) {
+        return CreateExtendedXmpSegment(guid, packet, packet.Length);
+    }
+
+    private static byte[] CreateExtendedXmpSegment(string guid, byte[] packet, int declaredLength) {
         byte[] header = Encoding.ASCII.GetBytes("http://ns.adobe.com/xmp/extension/\0");
         byte[] payload = new byte[header.Length + 40 + packet.Length];
         Buffer.BlockCopy(header, 0, payload, 0, header.Length);
         Encoding.ASCII.GetBytes(guid, 0, guid.Length, payload, header.Length);
-        WriteBigEndian(payload, header.Length + 32, packet.Length);
+        WriteBigEndian(payload, header.Length + 32, declaredLength);
         WriteBigEndian(payload, header.Length + 36, 0);
         Buffer.BlockCopy(packet, 0, payload, header.Length + 40, packet.Length);
         return CreateJpegSegment(0xE1, payload);
+    }
+
+    private static int FindSignature(byte[] data, uint signature, string entryName) {
+        byte[] name = Encoding.UTF8.GetBytes(entryName);
+        for (int index = 0; index + 46 + name.Length <= data.Length; index++) {
+            if (BitConverter.ToUInt32(data, index) != signature) continue;
+            int nameLength = BitConverter.ToUInt16(data, index + 28);
+            if (nameLength == name.Length && data.AsSpan(index + 46, nameLength).SequenceEqual(name)) return index;
+        }
+        throw new InvalidDataException("ZIP central-directory entry was not found.");
     }
 
     private static byte[] CreateJpegSegment(byte marker, byte[] payload) {

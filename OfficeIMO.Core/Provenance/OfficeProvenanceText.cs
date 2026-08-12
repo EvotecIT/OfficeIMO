@@ -94,6 +94,7 @@ internal static class OfficeProvenanceText {
 
     private static IEnumerable<StructuredBlock> FindStructuredBlocks(byte[] data, long maximumManifestBytes) {
         int search = 0;
+        int pendingEnd = -1;
         while (search < data.Length) {
             int begin = IndexOf(data, BeginDelimiter, search);
             if (begin < 0) yield break;
@@ -102,17 +103,20 @@ internal static class OfficeProvenanceText {
                 continue;
             }
             int contentStart = begin + BeginDelimiter.Length;
-            int end = IndexOf(data, EndDelimiter, contentStart);
+            int end = pendingEnd >= contentStart ? pendingEnd : IndexOf(data, EndDelimiter, contentStart);
             if (end < 0) yield break;
             int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart);
             if (newerBegin >= 0 && newerBegin < end) {
+                pendingEnd = end;
                 search = newerBegin;
                 continue;
             }
             if (!IsStandaloneDelimiter(data, end, EndDelimiter.Length)) {
+                pendingEnd = -1;
                 search = end + EndDelimiter.Length;
                 continue;
             }
+            pendingEnd = -1;
             int contentEnd = end;
             while (contentStart < contentEnd && IsAsciiWhitespace(data[contentStart])) contentStart++;
             while (contentEnd > contentStart && IsAsciiWhitespace(data[contentEnd - 1])) contentEnd--;

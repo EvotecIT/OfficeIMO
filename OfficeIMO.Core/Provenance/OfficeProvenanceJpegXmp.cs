@@ -134,19 +134,19 @@ internal static class OfficeProvenanceJpegXmp {
         uint fullLength = chunks[0].FullLength;
         if (fullLength == 0 || fullLength > maximumBytes || fullLength > int.MaxValue ||
             chunks.Any(item => item.FullLength != fullLength)) return false;
-        packet = new byte[(int)fullLength];
         long cursor = 0;
         foreach (ExtendedChunk chunk in chunks) {
-            if (chunk.Offset != cursor || chunk.Data.LongLength > fullLength - cursor) {
-                packet = Array.Empty<byte>();
-                return false;
-            }
+            if (chunk.Offset != cursor || chunk.Data.LongLength > fullLength - cursor) return false;
+            cursor += chunk.Data.LongLength;
+        }
+        if (cursor != fullLength) return false;
+        packet = new byte[(int)fullLength];
+        cursor = 0;
+        foreach (ExtendedChunk chunk in chunks) {
             Buffer.BlockCopy(chunk.Data, 0, packet, (int)cursor, chunk.Data.Length);
             cursor += chunk.Data.LongLength;
         }
-        if (cursor == fullLength) return true;
-        packet = Array.Empty<byte>();
-        return false;
+        return true;
     }
 
     private static IEnumerable<string> GetExtendedGuids(byte[] packet, OfficeProvenanceOptions options) {

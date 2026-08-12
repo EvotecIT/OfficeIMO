@@ -17,6 +17,7 @@ internal static class OfficeProvenanceZipWriter {
     private const uint Zip64LocatorSignature = 0x07064B50;
     private const ushort Version20 = 20;
     private const ushort Version45 = 45;
+    private const ushort UnixVersion20 = 0x0314;
     private const ushort Utf8FileNameFlag = 0x0800;
     private const ushort StoredMethod = 0;
     private const ushort DeflateMethod = 8;
@@ -128,7 +129,7 @@ internal static class OfficeProvenanceZipWriter {
 
     private static void WriteCentralHeader(BinaryWriter writer, OfficeProvenanceZipRecord record) {
         writer.Write(CentralHeaderSignature);
-        writer.Write(Version20);
+        writer.Write((record.ExternalAttributes & 0xFFFF0000u) != 0 ? UnixVersion20 : Version20);
         writer.Write(Version20);
         writer.Write(Utf8FileNameFlag);
         writer.Write(record.Method);

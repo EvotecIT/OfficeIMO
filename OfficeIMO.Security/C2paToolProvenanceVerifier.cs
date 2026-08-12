@@ -300,7 +300,13 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             }
         }
         try {
-            Task.WaitAll(stdout, stderr);
+            TimeSpan remaining = request.Timeout - timer.Elapsed;
+            if (remaining <= TimeSpan.Zero || !Task.WaitAll(new Task[] { stdout, stderr }, remaining)) {
+                TryKill(process);
+                process.StandardOutput.Dispose();
+                process.StandardError.Dispose();
+                throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
+            }
         } catch (AggregateException exception) {
             throw exception.GetBaseException();
         }

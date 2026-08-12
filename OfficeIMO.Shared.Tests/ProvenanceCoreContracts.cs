@@ -622,6 +622,18 @@ public sealed class ProvenanceCoreContracts {
     }
 
     [Fact]
+    public void StructuredTextResynchronizesAcrossManyStandaloneBeginDelimiters() {
+        string text = string.Concat(Enumerable.Repeat("-----BEGIN C2PA MANIFEST-----\n", 4096)) +
+            "https://example.test/final.c2pa\n-----END C2PA MANIFEST-----\n";
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(text), "fixture.txt");
+
+        OfficeProvenanceEvidence evidence = Assert.Single(report.Evidence);
+        Assert.True(evidence.IsStructurallyValid);
+        Assert.Equal("https://example.test/final.c2pa", evidence.Value);
+    }
+
+    [Fact]
     public void UnstructuredTextRemovesOnlyACompleteC2paVariationSelectorWrapper() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
         byte[] normalVariationSelector = Encoding.UTF8.GetBytes("text️ stays ");

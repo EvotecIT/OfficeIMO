@@ -273,7 +273,7 @@ public sealed class OfficeProvenanceVerificationResult {
         string? rawReport = null) {
         Status = status;
         ProviderName = providerName ?? throw new ArgumentNullException(nameof(providerName));
-        Findings = findings ?? throw new ArgumentNullException(nameof(findings));
+        Findings = new List<string>(findings ?? throw new ArgumentNullException(nameof(findings))).AsReadOnly();
         RawReport = rawReport;
     }
     /// <summary>Gets the combined verification outcome.</summary>
