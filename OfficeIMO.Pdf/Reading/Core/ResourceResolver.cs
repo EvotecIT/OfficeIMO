@@ -972,7 +972,9 @@ internal static partial class ResourceResolver {
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
         if (dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
-            var resolvedSoftMask = ResolveObject(softMaskObj, objects);
+            if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObj, out PdfObject? resolvedSoftMask)) {
+                return "soft-mask";
+            }
             if (resolvedSoftMask is PdfNull ||
                 resolvedSoftMask is PdfName softMaskName &&
                 string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal)) {
@@ -986,7 +988,9 @@ internal static partial class ResourceResolver {
             return null;
         }
 
-        var resolvedMask = ResolveObject(maskObj, objects);
+        if (!PdfObjectLookup.TryResolveReferenceChain(objects, maskObj, out PdfObject? resolvedMask)) {
+            return "mask";
+        }
         if (resolvedMask is PdfNull) {
             return null;
         }
@@ -1628,8 +1632,9 @@ internal static partial class ResourceResolver {
     }
 
     private static PdfStream? ResolveStream(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        var resolved = ResolveObject(obj, objects);
-        return resolved as PdfStream;
+        return PdfObjectLookup.TryResolveReferenceChain(objects, obj, out PdfObject? resolved)
+            ? resolved as PdfStream
+            : null;
     }
 
 }
