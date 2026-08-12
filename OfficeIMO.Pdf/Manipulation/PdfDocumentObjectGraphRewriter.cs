@@ -76,7 +76,8 @@ internal static class PdfDocumentObjectGraphRewriter {
             int sourceObjectNumber = reachableObjectNumbers[i];
             if (maximumOutputBytes.HasValue) {
                 long remaining = maximumOutputBytes.Value - serializedObjectBytes;
-                PdfPageExtractor.EnsureSerializedObjectWithinLimit(objects[sourceObjectNumber].Value, context, remaining);
+                PdfPageExtractor.EnsureSerializedIndirectObjectWithinLimit(
+                    objects[sourceObjectNumber].Value, context, i + 1, remaining);
             }
             byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
             ThrowIfOutputLimitExceeded(body.LongLength, maximumOutputBytes);

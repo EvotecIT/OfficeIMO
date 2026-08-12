@@ -149,9 +149,11 @@ public static class PdfProvenance {
         var collector = new PdfPageExtractor.ObjectCollector(document.Objects);
         collector.CollectObjectGraph(new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation));
         var reachableObjectNumbers = new HashSet<int>(collector.ObjectIds);
+        HashSet<PdfObject> structuralAssociationSites = CollectEmbeddedFileStructuralDictionaries(
+            document.Objects, reachableObjectNumbers);
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
-            CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited);
+            CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited, structuralAssociationSites);
         }
         CollectPageAnnotationReferences(document.Objects, catalog, secondaryDocumentReferences);
         return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences);
@@ -165,26 +167,33 @@ public static class PdfProvenance {
         PdfObject value,
         PdfDictionary catalog,
         HashSet<int> objectLevel,
-        HashSet<PdfObject> visited) {
+        HashSet<PdfObject> visited,
+        HashSet<PdfObject> structuralAssociationSites) {
         if (!visited.Add(value)) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
         if (dictionary != null) {
-            if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(value, dictionary)) {
+            if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(value, dictionary, structuralAssociationSites)) {
                 AddReferencesFromArray(objects, dictionary.Items.TryGetValue("AF", out PdfObject? associated) ? associated : null, objectLevel);
             }
             foreach (PdfObject child in dictionary.Items.Values) {
-                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, visited);
+                if (child is not PdfReference) CollectObjectAssociations(
+                    objects, child, catalog, objectLevel, visited, structuralAssociationSites);
             }
             return;
         }
         if (value is PdfArray array) {
             foreach (PdfObject child in array.Items) {
-                if (child is not PdfReference) CollectObjectAssociations(objects, child, catalog, objectLevel, visited);
+                if (child is not PdfReference) CollectObjectAssociations(
+                    objects, child, catalog, objectLevel, visited, structuralAssociationSites);
             }
         }
     }
 
-    private static bool IsInformationResource(PdfObject owner, PdfDictionary dictionary) {
+    private static bool IsInformationResource(
+        PdfObject owner,
+        PdfDictionary dictionary,
+        HashSet<PdfObject> structuralAssociationSites) {
+        if (structuralAssociationSites.Contains(dictionary)) return false;
         string? type = dictionary.Get<PdfName>("Type")?.Name;
         string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
         if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "EmbeddedFile" or "XRef" or "ObjStm") return false;
@@ -194,6 +203,21 @@ public static class PdfProvenance {
             (dictionary.Items.ContainsKey("F") || dictionary.Items.ContainsKey("UF"))) return false;
         if (owner is PdfStream) return true;
         return string.Equals(type, "StructElem", StringComparison.Ordinal) || type == null;
+    }
+
+    private static HashSet<PdfObject> CollectEmbeddedFileStructuralDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> reachableObjectNumbers) {
+        var result = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
+            PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
+            if (dictionary?.Get<PdfName>("Type")?.Name != "EmbeddedFile") continue;
+            PdfObject? parameters = PdfObjectLookup.Resolve(
+                objects,
+                dictionary.Items.TryGetValue("Params", out PdfObject? value) ? value : null);
+            if (parameters is PdfDictionary) result.Add(parameters);
+        }
+        return result;
     }
 
     private static void CollectPageAnnotationReferences(

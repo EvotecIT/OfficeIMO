@@ -579,6 +579,54 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void GraphRewritePreflightUsesExactSerializedSizesForSmallNumbers() {
+        var values = new PdfArray();
+        for (int index = 0; index < 4096; index++) values.Items.Add(new PdfNumber(0));
+        var context = new PdfPageExtractor.SerializationContext(
+            new Dictionary<int, int>(),
+            0,
+            new Dictionary<int, Dictionary<string, PdfObject>>());
+        byte[] serialized = PdfPageExtractor.SerializeObject(values, context);
+
+        PdfPageExtractor.EnsureSerializedObjectWithinLimit(values, context, serialized.LongLength);
+        PdfPageExtractor.EnsureSerializedIndirectObjectWithinLimit(
+            values, context, 1, serialized.LongLength + 15L);
+
+        Assert.Throws<InvalidDataException>(() =>
+            PdfPageExtractor.EnsureSerializedObjectWithinLimit(values, context, serialized.LongLength - 1L));
+    }
+
+    [Fact]
+    public void EmbeddedFileParameterDictionariesAreNotInformationResourceAssociationSites() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] parametersAssociation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, fileSpecification.Items["EF"]));
+            PdfReference embeddedFileReference = Assert.IsType<PdfReference>(
+                embeddedFiles.Items.TryGetValue("UF", out PdfObject? unicodeFile) ? unicodeFile : embeddedFiles.Items["F"]);
+            PdfStream embeddedFile = Assert.IsType<PdfStream>(objects[embeddedFileReference.ObjectNumber].Value);
+            var parameters = new PdfDictionary();
+            var associations = new PdfArray();
+            associations.Items.Add(candidate);
+            parameters.Items["AF"] = associations;
+            int parameterObjectNumber = objects.Keys.Max() + 1;
+            objects[parameterObjectNumber] = new PdfIndirectObject(parameterObjectNumber, 0, parameters);
+            embeddedFile.Dictionary.Items["Params"] = new PdfReference(parameterObjectNumber, 0);
+            catalog.Items.Remove("AF");
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(parametersAssociation);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(parametersAssociation);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void RemovalPreservesDirectFileSpecificationsInTheEmbeddedFilesNameTree() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] directFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
