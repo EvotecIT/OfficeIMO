@@ -158,7 +158,7 @@ public class PdfTextEditorTests {
             .OrderBy(static span => span.X)
             .Select(static span => span.Text));
 
-        Assert.Equal(decodedSource.Replace("cat", "longer-fox", StringComparison.Ordinal), rewritten);
+        Assert.Equal(decodedSource.Replace("cat", "longer-fox"), rewritten);
         Assert.Equal(2, result.AffectedCount);
     }
 
@@ -278,7 +278,7 @@ public class PdfTextEditorTests {
         PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("alpha beta", "a much wider replacement", new PdfTextSearchOptions { MatchCase = true });
         PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("a much wider replacement", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
-        string syntax = System.Text.Encoding.Latin1.GetString(result.Document.ToBytes());
+        string syntax = System.Text.Encoding.GetEncoding(28591).GetString(result.Document.ToBytes());
 
         Assert.True(tail.X >= replacement.X + replacement.Width - 1D);
         Assert.Contains("/OIMOEditF1", syntax, StringComparison.Ordinal);
