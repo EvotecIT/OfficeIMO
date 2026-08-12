@@ -3,6 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageClipPath {
+    internal const int MaximumPendingTextClippingPaths = 4096;
+
     private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands) {
         X = x;
         Y = y;
@@ -48,12 +50,13 @@ internal readonly struct PdfPageClipPath {
     public static bool TryCombineTextClippingPaths(IReadOnlyList<PdfPageClipPath> paths, out PdfPageClipPath clipPath) {
         clipPath = default;
         if (paths.Count == 0) return false;
+        ThrowIfTextClippingPathBudgetExceeded(paths.Count - 1);
         if (paths.Count == 1) {
             clipPath = paths[0];
             return true;
         }
 
-        var commands = new List<OfficePathCommand>();
+        var commands = new List<OfficePathCommand>(checked(paths.Count * 5));
         for (int i = 0; i < paths.Count; i++) {
             PdfPageClipPath path = paths[i];
             if (!path.IsRectangle) {
@@ -71,6 +74,15 @@ internal readonly struct PdfPageClipPath {
         }
 
         return TryCreatePath(commands, OfficeFillRule.NonZero, out clipPath);
+    }
+
+    internal static void ThrowIfTextClippingPathBudgetExceeded(int currentCount) {
+        if (currentCount >= MaximumPendingTextClippingPaths) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.TextClippingPaths,
+                MaximumPendingTextClippingPaths,
+                (long)currentCount + 1L);
+        }
     }
 
     private static bool IntersectClipBounds(PdfPageClipPath first, PdfPageClipPath second, out PdfPageClipPath intersection) {

@@ -393,6 +393,7 @@ internal static class PdfPageXObjectInvocationParser {
             var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(_pendingTextClipPaths.Count);
                 _pendingTextClipPaths.Add(textClipPath);
             }
         }

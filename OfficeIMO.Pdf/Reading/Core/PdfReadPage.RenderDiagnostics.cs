@@ -185,7 +185,7 @@ public sealed partial class PdfReadPage {
                                          pageContentBudget,
                                          type3GlyphBudget,
                                          activeStreams,
-                                         depth)) {
+                                         depth + 1)) {
                                      supported = false;
                                  }
                              }

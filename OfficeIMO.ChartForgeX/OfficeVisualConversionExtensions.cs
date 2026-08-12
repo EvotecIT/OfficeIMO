@@ -170,10 +170,7 @@ public static class OfficeVisualConversionExtensions {
         byte[] svgBytes,
         bool imported,
         OfficeSvgDrawingReaderOptions configuredOptions) {
-        if (imported ||
-            configuredOptions.MaximumElements == OfficeSvgDrawingReaderOptions.MaximumAllowedElements &&
-            configuredOptions.MaximumViewportDimension == OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension &&
-            configuredOptions.MaximumViewportPixels == OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) {
+        if (imported) {
             return;
         }
 
@@ -182,9 +179,11 @@ public static class OfficeVisualConversionExtensions {
             MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension,
             MaximumViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels
         };
-        if (OfficeSvgDrawingReader.TryRead(svgBytes, hardLimits, out _)) {
-            throw new InvalidOperationException("SVG content exceeds the configured import limits. Increase the matching limit only for trusted input.");
+        if (!OfficeSvgDrawingReader.TryRead(svgBytes, hardLimits, out _)) {
+            throw new InvalidOperationException("SVG content is invalid or exceeds the hard import safety limits and cannot be rasterized.");
         }
+
+        throw new InvalidOperationException("SVG content exceeds the configured import limits. Increase the matching limit only for trusted input.");
     }
 
     private static byte[] RasterizeRenderedSvg(byte[] svgBytes, OfficeVisualConversionOptions options) =>

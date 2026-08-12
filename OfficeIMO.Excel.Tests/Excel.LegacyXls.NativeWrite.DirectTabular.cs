@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using System.Data;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -68,6 +70,25 @@ namespace OfficeIMO.Tests {
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetDateTime(0));
             Assert.False(reader.Read());
+        }
+
+        [Fact]
+        public void LegacyXls_DirectTabularSave_DoesNotBypassUnsupportedPackagePartPreflight() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            sheet.CellValue(2, 1, 42);
+            CustomXmlPart customXmlPart = document._spreadSheetDocument.WorkbookPart!
+                .AddCustomXmlPart(CustomXmlPartType.CustomXml);
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata />"))) {
+                customXmlPart.FeedData(stream);
+            }
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(
+                () => document.ToBytes(ExcelFileFormat.Xls));
+
+            Assert.Contains("custom XML parts", exception.Message, StringComparison.Ordinal);
+            Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
         }
 
         [Fact]

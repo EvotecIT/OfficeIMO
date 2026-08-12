@@ -18,6 +18,12 @@ public sealed class CsvWriteParallelOptions
     /// </summary>
     public int BatchSize { get; set; } = 4096;
 
+    /// <summary>
+    /// Gets or sets the maximum number of field slots retained in each row batch.
+    /// The writer retains at most two batches. Default is 1,048,576 field slots per batch.
+    /// </summary>
+    public int MaximumBufferedCellsPerBatch { get; set; } = 1_048_576;
+
     internal int GetDegreeOfParallelism()
     {
         if (MaxDegreeOfParallelism is int configured && configured <= 0)
@@ -38,5 +44,27 @@ public sealed class CsvWriteParallelOptions
         }
 
         return BatchSize;
+    }
+
+    internal int GetBatchSize(int fieldCount)
+    {
+        int requestedBatchSize = GetBatchSize();
+        if (MaximumBufferedCellsPerBatch <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(MaximumBufferedCellsPerBatch),
+                "MaximumBufferedCellsPerBatch must be greater than zero.");
+        }
+        if (fieldCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(fieldCount), "Field count must be greater than zero.");
+        }
+        if (fieldCount > MaximumBufferedCellsPerBatch)
+        {
+            throw new InvalidOperationException(
+                $"Data reader exposes {fieldCount} fields, exceeding the configured per-batch cell budget of {MaximumBufferedCellsPerBatch}.");
+        }
+
+        return Math.Min(requestedBatchSize, MaximumBufferedCellsPerBatch / fieldCount);
     }
 }

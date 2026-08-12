@@ -503,7 +503,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_DoesNotChargeFormDepthForType3CharProc() {
+    public void RenderPage_ChargesType3CharProcAgainstContentNestingBudget() {
         string form = BuildStreamObject(5, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << /Font << /FType3 6 0 R >> >>", "BT /FType3 18 Tf 20 100 Td (A) Tj ET");
         string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
@@ -512,9 +512,28 @@ public class PdfPageImageRendererTests {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         });
 
-        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].ToDrawing());
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
-        Assert.Equal(OfficeColor.Black, raster.GetPixel(24, 94));
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsPendingTextClippingPaths() {
+        string textShows = string.Concat(Enumerable.Repeat(
+            "(A) Tj ",
+            PdfPageClipPath.MaximumPendingTextClippingPaths + 1));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 4 Tr " + textShows + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
     }
 
     [Fact]

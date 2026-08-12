@@ -151,6 +151,43 @@ public class CsvParallelWriteTests
                 new CsvWriteParallelOptions { MaxDegreeOfParallelism = 3, BatchSize = 2 }));
     }
 
+    [Fact]
+    public void WriteDataReaderParallel_BoundsBatchRowsByReaderWidth()
+    {
+        var options = new CsvWriteParallelOptions
+        {
+            BatchSize = 4096,
+            MaximumBufferedCellsPerBatch = 200
+        };
+
+        Assert.Equal(2, options.GetBatchSize(fieldCount: 100));
+    }
+
+    [Fact]
+    public void WriteDataReaderParallel_RejectsSchemasWiderThanTheCellBudgetBeforeReading()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "A", "B", "C" },
+            [new object?[] { 1, 2, 3 }]);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            CsvDocument.WriteDataReaderParallel(
+                writer,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                new CsvWriteParallelOptions
+                {
+                    MaxDegreeOfParallelism = 2,
+                    BatchSize = 4096,
+                    MaximumBufferedCellsPerBatch = 2
+                }));
+
+        Assert.Contains("per-batch cell budget", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, reader.GetValueCallCount);
+        Assert.Equal(string.Empty, writer.ToString());
+    }
+
     [Theory]
     [InlineData(0, 4)]
     [InlineData(-1, 4)]

@@ -141,6 +141,23 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRejectsPayloadsBeyondTheHardViewportLimitBeforeRasterFallback() {
+        double oversizedDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension + 1D;
+        string oversizedViewport = FormattableString.Invariant(
+            $"<svg xmlns='http://www.w3.org/2000/svg' width='{oversizedDimension}' height='1' viewBox='0 0 {oversizedDimension} 1'><rect width='{oversizedDimension}' height='1' fill='#2563eb'/></svg>");
+        var options = new OfficeVisualConversionOptions {
+            MaximumSvgElements = OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
+            MaximumSvgViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension,
+            MaximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => new OfficeVisualSource(oversizedViewport).ToOfficeVisual(options));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlacementCreatesReadableWordExcelPowerPointAndPdfPackages() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

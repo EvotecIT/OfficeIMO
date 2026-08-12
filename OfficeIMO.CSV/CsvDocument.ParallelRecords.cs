@@ -100,13 +100,13 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<char> GetSpan(int ordinal) => _batch is not null
         ? _batch.GetSpan(ordinal)
-        : _reader!.GetCurrentSourceString(ordinal).AsSpan();
+        : _reader!.GetString(ordinal).AsSpan();
 
     /// <summary>Materializes a field as a string.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetString(int ordinal) => _batch is not null
         ? _batch.MaterializeString(ordinal)
-        : _reader!.GetCurrentSourceString(ordinal);
+        : _reader!.GetString(ordinal);
 
     /// <summary>Returns whether the source row omitted the field at the specified ordinal.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

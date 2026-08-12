@@ -714,6 +714,7 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(pendingTextClipPaths.Count);
                 pendingTextClipPaths.Add(textClipPath);
             }
         }

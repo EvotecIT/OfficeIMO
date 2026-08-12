@@ -18,6 +18,9 @@ namespace OfficeIMO.Data;
 
 internal sealed class AutomaticRowMappingPlan<
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> where T : new() {
+    internal const int MaximumCachedHeaderCount = 256;
+    internal const int MaximumCachedHeaderCharacters = 16 * 1024;
+
     private readonly MappingBinding[] _bindings;
     private readonly Func<DbDataReader, T>? _fastReaderMap;
     private static CacheEntry? _cachedPlan;
@@ -67,10 +70,24 @@ internal sealed class AutomaticRowMappingPlan<
             throw new DataMappingException($"No columns match writable properties on {typeof(T).Name}.");
         }
         var plan = new AutomaticRowMappingPlan<T>(bindings, CreateFastReaderMap(bindings));
-        System.Threading.Volatile.Write(
-            ref _cachedPlan,
-            new CacheEntry(headers.ToArray(), requireAllColumnsMapped, plan));
+        if (IsHeaderShapeCacheable(headers)) {
+            System.Threading.Volatile.Write(
+                ref _cachedPlan,
+                new CacheEntry(headers.ToArray(), requireAllColumnsMapped, plan));
+        }
         return plan;
+    }
+
+    internal static bool IsHeaderShapeCacheable(IReadOnlyList<string> headers) {
+        if (headers.Count > MaximumCachedHeaderCount) return false;
+
+        int remainingCharacters = MaximumCachedHeaderCharacters;
+        for (int index = 0; index < headers.Count; index++) {
+            string header = headers[index];
+            if (header.Length > remainingCharacters) return false;
+            remainingCharacters -= header.Length;
+        }
+        return true;
     }
 
     internal T MapRow(

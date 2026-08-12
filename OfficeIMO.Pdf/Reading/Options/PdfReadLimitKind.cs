@@ -105,5 +105,8 @@ public enum PdfReadLimitKind {
     JavaScriptBytes = 33,
 
     /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
-    Type3GlyphInvocations = 34
+    Type3GlyphInvocations = 34,
+
+    /// <summary>Text clipping paths retained while parsing one text object.</summary>
+    TextClippingPaths = 35
 }
