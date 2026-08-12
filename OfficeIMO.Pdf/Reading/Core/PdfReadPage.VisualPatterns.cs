@@ -272,6 +272,10 @@ public sealed partial class PdfReadPage {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
+                if (requireSupportedType3Content && (image == null || !image.IsImageFile || image.HasUnresolvedTransparencyMask)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
             }
         }
