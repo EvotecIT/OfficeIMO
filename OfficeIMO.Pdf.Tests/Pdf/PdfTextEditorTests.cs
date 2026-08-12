@@ -242,8 +242,8 @@ public class PdfTextEditorTests {
     [Fact]
     public void MovePreservesIndependentSpanStyleAndPlacement() {
         byte[] source = BuildRawTextPdf(
-            "BT /F1 12 Tf 1 0 0 rg 50 700 Td (red) Tj ET\n" +
-            "BT /F2 18 Tf 0 0 1 rg 90 700 Td (blue) Tj ET\n");
+            "1 0 0 rg BT /F1 12 Tf 50 700 Td (red) Tj ET\n" +
+            "0 0 1 rg BT /F2 18 Tf 90 700 Td (blue) Tj ET\n");
         var region = new PdfPageRegion(1, 45D, 680D, 140D, 45D);
 
         PdfTextEditResult result = PdfDocument.Open(source).Text.Move(region, 40D, -30D);
@@ -453,7 +453,7 @@ public class PdfTextEditorTests {
     [Fact]
     public void ReplaceAllAppliesOverridesOnlyToReplacementFragments() {
         byte[] source = BuildRawTextPdf(
-            "BT /F1 12 Tf 1 0 0 rg 50 700 Td (cat tail) Tj ET\n");
+            "1 0 0 rg BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
 
         PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
             "cat",
@@ -576,6 +576,41 @@ public class PdfTextEditorTests {
             "/Shading << /Sh1 7 0 R >>",
             "7 0 obj\n<< /ShadingType 4 /ColorSpace /DeviceRGB >>\nendobj\n");
         var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsTextWhosePatternPaintCannotBeRestamped() {
+        byte[] source = BuildRawTextPdf(
+            "/PCS cs /P1 scn BT /F1 12 Tf 50 700 Td (pattern text) Tj ET\n",
+            "/ColorSpace << /PCS /Pattern >> /Pattern << /P1 7 0 R >>",
+            "7 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 8 8] /XStep 8 /YStep 8 /Resources << >> /Length 0 >>\nstream\nendstream\nendobj\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("pattern text", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Theory]
+    [InlineData("/Span << /MCID 0 >> BDC", "EMC")]
+    [InlineData("/OC /Layer BDC", "EMC")]
+    public void MutationRejectsTextBoundToTaggedOrOptionalContent(string beginMarkedContent, string endMarkedContent) {
+        byte[] source = BuildRawTextPdf(
+            beginMarkedContent + " BT /F1 12 Tf 50 700 Td (structured text) Tj ET " + endMarkedContent + "\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("structured text", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void MutationRejectsTextObjectsThatEstablishPersistentGraphicsState() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 1 0 0 rg 50 700 Td (stateful text) Tj ET\n" +
+            "0 0 40 40 re f\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("stateful text", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
         Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
     }
