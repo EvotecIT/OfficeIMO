@@ -636,6 +636,40 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void RemovalDeletesFileAttachmentAnnotationsFromUntypedPageLeaves() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        int annotationNumber = 0;
+        byte[] untypedPage = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values.Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            page.Items.Remove("Type");
+            annotationNumber = objects.Keys.Max() + 1;
+            var attachment = new PdfDictionary();
+            attachment.Items["Type"] = new PdfName("Annot");
+            attachment.Items["Subtype"] = new PdfName("FileAttachment");
+            attachment.Items["FS"] = candidate;
+            objects[annotationNumber] = new PdfIndirectObject(annotationNumber, 0, attachment);
+            var annotations = new PdfArray();
+            annotations.Items.Add(new PdfReference(annotationNumber, 0));
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(untypedPage);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+
+        Assert.True(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.DoesNotContain(annotationNumber, parsed.Map.Keys);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(parsed.Map.Values.Select(item => item.Value)
+            .First(value => value is PdfDictionary dictionary && dictionary.Items.ContainsKey("MediaBox")));
+        Assert.False(page.Items.TryGetValue("Annots", out PdfObject? annotationsValue) &&
+            PdfObjectLookup.Resolve(parsed.Map, annotationsValue) is PdfArray annotations && annotations.Items.Count != 0);
+    }
+
+    [Fact]
     public void RemovalMapsDuplicateCarrierDescriptorsToDistinctAttachmentIndices() {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
 

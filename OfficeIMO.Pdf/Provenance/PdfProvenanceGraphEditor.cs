@@ -120,13 +120,15 @@ internal static class PdfProvenanceGraphEditor {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, current);
             if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
             string? type = dictionary.Get<PdfName>("Type")?.Name;
-            if (type == "Pages") {
-                if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
+            PdfArray? kids = PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) as PdfArray;
+            if (type == "Pages" || kids != null) {
+                if (kids != null) {
                     foreach (PdfObject child in kids.Items) pending.Push(child);
                 }
                 continue;
             }
-            if (type != "Page" || PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray pageAnnotations) continue;
+            if ((type != null && type != "Page") ||
+                PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray pageAnnotations) continue;
             foreach (PdfObject annotationValue in pageAnnotations.Items) {
                 PdfObject? annotation = PdfObjectLookup.Resolve(objects, annotationValue);
                 CollectFileAttachmentAnnotation(objects, annotation, targets, annotations);
