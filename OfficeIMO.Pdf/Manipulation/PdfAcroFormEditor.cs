@@ -24,12 +24,18 @@ internal static partial class PdfAcroFormEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
 
-        if (refillValues.Count > 0) output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues));
-        if (flattenNames.Count > 0) output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames);
-
         PdfReadOptions savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        if (refillValues.Count > 0) {
+            output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), readOptions: savedReadOptions);
+            savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        }
+        if (flattenNames.Count > 0) {
+            output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames, readOptions: savedReadOptions);
+            savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        }
+
         PdfDocumentInfo saved = PdfInspector.Inspect(output, savedReadOptions);
-        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(output);
+        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(output, savedReadOptions);
         ValidateReadback(saved, calculationOrder, session.Commands);
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = source.ReadOptions,

@@ -36,8 +36,8 @@ internal static partial class PdfFormFiller {
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
         FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null) {
-        return FillFieldsCore(pdf, fieldValues, options, readOptions: null, requireMutationPlan: false);
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false);
     }
 
     private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
@@ -341,8 +341,8 @@ internal static partial class PdfFormFiller {
     internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
         FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: false);
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false);
     }
 
     private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {

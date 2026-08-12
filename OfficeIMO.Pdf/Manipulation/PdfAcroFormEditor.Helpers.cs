@@ -45,9 +45,9 @@ internal static partial class PdfAcroFormEditor {
         return match;
     }
 
-    private static IReadOnlyList<string> ReadCalculationOrder(byte[] pdf) {
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf).Map;
+    private static IReadOnlyList<string> ReadCalculationOrder(byte[] pdf, PdfReadOptions? readOptions) {
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         PdfDictionary catalog = RequireCatalog(objects, security);
         if (!catalog.Items.TryGetValue("AcroForm", out PdfObject? acroFormObject) || ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
             !acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsObject) || ResolveArray(objects, fieldsObject) is not PdfArray fields ||
