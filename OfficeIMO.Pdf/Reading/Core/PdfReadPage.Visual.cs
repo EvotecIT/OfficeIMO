@@ -718,6 +718,9 @@ public sealed partial class PdfReadPage {
             (pattern.Items.TryGetValue("Matrix", out PdfObject? matrixObject) && !TryReadStrictPatternMatrix(matrixObject, out _)) ||
             !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
             ResolveDictionary(shadingObject) is not PdfDictionary shading ||
+            (shading.Items.TryGetValue("BBox", out PdfObject? boundingBoxObject) && ResolveObject(boundingBoxObject) is not null and not PdfNull) ||
+            !shading.Items.TryGetValue("Function", out PdfObject? functionObject) ||
+            !IsSupportedType3ShadingFunction(functionObject) ||
             !shading.Items.TryGetValue("Extend", out PdfObject? extendObject) ||
             ResolveArray(extendObject) is not PdfArray { Items.Count: 2 } extend) {
             return false;
@@ -725,6 +728,27 @@ public sealed partial class PdfReadPage {
 
         return ResolveObject(extend.Items[0]) is PdfBoolean { Value: true } &&
             ResolveObject(extend.Items[1]) is PdfBoolean { Value: true };
+    }
+
+    private bool IsSupportedType3ShadingFunction(PdfObject? value) {
+        PdfObject? resolved = ResolveObject(value);
+        if (resolved is PdfArray array) {
+            return array.Items.Count == 1 && IsSupportedType3ShadingFunction(array.Items[0]);
+        }
+        if (resolved is not PdfDictionary function) return false;
+        int? type = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
+        if (type == 2) {
+            return function.Items.TryGetValue("N", out PdfObject? exponentObject) &&
+                ResolveObject(exponentObject) is PdfNumber { Value: 1D };
+        }
+        if (type != 3 ||
+            !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
+            ResolveArray(functionsObject) is not PdfArray functions ||
+            functions.Items.Count < 2 || functions.Items.Count > 32) return false;
+        for (int index = 0; index < functions.Items.Count; index++) {
+            if (!IsSupportedType3ShadingFunction(functions.Items[index])) return false;
+        }
+        return true;
     }
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(PdfDictionary? resources) {

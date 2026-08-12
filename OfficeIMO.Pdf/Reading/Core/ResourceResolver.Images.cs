@@ -50,6 +50,10 @@ internal static partial class ResourceResolver {
             return false;
         }
 
+        if (!HasPassThroughDctDecodeParameters(image, objects)) {
+            return false;
+        }
+
         if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
             ResolveObject(decodeObject, objects) is null or PdfNull) {
             return true;
@@ -67,6 +71,22 @@ internal static partial class ResourceResolver {
         }
 
         return true;
+    }
+
+    private static bool HasPassThroughDctDecodeParameters(
+        PdfDictionary image,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (!image.Items.TryGetValue("DecodeParms", out PdfObject? value)) return true;
+        PdfObject? resolved = ResolveObject(value, objects);
+        if (resolved is null or PdfNull) return true;
+        if (resolved is PdfArray array) {
+            if (array.Items.Count != 1) return false;
+            resolved = ResolveObject(array.Items[0], objects);
+            if (resolved is null or PdfNull) return true;
+        }
+        if (resolved is not PdfDictionary parameters) return false;
+        return !parameters.Items.TryGetValue("ColorTransform", out PdfObject? colorTransform) ||
+            ResolveObject(colorTransform, objects) is null or PdfNull;
     }
 
     private static bool TryBuildExtractedImageMaskPng(
