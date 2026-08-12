@@ -22,7 +22,8 @@ public static class PdfProvenance {
             document,
             IsCandidate,
             Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)),
-            options.MaxManifestBytes);
+            options.MaxManifestBytes,
+            options.MaxCarriers);
         PdfC2paAssociationProfile associations = CollectAssociationProfile(document);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
@@ -72,7 +73,8 @@ public static class PdfProvenance {
             document,
             IsCandidate,
             Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)),
-            options.Limits.MaxManifestBytes);
+            options.Limits.MaxManifestBytes,
+            options.Limits.MaxCarriers);
         var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
@@ -188,7 +190,10 @@ public static class PdfProvenance {
 
     private static bool IsInformationResource(PdfObject owner, PdfDictionary dictionary) {
         string? type = dictionary.Get<PdfName>("Type")?.Name;
+        string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
         if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "XRef" or "ObjStm") return false;
+        if (subtype is "FileAttachment" or "Popup" ||
+            subtype != null && dictionary.Items.ContainsKey("Rect")) return false;
         if (dictionary.Items.ContainsKey("EF") &&
             (dictionary.Items.ContainsKey("F") || dictionary.Items.ContainsKey("UF"))) return false;
         if (owner is PdfStream) return true;
@@ -222,7 +227,8 @@ public static class PdfProvenance {
         if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return;
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
             for (int index = 1; index < names.Items.Count; index += 2) {
-                if (names.Items[index] is PdfReference reference) result.Add(reference.ObjectNumber);
+                if (PdfObjectLookup.Resolve(objects, names.Items[index - 1]) is PdfStringObj &&
+                    names.Items[index] is PdfReference reference) result.Add(reference.ObjectNumber);
             }
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) return;

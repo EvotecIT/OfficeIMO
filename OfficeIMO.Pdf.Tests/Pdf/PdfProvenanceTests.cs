@@ -174,6 +174,52 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void UntypedFileAttachmentAnnotationDoesNotBecomeAnInformationResource() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] annotationAssociated = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            catalog.Items.Remove("AF");
+            var annotationAssociations = new PdfArray();
+            annotationAssociations.Items.Add(candidate);
+            var annotation = new PdfDictionary();
+            annotation.Items["Subtype"] = new PdfName("FileAttachment");
+            annotation.Items["FS"] = candidate;
+            annotation.Items["AF"] = annotationAssociations;
+            int annotationNumber = objects.Keys.Max() + 1;
+            objects[annotationNumber] = new PdfIndirectObject(annotationNumber, 0, annotation);
+            catalog.Items["ProvenanceAnnotation"] = new PdfReference(annotationNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(annotationAssociated);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void MalformedEmbeddedFilesNameTreeKeyDoesNotValidateCatalogAssociation() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] malformedNameTree = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            for (int index = 0; index + 1 < entries.Items.Count; index += 2) {
+                if (entries.Items[index + 1] is not PdfReference reference ||
+                    GetFileSpecName(objects, reference) != "content-credential.c2pa") continue;
+                entries.Items[index] = new PdfName("MalformedNameTreeKey");
+            }
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(malformedNameTree);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
     public void CatalogReachabilityHandlesDeepIndirectChainsIteratively() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -310,6 +356,48 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void RemovalDeletesPopupsLinkedToRemovedFileAttachmentAnnotations() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        int attachmentNumber = 0;
+        int popupNumber = 0;
+        byte[] withPopup = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values.Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            attachmentNumber = objects.Keys.Max() + 1;
+            popupNumber = attachmentNumber + 1;
+            var attachment = new PdfDictionary();
+            attachment.Items["Type"] = new PdfName("Annot");
+            attachment.Items["Subtype"] = new PdfName("FileAttachment");
+            attachment.Items["FS"] = candidate;
+            attachment.Items["Popup"] = new PdfReference(popupNumber, 0);
+            var popup = new PdfDictionary();
+            popup.Items["Type"] = new PdfName("Annot");
+            popup.Items["Subtype"] = new PdfName("Popup");
+            popup.Items["Parent"] = new PdfReference(attachmentNumber, 0);
+            objects[attachmentNumber] = new PdfIndirectObject(attachmentNumber, 0, attachment);
+            objects[popupNumber] = new PdfIndirectObject(popupNumber, 0, popup);
+            var annotations = new PdfArray();
+            annotations.Items.Add(new PdfReference(attachmentNumber, 0));
+            annotations.Items.Add(new PdfReference(popupNumber, 0));
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(withPopup);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+
+        Assert.DoesNotContain(attachmentNumber, parsed.Map.Keys);
+        Assert.DoesNotContain(popupNumber, parsed.Map.Keys);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(parsed.Map.Values.Select(item => item.Value)
+            .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+        Assert.False(page.Items.TryGetValue("Annots", out PdfObject? annotationsValue) &&
+            PdfObjectLookup.Resolve(parsed.Map, annotationsValue) is PdfArray annotations && annotations.Items.Count != 0);
+    }
+
+    [Fact]
     public void RemovalMapsDuplicateCarrierDescriptorsToDistinctAttachmentIndices() {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
 
@@ -379,6 +467,21 @@ public sealed class PdfProvenanceTests {
 
         Assert.Equal(PdfReadLimitKind.AttachmentBytes, exception.Kind);
         Assert.Equal(64, exception.Limit);
+    }
+
+    [Fact]
+    public void InspectionAppliesCarrierLimitBeforeDecodingTheNextCandidate() {
+        byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
+        var options = new OfficeProvenanceOptions {
+            MaxAssetBytes = duplicated.LongLength + 1L,
+            MaxManifestBytes = 64,
+            MaxExpandedContainerBytes = 1024 * 1024,
+            MaxCarriers = 1
+        };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Inspect(duplicated, options));
+
+        Assert.Contains("carrier limit", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -105,7 +105,35 @@ internal static class PdfProvenanceGraphEditor {
             CollectFileAttachmentAnnotations(item.Value, targets, annotations, visited);
             if (item.Value is PdfDictionary dictionary && annotations.Contains(dictionary)) indirectObjectNumbers.Add(item.ObjectNumber);
         }
+        CollectLinkedPopupAnnotations(objects, annotations, indirectObjectNumbers);
         return annotations;
+    }
+
+    private static void CollectLinkedPopupAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<PdfDictionary> annotations,
+        HashSet<int> indirectObjectNumbers) {
+        foreach (PdfDictionary annotation in annotations.ToArray()) {
+            if (!annotation.Items.TryGetValue("Popup", out PdfObject? popup)) continue;
+            if (popup is PdfReference reference &&
+                objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) &&
+                indirect.Value is PdfDictionary popupDictionary) {
+                annotations.Add(popupDictionary);
+                indirectObjectNumbers.Add(reference.ObjectNumber);
+            } else if (popup is PdfDictionary directPopup) {
+                annotations.Add(directPopup);
+            }
+        }
+
+        foreach (PdfIndirectObject item in objects.Values) {
+            if (item.Value is not PdfDictionary dictionary ||
+                !string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) ||
+                !dictionary.Items.TryGetValue("Parent", out PdfObject? parent) ||
+                parent is not PdfReference parentReference ||
+                !indirectObjectNumbers.Contains(parentReference.ObjectNumber)) continue;
+            annotations.Add(dictionary);
+            indirectObjectNumbers.Add(item.ObjectNumber);
+        }
     }
 
     private static void CollectFileAttachmentAnnotations(

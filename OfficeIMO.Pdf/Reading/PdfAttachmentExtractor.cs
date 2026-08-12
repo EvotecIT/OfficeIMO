@@ -95,11 +95,13 @@ internal static class PdfAttachmentExtractor {
         PdfReadDocument document,
         Func<PdfAttachmentInfo, bool> predicate,
         long maxDecodedBytes,
-        long? maxDecodedBytesPerAttachment = null) {
+        long? maxDecodedBytesPerAttachment = null,
+        int? maxSelectedAttachments = null) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(predicate, nameof(predicate));
         Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
         if (maxDecodedBytesPerAttachment.HasValue) Guard.Positive(maxDecodedBytesPerAttachment.Value, nameof(maxDecodedBytesPerAttachment));
+        if (maxSelectedAttachments.HasValue) Guard.Positive(maxSelectedAttachments.Value, nameof(maxSelectedAttachments));
         document.DemandContentExtraction("attachment");
         IReadOnlyList<AttachmentDescriptor> descriptors = CollectAttachmentDescriptors(
             document.Objects,
@@ -111,6 +113,9 @@ internal static class PdfAttachmentExtractor {
         var attachments = new List<PdfExtractedAttachment>();
         foreach (AttachmentDescriptor descriptor in descriptors) {
             if (!predicate(descriptor.ToAttachmentInfo())) continue;
+            if (maxSelectedAttachments.HasValue && attachments.Count >= maxSelectedAttachments.Value) {
+                throw new InvalidDataException($"The asset exceeds the configured carrier limit of {maxSelectedAttachments.Value}.");
+            }
             attachments.Add(descriptor.ToExtractedAttachment(budget.GetDecodedBytes(descriptor.Stream, document.Objects)));
         }
         return attachments.AsReadOnly();
