@@ -370,6 +370,25 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Reader_BoundsSharedWidgetActionDagExpansion() {
+        byte[] source = BuildSharedWidgetActionDagPdf(depth: 8);
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 16 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+
+        Assert.Equal(PdfReadLimitKind.WidgetActions, exception.Kind);
+        Assert.Equal(16, exception.Limit);
+        Assert.Equal(17, exception.Actual);
+    }
+
+    [Fact]
+    public void Sanitize_RejectsXfaPacketsThatAreNotSanitized() {
+        byte[] source = BuildXfaPacketPdf();
+
+        Assert.Throws<PdfMutationBlockedException>(() => PdfSanitizer.Sanitize(source));
+    }
+
+    [Fact]
     public void Reader_TraversesSingleIndirectNextWidgetAction() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false, useSingleIndirectNext: true);
 
@@ -1091,6 +1110,37 @@ public class PdfAcroFormAuthoringTests {
             WriteAscii(output, "<< /S /JavaScript /JS (x) >> ");
         }
         WriteAscii(output, "] >> >>\nendobj\n");
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildSharedWidgetActionDagPdf(int depth) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [6 0 R] >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A 7 0 R >>\nendobj\n");
+        for (int index = 0; index < depth; index++) {
+            int objectNumber = 7 + index;
+            string next = index + 1 < depth
+                ? " /Next [" + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R " + (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R]"
+                : string.Empty;
+            WriteAscii(output, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n<< /S /URI /URI (https://example.test/)" + next + " >>\nendobj\n");
+        }
+        WriteAscii(output, "trailer\n<< /Root 1 0 R /Size " + (7 + depth).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildXfaPacketPdf() {
+        using var output = new MemoryStream();
+        const string xfa = "<template><script>app.alert('xfa')</script></template>";
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Fields [] /XFA 6 0 R >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Length " + xfa.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" + xfa + "\nendstream\nendobj\n");
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 7 >>\n%%EOF\n");
         return output.ToArray();
     }

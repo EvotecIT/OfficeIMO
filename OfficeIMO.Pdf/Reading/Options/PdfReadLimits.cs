@@ -13,6 +13,7 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxJavaScriptBytes = 4_000_000;
     internal const int DefaultMaxJavaScripts = 10_000;
+    internal const int DefaultMaxWidgetActions = 100_000;
     internal const long DefaultMaxTotalJavaScriptBytes = 32L * 1024L * 1024L;
     internal const int DefaultMaxAttachments = 100_000;
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
@@ -84,6 +85,9 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum JavaScript entries discovered in one PDF action surface. Default: 10,000.</summary>
     public int MaxJavaScripts { get; init; } = DefaultMaxJavaScripts;
 
+    /// <summary>Maximum widget action nodes materialized while reading AcroForm action graphs. Default: 100,000.</summary>
+    public int MaxWidgetActions { get; init; } = DefaultMaxWidgetActions;
+
     /// <summary>Maximum aggregate decoded source bytes retained for one PDF JavaScript action surface. Default: 32 MiB.</summary>
     public long MaxTotalJavaScriptBytes { get; init; } = DefaultMaxTotalJavaScriptBytes;
 
@@ -137,6 +141,7 @@ public sealed class PdfReadLimits {
             MaxNameTreeDepth = MaxNameTreeDepth,
             MaxJavaScriptBytes = MaxJavaScriptBytes,
             MaxJavaScripts = MaxJavaScripts,
+            MaxWidgetActions = MaxWidgetActions,
             MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
             MaxAttachments = MaxAttachments,
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
@@ -197,6 +202,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxNameTreeDepth, nameof(MaxNameTreeDepth), "Maximum name-tree depth must be positive.");
         ValidatePositive(MaxJavaScriptBytes, nameof(MaxJavaScriptBytes), "Maximum document JavaScript bytes must be positive.");
         ValidatePositive(MaxJavaScripts, nameof(MaxJavaScripts), "Maximum document JavaScript entries must be positive.");
+        ValidatePositive(MaxWidgetActions, nameof(MaxWidgetActions), "Maximum widget action nodes must be positive.");
         if (MaxTotalJavaScriptBytes <= 0L) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalJavaScriptBytes), MaxTotalJavaScriptBytes, "Maximum aggregate document JavaScript bytes must be positive.");
         }

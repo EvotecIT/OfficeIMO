@@ -83,14 +83,20 @@ internal static partial class PdfFormFiller {
                 throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
             }
 
-            if (values.Count == 1 && values[0].Length == 0) {
+            ChoiceFillValue explicitEmptyChoice = default;
+            bool selectsExplicitEmptyOption = values.Count == 1 &&
+                values[0].Length == 0 &&
+                TryResolveChoiceOption(objects, choiceOptions, values[0], out explicitEmptyChoice);
+            if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
                 field.Items["V"] = isMultiSelectChoice ? new PdfArray() : new PdfStringObj(string.Empty, useTextStringEncoding: true);
                 field.Items.Remove("I");
                 SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber);
                 return;
             }
 
-            IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
+            IReadOnlyList<ChoiceFillValue> choiceValues = selectsExplicitEmptyOption
+                ? new[] { explicitEmptyChoice }
+                : ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
                 SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber);

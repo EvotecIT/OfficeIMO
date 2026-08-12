@@ -990,6 +990,10 @@ internal static class PdfMutationPlanner {
 
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (blocker == PdfRewriteBlockerKind.Forms &&
+                preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) {
+                return false;
+            }
             if (blocker == PdfRewriteBlockerKind.Encryption &&
                 CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Sanitize)) {
                 continue;

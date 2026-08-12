@@ -397,13 +397,19 @@ internal static partial class PdfIncrementalUpdater {
         if (values.Count > 1 && !isMultiSelectChoice) {
             throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
         }
-        if (values.Count == 1 && values[0].Length == 0) {
+        IncrementalChoiceFillValue explicitEmptyChoice = default;
+        bool selectsExplicitEmptyOption = values.Count == 1 &&
+            values[0].Length == 0 &&
+            TryResolveIncrementalChoiceOption(objects, field, values[0], out explicitEmptyChoice);
+        if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
             return isMultiSelectChoice
                 ? IncrementalPreparedFieldValue.Multiple(Array.Empty<string>(), string.Empty)
                 : IncrementalPreparedFieldValue.Scalar(string.Empty, string.Empty);
         }
 
-        IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
+        IReadOnlyList<IncrementalChoiceFillValue> choiceValues = selectsExplicitEmptyOption
+            ? new[] { explicitEmptyChoice }
+            : ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {
             return IncrementalPreparedFieldValue.Multiple(
                 choiceValues.Select(item => item.ExportValue).ToArray(),
@@ -430,6 +436,36 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     private static IncrementalChoiceFillValue ResolveIncrementalChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, bool isEditableChoice, string value) {
+        if (TryResolveIncrementalChoiceFillValue(objects, options, value, out IncrementalChoiceFillValue fillValue)) {
+            return fillValue;
+        }
+
+        if (isEditableChoice) {
+            return new IncrementalChoiceFillValue(value, value);
+        }
+
+        throw new ArgumentException($"PDF choice field cannot be filled with value '{value}' because it is not one of the allowed options.", nameof(value));
+    }
+
+    private static bool TryResolveIncrementalChoiceOption(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        string value,
+        out IncrementalChoiceFillValue fillValue) {
+        if (field.Items.TryGetValue("Opt", out PdfObject? optionsObject) &&
+            ResolveObject(objects, optionsObject) is PdfArray { Items.Count: > 0 } options) {
+            return TryResolveIncrementalChoiceFillValue(objects, options, value, out fillValue);
+        }
+
+        fillValue = default;
+        return false;
+    }
+
+    private static bool TryResolveIncrementalChoiceFillValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray options,
+        string value,
+        out IncrementalChoiceFillValue fillValue) {
         for (int i = 0; i < options.Items.Count; i++) {
             PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
             if (optionObject is PdfArray pair &&
@@ -440,7 +476,8 @@ internal static partial class PdfIncrementalUpdater {
                 displayValue is not null) {
                 if (string.Equals(value, exportValue, StringComparison.Ordinal) ||
                     string.Equals(value, displayValue, StringComparison.Ordinal)) {
-                    return new IncrementalChoiceFillValue(exportValue, displayValue);
+                    fillValue = new IncrementalChoiceFillValue(exportValue, displayValue);
+                    return true;
                 }
 
                 continue;
@@ -450,15 +487,13 @@ internal static partial class PdfIncrementalUpdater {
                 TryReadOptionText(objects, optionObject, out string? optionValue) &&
                 optionValue is not null &&
                 string.Equals(value, optionValue, StringComparison.Ordinal)) {
-                return new IncrementalChoiceFillValue(optionValue, optionValue);
+                fillValue = new IncrementalChoiceFillValue(optionValue, optionValue);
+                return true;
             }
         }
 
-        if (isEditableChoice) {
-            return new IncrementalChoiceFillValue(value, value);
-        }
-
-        throw new ArgumentException($"PDF choice field cannot be filled with value '{value}' because it is not one of the allowed options.", nameof(value));
+        fillValue = default;
+        return false;
     }
 
     private static string PrepareIncrementalButtonFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int fieldFlags, string value) {

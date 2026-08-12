@@ -33,6 +33,28 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_EmptyChoiceValueSelectsDeclaredEmptyExportOption() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdfWithEmptyOption(), new Dictionary<string, string> {
+            ["Country"] = string.Empty
+        });
+
+        Assert.Contains("<4E6F6E65> Tj", PdfEncoding.Latin1GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppendRevision_EmptyChoiceValueSelectsDeclaredEmptyExportOption() {
+        byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdfWithEmptyOption(), new Dictionary<string, string> {
+            ["Country"] = "PL"
+        });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        string appearance = GetFlattenedAppearanceStreamText(PdfFormFiller.FlattenFields(appended.ToBytes()));
+        Assert.Contains("<4E6F6E65> Tj", appearance, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AppendRevision_EmptyMultiSelectChoiceStoresAnEmptyArray() {
         byte[] appendable = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
             ["Country"] = PdfFormFieldValue.FromValues("PL", "US")
@@ -254,5 +276,11 @@ public partial class PdfFormFillerTests {
         Assert.True(preflight.CanFlattenSimpleFormFields);
         Assert.True(preflight.CanFillAndFlattenSimpleFormFields);
         Assert.Empty(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
+    }
+
+    private static byte[] BuildChoiceWidgetFormPdfWithEmptyOption() {
+        string pdf = PdfEncoding.Latin1GetString(BuildChoiceWidgetFormPdf())
+            .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]", StringComparison.Ordinal);
+        return Encoding.ASCII.GetBytes(pdf);
     }
 }

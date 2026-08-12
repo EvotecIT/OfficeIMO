@@ -418,6 +418,11 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
+        budget.ActionCount++;
+        if (budget.ActionCount > _options.Limits.MaxWidgetActions) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.WidgetActions, _options.Limits.MaxWidgetActions, budget.ActionCount);
+        }
+
         string? javaScript = null;
         if (string.Equals(actionType, "JavaScript", StringComparison.Ordinal)) {
             budget.Count++;
@@ -507,6 +512,7 @@ public sealed partial class PdfReadDocument {
     }
 
     private sealed class PdfFormWidgetActionReadBudget {
+        internal int ActionCount { get; set; }
         internal int Count { get; set; }
         internal long TotalBytes { get; set; }
     }
