@@ -291,6 +291,8 @@ internal static class PdfMutationPlanner {
                 return CanSynchronizeMetadata(preflight);
             case PdfMutationOperation.Sanitize:
                 return CanSanitize(preflight);
+            case PdfMutationOperation.ModifyJavaScript:
+                return CanModifyJavaScript(preflight);
             case PdfMutationOperation.ModifyAttachments:
                 return CanModifyAttachments(preflight);
             case PdfMutationOperation.FillFormFields:
@@ -391,7 +393,9 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.SynchronizeMetadata:
                 return ReadOnly(PdfMutationStructure.InfoDictionary, PdfMutationStructure.XmpMetadata);
             case PdfMutationOperation.Sanitize:
-                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments, PdfMutationStructure.AcroForm);
+                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ObjectGraph, PdfMutationStructure.ActiveContent, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments, PdfMutationStructure.AcroForm);
+            case PdfMutationOperation.ModifyJavaScript:
+                return ReadOnly(PdfMutationStructure.Catalog, PdfMutationStructure.ActiveContent, PdfMutationStructure.ObjectGraph);
             case PdfMutationOperation.FillFormFields:
                 return ReadOnly(PdfMutationStructure.AcroForm, PdfMutationStructure.AppearanceStreams, PdfMutationStructure.Annotations);
             case PdfMutationOperation.FlattenFormFields:
@@ -559,6 +563,9 @@ internal static class PdfMutationPlanner {
                 break;
             case PdfMutationOperation.Sanitize:
                 Add(proofs, PdfMutationProof.SanitizationReadback);
+                break;
+            case PdfMutationOperation.ModifyJavaScript:
+                Add(proofs, PdfMutationProof.JavaScriptReadback);
                 break;
         }
 
@@ -945,6 +952,11 @@ internal static class PdfMutationPlanner {
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees;
         }
 
+        if (operation == PdfMutationOperation.ModifyJavaScript) {
+            return blocker != PdfRewriteBlockerKind.ActiveContent &&
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+        }
+
         if (operation == PdfMutationOperation.MergeDocuments) {
             return blocker != PdfRewriteBlockerKind.Forms;
         }
@@ -986,6 +998,15 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAttachments)) return false;
+        }
+        return true;
+    }
+
+    private static bool CanModifyJavaScript(PdfDocumentPreflight preflight) {
+        if (!preflight.CanRead) return false;
+        for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (IsFullRewriteBlockerForOperation(blocker, PdfMutationOperation.ModifyJavaScript)) return false;
         }
         return true;
     }
@@ -1054,12 +1075,16 @@ internal static class PdfMutationPlanner {
                 return PdfMutationCapabilityKind.EncryptionChanges;
             case PdfMutationStructure.Signatures:
                 return PdfMutationCapabilityKind.SignatureChanges;
+            case PdfMutationStructure.ActiveContent:
+                return PdfMutationCapabilityKind.ActiveContentChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.PrepareExternalSignature || operation == PdfMutationOperation.FinalizeExternalSignature || operation == PdfMutationOperation.EnrichLongTermValidation:
                 return PdfMutationCapabilityKind.SignatureChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyAttachments:
                 return PdfMutationCapabilityKind.AttachmentChanges;
             case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ChangeEncryption:
                 return PdfMutationCapabilityKind.EncryptionChanges;
+            case PdfMutationStructure.ObjectGraph when operation == PdfMutationOperation.ModifyJavaScript:
+                return PdfMutationCapabilityKind.ActiveContentChanges;
             case PdfMutationStructure.ObjectGraph:
                 return PdfMutationCapabilityKind.ContentChanges;
             default:
@@ -1077,7 +1102,7 @@ internal static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.Sanitize) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ModifyJavaScript) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }
