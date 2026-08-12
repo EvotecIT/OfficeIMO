@@ -30,7 +30,7 @@ public sealed partial class PdfDocumentInfo {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, IReadOnlyList<PdfCatalogAction> catalogActions, IReadOnlyList<PdfAttachmentInfo> attachments, IReadOnlyList<PdfOutputIntentInfo> outputIntents, PdfXmpMetadataInfo? xmpMetadata, PdfTaggedContentInfo? taggedContent, PdfOptionalContentProperties? optionalContent, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, int? acroFormQuadding, PdfAcroFormXfaInfo? acroFormXfa, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, PdfDocumentSecurityInfo security, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, IReadOnlyList<PdfCatalogAction> catalogActions, IReadOnlyList<PdfAttachmentInfo> attachments, IReadOnlyList<PdfOutputIntentInfo> outputIntents, PdfXmpMetadataInfo? xmpMetadata, PdfTaggedContentInfo? taggedContent, PdfOptionalContentProperties? optionalContent, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, int? acroFormQuadding, PdfAcroFormXfaInfo? acroFormXfa, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, PdfDocumentSecurityInfo security, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent, bool hasOnlyWidgetOwnedActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
@@ -73,7 +73,10 @@ public sealed partial class PdfDocumentInfo {
         HasEmbeddedFiles = hasEmbeddedFiles;
         HasOptionalContent = hasOptionalContent;
         HasActiveContent = hasActiveContent;
+        HasOnlyWidgetOwnedActiveContent = hasOnlyWidgetOwnedActiveContent;
     }
+
+    internal bool HasOnlyWidgetOwnedActiveContent { get; }
 
     /// <summary>Number of pages in the document.</summary>
     public int PageCount => Pages.Count;

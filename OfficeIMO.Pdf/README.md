@@ -136,9 +136,10 @@ The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget
 appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,
 typed `PdfFormWidgetAction` data and is never executed by OfficeIMO.Pdf. Form
-edits and fills preserve unrelated active actions. Flattening removes actions
-owned by the fields being flattened, while the sanitizer removes forbidden
-actions without discarding the remaining form tree.
+edits and fills preserve eligible actions owned by form widgets. Unrelated
+catalog, page, outline, or annotation active content remains a rewrite blocker.
+Flattening removes actions owned by the fields being flattened, while the
+sanitizer removes forbidden actions without discarding the remaining form tree.
 
 For a single health and capability view:
 

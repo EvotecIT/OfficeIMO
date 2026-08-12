@@ -828,33 +828,9 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool HasOnlyFormWidgetActiveContent(PdfDocumentInfo? info) {
-        if (info is null || info.AcroFormXfa is not null || info.CatalogActions.Count > 0 || info.PageActionCount > 0) {
-            return false;
-        }
-
-        var actionWidgetObjectNumbers = new HashSet<int>();
-        for (int i = 0; i < info.FormFields.Count; i++) {
-            IReadOnlyList<PdfFormWidget> widgets = info.FormFields[i].Widgets;
-            for (int j = 0; j < widgets.Count; j++) {
-                if (widgets[j].HasActions && widgets[j].ObjectNumber.HasValue) {
-                    actionWidgetObjectNumbers.Add(widgets[j].ObjectNumber!.Value);
-                }
-            }
-        }
-        if (actionWidgetObjectNumbers.Count == 0) return false;
-
-        int activeAnnotationCount = 0;
-        for (int i = 0; i < info.Annotations.Count; i++) {
-            PdfAnnotation annotation = info.Annotations[i];
-            if (!annotation.HasAction && !annotation.HasAdditionalActions && !annotation.HasChainedActions) continue;
-            activeAnnotationCount++;
-            if (!string.Equals(annotation.Subtype, "Widget", StringComparison.Ordinal) ||
-                !annotation.ObjectNumber.HasValue ||
-                !actionWidgetObjectNumbers.Contains(annotation.ObjectNumber.Value)) {
-                return false;
-            }
-        }
-        return activeAnnotationCount > 0;
+        return info is not null &&
+            info.AcroFormXfa is null &&
+            info.HasOnlyWidgetOwnedActiveContent;
     }
 
     private static bool CanOptimize(PdfDocumentPreflight preflight) {
