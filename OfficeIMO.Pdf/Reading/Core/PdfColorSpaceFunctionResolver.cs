@@ -81,7 +81,14 @@ internal static class PdfColorSpaceFunctionResolver {
         duplicateCount = 0;
         if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return false;
         int decodeLimit = Math.Min(257, maxDecodedStreamBytes);
-        byte[] bytes = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
+        byte[] bytes;
+        try {
+            bytes = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit);
+        } catch (PdfReadLimitException) {
+            throw;
+        } catch (InvalidDataException) {
+            return false;
+        }
         if (bytes.Length > 256) return false;
         string program = Encoding.ASCII.GetString(bytes).Trim();
         if (program.Length < 2 || program[0] != '{' || program[program.Length - 1] != '}') return false;
