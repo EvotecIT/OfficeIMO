@@ -689,6 +689,8 @@ internal static class PdfContentStreamInterpreter {
                 case "BT":
                 case "ET":
                 case "w":
+                case "J":
+                case "j":
                 case "Tc":
                 case "Tw":
                 case "Tz":

@@ -950,6 +950,80 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_AppliesIndirectType3SoftMaskGroupMatrix() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
+            glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> >>",
+            extraObjects: new[] {
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Matrix 10 0 R /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 250 700 re f"),
+                "10 0 obj\n[1 0 0 1 250 0]\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(22, 96));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(27, 96));
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotConsumeInheritedPatternForColoredType3Shading() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 20 20] /XStep 20 /YStep 20 /Resources << /Font << /FBase 9 0 R >> >>",
+            patternContent: "0 g BT /FBase 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET",
+            glyphContent: "500 0 d0 /Shade sh",
+            glyphResources: "<< /Shading << /Shade << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >> >>",
+            type3PaintType: 1,
+            extraObjects: new[] { "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj" });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotConsumeInheritedPatternForColoredType3InlineImage() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /Missing scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 0 0 700 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI Q",
+            patternResourceEntries: string.Empty,
+            type3PaintType: 1);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForShearedImageInsideStrictType3PatternTile() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "1 0 0 rg BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << /XObject << /Im 8 0 R >> >>",
+            patternContent: "q 5 1 0 5 0 0 cm /Im Do Q",
+            glyphContent: "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f",
+            glyphResources: "<< /Pattern << /P1 7 0 R >> >>",
+            type3PaintType: 1,
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "abc")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_AlignsLocalizedPatternMaskSoftMaskInPageCoordinates() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -1321,6 +1395,7 @@ public partial class PdfType3UncoloredPatternTests {
         string pageResourceEntries = "",
         string pageDictionaryEntries = "",
         string patternResourceEntries = "/P1 7 0 R",
+        int type3PaintType = 2,
         double pageWidth = 240D,
         double pageHeight = 200D,
         IReadOnlyList<string>? extraObjects = null) {
@@ -1334,7 +1409,7 @@ public partial class PdfType3UncoloredPatternTests {
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 " + pageWidthText + " " + pageHeightText + "] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources " + pageResources + " /Contents 4 0 R " + pageDictionaryEntries + " >>\nendobj",
             StreamObject(4, "<<", pageContent),
-            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources " + glyphResources + " >>\nendobj",
+            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType " + type3PaintType.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources " + glyphResources + " >>\nendobj",
             StreamObject(6, "<<", glyphContent),
             patternIsStream
                 ? StreamObject(7, patternDictionary, patternContent)

@@ -216,6 +216,24 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Theory]
+    [InlineData("/Bad J")]
+    [InlineData("3 J")]
+    [InlineData("/Bad j")]
+    [InlineData("3 j")]
+    public void RenderPage_FailsClosedForMalformedType3LineCapAndJoinOperands(string stateOperator) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 " + stateOperator + " 20 w 0 0 m 500 700 l S");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
     [InlineData("/Bad 0 0 1 20 20 Tm")]
     [InlineData("0 /Bad Td")]
     [InlineData("/Inner /Bad Tf")]

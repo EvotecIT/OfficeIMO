@@ -364,7 +364,20 @@ public sealed partial class PdfReadPage {
             unrenderedPatternVisitor: requireSupportedType3Content || allowNestedPatterns
                 ? null
                 : _ => type3GlyphBudget.RecordFailure(),
-            type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            type3ImageVisitor: (placement, image, effect) => {
+                if (requireSupportedType3Content &&
+                    !TryCreateImageProjection(
+                        placement,
+                        height,
+                        width,
+                        height,
+                        out _,
+                        allowAxisAlignedFallback: false)) {
+                    type3GlyphBudget.RecordFailure();
+                    return;
+                }
+                elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));
+            },
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             graphicsStateVisitor: softMaskValidation == null
@@ -430,7 +443,8 @@ public sealed partial class PdfReadPage {
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true);
                 if (requireSupportedType3Content &&
-                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources) || image!.HasUnresolvedTransparencyMask)) {
+                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources) || image!.HasUnresolvedTransparencyMask ||
+                     !TryCreateImageProjection(placements[i], height, width, height, out _, allowAxisAlignedFallback: false))) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }

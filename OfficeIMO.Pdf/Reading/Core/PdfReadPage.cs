@@ -986,10 +986,10 @@ public sealed partial class PdfReadPage {
         return prefix + content + " Q";
     }
 
-    private static Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
+    private Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
         if (formDict is null ||
             !formDict.Items.TryGetValue("Matrix", out var matrixObj) ||
-            matrixObj is not PdfArray arr ||
+            ResolveEffectObject(matrixObj) is not PdfArray arr ||
             arr.Items.Count < 6) {
             return invocationTransform;
         }

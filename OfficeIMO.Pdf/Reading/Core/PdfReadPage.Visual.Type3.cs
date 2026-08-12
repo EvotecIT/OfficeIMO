@@ -390,7 +390,9 @@ public sealed partial class PdfReadPage {
             if (fillPath == null) {
                 if (budget.Exceeded) channels |= PdfType3PaintChannels.Fill;
             } else if (visibleClips == null || fillPath.IntersectsFills(visibleClips, budget)) {
-                channels |= PdfType3PaintChannels.Fill;
+                channels |= primitive.IsSelfColoredShading
+                    ? PdfType3PaintChannels.Visible
+                    : PdfType3PaintChannels.Fill;
             }
         }
         if (primitive.HasStrokePaint && primitive.StrokeWidth > 0D && HasVisibleOpacity(primitive.StrokeOpacity)) {
@@ -1014,7 +1016,7 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
-                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Fill,
+                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(
@@ -1022,7 +1024,9 @@ public sealed partial class PdfReadPage {
                             resources,
                             pageWidth,
                             pageHeight)) {
-                        channels |= PdfType3PaintChannels.Fill;
+                        channels |= PdfImageMaskNormalizer.IsImageMask(invocation.InlineImage.Stream, _objects)
+                            ? PdfType3PaintChannels.Fill
+                            : PdfType3PaintChannels.Visible;
                     }
                     continue;
                 }

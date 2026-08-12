@@ -452,14 +452,18 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "J":
-                    if (_args.Count >= 1) {
-                        _state = _state.WithStrokeLineCap(ReadLineCap(NumberAt(_args.Count - 1)));
+                    if (HasExactIntegerInRange(0, 2)) {
+                        _state = _state.WithStrokeLineCap(ReadLineCap(NumberAt(0)));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("J");
                     }
 
                     break;
                 case "j":
-                    if (_args.Count >= 1) {
-                        _state = _state.WithStrokeLineJoin(ReadLineJoin(NumberAt(_args.Count - 1)));
+                    if (HasExactIntegerInRange(0, 2)) {
+                        _state = _state.WithStrokeLineJoin(ReadLineJoin(NumberAt(0)));
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("j");
                     }
 
                     break;
@@ -1780,6 +1784,10 @@ internal static class PdfPageContentVisualParser {
         }
 
         private bool HasExactFiniteNumbers(int count) => _args.Count == count && HasTrailingFiniteNumbers(count);
+
+        private bool HasExactIntegerInRange(int minimum, int maximum) =>
+            HasExactFiniteNumbers(1) && NumberAt(0) >= minimum && NumberAt(0) <= maximum &&
+            NumberAt(0) == Math.Truncate(NumberAt(0));
 
         private static byte ToByte(double value) {
             return (byte)Math.Round(Clamp01(value) * 255D);

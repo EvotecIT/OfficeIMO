@@ -206,11 +206,13 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
-                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Fill,
+                         visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(invocation, resources, pageWidth, pageHeight)) {
-                    channels |= PdfType3PaintChannels.Fill;
+                    channels |= PdfImageMaskNormalizer.IsImageMask(invocation.InlineImage.Stream, _objects)
+                        ? PdfType3PaintChannels.Fill
+                        : PdfType3PaintChannels.Visible;
                     continue;
                 }
                 channels |= ResolveXObjectPaintChannels(
