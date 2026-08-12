@@ -238,14 +238,14 @@ internal static partial class HtmlPdfRenderedConverter {
             TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
             IsReadOnly = field.IsReadOnly,
-            IsNoExport = field.IsDisabled,
+            IsNoExport = field.IsDisabled || field.MappingName.Length == 0,
             IsRequired = field.IsRequired,
             IsMultiline = field.IsMultiline,
             IsPassword = field.IsPassword,
             IsFileSelect = field.IsFileSelect,
             MaxLength = field.MaximumLength,
             AlternateName = field.AlternateName,
-            MappingName = field.MappingName,
+            MappingName = field.MappingName.Length == 0 ? null : field.MappingName,
             TextAlignment = MapFormFieldTextAlignment(field.TextAlignment, field.FieldKind)
         };
         double x = field.X * PointsPerCssPixel;

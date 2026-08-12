@@ -75,6 +75,22 @@ public sealed class HtmlPdfTests {
         Assert.False(Assert.Single(info.FormFields, field => field.Name == "readonly").IsRequired);
     }
 
+    [Fact]
+    public void HtmlToPdf_UnnamedControlsRemainInteractiveButAreExcludedFromFormData() {
+        const string html = "<input value='secret'><input id='by-id' value='identifier'><input name='' value='empty-name'><input name='named' value='included'>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfFormDataSet exported = PdfCore.PdfDocument.Open(pdf).Forms.ExportData();
+
+        Assert.Equal(4, info.FormFields.Count);
+        Assert.Equal(3, info.FormFields.Count(field => field.IsNoExport));
+        Assert.All(info.FormFields.Where(field => field.IsNoExport), field => Assert.Null(field.MappingName));
+        PdfCore.PdfFormDataField field = Assert.Single(exported.Fields);
+        Assert.Equal("named", field.Name);
+        Assert.Equal(new[] { "included" }, field.Values);
+    }
+
     [Theory]
     [InlineData("linear-gradient(90deg,transparent,blue)")]
     [InlineData("radial-gradient(circle,transparent,blue)")]

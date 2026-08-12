@@ -6,6 +6,17 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlPagedMedia_WidowsCountTheImplicitFinalLineAtExactBlockHeight() {
+        const string html = "<style>@page{size:100px 20px;margin:0}p{margin:0;font-size:8px;line-height:10px;orphans:2;widows:2}</style><p>wordA<br>wordB<br>wordC<br>wordD</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => Assert.Equal(2, CountRenderedTextLines(page)));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_ResolvesOrientationOnlyAndAutomaticPageSizes() {
         Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape", 300D, 500D, 16D, out double landscapeWidth, out double landscapeHeight));
         Assert.Equal((500D, 300D), (landscapeWidth, landscapeHeight));

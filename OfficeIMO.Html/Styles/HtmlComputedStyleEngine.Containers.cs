@@ -208,7 +208,7 @@ public static partial class HtmlComputedStyleEngine {
         if (andParts.Count > 1) return andParts.All(part => EvaluateContainerCondition(part, context, environment));
 
         if (normalized[0] == '(' && FindMatchingParenthesis(normalized, 0) == normalized.Length - 1) {
-            normalized = normalized.Substring(1, normalized.Length - 2).Trim();
+            return EvaluateContainerCondition(normalized.Substring(1, normalized.Length - 2), context, environment);
         }
         if (normalized.StartsWith("style(", StringComparison.OrdinalIgnoreCase)
             && normalized.EndsWith(")", StringComparison.Ordinal)) {

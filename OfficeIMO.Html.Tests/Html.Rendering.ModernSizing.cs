@@ -121,6 +121,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_GroupedContainerConditionsReevaluateLogicalOperators() {
+        const string html = "<style>@container ((width > 100px) or (height > 100px)){#item{background:red}}</style><section style='width:120px;height:40px;container-type:size'><div id='item' style='width:20px;height:20px;background:blue'></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 300D, ViewportHeight = 200D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
+    [Fact]
+    public void HtmlRendering_BoxShorthandContainerUnitsUseTheActiveContainer() {
+        const string html = "<section style='width:200px;container-type:inline-size'><div id='item' style='box-sizing:content-box;width:20px;height:20px;padding:10cqw;background:red'></div></section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800D, ViewportHeight = 400D });
+        HtmlRenderShape item = FindShape(rendered, "div#item");
+
+        Assert.Equal((60D, 60D), (item.Width, item.Height));
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerQueryEmAndRemUnitsUseContainerAndRootFonts() {
         const string html = """
             <style>

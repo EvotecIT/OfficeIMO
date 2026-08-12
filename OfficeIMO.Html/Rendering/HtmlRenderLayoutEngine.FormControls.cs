@@ -541,11 +541,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int nodeId = GetSemanticNodeId(element);
         string mappingName = authoredName is { Length: > 0 } ? authoredName : string.Empty;
-        if (mappingName.Length == 0) mappingName = NormalizeControlText(element.GetAttribute("id"));
-        if (mappingName.Length == 0) mappingName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        string fieldName = mappingName;
+        if (fieldName.Length == 0) fieldName = NormalizeControlText(element.GetAttribute("id"));
+        if (fieldName.Length == 0) fieldName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
         string name = fieldKind == HtmlRenderFormFieldKind.RadioButton
-            ? ResolveRadioFieldName(element, mappingName, nodeId)
-            : ResolveUniqueFormFieldName(element, mappingName, nodeId);
+            ? ResolveRadioFieldName(element, fieldName, nodeId)
+            : ResolveUniqueFormFieldName(element, fieldName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
         string placeholder = value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)

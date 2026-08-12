@@ -175,6 +175,34 @@ internal static class HtmlRenderCssValues {
         ref double right,
         ref double bottom,
         ref double left) {
+        ApplyBoxShorthand(
+            value,
+            reference,
+            fontSize,
+            rootFontSize,
+            viewportWidth,
+            viewportHeight,
+            double.NaN,
+            double.NaN,
+            ref top,
+            ref right,
+            ref bottom,
+            ref left);
+    }
+
+    internal static void ApplyBoxShorthand(
+        string? value,
+        double reference,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        ref double top,
+        ref double right,
+        ref double bottom,
+        ref double left) {
         IReadOnlyList<string> parts = SplitWhitespace(value);
         if (parts.Count == 0 || parts.Count > 4) {
             return;
@@ -182,7 +210,7 @@ internal static class HtmlRenderCssValues {
 
         var values = new double[parts.Count];
         for (int i = 0; i < parts.Count; i++) {
-            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, out values[i])) {
+            if (!TryLength(parts[i], reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out values[i])) {
                 return;
             }
         }
