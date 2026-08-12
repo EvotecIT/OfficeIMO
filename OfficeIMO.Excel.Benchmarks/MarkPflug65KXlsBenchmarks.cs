@@ -22,9 +22,6 @@ public class MarkPflug65KXlsBenchmarks {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsFileName);
         _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();
-        Validate(nameof(OfficeIMO), OfficeIMO());
-        Validate(nameof(Sylvan), Sylvan());
-        Validate(nameof(ExcelDataReader), ExcelDataReader());
     }
 
     [Benchmark]
@@ -32,7 +29,7 @@ public class MarkPflug65KXlsBenchmarks {
         using DbDataReader reader = ExcelDocument.OpenDataReader(
             MarkPflug65KFixture.XlsPath,
             new ExcelReadOptions { NumericAsDecimal = true });
-        return MarkPflug65KXlsxBenchmarks.Observe(reader);
+        return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 
     [Benchmark]
@@ -42,7 +39,7 @@ public class MarkPflug65KXlsBenchmarks {
             stream,
             ExcelWorkbookType.Excel,
             new ExcelDataReaderOptions { Schema = ExcelSchema.Default });
-        return MarkPflug65KXlsxBenchmarks.Observe(reader);
+        return Validate(nameof(Sylvan), MarkPflug65KXlsxBenchmarks.Observe(reader));
     }
 
     [Benchmark]
@@ -51,7 +48,7 @@ public class MarkPflug65KXlsBenchmarks {
         using global::ExcelDataReader.IExcelDataReader reader =
             global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
         if (!reader.Read()) {
-            return default;
+            return Validate(nameof(ExcelDataReader), default);
         }
 
         var observation = new ExcelObservationAccumulator();
@@ -64,15 +61,17 @@ public class MarkPflug65KXlsBenchmarks {
                 ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
         }
 
-        return observation.Build();
+        return Validate(nameof(ExcelDataReader), observation.Build());
     }
 
-    private void Validate(string library, ExcelReadObservation actual) {
+    private ExcelReadObservation Validate(string library, ExcelReadObservation actual) {
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
             || actual.Cells != MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns) {
             throw new InvalidDataException(
                 $"{library} did not perform the same XLS workload. Expected {_expected}; actual {actual}.");
         }
+
+        return actual;
     }
 }

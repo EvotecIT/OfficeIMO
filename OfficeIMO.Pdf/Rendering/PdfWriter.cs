@@ -148,7 +148,7 @@ internal static partial class PdfWriter {
                     fontProgram != null) {
                     byte[] fontData = fontProgram.BuildSubsetFontFile();
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -167,7 +167,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -178,7 +178,7 @@ internal static partial class PdfWriter {
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(cffFontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(cffFontProgram, descendantFontId, toUnicodeObjectId));
                 } else {
-                    int toUnicodeObjectId = pendingFont.Options.IncludeStandardFontToUnicodeMaps
+                    int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
@@ -190,7 +190,7 @@ internal static partial class PdfWriter {
                     fontProgram != null) {
                     byte[] fontData = fontProgram.BuildSubsetFontFile();
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                         PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "named-font:" + pendingFont.Font.FaceKey, compactFontFile));
                     byte[] fontData = compactFontFile.Data;
                     string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = pendingFont.Options.CompressEmbeddedFonts
+                    int fontFileId = opts.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -461,7 +461,6 @@ internal static partial class PdfWriter {
                 totalPages);
             if (markInfo) {
                 AssignFigureMarkedContentIds(page);
-                AssignStructParentIndex(page, ref nextStructParentIndex);
             }
 
             var xobjects = new List<(string Name, int Id)>();
@@ -469,7 +468,7 @@ internal static partial class PdfWriter {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
                     var img = page.Images[i];
-                    ApplyPlacementAwareImageOptimization(img, pageOpts, optimizedImageCache);
+                    ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
@@ -491,6 +490,11 @@ internal static partial class PdfWriter {
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
                     string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
+                    effect.MarkedContentIds.Clear();
+                    effect.MarkedContentIds.AddRange(ExtractMarkedContentIds(effectContent));
+                    if (markInfo && effect.MarkedContentIds.Count > 0 && !effect.StructParentIndex.HasValue) {
+                        effect.StructParentIndex = nextStructParentIndex++;
+                    }
                     byte[] effectBytes = PdfEncoding.Latin1GetBytes(effectContent);
                     string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
                         pageOpts.PageWidth,
@@ -499,13 +503,16 @@ internal static partial class PdfWriter {
                         FilterPdfResources(effectContent, fontResources),
                         FilterPdfResources(effectContent, xobjects),
                         FilterPdfResources(effectContent, graphicsStates),
-                        FilterPdfResources(effectContent, shadings));
+                        FilterPdfResources(effectContent, shadings),
+                        effect.StructParentIndex);
                     int effectId = AddStreamObject(objects, dictionary, effectBytes);
                     effect.Name = "/Fx" + (effectIndex + 1).ToString(CultureInfo.InvariantCulture);
                     effect.ObjectId = effectId;
                     xobjects.Add((effect.Name, effectId));
                 }
             }
+
+            if (markInfo) AssignStructParentIndex(page, ref nextStructParentIndex);
 
             string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
             string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo);
@@ -534,7 +541,7 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
                 contentStr += WrapArtifactContent(footer, markInfo);
             }
-            bool flattenVisualAnnotations = pageOpts.FlattenVisualAnnotations;
+            bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
             if (flattenVisualAnnotations) {
                 contentStr += BuildFlattenedVisualAnnotationContent(
                     page,
@@ -547,7 +554,7 @@ internal static partial class PdfWriter {
             }
 
             byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);
-            int contentId = pageOpts.CompressContentStreams
+            int contentId = opts.CompressContentStreams
                 ? AddFlateStreamObject(objects, contentBytes)
                 : AddStreamObject(objects, contentBytes);
             // Annotations (links and form widgets)
@@ -1024,6 +1031,28 @@ internal static partial class PdfWriter {
         return result;
     }
 
+    private static List<int> ExtractMarkedContentIds(string content) {
+        var ids = new List<int>();
+        const string marker = "/MCID";
+        int searchIndex = 0;
+        while ((searchIndex = content.IndexOf(marker, searchIndex, StringComparison.Ordinal)) >= 0) {
+            int valueStart = searchIndex + marker.Length;
+            while (valueStart < content.Length && char.IsWhiteSpace(content[valueStart])) valueStart++;
+            int valueEnd = valueStart;
+            while (valueEnd < content.Length && char.IsDigit(content[valueEnd])) valueEnd++;
+            if (valueEnd > valueStart) {
+                int id = 0;
+                for (int index = valueStart; index < valueEnd; index++) id = checked(id * 10 + content[index] - '0');
+                if (!ids.Contains(id)) ids.Add(id);
+            }
+
+            searchIndex = valueEnd > searchIndex ? valueEnd : searchIndex + marker.Length;
+        }
+
+        ids.Sort();
+        return ids;
+    }
+
     private static List<(string Name, int Id)> FilterPdfResources(
         string content,
         List<(string Name, int Id)> resources) {
@@ -1104,7 +1133,8 @@ internal static partial class PdfWriter {
             page.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
-                AlternativeText = image.AlternativeText!
+                AlternativeText = image.AlternativeText!,
+                ParentElementIndex = image.StructureParentElementIndex
             });
         }
     }
@@ -1121,7 +1151,10 @@ internal static partial class PdfWriter {
     }
 
     private static void AssignStructParentIndex(LayoutResult.Page page, ref int nextStructParentIndex) {
-        if (page.StructElements.Count > 0 && !page.StructParentIndex.HasValue) {
+        bool hasPageMarkedContent = page.StructElements.Any(element =>
+            element.MarkedContentId.HasValue && FindMarkedContentStreamObjectId(page, element.MarkedContentId.Value) == null ||
+            element.AdditionalMarkedContentIds != null && element.AdditionalMarkedContentIds.Any(id => FindMarkedContentStreamObjectId(page, id) == null));
+        if (hasPageMarkedContent && !page.StructParentIndex.HasValue) {
             page.StructParentIndex = nextStructParentIndex++;
         }
     }
@@ -1177,6 +1210,12 @@ internal static partial class PdfWriter {
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
+                int? contentStreamObjectId = element.MarkedContentId.HasValue
+                    ? FindMarkedContentStreamObjectId(page, element.MarkedContentId.Value)
+                    : null;
+                List<int?>? additionalContentStreamObjectIds = element.AdditionalMarkedContentIds?
+                    .Select(id => FindMarkedContentStreamObjectId(page, id))
+                    .ToList();
                 int parentObjectId = element.ParentElement != null
                     ? element.ParentElement.ObjectId
                     : element.ParentElementIndex.HasValue &&
@@ -1194,14 +1233,17 @@ internal static partial class PdfWriter {
                         element.AdditionalMarkedContentIds,
                         element.AdditionalAnnotationObjectIds,
                         element.StructureType,
-                        element.AlternativeText);
+                        element.AlternativeText,
+                        contentStreamObjectId,
+                        additionalContentStreamObjectIds);
                 } else if (element.MarkedContentId.HasValue) {
                     structElement = string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)
                         ? PdfStructTreeRootDictionaryBuilder.BuildFigureStructElement(
                             parentObjectId,
                             pageIds[pageIndex],
                             element.MarkedContentId.Value,
-                            element.AlternativeText)
+                            element.AlternativeText,
+                            contentStreamObjectId)
                         : PdfStructTreeRootDictionaryBuilder.BuildTextStructElement(
                             parentObjectId,
                             pageIds[pageIndex],
@@ -1210,7 +1252,9 @@ internal static partial class PdfWriter {
                             element.TableHeaderScope,
                             element.TableColumnSpan,
                             element.TableRowSpan,
-                            element.AdditionalMarkedContentIds);
+                            element.AdditionalMarkedContentIds,
+                            contentStreamObjectId,
+                            additionalContentStreamObjectIds);
                 } else {
                     var elementChildIds = new List<int>();
                     for (int childIndex = 0; childIndex < page.StructElements.Count; childIndex++) {
@@ -1252,10 +1296,10 @@ internal static partial class PdfWriter {
                 }
             }
 
-            var pageElementIds = new List<int>();
-            foreach ((int MarkedContentId, int ObjectId) mapping in pageMarkedContentElements.OrderBy(mapping => mapping.MarkedContentId)) {
-                pageElementIds.Add(mapping.ObjectId);
-            }
+            var pageOwnedMappings = pageMarkedContentElements
+                .Where(mapping => FindMarkedContentStreamObjectId(page, mapping.MarkedContentId) == null)
+                .ToList();
+            var pageElementIds = BuildMarkedContentParentArray(pageOwnedMappings);
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
@@ -1266,6 +1310,16 @@ internal static partial class PdfWriter {
 
             if (page.StructParentIndex.HasValue && pageElementIds.Count > 0) {
                 parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(page.StructParentIndex.Value, pageElementIds));
+            }
+
+            foreach (PageEffectGroup effect in page.EffectGroups.Where(effect => effect.StructParentIndex.HasValue && effect.MarkedContentIds.Count > 0)) {
+                var effectMappings = pageMarkedContentElements
+                    .Where(mapping => effect.MarkedContentIds.Contains(mapping.MarkedContentId))
+                    .ToList();
+                var effectElementIds = BuildMarkedContentParentArray(effectMappings);
+                if (effectElementIds.Count > 0) {
+                    parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentContainer(effect.StructParentIndex!.Value, effectElementIds));
+                }
             }
 
             foreach (PageStructElement element in page.StructElements.Where(element => element.AnnotationObjectId.HasValue && element.AnnotationStructParentIndex.HasValue).OrderBy(element => element.AnnotationStructParentIndex!.Value)) {
@@ -1290,6 +1344,26 @@ internal static partial class PdfWriter {
             ? 0
             : parentTreeEntries.Max(entry => entry.StructParentIndex) + 1;
         ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { documentStructElementId }, parentTreeId, parentTreeNextKey));
+    }
+
+    private static int? FindMarkedContentStreamObjectId(LayoutResult.Page page, int markedContentId) {
+        for (int index = 0; index < page.EffectGroups.Count; index++) {
+            PageEffectGroup effect = page.EffectGroups[index];
+            if (effect.MarkedContentIds.Contains(markedContentId)) return effect.ObjectId;
+        }
+
+        return null;
+    }
+
+    private static List<int?> BuildMarkedContentParentArray(List<(int MarkedContentId, int ObjectId)> mappings) {
+        if (mappings.Count == 0) return new List<int?>();
+        int maximumId = mappings.Max(mapping => mapping.MarkedContentId);
+        var result = Enumerable.Repeat<int?>(null, maximumId + 1).ToList();
+        for (int index = 0; index < mappings.Count; index++) {
+            result[mappings[index].MarkedContentId] = mappings[index].ObjectId;
+        }
+
+        return result;
     }
 
     private static string BuildPageBackgroundShapes(LayoutResult.Page page, System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> shapes) {
@@ -1405,6 +1479,8 @@ internal static partial class PdfWriter {
         OfficeTransform imageTransform = new OfficeImageProjection(
             new OfficeImagePlacement(img.X, img.Y, img.W, img.H),
             rotationDegrees: img.RotationAngle,
+            rotationCenterX: img.RotationCenterX,
+            rotationCenterY: img.RotationCenterY,
             flipHorizontal: img.HorizontalFlip,
             flipVertical: img.VerticalFlip)
             .CreateUnitSquareTransform();

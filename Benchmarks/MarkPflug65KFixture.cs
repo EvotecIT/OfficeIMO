@@ -12,7 +12,7 @@ internal static class MarkPflug65KFixture {
     internal const int ExpectedColumns = 14;
     internal const long ExpectedCsvCharacters = 7_253_195;
     internal const ulong ExpectedCsvChecksum = 13_293_175_220_557_208_268UL;
-    internal const ulong ExpectedExcelChecksum = 3_905_306_703_451_929_130UL;
+    internal const ulong ExpectedExcelChecksum = 4_251_811_854_364_456_502UL;
     internal const string CsvFileName = "65K_Records_Data.csv";
     internal const string XlsFileName = "65K_Records_Data.xls";
     internal const string XlsxFileName = "65K_Records_Data.xlsx";

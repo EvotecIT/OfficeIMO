@@ -84,6 +84,100 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<T> rows,
             bool includeHeaders,
             int startRow) {
+            if (rows[0] is not Dictionary<string, object?> firstDictionary) {
+                return false;
+            }
+
+            if (firstDictionary.Count == 0) {
+                return TryInsertGeneralExactDictionaryRowsAsDeferredDirectSave(rows, includeHeaders, startRow);
+            }
+
+            var headers = new List<string>();
+            var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
+            var state = new FlatDictionaryProjectionState();
+            foreach (var entry in firstDictionary) {
+                string columnName = entry.Key ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(columnName)) {
+                    return TryInsertGeneralExactDictionaryRowsAsDeferredDirectSave(rows, includeHeaders, startRow);
+                }
+
+                ValidateObjectExportDenseDimensions(rows.Count, headers.Count + 1, includeHeaders);
+                EnsureObjectExportColumnAvailable(headers.Count);
+                headerIndexes.Add(columnName, headers.Count);
+                headers.Add(columnName);
+            }
+
+            if (HasDuplicateObjectExportHeaders(headers)
+                || !CanRegisterDirectTabularSaveCandidate(startRow, 1, headers.Count)) {
+                return TryInsertGeneralExactDictionaryRowsAsDeferredDirectSave(rows, includeHeaders, startRow);
+            }
+
+            state.EnsureColumnTypeCapacity(headers.Count);
+            var values = new object?[checked(rows.Count * headers.Count)];
+            bool valuesMatchColumnTypes = true;
+
+            for (int r = 0; r < rows.Count; r++) {
+                if (rows[r] is not Dictionary<string, object?> dictionary) {
+                    return false;
+                }
+
+                if (dictionary.Count != headers.Count) {
+                    valuesMatchColumnTypes = false;
+                }
+
+                foreach (var entry in dictionary) {
+                    string columnName = entry.Key ?? string.Empty;
+                    if (!headerIndexes.TryGetValue(columnName, out int columnIndex)) {
+                        // Different casing, a custom comparer match, or a genuinely new key
+                        // belongs to the general snapshotting shape planner.
+                        return TryInsertGeneralExactDictionaryRowsAsDeferredDirectSave(rows, includeHeaders, startRow);
+                    }
+
+                    object? value = entry.Value;
+                    if (!IsFlatDictionaryObjectExportValue(value)) {
+                        return false;
+                    }
+
+                    values[(r * headers.Count) + columnIndex] = value;
+                    if (value == null || value == DBNull.Value) {
+                        valuesMatchColumnTypes = false;
+                    }
+
+                    UpdateObjectExportColumnType(state.InferredColumnTypes, columnIndex, value);
+                }
+            }
+
+            ValidateObjectExportDenseDimensions(rows.Count, headers.Count, includeHeaders);
+            state.NormalizeColumnTypeWidth(headers.Count);
+
+            Type[] columnTypes = CompleteObjectExportColumnTypes(state.InferredColumnTypes);
+            if (valuesMatchColumnTypes) {
+                for (int columnIndex = 0; columnIndex < columnTypes.Length; columnIndex++) {
+                    if (columnTypes[columnIndex] == typeof(object)) {
+                        valuesMatchColumnTypes = false;
+                        break;
+                    }
+                }
+            }
+
+            string range = BuildObjectExportRange(startRow, headers.Count, rows.Count, includeHeaders);
+            return TryInsertCellValuesAsDeferredDirectSave(
+                Name,
+                headers,
+                columnTypes,
+                values,
+                headers.Count,
+                rows.Count,
+                startRow,
+                includeHeaders,
+                range,
+                valuesMatchColumnTypes: valuesMatchColumnTypes);
+        }
+
+        private bool TryInsertGeneralExactDictionaryRowsAsDeferredDirectSave<T>(
+            IReadOnlyList<T> rows,
+            bool includeHeaders,
+            int startRow) {
             var headers = new List<string>();
             var headerIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
             var directRows = new object?[rows.Count][];

@@ -24,10 +24,6 @@ namespace OfficeIMO.Excel {
                 && _canStreamWorksheetPart;
         }
 
-        private bool CanUseAutomaticXmlReadFastPath(ExcelExecutionPolicy policy) {
-            return policy.OnDecision == null;
-        }
-
         private bool CanUseDataTableXmlBufferedReader() {
             return (_opt.CellValueConverter != null || _opt.Culture == CultureInfo.InvariantCulture)
                 && CanStreamWorksheetPart();

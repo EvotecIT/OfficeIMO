@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using Sylvan.Data.Csv;
 
 namespace OfficeIMO.CSV.Benchmarks;
@@ -31,15 +32,67 @@ public class CsvDataReaderWriteBenchmarks
     private bool _captureOutput;
     private string? _capturedOutput;
 
-    [Params(25000)]
+    public int ParallelDegree { get; set; } = 4;
+
+    public int ParallelBatchSize { get; set; } = 4096;
+
+    [Params(25000, 100000)]
     public int RowCount { get; set; }
 
     [Params(CsvBenchmarkShape.Mixed, CsvBenchmarkShape.Quoted, CsvBenchmarkShape.Multiline)]
     public CsvBenchmarkShape Shape { get; set; }
 
-    [GlobalSetup]
     public void Setup()
     {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    public void SetupOfficeIMOAndSylvan()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    public void SetupOfficeIMOSequentialAndParallel()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteDataReader))]
+    public void SetupOfficeIMO()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
+    }
+
+    [GlobalSetup(Target = nameof(Sylvan_WriteDataReader))]
+    public void SetupSylvan()
+    {
+        Initialize();
+        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteDataReaderParallel))]
+    public void SetupOfficeIMOParallel()
+    {
+        Initialize();
+        ValidateOutput(nameof(OfficeIMO_WriteDataReaderParallel), OfficeIMO_WriteDataReaderParallel);
+    }
+
+    private void Initialize()
+    {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority))
+        {
+            BenchmarkProcessorAffinity.ApplyPriority(priority);
+        }
+
         var source = CsvBenchmarkData.Create(RowCount, Shape);
         _rows = new object?[source.Length][];
         for (var i = 0; i < source.Length; i++)
@@ -60,8 +113,6 @@ public class CsvDataReaderWriteBenchmarks
             ];
         }
 
-        ValidateOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
-        ValidateOutput(nameof(Sylvan_WriteDataReader), Sylvan_WriteDataReader);
     }
 
     [Benchmark(Baseline = true)]
@@ -70,6 +121,23 @@ public class CsvDataReaderWriteBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteDataReaderParallel()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _rows, FieldTypes);
+        CsvDocument.WriteDataReaderParallel(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" },
+            new CsvWriteParallelOptions
+            {
+                MaxDegreeOfParallelism = ParallelDegree,
+                BatchSize = ParallelBatchSize
+            });
         return CompleteWrite(writer);
     }
 

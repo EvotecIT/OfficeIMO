@@ -1,29 +1,32 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private bool ReadCurrentRowRecordsFast() {
             bool checkCancellation = _cancellationToken.CanBeCanceled;
             byte[] bytes = _records.Buffer;
+            // Discovery validated every record boundary in this immutable buffer.
+            ref byte data = ref MemoryMarshal.GetReference(bytes.AsSpan());
             int position = _records.Position;
             int length = _records.Length;
             while (position < length) {
-                int firstTypeByte = bytes[position++];
+                int firstTypeByte = Unsafe.Add(ref data, position++);
                 int recordType = firstTypeByte & 0x7F;
                 if ((firstTypeByte & 0x80) != 0) {
-                    recordType |= (bytes[position++] & 0x7F) << 7;
+                    recordType |= (Unsafe.Add(ref data, position++) & 0x7F) << 7;
                 }
 
-                int current = bytes[position++];
+                int current = Unsafe.Add(ref data, position++);
                 int recordSize = current & 0x7F;
                 if ((current & 0x80) != 0) {
-                    current = bytes[position++];
+                    current = Unsafe.Add(ref data, position++);
                     recordSize |= (current & 0x7F) << 7;
                     if ((current & 0x80) != 0) {
-                        current = bytes[position++];
+                        current = Unsafe.Add(ref data, position++);
                         recordSize |= (current & 0x7F) << 14;
                         if ((current & 0x80) != 0) {
-                            current = bytes[position++];
+                            current = Unsafe.Add(ref data, position++);
                             recordSize |= (current & 0x7F) << 21;
                         }
                     }
@@ -35,7 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     CheckCancellation();
                 }
                 if (recordType == BrtRowHdr) {
-                    int rowIndex = Unsafe.ReadUnaligned<int>(ref bytes[payloadOffset]);
+                    int rowIndex = Unsafe.ReadUnaligned<int>(ref Unsafe.Add(ref data, payloadOffset));
                     if (rowIndex <= _lastDataRow) {
                         _pendingRowIndex = rowIndex;
                         _hasPendingRow = true;

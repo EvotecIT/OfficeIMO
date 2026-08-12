@@ -19,7 +19,8 @@ namespace OfficeIMO.Excel {
         public bool UsedFastPackageWriter => Writer == ExcelSavePackageWriter.SimplePackage
             || Writer == ExcelSavePackageWriter.ExtendedPackage
             || Writer == ExcelSavePackageWriter.UnchangedPackage
-            || Writer == ExcelSavePackageWriter.DirectDataSetPackage;
+            || Writer == ExcelSavePackageWriter.DirectDataSetPackage
+            || Writer == ExcelSavePackageWriter.NativeBinaryDirectPackage;
 
         /// <summary>
         /// Reason the fast package writer was skipped, when the save fell back to full package finalization.
@@ -37,6 +38,9 @@ namespace OfficeIMO.Excel {
 
         internal static ExcelSaveDiagnostics DirectDataSetPackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.DirectDataSetPackage, fastPackageSkipReason: null);
+
+        internal static ExcelSaveDiagnostics NativeBinaryDirectPackage() =>
+            new ExcelSaveDiagnostics(ExcelSavePackageWriter.NativeBinaryDirectPackage, fastPackageSkipReason: null);
 
         internal static ExcelSaveDiagnostics UnchangedPackage() =>
             new ExcelSaveDiagnostics(ExcelSavePackageWriter.UnchangedPackage, fastPackageSkipReason: null);
@@ -69,6 +73,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// A DataSet import package was written directly from the retained DataSet export model.
         /// </summary>
-        DirectDataSetPackage
+        DirectDataSetPackage,
+
+        /// <summary>
+        /// A native binary workbook was written directly from a retained tabular model.
+        /// </summary>
+        NativeBinaryDirectPackage
     }
 }

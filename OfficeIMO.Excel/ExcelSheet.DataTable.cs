@@ -77,11 +77,10 @@ namespace OfficeIMO.Excel {
 
             bool canRegisterDirectSave = registerDirectSaveCandidate
                 && !_excelDocument.IsMaterializingDeferredDataSetImport
-                && mode != ExcelExecutionMode.Parallel
                 && CanRegisterDirectTabularSaveCandidate(startRow, startColumn, table.Columns.Count);
 
-            if (canRegisterDirectSave
-                && TryInsertDataTableAsDeferredDirectSave(
+            if (canRegisterDirectSave) {
+                if (TryInsertDataTableAsDeferredDirectSave(
                     table,
                     startRow,
                     startColumn,
@@ -91,13 +90,19 @@ namespace OfficeIMO.Excel {
                     tableName: null,
                     style: ExcelTableStyle.TableStyleMedium2,
                     includeAutoFilter: false,
+                    eagerValueSnapshot: mode == ExcelExecutionMode.Parallel,
                     ct)) {
-                return;
+                    return;
+                }
+
+                if (mode == ExcelExecutionMode.Parallel) {
+                    canRegisterDirectSave = false;
+                }
             }
 
             _excelDocument.MaterializeDeferredDataSetImport();
 
-            if (mode != ExcelExecutionMode.Parallel && TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
+            if (TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);
                 return;
             }
@@ -229,6 +234,7 @@ namespace OfficeIMO.Excel {
             string? tableName,
             ExcelTableStyle style,
             bool includeAutoFilter,
+            bool eagerValueSnapshot,
             CancellationToken ct) {
             string range = BuildDataTableInsertedRange(table, startRow, startColumn, includeHeaders);
             if (range.Length == 0) {
@@ -238,9 +244,9 @@ namespace OfficeIMO.Excel {
             DataTable directSaveTable = table;
             bool directSaveIncludesHeaders = includeHeaders;
             if (createTable && !includeHeaders) {
-                directSaveTable = CreateHeaderlessDirectSaveTable(table);
+                directSaveTable = CreateHeaderlessDirectSaveTable(table, ct);
                 directSaveIncludesHeaders = false;
-                copyDirectSaveTable = false;
+                copyDirectSaveTable = eagerValueSnapshot;
             }
 
             ct.ThrowIfCancellationRequested();
@@ -254,7 +260,9 @@ namespace OfficeIMO.Excel {
                 style,
                 includeAutoFilter,
                 autoFit: false,
-                copyTable: copyDirectSaveTable);
+                copyTable: copyDirectSaveTable,
+                cancellationToken: ct,
+                eagerValueSnapshot: eagerValueSnapshot);
         }
     }
 }

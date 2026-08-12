@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
-        /// Opens an XLSX, XLSM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
+        /// Opens an XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// Worksheets are exposed in workbook order through <see cref="DbDataReader.NextResult"/>.
         /// </summary>
         public static ExcelWorkbookDataReader OpenDataReader(string path, ExcelReadOptions? options = null) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Opens an XLSX, XLSM, XLSB, or BIFF8 XLS workbook stream as a forward-only data reader.
+        /// Opens an XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook stream as a forward-only data reader.
         /// The format is detected from the package rather than the file name. The input stream
         /// remains open after the returned reader is disposed.
         /// </summary>
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Opens an in-memory XLSX, XLSM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
+        /// Opens an in-memory XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// </summary>
         public static ExcelWorkbookDataReader OpenDataReader(byte[] bytes, ExcelReadOptions? options = null) {
             if (bytes == null) {

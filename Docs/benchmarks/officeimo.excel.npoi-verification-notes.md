@@ -1,6 +1,6 @@
 # OfficeIMO.Excel NPOI Verification Notes
 
-Date: 2026-06-25
+Date: 2026-08-10
 
 This note documents the opt-in NPOI benchmark runner. It is not a product
 roadmap, not a dependency proposal, and not an API design source. OfficeIMO
@@ -27,6 +27,8 @@ model is mature.
 The current opt-in runner covers scenarios that are natural benchmark checks:
 
 - `xlsx-write-cellvalues`: plain row/cell writes to `.xlsx`.
+- `xls-write-cellvalues`: plain row/cell writes to native BIFF8 `.xls`, with a
+  separate paired ABBA/BAAB runner for processor-affinity-aware comparisons.
 - `xlsx-read-cellvalues`: plain row/cell reads from the same `.xlsx` shape.
 - `xls-read-cellvalues`: scalar values from a generated `.xls` fixture.
 - `xls-read-formulas`: formula text and cached values from a generated `.xls`
@@ -60,6 +62,26 @@ SkiaSharp is referenced by the benchmark project only because the external
 reader loads it for some HSSF drawing/comment paths. That reference must stay
 local to the benchmark project.
 
+### Paired XLS write evidence
+
+The direct BIFF8 write lane was measured on this machine with .NET 8, process
+priority `High`, 12 warmups, and 40 alternating ABBA/BAAB samples. Validation is
+outside the timed interval: every OfficeIMO workbook is read by OfficeIMO and
+NPOI, and every NPOI workbook is read by OfficeIMO. The two affinity masks are
+reported separately because this processor has asymmetric CPU domains.
+
+| Rows | Affinity | OfficeIMO median | NPOI median | Paired ratio median | P25-P75 |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 2,500 | `0xFFFF` | 8.369 ms | 10.230 ms | 0.8922 | 0.6874-1.4090 |
+| 2,500 | `0xFFFF0000` | 7.860 ms | 9.116 ms | 0.8337 | 0.5924-0.9542 |
+| 25,000 | `0xFFFF` | 48.939 ms | 121.644 ms | 0.4014 | 0.3485-0.4950 |
+| 25,000 | `0xFFFF0000` | 49.367 ms | 107.442 ms | 0.4545 | 0.3505-0.5844 |
+
+The 25,000-row result is a clear lead in both domains. At 2,500 rows the medians
+also favor OfficeIMO, but the `0xFFFF` interquartile range crosses parity, so the
+small-workload result should be described as CPU-sensitive rather than a broad
+decisive win.
+
 ## Direction
 
 Continue the OfficeIMO legacy XLS work on its own architecture:
@@ -69,5 +91,7 @@ Continue the OfficeIMO legacy XLS work on its own architecture:
   APIs;
 - report preserve-only content with stable diagnostics and corpus baselines;
 - grow coverage from fixtures, corpus evidence, and user workflows;
-- keep native `.xls` write/edit out of scope until the read/import model is
-  stable enough to justify a separate design.
+- keep the direct native `.xls` tabular writer limited to supported BIFF8 scalar
+  semantics, and route richer workbooks through the general writer. Excel stores
+  numeric cells as IEEE-754 doubles, so large integral and decimal CLR values have
+  the same precision boundary as other native Excel numeric writes.

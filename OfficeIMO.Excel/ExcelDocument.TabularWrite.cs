@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        private const string DefaultDataReaderTableName = "ReaderData";
+
         /// <summary>
         /// Writes strongly typed rows directly into an XLSX package through a row writer.
         /// Sources are consumed once while worksheet XML is written unless table creation requires
@@ -217,7 +219,9 @@ namespace OfficeIMO.Excel {
             Type[] fieldTypes = ExcelSheet.BuildReaderFieldTypes(reader);
             string[] columnNames = ExcelSheet.BuildDirectReaderColumnNames(headers, options.IncludeHeaders);
             Type[] columnTypes = ExcelSheet.BuildDirectReaderColumnTypes(fieldTypes);
-            if (!options.UseSharedStrings && !options.CreateTable && !options.AutoFit) {
+            if (!options.UseSharedStrings
+                && !options.AutoFit
+                && (!options.CreateTable || options.IncludeHeaders)) {
                 return WriteStreamingDataReader(stream, reader, columnNames, columnTypes, options, ct);
             }
 
@@ -240,7 +244,7 @@ namespace OfficeIMO.Excel {
             }
 
             var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
-            return WriteTabularModel(stream, tableModel, options, ct);
+            return WriteTabularModel(stream, tableModel, options, ct, DefaultDataReaderTableName);
         }
 
         private static ExcelDataSetImportResult WriteStreamingDataReader(
@@ -255,11 +259,11 @@ namespace OfficeIMO.Excel {
             string initialRange = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, 0, options.IncludeHeaders);
             var model = DirectDataSetWorkbookModel.CreateSingle(
                 sheetName,
-                sheetName,
-                tableName: null,
+                DefaultDataReaderTableName,
+                options.TableName,
                 initialRange,
                 tableModel,
-                createTable: false,
+                options.CreateTable,
                 options.TableStyle,
                 options.IncludeHeaders,
                 options.IncludeAutoFilter,
@@ -280,21 +284,23 @@ namespace OfficeIMO.Excel {
             }
 
             string range = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, rowCount, options.IncludeHeaders);
-            return new ExcelDataSetImportResult(sheetName, tableName: null, range, rowCount, tableModel.ColumnCount);
+            string? tableName = options.CreateTable ? model.Sheets[0].TableName : null;
+            return new ExcelDataSetImportResult(sheetName, tableName, range, rowCount, tableModel.ColumnCount);
         }
 
         private static ExcelDataSetImportResult WriteTabularModel(
             Stream stream,
             DirectDataSetTableModel tableModel,
             ExcelTabularWriteOptions? options,
-            CancellationToken ct) {
+            CancellationToken ct,
+            string? defaultTableName = null) {
             if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
             options ??= new ExcelTabularWriteOptions();
             string sheetName = DirectDataSetWorkbookModel.SanitizeSheetName(options.SheetName);
             string range = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, tableModel.RowCount, options.IncludeHeaders);
             var model = DirectDataSetWorkbookModel.CreateSingle(
                 sheetName,
-                sheetName,
+                defaultTableName ?? sheetName,
                 options.TableName,
                 range,
                 tableModel,

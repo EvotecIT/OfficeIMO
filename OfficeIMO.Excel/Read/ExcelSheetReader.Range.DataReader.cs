@@ -145,7 +145,6 @@ namespace OfficeIMO.Excel {
             }
             if (schemaSampleRows == 0
                 && rows > BufferedRangeStreamRowLimit
-                && mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
                 && CanUseRangeStreamXmlReader()) {
                 if (cols > _opt.MaxDataReaderBufferedCells) {
                     throw new InvalidDataException($"Range data-reader buffering exceeds {nameof(ExcelReadOptions.MaxDataReaderBufferedCells)}.");
@@ -181,8 +180,7 @@ namespace OfficeIMO.Excel {
                 ct.ThrowIfCancellationRequested();
             }
 
-            if (mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                && CanUseRangeStreamXmlReader()
+            if (CanUseRangeStreamXmlReader()
                 && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
                 foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;
@@ -196,8 +194,7 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            if (mode != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                && RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
+            if (RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
                 foreach (var chunk in ReadSortedDomRangeStream(sheetData, r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;
                 }

@@ -272,9 +272,12 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            PrepareWorkbookForSave(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            bool directWrite = TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] xlsBytes);
+            if (!directWrite) {
+                PrepareWorkbookForSave(options);
+                cancellationToken.ThrowIfCancellationRequested();
+                xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -299,7 +302,9 @@ namespace OfficeIMO.Excel {
                 MarkPackageClean(null);
             }
 
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+            LastSaveDiagnostics = directWrite
+                ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             return true;
         }
@@ -310,9 +315,12 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            PrepareWorkbookForSave(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            bool directWrite = TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] xlsBytes);
+            if (!directWrite) {
+                PrepareWorkbookForSave(options);
+                cancellationToken.ThrowIfCancellationRequested();
+                xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             bool reopenWorkingPackage = ShouldCloseOpenPackageForNativeLegacyXlsFileSave(path);
             byte[]? workingPackageBytes = reopenWorkingPackage
@@ -337,7 +345,9 @@ namespace OfficeIMO.Excel {
                 MarkPackageClean(null);
             }
 
-            LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
+            LastSaveDiagnostics = directWrite
+                ? ExcelSaveDiagnostics.NativeBinaryDirectPackage()
+                : ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
             return true;
         }
@@ -352,6 +362,16 @@ namespace OfficeIMO.Excel {
                 includeProjectedChartSheets: true,
                 preserveLinkedVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
+            if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] directXlsBytes)) {
+                PrepareDestinationStreamForWrite(destination);
+                destination.Write(directXlsBytes, 0, directXlsBytes.Length);
+                try { destination.Flush(); } catch (NotSupportedException) { }
+                MarkPackageClean(null);
+                DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
+                return true;
+            }
+
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
@@ -375,6 +395,16 @@ namespace OfficeIMO.Excel {
                 includeProjectedChartSheets: true,
                 preserveLinkedVbaProject: true);
             cancellationToken.ThrowIfCancellationRequested();
+            if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] directXlsBytes)) {
+                PrepareDestinationStreamForWrite(destination);
+                await destination.WriteAsync(directXlsBytes, 0, directXlsBytes.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+                MarkPackageClean(null);
+                DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
+                return true;
+            }
+
             PrepareWorkbookForSave(options);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] xlsBytes = OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.WriteWorkbook(this);
@@ -385,6 +415,88 @@ namespace OfficeIMO.Excel {
             MarkPackageClean(null);
             DisablePackageCopyBackAfterNativeLegacyXlsSave(destination);
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS stream save used the first-party BIFF8 writer.");
+            return true;
+        }
+
+        private bool TryBuildDirectTabularLegacyXls(
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken,
+            out byte[] xlsBytes) {
+            xlsBytes = Array.Empty<byte>();
+            if (!TryGetDirectTabularSaveSource(options, cancellationToken, "Xls", out ExcelDirectTabularSource source)) {
+                return false;
+            }
+
+            if (!OfficeIMO.Excel.LegacyXls.Write.LegacyXlsWriter.TryWriteDirectTabularWorkbook(this, source, cancellationToken, out xlsBytes)) {
+                Execution.ReportInfo("Save.Xls.Direct skipped: the tabular values require the general BIFF8 value encoder.");
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return true;
+        }
+
+        private bool TryGetDirectTabularSaveSource(
+            ExcelSaveOptions? options,
+            CancellationToken cancellationToken,
+            string formatName,
+            out ExcelDirectTabularSource source) {
+            source = null!;
+            bool Skip(string reason) {
+                Execution.ReportInfo($"Save.{formatName}.Direct skipped: " + reason);
+                return false;
+            }
+
+            if (options?.DisableFastPackageWriter == true
+                || options?.SafePreflight == true
+                || options?.SafeRepairDefinedNames == true
+                || HasCalculationSaveWork(options)) {
+                return Skip("save options require the general native writer path.");
+            }
+
+            bool pendingWritesRequireSavePreflight = _pendingDirectCellValueRequiresSavePreflight;
+            PromotePendingDirectCellValueSheetIfPossible();
+            _requiresSavePreflight |= pendingWritesRequireSavePreflight;
+            if (_packagePropertiesDirty
+                || _requiresSavePreflight
+                || WorkbookRoot.DefinedNames?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any() == true
+                || HasWorkbookContentOutsideDirectDataSetImport(allowSheets: true)) {
+                return Skip("workbook state requires materialization or preflight.");
+            }
+
+            DirectDataSetSaveCandidate? candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || !candidate.IsDeferred
+                || !TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel model, out _)
+                || model.Sheets.Count != 1) {
+                return Skip("no single validated deferred tabular model is available.");
+            }
+
+            DirectDataSetSheetModel sheet = model.Sheets[0];
+            if (sheet.HasTable
+                || sheet.IncludeAutoFilter
+                || sheet.AutoFitColumns
+                || sheet.OmitBlankCells
+                || sheet.Metadata?.IsEmpty == false
+                || sheet.ColumnNumberFormats != null
+                || !A1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                || firstRow != 1
+                || firstColumn != 1
+                || lastRow != sheet.Table.RowCount + (sheet.IncludeHeaders ? 1 : 0)
+                || lastColumn != sheet.Table.ColumnCount) {
+                return Skip(
+                    "the deferred worksheet uses metadata or a non-contiguous shape " +
+                    $"(table={sheet.HasTable}, filter={sheet.IncludeAutoFilter}, autoFit={sheet.AutoFitColumns}, " +
+                    $"omitBlank={sheet.OmitBlankCells}, valueFormats={sheet.UseCellValueNumberFormats}, " +
+                    $"metadata={sheet.Metadata?.IsEmpty == false}, columnFormats={sheet.ColumnNumberFormats != null}, " +
+                    $"range='{sheet.Range}', rows={sheet.Table.RowCount}, columns={sheet.Table.ColumnCount}).");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            ApplySignatureMutationPolicy(options);
+            source = new ExcelDirectTabularSource(
+                sheet.SheetName,
+                sheet.Table,
+                sheet.IncludeHeaders);
             return true;
         }
 

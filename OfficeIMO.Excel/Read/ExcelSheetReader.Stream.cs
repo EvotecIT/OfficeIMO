@@ -31,14 +31,18 @@ namespace OfficeIMO.Excel {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             bool automaticDecision = decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic;
-            if (automaticDecision) {
-                decided = policy.Decide("ReadRangeStream", estRows);
+            bool decisionReported = false;
+            void ReportActual(OfficeIMO.Excel.ExcelExecutionMode actual) {
+                if (decisionReported) return;
+                policy.ReportDecision("ReadRangeStream", estRows, actual);
+                decisionReported = true;
             }
 
-            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                && ShouldAttemptUtf8Range(r1, r2)
+            if (ShouldAttemptUtf8Range(r1, r2)
                 && RangeReachesDeclaredWorksheetEnd(r2)
                 && TryCreateRangeStreamUtf8(r1, c1, r2, c2, ct, out var utf8Source)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                 using (utf8Source) {
                     foreach (var chunk in ReadRangeStreamUtf8(utf8Source!, r1, c1, r2, c2, chunkRows, ct)) {
                         yield return chunk;
@@ -48,9 +52,11 @@ namespace OfficeIMO.Excel {
                 yield break;
             }
 
-            if (automaticDecision && CanAttemptRangeStreamXmlReader()) {
+            if (CanAttemptRangeStreamXmlReader()) {
                 if (chunkRows >= estRows) {
                     if (TryReadSingleRangeChunkXmlFast(r1, c1, r2, c2, ct, out var chunk)) {
+                        ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                         if (chunk != null) {
                             yield return chunk;
                         }
@@ -59,8 +65,11 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (estRows <= BufferedRangeStreamRowLimit
+                if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
+                    && estRows <= BufferedRangeStreamRowLimit
                     && TryReadBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var bufferedChunks)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     foreach (var chunk in bufferedChunks) {
                         yield return chunk;
                     }
@@ -70,6 +79,8 @@ namespace OfficeIMO.Excel {
 
                 if (ShouldUseOrderedBufferedXmlStream(estRows, c1, c2)
                     && TryReadOrderedBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var automaticChunks)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     foreach (var chunk in automaticChunks) {
                         yield return chunk;
                     }
@@ -77,14 +88,78 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
 
-                if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                    && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
                     foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                         yield return chunk;
                     }
 
                     yield break;
                 }
+            }
+
+            if (estRows <= BufferedRangeStreamRowLimit
+                && CanUseRangeStreamXmlReader()) {
+                if (chunkRows >= estRows) {
+                    if (TryReadSingleRangeChunkXmlFast(r1, c1, r2, c2, ct, out var chunk)) {
+                        ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
+                        if (chunk != null) {
+                            yield return chunk;
+                        }
+
+                        yield break;
+                    }
+                }
+
+                if (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel
+                    && ShouldUseOrderedBufferedXmlStream(estRows, c1, c2)
+                    && TryReadOrderedBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var sparseChunks)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+                    foreach (var chunk in sparseChunks) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
+                if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
+                    && TryReadBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var chunks)) {
+                    ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
+                    foreach (var chunk in chunks) {
+                        yield return chunk;
+                    }
+
+                    yield break;
+                }
+
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
+                foreach (var chunk in ReadBufferedRangeStreamFromFastRange(a1Range, r1, c1, chunkRows, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
+            if (CanUseRangeStreamXmlReader()
+                && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                ReportActual(OfficeIMO.Excel.ExcelExecutionMode.Sequential);
+
+                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
+            if (automaticDecision) {
+                decided = policy.Decide("ReadRangeStream", estRows);
+                decisionReported = true;
+            } else {
+                ReportActual(decided);
             }
 
             int dop = (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel)
@@ -95,46 +170,8 @@ namespace OfficeIMO.Excel {
             int nextToYield = 0;
             int chunkIndex = 0;
 
-            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                && estRows <= BufferedRangeStreamRowLimit
-                && CanUseRangeStreamXmlReader()) {
-                if (chunkRows >= estRows) {
-                    if (TryReadSingleRangeChunkXmlFast(r1, c1, r2, c2, ct, out var chunk)) {
-                        if (chunk != null) {
-                            yield return chunk;
-                        }
-
-                        yield break;
-                    }
-                }
-
-                if (TryReadBufferedRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, estRows, ct, out var chunks)) {
-                    foreach (var chunk in chunks) {
-                        yield return chunk;
-                    }
-
-                    yield break;
-                }
-
-                foreach (var chunk in ReadBufferedRangeStreamFromFastRange(a1Range, r1, c1, chunkRows, ct)) {
-                    yield return chunk;
-                }
-
-                yield break;
-            }
-
             if (estRows <= BufferedRangeStreamRowLimit) {
                 foreach (var chunk in ReadBufferedRows(EnumerateWorksheetRows(ct), r1, c1, r2, c2, decided, ct)) {
-                    yield return chunk;
-                }
-
-                yield break;
-            }
-
-            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Parallel
-                && CanUseRangeStreamXmlReader()
-                && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
-                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                     yield return chunk;
                 }
 

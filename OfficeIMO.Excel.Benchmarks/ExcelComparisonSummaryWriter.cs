@@ -273,6 +273,10 @@ internal static class ExcelComparisonSummaryWriter {
                 : "DataTable table export";
         }
 
+        if (string.Equals(scenario, "write-flat-dictionaries-direct-package", StringComparison.OrdinalIgnoreCase)) {
+            return "Dictionary streaming export";
+        }
+
         if (scenario.Contains("insertobjects", StringComparison.OrdinalIgnoreCase)
             || scenario.Contains("rowsfrom", StringComparison.OrdinalIgnoreCase)) {
             return "Typed object export";

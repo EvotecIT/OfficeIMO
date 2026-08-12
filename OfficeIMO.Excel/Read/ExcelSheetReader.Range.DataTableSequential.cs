@@ -13,19 +13,11 @@ namespace OfficeIMO.Excel {
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private bool CanUseSequentialRangeFastPath(string operationName, int workload, OfficeIMO.Excel.ExcelExecutionMode? mode) {
+        private bool CanUseReadObjectsMaterializedFastPath(string operationName, int workload, OfficeIMO.Excel.ExcelExecutionMode? mode) {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Sequential) {
+            if (decided != OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
                 return true;
-            }
-
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel) {
-                return false;
-            }
-
-            if (policy.OnDecision != null) {
-                return false;
             }
 
             int threshold = policy.OperationThresholds.TryGetValue(operationName, out int value)

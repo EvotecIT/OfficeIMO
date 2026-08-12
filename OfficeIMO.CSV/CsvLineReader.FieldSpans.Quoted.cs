@@ -52,7 +52,7 @@ internal sealed partial class CsvLineReader
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
         PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
-        ConsumeLineSeparator(_buffer[recordEnd], out separator);
+        ConsumeLineSeparator(_buffer[recordEnd], out separator, deferLineFeedRead: true);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
     }
@@ -136,7 +136,7 @@ internal sealed partial class CsvLineReader
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = recordEnd;
         PhysicalLineSeparatorsConsumed += embeddedLineSeparatorCount;
-        ConsumeLineSeparator(_buffer[recordEnd], out separator);
+        ConsumeLineSeparator(_buffer[recordEnd], out separator, deferLineFeedRead: true);
         readResult = CsvLineReadResult.UnquotedRecord;
         return true;
     }

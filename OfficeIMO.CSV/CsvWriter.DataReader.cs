@@ -76,18 +76,45 @@ internal static partial class CsvWriter
                 buffer.Append(delimiter);
             }
 
-            var value = reader.GetValue(i);
-            if (value is null || ReferenceEquals(value, DBNull.Value))
+            var fieldKind = fieldKinds[i];
+            if (fieldKind == DataReaderFieldKind.Object || !TryAppendTypedDataReaderValue(
+                    buffer,
+                    reader,
+                    i,
+                    fieldKind,
+                    delimiter,
+                    culture))
             {
-                continue;
+                fieldKinds[i] = DataReaderFieldKind.Object;
+                AppendDataReaderObjectValue(buffer, reader.GetValue(i), delimiter, culture);
+            }
+        }
+
+        buffer.Append(newLine);
+    }
+
+    private static bool TryAppendTypedDataReaderValue(
+        StringBuilder buffer,
+        IDataRecord reader,
+        int ordinal,
+        DataReaderFieldKind fieldKind,
+        char delimiter,
+        CultureInfo culture)
+    {
+        try
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                return true;
             }
 
-            switch (fieldKinds[i])
+            switch (fieldKind)
             {
-                case DataReaderFieldKind.String when value is string text:
-                    WriteEscapedDefault(buffer, text, delimiter);
-                    break;
-                case DataReaderFieldKind.Boolean when value is bool boolean:
+                case DataReaderFieldKind.String:
+                    WriteEscapedDefault(buffer, reader.GetString(ordinal), delimiter);
+                    return true;
+                case DataReaderFieldKind.Boolean:
+                    var boolean = reader.GetBoolean(ordinal);
                     if (delimiter == ',')
                     {
                         buffer.Append(boolean ? "True" : "False");
@@ -96,65 +123,65 @@ internal static partial class CsvWriter
                     {
                         WriteEscapedDefault(buffer, boolean ? "True" : "False", delimiter);
                     }
-                    break;
-                case DataReaderFieldKind.Decimal when value is decimal number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Int32 when value is int number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.DateTime when value is DateTime dateTime:
-                    AppendKnownValueDefault(buffer, dateTime, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Double when value is double number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Int64 when value is long number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.DateTimeOffset when value is DateTimeOffset dateTimeOffset:
-                    AppendKnownValueDefault(buffer, dateTimeOffset, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Guid when value is Guid guid:
-                    AppendKnownValueDefault(buffer, guid, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.TimeSpan when value is TimeSpan timeSpan:
-                    AppendKnownValueDefault(buffer, timeSpan, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Single when value is float number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Byte when value is byte number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.SByte when value is sbyte number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.Int16 when value is short number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.UInt16 when value is ushort number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.UInt32 when value is uint number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.UInt64 when value is ulong number:
-                    AppendKnownValueDefault(buffer, number, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.DateOnly when value is DateOnly dateOnly:
-                    AppendKnownValueDefault(buffer, dateOnly, delimiter, culture);
-                    break;
-                case DataReaderFieldKind.TimeOnly when value is TimeOnly timeOnly:
-                    AppendKnownValueDefault(buffer, timeOnly, delimiter, culture);
-                    break;
+
+                    return true;
+                case DataReaderFieldKind.Decimal:
+                    AppendKnownValueDefault(buffer, reader.GetDecimal(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Int32:
+                    AppendKnownValueDefault(buffer, reader.GetInt32(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.DateTime:
+                    AppendKnownValueDefault(buffer, reader.GetDateTime(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Double:
+                    AppendKnownValueDefault(buffer, reader.GetDouble(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Int64:
+                    AppendKnownValueDefault(buffer, reader.GetInt64(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Guid:
+                    AppendKnownValueDefault(buffer, reader.GetGuid(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Single:
+                    AppendKnownValueDefault(buffer, reader.GetFloat(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Byte:
+                    AppendKnownValueDefault(buffer, reader.GetByte(ordinal), delimiter, culture);
+                    return true;
+                case DataReaderFieldKind.Int16:
+                    AppendKnownValueDefault(buffer, reader.GetInt16(ordinal), delimiter, culture);
+                    return true;
                 default:
-                    AppendEscapedValueDefault(buffer, value, delimiter, culture);
-                    break;
+                    return false;
             }
         }
+        catch (InvalidCastException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (NotImplementedException)
+        {
+            return false;
+        }
+    }
 
-        buffer.Append(newLine);
+    private static void AppendDataReaderObjectValue(
+        StringBuilder buffer,
+        object? value,
+        char delimiter,
+        CultureInfo culture)
+    {
+        if (value is null || ReferenceEquals(value, DBNull.Value))
+        {
+            return;
+        }
+
+        AppendEscapedValueDefault(buffer, value, delimiter, culture);
     }
 
     internal static void FlushBufferedContent(TextWriter writer, StringBuilder buffer)
