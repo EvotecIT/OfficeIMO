@@ -346,7 +346,7 @@ public class PdfAcroFormAuthoringTests {
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
 
         byte[] nonWidgetAction = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
-            .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx", StringComparison.Ordinal));
+            .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx"));
         Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
@@ -526,7 +526,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Reader_AccountsWidgetActionsEvenWhenWidgetGeometryIsUnreadable() {
         byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
-            .Replace(" /Rect [20 20 160 48]", string.Empty, StringComparison.Ordinal));
+            .Replace(" /Rect [20 20 160 48]", string.Empty));
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
