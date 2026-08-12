@@ -50,7 +50,11 @@ namespace OfficeIMO.Excel {
             };
             for (int columnIndex = 0; columnIndex < source.ColumnCount; columnIndex++) {
                 ct.ThrowIfCancellationRequested();
-                table.Columns.Add(source.GetColumnName(columnIndex), source.GetColumnType(columnIndex));
+                // The fallback only transports already-materialized cell values. Object columns preserve
+                // those runtime values without forcing every caller-provided schema Type to root public
+                // members for trimming. InsertDataTableAsTable still infers cell kinds and date/time styles
+                // from each value, matching the direct row-source path.
+                table.Columns.Add(source.GetColumnName(columnIndex), typeof(object));
             }
 
             table.BeginLoadData();

@@ -187,6 +187,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InsertTabularRowSourceAsTable_FallbackPreservesRuntimeCellTypes() {
+            string filePath = Path.Combine(_directoryWithFiles, "TabularSourceFallbackTypes.xlsx");
+            var recorded = new DateTime(2026, 8, 12, 14, 30, 0, DateTimeKind.Unspecified);
+            var duration = new TimeSpan(2, 15, 30);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(10, 1, "Existing");
+
+                string range = sheet.InsertTabularRowSourceAsTable(
+                    new TypedTabularRowSource(recorded, duration),
+                    tableName: "TypedFallback");
+
+                Assert.Equal("A1:D2", range);
+                Assert.True(sheet.TryGetCellText(10, 1, out string? existing));
+                Assert.Equal("Existing", existing);
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToList();
+
+                Cell GetCell(string reference) => cells.First(cell => cell.CellReference == reference);
+
+                Cell recordedCell = GetCell("B2");
+                Assert.True(recordedCell.DataType == null || recordedCell.DataType.Value == CellValues.Number);
+                AssertRoundTripNumericText(recorded.ToOADate(), recordedCell.CellValue!.Text);
+                Assert.NotNull(recordedCell.StyleIndex);
+
+                Cell durationCell = GetCell("C2");
+                Assert.True(durationCell.DataType == null || durationCell.DataType.Value == CellValues.Number);
+                AssertRoundTripNumericText(duration.TotalDays, durationCell.CellValue!.Text);
+                Assert.NotNull(durationCell.StyleIndex);
+
+                Cell amountCell = GetCell("D2");
+                Assert.True(amountCell.DataType == null || amountCell.DataType.Value == CellValues.Number);
+                Assert.Equal("42", amountCell.CellValue!.Text);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_InsertDataSet_CreatesWorksheetPerTableWithSafeNames() {
             string filePath = Path.Combine(_directoryWithFiles, "DataSetImport.xlsx");
 
@@ -945,6 +989,52 @@ namespace OfficeIMO.Tests {
 
                 values = new object?[] { "Alpha", 10 };
                 return true;
+            }
+
+            public bool TryGetFlatValues(out object?[] values, out int columnCount) {
+                values = Array.Empty<object?>();
+                columnCount = 0;
+                return false;
+            }
+        }
+
+        private sealed class TypedTabularRowSource : IExcelSheetTabularRowSource {
+            private readonly DateTime _recorded;
+            private readonly TimeSpan _duration;
+
+            internal TypedTabularRowSource(DateTime recorded, TimeSpan duration) {
+                _recorded = recorded;
+                _duration = duration;
+            }
+
+            public int ColumnCount => 4;
+
+            public int RowCount => 1;
+
+            public string GetColumnName(int index) => index switch {
+                0 => "Name",
+                1 => "Recorded",
+                2 => "Duration",
+                _ => "Amount"
+            };
+
+            public Type GetColumnType(int index) => index switch {
+                0 => typeof(string),
+                1 => typeof(DateTime),
+                2 => typeof(TimeSpan),
+                _ => typeof(int)
+            };
+
+            public object? GetValue(int rowIndex, int columnIndex) => columnIndex switch {
+                0 => "Alpha",
+                1 => _recorded,
+                2 => _duration,
+                _ => 42
+            };
+
+            public bool TryGetBufferedRow(int rowIndex, out object?[]? values) {
+                values = null;
+                return false;
             }
 
             public bool TryGetFlatValues(out object?[] values, out int columnCount) {
