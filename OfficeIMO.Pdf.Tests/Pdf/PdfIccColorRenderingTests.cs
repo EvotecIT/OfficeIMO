@@ -520,6 +520,29 @@ public class PdfIccColorRenderingTests {
         Assert.Single(drawing.Shapes);
     }
 
+    [Theory]
+    [InlineData("CalGray", "<< /WhitePoint [0.9505 1 1.089] /Gamma 2 >>", "0.5 scn")]
+    [InlineData("CalRGB", "<< /WhitePoint [0.9505 1 1.089] /Gamma [2 2 2] >>", "0.5 0.5 0.5 scn")]
+    [InlineData("Lab", "<< /WhitePoint [0.9505 1 1.089] /Range [-100 100 -100 100] >>", "50 0 0 scn")]
+    public void RenderPage_ResolvesMultiHopCalibratedDictionaries(
+        string colorSpaceKind,
+        string calibrationDictionary,
+        string colorOperation) {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            colorOperation,
+            "7 0 obj\n8 0 R\nendobj\n8 0 obj\n" + calibrationDictionary + "\nendobj\n",
+            colorSpaceName: "CsCal",
+            colorSpaceResources: "/CsCal [/" + colorSpaceKind + " 7 0 R]");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);
+        Assert.DoesNotContain(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsCal");
+    }
+
     [Fact]
     public void RenderPage_ResolvesMultiHopIccRangeEndpoints() {
         byte[] pdf = BuildIccContentPdf(

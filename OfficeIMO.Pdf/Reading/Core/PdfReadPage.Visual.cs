@@ -895,31 +895,31 @@ public sealed partial class PdfReadPage {
         if (name is "DeviceCMYK" or "CMYK") return 4;
         if (name is "DeviceGray" or "G") return 1;
         PdfObject? colorSpaceDictionary = resources?.Items.TryGetValue("ColorSpace", out PdfObject? declaration) == true
-            ? ResolveIccDeclaration(declaration)
+            ? ResolveColorSpaceDeclaration(declaration)
             : null;
         PdfDictionary? colorSpaces = colorSpaceDictionary as PdfDictionary;
         if (colorSpaces == null || !colorSpaces.Items.TryGetValue(name, out PdfObject? value)) return 1;
-        PdfObject? resolved = ResolveIccDeclaration(value);
+        PdfObject? resolved = ResolveColorSpaceDeclaration(value);
         if (resolved is PdfName directName) return GetDeclaredColorSpaceComponentCount(null, directName.Name);
         if (resolved is not PdfArray { Items.Count: > 0 } array ||
-            ResolveIccDeclaration(array.Items[0]) is not PdfName kind) return 1;
+            ResolveColorSpaceDeclaration(array.Items[0]) is not PdfName kind) return 1;
         if (kind.Name is "DeviceRGB" or "RGB" or "CalRGB" or "Lab") return 3;
         if (kind.Name is "DeviceCMYK" or "CMYK") return 4;
         if (kind.Name is "Indexed" or "I" or "Separation") return 1;
         if (kind.Name is "DeviceN" or "NChannel") {
-            return array.Items.Count > 1 && ResolveIccDeclaration(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 0
+            return array.Items.Count > 1 && ResolveColorSpaceDeclaration(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 0
                 ? colorants.Items.Count
                 : 1;
         }
         if (kind.Name is "ICCBased" or "ICC" && array.Items.Count > 1) {
-            PdfObject? profile = ResolveIccDeclaration(array.Items[1]);
+            PdfObject? profile = ResolveColorSpaceDeclaration(array.Items[1]);
             PdfDictionary? dictionary = profile switch {
                 PdfStream stream => stream.Dictionary,
                 PdfDictionary direct => direct,
                 _ => null
             };
             PdfObject? componentCount = dictionary?.Items.TryGetValue("N", out PdfObject? declaredCount) == true
-                ? ResolveIccDeclaration(declaredCount)
+                ? ResolveColorSpaceDeclaration(declaredCount)
                 : null;
             int? count = componentCount is PdfNumber number &&
                 number.Value >= int.MinValue && number.Value <= int.MaxValue &&

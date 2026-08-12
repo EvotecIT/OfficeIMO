@@ -141,10 +141,9 @@ public sealed partial class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x7258595AU, out XyzValue redColumn) && // rXYZ
             TryReadXyzTag(profileBytes, tags, 0x6758595AU, out XyzValue greenColumn) && // gXYZ
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
-            if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn)) return false;
-            XyzValue mediaWhitePoint = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
-                ? authoredMediaWhite
-                : whitePoint;
+            if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn) ||
+                !TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue mediaWhitePoint) ||
+                !mediaWhitePoint.IsPositive) return false;
             IPcsToDeviceTransform?[]? outputTransforms;
             if (HasAuthoredPcsToDeviceTransform(tags)) {
                 outputTransforms = TryReadPcsToDeviceTransforms(

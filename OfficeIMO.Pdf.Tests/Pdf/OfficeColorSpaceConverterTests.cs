@@ -635,6 +635,17 @@ public class OfficeColorSpaceConverterTests {
         Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
     }
 
+    [Fact]
+    public void IccRgbProfile_RequiresValidMediaWhitePoint() {
+        byte[] missingWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        RenameTag(missingWhitePoint, "wtpt", "desc");
+        byte[] nonpositiveWhitePoint = PdfIccProfiles.SrgbIec6196621;
+        WriteS15Fixed16(nonpositiveWhitePoint, FindTagOffset(nonpositiveWhitePoint, "wtpt") + 8, 0D);
+
+        Assert.False(OfficeIccColorProfile.TryCreate(missingWhitePoint, out _));
+        Assert.False(OfficeIccColorProfile.TryCreate(nonpositiveWhitePoint, out _));
+    }
+
     private static int FindTagOffset(byte[] profile, string signature) {
         int entry = FindTagEntryOffset(profile, signature);
         return checked((int)ReadUInt32(profile, entry + 4));

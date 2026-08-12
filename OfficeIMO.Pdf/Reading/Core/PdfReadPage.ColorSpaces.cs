@@ -35,15 +35,15 @@ public sealed partial class PdfReadPage {
                     TryReadAlternateColorSpace(array, PdfPageColorSpaceKind.DeviceN, componentCount, depth, out colorSpace);
             case "CalRGB":
                 return array.Items.Count > 1 &&
-                    ResolveDictionary(array.Items[1]) is PdfDictionary calibration &&
+                    ResolveColorSpaceDeclaration(array.Items[1]) is PdfDictionary calibration &&
                     TryReadCalRgbColorSpace(calibration, out colorSpace);
             case "CalGray":
                 return array.Items.Count > 1 &&
-                    ResolveDictionary(array.Items[1]) is PdfDictionary grayCalibration &&
+                    ResolveColorSpaceDeclaration(array.Items[1]) is PdfDictionary grayCalibration &&
                     TryReadCalGrayColorSpace(grayCalibration, out colorSpace);
             case "Lab":
                 return array.Items.Count > 1 &&
-                    ResolveDictionary(array.Items[1]) is PdfDictionary labCalibration &&
+                    ResolveColorSpaceDeclaration(array.Items[1]) is PdfDictionary labCalibration &&
                     TryReadLabColorSpace(labCalibration, out colorSpace);
             default:
                 return TryReadStandardColorSpaceName(arrayName.Name, out colorSpace);
@@ -53,7 +53,7 @@ public sealed partial class PdfReadPage {
     private bool TryReadIccColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 2) return false;
-        PdfObject? resolvedProfile = ResolveIccDeclaration(array.Items[1]);
+        PdfObject? resolvedProfile = ResolveColorSpaceDeclaration(array.Items[1]);
         PdfDictionary? profile = resolvedProfile switch {
             PdfStream stream => stream.Dictionary,
             PdfDictionary dictionary => dictionary,
@@ -72,7 +72,7 @@ public sealed partial class PdfReadPage {
         int componentCount = components.GetValueOrDefault();
         IReadOnlyList<double>? ranges = null;
         if (profile != null && profile.Items.TryGetValue("Range", out PdfObject? rangeObject)) {
-            PdfObject? resolvedRange = ResolveIccDeclaration(rangeObject);
+            PdfObject? resolvedRange = ResolveColorSpaceDeclaration(rangeObject);
             if (resolvedRange == null) return false;
             if (resolvedRange is not PdfNull) {
                 if (!TryReadIccRange(resolvedRange, componentCount, out ranges)) return false;
@@ -93,7 +93,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (profile != null && profile.Items.TryGetValue("Alternate", out PdfObject? alternateObject)) {
-            PdfObject? resolvedAlternate = ResolveIccDeclaration(alternateObject);
+            PdfObject? resolvedAlternate = ResolveColorSpaceDeclaration(alternateObject);
             if (resolvedAlternate == null) return false;
             if (resolvedAlternate is not PdfNull) {
                 if (!TryReadExtendedColorSpaceResource(resolvedAlternate, depth + 1, out PdfPageColorSpace alternate) ||
@@ -110,7 +110,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private PdfObject? ResolveIccDeclaration(PdfObject? value) {
+    private PdfObject? ResolveColorSpaceDeclaration(PdfObject? value) {
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         PdfObject? resolved = value;
         while (resolved is PdfReference reference) {
@@ -126,7 +126,7 @@ public sealed partial class PdfReadPage {
         if (value is not PdfArray array || array.Items.Count != componentCount * 2) return false;
         var values = new double[array.Items.Count];
         for (int index = 0; index < values.Length; index++) {
-            if (ResolveIccDeclaration(array.Items[index]) is not PdfNumber number) return false;
+            if (ResolveColorSpaceDeclaration(array.Items[index]) is not PdfNumber number) return false;
             values[index] = number.Value;
         }
         ranges = values;
@@ -141,7 +141,7 @@ public sealed partial class PdfReadPage {
         value = null;
         hasValue = false;
         if (!dictionary.Items.TryGetValue(key, out PdfObject? declaration)) return true;
-        value = ResolveIccDeclaration(declaration);
+        value = ResolveColorSpaceDeclaration(declaration);
         if (value == null) return false;
         hasValue = value is not PdfNull;
         return true;
