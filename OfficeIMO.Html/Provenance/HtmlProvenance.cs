@@ -176,7 +176,7 @@ public static class HtmlProvenance {
                     OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
                     foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
                     foreach (string diagnostic in nested.Diagnostics) diagnostics.Add($"{location}: {diagnostic}");
-                } catch (InvalidDataException exception) {
+                } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
                     diagnostics.Add($"{location}: embedded image was preserved because inspection failed: {exception.Message}");
                 }
             }
@@ -211,7 +211,7 @@ public static class HtmlProvenance {
                             $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
                             change.RemovedBytes));
                     }
-                } catch (InvalidDataException) {
+                } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
                     // Preserve malformed embedded data; structural diagnostics are available through Inspect.
                 }
             }

@@ -169,6 +169,18 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlMalformedEmbeddedSvgIsDiagnosticInsteadOfAnException() {
+        byte[] malformedSvg = Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><broken></svg>");
+        string html = $"<html><head></head><body><img src=\"data:image/svg+xml;base64,{Convert.ToBase64String(malformedSvg)}\"></body></html>";
+
+        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Contains(report.Diagnostics, item => item.Contains("embedded image was preserved", StringComparison.Ordinal));
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void HtmlSanitizesEmbeddedImagesInResponsiveSourceSets() {
         byte[] image = CreatePngWithManifest(CreateManifestStore());
         string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
@@ -287,6 +299,53 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
         Assert.Equal("mimetype", archive.Entries[0].FullName);
         Assert.Equal(CompressionMethodStored, ReadCompressionMethod(result.ToArray(), archive.Entries[0].FullName));
+    }
+
+    [Fact]
+    public void OdfDefaultPolicyBlocksProducerSpecificNativeSignature() {
+        byte[] package = CreateZipPackage("odt", "META-INF/customsignatures.xml", CreatePngWithManifest(CreateManifestStore()));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OdfDocument.RemoveProvenance(package, "document.odt"));
+
+        Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SignatureRemovalPreviewHonorsDisabledEmbeddedAssets() {
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
+                WriteEntry(archive, "META-INF/content_credential.c2pa", CreateManifestStore(), CompressionLevel.Optimal);
+                WriteEntry(archive, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
+            }
+            package = output.ToArray();
+        }
+        var options = new OfficeProvenanceRemovalOptions {
+            ProcessEmbeddedAssets = false,
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+
+        OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt", options);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.True(result.WereInvalidatedSignaturesRemoved);
+    }
+
+    [Fact]
+    public void RemovalResultPreservesTheFiveArgumentBinaryConstructor() {
+        Type[] signature = {
+            typeof(byte[]),
+            typeof(OfficeProvenanceReport),
+            typeof(OfficeProvenanceReport),
+            typeof(IReadOnlyList<OfficeProvenanceChange>),
+            typeof(bool)
+        };
+
+        Assert.NotNull(typeof(OfficeProvenanceRemovalResult).GetConstructor(signature));
     }
 
     private const ushort CompressionMethodStored = 0;
