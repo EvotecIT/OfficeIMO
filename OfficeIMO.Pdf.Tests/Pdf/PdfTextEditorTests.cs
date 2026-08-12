@@ -282,6 +282,26 @@ public class PdfTextEditorTests {
         Assert.DoesNotContain("/OIMOEditF2", syntax, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ReplaceAllReflowsAnUnmatchedTrailingSpanInTheSameTextFlow() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (cat) Tj ET\n" +
+            "BT /F1 12 Tf 75 700 Td (tail) Tj ET\n");
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "cat",
+            "a much wider replacement",
+            new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch replacement = Assert.Single(result.Document.Text.Find(
+            "a much wider replacement",
+            new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch tail = Assert.Single(result.Document.Text.Find(
+            "tail",
+            new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.True(tail.X >= replacement.X + replacement.Width - 1D);
+    }
+
     [Theory]
     [InlineData("1 Tr")]
     [InlineData("2 Tr")]
@@ -385,6 +405,38 @@ public class PdfTextEditorTests {
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
         Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+    }
+
+    [Fact]
+    public void WholeWordSearchDoesNotSplitADecomposedGrapheme() {
+        const string decomposed = "re\u0301sume\u0301";
+        byte[] source = BuildRawTextPdf(
+            "/Span << /ActualText <FEFF00720065030100730075006D00650301> >> BDC " +
+            "BT /F1 12 Tf 50 700 Td (resume) Tj ET EMC\n");
+
+        Assert.Empty(PdfDocument.Open(source).Text.Find(
+            "re",
+            new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
+        Assert.Single(PdfDocument.Open(source).Text.Find(
+            decomposed,
+            new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
+    }
+
+    [Fact]
+    public void ReplaceSelectsATextSpanThatOnlyIntersectsTheRegionEdge() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (long source text) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "long source text",
+            new PdfTextSearchOptions { MatchCase = true }));
+        var edge = new PdfPageRegion(1, match.X + 0.25D, match.Y, 1D, match.Height);
+
+        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(edge);
+        PdfTextEditResult result = PdfDocument.Open(source).Text.Replace(edge, "updated");
+
+        Assert.Contains("long source text", inspected.Text, StringComparison.Ordinal);
+        Assert.Equal(1, result.AffectedCount);
+        Assert.DoesNotContain("long source text", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("updated", result.Document.Read.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

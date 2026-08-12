@@ -11,7 +11,7 @@ internal static partial class PdfTextEditor {
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         IReadOnlyList<PdfTextSpan> selected = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
-            .Where(span => IsVisibleSearchSpan(span) && ContainsCenter(region, GetBounds(span)))
+            .Where(span => IsVisibleSearchSpan(span) && Intersects(region, GetBounds(span)))
             .ToArray();
         return BuildRegionText(selected);
     }
@@ -98,6 +98,7 @@ internal static partial class PdfTextEditor {
                 edits.Add(new SpanTextEdit(segment.Start, segment.Length, segmentIndex == 0 ? replacement : string.Empty));
             }
         }
+        IncludeTrailingFlowSpans(rewrites, hits);
 
         PdfRedactionArea[] areas = rewrites.Keys
             .Select(static key => {
@@ -124,13 +125,13 @@ internal static partial class PdfTextEditor {
         }
 
         AddReflowedRewriteRequests(rewrittenRequests, positioned);
-        foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
+        foreach (IGrouping<int, PageSpanKey> pageRewrites in rewrites.Keys.GroupBy(static key => key.PageNumber)) {
             EnsureAppendOrderIsSafe(
                 pdf,
-                pageHits.Key,
-                pageHits.SelectMany(static hit => hit.Segments).Select(static segment => segment.Span).Distinct().ToArray(),
+                pageRewrites.Key,
+                pageRewrites.Select(static key => key.Span).ToArray(),
                 readOptions,
-                rewrittenRequests.Where(request => request.PageNumber == pageHits.Key).ToArray());
+                rewrittenRequests.Where(request => request.PageNumber == pageRewrites.Key).ToArray());
         }
         requests.AddRange(rewrittenRequests);
         byte[] current = ApplyStampRequests(removal.Bytes, requests, readOptions);
@@ -150,7 +151,7 @@ internal static partial class PdfTextEditor {
                 PdfTextSpan span = spans[spanIndex];
                 SpanBounds bounds = GetBounds(span);
                 bool targeted = exactTargets is null
-                    ? areas.Any(area => area.PageNumber == pageNumber && ContainsCenter(area, bounds))
+                    ? areas.Any(area => area.PageNumber == pageNumber && Intersects(area, bounds))
                     : exactTargets.Any(target => target.PageNumber == pageNumber && SameTargetSourceSpan(span, target.Span));
                 if (targeted && !IsSafelyEditableSpan(span)) {
                     throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
@@ -273,6 +274,27 @@ internal static partial class PdfTextEditor {
         }
     }
 
+    private static void IncludeTrailingFlowSpans(
+        Dictionary<PageSpanKey, List<SpanTextEdit>> rewrites,
+        IReadOnlyList<TextSearchHit> hits) {
+        for (int hitIndex = 0; hitIndex < hits.Count; hitIndex++) {
+            TextSearchHit hit = hits[hitIndex];
+            int lastMatchedIndex = -1;
+            for (int lineIndex = 0; lineIndex < hit.LineSpans.Length; lineIndex++) {
+                PdfTextSpan lineSpan = hit.LineSpans[lineIndex];
+                if (hit.Segments.Any(segment => ReferenceEquals(segment.Span, lineSpan))) {
+                    lastMatchedIndex = lineIndex;
+                }
+            }
+            for (int lineIndex = lastMatchedIndex + 1; lineIndex < hit.LineSpans.Length; lineIndex++) {
+                var key = new PageSpanKey(hit.PageNumber, hit.LineSpans[lineIndex]);
+                if (!rewrites.ContainsKey(key)) {
+                    rewrites.Add(key, new List<SpanTextEdit>());
+                }
+            }
+        }
+    }
+
     private static void AddReflowedLineRequests(List<PdfStamper.TextStampRequest> requests, List<PositionedRewrite> line) {
         PositionedRewrite[] ordered = line.OrderBy(static rewrite => BaselinePosition(rewrite.Source)).ToArray();
         double cumulativeShift = 0D;
@@ -376,17 +398,17 @@ internal static partial class PdfTextEditor {
         return new SpanBounds(left, bottom, Math.Max(0.1D, right - left), Math.Max(0.1D, top - bottom));
     }
 
-    private static bool ContainsCenter(PdfPageRegion region, SpanBounds bounds) {
-        double centerX = bounds.X + bounds.Width / 2D;
-        double centerY = bounds.Y + bounds.Height / 2D;
-        return centerX >= region.X && centerX <= region.Right && centerY >= region.Y && centerY <= region.Top;
-    }
+    private static bool Intersects(PdfPageRegion region, SpanBounds bounds) =>
+        bounds.X < region.Right &&
+        bounds.X + bounds.Width > region.X &&
+        bounds.Y < region.Top &&
+        bounds.Y + bounds.Height > region.Y;
 
-    private static bool ContainsCenter(PdfRedactionArea region, SpanBounds bounds) {
-        double centerX = bounds.X + bounds.Width / 2D;
-        double centerY = bounds.Y + bounds.Height / 2D;
-        return centerX >= region.X && centerX <= region.Right && centerY >= region.Y && centerY <= region.Top;
-    }
+    private static bool Intersects(PdfRedactionArea region, SpanBounds bounds) =>
+        bounds.X < region.X + region.Width &&
+        bounds.X + bounds.Width > region.X &&
+        bounds.Y < region.Y + region.Height &&
+        bounds.Y + bounds.Height > region.Y;
 
     private static bool SameTextPlacement(PdfTextSpan left, PdfTextSpan right) =>
         string.Equals(left.Text, right.Text, StringComparison.Ordinal) &&
@@ -462,7 +484,7 @@ internal static partial class PdfTextEditor {
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         bool containsUnsafeText = document.Pages[region.PageNumber - 1]
             .GetTextSpans()
-            .Any(span => !IsSafelyEditableSpan(span) && ContainsCenter(region, GetBounds(span)));
+            .Any(span => !IsSafelyEditableSpan(span) && Intersects(region, GetBounds(span)));
         if (containsUnsafeText) {
             throw new NotSupportedException("The selected region contains invisible or clipped text whose rendering state cannot be recreated safely.");
         }

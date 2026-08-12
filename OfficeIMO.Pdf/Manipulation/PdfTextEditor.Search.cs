@@ -36,7 +36,7 @@ internal static partial class PdfTextEditor {
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
                     var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X, matchBounds.Y, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
-                    hits.Add(new TextSearchHit(pageNumber, segments, match));
+                    hits.Add(new TextSearchHit(pageNumber, segments, line.Spans, match));
                 }
             }
         }
@@ -98,7 +98,13 @@ internal static partial class PdfTextEditor {
         return left && right;
     }
 
-    private static bool IsWordCharacter(char value) => char.IsLetterOrDigit(value) || value == '_';
+    private static bool IsWordCharacter(char value) {
+        if (char.IsLetterOrDigit(value) || value == '_') return true;
+        System.Globalization.UnicodeCategory category = char.GetUnicodeCategory(value);
+        return category is System.Globalization.UnicodeCategory.NonSpacingMark or
+            System.Globalization.UnicodeCategory.SpacingCombiningMark or
+            System.Globalization.UnicodeCategory.EnclosingMark;
+    }
 
     private sealed class TextSearchUnit {
         private readonly TextCharacterSource?[] _sources;
@@ -153,9 +159,10 @@ internal static partial class PdfTextEditor {
     }
 
     private sealed class TextSearchHit {
-        internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); Match = match; }
+        internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, IReadOnlyList<PdfTextSpan> lineSpans, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); LineSpans = lineSpans.ToArray(); Match = match; }
         internal int PageNumber { get; }
         internal TextSourceSegment[] Segments { get; }
+        internal PdfTextSpan[] LineSpans { get; }
         internal PdfTextMatch Match { get; }
     }
 
