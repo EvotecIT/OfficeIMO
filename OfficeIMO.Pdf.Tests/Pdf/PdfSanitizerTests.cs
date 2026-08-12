@@ -29,6 +29,7 @@ public class PdfSanitizerTests {
         Assert.Empty(info.CatalogActions);
         Assert.Empty(info.Pages[0].PageActions);
         Assert.Single(info.GetLinkAnnotationsByUri("https://example.com/safe"));
+        Assert.Contains(info.Annotations, annotation => annotation.Subtype == "Text" && annotation.Contents == "keep me");
         Assert.Empty(PdfSanitizer.Analyze(sanitized));
         string raw = PdfEncoding.Latin1GetString(sanitized);
         Assert.DoesNotContain("app.alert", raw, StringComparison.Ordinal);
@@ -142,7 +143,7 @@ public class PdfSanitizerTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R 9 0 R 10 0 R 11 0 R] /AA << /O 7 0 R >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R 9 0 R 10 0 R 11 0 R 15 0 R] /AA << /O 7 0 R >> >>",
             "endobj",
             "4 0 obj",
             "<< /Length 0 >>",
@@ -180,8 +181,11 @@ public class PdfSanitizerTests {
             "14 0 obj",
             "<< /S /GoToE /F << /F (embedded.pdf) >> /D [0 /Fit] >>",
             "endobj",
+            "15 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [200 20 220 40] /Contents (keep me) >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 15 >>",
+            "<< /Root 1 0 R /Size 16 >>",
             "%%EOF"
         }) + "\n";
 
