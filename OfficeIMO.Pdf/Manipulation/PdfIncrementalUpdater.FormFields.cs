@@ -391,6 +391,11 @@ internal static partial class PdfIncrementalUpdater {
         if (values.Count > 1 && !isMultiSelectChoice) {
             throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
         }
+        if (values.Count == 1 && values[0].Length == 0) {
+            return isMultiSelectChoice
+                ? IncrementalPreparedFieldValue.Multiple(Array.Empty<string>(), string.Empty)
+                : IncrementalPreparedFieldValue.Scalar(string.Empty, string.Empty);
+        }
 
         IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {

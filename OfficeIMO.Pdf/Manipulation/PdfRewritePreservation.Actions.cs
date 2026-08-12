@@ -142,22 +142,22 @@ public static partial class PdfRewritePreservation {
 
     private static string? NormalizeFilteredActionPath(string? value, PdfRewritePreservationOptions options) {
         if (!options.FilterActionsByPreservedTypes || value is null || value.Length == 0) return value;
-        const string nextMarker = ".Next.";
-        int markerIndex = value.IndexOf(nextMarker, StringComparison.Ordinal);
-        if (markerIndex < 0) return value;
-
-        var normalized = new System.Text.StringBuilder(value.Length);
-        int sourceIndex = 0;
-        while (markerIndex >= 0) {
-            int indexStart = markerIndex + nextMarker.Length;
-            int indexEnd = indexStart;
-            while (indexEnd < value.Length && value[indexEnd] >= '0' && value[indexEnd] <= '9') indexEnd++;
-            normalized.Append(value, sourceIndex, markerIndex - sourceIndex + ".Next".Length);
-            sourceIndex = indexEnd;
-            markerIndex = value.IndexOf(nextMarker, sourceIndex, StringComparison.Ordinal);
+        string[] segments = value.Split('.');
+        var normalized = new List<string>(segments.Length);
+        for (int index = 0; index < segments.Length; index++) {
+            if (string.Equals(segments[index], "Next", StringComparison.Ordinal)) {
+                if (index + 1 < segments.Length && int.TryParse(
+                        segments[index + 1],
+                        System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out _)) {
+                    index++;
+                }
+                continue;
+            }
+            normalized.Add(segments[index]);
         }
-        normalized.Append(value, sourceIndex, value.Length - sourceIndex);
-        return normalized.ToString();
+        return string.Join(".", normalized);
     }
 
     private static void CompareNullablePresence(List<PdfRewritePreservationIssue> issues, string feature, bool expectedPresent, bool actualPresent) {

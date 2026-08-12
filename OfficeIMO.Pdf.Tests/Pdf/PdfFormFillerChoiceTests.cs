@@ -17,6 +17,22 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void AppendRevision_EmptyChoiceValueClearsSelectionAndRebuildsBlankAppearance() {
+        byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "PL"
+        });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        PdfFormField field = Assert.Single(appended.Inspect().FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.True(appended.Inspect().Security.HasIncrementalUpdates);
+        Assert.DoesNotContain("<506F6C616E64> Tj", GetFlattenedAppearanceStreamText(
+            PdfFormFiller.FlattenFields(appended.ToBytes())), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillAndFlattenFields_PaintsChoiceOptionDisplayText() {
         byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Country"] = "PL"

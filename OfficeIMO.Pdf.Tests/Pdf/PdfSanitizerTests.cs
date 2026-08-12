@@ -170,6 +170,23 @@ public class PdfSanitizerTests {
         Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Sanitize_PromotesRetainedViewerNextActionAndProvesItsPreservation(bool catalogAction) {
+        byte[] source = BuildForbiddenViewerRootWithRetainedNextPdf(catalogAction);
+
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(source);
+        PdfDocumentInfo info = result.ToDocument().Inspect();
+        string actionType = catalogAction
+            ? Assert.Single(info.CatalogActions).ActionType
+            : Assert.Single(info.Pages[0].PageActions).ActionType;
+
+        Assert.Equal("GoTo", actionType);
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+        Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
+    }
+
     [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
@@ -316,6 +333,21 @@ public class PdfSanitizerTests {
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildForbiddenViewerRootWithRetainedNextPdf(bool catalogAction) {
+        string catalogEntry = catalogAction ? " /AA << /WC 7 0 R >>" : string.Empty;
+        string pageEntry = catalogAction ? string.Empty : " /AA << /O 7 0 R >>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R" + catalogEntry + " >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R" + pageEntry + " >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "7 0 obj", "<< /S /JavaScript /JS (app.alert\\('remove'\\);) /Next 8 0 R >>", "endobj",
+            "8 0 obj", "<< /S /GoTo /D [3 0 R /Fit] >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildMixedNextActionPdf(bool catalogAction) {

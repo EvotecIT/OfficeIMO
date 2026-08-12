@@ -176,13 +176,16 @@ internal static partial class PdfFormFiller {
             }
         }
 
+        string? encodedTextHex = preparedFontPlan is null
+            ? fontPlan?.EncodedTextHex
+            : fontPlan?.EncodeTextSegmentHex?.Invoke(displayValue);
         string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
             width,
             height,
             value,
             fontSize,
             effectiveStyle,
-            fontPlan?.EncodedTextHex,
+            encodedTextHex,
             fontResourceName: fontPlan?.FontResourceName ?? defaultAppearanceFontResourceName,
             encodeTextSegmentHex: fontPlan?.EncodeTextSegmentHex,
             measureTextSegmentWidth: fontPlan?.MeasureTextSegmentWidth,

@@ -732,6 +732,41 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void SharedRadioAppearanceFontEncodesEachOptionLabelIndependently() {
+        var resources = new PdfDictionary();
+        var plan = new PdfFormFiller.TextAppearanceFontPlan(
+            "FShared",
+            resources,
+            "414243",
+            text => string.Concat(text.Select(character => ((int)character).ToString("X2", System.Globalization.CultureInfo.InvariantCulture))),
+            null,
+            null,
+            null);
+        var objects = new Dictionary<int, PdfIndirectObject>();
+        int nextObjectNumber = 1;
+
+        PdfStream appearance = PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(
+            objects,
+            new PdfDictionary(),
+            new PdfDictionary(),
+            new PdfDictionary(),
+            "A",
+            120D,
+            14D,
+            new PdfFormFieldStyle(),
+            10D,
+            "shipping.method",
+            selected: false,
+            appearanceOptions: null,
+            preparedFontPlan: plan,
+            ref nextObjectNumber);
+        string content = PdfEncoding.Latin1GetString(appearance.Data);
+
+        Assert.Contains("<41> Tj", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("<414243> Tj", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_ReusesOneFallbackAppearanceFontAcrossRadioStatesAndOptions() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath is null) return;
