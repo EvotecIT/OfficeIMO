@@ -960,7 +960,8 @@ public partial class PdfType3UncoloredPatternTests {
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
                 StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Matrix 10 0 R /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 250 700 re f"),
-                "10 0 obj\n[1 0 0 1 250 0]\nendobj"
+                "10 0 obj\n[11 0 R 0 0 1 250 0]\nendobj",
+                "11 0 obj\n1\nendobj"
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -969,6 +970,29 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(22, 96));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(27, 96));
+    }
+
+    [Theory]
+    [InlineData("/BBox [0 0 0 700]", "/S /Alpha")]
+    [InlineData("/BBox [0 0 500 700] /Matrix [1 0 0 1 0 0 7]", "/S /Alpha")]
+    [InlineData("/BBox [0 0 500 700] /OC 10 0 R", "/S /Alpha")]
+    [InlineData("/BBox [0 0 500 700]", "/S /Luminosity /BC [0 /Bad 0]")]
+    public void RenderPage_FailsClosedForMalformedType3SoftMaskGroupSemantics(string formEntries, string maskEntries) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
+            glyphResources: "<< /ExtGState << /Masked << /SMask << " + maskEntries + " /G 9 0 R >> >> >> >>",
+            extraObjects: new[] {
+                StreamObject(9, "<< /Type /XObject /Subtype /Form " + formEntries + " /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 500 700 re f"),
+                "10 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]

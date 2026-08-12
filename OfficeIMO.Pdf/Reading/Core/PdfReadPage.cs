@@ -987,22 +987,24 @@ public sealed partial class PdfReadPage {
     }
 
     private Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
-        if (formDict is null ||
-            !formDict.Items.TryGetValue("Matrix", out var matrixObj) ||
-            ResolveEffectObject(matrixObj) is not PdfArray arr ||
-            arr.Items.Count < 6) {
-            return invocationTransform;
+        return TryReadFormMatrix(formDict, out Matrix2D formMatrix)
+            ? Matrix2D.Multiply(invocationTransform, formMatrix)
+            : invocationTransform;
+    }
+
+    private bool TryReadFormMatrix(PdfDictionary? formDict, out Matrix2D formMatrix) {
+        formMatrix = Matrix2D.Identity;
+        if (formDict is null || !formDict.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) return true;
+        if (ResolveEffectObject(matrixObject) is not PdfArray array || array.Items.Count != 6) return false;
+        var values = new double[6];
+        for (int index = 0; index < values.Length; index++) {
+            if (ResolveEffectObject(array.Items[index]) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) return false;
+            values[index] = number.Value;
         }
-
-        var formMatrix = new Matrix2D(
-            (arr.Items[0] as PdfNumber)?.Value ?? 1,
-            (arr.Items[1] as PdfNumber)?.Value ?? 0,
-            (arr.Items[2] as PdfNumber)?.Value ?? 0,
-            (arr.Items[3] as PdfNumber)?.Value ?? 1,
-            (arr.Items[4] as PdfNumber)?.Value ?? 0,
-            (arr.Items[5] as PdfNumber)?.Value ?? 0);
-
-        return Matrix2D.Multiply(invocationTransform, formMatrix);
+        formMatrix = new Matrix2D(values[0], values[1], values[2], values[3], values[4], values[5]);
+        return true;
     }
 
     private PdfObject? GetInheritedValue(string key) {

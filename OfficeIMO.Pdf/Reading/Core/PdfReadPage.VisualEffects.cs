@@ -68,16 +68,30 @@ public sealed partial class PdfReadPage {
         if (mode == OfficeSoftMaskMode.Luminosity &&
             mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
             if (ResolveEffectObject(backdropObject) is not PdfArray components) return null;
-            IReadOnlyList<double> values = ReadNumberArray(components);
+            if (!TryReadStrictNumberArray(components, out double[] values)) return null;
             int expectedComponents = groupColorSpace?.Name == "DeviceGray"
                 ? 1
-                : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Count;
-            if ((expectedComponents != 1 && expectedComponents != 3) || values.Count != expectedComponents) return null;
-            backdrop = values.Count == 1
+                : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Length;
+            if ((expectedComponents != 1 && expectedComponents != 3) || values.Length != expectedComponents) return null;
+            backdrop = values.Length == 1
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+    }
+
+    private bool TryReadStrictNumberArray(PdfArray array, out double[] values) {
+        values = new double[array.Items.Count];
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (ResolveEffectObject(array.Items[index]) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) {
+                values = Array.Empty<double>();
+                return false;
+            }
+            values[index] = number.Value;
+        }
+        return true;
     }
 
     private PdfObject? ResolveEffectObject(PdfObject? value) {
@@ -141,6 +155,14 @@ public sealed partial class PdfReadPage {
         if (resource == null) return true;
         if (!resource.IsIsolated) return false;
         if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
+        if (resource.Group.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) &&
+            ResolveEffectObject(optionalContent) is not PdfNull) return false;
+        if (!TryReadBox(
+                resource.Group.Dictionary.Items.TryGetValue("BBox", out PdfObject? boundingBox) ? boundingBox : null,
+                out (double X1, double Y1, double X2, double Y2) box) ||
+            box.X2 <= box.X1 ||
+            box.Y2 <= box.Y1) return false;
+        if (!TryReadFormMatrix(resource.Group.Dictionary, out _)) return false;
         EnsureContentNestingBudget(contentNestingDepth);
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);
