@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfIncrementalUpdater {
     private const string IncrementalDefaultAppearanceFontName = "Helv";
     private const int IncrementalRadioButtonFlag = 1 << 15;
+    private const int IncrementalPushButtonFlag = 1 << 16;
     private const int IncrementalMultilineFlag = 1 << 12;
     private const int IncrementalPasswordFlag = 1 << 13;
     private const int IncrementalEditableChoiceFlag = 1 << 18;
@@ -23,23 +24,24 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     private readonly struct IncrementalPreparedFieldValue {
-        private IncrementalPreparedFieldValue(string[] storedValues, string appearanceValue, bool forceMultilineAppearance) {
+        private IncrementalPreparedFieldValue(string[] storedValues, string appearanceValue, bool isMultiple, bool forceMultilineAppearance) {
             StoredValues = storedValues;
             AppearanceValue = appearanceValue;
+            IsMultiple = isMultiple;
             ForceMultilineAppearance = forceMultilineAppearance;
         }
 
         public string[] StoredValues { get; }
         public string FirstStoredValue => StoredValues[0];
         public string AppearanceValue { get; }
-        public bool IsMultiple => StoredValues.Length > 1;
+        public bool IsMultiple { get; }
         public bool ForceMultilineAppearance { get; }
 
         public static IncrementalPreparedFieldValue Scalar(string storedValue, string appearanceValue) =>
-            new IncrementalPreparedFieldValue(new[] { storedValue }, appearanceValue, forceMultilineAppearance: false);
+            new IncrementalPreparedFieldValue(new[] { storedValue }, appearanceValue, isMultiple: false, forceMultilineAppearance: false);
 
         public static IncrementalPreparedFieldValue Multiple(string[] storedValues, string appearanceValue) =>
-            new IncrementalPreparedFieldValue(storedValues, appearanceValue, forceMultilineAppearance: true);
+            new IncrementalPreparedFieldValue(storedValues, appearanceValue, isMultiple: true, forceMultilineAppearance: true);
     }
 
     /// <summary>
@@ -371,6 +373,9 @@ internal static partial class PdfIncrementalUpdater {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            if ((fieldFlags & IncrementalPushButtonFlag) != 0) {
+                throw new ArgumentException("Push-button fields do not have a fillable value.", nameof(value));
+            }
             if (values.Count > 1) {
                 throw new ArgumentException("PDF button field cannot be filled with multiple values.", nameof(value));
             }

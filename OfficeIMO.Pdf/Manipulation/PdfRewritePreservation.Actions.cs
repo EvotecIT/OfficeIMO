@@ -130,9 +130,10 @@ public static partial class PdfRewritePreservation {
                 for (int actionIndex = 0; actionIndex < widget.Actions.Count; actionIndex++) {
                     PdfFormWidgetAction action = widget.Actions[actionIndex];
                     if (options.FilterActionsByPreservedTypes && !options.PreservedActionTypes.Contains(action.ActionType)) continue;
+                    if (action.Uri is not null && options.ExcludedActionUris.Contains(action.Uri)) continue;
                     inventory.Add((field.Name ?? string.Empty) + "\u001f" +
                                   widgetIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
-                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty));
+                                  action.ActionType + "\u001f" + (action.JavaScript ?? string.Empty) + "\u001f" + (action.Uri ?? string.Empty));
                 }
             }
         }

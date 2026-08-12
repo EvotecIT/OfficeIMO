@@ -140,7 +140,7 @@ internal static partial class PdfSanitizer {
             }
 
             if (key == "Next" && resolved is PdfArray nextActions) {
-                FilterActions(objects, nextActions, policy);
+                FilterActions(objects, nextActions, policy, maximumActionDepth);
             }
 
             if (key == "URI" && resolved is PdfDictionary uriDictionary &&
@@ -231,13 +231,20 @@ internal static partial class PdfSanitizer {
     private static void FilterActions(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray actions,
-        PdfSanitizationOptions policy) {
-        for (int i = actions.Items.Count - 1; i >= 0; i--) {
-            if (Resolve(objects, actions.Items[i]) is PdfDictionary action &&
-                TryGetForbiddenAction(objects, action, policy, out _, out _)) {
-                actions.Items.RemoveAt(i);
-            }
+        PdfSanitizationOptions policy,
+        int maximumActionDepth) {
+        var retained = new List<PdfDictionary>();
+        for (int i = 0; i < actions.Items.Count; i++) {
+            retained.AddRange(CollectRetainedActions(
+                objects,
+                actions.Items[i],
+                policy,
+                maximumActionDepth,
+                depth: 0,
+                new HashSet<(int ObjectNumber, int Generation)>()));
         }
+        actions.Items.Clear();
+        for (int i = 0; i < retained.Count; i++) actions.Items.Add(retained[i]);
     }
 
     private static void FilterAnnotations(

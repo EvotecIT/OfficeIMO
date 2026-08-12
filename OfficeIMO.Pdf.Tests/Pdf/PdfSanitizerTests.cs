@@ -170,6 +170,29 @@ public class PdfSanitizerTests {
         Assert.Contains(result.RemovedFindings, static finding => finding.Detail == "JavaScript");
     }
 
+    [Fact]
+    public void Sanitize_RemovesUnsafeWidgetUriWithoutFailingPreservation() {
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildUnsafeWidgetUriPdf());
+
+        PdfFormWidget widget = Assert.Single(Assert.Single(result.ToDocument().Inspect().FormFields).Widgets);
+        Assert.Empty(widget.Actions);
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+        Assert.Contains(result.RemovedFindings, static finding =>
+            finding.Kind == PdfSanitizationFindingKind.UnsafeUri && finding.Detail == "javascript:unsafe");
+    }
+
+    [Fact]
+    public void Sanitize_PromotesAllowedDescendantFromForbiddenNextArrayEntry() {
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildAllowedRootWithForbiddenNextDescendantPdf());
+
+        PdfPageAction[] actions = result.ToDocument().Inspect().Pages[0].PageActions.ToArray();
+        Assert.Equal(2, actions.Length);
+        Assert.All(actions, static action => Assert.Equal("URI", action.ActionType));
+        Assert.Contains(actions, static action => action.Uri == "https://example.com/root");
+        Assert.Contains(actions, static action => action.Uri == "https://example.com/promoted");
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -333,6 +356,30 @@ public class PdfSanitizerTests {
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildUnsafeWidgetUriPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [6 0 R] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 44] /P 3 0 R /A << /S /URI /URI (javascript:unsafe) >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAllowedRootWithForbiddenNextDescendantPdf() {
+        string root = "<< /S /URI /URI (https://example.com/root) /Next [<< /S /JavaScript /JS (x) /Next << /S /URI /URI (https://example.com/promoted) >> >>] >>";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O " + root + " >> >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildForbiddenViewerRootWithRetainedNextPdf(bool catalogAction) {

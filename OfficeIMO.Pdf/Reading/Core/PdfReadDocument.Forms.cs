@@ -433,7 +433,10 @@ public sealed partial class PdfReadDocument {
             if (!hasReadableSource) javaScript = null;
         }
 
-        actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript));
+        string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal)
+            ? TryReadText(action, "URI")
+            : null;
+        actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript, uri));
         if (action.Items.TryGetValue("Next", out PdfObject? nextAction)) {
             AddWidgetNextActions(triggerName + ".Next", nextAction, actions, budget, pathReferences, depth + 1);
         }

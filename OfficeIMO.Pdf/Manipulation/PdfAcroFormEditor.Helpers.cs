@@ -193,16 +193,22 @@ internal static partial class PdfAcroFormEditor {
                     ? ResolveArray(objects, existingKidsObject)
                     : null;
                 bool hasNamedFieldKids = false;
+                bool hasUnnamedWidgetKids = false;
                 if (existingKids is not null) {
                     for (int kidIndex = 0; kidIndex < existingKids.Items.Count; kidIndex++) {
                         PdfDictionary? kid = ResolveDictionary(objects, existingKids.Items[kidIndex]);
-                        if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) {
+                        if (kid is null) continue;
+                        if (!string.IsNullOrEmpty(ReadText(kid, "T"))) {
                             hasNamedFieldKids = true;
                             break;
+                        }
+                        if (string.Equals(ReadName(kid, "Subtype"), "Widget", StringComparison.Ordinal)) {
+                            hasUnnamedWidgetKids = true;
                         }
                     }
                 }
                 if (string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal) ||
+                    hasUnnamedWidgetKids ||
                     (matchingDictionary.Items.ContainsKey("FT") && !hasNamedFieldKids)) {
                     throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
                 }
