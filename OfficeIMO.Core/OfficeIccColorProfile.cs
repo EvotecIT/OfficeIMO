@@ -123,6 +123,7 @@ public sealed class OfficeIccColorProfile {
             TryReadXyzTag(profileBytes, tags, 0x7258595AU, out XyzValue redColumn) && // rXYZ
             TryReadXyzTag(profileBytes, tags, 0x6758595AU, out XyzValue greenColumn) && // gXYZ
             TryReadXyzTag(profileBytes, tags, 0x6258595AU, out XyzValue blueColumn)) { // bXYZ
+            if (!IsUsableRgbMatrix(redColumn, greenColumn, blueColumn)) return false;
             profile = new OfficeIccColorProfile(
                 3,
                 redCurve,
@@ -402,7 +403,7 @@ public sealed class OfficeIccColorProfile {
         double slope = parameters[3];
         double boundary = parameters[4];
         if (slope < 0D) return false;
-        if (boundary <= 0D || boundary >= 1D) return true;
+        if (boundary < 0D || boundary > 1D) return true;
         double high = Math.Pow(parameters[1] * boundary + parameters[2], parameters[0]);
         double low = slope * boundary;
         if (functionType == 4) {
@@ -416,6 +417,20 @@ public sealed class OfficeIccColorProfile {
         Math.Abs(value.X - D50X) <= IlluminantTolerance &&
         Math.Abs(value.Y - D50Y) <= IlluminantTolerance &&
         Math.Abs(value.Z - D50Z) <= IlluminantTolerance;
+
+    private static bool IsUsableRgbMatrix(XyzValue red, XyzValue green, XyzValue blue) {
+        double scale = Math.Max(
+            Math.Max(Math.Abs(red.X), Math.Max(Math.Abs(red.Y), Math.Abs(red.Z))),
+            Math.Max(
+                Math.Max(Math.Abs(green.X), Math.Max(Math.Abs(green.Y), Math.Abs(green.Z))),
+                Math.Max(Math.Abs(blue.X), Math.Max(Math.Abs(blue.Y), Math.Abs(blue.Z)))));
+        if (!IsFinite(scale) || scale == 0D) return false;
+        double determinant =
+            red.X * (green.Y * blue.Z - green.Z * blue.Y) -
+            green.X * (red.Y * blue.Z - red.Z * blue.Y) +
+            blue.X * (red.Y * green.Z - red.Z * green.Y);
+        return IsFinite(determinant) && Math.Abs(determinant) > scale * scale * scale * 1e-12D;
+    }
 
     private static ushort ReadUInt16(byte[] bytes, int offset) =>
         unchecked((ushort)((bytes[offset] << 8) | bytes[offset + 1]));
