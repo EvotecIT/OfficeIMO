@@ -678,6 +678,7 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeBlendMode initialBlendMode = OfficeBlendMode.Normal,
+        bool initialHasUnsupportedBlendMode = false,
         bool initialHasSoftMask = false,
         int contentNestingDepth = 0,
         PageContentBudget? pageContentBudget = null) {
@@ -701,6 +702,7 @@ public sealed partial class PdfReadPage {
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands,
                      initialBlendMode: initialBlendMode,
+                     initialHasUnsupportedBlendMode: initialHasUnsupportedBlendMode,
                      initialHasSoftMask: initialHasSoftMask)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
@@ -717,12 +719,13 @@ public sealed partial class PdfReadPage {
                     resources,
                     invocation.PaintOrder,
                     invocation.BlendMode,
+                    invocation.HasUnsupportedBlendMode,
                     invocation.HasSoftMask));
                 continue;
             }
 
             if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder, blendMode: invocation.BlendMode, hasSoftMask: invocation.HasSoftMask));
+                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder, blendMode: invocation.BlendMode, hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode, hasSoftMask: invocation.HasSoftMask));
                 continue;
             }
 
@@ -754,6 +757,7 @@ public sealed partial class PdfReadPage {
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     initialBlendMode: invocation.BlendMode,
+                    initialHasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     initialHasSoftMask: invocation.HasSoftMask,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget);
@@ -822,7 +826,7 @@ public sealed partial class PdfReadPage {
             stream = referencedStream;
         } else if (imageObj is PdfStream directStream) {
             stream = directStream;
-            directStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(directStream);
+            directStreamIdentity = PdfDirectStreamIdentity.Compute(directStream);
         }
 
         return stream is not null &&
@@ -842,6 +846,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
         OfficeBlendMode blendMode = OfficeBlendMode.Normal,
+        bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false) {
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
@@ -874,6 +879,7 @@ public sealed partial class PdfReadPage {
             inlineImageResources,
             paintOrder,
             blendMode,
+            hasUnsupportedBlendMode,
             hasSoftMask);
     }
 

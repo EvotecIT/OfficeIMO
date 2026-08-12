@@ -327,7 +327,7 @@ internal static partial class ResourceResolver {
             var subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
                 int directStreamIdentity = objectNumber == 0
-                    ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(stream)
+                    ? PdfDirectStreamIdentity.Compute(stream)
                     : 0;
                 IReadOnlyList<PdfImagePlacement>? matchingPlacements = GetPlacedImageMatches(kv.Key, objectNumber, directStreamIdentity, placedImagesByKey, placedImagesByResourceNameWithoutIdentity);
                 if (matchingPlacements is { Count: 0 }) {

@@ -6,6 +6,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAcroFormEditorTests {
     [Fact]
+    public void Edit_ValidatesOnlyFinalOrderingCommandsInOneTransaction() {
+        byte[] source = PdfDocument.Create()
+            .TextField("First", value: "1")
+            .TextField("Second", value: "2")
+            .ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetTabOrder(1, PdfPageTabOrder.Column)
+            .SetCalculationOrder("First", "Second")
+            .SetTabOrder(1, PdfPageTabOrder.Row)
+            .SetCalculationOrder("Second", "First"));
+
+        Assert.Equal("R", PdfInspector.Inspect(result.ToBytes()).Pages[0].TabOrder);
+        Assert.Equal(new[] { "Second", "First" }, result.CalculationOrder);
+    }
+
+    [Fact]
     public void Edit_AppliesFieldTreeWidgetOrderAndSelectiveFlattenTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("Person.Name", value: "Ada")

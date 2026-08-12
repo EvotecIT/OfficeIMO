@@ -170,6 +170,9 @@ internal static partial class PdfImageEditor {
         if (placement.BlendMode.HasValue && placement.BlendMode.Value != OfficeBlendMode.Normal) {
             throw new NotSupportedException("Replacing or moving an image placement with a non-normal blend mode is not supported because the blend state cannot be preserved by image stamping.");
         }
+        if (placement.HasUnsupportedBlendMode) {
+            throw new NotSupportedException("Replacing or moving an image placement with an unsupported blend mode is not supported because the blend state cannot be preserved by image stamping.");
+        }
         if (placement.HasSoftMask) {
             throw new NotSupportedException("Replacing or moving an image placement with a graphics-state soft mask is not supported because the mask cannot be preserved by image stamping.");
         }
@@ -214,10 +217,11 @@ internal static partial class PdfImageEditor {
             BehindContent = options.Layer == PdfImageEditLayer.BehindExistingContent
         };
 
-    private static bool SamePlacementIdentity(PdfImagePlacement left, PdfImagePlacement right) =>
+    internal static bool SamePlacementIdentity(PdfImagePlacement left, PdfImagePlacement right) =>
         left.PageNumber == right.PageNumber &&
         string.Equals(left.ResourceName, right.ResourceName, StringComparison.Ordinal) &&
         left.ObjectNumber == right.ObjectNumber &&
+        (left.ObjectNumber != 0 || left.DirectStreamIdentity == right.DirectStreamIdentity) &&
         NearlyEqual(left.A, right.A) && NearlyEqual(left.B, right.B) &&
         NearlyEqual(left.C, right.C) && NearlyEqual(left.D, right.D) &&
         NearlyEqual(left.E, right.E) && NearlyEqual(left.F, right.F) &&
@@ -259,6 +263,7 @@ internal static partial class PdfImageEditor {
             placement.InlineImageResources,
             placement.PaintOrder,
             placement.BlendMode,
+            placement.HasUnsupportedBlendMode,
             placement.HasSoftMask);
 
     private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= CoordinateTolerance;

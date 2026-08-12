@@ -164,6 +164,14 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void DirectPlacementsWithDifferentStreamIdentityAreDistinct() {
+        var first = new PdfImagePlacement(1, "Im0", 0, 101, 40, 0, 0, 20, 20, 30, 20, 30, 40, 20);
+        var second = new PdfImagePlacement(1, "Im0", 0, 202, 40, 0, 0, 20, 20, 30, 20, 30, 40, 20);
+
+        Assert.False(PdfImageEditor.SamePlacementIdentity(first, second));
+    }
+
+    [Fact]
     public void ExactRemovalCarriesGraphicsStateAcrossContentStreamArray() {
         PdfDocument document = PdfDocument.Open(BuildSplitContentImagePdf());
 
@@ -191,6 +199,18 @@ public class PdfImageEditorTests {
             Assert.Single(jpegDocument.Images.Placements()),
             10D,
             0D));
+    }
+
+    [Fact]
+    public void ReplaceRejectsUnsupportedAuthoredBlendMode() {
+        byte[] source = BuildRawImagePdf(
+            "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalResources: "/ExtGState << /GS1 << /BM /ProducerSpecific >> >>");
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.Throws<NotSupportedException>(() => document.Images.Replace(
+            Assert.Single(document.Images.Placements()),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)));
     }
 
     [Fact]

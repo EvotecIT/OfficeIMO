@@ -29,11 +29,13 @@ internal static partial class PdfAcroFormEditor {
                         flagsField.Flags != command.Number) throw new InvalidOperationException("AcroForm flags readback validation failed for " + command.Name + ".");
                     break;
                 case PdfAcroFormEditSession.EditKind.TabOrder:
-                    if (!string.Equals(saved.Pages[command.PageNumber - 1].TabOrder, GetTabOrderName((PdfPageTabOrder)command.Number), StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm page tab-order readback validation failed.");
+                    if (!HasLaterTabOrderEdit(commands, i, command.PageNumber) &&
+                        !string.Equals(saved.Pages[command.PageNumber - 1].TabOrder, GetTabOrderName((PdfPageTabOrder)command.Number), StringComparison.Ordinal)) throw new InvalidOperationException("AcroForm page tab-order readback validation failed.");
                     break;
                 case PdfAcroFormEditSession.EditKind.CalculationOrder:
                     string[] expectedOrder = command.Names!.Distinct(StringComparer.Ordinal).ToArray();
-                    if (!calculationOrder.SequenceEqual(expectedOrder, StringComparer.Ordinal)) throw new InvalidOperationException("AcroForm calculation-order readback validation failed.");
+                    if (!HasLaterCalculationOrderEdit(commands, i) &&
+                        !calculationOrder.SequenceEqual(expectedOrder, StringComparer.Ordinal)) throw new InvalidOperationException("AcroForm calculation-order readback validation failed.");
                     break;
                 case PdfAcroFormEditSession.EditKind.Flatten:
                     for (int n = 0; n < command.Names!.Length; n++) if (byName.ContainsKey(command.Names[n])) throw new InvalidOperationException("AcroForm flatten readback validation failed for " + command.Names[n] + ".");
@@ -92,6 +94,21 @@ internal static partial class PdfAcroFormEditor {
             } else if (command.Kind == PdfAcroFormEditSession.EditKind.Flatten && command.Names!.Contains(current, StringComparer.Ordinal)) {
                 return false;
             }
+        }
+        return false;
+    }
+
+    private static bool HasLaterTabOrderEdit(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index, int pageNumber) {
+        for (int i = index + 1; i < commands.Count; i++) {
+            PdfAcroFormEditSession.EditCommand command = commands[i];
+            if (command.Kind == PdfAcroFormEditSession.EditKind.TabOrder && command.PageNumber == pageNumber) return true;
+        }
+        return false;
+    }
+
+    private static bool HasLaterCalculationOrderEdit(IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands, int index) {
+        for (int i = index + 1; i < commands.Count; i++) {
+            if (commands[i].Kind == PdfAcroFormEditSession.EditKind.CalculationOrder) return true;
         }
         return false;
     }

@@ -28,6 +28,7 @@ public sealed class PdfImagePlacement {
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
         OfficeBlendMode? blendMode = null,
+        bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
@@ -50,6 +51,7 @@ public sealed class PdfImagePlacement {
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
         BlendMode = blendMode;
+        HasUnsupportedBlendMode = hasUnsupportedBlendMode;
         HasSoftMask = hasSoftMask;
     }
 
@@ -108,6 +110,8 @@ public sealed class PdfImagePlacement {
     internal double PaintOrder { get; }
 
     internal OfficeBlendMode? BlendMode { get; }
+
+    internal bool HasUnsupportedBlendMode { get; }
 
     internal bool HasSoftMask { get; }
 

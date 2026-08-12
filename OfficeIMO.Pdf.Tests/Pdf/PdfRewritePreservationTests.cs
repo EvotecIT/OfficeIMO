@@ -272,6 +272,20 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void Assess_ReportsPageActionRelocationWhenPageCountChanges() {
+        byte[] source = BuildRelocatedPageActionPdf(pageCount: 2, actionPageNumber: 1);
+        byte[] rewritten = BuildRelocatedPageActionPdf(pageCount: 3, actionPageNumber: 2);
+        var options = new PdfRewritePreservationOptions {
+            PreservePageCount = false,
+            PreservePageGeometry = false
+        };
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.Contains(report.Issues, static issue => issue.Feature.StartsWith("PageActions", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Assess_PreservesSourceStructureForUnchangedPdf() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
@@ -511,6 +525,25 @@ public class PdfRewritePreservationTests {
             });
         }
         lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size " + (includeSecondPage ? "7" : "5") + " >>", "%%EOF" });
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildRelocatedPageActionPdf(int pageCount, int actionPageNumber) {
+        string action = " /AA << /O << /S /URI /URI (https://example.com) >> >>";
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count " + pageCount + " /Kids [" + string.Join(" ", Enumerable.Range(0, pageCount).Select(static index => (3 + index * 2) + " 0 R")) + "] >>", "endobj"
+        };
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+            int pageObject = 3 + pageIndex * 2;
+            int contentObject = pageObject + 1;
+            lines.AddRange(new[] {
+                pageObject + " 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents " + contentObject + " 0 R" + (actionPageNumber == pageIndex + 1 ? action : string.Empty) + " >>", "endobj",
+                contentObject + " 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+            });
+        }
+        lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size " + (3 + pageCount * 2) + " >>", "%%EOF" });
         return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", lines));
     }
 

@@ -140,7 +140,8 @@ public static partial class PdfRewritePreservation {
                 string identity = triggerName + "\u001f" + actionPath;
                 retainedOrdinals.TryGetValue(identity, out int retainedOrdinal);
                 retainedOrdinals[identity] = retainedOrdinal + 1;
-                inventory.Add(triggerName + "\u001f" + actionPath + "\u001f" +
+                inventory.Add(pages[pageIndex].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
+                              triggerName + "\u001f" + actionPath + "\u001f" +
                               retainedOrdinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\u001f" +
                               action.ActionType + "\u001f" + (action.Uri ?? string.Empty));
             }
