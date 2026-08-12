@@ -44,6 +44,26 @@ public class PdfDocumentImageOptimizationTests {
     }
 
     [Fact]
+    public void ImageOptimization_ConfiguredAfterExplicitPageAppliesAtWriteTime() {
+        byte[] jpeg = CreateJpeg(400, 200);
+        PdfDocument document = PdfDocument.Create(_ => { });
+        document.Compose(compose => compose.Page(page => page
+            .Content(content => content.Item(item => item.Image(jpeg, 72, 36)))));
+        document.Compose(compose => compose.Settings(settings => settings.ImageOptimization = new PdfImageOptimizationOptions {
+            Enabled = true,
+            TargetDpi = 72,
+            KeepOriginalWhenNotSmaller = false,
+            JpegQuality = 80
+        }));
+
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(document.ToBytes()));
+
+        Assert.Equal(72, image.Width);
+        Assert.Equal(36, image.Height);
+        Assert.True(image.Bytes.Length < jpeg.Length);
+    }
+
+    [Fact]
     public void ImageOptimizationOptions_AreSnapshottedAndCloned() {
         var policy = new PdfImageOptimizationOptions {
             Enabled = true,

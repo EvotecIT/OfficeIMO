@@ -19,15 +19,13 @@ public static class OfficeVisualConversionExtensions {
         options ??= new OfficeVisualConversionOptions();
         string svg = artifact.ToSvg(options.RenderOptions);
         byte[] svgBytes = Encoding.UTF8.GetBytes(svg);
-        var readerOptions = new OfficeSvgDrawingReaderOptions {
-            MaximumElements = options.MaximumSvgElements,
-            MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension
-        };
+        OfficeSvgDrawingReaderOptions readerOptions = CreateReaderOptions(options);
         bool imported = OfficeSvgDrawingReader.TryRead(
             svgBytes,
             readerOptions,
             out OfficeDrawing? importedDrawing,
             out int unsupportedFeatureCount);
+        ThrowIfConfiguredImportLimitsWereExceeded(svgBytes, imported, readerOptions);
         double sourceWidth = importedDrawing?.Width ?? artifact.NaturalSize?.Width ?? 1D;
         double sourceHeight = importedDrawing?.Height ?? artifact.NaturalSize?.Height ?? 1D;
         (double widthPoints, double heightPoints) = options.ResolveSize(sourceWidth, sourceHeight);
@@ -43,7 +41,7 @@ public static class OfficeVisualConversionExtensions {
                 throw new InvalidOperationException("ChartForgeX SVG could not be imported as an Office drawing.");
             }
             report.Warn("The SVG payload could not be imported as an Office drawing; the OfficeDrawing result uses PNG fallback.");
-            placementBytes = artifact.ToPng(options.RenderOptions);
+            placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
             drawing = CreateRasterDrawing(placementBytes, widthPoints, heightPoints, ResolveAlternativeText(artifact));
             report.UsedRasterFallback = true;
@@ -51,7 +49,7 @@ public static class OfficeVisualConversionExtensions {
             throw new NotSupportedException("ChartForgeX SVG contains " + unsupportedFeatureCount + " feature(s) that OfficeIMO.Drawing cannot preserve.");
         } else if (unsupportedFeatureCount > 0 && options.SvgPolicy == OfficeVisualSvgPolicy.RasterizeWhenNeeded) {
             report.Warn("The SVG importer reported " + unsupportedFeatureCount + " unsupported feature(s); the OfficeDrawing result uses PNG fallback.");
-            placementBytes = artifact.ToPng(options.RenderOptions);
+            placementBytes = RasterizeRenderedSvg(svgBytes, options);
             placementFormat = OfficeVisualMediaFormat.Png;
             drawing = CreateRasterDrawing(placementBytes, widthPoints, heightPoints, ResolveAlternativeText(artifact));
             report.UsedRasterFallback = true;
@@ -91,11 +89,9 @@ public static class OfficeVisualConversionExtensions {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new OfficeVisualConversionOptions();
         byte[] svgBytes = source.GetSvgBytes();
-        var readerOptions = new OfficeSvgDrawingReaderOptions {
-            MaximumElements = options.MaximumSvgElements,
-            MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension
-        };
+        OfficeSvgDrawingReaderOptions readerOptions = CreateReaderOptions(options);
         bool imported = OfficeSvgDrawingReader.TryRead(svgBytes, readerOptions, out OfficeDrawing? importedDrawing, out int unsupportedFeatureCount);
+        ThrowIfConfiguredImportLimitsWereExceeded(svgBytes, imported, readerOptions);
         double sourceWidth = importedDrawing?.Width ?? 1D;
         double sourceHeight = importedDrawing?.Height ?? 1D;
         (double widthPoints, double heightPoints) = options.ResolveSize(sourceWidth, sourceHeight);
@@ -157,6 +153,36 @@ public static class OfficeVisualConversionExtensions {
         target.AddEffectDrawing(source, OfficeTransform.Scale(width / source.Width, height / source.Height));
         return target;
     }
+
+    private static OfficeSvgDrawingReaderOptions CreateReaderOptions(OfficeVisualConversionOptions options) => new OfficeSvgDrawingReaderOptions {
+        MaximumElements = options.MaximumSvgElements,
+        MaximumViewportDimension = options.MaximumSvgViewportDimension,
+        MaximumViewportPixels = options.MaximumSvgViewportPixels
+    };
+
+    private static void ThrowIfConfiguredImportLimitsWereExceeded(
+        byte[] svgBytes,
+        bool imported,
+        OfficeSvgDrawingReaderOptions configuredOptions) {
+        if (imported ||
+            configuredOptions.MaximumElements == OfficeSvgDrawingReaderOptions.MaximumAllowedElements &&
+            configuredOptions.MaximumViewportDimension == OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension &&
+            configuredOptions.MaximumViewportPixels == OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) {
+            return;
+        }
+
+        var hardLimits = new OfficeSvgDrawingReaderOptions {
+            MaximumElements = OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
+            MaximumViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension,
+            MaximumViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels
+        };
+        if (OfficeSvgDrawingReader.TryRead(svgBytes, hardLimits, out _)) {
+            throw new InvalidOperationException("SVG content exceeds the configured import limits. Increase the matching limit only for trusted input.");
+        }
+    }
+
+    private static byte[] RasterizeRenderedSvg(byte[] svgBytes, OfficeVisualConversionOptions options) =>
+        SvgRasterizer.ToPng(svgBytes, options: options.RenderOptions?.Raster);
 
     private static OfficeDrawing CreateRasterDrawing(
         byte[] png,

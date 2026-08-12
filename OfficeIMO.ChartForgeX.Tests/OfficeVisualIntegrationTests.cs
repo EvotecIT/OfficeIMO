@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using global::ChartForgeX.Primitives;
+using global::ChartForgeX.SvgRaster;
 using global::ChartForgeX.VisualArtifacts;
 using OfficeIMO.ChartForgeX;
 using OfficeIMO.Drawing;
@@ -47,6 +48,7 @@ public sealed class OfficeVisualIntegrationTests {
             byte[] payload = result.GetPlacementBytes();
             Assert.Equal(0x89, payload[0]);
             Assert.Equal((byte)'P', payload[1]);
+            Assert.Equal(SvgRasterizer.ToPng(result.GetSvgBytes()), payload);
         } else {
             Assert.Equal(OfficeVisualMediaFormat.Svg, result.PlacementFormat);
             Assert.Contains("<svg", System.Text.Encoding.UTF8.GetString(result.GetPlacementBytes()));
@@ -87,6 +89,19 @@ public sealed class OfficeVisualIntegrationTests {
         Assert.Equal(75D, rectangular.HeightPoints, 6);
         Assert.Equal(150D, rectangular.Drawing.Width, 6);
         Assert.Equal(75D, rectangular.Drawing.Height, 6);
+    }
+
+    [Fact]
+    public void PortableSvgSourceUsesSafeViewportLimitsUnlessTrustedCallerOptsIn() {
+        const string oversizedViewport = "<svg xmlns='http://www.w3.org/2000/svg' width='9000' height='1' viewBox='0 0 9000 1'><rect width='9000' height='1' fill='#2563eb'/></svg>";
+
+        Assert.Throws<InvalidOperationException>(() => new OfficeVisualSource(oversizedViewport).ToOfficeVisual());
+
+        OfficeVisualConversionResult trusted = new OfficeVisualSource(oversizedViewport).ToOfficeVisual(
+            new OfficeVisualConversionOptions { MaximumSvgViewportDimension = 9000D });
+        Assert.Equal(6750D, trusted.WidthPoints, 6);
+        Assert.Equal(0.75D, trusted.HeightPoints, 6);
+        Assert.True(trusted.Report.IsVector);
     }
 
     [Fact]
@@ -322,6 +337,9 @@ public sealed class OfficeVisualIntegrationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { PointsPerPixel = 0D });
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { WidthPoints = double.NaN });
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { MaximumSvgElements = 0 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { MaximumSvgViewportDimension = 0D });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { MaximumSvgViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension + 1D });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { MaximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels + 1D });
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeVisualConversionOptions { SvgPolicy = (OfficeVisualSvgPolicy)999 });
     }
 

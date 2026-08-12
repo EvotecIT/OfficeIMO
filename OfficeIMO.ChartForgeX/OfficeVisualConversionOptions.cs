@@ -10,6 +10,8 @@ public sealed class OfficeVisualConversionOptions {
     private double? _widthPoints;
     private double? _heightPoints;
     private int _maximumSvgElements = OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
+    private double _maximumSvgViewportDimension = OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
+    private double _maximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
     private OfficeVisualSvgPolicy _svgPolicy = OfficeVisualSvgPolicy.PreserveVector;
 
     /// <summary>Gets or sets ChartForgeX rendering options, including watermarks and PNG metadata.</summary>
@@ -62,6 +64,30 @@ public sealed class OfficeVisualConversionOptions {
         }
     }
 
+    /// <summary>
+    /// Gets or sets the maximum accepted SVG viewport width or height. The safe default is 8,192;
+    /// increase this only for trusted input.
+    /// </summary>
+    public double MaximumSvgViewportDimension {
+        get => _maximumSvgViewportDimension;
+        set {
+            ValidateSvgLimit(value, OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension, nameof(MaximumSvgViewportDimension));
+            _maximumSvgViewportDimension = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the maximum accepted SVG viewport area in pixels. The safe default is 16 megapixels;
+    /// increase this only for trusted input.
+    /// </summary>
+    public double MaximumSvgViewportPixels {
+        get => _maximumSvgViewportPixels;
+        set {
+            ValidateSvgLimit(value, OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels, nameof(MaximumSvgViewportPixels));
+            _maximumSvgViewportPixels = value;
+        }
+    }
+
     internal (double Width, double Height) ResolveSize(double sourceWidth, double sourceHeight) {
         ValidatePositiveFinite(sourceWidth, nameof(sourceWidth));
         ValidatePositiveFinite(sourceHeight, nameof(sourceHeight));
@@ -74,6 +100,13 @@ public sealed class OfficeVisualConversionOptions {
     private static void ValidatePositiveFinite(double value, string parameterName) {
         if (value <= 0D || double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(parameterName, value, "Value must be positive and finite.");
+        }
+    }
+
+    private static void ValidateSvgLimit(double value, double maximum, string parameterName) {
+        ValidatePositiveFinite(value, parameterName);
+        if (value > maximum) {
+            throw new ArgumentOutOfRangeException(parameterName, value, "SVG limit exceeds the supported hard maximum.");
         }
     }
 }

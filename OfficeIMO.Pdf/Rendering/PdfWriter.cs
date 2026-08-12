@@ -468,7 +468,7 @@ internal static partial class PdfWriter {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
                     var img = page.Images[i];
-                    ApplyPlacementAwareImageOptimization(img, pageOpts, optimizedImageCache);
+                    ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
