@@ -13,14 +13,28 @@ public partial class ExcelDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
     /// <summary>Removes selected provenance from encoded Open XML workbook bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] workbookBytes,
         string fileName = "workbook.xlsx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(workbookBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(workbookBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions _) {
+        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
+        using var stream = new MemoryStream(data, writable: false);
+        using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+        if (document.WorkbookPart == null || document.WorkbookPart.ContentType is not (
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" or
+            "application/vnd.ms-excel.sheet.macroEnabled.main+xml" or
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml" or
+            "application/vnd.ms-excel.template.macroEnabled.main+xml" or
+            "application/vnd.ms-excel.addin.macroEnabled.main+xml")) {
+            throw new InvalidDataException("The package is not an Excel workbook.");
+        }
+    }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
         OfficeProvenanceZip.HasPackageSignature(data, options) ||

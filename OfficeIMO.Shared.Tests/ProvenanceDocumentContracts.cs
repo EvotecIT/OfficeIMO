@@ -663,7 +663,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, "META-INF/content_credential.c2pa", CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
         var options = new OfficeProvenanceRemovalOptions {
             ProcessEmbeddedAssets = false,
@@ -688,7 +688,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, "media/first.png", image, CompressionLevel.Optimal);
                 WriteEntry(archive, "media/second.png", image, CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
         var options = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
@@ -758,7 +758,7 @@ public sealed partial class ProvenanceDocumentContracts {
         using (var output = new MemoryStream()) {
             using (Package packageHandle = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
                 Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
-                PackagePart document = packageHandle.CreatePart(documentUri, "application/xml", CompressionOption.Maximum);
+                PackagePart document = packageHandle.CreatePart(documentUri, "application/vnd.ms-visio.drawing.main+xml", CompressionOption.Maximum);
                 using (Stream target = document.GetStream()) {
                     byte[] content = Encoding.UTF8.GetBytes("<document>keep</document>");
                     target.Write(content, 0, content.Length);
@@ -767,6 +767,10 @@ public sealed partial class ProvenanceDocumentContracts {
                     documentUri,
                     TargetMode.Internal,
                     "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
+                packageHandle.CreateRelationship(
+                    documentUri,
+                    TargetMode.Internal,
+                    "http://schemas.microsoft.com/visio/2010/relationships/document");
                 Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
                 using Stream manifestTarget = packageHandle.CreatePart(
                     manifestUri,
@@ -849,6 +853,12 @@ public sealed partial class ProvenanceDocumentContracts {
     private static byte[] CreateSignedVisioProvenancePackage(int paddingCharacters, bool includeExternalSignatureRelationship = false) {
         using var output = new MemoryStream();
         using (Package package = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
+            Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
+            using (Stream document = package.CreatePart(documentUri, "application/vnd.ms-visio.drawing.main+xml", CompressionOption.Maximum).GetStream()) {
+                byte[] xml = Encoding.UTF8.GetBytes("<VisioDocument xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\"/>");
+                document.Write(xml, 0, xml.Length);
+            }
+            package.CreateRelationship(documentUri, TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/document");
             Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
             using (Stream target = package.CreatePart(manifestUri, "application/c2pa", CompressionOption.Maximum).GetStream()) {
                 byte[] manifest = CreateManifestStore();
@@ -924,7 +934,7 @@ public sealed partial class ProvenanceDocumentContracts {
             WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
             WriteEntry(archive, "media/provenance.png", image, CompressionLevel.Optimal);
         }
-        return output.ToArray();
+        return RewriteFixtureWithStoredMimetype(output.ToArray());
     }
 
     private static void WriteEntry(ZipArchive archive, string name, string content, CompressionLevel level) =>

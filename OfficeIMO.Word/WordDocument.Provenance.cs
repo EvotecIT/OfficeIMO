@@ -13,14 +13,27 @@ public partial class WordDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
     /// <summary>Removes selected provenance from encoded Open XML document bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] documentBytes,
         string fileName = "document.docx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions _) {
+        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
+        using var stream = new MemoryStream(data, writable: false);
+        using WordprocessingDocument document = WordprocessingDocument.Open(stream, false);
+        if (document.MainDocumentPart == null || document.MainDocumentPart.ContentType is not (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" or
+            "application/vnd.ms-word.document.macroEnabled.main+xml" or
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml" or
+            "application/vnd.ms-word.template.macroEnabledTemplate.main+xml")) {
+            throw new InvalidDataException("The package is not a Word document.");
+        }
+    }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
         OfficeProvenanceZip.HasPackageSignature(data, options) ||

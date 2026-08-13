@@ -56,7 +56,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, "META-INF/documentsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "Pictures/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>

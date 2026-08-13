@@ -80,6 +80,12 @@ public sealed partial class ProvenanceDocumentContracts {
     private static byte[] CreateVisioPackageWithApplicationSignatureOnly() {
         using var output = new MemoryStream();
         using (Package package = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
+            Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
+            using (Stream document = package.CreatePart(documentUri, "application/vnd.ms-visio.drawing.main+xml", CompressionOption.Maximum).GetStream()) {
+                byte[] xml = Encoding.UTF8.GetBytes("<VisioDocument xmlns=\"http://schemas.microsoft.com/office/visio/2012/main\"/>");
+                document.Write(xml, 0, xml.Length);
+            }
+            package.CreateRelationship(documentUri, TargetMode.Internal, "http://schemas.microsoft.com/visio/2010/relationships/document");
             Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
             using (Stream target = package.CreatePart(manifestUri, "application/c2pa", CompressionOption.Maximum).GetStream()) {
                 byte[] manifest = CreateManifestStore();

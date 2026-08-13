@@ -239,6 +239,7 @@ public static partial class HtmlProvenance {
             foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
                 document, element, usedDeclarations, resolvedFallbacks)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
+                if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                 int index = count++;
                 string location = $"{documentLocation}/{element.LocalName}[{reference.AttributeName}][{index}]";
                 if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
@@ -298,6 +299,7 @@ public static partial class HtmlProvenance {
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
+                if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                 int index = count++;
                 if (count > maxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
@@ -629,7 +631,7 @@ public static partial class HtmlProvenance {
     private static void ValidatePotentialElementCount(string html, int maximumEntries) {
         int count = 0;
         int index = 0;
-        int foreignDepth = 0;
+        var openElements = new List<HtmlPreflightElement>();
         while (index < html.Length - 1) {
             int markup = html.IndexOf('<', index);
             if (markup < 0 || markup == html.Length - 1) break;
@@ -645,7 +647,7 @@ public static partial class HtmlProvenance {
                 continue;
             }
             if (next == '!') {
-                if (foreignDepth > 0 && markup <= html.Length - 9 &&
+                if (ChildNamespace(openElements) != HtmlPreflightNamespace.Html && markup <= html.Length - 9 &&
                     string.CompareOrdinal(html, markup, "<![CDATA[", 0, 9) == 0) {
                     int cdataEnd = html.IndexOf("]]>", markup + 9, StringComparison.Ordinal);
                     index = cdataEnd < 0 ? html.Length : cdataEnd + 3;
@@ -664,7 +666,11 @@ public static partial class HtmlProvenance {
                 int closingNameEnd = nameStart;
                 while (closingNameEnd < html.Length && (char.IsLetterOrDigit(html[closingNameEnd]) || html[closingNameEnd] is '-' or ':')) closingNameEnd++;
                 string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
-                if (foreignDepth > 0 && (closingName.Equals("svg", StringComparison.OrdinalIgnoreCase) || closingName.Equals("math", StringComparison.OrdinalIgnoreCase))) foreignDepth--;
+                for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
+                    if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
+                    openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
+                    break;
+                }
                 int declarationEnd = FindTagEnd(html, closingNameEnd);
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
@@ -682,15 +688,72 @@ public static partial class HtmlProvenance {
             int tagEnd = FindTagEnd(html, nameEnd);
             if (tagEnd < 0) break;
             bool selfClosing = tagEnd > markup && html[tagEnd - 1] == '/';
-            if (!selfClosing && (tagName.Equals("svg", StringComparison.OrdinalIgnoreCase) || tagName.Equals("math", StringComparison.OrdinalIgnoreCase))) foreignDepth++;
+            HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
+            bool childrenUseHtml = elementNamespace == HtmlPreflightNamespace.Html ||
+                IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
+            if (!selfClosing) openElements.Add(new HtmlPreflightElement(tagName, elementNamespace, childrenUseHtml));
             index = tagEnd + 1;
-            if (tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
-            if (IsRawTextOrRcDataElement(tagName)) {
+            if (elementNamespace == HtmlPreflightNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
+            if (elementNamespace == HtmlPreflightNamespace.Html && IsRawTextOrRcDataElement(tagName)) {
                 int rawTextEnd = FindRawTextClosingTag(html, index, tagName);
                 if (rawTextEnd < 0) break;
                 index = rawTextEnd;
             }
         }
+    }
+
+    private static bool IsSupportedProvenanceImage(string mediaType) => mediaType.ToLowerInvariant() is
+        "image/jpeg" or "image/jpg" or "image/png" or "image/gif" or "image/tiff" or "image/webp" or "image/svg+xml";
+
+    private static HtmlPreflightNamespace ChildNamespace(List<HtmlPreflightElement> elements, string? tagName = null) {
+        if (elements.Count == 0 || elements[elements.Count - 1].ChildrenUseHtml) {
+            if (tagName?.Equals("svg", StringComparison.OrdinalIgnoreCase) == true) return HtmlPreflightNamespace.Svg;
+            if (tagName?.Equals("math", StringComparison.OrdinalIgnoreCase) == true) return HtmlPreflightNamespace.MathMl;
+            return HtmlPreflightNamespace.Html;
+        }
+        return elements[elements.Count - 1].Namespace;
+    }
+
+    private static bool IsHtmlIntegrationPoint(
+        string html,
+        string tagName,
+        HtmlPreflightNamespace elementNamespace,
+        int attributesStart,
+        int tagEnd) {
+        if (elementNamespace == HtmlPreflightNamespace.Svg) {
+            return tagName.Equals("foreignObject", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("desc", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("title", StringComparison.OrdinalIgnoreCase);
+        }
+        if (elementNamespace != HtmlPreflightNamespace.MathMl) return false;
+        if (tagName.Equals("mi", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mo", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mn", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("ms", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mtext", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!tagName.Equals("annotation-xml", StringComparison.OrdinalIgnoreCase)) return false;
+        string attributes = html.Substring(attributesStart, tagEnd - attributesStart);
+        Match encoding = Regex.Match(
+            attributes,
+            "(?:^|\\s)encoding\\s*=\\s*(?:\"(?<value>[^\"]*)\"|'(?<value>[^']*)'|(?<value>[^\\s/>]+))",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(100));
+        string value = encoding.Success ? encoding.Groups["value"].Value : string.Empty;
+        return value.Equals("text/html", StringComparison.OrdinalIgnoreCase) ||
+            value.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private enum HtmlPreflightNamespace { Html, Svg, MathMl }
+
+    private readonly struct HtmlPreflightElement {
+        internal HtmlPreflightElement(string name, HtmlPreflightNamespace @namespace, bool childrenUseHtml) {
+            Name = name;
+            Namespace = @namespace;
+            ChildrenUseHtml = childrenUseHtml;
+        }
+        internal string Name { get; }
+        internal HtmlPreflightNamespace Namespace { get; }
+        internal bool ChildrenUseHtml { get; }
     }
 
     private static bool IsRawTextOrRcDataElement(string tagName) =>

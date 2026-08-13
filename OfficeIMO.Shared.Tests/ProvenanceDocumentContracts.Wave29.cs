@@ -83,7 +83,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, manifestPath, CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/manifest.xml", manifestXml, CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
 
         OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt");

@@ -48,7 +48,7 @@ public sealed partial class ProvenanceDocumentContracts {
                     "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\"><manifest:file-entry manifest:full-path=\"/\" manifest:media-type=\"application/vnd.oasis.opendocument.text\"/><manifest:file-entry manifest:full-path=\"" + signaturePath + "\" manifest:media-type=\"text/xml\"/></manifest:manifest>",
                     CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
 
         OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt", new OfficeProvenanceRemovalOptions {

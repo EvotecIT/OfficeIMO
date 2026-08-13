@@ -13,14 +13,29 @@ public sealed partial class PowerPointPresentation {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
     /// <summary>Removes selected provenance from encoded Open XML presentation bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] presentationBytes,
         string fileName = "presentation.pptx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions _) {
+        OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
+        using var stream = new MemoryStream(data, writable: false);
+        using PresentationDocument document = PresentationDocument.Open(stream, false);
+        if (document.PresentationPart == null || document.PresentationPart.ContentType is not (
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml" or
+            "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml" or
+            "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml" or
+            "application/vnd.ms-powerpoint.template.macroEnabled.main+xml" or
+            "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml" or
+            "application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml")) {
+            throw new InvalidDataException("The package is not a PowerPoint presentation.");
+        }
+    }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
         OfficeProvenanceZip.HasPackageSignature(data, options) ||

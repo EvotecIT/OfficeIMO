@@ -65,7 +65,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, "META-INF/content_credential.c2pa", CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/manifest.xml", manifestXml, CompressionLevel.Optimal);
             }
-            package = output.ToArray();
+            package = RewriteFixtureWithStoredMimetype(output.ToArray());
         }
         var options = new OfficeProvenanceRemovalOptions {
             SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
