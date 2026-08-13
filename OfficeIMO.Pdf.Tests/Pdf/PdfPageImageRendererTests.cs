@@ -559,6 +559,54 @@ public class PdfPageImageRendererTests {
         AssertAuxiliaryType3DepthMatchesDrawing(pdf);
     }
 
+    [Fact]
+    public void RenderCompatibility_BoundsNestedTilingPatternSurfaces() {
+        string pattern1 = BuildStreamObject(5, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Pattern << /P2 6 0 R >> >>", "/Pattern cs /P2 scn 0 0 10 10 re f");
+        string pattern2 = BuildStreamObject(6, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Pattern << /P3 7 0 R >> >>", "/Pattern cs /P3 scn 0 0 10 10 re f");
+        string pattern3 = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "0 0 10 10 re f");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs /P1 scn 0 0 20 20 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            pattern1,
+            pattern2,
+            pattern3);
+
+        AssertNestedAuxiliarySurfaceLimit(pdf);
+    }
+
+    [Fact]
+    public void RenderCompatibility_BoundsNestedSoftMaskSurfaces() {
+        string graphicsState1 = "5 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 6 0 R >> >>\nendobj";
+        string softMask1 = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << /ExtGState << /GS2 7 0 R >> >>", "/GS2 gs 0 0 20 20 re f");
+        string graphicsState2 = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string softMask2 = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << /ExtGState << /GS3 9 0 R >> >>", "/GS3 gs 0 0 20 20 re f");
+        string graphicsState3 = "9 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 10 0 R >> >>\nendobj";
+        string softMask3 = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << >>", "0 0 20 20 re f");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs 0 0 20 20 re f",
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            graphicsState1,
+            softMask1,
+            graphicsState2,
+            softMask2,
+            graphicsState3,
+            softMask3);
+
+        AssertNestedAuxiliarySurfaceLimit(pdf);
+    }
+
+    private static void AssertNestedAuxiliarySurfaceLimit(byte[] pdf) {
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(pdf).AssessRenderCompatibility(new PdfReadOptions
+            {
+                Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
+            }));
+
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
     private static void AssertAuxiliaryType3DepthMatchesDrawing(byte[] pdf) {
         var options = new PdfReadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
