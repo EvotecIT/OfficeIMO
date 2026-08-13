@@ -72,9 +72,8 @@ internal static class OfficeProvenanceGif {
                 offset += headerLength;
                 int payloadStart = offset;
                 if (isXmp && TryReadXmpApplicationData(
-                    data, payloadStart, options.MaxAssetBytes, out byte[] packet, out int extensionEnd,
-                    out int trailerStart, out bool usesSubBlocks, out int subBlockCount)) {
-                    for (int index = 0; index < subBlockCount; index++) ReserveEntry(ref entryCount, options.MaxContainerEntries);
+                    data, payloadStart, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
+                    out byte[] packet, out int extensionEnd, out int trailerStart, out bool usesSubBlocks)) {
                     string location = $"GIF/XMP@{blockStart}";
                     if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
                     if (output != null && removalOptions != null && changes != null && removalOptions.RemoveAiSourceMetadata &&
@@ -174,18 +173,24 @@ internal static class OfficeProvenanceGif {
         byte[] data,
         int payloadOffset,
         long maximumPacketBytes,
+        ref int entryCount,
+        int maximumEntries,
         out byte[] packet,
         out int extensionEnd,
         out int trailerStart,
-        out bool usesSubBlocks,
-        out int subBlockCount) {
+        out bool usesSubBlocks) {
         packet = Array.Empty<byte>();
         extensionEnd = payloadOffset;
         trailerStart = payloadOffset;
         usesSubBlocks = false;
-        subBlockCount = 0;
+        int cursor = payloadOffset;
+        if (cursor >= data.Length || HasXmpMagicTrailer(data, cursor)) return false;
+        if (LooksLikeRawXmpPacket(data, payloadOffset)) {
+            return TryReadRawXmpApplicationData(
+                data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries,
+                out packet, out extensionEnd, out trailerStart);
+        }
         using (var collected = new MemoryStream()) {
-            int cursor = payloadOffset;
             while (cursor < data.Length) {
                 if (HasXmpMagicTrailer(data, cursor)) {
                     if (collected.Length == 0) break;
@@ -195,23 +200,53 @@ internal static class OfficeProvenanceGif {
                     usesSubBlocks = true;
                     return true;
                 }
+                ReserveEntry(ref entryCount, maximumEntries);
                 int length = data[cursor++];
-                if (length == 0 || length > data.Length - cursor || collected.Length > maximumPacketBytes - length) break;
+                if (length == 0) return false;
+                if (length > data.Length - cursor || collected.Length > maximumPacketBytes - length) {
+                    throw new InvalidDataException("GIF XMP data sub-blocks are truncated or exceed the configured asset limit.");
+                }
                 collected.Write(data, cursor, length);
                 cursor += length;
-                subBlockCount++;
             }
         }
+        return false;
+    }
+
+    private static bool LooksLikeRawXmpPacket(byte[] data, int offset) {
+        if (offset <= data.Length - 3 && data[offset] == 0xEF && data[offset + 1] == 0xBB && data[offset + 2] == 0xBF) {
+            offset += 3;
+        }
+        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0D or 0x20) offset++;
+        if (offset >= data.Length || data[offset++] != (byte)'<' || offset >= data.Length) return false;
+        byte next = data[offset];
+        return next is (byte)'?' or (byte)'!' or (byte)'_' or (>= (byte)'A' and <= (byte)'Z') or (>= (byte)'a' and <= (byte)'z');
+    }
+
+    private static bool TryReadRawXmpApplicationData(
+        byte[] data,
+        int payloadOffset,
+        long maximumPacketBytes,
+        ref int entryCount,
+        int maximumEntries,
+        out byte[] packet,
+        out int extensionEnd,
+        out int trailerStart) {
+        packet = Array.Empty<byte>();
+        extensionEnd = payloadOffset;
+        trailerStart = payloadOffset;
         const int trailerLength = 258;
         for (int candidate = payloadOffset; candidate <= data.Length - trailerLength; candidate++) {
             if (!HasXmpMagicTrailer(data, candidate)) continue;
             long length = candidate - (long)payloadOffset;
             if (length <= 0 || length > maximumPacketBytes || length > int.MaxValue) return false;
+            int rawEntries = entryCount;
+            ReserveEntry(ref rawEntries, maximumEntries);
             packet = new byte[(int)length];
             Buffer.BlockCopy(data, payloadOffset, packet, 0, packet.Length);
             extensionEnd = candidate + trailerLength;
             trailerStart = candidate;
-            subBlockCount = 1;
+            entryCount = rawEntries;
             return true;
         }
         return false;
