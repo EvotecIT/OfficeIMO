@@ -81,10 +81,6 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
-            if (allowUnresolvedViewport &&
-                (pathCommandLimitExceeded ||
-                 ExceedsSvgElementNestingLimit(root) ||
-                 ExceedsSvgDefinitionPathCommandLimit(root))) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
             } else {
@@ -112,8 +108,26 @@ public static partial class OfficeSvgDrawingReader {
     /// Returns whether an SVG payload is well formed and stays within the supplied parser and viewport safety limits,
     /// regardless of whether every valid SVG shape can be imported into an <see cref="OfficeDrawing"/>.
     /// </summary>
-    public static bool IsWithinSafetyLimits(byte[]? bytes, OfficeSvgDrawingReaderOptions? options = null) =>
-        TryReadCore(bytes, options, allowUnresolvedViewport: true, out _, out _);
+    public static bool IsWithinSafetyLimits(byte[]? bytes, OfficeSvgDrawingReaderOptions? options = null) {
+        if (!TryReadBoundedDocument(
+                bytes,
+                options,
+                allowUnresolvedViewport: true,
+                out XElement root,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _)) return false;
+
+        return !ExceedsSvgElementNestingLimit(root) &&
+               !ExceedsSvgDocumentPathCommandLimit(root) &&
+               !ExceedsSvgRenderedPathCommandLimit(root);
+    }
 
     private static bool TryReadBoundedDocument(
         byte[]? bytes,
@@ -244,37 +258,73 @@ public static partial class OfficeSvgDrawingReader {
         return false;
     }
 
-    private static bool ExceedsSvgDefinitionPathCommandLimit(XElement root) {
+    private static bool ExceedsSvgDocumentPathCommandLimit(XElement root) {
         int commandCount = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
-            string name = element.Name.LocalName;
-            int remaining = MaximumSvgPathCommands - commandCount;
-            if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
-                _ = OfficeSvgPathDataParser.TryParse(
-                    element.Attribute("d")?.Value,
-                    remaining + 1,
-                    out IReadOnlyList<OfficePathCommand> commands,
-                    out bool commandLimitExceeded);
-                if (commandLimitExceeded || commands.Count > remaining) return true;
-                commandCount += commands.Count;
-                continue;
-            }
-
-            bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
-            if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) continue;
-            int maximumValues = (remaining + 1) * 2;
-            bool parsed = TryParseNumberList(
-                element.Attribute("points")?.Value,
-                maximumValues,
-                out IReadOnlyList<double> values,
-                out bool valueLimitExceeded);
-            if (valueLimitExceeded) return true;
-            int elementCommands = values.Count / 2;
-            if (parsed && close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
-            if (elementCommands > remaining) return true;
-            commandCount += elementCommands;
+            if (!TryAddSvgGeometryCommands(element, ref commandCount)) return true;
         }
         return false;
+    }
+
+    private static bool ExceedsSvgRenderedPathCommandLimit(XElement root) {
+        int commandCount = 0;
+        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        foreach (XElement child in root.Elements()) {
+            if (!TryAddRenderedSvgGeometryCommands(child, references, ref commandCount)) return true;
+        }
+        return false;
+    }
+
+    private static bool TryAddRenderedSvgGeometryCommands(
+        XElement element,
+        SvgElementReferenceRegistry references,
+        ref int commandCount) {
+        string name = element.Name.LocalName.ToLowerInvariant();
+        if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
+        if (name == "use") {
+            if (!references.TryEnter(element, out string referenceId, out XElement? target)) return true;
+            try {
+                return TryAddRenderedSvgGeometryCommands(target!, references, ref commandCount);
+            } finally {
+                references.Exit(referenceId);
+            }
+        }
+
+        if (!TryAddSvgGeometryCommands(element, ref commandCount)) return false;
+        foreach (XElement child in element.Elements()) {
+            if (!TryAddRenderedSvgGeometryCommands(child, references, ref commandCount)) return false;
+        }
+        return true;
+    }
+
+    private static bool TryAddSvgGeometryCommands(XElement element, ref int commandCount) {
+        string name = element.Name.LocalName;
+        int remaining = MaximumSvgPathCommands - commandCount;
+        if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
+            _ = OfficeSvgPathDataParser.TryParse(
+                element.Attribute("d")?.Value,
+                remaining + 1,
+                out IReadOnlyList<OfficePathCommand> commands,
+                out bool commandLimitExceeded);
+            if (commandLimitExceeded || commands.Count > remaining) return false;
+            commandCount += commands.Count;
+            return true;
+        }
+
+        bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
+        if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) return true;
+        int maximumValues = (remaining + 1) * 2;
+        bool parsed = TryParseNumberList(
+            element.Attribute("points")?.Value,
+            maximumValues,
+            out IReadOnlyList<double> values,
+            out bool valueLimitExceeded);
+        if (valueLimitExceeded) return false;
+        int elementCommands = values.Count / 2;
+        if (parsed && close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
+        if (elementCommands > remaining) return false;
+        commandCount += elementCommands;
+        return true;
     }
 
     private static void AddChildren(

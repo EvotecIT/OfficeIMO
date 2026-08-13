@@ -208,6 +208,25 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateAllowsBoundedGeometryThatCannotBeVectorProjected() {
+        const string degeneratePolygon = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><polygon points='1,1 2,1 3,1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(degeneratePolygon)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesRepeatedUsePathsToOneRenderedCommandBudget() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 0; index < 1000; index++) path.Append(" L1 1");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><path id='p' d='")
+            .Append(path).Append("'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

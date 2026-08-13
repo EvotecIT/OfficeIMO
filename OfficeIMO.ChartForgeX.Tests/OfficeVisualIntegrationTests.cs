@@ -169,6 +169,17 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRasterizesSafeDegenerateGeometryThatCannotBeVectorProjected() {
+        const string degeneratePolygon = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><polygon points='1,1 2,1 3,1'/></svg>";
+
+        OfficeVisualConversionResult result = new OfficeVisualSource(degeneratePolygon).ToOfficeVisual(
+            new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded });
+
+        Assert.True(result.Report.UsedRasterFallback);
+        Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
+    }
+
+    [Fact]
     public void PortableSvgSourceRejectsOverNestedMarkupBeforeRasterFallback() {
         var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>");
         for (int index = 0; index < 130; index++) svg.Append("<g>");
