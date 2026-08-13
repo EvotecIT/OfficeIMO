@@ -6,6 +6,21 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
+    internal static bool IsActiveProvenanceStyleElement(IElement element) =>
+        IsCssStyleElement(element) && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
+
+    internal static bool IsActivePictureImageSource(IElement element) {
+        var options = new HtmlResourcePipelineOptions();
+        if (!string.Equals(element.ParentElement?.LocalName, "picture", StringComparison.OrdinalIgnoreCase)) return true;
+        return IsFirstApplicablePictureSource(element, baseUri: null, options) &&
+            HasPictureSourceCandidate(element) &&
+            IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options) &&
+            IsSupportedPictureSourceType(element.GetAttribute("type"));
+    }
+
+    internal static bool IsActivePictureFallbackImage(IElement element) =>
+        !HasSelectedPictureSourceBeforeFallback(element, baseUri: null, new HtmlResourcePipelineOptions());
+
     internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(IHtmlDocument document) {
         var options = new HtmlResourcePipelineOptions();
         Dictionary<string, List<CssCustomPropertyDefinition>> documentDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
@@ -103,6 +118,8 @@ public static partial class HtmlResourcePipeline {
     }
 
     internal static IEnumerable<HtmlCssImageReference> EnumerateProvenanceCssImageReferences(
+        IHtmlDocument document,
+        string attributeName,
         string css,
         ISet<int>? usedCustomPropertyDeclarationStarts = null,
         ISet<int>? resolvedVarFallbackStarts = null) {
@@ -117,6 +134,7 @@ public static partial class HtmlResourcePipeline {
                 IsInsideCssString(masked, match.Index) ||
                 IsImportAtRuleUrl(masked, match.Index) ||
                 IsAtRulePreludeUrl(masked, match.Index) ||
+                !IsCssReferenceForMatchingSelector(document, attributeName, masked, match.Index) ||
                 isCustomProperty && (!TryGetCustomPropertyDeclarationStart(masked, match.Index, out int declarationStart) ||
                     usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)) ||
                 !isCustomProperty && ClassifyCssUrl(masked, match.Index) != HtmlResourceKind.Image) continue;
@@ -134,6 +152,7 @@ public static partial class HtmlResourcePipeline {
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
             bool isCustomProperty = TryGetCustomPropertyName(masked, reference.Start, out _);
             if (IsInRanges(reference.Start, inactiveRanges) || resolvedVarFallbackStarts?.Contains(reference.Start) == true ||
+                !IsCssReferenceForMatchingSelector(document, attributeName, masked, reference.Start) ||
                 (isCustomProperty
                     ? !TryGetCustomPropertyDeclarationStart(masked, reference.Start, out int declarationStart) ||
                         usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)

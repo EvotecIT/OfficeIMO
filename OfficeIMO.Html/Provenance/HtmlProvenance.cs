@@ -36,7 +36,8 @@ public static partial class HtmlProvenance {
         InspectManifestCarriers(document, options, evidence, diagnostics, "HTML", ref expandedBytes);
         if (options.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
+            InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries,
+                ref expandedBytes, "HTML", srcDocDepth: 0);
         }
         return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
     }
@@ -121,7 +122,8 @@ public static partial class HtmlProvenance {
         RemoveManifestCarriers(document, options, changes, "HTML", ref expandedBytes);
         if (inspectionOptions.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
+            RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries,
+                ref expandedBytes, "HTML", srcDocDepth: 0);
         }
 
         if (changes.Count == 0) {
@@ -227,16 +229,18 @@ public static partial class HtmlProvenance {
         ref int count,
         ref int structuralEntries,
         ref long expandedBytes,
+        string documentLocation,
         int srcDocDepth) {
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
         HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
         foreach (IElement element in elements) {
             cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
             cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
-            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedDeclarations, resolvedFallbacks)) {
+            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
+                document, element, usedDeclarations, resolvedFallbacks)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
-                string location = $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]";
+                string location = $"{documentLocation}/{element.LocalName}[{reference.AttributeName}][{index}]";
                 if (count > options.MaxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) {
                     diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
@@ -266,10 +270,11 @@ public static partial class HtmlProvenance {
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
-            string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
+            string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
             InspectManifestCarriers(nested, options, evidence, diagnostics, location, ref expandedBytes);
-            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
+            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries,
+                ref expandedBytes, location, srcDocDepth + 1);
         }
     }
 
@@ -280,6 +285,7 @@ public static partial class HtmlProvenance {
         ref int count,
         ref int structuralEntries,
         ref long expandedBytes,
+        string documentLocation,
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
@@ -287,7 +293,8 @@ public static partial class HtmlProvenance {
         foreach (IElement element in elements) {
             cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
             cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
-            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedDeclarations, resolvedFallbacks).ToArray();
+            EmbeddedImageReference[] references = GetEmbeddedImageReferences(
+                document, element, usedDeclarations, resolvedFallbacks).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -312,7 +319,7 @@ public static partial class HtmlProvenance {
                     foreach (OfficeProvenanceChange change in nested.Changes) {
                         changes.Add(new OfficeProvenanceChange(
                             change.Carrier,
-                            $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
+                            $"{documentLocation}/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
                             0));
                     }
                 } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
@@ -326,23 +333,27 @@ public static partial class HtmlProvenance {
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
-            string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
+            string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries);
             int priorChanges = changes.Count;
             RemoveManifestCarriers(nested, options, changes, location, ref expandedBytes);
-            RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
+            RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries,
+                ref expandedBytes, location, srcDocDepth + 1);
             if (changes.Count != priorChanges) iframe.SetAttribute("srcdoc", nested.ToHtml());
         }
     }
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(
+        IHtmlDocument document,
         IElement element,
         ISet<int>? usedImageProperties,
         ISet<int>? resolvedVarFallbacks) {
         string localName = element.LocalName.ToLowerInvariant();
         if (localName == "style") {
-            if (!HtmlResourcePipeline.IsCssStyleElement(element)) yield break;
+            if (!HtmlResourcePipeline.IsActiveProvenanceStyleElement(element)) yield break;
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
+                document,
+                "css",
                 element.TextContent,
                 usedImageProperties,
                 resolvedVarFallbacks)) {
@@ -354,6 +365,8 @@ public static partial class HtmlProvenance {
         string? inlineStyle = element.GetAttribute("style");
         if (inlineStyle != null) {
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
+                document,
+                "style",
                 inlineStyle,
                 usedImageProperties,
                 resolvedVarFallbacks)) {
@@ -366,6 +379,8 @@ public static partial class HtmlProvenance {
             yield return CreateDirectUrlReference("background", background);
         }
 
+        if (localName == "source" && !HtmlResourcePipeline.IsActivePictureImageSource(element)) yield break;
+        if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
         if (localName is "img" or "source") {
             foreach (string attributeName in EmbeddedImageSourceAttributes) {
                 string? source = element.GetAttribute(attributeName);
@@ -412,7 +427,11 @@ public static partial class HtmlProvenance {
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
         document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]")
             .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
-                HtmlResourcePipeline.IsCssStyleElement(element))
+                HtmlResourcePipeline.IsActiveProvenanceStyleElement(element))
+            .Where(element => !element.LocalName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
+                HtmlResourcePipeline.IsActivePictureImageSource(element))
+            .Where(element => !element.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
+                HtmlResourcePipeline.IsActivePictureFallbackImage(element))
             .Distinct();
 
     private static void NormalizeDeclaredEncodingToUtf8(IHtmlDocument document) {
