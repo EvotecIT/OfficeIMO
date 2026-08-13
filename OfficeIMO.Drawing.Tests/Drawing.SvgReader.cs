@@ -81,14 +81,16 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderRetainsSupportedPrimitivesAndCountsUnsupportedContent() {
+    public void SvgReaderRetainsSupportedPrimitivesAndClipsPartiallyVisibleText() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<rect width='20' height='20' fill='#00ff00'/><text x='1' y='10'>Pending</text></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
         Assert.Single(drawing!.Shapes);
-        Assert.Equal(1, unsupported);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal("Pending", Assert.Single(group.InnerDrawing.Elements.OfType<OfficeDrawingText>()).Text);
     }
 
     [Fact]
@@ -240,6 +242,147 @@ public class DrawingSvgReaderTests {
         Assert.Equal(90D, text.X + (text.Width / 2D), 6);
         Assert.Equal(5D, text.Y, 6);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderAppliesLengthKeywordAndPercentageBaselineShiftsToSearchableText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 30' fill='navy'>"
+            + "<text x='2' y='20' font-size='10'>Base"
+            + "<tspan baseline-shift='super'>Sup</tspan>"
+            + "<tspan style='baseline-shift:-3px'>Sub</tspan>"
+            + "<tspan style='baseline-shift:50%;line-height:20px'>Half</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.Equal(new[] { "Base", "Sup", "Sub", "Half" }, runs.Select(run => run.Text));
+        Assert.Equal(10D, runs[0].Y, 6);
+        Assert.Equal(4D, runs[1].Y, 6);
+        Assert.Equal(13D, runs[2].Y, 6);
+        Assert.Equal(0D, runs[3].Y, 6);
+        Assert.All(runs, run => Assert.Equal(OfficeColor.Navy, run.Color));
+        Assert.Contains(">Sup</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderClipsPartiallyVisibleBaselineShiftedTextAtTheViewport() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 30' fill='navy'>"
+            + "<text x='2' y='16' font-size='16' baseline-shift='8px'>Visible</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup group = Assert.Single(drawing!.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingText text = Assert.Single(group.InnerDrawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Visible", text.Text);
+        Assert.Equal(-8D, text.Y, 6);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<clipPath", exported, StringComparison.Ordinal);
+        Assert.Contains(">Visible</text>", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderAppliesFontRelativeBaselineShiftsToSearchableText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'>"
+            + "<text x='2' y='30' font-size='10'>"
+            + "<tspan baseline-shift='0.5em'>Em</tspan>"
+            + "<tspan baseline-shift='1ex'>Ex</tspan>"
+            + "<tspan baseline-shift='1ch'>Ch</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Em", "Ex", "Ch" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 15D, 15D, 15D }, runs.Select(run => run.Y));
+    }
+
+    [Fact]
+    public void SvgReaderAccumulatesNestedBaselineShiftsAndRestoresTheParentShift() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'>"
+            + "<text x='2' y='25' font-size='10'><tspan baseline-shift='10px'>Outer"
+            + "<tspan baseline-shift='5px'>Inner</tspan>After</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Outer", "Inner", "After" }, runs.Select(run => run.Text));
+        Assert.Equal(5D, runs[0].Y, 6);
+        Assert.Equal(0D, runs[1].Y, 6);
+        Assert.Equal(5D, runs[2].Y, 6);
+    }
+
+    [Fact]
+    public void SvgReaderAppliesInheritedAndResetBaselineShiftsFromAttributesAndStyles() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'>"
+            + "<text x='2' y='30' font-size='10'>"
+            + "<tspan baseline-shift='4px'>A<tspan baseline-shift='inherit'>B</tspan><tspan baseline-shift='initial'>E</tspan></tspan>"
+            + "<tspan style='baseline-shift:50%;line-height:20px'>C"
+            + "<tspan style='baseline-shift:inherit;line-height:30px'>D</tspan>"
+            + "<tspan style='baseline-shift:unset'>F</tspan></tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "A", "B", "E", "C", "D", "F" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 16D, 12D, 16D, 10D, 0D, 10D }, runs.Select(run => run.Y));
+    }
+
+    [Fact]
+    public void SvgReaderInvalidInlineBaselineShiftPreservesTheLastValidCascadeValue() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 30'>"
+            + "<text x='2' y='20' font-size='10'>"
+            + "<tspan baseline-shift='4px' style='baseline-shift:bogus'>Attribute</tspan>"
+            + "<tspan baseline-shift='2px' style='baseline-shift:6px;baseline-shift:bogus'>Inline</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(2, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Attribute", "Inline" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 6D, 4D }, runs.Select(run => run.Y));
+    }
+
+    [Theory]
+    [InlineData("line-height='20px' style='line-height:bogus;baseline-shift:50%'", 20D)]
+    [InlineData("style='line-height:30px;line-height:bogus;baseline-shift:50%'", 15D)]
+    public void SvgReaderInvalidInlineLineHeightPreservesTheLastValidCascadeValue(string attributes, double expectedY) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 50'>"
+            + "<text x='2' y='40' font-size='10'>"
+            + "<tspan " + attributes + ">Text</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(1, unsupported);
+        OfficeDrawingText run = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Text", run.Text);
+        Assert.Equal(expectedY, run.Y, 6);
+    }
+
+    [Fact]
+    public void SvgReaderHonorsImportantInlineBaselineShiftAndLineHeight() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 50'>"
+            + "<text x='2' y='40' font-size='10'><tspan baseline-shift='2px' line-height='12px' "
+            + "style='baseline-shift:50% !important;baseline-shift:1px;line-height:20px !important;line-height:10px'>Text</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText run = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal("Text", run.Text);
+        Assert.Equal(20D, run.Y, 6);
     }
 
     [Fact]

@@ -7,6 +7,10 @@ internal static class HtmlCssBoxShadowParser {
         string value,
         double fontSize,
         double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
         OfficeColor currentColor,
         out IReadOnlyList<HtmlCssBoxShadow> shadows) {
         shadows = Array.Empty<HtmlCssBoxShadow>();
@@ -16,7 +20,7 @@ internal static class HtmlCssBoxShadowParser {
         if (layers.Count == 0) return false;
         var parsed = new List<HtmlCssBoxShadow>(layers.Count);
         for (int index = 0; index < layers.Count; index++) {
-            if (!TryParseLayer(layers[index], fontSize, rootFontSize, currentColor, out HtmlCssBoxShadow? shadow)) return false;
+            if (!TryParseLayer(layers[index], fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, currentColor, out HtmlCssBoxShadow? shadow)) return false;
             parsed.Add(shadow!);
         }
         shadows = parsed;
@@ -27,6 +31,10 @@ internal static class HtmlCssBoxShadowParser {
         string layer,
         double fontSize,
         double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
         OfficeColor currentColor,
         out HtmlCssBoxShadow? shadow) {
         shadow = null;
@@ -56,7 +64,7 @@ internal static class HtmlCssBoxShadowParser {
                 continue;
             }
             if (token.EndsWith("%", StringComparison.Ordinal)
-                || !HtmlRenderCssValues.TryLength(token, 0D, fontSize, rootFontSize, out double length)) return false;
+                || !HtmlRenderCssValues.TryLength(token, 0D, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double length)) return false;
             lengths.Add(length);
         }
 
@@ -73,7 +81,7 @@ internal static class HtmlCssBoxShadowParser {
     }
 
     internal static bool IsSupportedSyntax(string value) =>
-        TryParse(value, 16D, 16D, OfficeColor.Black, out _);
+        TryParse(value, 16D, 16D, 100D, 100D, 100D, 100D, OfficeColor.Black, out _);
 }
 
 internal sealed class HtmlCssBoxShadow {

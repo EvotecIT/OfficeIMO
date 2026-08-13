@@ -303,6 +303,42 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFixedPosition_RecomputesViewportSizedBoxesForEachPageGeometry() {
+        const string html = """
+            <style>
+              @page { size:400px 200px; margin:0; }
+              @page :first { size:200px 100px; margin:0; }
+            </style>
+            <div id="fixed" style="position:fixed;left:0;top:0;width:50vw;height:20vh;padding-left:5vw;margin-left:2vw;background:#ff0000"></div>
+            <div style="font-size:5vw"><div id="fixed-inherited" style="position:fixed;left:0;top:50px;width:10em;height:1em;margin:0;background:#0000ff"></div></div>
+            <div style="height:100px;margin:0;break-after:page">First</div>
+            <div style="height:100px;margin:0">Second</div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.True(rendered.Pages.Count >= 2);
+        HtmlRenderShape first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed" && shape.Shape.FillColor.HasValue);
+        HtmlRenderPage laterPage = rendered.Pages[rendered.Pages.Count - 1];
+        HtmlRenderShape second = Assert.Single(laterPage.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(4D, first.X, 3);
+        Assert.Equal(110D, first.Width, 3);
+        Assert.Equal(20D, first.Height, 3);
+        Assert.Equal(8D, second.X, 3);
+        Assert.Equal(220D, second.Width, 3);
+        Assert.Equal(40D, second.Height, 3);
+        HtmlRenderShape firstInherited = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed-inherited" && shape.Shape.FillColor.HasValue);
+        HtmlRenderShape secondInherited = Assert.Single(laterPage.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#fixed-inherited" && shape.Shape.FillColor.HasValue);
+        Assert.Equal(100D, firstInherited.Width, 3);
+        Assert.Equal(10D, firstInherited.Height, 3);
+        Assert.Equal(200D, secondInherited.Width, 3);
+        Assert.Equal(20D, secondInherited.Height, 3);
+    }
+
+    [Fact]
     public void HtmlStickyPosition_UsesStableDocumentSnapshotAndRemainsInFlow() {
         const string html = "<div id='sticky' style='position:sticky;z-index:2;top:0;width:20px;height:20px;margin:0;background:#ff0000'>Sticky</div>"
             + "<div id='after-sticky' style='width:20px;height:20px;margin:0;background:#0000ff'>After</div>";

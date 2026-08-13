@@ -33,8 +33,12 @@ internal static partial class PdfWriter {
         private string? EnsureOpacityState(OfficeIMO.Drawing.OfficeShape shape) {
             bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
             bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-            double fillOpacity = hasFill ? shape.FillOpacity ?? 1D : 1D;
-            double strokeOpacity = hasStroke ? shape.StrokeOpacity ?? 1D : 1D;
+            double fillColorOpacity = shape.FillGradient == null && shape.FillRadialGradient == null && shape.FillColor.HasValue
+                ? shape.FillColor.Value.A / 255D
+                : 1D;
+            double strokeColorOpacity = shape.StrokeColor.HasValue ? shape.StrokeColor.Value.A / 255D : 1D;
+            double fillOpacity = hasFill ? (shape.FillOpacity ?? 1D) * fillColorOpacity : 1D;
+            double strokeOpacity = hasStroke ? (shape.StrokeOpacity ?? 1D) * strokeColorOpacity : 1D;
             return EnsureGraphicsState(fillOpacity, strokeOpacity);
         }
 
@@ -64,23 +68,28 @@ internal static partial class PdfWriter {
             double shadowX = xShape + shadow.OffsetX;
             double shadowBottomY = bottomY - shadow.OffsetY;
             ResolveShadowGeometry(shape, out bool hasFill, out bool hasStroke);
-            if (shadow.BlurRadius > 0D) {
-                const int layers = 4;
-                for (int index = layers; index >= 1; index--) {
-                    double factor = index / (double)layers;
-                    double opacity = coreOpacity * (0.04D + (layers - index + 1) * 0.05D);
-                    DrawShapeShadowLayerAt(
-                        shape,
-                        shadowColor,
-                        shadowX,
-                        shadowBottomY,
-                        Math.Max(1D, Math.Max(0D, shape.StrokeWidth) + shadow.BlurRadius * 2D * factor),
-                        opacity,
-                        hasFill,
-                        hasStroke: true);
-                }
+            IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+                coreOpacity,
+                shadow.BlurRadius,
+                shape.StrokeWidth,
+                hasFill,
+                hasStroke,
+                OfficeShadowLayerPlanner.CanExpand(shape));
+            for (int index = 0; index < layers.Count; index++) {
+                OfficeShadowLayer layer = layers[index];
+                OfficeShape layerShape = layer.Expansion > 0D
+                    ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+                    : shape;
+                DrawShapeShadowLayerAt(
+                    layerShape,
+                    shadowColor,
+                    shadowX - layer.Expansion,
+                    shadowBottomY - layer.Expansion,
+                    layer.StrokeWidth,
+                    layer.Opacity,
+                    layer.HasFill,
+                    layer.HasStroke);
             }
-            DrawShapeShadowLayerAt(shape, shadowColor, shadowX, shadowBottomY, Math.Max(0D, shape.StrokeWidth), coreOpacity, hasFill, hasStroke);
             pageDirty = true;
         }
 

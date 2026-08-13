@@ -6,6 +6,380 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_PageMarginBoxesCascadePropertiesAndExpandFontShorthand() {
+        const string html = """
+            <style>
+              @page {
+                size:3in 2in;
+                margin:24px;
+                @top-center { content:"Inherited title"; color:#224466; font:italic 9px Arial !important; }
+                @top-center { text-align:right; }
+              }
+              @page :first {
+                @top-center { color:red; font-size:20px; font-style:normal; }
+              }
+            </style>
+            <p style="margin:0">Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            HtmlConversionDocument.Parse(html),
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Inherited title", margin.Text);
+        Assert.Equal(9D, margin.Font.Size, 3);
+        Assert.True((margin.Font.Style & OfficeFontStyle.Italic) != 0);
+        Assert.Equal(OfficeColor.Red, margin.Color);
+        Assert.Equal(OfficeTextAlignment.Right, margin.Alignment);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_UsesPageSelectorSpecificityBeforeSourceOrder() {
+        const string html = "<style>@page:first{size:200px 100px}@page:right{size:300px 150px}</style><p>Body</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(200D, rendered.Pages[0].Width, 3);
+        Assert.Equal(100D, rendered.Pages[0].Height, 3);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNegativeAuthoredMargins() {
+        const string html = "<style>@page{size:200px 100px;margin-left:-10px;margin-right:-20px;margin-top:0;margin-bottom:0}</style><div id='body' style='height:10px;background:red'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderShape body = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#body" && shape.Shape.FillColor == OfficeColor.Red);
+
+        Assert.Equal(-10D, body.X, 3);
+        Assert.Equal(230D, body.Width, 3);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesNestedCaseSensitivePageNameTransitions() {
+        const string html = """
+            <style>
+              @page Invoice { size:200px 100px; margin:0; }
+              @page invoice { size:300px 120px; margin:0; }
+              section, div { margin:0; }
+              div { height:20px; }
+            </style>
+            <section>
+              <div style="page:Invoice">Upper</div>
+              <div style="page:invoice">Lower</div>
+              <div>Default</div>
+            </section>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(400D / HtmlRenderOptions.CssPixelsPerInch, 140D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.Equal(200D, rendered.Pages[0].Width, 3);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Upper");
+        Assert.Equal(300D, rendered.Pages[1].Width, 3);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Lower");
+        Assert.Equal(400D, rendered.Pages[2].Width, 3);
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Default");
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_WidowsCountTheImplicitFinalLineAtExactBlockHeight() {
+        const string html = "<style>@page{size:100px 20px;margin:0}p{margin:0;font-size:8px;line-height:10px;orphans:2;widows:2}</style><p>wordA<br>wordB<br>wordC<br>wordD</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page => Assert.Equal(2, CountRenderedTextLines(page)));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_WidowsDoNotCountAnExplicitRetainedFinalLineTwice() {
+        const string html = "<style>@page{size:100px 40px;margin:0}div{height:20px}p{margin:0;padding-bottom:1px;font-size:8px;line-height:10px;orphans:2;widows:2}</style>"
+            + "<div>Lead</div><p>wordA<br>wordB<br>wordC</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.StartsWith("word", StringComparison.Ordinal));
+        Assert.Equal(3, rendered.Pages[1].Visuals.OfType<HtmlRenderText>().Count(text => text.Text.StartsWith("word", StringComparison.Ordinal)));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesOrientationOnlyAndAutomaticPageSizes() {
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape", 300D, 500D, 16D, out double landscapeWidth, out double landscapeHeight));
+        Assert.Equal((500D, 300D), (landscapeWidth, landscapeHeight));
+
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("portrait", 500D, 300D, 16D, out double portraitWidth, out double portraitHeight));
+        Assert.Equal((300D, 500D), (portraitWidth, portraitHeight));
+
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("auto", 300D, 500D, 16D, out double automaticWidth, out double automaticHeight));
+        Assert.Equal((300D, 500D), (automaticWidth, automaticHeight));
+        Assert.True(HtmlCssPageSettingsResolver.TryResolvePageSize("landscape A4", 300D, 500D, 16D, out double namedWidth, out double namedHeight));
+        Assert.True(namedWidth > namedHeight);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_DiagnosesInvalidNamedAndPseudoPageSizes() {
+        const string html = "<style>@page invoice { size:nonsense; } @page :first { size:also-bad; }</style><p>Body</p>";
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlDiagnostic[] diagnostics = rendered.Diagnostics
+            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported)
+            .ToArray();
+
+        Assert.Equal(2, diagnostics.Length);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "@page invoice" && diagnostic.Detail == "nonsense");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "@page :first" && diagnostic.Detail == "also-bad");
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_UsesLastDeclarationAndImportantPrecedenceWithinPageRules() {
+        const string html = """
+            <style>@page { size:300px 200px; size:200px 100px !important; size:400px 400px; margin:1px; margin:10px !important; margin:20px; }</style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_RejectsInvalidMarginShorthandsAtomically() {
+        const string html = "<style>@page{size:200px 100px;margin:12px}@page{margin:10px bogus}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((12D, 12D, 12D, 12D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Theory]
+    [InlineData("1px initial")]
+    [InlineData("unset 2px")]
+    [InlineData("1px revert-layer")]
+    public void HtmlPagedMedia_RejectsMixedCssWideMarginShorthandsAtomically(string margin) {
+        string html = "<style>@page{size:200px 100px;margin:12px}@page{margin:" + margin + "}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((12D, 12D, 12D, 12D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_RevertLayerMarginsRevealThePreviousPageLayer() {
+        const string html = "<style>@layer base,theme;@layer base{@page{size:200px 100px;margin:10px}}@layer theme{@page{margin:20px}@page{margin:revert-layer}}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_RevertLayerSizeRevealsThePreviousPageLayer() {
+        const string html = """
+            <style>
+              @layer base { @page { size:A4; margin:0; } }
+              @layer theme { @page { size:letter; size:revert-layer; } }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal(OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch, page.Width, 3);
+        Assert.Equal(OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch, page.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_RevertLayerMarginBoxPropertiesRevealThePreviousPageLayer() {
+        const string html = """
+            <style>
+              @layer base,theme;
+              @layer base {
+                @page { size:200px 100px; margin:20px; @top-center { content:"Base"; font:italic bold 8px Arial; color:blue; text-align:right; } }
+              }
+              @layer theme {
+                @page { @top-center { content:"Theme"; content:revert-layer; font-family:serif; font-family:revert-layer; font-size:20px; font-size:revert-layer; font-weight:normal; font-weight:revert-layer; font-style:normal; font-style:revert-layer; color:red; color:revert-layer; text-align:left; text-align:revert-layer; } }
+              }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Base", margin.Text);
+        Assert.Equal("Arial", margin.Font.FamilyName);
+        Assert.Equal(8D, margin.Font.Size, 3);
+        Assert.True(margin.Font.IsBold);
+        Assert.True(margin.Font.IsItalic);
+        Assert.Equal(OfficeColor.Blue, margin.Color);
+        Assert.Equal(OfficeTextAlignment.Right, margin.Alignment);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
+        const string html = """
+            <style>
+              @page report { size:200px 120px !important; margin:10px !important; }
+              @page report { size:300px 180px; margin:20px; margin-left:30px; }
+            </style>
+            <section style="page:report">Body</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 120D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_MatchesNamedPageGeometryCaseSensitively() {
+        const string html = "<style>@page Invoice{size:200px 100px}@page invoice{size:300px 150px}</style><section style='page:invoice'>Body</section>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal("invoice", page.PageName);
+        Assert.Equal((300D, 150D), (page.Width, page.Height));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_AppliesCssWideResetsToPageMarginSides() {
+        const string html = "<style>@page report { size:200px 100px; margin:12px; margin-top:unset; margin-left:initial; }</style><section style='page:report'>Body</section>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((0D, 12D, 12D, 0D), (page.Margins.Left, page.Margins.Right, page.Margins.Bottom, page.Margins.Top));
+    }
+
+    [Theory]
+    [InlineData("margin:auto", 0D, 0D, 0D, 0D)]
+    [InlineData("margin:7px auto 9px 11px", 11D, 7D, 0D, 9D)]
+    [InlineData("margin:12px;margin-top:auto;margin-left:auto", 0D, 0D, 12D, 12D)]
+    public void HtmlPagedMedia_AutomaticMarginsOverrideConfiguredPageMargins(
+        string declarations,
+        double expectedLeft,
+        double expectedTop,
+        double expectedRight,
+        double expectedBottom) {
+        string html = "<style>@page{size:200px 100px;" + declarations + "}</style><p>Body</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            Margins = HtmlRenderMargins.All(25D)
+        };
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, options).Pages);
+
+        Assert.Equal(
+            (expectedLeft, expectedTop, expectedRight, expectedBottom),
+            (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_InvalidNamedSizeDoesNotOverrideEarlierValidDeclaration() {
+        const string html = "<style>@page report { size:letter; } @page report { size:A4 bogus; }</style><section style='page:report'>Body</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+
+        Assert.Equal((816D, 1056D), (page.Width, page.Height));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
+    }
+
+    [Theory]
+    [InlineData("A4 landscape portrait")]
+    [InlineData("A4 bogus")]
+    [InlineData("200px 100px landscape")]
+    [InlineData("50% 50%")]
+    [InlineData("calc(100px + 10%) 100px")]
+    [InlineData("200 100")]
+    public void HtmlPagedMedia_RejectsExtraOrConflictingPageSizeTokens(string value) {
+        Assert.False(HtmlCssPageSettingsResolver.TryResolvePageSize(value, 300D, 500D, 16D, out _, out _));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesMarginBoxViewportUnitsAgainstMatchedPageMaster() {
+        const string html = """
+            <style>
+              @page { size:300px 180px; margin:30px; }
+              @page report { size:200px 120px; @top-center { content:"Report"; font-size:10vw; } }
+            </style>
+            <section style="page:report">Body</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+        HtmlRenderText margin = Assert.Single(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "Report");
+
+        Assert.Equal(200D, page.Width);
+        Assert.Equal(20D, margin.Font.Size, 3);
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_IgnoresCommentsBeforePageDeclarations() {
+        const string html = "<style>@page{/* geometry */ size:200px 100px;/* spacing */ margin:10px}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((10D, 10D, 10D, 10D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_ResolvesGenericPercentageMarginsAgainstFinalNamedPageSize() {
+        const string html = """
+            <style>
+              @page { margin:10%; }
+              @page report { size:200px 100px; }
+            </style>
+            <section style="page:report">Named page</section>
+            """;
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal("report", page.PageName);
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Equal((20D, 20D, 20D, 20D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
+    [Fact]
+    public void HtmlPagedMedia_RelayoutsViewportUnitsWhenPageWidthsDifferButContentWidthsMatch() {
+        const string html = """
+            <style>
+              @page { size:300px 180px; margin:50px; }
+              @page report { size:400px 180px; margin-left:100px; margin-right:100px; margin-top:50px; margin-bottom:50px; }
+              section { height:20px; margin:0; background:#ff0000; }
+            </style>
+            <section id="opening" style="width:50vw">Opening</section>
+            <section id="report" style="page:report;break-before:page;width:50vw">Report</section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlRenderPage reportPage = Assert.Single(rendered.Pages, page => page.PageName == "report");
+        HtmlRenderShape report = Assert.Single(
+            reportPage.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "section#report" && shape.Shape.FillColor.HasValue);
+
+        Assert.Equal(400D, reportPage.Width);
+        Assert.Equal(200D, report.Width, 3);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ResolvesRunningStringsFromPageLocalAssignments() {
         const string html = """
             <style>

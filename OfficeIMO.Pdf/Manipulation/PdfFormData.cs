@@ -6,11 +6,23 @@ internal static class PdfFormData {
     public static PdfFormDataSet Export(byte[] pdf, PdfReadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf)); PdfReadDocument document = PdfReadDocument.Open(pdf, options); var fields = new List<PdfFormDataField>();
         foreach (PdfFormField field in document.FormFields) {
-            if (string.IsNullOrEmpty(field.Name)) continue;
-            IReadOnlyList<string> values = field.Values.Count > 0 ? field.Values : new[] { field.Value ?? string.Empty };
+            if (field.IsNoExport || string.IsNullOrEmpty(field.Name)) continue;
+            IReadOnlyList<string> values = ResolveExportValues(field);
             fields.Add(new PdfFormDataField(field.Name!, values));
         }
         return new PdfFormDataSet(fields);
+    }
+    private static IReadOnlyList<string> ResolveExportValues(PdfFormField field) {
+        if (field.IsButtonField
+            && !string.Equals(field.Value, "Off", StringComparison.Ordinal)
+            && field.Options.Count == field.Widgets.Count) {
+            for (int index = 0; index < field.Widgets.Count; index++) {
+                if (string.Equals(field.Widgets[index].AppearanceState, field.Value, StringComparison.Ordinal)) {
+                    return new[] { field.Options[index].ExportValue };
+                }
+            }
+        }
+        return field.Values.Count > 0 ? field.Values : new[] { field.Value ?? string.Empty };
     }
     /// <summary>Exports readable fields as XFDF.</summary>
     public static string ExportXfdf(byte[] pdf, PdfReadOptions? options = null) => Export(pdf, options).ToXfdf();

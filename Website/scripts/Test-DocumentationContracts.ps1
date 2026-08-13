@@ -289,9 +289,9 @@ if ($catalog.repository.productionComponentCount -ne @($catalog.components).Coun
     Add-Failure 'The OfficeIMO component summary does not match the generated component list.'
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 167
-    productionComponentCount = 98
-    testProjectCount = 32
+    projectCount = 169
+    productionComponentCount = 99
+    testProjectCount = 33
     benchmarkProjectCount = 16
     validationProjectCount = 22
     apiReferenceCount = 21
@@ -356,6 +356,7 @@ if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 97) {
 if ($aotMatrix.summary.fullyRootedLibraryCount -ne 95 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
+    $aotMatrix.summary.managedCrossPlatformProjectCount -ne 1 -or
     $aotMatrix.summary.managedWindowsProjectCount -ne 1) {
     Add-Failure 'The NativeAOT classification totals changed without updating the customer-facing contract.'
 }

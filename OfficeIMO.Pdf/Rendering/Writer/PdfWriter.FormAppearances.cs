@@ -28,12 +28,7 @@ internal static partial class PdfWriter {
         var sb = new StringBuilder();
         sb.Append("q\n");
         if (effectiveStyle.BackgroundColor.HasValue) {
-            sb.Append(FormatAppearanceColor(effectiveStyle.BackgroundColor.Value))
-                .Append(" rg 0 0 ")
-                .Append(FormatAppearanceNumber(width))
-                .Append(' ')
-                .Append(FormatAppearanceNumber(height))
-                .Append(" re f\n");
+            sb.Append(PdfAcroFormDictionaryBuilder.BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle));
         }
 
         if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0D) {
@@ -84,18 +79,114 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
+    private static string BuildChoiceFieldAppearanceContent(
+        double width,
+        double height,
+        FormFieldAnnotation field,
+        PdfOptions formOptions,
+        Func<PdfStandardFont, PdfOptions, int> ensureFont,
+        out IReadOnlyList<(string Name, int Id)> fontResources,
+        out IReadOnlyList<PdfFormFieldOption> options,
+        out IReadOnlyList<string> selectedValues,
+        out IReadOnlyList<int> selectedIndices,
+        out int? topIndex) {
+        options = field.ChoiceOptions.Count > 0
+            ? field.ChoiceOptions
+            : field.Options.Select(option => new PdfFormFieldOption(option, option)).ToList();
+        if (field.IsComboBox) {
+            selectedValues = field.Values;
+            selectedIndices = Array.Empty<int>();
+            topIndex = null;
+            return BuildFormFieldTextAppearanceContent(
+                width,
+                height,
+                ResolveChoiceAppearanceValue(field),
+                field.FontSize,
+                field.Style,
+                formOptions,
+                ensureFont,
+                out fontResources);
+        }
+
+        IReadOnlyList<int> resolvedIndices = ResolveChoiceSelectedIndices(field, options);
+        (selectedIndices, selectedValues) = SortChoiceSelections(resolvedIndices, field.Values);
+        PdfFormFieldStyle style = field.Style;
+        double rowHeight = Math.Max(field.FontSize + 2D, field.FontSize * 1.2D);
+        int visibleRows = Math.Max(1, (int)Math.Floor(Math.Max(rowHeight, height - 4D) / rowHeight));
+        int maximumTopIndex = Math.Max(0, options.Count - visibleRows);
+        topIndex = selectedIndices.Count == 0 ? 0 : Math.Min(selectedIndices[0], maximumTopIndex);
+        var resources = new List<(string Name, int Id)>();
+        var sb = new StringBuilder("q\n");
+        sb.Append(PdfAcroFormDictionaryBuilder.BuildFormFieldBackgroundAppearanceContent(width, height, style));
+        if (style.BorderColor.HasValue && style.BorderWidth > 0D) {
+            sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(width, height, style));
+        }
+
+        int lastIndex = Math.Min(options.Count, topIndex.Value + visibleRows);
+        for (int optionIndex = topIndex.Value; optionIndex < lastIndex; optionIndex++) {
+            int visibleIndex = optionIndex - topIndex.Value;
+            double rowBottom = Math.Max(2D, height - 2D - (visibleIndex + 1D) * rowHeight);
+            bool isSelected = selectedIndices.Contains(optionIndex);
+            PdfFormFieldStyle textStyle = style;
+            if (isSelected) {
+                sb.Append("0.153 0.392 0.8 rg 2 ")
+                    .Append(FormatAppearanceNumber(rowBottom))
+                    .Append(' ')
+                    .Append(FormatAppearanceNumber(Math.Max(0D, width - 4D)))
+                    .Append(' ')
+                    .Append(FormatAppearanceNumber(Math.Min(rowHeight, Math.Max(0D, height - rowBottom - 2D))))
+                    .Append(" re f\n");
+                textStyle = style.Clone();
+                textStyle.TextColor = PdfColor.White;
+            }
+
+            IReadOnlyList<RichSeg> segments = BuildFormAppearanceSegments(options[optionIndex].DisplayText, field.FontSize, textStyle, formOptions);
+            EnsureCanWriteFormAppearanceLine(segments, formOptions);
+            double baseline = rowBottom + Math.Max(2D, (rowHeight - field.FontSize) / 2D + field.FontSize * 0.72D);
+            AppendFormAppearanceSegments(sb, segments, 3D, baseline, textStyle.TextColor, formOptions, ensureFont, resources);
+        }
+
+        sb.Append("Q\n");
+        fontResources = resources;
+        return sb.ToString();
+    }
+
+    private static (IReadOnlyList<int> Indices, IReadOnlyList<string> Values) SortChoiceSelections(
+        IReadOnlyList<int> indices,
+        IReadOnlyList<string> values) {
+        if (indices.Count == 0 || indices.Count != values.Count) return (indices, values);
+        var ordered = indices.Select((index, valueIndex) => (Index: index, Value: values[valueIndex]))
+            .OrderBy(pair => pair.Index)
+            .ToList();
+        return (ordered.Select(pair => pair.Index).ToList(), ordered.Select(pair => pair.Value).ToList());
+    }
+
+    private static IReadOnlyList<int> ResolveChoiceSelectedIndices(FormFieldAnnotation field, IReadOnlyList<PdfFormFieldOption> options) {
+        if (field.SelectedIndices.Count == field.Values.Count && field.SelectedIndices.Count > 0) {
+            return field.SelectedIndices;
+        }
+
+        var selected = new List<int>();
+        var used = new HashSet<int>();
+        for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
+            string value = field.Values[valueIndex];
+            for (int optionIndex = 0; optionIndex < options.Count; optionIndex++) {
+                if (!used.Contains(optionIndex) && string.Equals(options[optionIndex].ExportValue, value, StringComparison.Ordinal)) {
+                    selected.Add(optionIndex);
+                    used.Add(optionIndex);
+                    break;
+                }
+            }
+        }
+        return selected;
+    }
+
     private static void AppendFormFieldBorderAppearance(StringBuilder sb, double width, double height, PdfFormFieldStyle style) {
         if (style.BorderColor == null || style.BorderWidth <= 0D) {
             return;
         }
 
-        sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(
-            width,
-            height,
-            style.BorderColor.Value,
-            style.BorderWidth,
-            ResolveFormFieldBorderDashPattern(style),
-            style.BorderStyle));
+        sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(width, height, style));
     }
 
     private static IReadOnlyList<double>? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
@@ -117,19 +208,26 @@ internal static partial class PdfWriter {
         PdfOptions formOptions,
         Func<PdfStandardFont, PdfOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
-        string[] lines = SplitFormTextFieldAppearanceLines(displayValue);
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
+        List<List<RichSeg>> lines = BuildWrappedFormAppearanceLines(
+            displayValue,
+            availableTextWidth,
+            fontSize,
+            lineHeight,
+            effectiveStyle,
+            formOptions);
         double baseline = Math.Max(2D, height - fontSize * 1.15D);
-        for (int i = 0; i < lines.Length && baseline >= 2D; i++) {
-            string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
-            AppendFormFieldTextAppearanceLine(
+        for (int i = 0; i < lines.Count && baseline >= 2D; i++) {
+            IReadOnlyList<RichSeg> line = lines[i];
+            EnsureCanWriteFormAppearanceLine(line, formOptions);
+            double lineWidth = MeasureRichLineWidth(line, formOptions);
+            double textX = CalculateFormFieldAppearanceAlignedTextX(availableTextWidth, lineWidth, alignment);
+            AppendFormAppearanceSegments(
                 sb,
                 line,
-                availableTextWidth,
-                fontSize,
+                textX,
                 baseline,
-                effectiveStyle,
-                alignment,
+                effectiveStyle.TextColor,
                 formOptions,
                 ensureFont,
                 fontResources);
@@ -198,21 +296,47 @@ internal static partial class PdfWriter {
     }
 
     private static IReadOnlyList<RichSeg> BuildFormAppearanceSegments(string text, double fontSize, PdfFormFieldStyle effectiveStyle, PdfOptions formOptions) {
+        List<List<RichSeg>> wrapped = BuildWrappedFormAppearanceLines(
+            text,
+            Math.Max(1D, 1000000D),
+            fontSize,
+            Math.Max(fontSize, fontSize * 1.2D),
+            effectiveStyle,
+            formOptions);
+        return wrapped.Count == 0
+            ? Array.Empty<RichSeg>()
+            : wrapped[0];
+    }
+
+    private static List<List<RichSeg>> BuildWrappedFormAppearanceLines(
+        string text,
+        double availableTextWidth,
+        double fontSize,
+        double lineHeight,
+        PdfFormFieldStyle effectiveStyle,
+        PdfOptions formOptions) {
+        if (availableTextWidth <= 0.001D) {
+            int lineCount = SplitFormTextFieldAppearanceLines(text).Length;
+            var emptyLines = new List<List<RichSeg>>(lineCount);
+            for (int index = 0; index < lineCount; index++) {
+                emptyLines.Add(new List<RichSeg>());
+            }
+
+            return emptyLines;
+        }
+
         var runs = new[] {
             PdfTextRun.Normal(text, effectiveStyle.TextColor, fontSize, font: PdfStandardFont.Helvetica)
         };
-        var wrapped = WrapRichRunsCore(
+        return WrapRichRunsCore(
             runs,
-            Math.Max(1D, 1000000D),
+            availableTextWidth,
             fontSize,
             PdfStandardFont.Helvetica,
-            Math.Max(fontSize, fontSize * 1.2D),
+            lineHeight,
             firstLineWidthPts: null,
             DefaultParagraphTabStopWidth,
-            formOptions);
-        return wrapped.Lines.Count == 0
-            ? Array.Empty<RichSeg>()
-            : wrapped.Lines[0];
+            formOptions).Lines;
     }
 
     private static void EnsureCanWriteFormAppearanceLine(IReadOnlyList<RichSeg> line, PdfOptions formOptions) {

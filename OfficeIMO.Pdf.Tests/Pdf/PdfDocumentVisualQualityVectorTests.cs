@@ -193,6 +193,30 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersColorChannelAlphaAsExtGStateOpacity() {
+        var shape = OfficeShape.Rectangle(90, 24);
+        shape.FillColor = OfficeColor.FromRgba(255, 255, 255, 51);
+        shape.StrokeColor = OfficeColor.FromRgba(70, 130, 180, 153);
+        shape.StrokeWidth = 1.5;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("<< /Type /ExtGState /ca 0.2 /CA 0.6 >>", content);
+        Assert.Contains("/ExtGState << /GS1 ", content);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedClipPathBeforePainting() {
         var shape = OfficeShape.Rectangle(90, 40);
         shape.FillColor = OfficeColor.WhiteSmoke;
@@ -489,10 +513,14 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.True(content.Split(new[] { "/Type /ExtGState" }, StringSplitOptions.None).Length - 1 >= 5);
-        Assert.Contains("/ca 0.251 /CA 0.251", content, StringComparison.Ordinal);
-        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
-        Assert.Contains("8 w", content, StringComparison.Ordinal);
+        double[] shadowOpacities = Regex.Matches(content, @"/Type /ExtGState /ca (?<opacity>0(?:\.\d+)?) /CA \k<opacity>")
+            .Cast<Match>()
+            .Select(match => double.Parse(match.Groups["opacity"].Value, CultureInfo.InvariantCulture))
+            .ToArray();
+        Assert.Contains(shadowOpacities, opacity => opacity > 0D && opacity < 0.02D);
+        Assert.Contains(shadowOpacities, opacity => opacity > 0.1D && opacity < 1D);
+        Assert.All(shadowOpacities, opacity => Assert.InRange(opacity, 0D, 0.999999D));
+        Assert.True(content.Split(new[] { "1 0 0 rg" }, StringSplitOptions.None).Length - 1 >= 6);
     }
 
     [Fact]

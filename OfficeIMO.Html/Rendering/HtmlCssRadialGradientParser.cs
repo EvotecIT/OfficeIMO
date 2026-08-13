@@ -13,8 +13,15 @@ internal static class HtmlCssRadialGradientParser {
         if (string.IsNullOrWhiteSpace(value) || maximumStops < 2) return false;
 
         string text = value!.Trim();
-        const string functionName = "radial-gradient";
-        if (!text.StartsWith(functionName, StringComparison.OrdinalIgnoreCase)) return false;
+        string functionName;
+        bool repeating;
+        if (text.StartsWith("repeating-radial-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "repeating-radial-gradient";
+            repeating = true;
+        } else if (text.StartsWith("radial-gradient", StringComparison.OrdinalIgnoreCase)) {
+            functionName = "radial-gradient";
+            repeating = false;
+        } else return false;
         int open = functionName.Length;
         if (open >= text.Length || text[open] != '(' || text[text.Length - 1] != ')') return false;
 
@@ -29,7 +36,7 @@ internal static class HtmlCssRadialGradientParser {
         int stopStart = HtmlCssGradientStops.IsColorStop(arguments[0]) ? 0 : 1;
         if (!HtmlCssGradientStops.TryParse(arguments, stopStart, maximumStops, out HtmlCssGradientStops? stops, out stopLimitExceeded)
             || stops == null
-            || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, out definition)) {
+            || !TryParseDescriptor(stopStart == 0 ? string.Empty : arguments[0], stops, repeating, out definition)) {
             return false;
         }
 
@@ -39,6 +46,7 @@ internal static class HtmlCssRadialGradientParser {
     private static bool TryParseDescriptor(
         string descriptor,
         HtmlCssGradientStops stops,
+        bool repeating,
         out HtmlCssRadialGradientDefinition? definition) {
         definition = null;
         List<string> parts = HtmlRenderCssValues.SplitWhitespace(descriptor)
@@ -83,65 +91,12 @@ internal static class HtmlCssRadialGradientParser {
             return false;
         }
 
-        definition = new HtmlCssRadialGradientDefinition(shape, size, centerX, centerY, radiusX, radiusY, stops);
+        definition = new HtmlCssRadialGradientDefinition(shape, size, centerX, centerY, radiusX, radiusY, stops, repeating);
         return true;
     }
 
     private static bool TryParsePosition(IReadOnlyList<string> parts, out string x, out string y) {
-        x = "50%";
-        y = "50%";
-        if (parts.Count == 0) return true;
-        if (parts.Count > 2) return false;
-        if (parts.Count == 1) {
-            if (TryParseHorizontalPosition(parts[0], out x)) return true;
-            if (TryParseVerticalPosition(parts[0], out y)) return true;
-            return false;
-        }
-
-        if (TryParseHorizontalPosition(parts[0], out x) && TryParseVerticalPosition(parts[1], out y)) return true;
-        return TryParseHorizontalPosition(parts[1], out x) && TryParseVerticalPosition(parts[0], out y);
-    }
-
-    private static bool TryParseHorizontalPosition(string value, out string result) {
-        switch (value) {
-            case "left":
-                result = "0%";
-                return true;
-            case "center":
-                result = "50%";
-                return true;
-            case "right":
-                result = "100%";
-                return true;
-            case "top":
-            case "bottom":
-                result = string.Empty;
-                return false;
-            default:
-                result = value;
-                return IsLength(value);
-        }
-    }
-
-    private static bool TryParseVerticalPosition(string value, out string result) {
-        switch (value) {
-            case "top":
-                result = "0%";
-                return true;
-            case "center":
-                result = "50%";
-                return true;
-            case "bottom":
-                result = "100%";
-                return true;
-            case "left":
-            case "right":
-                result = string.Empty;
-                return false;
-            default:
-                result = value;
-                return IsLength(value);
-        }
+        return HtmlCssGradientPositionParser.TryParse(parts, out x, out y);
     }
 
     private static bool TryParseExtent(string value, out HtmlCssRadialGradientSize size) {
@@ -172,8 +127,8 @@ internal static class HtmlCssRadialGradientParser {
     }
 
     private static bool IsLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out _);
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out _);
 
     private static bool IsNonNegativeLength(string value) =>
-        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length) && length >= 0D;
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out double length) && length >= 0D;
 }

@@ -18,24 +18,66 @@ public static class OfficeColorSpaceConverter {
         return OfficeColor.FromRgb(ToByte((1D - c) * (1D - k)), ToByte((1D - m) * (1D - k)), ToByte((1D - y) * (1D - k)));
     }
 
+    /// <summary>Converts linear-light sRGB components to encoded sRGB.</summary>
+    public static OfficeColor FromLinearSrgb(double red, double green, double blue) =>
+        OfficeColor.FromRgb(ToSrgbByte(red), ToSrgbByte(green), ToSrgbByte(blue));
+
+    /// <summary>Converts OKLab coordinates to encoded sRGB.</summary>
+    public static OfficeColor FromOklab(double lightness, double a, double b) {
+        ToLinearSrgbFromOklab(lightness, a, b, out double red, out double green, out double blue);
+        return FromLinearSrgb(red, green, blue);
+    }
+
+    internal static void ToLinearSrgbFromOklab(double lightness, double a, double b, out double red, out double green, out double blue) {
+        double lRoot = lightness + (0.3963377774D * a) + (0.2158037573D * b);
+        double mRoot = lightness - (0.1055613458D * a) - (0.0638541728D * b);
+        double sRoot = lightness - (0.0894841775D * a) - (1.291485548D * b);
+        double l = lRoot * lRoot * lRoot;
+        double m = mRoot * mRoot * mRoot;
+        double s = sRoot * sRoot * sRoot;
+        red = (4.0767416621D * l) - (3.3077115913D * m) + (0.2309699292D * s);
+        green = (-1.2684380046D * l) + (2.6097574011D * m) - (0.3413193965D * s);
+        blue = (-0.0041960863D * l) - (0.7034186147D * m) + (1.707614701D * s);
+    }
+
     /// <summary>Converts CIE L*a*b* using the D50 reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b) =>
-        FromLab(lightness, a, b, 0.96422D, 1D, 0.82521D);
+        FromLabCore(lightness, a, b, 0.96422D, 1D, 0.82521D, clampAxes: true);
+
+    internal static OfficeColor FromCssLab(double lightness, double a, double b) =>
+        FromLabCore(lightness, a, b, 0.96422D, 1D, 0.82521D, clampAxes: false);
+
+    internal static void ToLinearSrgbFromCssLab(double lightness, double a, double b, out double red, out double green, out double blue) =>
+        ToLinearSrgbFromLabCore(lightness, a, b, 0.96422D, 1D, 0.82521D, clampAxes: false, out red, out green, out blue);
 
     /// <summary>Converts CIE L*a*b* using an explicit XYZ reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ) {
+        return FromLabCore(lightness, a, b, whiteX, whiteY, whiteZ, clampAxes: true);
+    }
+
+    private static OfficeColor FromLabCore(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, bool clampAxes) {
+        ToLinearSrgbFromLabCore(lightness, a, b, whiteX, whiteY, whiteZ, clampAxes, out double red, out double green, out double blue);
+        return FromLinearSrgb(red, green, blue);
+    }
+
+    private static void ToLinearSrgbFromLabCore(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, bool clampAxes, out double red, out double green, out double blue) {
         ValidateWhitePoint(whiteX, whiteY, whiteZ);
         double l = Clamp(lightness, 0D, 100D);
         double fy = (l + 16D) / 116D;
-        double fx = fy + (Clamp(a, -128D, 127D) / 500D);
-        double fz = fy - (Clamp(b, -128D, 127D) / 200D);
-        return FromXyz(
+        double resolvedA = clampAxes ? Clamp(a, -128D, 127D) : a;
+        double resolvedB = clampAxes ? Clamp(b, -128D, 127D) : b;
+        double fx = fy + (resolvedA / 500D);
+        double fz = fy - (resolvedB / 200D);
+        ToLinearSrgbFromXyz(
             whiteX * InverseLabPivot(fx),
             whiteY * InverseLabPivot(fy),
             whiteZ * InverseLabPivot(fz),
             whiteX,
             whiteY,
-            whiteZ);
+            whiteZ,
+            out red,
+            out green,
+            out blue);
     }
 
     /// <summary>Converts a calibrated gray component and gamma using an explicit XYZ white point.</summary>
@@ -77,12 +119,16 @@ public static class OfficeColorSpaceConverter {
 
     /// <summary>Converts XYZ values relative to an explicit source white point to sRGB.</summary>
     public static OfficeColor FromXyz(double x, double y, double z, double sourceWhiteX = D65X, double sourceWhiteY = D65Y, double sourceWhiteZ = D65Z) {
+        ToLinearSrgbFromXyz(x, y, z, sourceWhiteX, sourceWhiteY, sourceWhiteZ, out double linearRed, out double linearGreen, out double linearBlue);
+        return OfficeColor.FromRgb(ToSrgbByte(linearRed), ToSrgbByte(linearGreen), ToSrgbByte(linearBlue));
+    }
+
+    internal static void ToLinearSrgbFromXyz(double x, double y, double z, double sourceWhiteX, double sourceWhiteY, double sourceWhiteZ, out double red, out double green, out double blue) {
         ValidateWhitePoint(sourceWhiteX, sourceWhiteY, sourceWhiteZ);
         AdaptToD65(ref x, ref y, ref z, sourceWhiteX, sourceWhiteY, sourceWhiteZ);
-        double linearRed = (3.2404542D * x) - (1.5371385D * y) - (0.4985314D * z);
-        double linearGreen = (-0.969266D * x) + (1.8760108D * y) + (0.041556D * z);
-        double linearBlue = (0.0556434D * x) - (0.2040259D * y) + (1.0572252D * z);
-        return OfficeColor.FromRgb(ToSrgbByte(linearRed), ToSrgbByte(linearGreen), ToSrgbByte(linearBlue));
+        red = (3.2404542D * x) - (1.5371385D * y) - (0.4985314D * z);
+        green = (-0.969266D * x) + (1.8760108D * y) + (0.041556D * z);
+        blue = (0.0556434D * x) - (0.2040259D * y) + (1.0572252D * z);
     }
 
     private static void AdaptToD65(ref double x, ref double y, ref double z, double whiteX, double whiteY, double whiteZ) {

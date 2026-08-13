@@ -169,6 +169,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeImageOrientationNormalizer_AppliesOrIgnoresExifWithoutPlatformCodecs() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444,
+                DpiX = 72D,
+                DpiY = 144D,
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+            });
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, true, out byte[] orientedPng, out OfficeImageInfo? orientedInfo));
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, false, out byte[] rawPng, out OfficeImageInfo? rawInfo));
+            Assert.Equal((1, 2), (orientedInfo!.Width, orientedInfo.Height));
+            Assert.Equal((2, 1), (rawInfo!.Width, rawInfo.Height));
+            Assert.InRange(orientedInfo.DpiX, 143.9D, 144.1D);
+            Assert.InRange(orientedInfo.DpiY, 71.9D, 72.1D);
+            Assert.InRange(rawInfo.DpiX, 71.9D, 72.1D);
+            Assert.InRange(rawInfo.DpiY, 143.9D, 144.1D);
+            Assert.True(OfficePngReader.TryDecode(orientedPng, out OfficeRasterImage? oriented));
+            Assert.True(OfficePngReader.TryDecode(rawPng, out OfficeRasterImage? raw));
+            AssertColorNear(oriented!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(oriented.GetPixel(0, 1), OfficeColor.Blue, 12);
+            AssertColorNear(raw!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(raw.GetPixel(1, 0), OfficeColor.Blue, 12);
+        }
+
+        [Fact]
+        public void OfficeImageOrientationNormalizer_IgnoresExifSegmentWithoutOrientationBeforeOrientedSegment() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+            byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444,
+                Metadata = new OfficeJpegMetadata(exif: CreateExifOrientation(6))
+            });
+            jpeg = InsertExifSegmentAfterStartOfImage(jpeg, CreateExifWithoutOrientation());
+
+            Assert.True(OfficeImageOrientationNormalizer.TryRead(jpeg, out OfficeImageOrientation orientation));
+            Assert.Equal(OfficeImageOrientation.Rotate90Clockwise, orientation);
+            Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(jpeg, false, out byte[] rawPng, out OfficeImageInfo? rawInfo));
+            Assert.Equal((2, 1), (rawInfo!.Width, rawInfo.Height));
+            Assert.True(OfficePngReader.TryDecode(rawPng, out OfficeRasterImage? raw));
+            AssertColorNear(raw!.GetPixel(0, 0), OfficeColor.Red, 12);
+            AssertColorNear(raw.GetPixel(1, 0), OfficeColor.Blue, 12);
+        }
+
+        [Fact]
         public void OfficeJpegCodec_RejectsOrientedDecodeBeforeAllocatingSecondRgbaBuffer() {
             var source = new OfficeRasterImage(8, 8, OfficeColor.Red);
             byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
@@ -285,6 +337,33 @@ namespace OfficeIMO.Tests {
             (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00
         };
+
+        private static byte[] CreateExifWithoutOrientation() => new byte[] {
+            (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00
+        };
+
+        private static byte[] InsertExifSegmentAfterStartOfImage(byte[] jpeg, byte[] tiffData) {
+            int payloadLength = 6 + tiffData.Length;
+            int segmentLength = payloadLength + 2;
+            var segment = new byte[segmentLength + 2];
+            segment[0] = 0xFF;
+            segment[1] = 0xE1;
+            segment[2] = (byte)(segmentLength >> 8);
+            segment[3] = (byte)segmentLength;
+            segment[4] = (byte)'E';
+            segment[5] = (byte)'x';
+            segment[6] = (byte)'i';
+            segment[7] = (byte)'f';
+            Buffer.BlockCopy(tiffData, 0, segment, 10, tiffData.Length);
+
+            var combined = new byte[jpeg.Length + segment.Length];
+            Buffer.BlockCopy(jpeg, 0, combined, 0, 2);
+            Buffer.BlockCopy(segment, 0, combined, 2, segment.Length);
+            Buffer.BlockCopy(jpeg, 2, combined, 2 + segment.Length, jpeg.Length - 2);
+            return combined;
+        }
 
         private static void SetJpegFrameDimensions(byte[] jpeg, ushort width, ushort height) {
             int frame = FindMarker(jpeg, 0xC0);

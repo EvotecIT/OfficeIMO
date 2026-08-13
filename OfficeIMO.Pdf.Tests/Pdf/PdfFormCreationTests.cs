@@ -56,6 +56,22 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void TaggedTextField_CanBeFlattenedWithoutDanglingStructureReferences() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().EnableTaggedPdfCatalogMarkers())
+            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace")
+            .ToBytes();
+
+        byte[] flattened = PdfFormFiller.FlattenFields(pdf);
+        string raw = Encoding.ASCII.GetString(flattened);
+        PdfDocumentInfo info = PdfInspector.Inspect(flattened);
+
+        Assert.False(info.HasReadableFormFields);
+        Assert.DoesNotContain("/Subtype /Widget", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Type /OBJR /Obj", raw, StringComparison.Ordinal);
+        Assert.Contains("Ada Lovelace", PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AcroFormDefaultTextAlignment_RoundTripsThroughCatalogAndFields() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Center
@@ -316,6 +332,7 @@ public class PdfFormCreationTests {
             BackgroundColor = PdfColor.FromRgb(238, 242, 255),
             BorderColor = PdfColor.FromRgb(30, 64, 175),
             BorderWidth = 2,
+            CornerRadius = 5,
             BorderDashPattern = new[] { 6D, 2D },
             TextColor = PdfColor.FromRgb(127, 29, 29),
             MarkColor = PdfColor.FromRgb(22, 101, 52),
@@ -353,6 +370,10 @@ public class PdfFormCreationTests {
         Assert.Contains("<46696C6C6564> Tj", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.118 0.251 0.686 RG 2 w [6 2] 0 d", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.498 0.114 0.114 rg", filledRaw, StringComparison.Ordinal);
+
+        PdfFormFieldStyle clone = style.Clone();
+        style.CornerRadius = 0;
+        Assert.Equal(5, clone.CornerRadius);
     }
 
     [Fact]
@@ -441,7 +462,7 @@ public class PdfFormCreationTests {
         string raw = Encoding.ASCII.GetString(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
-        Assert.Equal(4, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
+        Assert.Equal(6, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
         Assert.Equal(4, CountOccurrences(raw, "/TM <61636365737369626C652E6669656C64>"));
         Assert.All(info.FormFields, field => Assert.Equal("Accessible field", field.AlternateName));
         Assert.All(info.FormFields, field => Assert.Equal("accessible.field", field.MappingName));
@@ -590,6 +611,26 @@ public class PdfFormCreationTests {
         Assert.True(clone.IsPassword);
         Assert.True(clone.DoesNotSpellCheck);
         Assert.True(clone.DoesNotScroll);
+    }
+
+    [Fact]
+    public void GeneratedMultilineTextField_SoftWrapsInitialAppearanceToWidgetWidth() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TextField(
+                "Notes",
+                value: "Alpha Beta",
+                width: 50,
+                height: 48,
+                style: new PdfFormFieldStyle { IsMultiline = true })
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("<" + Hex("Alpha") + "> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<" + Hex("Beta") + "> Tj", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<" + Hex("Alpha Beta") + "> Tj", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -805,6 +846,7 @@ public class PdfFormCreationTests {
         Assert.False(field.IsCombo);
         Assert.True(field.AllowsMultipleSelection);
         Assert.Equal(new[] { "Poland", "United States" }, field.Values);
+        Assert.Equal(new[] { 0, 2 }, field.SelectedIndices);
         Assert.Equal(new[] { "Poland", "United States" }, field.SelectedOptions.Select(option => option.DisplayText).ToArray());
         PdfFormWidget widget = Assert.Single(field.Widgets);
         Assert.True(widget.Width > 180);
@@ -826,6 +868,7 @@ public class PdfFormCreationTests {
         PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
         Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
+        Assert.Equal(new[] { 1, 2 }, filledField.SelectedIndices);
         Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
         string filledRaw = Encoding.ASCII.GetString(filled);
         Assert.Contains("<4765726D616E79> Tj", filledRaw, StringComparison.Ordinal);
@@ -839,6 +882,7 @@ public class PdfFormCreationTests {
         PdfFormField scalarField = Assert.Single(PdfInspector.Inspect(scalarFilled).FormFields);
 
         Assert.Equal(new[] { "Germany" }, scalarField.Values);
+        Assert.Equal(new[] { 1 }, scalarField.SelectedIndices);
         Assert.Contains("/V [", scalarRaw, StringComparison.Ordinal);
         Assert.Contains("<4765726D616E79>", scalarRaw, StringComparison.Ordinal);
 
@@ -969,6 +1013,8 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { CornerRadius = double.NaN });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>() });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D } });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D } });

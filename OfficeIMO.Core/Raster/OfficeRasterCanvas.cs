@@ -1288,12 +1288,18 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     private static OfficeColor Interpolate(OfficeColor start, OfficeColor end, double ratio) {
-        byte r = InterpolateByte(start.R, end.R, ratio);
-        byte g = InterpolateByte(start.G, end.G, ratio);
-        byte b = InterpolateByte(start.B, end.B, ratio);
-        byte a = InterpolateByte(start.A, end.A, ratio);
+        double inverse = 1D - ratio;
+        double alpha = (start.A * inverse) + (end.A * ratio);
+        if (alpha <= double.Epsilon) return OfficeColor.Transparent;
+        byte r = ToByte(((start.R * start.A * inverse) + (end.R * end.A * ratio)) / alpha);
+        byte g = ToByte(((start.G * start.A * inverse) + (end.G * end.A * ratio)) / alpha);
+        byte b = ToByte(((start.B * start.A * inverse) + (end.B * end.A * ratio)) / alpha);
+        byte a = ToByte(alpha);
         return OfficeColor.FromRgba(r, g, b, a);
     }
+
+    private static byte ToByte(double value) =>
+        (byte)Math.Max(0, Math.Min(255, (int)Math.Round(value)));
 
     private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) {
         return InterpolateGradientStops(gradient.Stops, ratio);

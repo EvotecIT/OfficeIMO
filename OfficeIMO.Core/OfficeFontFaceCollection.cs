@@ -339,6 +339,7 @@ public sealed class OfficeFontFaceCollection {
         if (string.IsNullOrEmpty(text) || fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
             return false;
         }
+        if (_faces.Count == 0) return false;
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         foreach (OfficeFontFallbackRun run in runs) {
@@ -360,6 +361,7 @@ public sealed class OfficeFontFaceCollection {
         if (string.IsNullOrEmpty(text) || elements.Count == 0 || fontSize <= 0D || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
             return false;
         }
+        if (_faces.Count == 0) return false;
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         var resolvedWidths = new List<double>(elements.Count);
@@ -384,6 +386,9 @@ public sealed class OfficeFontFaceCollection {
 
         string requestedFamilies = familyNames?.Trim() ?? string.Empty;
         IReadOnlyList<OfficeFontFace> candidates = ResolveFallbackCandidates(requestedFamilies, style);
+        if (candidates.Count == 0) {
+            return Array.AsReadOnly(new[] { new OfficeFontFallbackRun(text!, requestedFamilies) });
+        }
         var explicitlySelectedFaces = new HashSet<string>(
             OfficeFontFamilyParser.Parse(requestedFamilies),
             StringComparer.OrdinalIgnoreCase);

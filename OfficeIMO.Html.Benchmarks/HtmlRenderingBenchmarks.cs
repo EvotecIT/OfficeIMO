@@ -95,11 +95,147 @@ public class HtmlRenderingOutputBenchmarks {
     public byte[] ExportRenderedPdf() => _document.ToPdf(_pdfOptions);
 }
 
+/// <summary>Measures realistic paged purchase-table scaling without retaining the final PDF artifact.</summary>
+[MemoryDiagnoser]
+[BenchmarkCategory("HTML", "PagedTables")]
+public class HtmlPagedPurchaseTableBenchmarks {
+    private HtmlConversionDocument _document = null!;
+    private HtmlRenderOptions _renderOptions = null!;
+    private HtmlPdfSaveOptions _pdfOptions = null!;
+
+    [Params(250, 2500)]
+    public int RowCount { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        _document = HtmlConversionDocument.Parse(HtmlBenchmarkCorpus.BuildPurchaseTable(RowCount));
+        _renderOptions = HtmlBenchmarkCorpus.CreatePagedOptions();
+        _pdfOptions = new HtmlPdfSaveOptions(_renderOptions) {
+            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+                FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
+                ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
+                TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+    }
+
+    [Benchmark]
+    public HtmlRenderDocument LayoutPaged() => HtmlRenderEngine.Render(_document, _renderOptions);
+
+    [Benchmark]
+    public long RenderPdfToForwardOnlyStream() => _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess().BytesWritten;
+}
+
+/// <summary>Measures 100-page and 1,000-page legal-document style workloads.</summary>
+[MemoryDiagnoser]
+[BenchmarkCategory("HTML", "LongDocuments")]
+public class HtmlLongDocumentBenchmarks {
+    private HtmlComputedStyleSet _computedStyles = null!;
+    private HtmlConversionDocument _document = null!;
+    private OfficeFontFaceCollection _fonts = null!;
+    private IHtmlDocument _htmlDocument = null!;
+    private HtmlRenderOptions _renderOptions = null!;
+    private HtmlPdfSaveOptions _pdfOptions = null!;
+    private HtmlCssPageRuleSet _pageRules = null!;
+    private HtmlResourceSession _resources = null!;
+
+    [Params(100, 1000)]
+    public int PageCount { get; set; }
+
+    [GlobalSetup]
+    public void Setup() {
+        string html = HtmlBenchmarkCorpus.BuildLongDocument(PageCount);
+        _document = HtmlConversionDocument.Parse(html);
+        _htmlDocument = HtmlDocumentParser.ParseDocument(html);
+        _renderOptions = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = OfficePageSizes.Letter,
+            Margins = HtmlRenderMargins.All(48D),
+            MaxPageCount = PageCount
+        };
+        _pdfOptions = new HtmlPdfSaveOptions(_renderOptions) {
+            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+                FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
+                ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
+                TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+        _pageRules = HtmlCssPageSettingsResolver.Apply(_htmlDocument, _renderOptions, new HtmlDiagnosticReport());
+        _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
+            _htmlDocument,
+            _renderOptions,
+            HtmlConversionLimits.CreateUntrustedProfile());
+        _fonts = new OfficeFontFaceCollection();
+        _resources = new HtmlResourceSession();
+        RequireLongDocumentContract(HtmlRenderEngine.Render(_document, _renderOptions));
+    }
+
+    [Benchmark]
+    public IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> ComputeStyles() =>
+        HtmlComputedStyleEngine.Compute(_htmlDocument, HtmlCssMediaContext.Print);
+
+    [Benchmark]
+    public HtmlRenderDocument LayoutFromComputedStyles() => RequirePageCount(new HtmlRenderLayoutEngine(
+            _htmlDocument,
+            _computedStyles,
+            _renderOptions.Clone(),
+            new HtmlDiagnosticReport(),
+            _resources,
+            _pageRules,
+            _fonts).Render());
+
+    [Benchmark]
+    public HtmlRenderDocument LayoutPaged() => RequirePageCount(HtmlRenderEngine.Render(_document, _renderOptions));
+
+    [Benchmark]
+    public long RenderPdfToForwardOnlyStream() {
+        OfficeIMO.Pdf.PdfSaveResult saved = _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess();
+        if (saved.Serialization?.PageCount != PageCount) {
+            throw new InvalidOperationException($"Expected {PageCount} rendered PDF pages but observed {saved.Serialization?.PageCount}.");
+        }
+        return saved.BytesWritten;
+    }
+
+    private HtmlRenderDocument RequirePageCount(HtmlRenderDocument rendered) {
+        if (rendered.Pages.Count != PageCount) {
+            throw new InvalidOperationException($"Expected {PageCount} rendered pages but observed {rendered.Pages.Count}.");
+        }
+        return rendered;
+    }
+
+    private HtmlRenderDocument RequireLongDocumentContract(HtmlRenderDocument rendered) {
+        RequirePageCount(rendered);
+        string text = rendered.Text;
+        var markers = new HashSet<int>();
+        int cursor = 0;
+        while ((cursor = text.IndexOf("PAGE-", cursor, StringComparison.Ordinal)) >= 0) {
+            int digits = cursor + 5;
+            if (digits + 4 > text.Length
+                || !int.TryParse(text.Substring(digits, 4), out int marker)
+                || !markers.Add(marker)) {
+                throw new InvalidOperationException($"Long-document marker at text offset {cursor} was malformed or duplicated.");
+            }
+            cursor = digits + 4;
+        }
+        if (markers.Count != PageCount || Enumerable.Range(0, PageCount).Any(marker => !markers.Contains(marker))) {
+            throw new InvalidOperationException($"Expected {PageCount} unique long-document markers but observed {markers.Count}.");
+        }
+        return rendered;
+    }
+}
+
 internal static class HtmlBenchmarkCorpus {
     internal static HtmlRenderOptions CreateContinuousOptions() => new HtmlRenderOptions {
         Mode = HtmlRenderMode.Continuous,
         ViewportWidth = 816D,
         Margins = HtmlRenderMargins.All(36D),
+        BackgroundColor = OfficeColor.White
+    };
+
+    internal static HtmlRenderOptions CreatePagedOptions() => new HtmlRenderOptions {
+        Mode = HtmlRenderMode.Paged,
+        PageSize = new OfficePageSize(5D, 4D),
+        Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White
     };
 
@@ -116,5 +252,58 @@ internal static class HtmlBenchmarkCorpus {
                 .Append("</td><td>").Append(index * 17).Append(".25</td></tr>");
         }
         return html.Append("</tbody></table></article>").ToString();
+    }
+
+    internal static string BuildPurchaseTable(int rowCount) {
+        var html = new System.Text.StringBuilder(rowCount * 220 + 2048);
+        html.Append("<style>@page{size:5in 4in;margin:.42in .35in;@top-center{content:'Purchase report';font:9px Arial}@bottom-right{content:'Page ' counter(page) ' of ' counter(pages);font:8px Arial}}")
+            .Append("body{margin:0;font:9px/1.35 Arial;color:#172033}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}")
+            .Append("th,td{border:1px solid #94a3b8;padding:4px;vertical-align:top;overflow-wrap:anywhere}th{background:#dbeafe;text-align:left}th:first-child,td:first-child{width:62%}.number{text-align:right;white-space:nowrap}")
+            .Append(".totals{break-inside:avoid;margin:10px 0 0 auto;width:180px;border-top:2px solid #2563eb;padding-top:5px}</style>")
+            .Append("<main><h1>Purchase statement</h1><table><thead><tr><th>Item description</th><th>Qty</th><th class='number'>Rate</th><th class='number'>Amount</th></tr></thead><tbody>");
+        decimal subtotal = 0m;
+        for (int index = 0; index < rowCount; index++) {
+            int quantity = index % 4 + 1;
+            decimal amount = quantity * 19.95m;
+            subtotal += amount;
+            html.Append("<tr><td><strong>SKU-")
+                .Append(index.ToString("D5"))
+                .Append("</strong><br>Precision managed document service with audit evidence and regional reporting</td><td>")
+                .Append(quantity)
+                .Append("</td><td class='number'>$19.95</td><td class='number'>$")
+                .Append(amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
+                .Append("</td></tr>");
+        }
+        decimal tax = decimal.Round(subtotal * 0.08m, 2);
+        return html.Append("</tbody></table><section class='totals'>Subtotal $")
+            .Append(subtotal.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
+            .Append("<br>Tax $")
+            .Append(tax.ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
+            .Append("<br><strong>Total $")
+            .Append((subtotal + tax).ToString("N2", System.Globalization.CultureInfo.InvariantCulture))
+            .Append("</strong></section></main>")
+            .ToString();
+    }
+
+    internal static string BuildLongDocument(int pageCount) {
+        var html = new System.Text.StringBuilder(pageCount * 900 + 1024);
+        html.Append("<style>@page{size:letter;margin:.65in;@top-center{content:'Managed legal packet';font:9px Arial}@bottom-right{content:'Page ' counter(page) ' of ' counter(pages);font:8px Arial}}")
+            .Append("body{margin:0;font:11px/1.45 Arial;color:#172033}section{break-after:page}section:last-child{break-after:auto}h1{font-size:18px}p{margin:0 0 9px}</style><main>");
+        const string paragraph = "This agreement records the service scope, delivery controls, evidence requirements, retention schedule, review obligations, and remedies for the parties. ";
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+            html.Append("<section><h1>Article ")
+                .Append(pageIndex + 1)
+                .Append("</h1><p>Document marker PAGE-")
+                .Append(pageIndex.ToString("D4"))
+                .Append(".</p><p>")
+                .Append(paragraph)
+                .Append(paragraph)
+                .Append(paragraph)
+                .Append("</p><p>")
+                .Append(paragraph)
+                .Append(paragraph)
+                .Append("</p></section>");
+        }
+        return html.Append("</main>").ToString();
     }
 }

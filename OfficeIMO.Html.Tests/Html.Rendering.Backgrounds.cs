@@ -99,14 +99,18 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRender_ValidatesAndClonesTheBackgroundPaintLimits() {
-        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7, MaxGradientStops = 9 };
+        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7, MaxGradientStops = 9, ConicGradientQualitySegments = 96 };
 
         Assert.Equal(7, options.Clone().MaxBackgroundImageLayers);
         Assert.Equal(9, options.Clone().MaxGradientStops);
+        Assert.Equal(96, options.Clone().ConicGradientQualitySegments);
         options.MaxBackgroundImageLayers = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
         options.MaxBackgroundImageLayers = 7;
         options.MaxGradientStops = 1;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
+        options.MaxGradientStops = 9;
+        options.ConicGradientQualitySegments = 11;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
     }
 
@@ -140,6 +144,16 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Fact]
+    public void HtmlBackgroundColorAlpha_FlowsThroughThePdfDrawingAdapter() {
+        const string html = "<div style='width:80px;height:40px;background:rgba(255,255,255,.2)'>Alpha</div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Type /ExtGState /ca 0.2 /CA 1", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -269,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
         string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
         string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
         string green = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 255, 0));
-        string html = "<div style=\"width:40px;height:40px;background-image:conic-gradient(red,blue),url('data:image/png;base64,"
+        string html = "<div style=\"width:40px;height:40px;background-image:mesh-gradient(red,blue),url('data:image/png;base64,"
             + red
             + "'),url('data:image/png;base64,"
             + blue

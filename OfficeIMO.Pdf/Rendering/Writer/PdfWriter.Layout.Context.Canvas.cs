@@ -24,6 +24,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasTextItem text:
                         RenderCanvasText(text);
                         break;
+                    case PdfCanvasSearchableTextItem searchableText:
+                        RenderCanvasSearchableText(searchableText);
+                        break;
                     case PdfCanvasTextBoxItem textBox:
                         RenderCanvasTextBox(textBox);
                         break;
@@ -45,6 +48,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasHighlightAnnotationItem highlightAnnotation:
                         RenderCanvasHighlightAnnotation(highlightAnnotation);
                         break;
+                    case PdfCanvasFormFieldItem formField:
+                        RenderCanvasFormField(formField);
+                        break;
                     case PdfCanvasTableItem table:
                         RenderCanvasTable(table);
                         break;
@@ -56,6 +62,98 @@ internal static partial class PdfWriter {
                         break;
                 }
             }
+        }
+
+        private void RenderCanvasFormField(PdfCanvasFormFieldItem item) {
+            ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas form field");
+            double topY = currentOpts.PageHeight - item.Y;
+            double bottomY = topY - item.Height;
+
+            if (item.Kind == PdfCanvasFormFieldKind.RadioButton) {
+                var field = new FormFieldAnnotation {
+                    X1 = item.X,
+                    Y1 = bottomY,
+                    X2 = item.X + item.Width,
+                    Y2 = topY,
+                    Kind = FormFieldAnnotationKind.RadioButtonGroup,
+                    Name = item.Name,
+                    Value = item.IsSelected ? item.Option : "Off",
+                    Options = new[] { item.Option },
+                    ExportValues = new[] { item.ExportValue },
+                    ButtonSize = Math.Min(item.Width, item.Height),
+                    Style = item.Style
+                };
+                field.RadioWidgets.Add(new RadioButtonWidgetAnnotation {
+                    X1 = item.X,
+                    Y1 = bottomY,
+                    X2 = item.X + item.Width,
+                    Y2 = topY,
+                    Option = item.Option,
+                    Style = item.Style,
+                    StructureParentElementIndex = _canvasStructureParentElementIndex
+                });
+                field.StructureParentElementIndex = _canvasStructureParentElementIndex;
+                currentPage!.FormFields.Add(field);
+                pageDirty = true;
+                return;
+            }
+
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = item.X,
+                Y1 = bottomY,
+                X2 = item.X + item.Width,
+                Y2 = topY,
+                Kind = item.Kind == PdfCanvasFormFieldKind.Text
+                    ? FormFieldAnnotationKind.Text
+                    : item.Kind == PdfCanvasFormFieldKind.CheckBox
+                        ? FormFieldAnnotationKind.CheckBox
+                        : FormFieldAnnotationKind.Choice,
+                Name = item.Name,
+                Value = item.Value,
+                AppearanceValue = item.AppearanceValue,
+                AppearanceStyle = item.AppearanceStyle,
+                Values = item.Values,
+                FontSize = item.FontSize,
+                IsChecked = item.IsSelected,
+                CheckedValueName = item.Option,
+                ExportValue = item.ExportValue,
+                Options = item.Options,
+                ChoiceOptions = item.ChoiceOptions,
+                SelectedIndices = item.SelectedIndices,
+                IsComboBox = item.IsComboBox,
+                AllowsMultipleSelection = item.AllowsMultipleSelection,
+                Style = item.Style,
+                StructureParentElementIndex = _canvasStructureParentElementIndex
+            });
+            pageDirty = true;
+        }
+
+        private void RenderCanvasSearchableText(PdfCanvasSearchableTextItem item) {
+            EnsurePage();
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetFontResourceName(font, null, font);
+            double baselineY = currentOpts.PageHeight - item.Y;
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElementIndex);
+
+            var content = new ContentStreamBuilder(sb)
+                .SaveState()
+                .BeginText()
+                .Font(fontResource, 1D)
+                .TextRenderingMode(3)
+                .TextMatrix(item.X, baselineY);
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(item.Text));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append(" >> BDC\n");
+            content.ShowText(EncodeTextShowCommand(" ", font, currentOpts), 1D);
+            sb.Append("EMC\n");
+            content.EndText().RestoreState();
+
+            MarkSimpleFont(font);
+            pageDirty = true;
         }
 
         private void RenderCanvasActualText(PdfCanvasActualTextItem item) {
@@ -431,7 +529,7 @@ internal static partial class PdfWriter {
             ClipCanvasFreeTextAnnotations(currentPage.FreeTextAnnotations, freeTextAnnotationStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasHighlightAnnotations(currentPage.HighlightAnnotations, highlightAnnotationStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
-            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.ClipPath.Kind == OfficeIMO.Drawing.OfficeClipPathKind.Rectangle);
             new ContentStreamBuilder(sb)
                 .RestoreState();
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
@@ -476,6 +574,10 @@ internal static partial class PdfWriter {
 
         private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
             (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
+            for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
+                RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];
+                (widget.X1, widget.Y1, widget.X2, widget.Y2) = TransformRectangle(widget.X1, widget.Y1, widget.X2, widget.Y2, transform);
+            }
         }
 
         private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {
@@ -646,25 +748,45 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, bool rectangularClip) {
+            if (formFields.Count <= startIndex) return;
+            if (!rectangularClip) {
+                throw new ArgumentException("Canvas form fields cannot be placed inside nonrectangular clips because PDF widget annotations do not obey page-content clipping.");
+            }
             double clipRight = clipX + clipWidth;
             double clipTop = clipBottomY + clipHeight;
             for (int i = formFields.Count - 1; i >= startIndex; i--) {
                 FormFieldAnnotation formField = formFields[i];
-                double x1 = System.Math.Max(formField.X1, clipX);
-                double y1 = System.Math.Max(formField.Y1, clipBottomY);
-                double x2 = System.Math.Min(formField.X2, clipRight);
-                double y2 = System.Math.Min(formField.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1) {
+                if (!RectanglesIntersect(formField.X1, formField.Y1, formField.X2, formField.Y2, clipX, clipBottomY, clipRight, clipTop)) {
                     formFields.RemoveAt(i);
                     continue;
                 }
-
-                formField.X1 = x1;
-                formField.Y1 = y1;
-                formField.X2 = x2;
-                formField.Y2 = y2;
+                if (!RectangleContains(clipX, clipBottomY, clipRight, clipTop, formField.X1, formField.Y1, formField.X2, formField.Y2)) {
+                    throw new ArgumentException("Canvas form fields must be fully contained by rectangular clips because PDF widget annotations cannot preserve partial clipping.");
+                }
+                for (int widgetIndex = formField.RadioWidgets.Count - 1; widgetIndex >= 0; widgetIndex--) {
+                    RadioButtonWidgetAnnotation widget = formField.RadioWidgets[widgetIndex];
+                    if (!RectanglesIntersect(widget.X1, widget.Y1, widget.X2, widget.Y2, clipX, clipBottomY, clipRight, clipTop)) {
+                        formField.RadioWidgets.RemoveAt(widgetIndex);
+                        continue;
+                    }
+                    if (!RectangleContains(clipX, clipBottomY, clipRight, clipTop, widget.X1, widget.Y1, widget.X2, widget.Y2)) {
+                        throw new ArgumentException("Canvas radio widgets must be fully contained by rectangular clips because PDF widget annotations cannot preserve partial clipping.");
+                    }
+                }
             }
+        }
+
+        private static bool RectanglesIntersect(double x1, double y1, double x2, double y2, double clipX1, double clipY1, double clipX2, double clipY2) =>
+            System.Math.Min(x2, clipX2) > System.Math.Max(x1, clipX1)
+            && System.Math.Min(y2, clipY2) > System.Math.Max(y1, clipY1);
+
+        private static bool RectangleContains(double x1, double y1, double x2, double y2, double innerX1, double innerY1, double innerX2, double innerY2) {
+            const double tolerance = 0.000001D;
+            return innerX1 >= x1 - tolerance
+                && innerY1 >= y1 - tolerance
+                && innerX2 <= x2 + tolerance
+                && innerY2 <= y2 + tolerance;
         }
 
         private void BeginRotatedCanvasFrame(double x, double bottomY, double width, double height, double rotationAngle) {
@@ -768,6 +890,21 @@ internal static partial class PdfWriter {
             formField.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             formField.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
             formField.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            for (int index = 0; index < formField.RadioWidgets.Count; index++) {
+                RadioButtonWidgetAnnotation widget = formField.RadioWidgets[index];
+                RotateCanvasRectangle(widget, centerX, centerY, cos, sin);
+            }
+        }
+
+        private static void RotateCanvasRectangle(RadioButtonWidgetAnnotation widget, double centerX, double centerY, double cos, double sin) {
+            RotateCanvasPoint(widget.X1, widget.Y1, centerX, centerY, cos, sin, out double x1, out double y1);
+            RotateCanvasPoint(widget.X1, widget.Y2, centerX, centerY, cos, sin, out double x2, out double y2);
+            RotateCanvasPoint(widget.X2, widget.Y1, centerX, centerY, cos, sin, out double x3, out double y3);
+            RotateCanvasPoint(widget.X2, widget.Y2, centerX, centerY, cos, sin, out double x4, out double y4);
+            widget.X1 = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            widget.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            widget.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            widget.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
         }
 
         private static void RotateCanvasPoint(double x, double y, double centerX, double centerY, double cos, double sin, out double rotatedX, out double rotatedY) {

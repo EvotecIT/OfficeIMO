@@ -37,7 +37,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         double mainGap = orderedItems.Count > 1 ? style.RowGap : 0D;
         double naturalContentHeight = orderedItems.Sum(item => item.Basis) + mainGap * Math.Max(0, orderedItems.Count - 1);
-        double boxHeight = ResolveBoxHeight(naturalContentHeight, style);
+        double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         string effectiveWrap = wrapping && hasDefiniteHeight ? style.FlexWrap : "nowrap";
         List<FlexLine> lines = CreateFlexLines(orderedItems, effectiveWrap, contentHeight, mainGap);
@@ -145,11 +145,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "table") return contentWidth;
         double boxBasis;
         string content = CollapseFlexText(item.TextContent);
-        double measured = content.Length == 0 ? 1D : MeasureText(ApplyTextTransform(content, style.TextTransform), style.Font);
+        double measured = content.Length == 0 ? 1D : MeasureInlineText(ApplyTextTransform(content, style.TextTransform), style);
         boxBasis = measured + style.HorizontalInsets;
 
-        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) boxBasis = Math.Min(boxBasis, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) boxBasis = Math.Max(boxBasis, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         double outer = boxBasis + style.MarginLeft + style.MarginRight;
         return Math.Max(1D, Math.Min(contentWidth, outer));
     }
@@ -157,7 +157,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveColumnFlexBasis(FlexItem item, double heightReference, bool hasDefiniteHeight) {
         string basis = item.Style.FlexBasis;
         if (basis == "auto" || !hasDefiniteHeight && basis.IndexOf('%') >= 0) return item.Block!.Height;
-        if (HtmlRenderCssValues.TryLength(basis, heightReference, item.Style.Font.Size, _options.DefaultFontSize, out double resolved)) {
+        if (TryResolveLength(basis, heightReference, item.Style.Font.Size, out double resolved)) {
             double boxBasis = Math.Max(0D, resolved) + (item.Style.BorderBox ? 0D : item.Style.VerticalInsets);
             return boxBasis + item.Style.MarginTop + item.Style.MarginBottom;
         }

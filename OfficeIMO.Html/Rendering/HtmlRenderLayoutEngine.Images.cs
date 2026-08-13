@@ -18,12 +18,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (bytes == null) TryResolveImageSource(source, sourceDescription, out bytes, out contentType, out imageInfo);
+        if (bytes != null
+            && OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                bytes,
+                style.ApplyEmbeddedImageOrientation,
+                out byte[] orientedPng,
+                out OfficeImageInfo? orientedInfo)) {
+            bytes = orientedPng;
+            contentType = "image/png";
+            imageInfo = orientedInfo;
+        }
         bool hasIntrinsicSize = imageInfo != null && imageInfo.Width > 0 && imageInfo.Height > 0;
         double intrinsicWidth = hasIntrinsicSize
-            ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
+            ? imageInfo!.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiX)
             : 300D;
         double intrinsicHeight = hasIntrinsicSize
-            ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiY)
+            ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiY)
             : 150D;
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = contentSize.Width + style.HorizontalInsets;

@@ -137,9 +137,10 @@ public static class OfficeMathRenderer {
             LayoutCommand command = box.Commands[index];
             if (command.Kind == LayoutCommandKind.Text) {
                 if (string.IsNullOrEmpty(command.Text)) continue;
-                drawing.AddText(command.Text!, x + command.X, y + command.Y, Math.Max(0.01D, command.Width),
+                double textWidth = Math.Max(0.01D, command.Width);
+                drawing.AddPositionedText(command.Text!, x + command.X, y + command.Y, textWidth,
                     Math.Max(0.01D, command.Height), options.Font.WithSize(command.FontSize), options.Color,
-                    OfficeTextAlignment.Left, command.Height);
+                    OfficeTextAlignment.Left, command.Height, textWidth);
             } else if (command.Kind == LayoutCommandKind.Line) {
                 OfficeShape line = OfficeShape.Line(x + command.X, y + command.Y, x + command.X2, y + command.Y2);
                 line.StrokeColor = options.Color;

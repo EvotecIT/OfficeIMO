@@ -94,6 +94,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (content.Count == 0) return;
+        if (clipHorizontal && clipVertical
+            && style.OverflowX != "clip" && style.OverflowY != "clip") {
+            string source = HtmlRenderStyleResolver.DescribeSource(element);
+            double borderBoxWidth = clipWidth + style.BorderLeftWidth + style.BorderRightWidth;
+            double borderBoxHeight = clipHeight + style.BorderTopWidth + style.BorderBottomWidth;
+            HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, borderBoxWidth, borderBoxHeight, element, source)
+                .Inset(style.BorderLeftWidth, style.BorderTopWidth, style.BorderRightWidth, style.BorderBottomWidth, clipWidth, clipHeight)
+                .Normalize(clipWidth, clipHeight);
+            if (!radii.IsZero) {
+                target.Add(new HtmlRenderPathClipGroup(
+                    clipX,
+                    clipY,
+                    CreateBoxClipPath(Math.Max(0.01D, clipWidth), Math.Max(0.01D, clipHeight), radii),
+                    content,
+                    target.Count,
+                    source));
+                return;
+            }
+        }
         target.Add(new HtmlRenderClipGroup(
             clipX,
             clipY,

@@ -169,7 +169,8 @@ public partial class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
         Assert.Equal("C", filledField.Value);
-        Assert.Equal(new[] { "First C", "Second C" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Equal(new[] { 2 }, filledField.SelectedIndices);
+        Assert.Equal("First C", Assert.Single(filledField.SelectedOptions).DisplayText);
         Assert.Contains("<46697273742043> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
     }
 
@@ -234,6 +235,98 @@ public partial class PdfFormFillerTests {
         Assert.Contains("<506F6C616E64> Tj", output, StringComparison.Ordinal);
         Assert.Contains("<556E6974656420537461746573> Tj", output, StringComparison.Ordinal);
         Assert.DoesNotContain("<506F6C616E642C20556E6974656420537461746573> Tj", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_MultiSelectChoiceSortsSelectionsByOptionIndex() {
+        byte[] filled = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("United States", "Poland")
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+        string output = Encoding.ASCII.GetString(filled);
+
+        Assert.Equal(new[] { "PL", "US" }, field.Values);
+        Assert.Equal(new[] { 0, 2 }, field.SelectedIndices);
+        Assert.Matches(@"/I\s*\[\s*0\s+2\s*\]", output);
+        Assert.Matches(@"/TI\s+0(?:\D|$)", output);
+    }
+
+    [Fact]
+    public void FillFields_MultiSelectChoiceDeduplicatesAliasesForTheSameOptionIndex() {
+        byte[] filled = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("United States", "US")
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal(new[] { "US" }, field.Values);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_MultiSelectChoiceDeduplicatesAliasesForTheSameOptionIndex() {
+        byte[] source = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "Poland"
+        });
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(
+            source,
+            new Dictionary<string, PdfFormFieldValue> {
+                ["Country"] = PdfFormFieldValue.FromValues("United States", "US")
+            });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal(new[] { "US" }, field.Values);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_ChoicePrefersExactExportValueOverEarlierDisplayText() {
+        byte[] source = PdfDocument.Create()
+            .Canvas(canvas => canvas.ChoiceField(
+                "Choice",
+                new[] { new PdfFormFieldOption("A", "B"), new PdfFormFieldOption("B", "C") },
+                new[] { "A" },
+                20D,
+                20D,
+                120D,
+                24D))
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(source, new Dictionary<string, string> {
+            ["Choice"] = "B"
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+        Assert.Equal("B", field.Value);
+        Assert.Equal("C", Assert.Single(field.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_ChoiceDisplayTextUsesInheritedOptionsAndStoresItsIndex() {
+        byte[] source = PdfFormFiller.FillFields(
+            BuildInheritedChoiceWidgetFormPdf(),
+            new Dictionary<string, string> {
+                ["Selection.Country"] = "Poland"
+            });
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(
+            source,
+            new Dictionary<string, string> {
+                ["Selection.Country"] = "United States"
+            });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+        string output = Encoding.ASCII.GetString(updated);
+
+        Assert.Equal("Selection.Country", field.Name);
+        Assert.Equal("US", field.Value);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+        Assert.Matches(@"/I\s*\[\s*2\s*\]", output);
+        Assert.Matches(@"/TI\s+2(?:\D|$)", output);
     }
 
     [Fact]

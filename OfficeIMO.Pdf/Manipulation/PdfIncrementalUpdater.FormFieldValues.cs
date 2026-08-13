@@ -1,0 +1,251 @@
+namespace OfficeIMO.Pdf;
+
+internal static partial class PdfIncrementalUpdater {
+    private readonly struct IncrementalChoiceFillValue {
+        public IncrementalChoiceFillValue(string exportValue, string displayValue, int? optionIndex) {
+            ExportValue = exportValue;
+            DisplayValue = displayValue;
+            OptionIndex = optionIndex;
+        }
+
+        public string ExportValue { get; }
+        public string DisplayValue { get; }
+        public int? OptionIndex { get; }
+    }
+
+    private readonly struct IncrementalPreparedFieldValue {
+        private IncrementalPreparedFieldValue(string[] storedValues, string appearanceValue, bool forceMultilineAppearance, int[] selectedOptionIndices) {
+            StoredValues = storedValues;
+            AppearanceValue = appearanceValue;
+            ForceMultilineAppearance = forceMultilineAppearance;
+            SelectedOptionIndices = selectedOptionIndices;
+        }
+
+        public string[] StoredValues { get; }
+        public string FirstStoredValue => StoredValues[0];
+        public string AppearanceValue { get; }
+        public bool ForceMultilineAppearance { get; }
+        public int[] SelectedOptionIndices { get; }
+
+        public static IncrementalPreparedFieldValue Scalar(string storedValue, string appearanceValue) =>
+            new IncrementalPreparedFieldValue(new[] { storedValue }, appearanceValue, forceMultilineAppearance: false, Array.Empty<int>());
+
+        public static IncrementalPreparedFieldValue Choice(string[] storedValues, string appearanceValue, bool forceMultilineAppearance, int[] selectedOptionIndices) =>
+            new IncrementalPreparedFieldValue(storedValues, appearanceValue, forceMultilineAppearance, selectedOptionIndices);
+    }
+
+    private static void SetIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, IncrementalPreparedFieldValue value) {
+        if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            string name = value.FirstStoredValue;
+            bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
+            if (isRadioButtonGroup && !string.Equals(name, "Off", StringComparison.Ordinal)) {
+                HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+                if (!availableStates.Contains(name)) {
+                    throw new ArgumentException($"PDF radio button field cannot be filled with value '{name}' because it is not one of the available appearance states.", nameof(value));
+                }
+            }
+
+            field.Items["V"] = new PdfName(name);
+            field.Items["AS"] = new PdfName(name);
+            return;
+        }
+
+        if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
+            bool isMultiSelectChoice = (fieldFlags & IncrementalMultiSelectChoiceFlag) != 0;
+            field.Items["V"] = isMultiSelectChoice
+                ? CreateIncrementalStringArray(value.StoredValues)
+                : new PdfStringObj(value.FirstStoredValue, useTextStringEncoding: true);
+            SetIncrementalChoiceSelectionIndices(field, fieldFlags, value.SelectedOptionIndices);
+            return;
+        }
+
+        field.Items["V"] = new PdfStringObj(value.FirstStoredValue, useTextStringEncoding: true);
+    }
+
+    private static IncrementalPreparedFieldValue PrepareIncrementalFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, string? fieldType, int fieldFlags, PdfFormFieldValue value) {
+        IReadOnlyList<string> values = value.Values;
+        string firstValue = values[0];
+        if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            if ((fieldFlags & IncrementalPushButtonFlag) != 0) {
+                throw new ArgumentException("PDF Push-button fields do not have fillable values.", nameof(value));
+            }
+            if (values.Count > 1) {
+                throw new ArgumentException("PDF button field cannot be filled with multiple values.", nameof(value));
+            }
+
+            string buttonValue = PrepareIncrementalButtonFieldValue(objects, field, inheritedOptions, fieldFlags, firstValue);
+            return IncrementalPreparedFieldValue.Scalar(buttonValue, buttonValue);
+        }
+
+        if (!string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
+            if (values.Count > 1) {
+                throw new ArgumentException("PDF text field cannot be filled with multiple values.", nameof(value));
+            }
+
+            return IncrementalPreparedFieldValue.Scalar(firstValue, firstValue);
+        }
+
+        bool isMultiSelectChoice = (fieldFlags & IncrementalMultiSelectChoiceFlag) != 0;
+        if (values.Count > 1 && !isMultiSelectChoice) {
+            throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
+        }
+
+        PdfArray? choiceOptions = field.Items.TryGetValue("Opt", out PdfObject? optionsObject)
+            ? ResolveObject(objects, optionsObject) as PdfArray
+            : null;
+        choiceOptions ??= inheritedOptions;
+        IncrementalChoiceFillValue explicitEmptyChoice = default;
+        bool selectsExplicitEmptyOption = values.Count == 1
+            && values[0].Length == 0
+            && choiceOptions != null
+            && TryResolveIncrementalChoiceFillValue(objects, choiceOptions, values[0], out explicitEmptyChoice);
+        if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
+            return IncrementalPreparedFieldValue.Choice(
+                isMultiSelectChoice ? Array.Empty<string>() : new[] { string.Empty },
+                string.Empty,
+                forceMultilineAppearance: isMultiSelectChoice,
+                Array.Empty<int>());
+        }
+
+        IReadOnlyList<IncrementalChoiceFillValue> choiceValues = selectsExplicitEmptyOption
+            ? new[] { explicitEmptyChoice }
+            : ResolveIncrementalChoiceFillValues(objects, field, inheritedOptions, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
+        if (isMultiSelectChoice) {
+            if (choiceValues.All(item => item.OptionIndex.HasValue)) {
+                choiceValues = choiceValues
+                    .GroupBy(item => item.OptionIndex!.Value)
+                    .OrderBy(group => group.Key)
+                    .Select(group => group.First())
+                    .ToArray();
+            }
+            return IncrementalPreparedFieldValue.Choice(
+                choiceValues.Select(item => item.ExportValue).ToArray(),
+                string.Join("\n", choiceValues.Select(item => item.DisplayValue)),
+                forceMultilineAppearance: true,
+                choiceValues.All(item => item.OptionIndex.HasValue)
+                    ? choiceValues.Select(item => item.OptionIndex!.Value).ToArray()
+                    : Array.Empty<int>());
+        }
+
+        IncrementalChoiceFillValue choiceValue = choiceValues[0];
+        return IncrementalPreparedFieldValue.Choice(
+            new[] { choiceValue.ExportValue },
+            choiceValue.DisplayValue,
+            forceMultilineAppearance: false,
+            choiceValue.OptionIndex.HasValue ? new[] { choiceValue.OptionIndex.Value } : Array.Empty<int>());
+    }
+
+    private static IReadOnlyList<IncrementalChoiceFillValue> ResolveIncrementalChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, bool isEditableChoice, IReadOnlyList<string> values) {
+        PdfArray? options = field.Items.TryGetValue("Opt", out PdfObject? optionsObject)
+            ? ResolveObject(objects, optionsObject) as PdfArray
+            : null;
+        options ??= inheritedOptions;
+        if (options == null || options.Items.Count == 0) {
+            return values.Select(static item => new IncrementalChoiceFillValue(item, item, null)).ToArray();
+        }
+
+        var resolved = new List<IncrementalChoiceFillValue>(values.Count);
+        for (int valueIndex = 0; valueIndex < values.Count; valueIndex++) {
+            resolved.Add(ResolveIncrementalChoiceFillValue(objects, options, isEditableChoice, values[valueIndex]));
+        }
+
+        return resolved;
+    }
+
+    private static IncrementalChoiceFillValue ResolveIncrementalChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, bool isEditableChoice, string value) {
+        if (TryResolveIncrementalChoiceFillValue(objects, options, value, out IncrementalChoiceFillValue fillValue)) {
+            return fillValue;
+        }
+
+        if (isEditableChoice) {
+            return new IncrementalChoiceFillValue(value, value, null);
+        }
+
+        throw new ArgumentException($"PDF choice field cannot be filled with value '{value}' because it is not one of the allowed options.", nameof(value));
+    }
+
+    private static bool TryResolveIncrementalChoiceFillValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray options,
+        string value,
+        out IncrementalChoiceFillValue fillValue) {
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? exportValue) &&
+                exportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? displayValue) &&
+                displayValue is not null &&
+                string.Equals(value, exportValue, StringComparison.Ordinal)) {
+                fillValue = new IncrementalChoiceFillValue(exportValue, displayValue, i);
+                return true;
+            }
+
+            if (optionObject is not PdfArray && optionObject is not null &&
+                TryReadOptionText(objects, optionObject, out string? optionValue) &&
+                optionValue is not null &&
+                string.Equals(value, optionValue, StringComparison.Ordinal)) {
+                fillValue = new IncrementalChoiceFillValue(optionValue, optionValue, i);
+                return true;
+            }
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? exportValue) &&
+                exportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? displayValue) &&
+                displayValue is not null) {
+                if (string.Equals(value, displayValue, StringComparison.Ordinal)) {
+                    fillValue = new IncrementalChoiceFillValue(exportValue, displayValue, i);
+                    return true;
+                }
+
+                continue;
+            }
+        }
+
+        fillValue = default;
+        return false;
+    }
+
+    private static void SetIncrementalChoiceSelectionIndices(PdfDictionary field, int fieldFlags, int[] selectedIndices) {
+        if ((fieldFlags & IncrementalComboChoiceFlag) != 0 || selectedIndices.Length == 0) {
+            field.Items.Remove("I");
+            field.Items.Remove("TI");
+            return;
+        }
+
+        var indices = new PdfArray();
+        for (int i = 0; i < selectedIndices.Length; i++) {
+            indices.Items.Add(new PdfNumber(selectedIndices[i]));
+        }
+
+        field.Items["I"] = indices;
+        field.Items["TI"] = new PdfNumber(selectedIndices[0]);
+    }
+
+    private static string PrepareIncrementalButtonFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, PdfArray? inheritedOptions, int fieldFlags, string value) {
+        HashSet<string> availableStates = CollectIncrementalButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+        bool isRadioButtonGroup = (fieldFlags & IncrementalRadioButtonFlag) != 0;
+        return PdfButtonFieldValueResolver.Resolve(objects, field, inheritedOptions, availableStates, isRadioButtonGroup, value);
+    }
+
+    private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {
+        text = null;
+        switch (ResolveObject(objects, value)) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+}

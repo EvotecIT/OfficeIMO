@@ -8,6 +8,10 @@ namespace OfficeIMO.Html;
 internal static class HtmlCssIdentifierParser {
     internal static bool TryRead(string text, ref int cursor, out string value) {
         int start = cursor;
+        if (!WouldStartIdentifier(text, cursor)) {
+            value = string.Empty;
+            return false;
+        }
         var result = new StringBuilder();
         bool first = true;
         while (cursor < text.Length) {
@@ -57,4 +61,17 @@ internal static class HtmlCssIdentifierParser {
 
     private static bool IsIdentifierCharacter(char value) =>
         char.IsLetterOrDigit(value) || value == '_' || value == '-' || value >= 0x80;
+
+    private static bool WouldStartIdentifier(string text, int cursor) {
+        if (cursor >= text.Length) return false;
+        char first = text[cursor];
+        if (first == '\\') return IsValidEscape(text, cursor);
+        if (first != '-') return IsIdentifierStart(first);
+        if (cursor + 1 >= text.Length) return false;
+        char second = text[cursor + 1];
+        return IsIdentifierStart(second) || second == '\\' && IsValidEscape(text, cursor + 1);
+    }
+
+    private static bool IsValidEscape(string text, int cursor) =>
+        cursor + 1 < text.Length && text[cursor] == '\\' && text[cursor + 1] != '\n' && text[cursor + 1] != '\r' && text[cursor + 1] != '\f';
 }

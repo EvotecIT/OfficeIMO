@@ -674,6 +674,14 @@ _Dependency footprint:_ OfficeIMO OneNote.Markdown, Markdown.Pdf, PDF, and Drawi
 
 _Dependency footprint:_ only OfficeIMO HTML, PDF, and Drawing packages; no browser process or native HTML renderer.
 
+#### [OfficeIMO.Html.Pdf.Browser](OfficeIMO.Html.Pdf.Browser/README.md)
+
+- [x] Explicit Chromium capture for live websites, JavaScript-rendered pages, and browser layout
+- [x] HtmlTinkerX lifecycle, navigation, readiness, authentication, and network-policy ownership
+- [x] Standard `PdfDocumentConversionResult` output with browser diagnostics and the usual OfficeIMO extraction, inspection, preflight, and mutation APIs
+
+_Dependency footprint:_ OfficeIMO Core and PDF plus HtmlTinkerX. This optional package does not change the managed `OfficeIMO.Html.Pdf` dependency graph.
+
 #### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
 - [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `agent`, and `mcp` command areas

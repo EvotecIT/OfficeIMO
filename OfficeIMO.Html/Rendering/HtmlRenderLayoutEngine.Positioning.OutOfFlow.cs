@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (_registeredAbsoluteElements.Contains(directParent) || _registeredFixedElements.Contains(directParent)) return directParent;
         if (EstablishesSupportedAbsoluteContainingBlock(directParentStyle)) return directParent;
 
-        double referenceWidth = Math.Max(1D, (_options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth) - _options.Margins.Left - _options.Margins.Right);
+        double referenceWidth = Math.Max(1D, ActiveSurfaceWidth - ActiveMargins.Left - ActiveMargins.Right);
         bool flattenedFlexOrGridChild = directParentStyle.Display == "contents";
         for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (ReferenceEquals(ancestor, root)) return root;
@@ -157,8 +157,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 request,
                 contentWidth,
                 contentHeight,
-                _options.Margins.Left,
-                _options.Margins.Top)));
+                ActiveMargins.Left,
+                ActiveMargins.Top)));
         }
         placements.AddRange(_fixedPositionedElements.Select(request =>
             new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
@@ -204,7 +204,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ThenBy(request => request.SourceOrder);
 
     private PositionedLayer LayoutPositionedElement(PositionedElementRequest request, double containingWidth, double containingHeight) {
+        HtmlRenderBoxStyle parentStyle = request.ParentStyle;
         HtmlRenderBoxStyle style = request.Style.Clone();
+        if (request.IsFixed) {
+            parentStyle = ResolveFixedPositionedParentStyle(request);
+            style = _styleResolver.Resolve(request.Element, containingWidth, parentStyle);
+        }
         string source = HtmlRenderStyleResolver.DescribeSource(request.Element);
         double? left = ResolveOutOfFlowInset(style.Left, containingWidth, style, source, "left");
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
@@ -219,7 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         style.Position = "static";
         style.ZIndex = "auto";
-        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, request.ParentStyle, request.Depth);
+        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
         PositionedPoint staticPosition = ResolvePositionedStaticPoint(
             request,
             block,
@@ -232,11 +237,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new PositionedLayer(block, x, y);
     }
 
+    private HtmlRenderBoxStyle ResolveFixedPositionedParentStyle(PositionedElementRequest request) {
+        var ancestors = new Stack<IElement>();
+        for (IElement? ancestor = request.DirectParent; ancestor != null; ancestor = ancestor.ParentElement) {
+            ancestors.Push(ancestor);
+        }
+
+        HtmlRenderBoxStyle? parentStyle = null;
+        double containingWidth = _options.Mode == HtmlRenderMode.Paged
+            ? _activePageGeometry.ContentWidth
+            : Math.Max(1D, _options.ViewportWidth - _options.Margins.Left - _options.Margins.Right);
+        while (ancestors.Count > 0) {
+            parentStyle = _styleResolver.Resolve(ancestors.Pop(), containingWidth, parentStyle);
+        }
+        return parentStyle ?? request.ParentStyle;
+    }
+
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
-            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+            if (style.MinWidth.HasValue) boxWidth = Math.Max(boxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
             return Math.Max(1D, style.MarginLeft + boxWidth + style.MarginRight);
         }
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
@@ -244,16 +265,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (tag == "table") return containingWidth;
         if (tag == "img") return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
         string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style.TextTransform);
-        double preferredContentWidth = Math.Max(1D, MeasureText(content, style.Font));
+        double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
         double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(token => MeasureText(token, style.Font))
+            .Select(token => MeasureInlineText(token, style))
             .DefaultIfEmpty(1D)
             .Max();
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
-        if (style.MinWidth.HasValue) resolvedBoxWidth = Math.Max(resolvedBoxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) resolvedBoxWidth = Math.Min(resolvedBoxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) resolvedBoxWidth = Math.Max(resolvedBoxWidth, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         return Math.Max(1D, resolvedBoxWidth + style.MarginLeft + style.MarginRight);
     }
 
@@ -264,7 +285,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double? ResolveOutOfFlowInset(string value, double reference, HtmlRenderBoxStyle style, string source, string property) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return null;
-        if (HtmlRenderCssValues.TryLength(value, reference, style.Font.Size, _options.DefaultFontSize, out double resolved)) return resolved;
+        if (TryResolveLength(value, reference, style.Font.Size, out double resolved)) return resolved;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.PositionInsetUnsupported, "A positioned inset could not be resolved and used auto.", HtmlDiagnosticSeverity.Warning, source, property + "=" + value);
         return null;
     }
@@ -302,6 +323,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
         internal PositionedStaticAnchor? StaticAnchor { get; }
+        internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
             if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
                 _cached = engine.LayoutPositionedElement(this, width, height);

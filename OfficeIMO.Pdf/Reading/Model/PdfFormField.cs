@@ -57,7 +57,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -73,6 +73,7 @@ public sealed class PdfFormField {
         DefaultAppearance = defaultAppearance;
         Quadding = quadding;
         Options = options ?? Array.Empty<PdfFormFieldOption>();
+        SelectedIndices = selectedIndices ?? Array.Empty<int>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
     }
 
@@ -181,14 +182,19 @@ public sealed class PdfFormField {
     /// <summary>True when at least one choice option was readable.</summary>
     public bool HasOptions => Options.Count > 0;
 
-    /// <summary>Readable choice options whose export value matches the field value list.</summary>
+    /// <summary>Zero-based selected choice-option indices from /I, when readable.</summary>
+    public IReadOnlyList<int> SelectedIndices { get; }
+
+    /// <summary>Readable choice options identified by /I or, when absent, whose export value matches the field value list.</summary>
     public IReadOnlyList<PdfFormFieldOption> SelectedOptions {
         get {
             if (_selectedOptions is not null) {
                 return _selectedOptions;
             }
 
-            _selectedOptions = GetMatchingOptions(Values, Options);
+            _selectedOptions = TryGetIndexedOptions(SelectedIndices, Values, Options, out IReadOnlyList<PdfFormFieldOption>? indexedOptions)
+                ? indexedOptions
+                : GetMatchingOptions(Values, Options);
             return _selectedOptions;
         }
     }
@@ -411,15 +417,37 @@ public sealed class PdfFormField {
 
         return selected.Count == 0 ? Array.Empty<PdfFormFieldOption>() : selected.AsReadOnly();
     }
+
+    private static bool TryGetIndexedOptions(IReadOnlyList<int> indices, IReadOnlyList<string> values, IReadOnlyList<PdfFormFieldOption> options, out IReadOnlyList<PdfFormFieldOption> selectedOptions) {
+        selectedOptions = Array.Empty<PdfFormFieldOption>();
+        if (indices.Count == 0 || indices.Count != values.Count || options.Count == 0) {
+            return false;
+        }
+
+        var selected = new List<PdfFormFieldOption>(indices.Count);
+        for (int i = 0; i < indices.Count; i++) {
+            int optionIndex = indices[i];
+            if (optionIndex < 0 || optionIndex >= options.Count ||
+                !string.Equals(options[optionIndex].ExportValue, values[i], StringComparison.Ordinal)) {
+                return false;
+            }
+
+            selected.Add(options[optionIndex]);
+        }
+
+        selectedOptions = selected.AsReadOnly();
+        return true;
+    }
 }
 
 /// <summary>
-/// Simple AcroForm choice option read from a field /Opt array.
+/// AcroForm choice option used by generation and read from a field /Opt array.
 /// </summary>
 public sealed class PdfFormFieldOption {
-    internal PdfFormFieldOption(string exportValue, string displayText) {
-        ExportValue = exportValue;
-        DisplayText = displayText;
+    /// <summary>Creates one choice option with separate export and display values.</summary>
+    public PdfFormFieldOption(string exportValue, string displayText) {
+        ExportValue = exportValue ?? throw new ArgumentNullException(nameof(exportValue));
+        DisplayText = displayText ?? throw new ArgumentNullException(nameof(displayText));
     }
 
     /// <summary>Export value used by the form field.</summary>

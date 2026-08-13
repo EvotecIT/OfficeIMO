@@ -49,7 +49,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         MultiColumnPlan plan = BuildMultiColumnPlan(children, targetHeight, _options.MaxColumnCount, throwOnLimit: true);
         EnsureMultiColumnLimit(plan.ColumnCount);
         double contentHeight = declaredHeight ?? Math.Max(targetHeight, plan.UsedHeight);
-        double boxHeight = ResolveBoxHeight(contentHeight, style);
+        double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
@@ -114,7 +114,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static double? ResolveDeclaredColumnContentHeight(HtmlRenderBoxStyle style) {
         if (!style.ExplicitHeight.HasValue) return null;
-        double boxHeight = ResolveBoxHeight(0D, style);
+        double boxHeight = ResolveBoxHeight(0D, 0D, style);
         return Math.Max(0.01D, boxHeight - style.VerticalInsets);
     }
 

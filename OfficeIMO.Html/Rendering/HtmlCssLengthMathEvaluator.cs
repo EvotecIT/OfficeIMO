@@ -16,6 +16,10 @@ internal sealed class HtmlCssLengthMathEvaluator {
     private readonly double _reference;
     private readonly double _fontSize;
     private readonly double _rootFontSize;
+    private readonly double _viewportWidth;
+    private readonly double _viewportHeight;
+    private readonly double _containerWidth;
+    private readonly double _containerHeight;
     private int _index;
     private int _depth;
     private int _operations;
@@ -24,11 +28,19 @@ internal sealed class HtmlCssLengthMathEvaluator {
         string text,
         double reference,
         double fontSize,
-        double rootFontSize) {
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight) {
         _text = text;
         _reference = reference;
         _fontSize = fontSize;
         _rootFontSize = rootFontSize;
+        _viewportWidth = viewportWidth;
+        _viewportHeight = viewportHeight;
+        _containerWidth = containerWidth;
+        _containerHeight = containerHeight;
     }
 
     internal static bool TryEvaluate(
@@ -36,11 +48,15 @@ internal sealed class HtmlCssLengthMathEvaluator {
         double reference,
         double fontSize,
         double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
         out double result) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value) || value.Length > MaximumExpressionLength) return false;
 
-        var parser = new HtmlCssLengthMathEvaluator(value, reference, fontSize, rootFontSize);
+        var parser = new HtmlCssLengthMathEvaluator(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight);
         if (!parser.TryParseExpression(out CssNumeric resolved)) return false;
         parser.SkipWhitespace();
         if (parser._index != parser._text.Length
@@ -214,6 +230,32 @@ internal sealed class HtmlCssLengthMathEvaluator {
             case "q": multiplier = HtmlRenderOptions.CssPixelsPerInch / 101.6D; break;
             case "em": multiplier = _fontSize; break;
             case "rem": multiplier = _rootFontSize; break;
+            case "vw":
+            case "svw":
+            case "lvw":
+            case "dvw": multiplier = _viewportWidth / 100D; break;
+            case "vh":
+            case "svh":
+            case "lvh":
+            case "dvh": multiplier = _viewportHeight / 100D; break;
+            case "vmin":
+            case "svmin":
+            case "lvmin":
+            case "dvmin": multiplier = Math.Min(_viewportWidth, _viewportHeight) / 100D; break;
+            case "vmax":
+            case "svmax":
+            case "lvmax":
+            case "dvmax": multiplier = Math.Max(_viewportWidth, _viewportHeight) / 100D; break;
+            case "cqw":
+            case "cqi": multiplier = (IsFinite(_containerWidth) ? _containerWidth : _viewportWidth) / 100D; break;
+            case "cqh":
+            case "cqb": multiplier = (IsFinite(_containerHeight) ? _containerHeight : _viewportHeight) / 100D; break;
+            case "cqmin": multiplier = Math.Min(
+                IsFinite(_containerWidth) ? _containerWidth : _viewportWidth,
+                IsFinite(_containerHeight) ? _containerHeight : _viewportHeight) / 100D; break;
+            case "cqmax": multiplier = Math.Max(
+                IsFinite(_containerWidth) ? _containerWidth : _viewportWidth,
+                IsFinite(_containerHeight) ? _containerHeight : _viewportHeight) / 100D; break;
             case "%": multiplier = _reference / 100D; break;
             default: return false;
         }

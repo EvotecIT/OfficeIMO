@@ -19,7 +19,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedRowGap.Length > 0) ReportUnsupportedGridValue(source, "row-gap=" + style.UnsupportedRowGap);
 
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
-        List<GridTrack> columnTracks = ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
+        bool usesColumnSubgrid = IsSubgridTrackList(style.GridTemplateColumns)
+            && ReferenceEquals(_activeSubgridOwner, element)
+            && _activeSubgridColumnSizes != null;
+        double inheritedColumnGap = usesColumnSubgrid && _activeSubgridColumnSizes!.Count > 1
+            ? style.ColumnGapWasSpecified ? style.ColumnGap : _activeSubgridColumnGap
+            : 0D;
+        List<GridTrack> columnTracks = usesColumnSubgrid
+            ? ResolveColumnSubgridTrackSizes(_activeSubgridColumnSizes!, contentWidth, _activeSubgridColumnGap, inheritedColumnGap, style)
+                .Select(size => GridTrack.Fixed(size, "subgrid"))
+                .ToList()
+            : ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         List<GridTrack> rowTracks = ParseGridTracks(
             style.GridTemplateRows,
             declaredContentHeight ?? 0D,
@@ -28,15 +38,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             "grid-template-rows");
         IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
-        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns);
+        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(
+            style.GridTemplateColumns,
+            usesColumnSubgrid ? columnTracks.Count + 1 : (int?)null,
+            usesColumnSubgrid ? _activeSubgridColumnLineNames : null);
         IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
-        CollapseTrailingAutoFitColumns(style, items, columnTracks, ref columnCount);
+        CollapseEmptyAutoFitColumns(style, items, columnTracks, ref columnCount);
         rowCount = Math.Max(rowCount, Math.Max(1, areaRowCount));
         EnsureGridTrackCount(columnTracks, columnCount, style.GridAutoColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
-        double columnGap = columnCount > 1 ? style.ColumnGap : 0D;
+        double columnGap = columnCount > 1
+            ? usesColumnSubgrid && !style.ColumnGapWasSpecified ? _activeSubgridColumnGap : style.ColumnGap
+            : 0D;
         List<double> columnSizes = ResolveGridTrackSizes(columnTracks, items, contentWidth, columnGap);
         GridAxisLayout columns = ResolveGridAxisLayout(columnTracks, columnSizes, contentWidth, columnGap, style.JustifyContent, source, "justify-content");
 
@@ -44,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             ApplyInitialGridItemWidth(item, style, cellWidth);
-            item.Block = LayoutFlexItem(item.Item, Math.Max(1D, cellWidth), style, depth + 1);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
         }
 
         EnsureGridTrackCount(
@@ -59,7 +74,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double rowGap = rowCount > 1 ? style.RowGap : 0D;
         List<double> rowSizes = ResolveNaturalGridRows(rowTracks, items, rowGap, declaredContentHeight);
         double naturalContentHeight = rowSizes.Sum() + rowGap * Math.Max(0, rowCount - 1);
-        double boxHeight = ResolveBoxHeight(naturalContentHeight, style);
+        double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
         double contentHeight = Math.Max(0D, boxHeight - style.VerticalInsets);
         GridAxisLayout rows = ResolveGridAxisLayout(rowTracks, rowSizes, contentHeight, rowGap, style.AlignContent, source, "align-content");
         RecordGridPositionedContainingRects(
@@ -78,10 +93,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             double cellHeight = rows.SpanSize(item.Row, item.RowSpan);
             ApplyFinalGridItemSize(item, style, cellWidth, cellHeight);
-            item.Block = LayoutFlexItem(item.Item, Math.Max(1D, cellWidth), style, depth + 1);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
             item.OffsetX = ResolveGridHorizontalOffset(item, style, cellWidth);
-            item.OffsetY = ResolveGridVerticalOffset(item, style, cellHeight);
         }
+        ResolveGridVerticalOffsets(items, style, rows);
 
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
@@ -159,6 +174,76 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset));
         return true;
+    }
+
+    private static IReadOnlyList<double> ResolveColumnSubgridTrackSizes(
+        IReadOnlyList<double> inheritedSizes,
+        double contentWidth,
+        double parentGap,
+        double subgridGap,
+        HtmlRenderBoxStyle style) {
+        var sizes = inheritedSizes.Select(size => Math.Max(0D, size)).ToList();
+        if (sizes.Count == 0) return sizes;
+
+        if (sizes.Count == 1) {
+            sizes[0] -= style.BorderLeftWidth + style.PaddingLeft + style.BorderRightWidth + style.PaddingRight;
+        } else {
+            double halfGapDifference = (parentGap - subgridGap) / 2D;
+            sizes[0] += halfGapDifference - style.BorderLeftWidth - style.PaddingLeft;
+            sizes[sizes.Count - 1] += halfGapDifference - style.BorderRightWidth - style.PaddingRight;
+            for (int index = 1; index < sizes.Count - 1; index++) sizes[index] += halfGapDifference * 2D;
+        }
+        for (int index = 0; index < sizes.Count; index++) sizes[index] = Math.Max(0D, sizes[index]);
+
+        double targetTrackWidth = Math.Max(0D, contentWidth - subgridGap * Math.Max(0, sizes.Count - 1));
+        double adjustment = targetTrackWidth - sizes.Sum();
+        if (adjustment > 0.000001D) {
+            sizes[0] += adjustment / 2D;
+            sizes[sizes.Count - 1] += adjustment - adjustment / 2D;
+            return sizes;
+        }
+
+        double remaining = -adjustment;
+        for (int offset = 0; remaining > 0.000001D && offset < sizes.Count; offset++) {
+            int left = offset;
+            int right = sizes.Count - 1 - offset;
+            remaining = ReduceSubgridEdgeTrack(sizes, left, remaining);
+            if (remaining > 0.000001D && right != left) remaining = ReduceSubgridEdgeTrack(sizes, right, remaining);
+        }
+        return sizes;
+    }
+
+    private static double ReduceSubgridEdgeTrack(IList<double> sizes, int index, double requested) {
+        double applied = Math.Min(Math.Max(0D, requested), sizes[index]);
+        sizes[index] -= applied;
+        return requested - applied;
+    }
+
+    private HtmlRenderFlowBlock LayoutGridItem(
+        GridItem item,
+        double containingWidth,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        GridAxisLayout columns,
+        IReadOnlyDictionary<string, int> columnLineNames) {
+        IElement? previousOwner = _activeSubgridOwner;
+        IReadOnlyList<double>? previousSizes = _activeSubgridColumnSizes;
+        IReadOnlyDictionary<string, int>? previousLineNames = _activeSubgridColumnLineNames;
+        double previousGap = _activeSubgridColumnGap;
+        try {
+            _activeSubgridOwner = item.Item.Element;
+            _activeSubgridColumnSizes = columns.Sizes.Skip(item.Column).Take(item.ColumnSpan).ToList();
+            _activeSubgridColumnLineNames = columnLineNames
+                .Where(pair => pair.Value >= item.Column && pair.Value <= item.Column + item.ColumnSpan)
+                .ToDictionary(pair => pair.Key, pair => pair.Value - item.Column, StringComparer.Ordinal);
+            _activeSubgridColumnGap = columns.Between;
+            return LayoutFlexItem(item.Item, containingWidth, parentStyle, depth);
+        } finally {
+            _activeSubgridOwner = previousOwner;
+            _activeSubgridColumnSizes = previousSizes;
+            _activeSubgridColumnLineNames = previousLineNames;
+            _activeSubgridColumnGap = previousGap;
+        }
     }
 
     private double? ResolveGridDeclaredContentHeight(HtmlRenderBoxStyle style) {
@@ -245,19 +330,87 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ResolveGridAlignmentOffset(ResolveGridAlignment(style.AlignSelf, containerStyle.AlignItems), remaining, item.Item.Source, "align-self");
     }
 
+    private void ResolveGridVerticalOffsets(
+        IReadOnlyList<GridItem> items,
+        HtmlRenderBoxStyle containerStyle,
+        GridAxisLayout rows) {
+        foreach (GridItem item in items) {
+            double cellHeight = rows.SpanSize(item.Row, item.RowSpan);
+            item.OffsetY = ResolveGridVerticalOffset(item, containerStyle, cellHeight);
+        }
+
+        foreach (IGrouping<int, GridItem> rowGroup in items
+            .Where(item => item.RowSpan == 1
+                && !HasVerticalAutoMargin(item.Item.Style)
+                && ResolveGridAlignment(item.Item.Style.AlignSelf, containerStyle.AlignItems) == "baseline")
+            .GroupBy(item => item.Row)) {
+            double sharedBaseline = rowGroup.Max(ResolveGridItemBaseline);
+            foreach (GridItem item in rowGroup) {
+                double remaining = Math.Max(0D, rows.SpanSize(item.Row, 1) - item.Block!.Height);
+                item.OffsetY = Math.Min(remaining, Math.Max(0D, sharedBaseline - ResolveGridItemBaseline(item)));
+            }
+        }
+    }
+
+    private static double ResolveGridItemBaseline(GridItem item) {
+        HtmlRenderText? firstText = EnumerateGridTextVisuals(item.Block!.Visuals)
+            .OrderBy(text => text.LayoutY)
+            .ThenBy(text => text.X)
+            .FirstOrDefault();
+        if (firstText == null) return item.Block.Height;
+        double leading = Math.Max(0D, firstText.LineHeight - firstText.Font.Size);
+        return firstText.LayoutY + Math.Min(firstText.LineHeight, leading / 2D + firstText.Font.Size * 0.8D);
+    }
+
+    private static IEnumerable<HtmlRenderText> EnumerateGridTextVisuals(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderText text) yield return text;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderClipGroup clipGroup
+                ? clipGroup.Visuals
+                : visual is HtmlRenderPathClipGroup pathClipGroup
+                    ? pathClipGroup.Visuals
+                    : visual is HtmlRenderEffectGroup effectGroup
+                        ? effectGroup.Visuals
+                        : visual is HtmlRenderSemanticGroup semanticGroup
+                            ? semanticGroup.Visuals
+                            : visual is HtmlRenderLogicalTextGroup logicalTextGroup
+                                ? logicalTextGroup.Visuals
+                                : visual is HtmlRenderFormField formField ? formField.Visuals : null;
+            if (children == null) continue;
+            foreach (HtmlRenderText child in EnumerateGridTextVisuals(children)) yield return child;
+        }
+    }
+
     private double ResolveGridAlignmentOffset(string alignment, double remaining, string source, string property) {
         if (alignment == "end" || alignment == "flex-end") return remaining;
         if (alignment == "center") return remaining / 2D;
-        if (alignment == "stretch" || alignment == "start" || alignment == "flex-start") return 0D;
+        if (alignment == "stretch" || alignment == "start" || alignment == "flex-start" || alignment == "baseline") return 0D;
         ReportUnsupportedGridValue(source, property + "=" + alignment);
         return 0D;
     }
 
     private static string ResolveGridAlignment(string self, string container) {
         string resolved = self == "auto" ? container : self;
-        return resolved == "normal" ? "stretch" : resolved;
+        if (resolved == "normal") return "stretch";
+        return resolved == "first baseline" ? "baseline" : resolved;
     }
 
     private static bool HasHorizontalAutoMargin(HtmlRenderBoxStyle style) => style.MarginLeftAuto || style.MarginRightAuto;
     private static bool HasVerticalAutoMargin(HtmlRenderBoxStyle style) => style.MarginTopAuto || style.MarginBottomAuto;
+
+    private static bool IsSubgridTrackList(string value) {
+        string normalized = value?.Trim() ?? string.Empty;
+        if (!normalized.StartsWith("subgrid", StringComparison.OrdinalIgnoreCase)) return false;
+        int cursor = "subgrid".Length;
+        if (cursor < normalized.Length && !char.IsWhiteSpace(normalized[cursor]) && normalized[cursor] != '[') return false;
+        while (cursor < normalized.Length) {
+            while (cursor < normalized.Length && char.IsWhiteSpace(normalized[cursor])) cursor++;
+            if (cursor >= normalized.Length) return true;
+            if (normalized[cursor] != '[') return false;
+            int close = normalized.IndexOf(']', cursor + 1);
+            if (close < 0 || normalized.Substring(cursor + 1, close - cursor - 1).Trim().Length == 0) return false;
+            cursor = close + 1;
+        }
+        return true;
+    }
 }

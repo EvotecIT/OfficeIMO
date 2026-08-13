@@ -77,7 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style.TextTransform), style, item.Link, item.Source);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
-        double boxHeight = ResolveBoxHeight(inline.Height, style);
+        double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         if (item.PaintAnonymousBox) AddGeneratedBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, item.SourceElement, item.Source);

@@ -599,6 +599,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("filter", element.Attribute("filter")?.Value, paintServers, ref result, ref unsupported);
@@ -606,14 +607,66 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("marker-start", element.Attribute("marker-start")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("marker-mid", element.Attribute("marker-mid")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("marker-end", element.Attribute("marker-end")?.Value, paintServers, ref result, ref unsupported);
+        string? authoredLineHeight = element.Attribute("line-height")?.Value;
         foreach (string declaration in declarations) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0) continue;
             string name = declaration.Substring(0, colon).Trim();
-            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("line-height", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) continue;
             ApplyProperty(name, declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
         }
+        if (TryResolveInlineProperty(declarations, "baseline-shift", IsValidBaselineShiftValue, out string? inlineBaselineShift, out int invalidBaselineShifts)) {
+            ApplyProperty("baseline-shift", inlineBaselineShift, paintServers, ref result, ref unsupported);
+        }
+        unsupported += invalidBaselineShifts;
+        if (TryResolveInlineProperty(
+                declarations,
+                "line-height",
+                candidate => candidate.Equals("inherit", StringComparison.OrdinalIgnoreCase) || TryParseLineHeight(candidate, result.FontSize, out _),
+                out string? inlineLineHeight,
+                out int invalidLineHeights)) {
+            authoredLineHeight = inlineLineHeight;
+        }
+        unsupported += invalidLineHeights;
+        ApplyProperty("line-height", authoredLineHeight, paintServers, ref result, ref unsupported);
         return result;
+    }
+
+    private static bool TryResolveInlineProperty(
+        IEnumerable<string> declarations,
+        string propertyName,
+        Func<string, bool> validator,
+        out string? value,
+        out int invalidCount) {
+        value = null;
+        invalidCount = 0;
+        bool hasWinner = false;
+        bool winnerIsImportant = false;
+        foreach (string declaration in declarations) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
+            string candidate = declaration.Substring(colon + 1).Trim();
+            bool important = TryStripImportant(candidate, out candidate);
+            if (!validator(candidate)) {
+                invalidCount++;
+                continue;
+            }
+            if (hasWinner && winnerIsImportant && !important) continue;
+            value = candidate;
+            hasWinner = true;
+            winnerIsImportant = important;
+        }
+        return hasWinner;
+    }
+
+    private static bool TryStripImportant(string value, out string normalized) {
+        normalized = value.Trim();
+        int bang = normalized.LastIndexOf('!');
+        if (bang < 0 || !normalized.Substring(bang + 1).Trim().Equals("important", StringComparison.OrdinalIgnoreCase)) return false;
+        normalized = normalized.Substring(0, bang).Trim();
+        return true;
     }
 
     private static void ApplyProperty(string name, string? value, SvgPaintServerRegistry paintServers, ref SvgPaintContext style, ref int unsupported) {
@@ -686,6 +739,11 @@ public static partial class OfficeSvgDrawingReader {
                 if (!TrySvgLength(normalized, out double fontSize) || fontSize <= 0D) unsupported++;
                 else style.FontSize = fontSize;
                 break;
+            case "line-height":
+                if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (!TryParseLineHeight(normalized, style.FontSize, out SvgLineHeight lineHeight)) unsupported++;
+                else style.LineHeight = lineHeight;
+                break;
             case "font-style":
                 if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase)) style.FontStyle &= ~OfficeFontStyle.Italic;
                 else if (normalized.Equals("italic", StringComparison.OrdinalIgnoreCase) || normalized.Equals("oblique", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Italic;
@@ -712,6 +770,16 @@ public static partial class OfficeSvgDrawingReader {
                 else if (baseline is "middle" or "central") style.DominantBaseline = SvgDominantBaseline.Middle;
                 else if (baseline is "text-after-edge" or "ideographic") style.DominantBaseline = SvgDominantBaseline.TextAfterEdge;
                 else unsupported++;
+                break;
+            case "baseline-shift":
+                if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                    style.BaselineShift = default;
+                    break;
+                }
+                if (!TryParseBaselineShift(normalized, out SvgBaselineShift baselineShift)) unsupported++;
+                else style.BaselineShift = baselineShift;
                 break;
             case "display":
                 if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
@@ -895,9 +963,11 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeFillRule FillRule;
         internal string FontFamily;
         internal double FontSize;
+        internal SvgLineHeight LineHeight;
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
         internal SvgDominantBaseline DominantBaseline;
+        internal SvgBaselineShift BaselineShift;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -928,9 +998,11 @@ public static partial class OfficeSvgDrawingReader {
             FillRule = OfficeFillRule.NonZero,
             FontFamily = "Arial",
             FontSize = 16D,
+            LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,
             TextAnchor = "start",
             DominantBaseline = SvgDominantBaseline.Alphabetic,
+            BaselineShift = default,
             Visible = true
         };
     }
@@ -940,5 +1012,127 @@ public static partial class OfficeSvgDrawingReader {
         Hanging,
         Middle,
         TextAfterEdge
+    }
+
+    private enum SvgBaselineShiftBasis {
+        Absolute,
+        FontSize,
+        LineHeight
+    }
+
+    private readonly struct SvgBaselineShift {
+        internal SvgBaselineShift(double value, SvgBaselineShiftBasis basis) {
+            Value = value;
+            Basis = basis;
+        }
+
+        internal double Value { get; }
+        internal SvgBaselineShiftBasis Basis { get; }
+
+        internal double Resolve(double fontSize, double lineHeight) {
+            if (Basis == SvgBaselineShiftBasis.FontSize) return Value * fontSize;
+            if (Basis == SvgBaselineShiftBasis.LineHeight) return Value * lineHeight;
+            return Value;
+        }
+    }
+
+    private readonly struct SvgLineHeight {
+        internal SvgLineHeight(double value, bool relativeToFontSize) {
+            Value = value;
+            RelativeToFontSize = relativeToFontSize;
+        }
+
+        internal double Value { get; }
+        internal bool RelativeToFontSize { get; }
+        internal double Resolve(double fontSize) => RelativeToFontSize ? Value * fontSize : Value;
+        internal static SvgLineHeight Normal => new SvgLineHeight(1.2D, relativeToFontSize: true);
+    }
+
+    private static bool TryParseBaselineShift(string value, out SvgBaselineShift shift) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "baseline") {
+            shift = default;
+            return true;
+        }
+        if (normalized == "super") {
+            shift = new SvgBaselineShift(0.6D, SvgBaselineShiftBasis.FontSize);
+            return true;
+        }
+        if (normalized == "sub") {
+            shift = new SvgBaselineShift(-0.2D, SvgBaselineShiftBasis.FontSize);
+            return true;
+        }
+        if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage)
+            && !double.IsNaN(percentage)
+            && !double.IsInfinity(percentage)) {
+            shift = new SvgBaselineShift(percentage / 100D, SvgBaselineShiftBasis.LineHeight);
+            return true;
+        }
+        if (TryParseFontRelativeBaselineShift(normalized, out shift)) {
+            return true;
+        }
+        if (TrySvgLength(normalized, out double length)) {
+            shift = new SvgBaselineShift(length, SvgBaselineShiftBasis.Absolute);
+            return true;
+        }
+        shift = default;
+        return false;
+    }
+
+    private static bool TryParseFontRelativeBaselineShift(string value, out SvgBaselineShift shift) {
+        double scale;
+        string number;
+        if (value.EndsWith("em", StringComparison.Ordinal)) {
+            scale = 1D;
+            number = value.Substring(0, value.Length - 2);
+        } else if (value.EndsWith("ex", StringComparison.Ordinal) || value.EndsWith("ch", StringComparison.Ordinal)) {
+            scale = 0.5D;
+            number = value.Substring(0, value.Length - 2);
+        } else {
+            shift = default;
+            return false;
+        }
+
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
+            || double.IsNaN(multiplier)
+            || double.IsInfinity(multiplier)) {
+            shift = default;
+            return false;
+        }
+
+        shift = new SvgBaselineShift(multiplier * scale, SvgBaselineShiftBasis.FontSize);
+        return true;
+    }
+
+    private static bool TryParseLineHeight(string value, double fontSize, out SvgLineHeight lineHeight) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "normal") {
+            lineHeight = SvgLineHeight.Normal;
+            return true;
+        }
+        if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage)
+            && percentage >= 0D
+            && !double.IsNaN(percentage)
+            && !double.IsInfinity(percentage)) {
+            lineHeight = new SvgLineHeight(fontSize * percentage / 100D, relativeToFontSize: false);
+            return true;
+        }
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
+            && multiplier >= 0D
+            && !double.IsNaN(multiplier)
+            && !double.IsInfinity(multiplier)) {
+            lineHeight = new SvgLineHeight(multiplier, relativeToFontSize: true);
+            return true;
+        }
+        if (TrySvgLength(normalized, out double length) && length >= 0D) {
+            lineHeight = new SvgLineHeight(length, relativeToFontSize: false);
+            return true;
+        }
+        lineHeight = default;
+        return false;
     }
 }

@@ -70,6 +70,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string GeneratedContentUnsupported = "HtmlRenderGeneratedContentUnsupported";
     /// <summary>A CSS counter declaration was ignored because it could not be represented.</summary>
     public const string GeneratedCounterUnsupported = "HtmlRenderGeneratedCounterUnsupported";
+    /// <summary>A generated counter representation exceeded its bounded output budget and used a safe fallback.</summary>
+    public const string CounterRepresentationLimitExceeded = "HtmlRenderCounterRepresentationLimitExceeded";
     /// <summary>A replaced-element sizing or object-placement value used a deterministic fallback.</summary>
     public const string ReplacedElementValueUnsupported = "HtmlRenderReplacedElementValueUnsupported";
     /// <summary>A positioned inset could not be resolved by the current length model.</summary>
@@ -86,6 +88,44 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowClipMarginValueUnsupported = "HtmlRenderOverflowClipMarginValueUnsupported";
     /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
+    /// <summary>A form control inside a transformed or translucent paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
+    public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
+    /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
+    public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";
+    /// <summary>A text control whose authored value exceeds maxlength used static rendering because PDF /MaxLen cannot preserve that initial state.</summary>
+    public const string FormFieldInitialValueExceedsMaximumLengthStaticFallback = "HtmlRenderFormFieldInitialValueExceedsMaximumLengthStaticFallback";
+    /// <summary>A multiple-file input used static rendering because PDF file-select fields cannot preserve multiple-file selection.</summary>
+    public const string FileMultipleSelectionStaticFallback = "HtmlRenderFileMultipleSelectionStaticFallback";
+    /// <summary>A form control with a whitespace-only name used static rendering because PDF field names must contain a non-whitespace character.</summary>
+    public const string FormFieldBlankNameStaticFallback = "HtmlRenderFormFieldBlankNameStaticFallback";
+    /// <summary>A checkbox or radio control with a blank submitted value used static rendering because PDF button export values must contain a non-whitespace character.</summary>
+    public const string FormFieldBlankButtonValueStaticFallback = "HtmlRenderFormFieldBlankButtonValueStaticFallback";
+    /// <summary>A radio group with duplicate submitted values used static rendering because PDF appearance states must be unique.</summary>
+    public const string RadioDuplicateValueStaticFallback = "HtmlRenderRadioDuplicateValueStaticFallback";
+    /// <summary>A multi-select with duplicate selected submitted values used static rendering because value-only PDF choice selections cannot preserve both option identities.</summary>
+    public const string ChoiceDuplicateSelectedValueStaticFallback = "HtmlRenderChoiceDuplicateSelectedValueStaticFallback";
+    /// <summary>A radio group mixing enabled and disabled options used static rendering because PDF radio widgets cannot preserve disabled state per option.</summary>
+    public const string RadioMixedDisabledStateStaticFallback = "HtmlRenderRadioMixedDisabledStateStaticFallback";
+    /// <summary>A select containing disabled options used static rendering because PDF choice fields cannot preserve disabled state per option.</summary>
+    public const string ChoiceDisabledOptionStaticFallback = "HtmlRenderChoiceDisabledOptionStaticFallback";
+    /// <summary>Multiple HTML controls sharing one submitted name used static rendering because distinct PDF fields cannot preserve repeated form-data entries under one field name.</summary>
+    public const string FormFieldRepeatedNameStaticFallback = "HtmlRenderFormFieldRepeatedNameStaticFallback";
+    /// <summary>A select containing a blank option label used static rendering because PDF choice fields require non-empty display labels.</summary>
+    public const string ChoiceBlankLabelStaticFallback = "HtmlRenderChoiceBlankLabelStaticFallback";
+    /// <summary>An empty select used static rendering because interactive PDF choice fields require at least one option.</summary>
+    public const string ChoiceEmptyOptionsStaticFallback = "HtmlRenderChoiceEmptyOptionsStaticFallback";
+    /// <summary>A form control with non-uniform or elliptical corner radii used truthful static rendering.</summary>
+    public const string FormFieldNonUniformRadiusStaticFallback = "HtmlRenderFormFieldNonUniformRadiusStaticFallback";
+    /// <summary>A form control with translucent widget paint used truthful static rendering.</summary>
+    public const string FormFieldColorTransparencyStaticFallback = "HtmlRenderFormFieldColorTransparencyStaticFallback";
+    /// <summary>A form control with background-image paint used truthful static rendering.</summary>
+    public const string FormFieldBackgroundImageStaticFallback = "HtmlRenderFormFieldBackgroundImageStaticFallback";
+    /// <summary>A form control with an unsupported interactive border style used truthful static rendering.</summary>
+    public const string FormFieldBorderStyleStaticFallback = "HtmlRenderFormFieldBorderStyleStaticFallback";
+    /// <summary>A text or choice control with typography unavailable to generated PDF widgets used truthful static rendering.</summary>
+    public const string FormFieldTypographyStaticFallback = "HtmlRenderFormFieldTypographyStaticFallback";
+    /// <summary>A textarea with wrap=off used truthful static rendering because PDF multiline widgets cannot preserve no-wrap appearance semantics.</summary>
+    public const string FormFieldNoWrapStaticFallback = "HtmlRenderFormFieldNoWrapStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -116,6 +156,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PageSizeUnsupported = "HtmlRenderPageSizeUnsupported";
     /// <summary>SVG content could not be represented by the bounded shared vector scene.</summary>
     public const string SvgContentUnsupported = "HtmlRenderSvgContentUnsupported";
+    /// <summary>MathML content could not be represented by the bounded shared mathematical expression model.</summary>
+    public const string MathMlContentUnsupported = "HtmlRenderMathMlContentUnsupported";
     /// <summary>A caller codec rasterized SVG features outside the bounded vector scene.</summary>
     public const string SvgRasterFallback = "HtmlRenderSvgRasterFallback";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
@@ -183,6 +225,7 @@ public static class HtmlRenderDiagnosticCodes {
         ForcedFragment,
         GeneratedContentUnsupported,
         GeneratedCounterUnsupported,
+        CounterRepresentationLimitExceeded,
         GridLayoutPending,
         GridTrackLimitExceeded,
         GridValueUnsupported,
@@ -191,6 +234,25 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowScrollSnapshot,
         OverflowValueUnsupported,
         TransformValueUnsupported,
+        FormFieldTransformStaticFallback,
+        FormFieldZeroMaximumLengthStaticFallback,
+        FormFieldInitialValueExceedsMaximumLengthStaticFallback,
+        FileMultipleSelectionStaticFallback,
+        FormFieldBlankNameStaticFallback,
+        FormFieldBlankButtonValueStaticFallback,
+        RadioDuplicateValueStaticFallback,
+        ChoiceDuplicateSelectedValueStaticFallback,
+        RadioMixedDisabledStateStaticFallback,
+        ChoiceDisabledOptionStaticFallback,
+        FormFieldRepeatedNameStaticFallback,
+        ChoiceBlankLabelStaticFallback,
+        ChoiceEmptyOptionsStaticFallback,
+        FormFieldNonUniformRadiusStaticFallback,
+        FormFieldColorTransparencyStaticFallback,
+        FormFieldBackgroundImageStaticFallback,
+        FormFieldBorderStyleStaticFallback,
+        FormFieldTypographyStaticFallback,
+        FormFieldNoWrapStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,
@@ -208,6 +270,7 @@ public static class HtmlRenderDiagnosticCodes {
         PagePseudoGeometryPending,
         PageSelectorPending,
         PageSizeUnsupported,
+        MathMlContentUnsupported,
         SvgContentUnsupported,
         SvgRasterFallback,
         ResourceByteLimitExceeded,
