@@ -91,53 +91,74 @@ internal static partial class PdfImageEditor {
         out Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners) {
         var decodedStreams = new List<(int ObjectNumber, PdfStream Stream, string Content)>();
         var decodedObjectNumbers = new HashSet<int>();
+        var invokedNames = new Dictionary<int, List<string>>();
+        var propagatedOwners = new Dictionary<int, HashSet<PdfDictionary>>();
         var pending = new Queue<int>();
+        var ownerMap = new Dictionary<int, HashSet<PdfDictionary>>();
         long retainedContentBytes = 0L;
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfDictionary page ||
                 !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
                 !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
             foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) {
-                if (!decodedObjectNumbers.Contains(reference.ObjectNumber)) pending.Enqueue(reference.ObjectNumber);
+                AddOwner(reference.ObjectNumber, page);
             }
         }
 
-        effectiveResourceOwners = new Dictionary<int, HashSet<PdfDictionary>>();
         while (pending.Count > 0) {
             int objectNumber = pending.Dequeue();
-            if (!decodedObjectNumbers.Add(objectNumber) ||
-                !objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed) continue;
-            try {
-                byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
-                retainedContentBytes += decoded.LongLength;
-                if (retainedContentBytes > limits.MaxRetainedContentBytes) {
-                    throw PdfReadLimitException.Create(
-                        PdfReadLimitKind.RetainedContentBytes,
-                        limits.MaxRetainedContentBytes,
-                        retainedContentBytes);
+            if (!decodedObjectNumbers.Contains(objectNumber)) {
+                if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+                    indirect.Value is not PdfStream stream ||
+                    stream.DecodingFailed) continue;
+                try {
+                    byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
+                    retainedContentBytes += decoded.LongLength;
+                    if (retainedContentBytes > limits.MaxRetainedContentBytes) {
+                        throw PdfReadLimitException.Create(
+                            PdfReadLimitKind.RetainedContentBytes,
+                            limits.MaxRetainedContentBytes,
+                            retainedContentBytes);
+                    }
+                    string content = PdfEncoding.Latin1GetString(decoded);
+                    decodedStreams.Add((objectNumber, stream, content));
+                    invokedNames[objectNumber] = ReadInvokedResourceNames(content, limits);
+                    decodedObjectNumbers.Add(objectNumber);
+                } catch (NotSupportedException) {
+                    throw new NotSupportedException("Editing this image is not supported because a reachable content stream cannot be decoded safely.");
                 }
-                string content = PdfEncoding.Latin1GetString(decoded);
-                decodedStreams.Add((objectNumber, stream, content));
-            } catch (NotSupportedException) {
-                throw new NotSupportedException("Editing this image is not supported because a reachable content stream cannot be decoded safely.");
+
+                if (stream.Dictionary.Items.ContainsKey("Resources")) AddOwner(objectNumber, stream.Dictionary);
             }
 
-            effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
-            foreach (int reachableObjectNumber in effectiveResourceOwners.Keys) {
-                if (!decodedObjectNumbers.Contains(reachableObjectNumber) &&
-                    objects.TryGetValue(reachableObjectNumber, out PdfIndirectObject? reachable) &&
-                    reachable.Value is PdfStream reachableStream &&
-                    string.Equals(reachableStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
-                    pending.Enqueue(reachableObjectNumber);
+            if (!invokedNames.TryGetValue(objectNumber, out List<string>? names) ||
+                !ownerMap.TryGetValue(objectNumber, out HashSet<PdfDictionary>? owners)) continue;
+            if (!propagatedOwners.TryGetValue(objectNumber, out HashSet<PdfDictionary>? completedOwners)) {
+                completedOwners = new HashSet<PdfDictionary>();
+                propagatedOwners.Add(objectNumber, completedOwners);
+            }
+            foreach (PdfDictionary owner in owners.ToArray()) {
+                if (!completedOwners.Add(owner)) continue;
+                for (int nameIndex = 0; nameIndex < names.Count; nameIndex++) {
+                    if (!TryGetXObject(objects, owner, names[nameIndex], out PdfObject? target) ||
+                        target is not PdfReference targetReference ||
+                        !objects.TryGetValue(targetReference.ObjectNumber, out PdfIndirectObject? targetIndirect) ||
+                        targetIndirect.Value is not PdfStream targetStream ||
+                        !string.Equals(targetStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+                    AddOwner(
+                        targetReference.ObjectNumber,
+                        targetStream.Dictionary.Items.ContainsKey("Resources") ? targetStream.Dictionary : owner);
                 }
             }
         }
 
-        effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+        effectiveResourceOwners = ownerMap;
         ValidatePerPageContentBudgets(objects, decodedStreams, limits);
         return decodedStreams;
+
+        void AddOwner(int objectNumber, PdfDictionary owner) {
+            if (AddEffectiveResourceOwner(ownerMap, objectNumber, owner)) pending.Enqueue(objectNumber);
+        }
     }
 
     private static void ValidatePerPageContentBudgets(
@@ -350,48 +371,6 @@ internal static partial class PdfImageEditor {
             }
         } while (changed);
         return containingForms;
-    }
-
-    private static Dictionary<int, HashSet<PdfDictionary>> BuildEffectiveResourceOwners(
-        Dictionary<int, PdfIndirectObject> objects,
-        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
-        PdfReadLimits limits) {
-        var result = new Dictionary<int, HashSet<PdfDictionary>>();
-        foreach (PdfIndirectObject indirect in objects.Values) {
-            if (indirect.Value is not PdfDictionary page ||
-                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
-                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
-            foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) AddEffectiveResourceOwner(result, reference.ObjectNumber, page);
-        }
-        for (int index = 0; index < decodedStreams.Count; index++) {
-            if (decodedStreams[index].Stream.Dictionary.Items.ContainsKey("Resources")) {
-                AddEffectiveResourceOwner(result, decodedStreams[index].ObjectNumber, decodedStreams[index].Stream.Dictionary);
-            }
-        }
-
-        bool changed;
-        do {
-            changed = false;
-            for (int index = 0; index < decodedStreams.Count; index++) {
-                (int callerObjectNumber, PdfStream caller, string content) = decodedStreams[index];
-                if (!result.TryGetValue(callerObjectNumber, out HashSet<PdfDictionary>? owners)) continue;
-                PdfDictionary[] ownerSnapshot = owners.ToArray();
-                foreach (string name in ReadInvokedResourceNames(content, limits)) {
-                    for (int ownerIndex = 0; ownerIndex < ownerSnapshot.Length; ownerIndex++) {
-                        if (!TryGetXObject(objects, ownerSnapshot[ownerIndex], name, out PdfObject? target) ||
-                            target is not PdfReference targetReference ||
-                            !objects.TryGetValue(targetReference.ObjectNumber, out PdfIndirectObject? targetIndirect) ||
-                            targetIndirect.Value is not PdfStream targetStream ||
-                            !string.Equals(targetStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
-                        PdfDictionary effectiveOwner = targetStream.Dictionary.Items.ContainsKey("Resources")
-                            ? targetStream.Dictionary
-                            : ownerSnapshot[ownerIndex];
-                        changed = AddEffectiveResourceOwner(result, targetReference.ObjectNumber, effectiveOwner) || changed;
-                    }
-                }
-            }
-        } while (changed);
-        return result;
     }
 
     private static bool AddEffectiveResourceOwner(Dictionary<int, HashSet<PdfDictionary>> owners, int objectNumber, PdfDictionary owner) {

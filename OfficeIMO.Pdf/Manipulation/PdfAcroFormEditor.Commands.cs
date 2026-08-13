@@ -312,7 +312,41 @@ internal static partial class PdfAcroFormEditor {
             !CollectButtonAppearanceStates(objects, field.Dictionary, new HashSet<int>()).Contains(value)) {
             throw new ArgumentException($"PDF button field cannot use default value '{value}' because it is not one of the available appearance states.", nameof(value));
         }
+        if (value is not null &&
+            string.Equals(field.FieldType, "Ch", StringComparison.Ordinal) &&
+            (flags & (FieldFlagCombo | FieldFlagEdit)) != (FieldFlagCombo | FieldFlagEdit) &&
+            !CollectChoiceExportValues(objects, field.Dictionary).Contains(value)) {
+            throw new ArgumentException($"PDF choice field cannot use default value '{value}' because it is not one of the available option values.", nameof(value));
+        }
         SetDefaultValue(field.Dictionary, field.FieldType, value, "Yes", normalizeButtonValue: false);
+    }
+
+    private static HashSet<string> CollectChoiceExportValues(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            if (current.Items.TryGetValue("Opt", out PdfObject? optionsObject)) {
+                var result = new HashSet<string>(StringComparer.Ordinal);
+                if (PdfObjectLookup.Resolve(objects, optionsObject) is not PdfArray options) return result;
+                for (int index = 0; index < options.Items.Count; index++) {
+                    PdfObject? option = PdfObjectLookup.Resolve(objects, options.Items[index]);
+                    if (option is PdfStringObj text) {
+                        result.Add(text.Value);
+                    } else if (option is PdfArray pair &&
+                               pair.Items.Count > 0 &&
+                               PdfObjectLookup.Resolve(objects, pair.Items[0]) is PdfStringObj exportValue) {
+                        result.Add(exportValue.Value);
+                    }
+                }
+                return result;
+            }
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return new HashSet<string>(StringComparer.Ordinal);
     }
 
     private static HashSet<string> CollectButtonAppearanceStates(

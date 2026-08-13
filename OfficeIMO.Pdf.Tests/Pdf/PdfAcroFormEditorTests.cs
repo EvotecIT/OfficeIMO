@@ -6,6 +6,26 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAcroFormEditorTests {
     [Fact]
+    public void Edit_ValidatesChoiceDefaultsAgainstAuthoredOptions() {
+        byte[] list = PdfDocument.Create().ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland").ToBytes();
+        byte[] editableCombo = PdfDocument.Create()
+            .ChoiceField(
+                "Country",
+                new[] { "Poland", "Germany" },
+                value: "Poland",
+                style: new PdfFormFieldStyle { IsEditableChoice = true })
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "France")));
+
+        PdfAcroFormEditResult listed = PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "Germany"));
+        PdfAcroFormEditResult arbitrary = PdfDocument.Open(editableCombo).Forms.Edit(edit => edit.SetDefaultValue("Country", "France"));
+        Assert.Equal("Germany", Assert.Single(listed.Fields).DefaultValue);
+        Assert.Equal("France", Assert.Single(arbitrary.Fields).DefaultValue);
+    }
+
+    [Fact]
     public void Edit_RejectsButtonDefaultsWithoutMatchingAppearanceStates() {
         byte[] checkBox = PdfDocument.Create().CheckBox("Choice", isChecked: true).ToBytes();
         byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();

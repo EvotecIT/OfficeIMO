@@ -12,6 +12,7 @@ internal static class PdfActionPayloadFingerprint {
     private const int MaximumDepth = 32;
     private const int MaximumNodes = 4096;
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookupCache> PageNumberLookups = new();
+    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, StreamHashCache> StreamHashes = new();
 
     internal static string? Create(
         PdfDictionary action,
@@ -79,13 +80,7 @@ internal static class PdfActionPayloadFingerprint {
             case PdfStream stream:
                 builder.Append("stream:");
                 AppendDictionary(builder, stream.Dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false);
-#if NET8_0_OR_GREATER
-                AppendText(builder, 'H', Convert.ToBase64String(SHA256.HashData(stream.Data)));
-#else
-                using (SHA256 sha256 = SHA256.Create()) {
-                    AppendText(builder, 'H', Convert.ToBase64String(sha256.ComputeHash(stream.Data)));
-                }
-#endif
+                AppendText(builder, 'H', StreamHashes.GetValue(objects, static _ => new StreamHashCache()).Get(stream));
                 return;
             default:
                 AppendText(builder, '?', value.GetType().FullName ?? value.GetType().Name);
@@ -216,6 +211,25 @@ internal static class PdfActionPayloadFingerprint {
                     value = BuildPageNumberLookup(_objects, limits);
                     _values.Add(key, value);
                 }
+                return value;
+            }
+        }
+    }
+
+    private sealed class StreamHashCache {
+        private readonly Dictionary<PdfStream, string> _values = new();
+
+        internal string Get(PdfStream stream) {
+            lock (_values) {
+                if (_values.TryGetValue(stream, out string? value)) return value;
+#if NET8_0_OR_GREATER
+                value = Convert.ToBase64String(SHA256.HashData(stream.Data));
+#else
+                using (SHA256 sha256 = SHA256.Create()) {
+                    value = Convert.ToBase64String(sha256.ComputeHash(stream.Data));
+                }
+#endif
+                _values.Add(stream, value);
                 return value;
             }
         }
