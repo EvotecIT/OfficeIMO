@@ -15,6 +15,8 @@ Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and objec
 
 `SheetComposer.TableFrom(DataTable)` previously allowed a fixed-schema table to proceed up to Excel's worksheet dimensions without applying `MaxRows` or `MaxCells`. It now defaults to at most 2,000,000 cells, including the header row, and validates both limits before writing worksheet content. Existing trusted reports above that size must set an explicit bounded override, for example `configure: options => options.MaxCells = requiredCellCount`. The separate Excel worksheet row and column limits cannot be raised.
 
+`Ignore` and `ExcludeProperties` rules for a fixed-schema `DataTable` now remove every case-insensitive column variant. In a schema containing both `Name` and `name`, a rule for either spelling no longer retains the other variant, and an ambiguously cased rule no longer throws. To retain one case-distinct column, omit the ambiguous filter and select the exact desired columns with `Columns`, or rename the source columns so their identities are unambiguous.
+
 The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes`. Applications can lower or raise that limit by passing `new ReaderOptions { MaxInputBytes = ... }` to the read operation after registering `AddMhtmlHandler()`; use a larger value only for trusted archives with an application-owned resource policy.
 
 ## OfficeIMO 3.2: bounded SVG raster fallback
@@ -53,6 +55,8 @@ Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete imag
 ## OfficeIMO 3.2: bounded PDF text clipping
 
 PDF reading now accepts at most 4,096 pending text-show clipping paths in one text object. The limit counts one path for each non-empty shown-string run from `Tj`, `'`, `"`, and each string entry in a `TJ` array, not individual glyphs. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
+
+Type 3 glyph programs now enter `MaxContentNestingDepth` one level below the content stream that invokes the glyph. A glyph invoked at the previous depth boundary can therefore throw `PdfReadLimitException` where older versions rendered it at the enclosing depth. Applications using a deliberately low custom nesting limit should raise it by the required trusted glyph depth or handle the exception as an over-complex PDF; the default remains the recommended limit for untrusted input.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 

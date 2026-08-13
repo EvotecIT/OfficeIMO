@@ -416,7 +416,7 @@ public static partial class OfficeSvgDrawingReader {
 
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
-                    ReadPresentationProperty(element, propertyName),
+                    ReadRasterPresentationProperty(element, propertyName),
                     references,
                     maximumElements,
                     ref elementCount,
@@ -458,7 +458,7 @@ public static partial class OfficeSvgDrawingReader {
                 && HasLocalSvgElementReference(element)) return false;
             if (inheritedPatternResult == SvgElementReferenceEntryResult.Entered) {
                 try {
-                    if (!TryAddRenderedSvgExpansion(
+                    if (!TryAddRenderedSvgDefinitionExpansion(
                             inheritedPattern!,
                             references,
                             maximumElements,
@@ -506,7 +506,7 @@ public static partial class OfficeSvgDrawingReader {
         if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
         if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
         try {
-            return TryAddRenderedSvgExpansion(
+            return TryAddRenderedSvgDefinitionExpansion(
                 target!,
                 references,
                 maximumElements,
@@ -536,7 +536,7 @@ public static partial class OfficeSvgDrawingReader {
                 return TryValidateInheritedGradientReference(target, references);
             }
             return targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)
-                && TryAddRenderedSvgExpansion(
+                && TryAddRenderedSvgDefinitionExpansion(
                     target,
                     references,
                     maximumElements,
@@ -568,7 +568,7 @@ public static partial class OfficeSvgDrawingReader {
         ContainsPotentialCssIdentifier(value, "url");
 
     private static string? ResolveInheritedSvgPaint(XElement element, string propertyName, string? inherited) {
-        string? value = ReadPresentationProperty(element, propertyName);
+        string? value = ReadRasterPresentationProperty(element, propertyName);
         if (string.IsNullOrWhiteSpace(value)) return inherited;
         return value!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase) ? inherited : value;
     }

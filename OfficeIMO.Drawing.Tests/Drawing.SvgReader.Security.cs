@@ -7,6 +7,36 @@ namespace OfficeIMO.Tests;
 
 public class DrawingSvgReaderSecurityTests {
     [Theory]
+    [InlineData("clip-path='none' x:clip-path='url(#c)'", false)]
+    [InlineData("x:clip-path='url(#c)' clip-path='none'", true)]
+    public void SvgSafetyPredicateUsesRasterizerPresentationAttributeIdentity(string attributes, bool expected) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' " + attributes + "/>"
+            + "<rect x='5' width='4' height='4' " + attributes + "/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.Equal(expected, OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsDefinitionPaintInheritedFromDomAncestors() {
+        const string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' fill='url(#large)'>"
+            + "<defs><pattern id='large' fill='none'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern>"
+            + "<pattern id='small'><rect width='1' height='1'/></pattern></defs>"
+            + "<rect width='4' height='4' fill='url(#small)'/></svg>";
+        const string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' fill='url(#large)'>"
+            + "<defs><pattern id='large' fill='none'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern>"
+            + "<pattern id='small'><rect width='1' height='1'/></pattern></defs>"
+            + "<rect width='4' height='4' fill='url(#small)'/>"
+            + "<rect x='5' width='4' height='4' fill='url(#small)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 8 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Theory]
     [InlineData("width='100000' height='100000' style='width:16px;height:8px'")]
     [InlineData("WIDTH='100000' HEIGHT='100000' style='width:16px;height:8px'")]
     [InlineData("xmlns:x='urn:test' x:width='100000' x:height='100000' style='width:16px;height:8px'")]
@@ -87,10 +117,10 @@ public class DrawingSvgReaderSecurityTests {
     [Fact]
     public void SvgSafetyPredicateCountsInheritedPatternPaintPerRenderedElement() {
         const string onePatternUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' style='fill:none;stroke:url(#p)'>"
-            + "<defs><pattern id='p'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern></defs>"
+            + "<defs stroke='none'><pattern id='p'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern></defs>"
             + "<g><rect width='4' height='4'/></g></svg>";
         const string twoPatternUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' style='fill:none;stroke:url(#p)'>"
-            + "<defs><pattern id='p'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern></defs>"
+            + "<defs stroke='none'><pattern id='p'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></pattern></defs>"
             + "<g><rect width='4' height='4'/><rect x='5' width='4' height='4'/></g></svg>";
         var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 7 };
 
