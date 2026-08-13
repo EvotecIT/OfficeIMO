@@ -32,8 +32,12 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool HasLocalSvgElementReference(XElement element) {
-        string? href = element.Attributes()
-            .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))?.Value;
+        XAttribute[] hrefAttributes = element.Attributes()
+            .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToArray();
+        if (hrefAttributes.Length > 1) return true;
+        string? href = hrefAttributes.FirstOrDefault()?.Value;
         return !string.IsNullOrWhiteSpace(href) && href!.TrimStart().StartsWith("#", StringComparison.Ordinal);
     }
 }

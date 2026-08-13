@@ -19,7 +19,7 @@ The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `Of
 
 ## OfficeIMO 3.2: bounded SVG raster fallback
 
-`OfficeVisualSvgPolicy.RasterizeWhenNeeded` now validates the complete rendered SVG expansion before calling the ChartForgeX rasterizer. Valid SVG can therefore throw `InvalidOperationException` when local clip, mask, filter, marker, or pattern references come from a stylesheet that the safety traversal cannot account for precisely. Raising `MaximumSvgElements` does not bypass this conservative rejection.
+`OfficeVisualSvgPolicy.RasterizeWhenNeeded` now validates the complete rendered SVG expansion before calling the ChartForgeX rasterizer. Valid SVG can therefore throw `InvalidOperationException` when local clip, mask, filter, marker, pattern, or gradient references come from a stylesheet that the safety traversal cannot account for precisely. The same conservative rejection applies when an inline CSS custom property hides one of those local references. Raising `MaximumSvgElements` does not bypass this rejection.
 
 For trusted generated SVG, replace stylesheet-backed local references with equivalent presentation attributes or inline declarations so each rendered reference can be charged directly. Applications accepting external SVG should handle the exception as an unsupported or over-complex input. Use `PreserveVector` when retaining the partial Office drawing is acceptable, or `RequireVector` when unsupported vector content must fail without raster fallback.
 
@@ -52,7 +52,7 @@ Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete imag
 
 ## OfficeIMO 3.2: bounded PDF text clipping
 
-PDF reading now accepts at most 4,096 pending text-show clipping paths in one text object. The limit counts shown-string runs (`Tj` operations and string entries in `TJ` arrays), not individual glyphs. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
+PDF reading now accepts at most 4,096 pending text-show clipping paths in one text object. The limit counts one path for each non-empty shown-string run from `Tj`, `'`, `"`, and each string entry in a `TJ` array, not individual glyphs. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 

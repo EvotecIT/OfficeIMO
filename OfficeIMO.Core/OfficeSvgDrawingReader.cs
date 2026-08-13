@@ -195,6 +195,14 @@ public static partial class OfficeSvgDrawingReader {
         out double viewportHeight) {
         viewX = viewY = 0D;
         viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        // ChartForgeX selects the first XML attribute by case-insensitive local name for
+        // raster output dimensions; inline CSS does not override this allocation sink.
+        string? widthText = ReadRasterViewportAttribute(root, "width");
+        string? heightText = ReadRasterViewportAttribute(root, "height");
+        bool hasDeclaredWidth = OfficeImageReader.TryParseSvgLength(widthText, out double declaredWidth);
+        bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
+        if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
+            || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
         if (TryParseNumberList(root.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
@@ -205,18 +213,18 @@ public static partial class OfficeSvgDrawingReader {
             viewHeight = viewBox[3];
             viewportWidth = viewWidth;
             viewportHeight = viewHeight;
-            bool hasViewportWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double declaredWidth);
-            bool hasViewportHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double declaredHeight);
-            if (hasViewportWidth) viewportWidth = declaredWidth;
-            if (hasViewportHeight) viewportHeight = declaredHeight;
-            if (hasViewportWidth && !hasViewportHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
-            if (!hasViewportWidth && hasViewportHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
+            if (hasDeclaredWidth) viewportWidth = declaredWidth;
+            if (hasDeclaredHeight) viewportHeight = declaredHeight;
+            if (hasDeclaredWidth && !hasDeclaredHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
+            if (!hasDeclaredWidth && hasDeclaredHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
-        bool hasIntrinsicWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double intrinsicWidth);
-        bool hasIntrinsicHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double intrinsicHeight);
+        bool hasIntrinsicWidth = hasDeclaredWidth;
+        bool hasIntrinsicHeight = hasDeclaredHeight;
+        double intrinsicWidth = declaredWidth;
+        double intrinsicHeight = declaredHeight;
         if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
             (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
             return false;
@@ -237,6 +245,11 @@ public static partial class OfficeSvgDrawingReader {
         viewHeight = viewportHeight = info.Height * 96D / Math.Max(1D, info.DpiY);
         return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
     }
+
+    private static string? ReadRasterViewportAttribute(XElement root, string name) =>
+        root.Attributes()
+            .FirstOrDefault(attribute => attribute.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))
+            ?.Value;
 
     private static bool IsSupportedSvgViewport(
         double width,
@@ -301,14 +314,30 @@ public static partial class OfficeSvgDrawingReader {
                 || name.Equals("mask", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("filter", StringComparison.OrdinalIgnoreCase)
-                || name.Equals("marker", StringComparison.OrdinalIgnoreCase);
+                || name.Equals("marker", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase);
             if (!isExpandedDefinition) continue;
             string? id = element.Attribute("id")?.Value.Trim();
             if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
         }
-        return expandedDefinitionIds.Count > 0 && root.Descendants().Any(element =>
-            element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
-            && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds));
+        return expandedDefinitionIds.Count > 0
+            && (root.Descendants().Any(element =>
+                    element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+                    && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds))
+                || root.DescendantsAndSelf().Any(element =>
+                    ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
+    }
+
+    private static string? ReadRasterInlineStyleAttribute(XElement element) {
+        string? value = null;
+        foreach (XAttribute attribute in element.Attributes()) {
+            if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace == XNamespace.Xml) continue;
+            // ChartForgeX projects non-XML attributes by local name into a dictionary,
+            // so a later namespace-qualified style replaces an earlier style value.
+            if (attribute.Name.LocalName.Equals("style", StringComparison.Ordinal)) value = attribute.Value;
+        }
+        return value;
     }
 
     private static bool TryAddRenderedSvgExpansion(
@@ -503,7 +532,9 @@ public static partial class OfficeSvgDrawingReader {
         try {
             string targetName = target!.Name.LocalName;
             if (targetName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
-                || targetName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) return true;
+                || targetName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) {
+                return TryValidateInheritedGradientReference(target, references);
+            }
             return targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)
                 && TryAddRenderedSvgExpansion(
                     target,
@@ -511,6 +542,23 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements,
                     ref elementCount,
                     ref commandCount);
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static bool TryValidateInheritedGradientReference(
+        XElement gradient,
+        SvgElementReferenceRegistry references) {
+        SvgElementReferenceEntryResult result = references.TryEnterDetailed(
+            gradient,
+            gradient.Name.LocalName,
+            out string referenceId,
+            out XElement? inheritedGradient);
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(gradient);
+        try {
+            return TryValidateInheritedGradientReference(inheritedGradient!, references);
         } finally {
             references.Exit(referenceId);
         }

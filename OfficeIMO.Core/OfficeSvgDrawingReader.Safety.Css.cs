@@ -7,33 +7,92 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private static bool ContainsLocalCssUrlReference(string? value, ISet<string> relevantIds) {
         if (string.IsNullOrWhiteSpace(value) || relevantIds.Count == 0) return false;
-        for (int start = 0; start < value!.Length; start++) {
+        string normalized = StripCssComments(value!);
+        char outerQuote = '\0';
+        for (int start = 0; start < normalized.Length;) {
+            char current = normalized[start];
+            if (outerQuote != '\0') {
+                if (current == '\\') {
+                    int escapedIndex = start;
+                    if (TryReadCssCharacter(normalized, ref escapedIndex, out _)) {
+                        start = escapedIndex;
+                        continue;
+                    }
+                }
+                if (current == outerQuote) outerQuote = '\0';
+                start++;
+                continue;
+            }
+            if (current is '\'' or '"') {
+                outerQuote = current;
+                start++;
+                continue;
+            }
+
             int index = start;
-            if (!TryReadCssIdentifier(value, ref index, "url") || index >= value.Length || value[index] != '(') continue;
+            if (!TryReadCssIdentifier(normalized, ref index, "url") || index >= normalized.Length || normalized[index] != '(') {
+                start++;
+                continue;
+            }
             index++;
+            while (index < normalized.Length && char.IsWhiteSpace(normalized[index])) index++;
             var target = new StringBuilder();
             char quote = '\0';
+            if (index < normalized.Length && normalized[index] is '\'' or '"') quote = normalized[index++];
             bool closed = false;
-            while (index < value.Length) {
-                char current = value[index];
+            while (index < normalized.Length) {
+                current = normalized[index];
                 if (quote == '\0' && current == ')') {
                     index++;
                     closed = true;
                     break;
                 }
-                if (current is '\'' or '"') {
+                if (quote != '\0' && current == quote) {
                     index++;
-                    if (quote == '\0') quote = current;
-                    else if (quote == current) quote = '\0';
-                    else target.Append(current);
-                    continue;
+                    quote = '\0';
+                    while (index < normalized.Length && char.IsWhiteSpace(normalized[index])) index++;
+                    if (index < normalized.Length && normalized[index] == ')') {
+                        index++;
+                        closed = true;
+                    }
+                    break;
                 }
-                if (!TryReadCssCharacter(value, ref index, out char decoded)) break;
+                if (!TryReadCssCharacter(normalized, ref index, out char decoded)) break;
                 target.Append(decoded);
             }
+            start = Math.Max(index, start + 1);
             if (!closed || quote != '\0') continue;
             string reference = target.ToString().Trim();
             if (reference.Length > 1 && reference[0] == '#' && relevantIds.Contains(reference.Substring(1))) return true;
+        }
+        return false;
+    }
+
+    // Keep safety inspection aligned with ChartForgeX's stylesheet parser, which removes
+    // comments before parsing selectors and declarations (including comments between tokens).
+    private static string StripCssComments(string value) {
+        var result = new StringBuilder(value.Length);
+        for (int index = 0; index < value.Length; index++) {
+            if (index + 1 < value.Length && value[index] == '/' && value[index + 1] == '*') {
+                index += 2;
+                while (index + 1 < value.Length && !(value[index] == '*' && value[index + 1] == '/')) index++;
+                if (index + 1 < value.Length) index++;
+                continue;
+            }
+            result.Append(value[index]);
+        }
+        return result.ToString();
+    }
+
+    private static bool ContainsLocalCssCustomPropertyUrlReference(string? value, ISet<string> relevantIds) {
+        if (string.IsNullOrWhiteSpace(value) || relevantIds.Count == 0) return false;
+        string normalized = StripCssComments(value!);
+        foreach (string declaration in normalized.Split(';')) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0) continue;
+            string name = declaration.Substring(0, colon).Trim();
+            if (name.StartsWith("--", StringComparison.Ordinal)
+                && ContainsLocalCssUrlReference(declaration.Substring(colon + 1), relevantIds)) return true;
         }
         return false;
     }

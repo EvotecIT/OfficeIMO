@@ -6,6 +6,84 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class DrawingSvgReaderSecurityTests {
+    [Theory]
+    [InlineData("width='100000' height='100000' style='width:16px;height:8px'")]
+    [InlineData("WIDTH='100000' HEIGHT='100000' style='width:16px;height:8px'")]
+    [InlineData("xmlns:x='urn:test' x:width='100000' x:height='100000' style='width:16px;height:8px'")]
+    public void SvgSafetyPredicateUsesRasterizerViewportAttributeIdentity(string dimensions) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' " + dimensions + ">"
+            + "<rect width='4' height='4'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateIgnoresInlineStyleForRootRasterViewport() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' style='width:100000px;height:100000px'>"
+            + "<rect width='4' height='4'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsOverDeepInheritedGradientChain() {
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildGradientChain(15))));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildGradientChain(16))));
+
+        static string BuildGradientChain(int lastIndex) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs>");
+            svg.Append("<linearGradient id='g0'><stop stop-color='red'/></linearGradient>");
+            for (int index = 1; index <= lastIndex; index++) {
+                svg.Append("<linearGradient id='g").Append(index).Append("' href='#g").Append(index - 1).Append("'/>");
+            }
+            return svg.Append("</defs><rect width='4' height='4' fill='url(#g")
+                .Append(lastIndex)
+                .Append(")'/></svg>")
+                .ToString();
+        }
+    }
+
+    [Theory]
+    [InlineData("<style>.painted { fill:url(#g16); }</style>", "class='painted'")]
+    [InlineData("", "style='--paint:url(#g16);fill:var(--paint)'")]
+    public void SvgSafetyPredicateRejectsIndirectOverDeepGradientReferences(string styleBlock, string consumerAttributes) {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>")
+            .Append(styleBlock)
+            .Append("<defs><linearGradient id='g0'><stop stop-color='red'/></linearGradient>");
+        for (int index = 1; index <= 16; index++) {
+            svg.Append("<linearGradient id='g").Append(index).Append("' href='#g").Append(index - 1).Append("'/>");
+        }
+        svg.Append("</defs><rect width='4' height='4' ").Append(consumerAttributes).Append("/></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Theory]
+    [InlineData("x:style='--paint:url(#g16);fill:var(--paint)'")]
+    [InlineData("style='fill:none' x:style='--paint:url(#g16);fill:var(--paint)'")]
+    public void SvgSafetyPredicateUsesRasterizerInlineStyleIdentity(string consumerAttributes) {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>")
+            .Append("<defs><linearGradient id='g0'><stop stop-color='red'/></linearGradient>");
+        for (int index = 1; index <= 16; index++) {
+            svg.Append("<linearGradient id='g").Append(index).Append("' href='#g").Append(index - 1).Append("'/>");
+        }
+        svg.Append("</defs><rect width='4' height='4' ").Append(consumerAttributes).Append("/></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateUsesLastRasterizerInlineStyleIdentity() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>")
+            .Append("<defs><linearGradient id='g0'><stop stop-color='red'/></linearGradient>");
+        for (int index = 1; index <= 16; index++) {
+            svg.Append("<linearGradient id='g").Append(index).Append("' href='#g").Append(index - 1).Append("'/>");
+        }
+        svg.Append("</defs><rect width='4' height='4' x:style='--paint:url(#g16);fill:var(--paint)' style='fill:none'/></svg>");
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
     [Fact]
     public void SvgSafetyPredicateCountsInheritedPatternPaintPerRenderedElement() {
         const string onePatternUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' style='fill:none;stroke:url(#p)'>"
@@ -66,6 +144,29 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Theory]
+    [InlineData("clip-path:u/**/rl(#c)")]
+    [InlineData("clip-path:url(/*comment*/#c)")]
+    public void SvgSafetyPredicateRejectsCommentNormalizedStylesheetReferences(string declaration) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.clipped { " + declaration + "; }</style>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='clipped' width='4' height='4'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateIgnoresLocalLookingReferencesInStylesheetCommentsAndStrings() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.external { fill:url(https://example.test/pattern.svg);"
+            + "content:'url(#unused)';/* clip-path:url(#unused); */ }</style>"
+            + "<defs><clipPath id='unused'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='external' width='4' height='4'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Theory]
     [InlineData("u\\72l")]
     [InlineData("\\75rl")]
     [InlineData("u\\000072 l")]
@@ -100,6 +201,17 @@ public class DrawingSvgReaderSecurityTests {
 
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(ambiguous)));
         Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(external)));
+    }
+
+    [Theory]
+    [InlineData("xlink:href='https://example.test/shapes.svg#external' href='#local'")]
+    [InlineData("href='#local' xlink:href='https://example.test/shapes.svg#external'")]
+    public void SvgSafetyPredicateRejectsNamespaceCollidingUseReferences(string attributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='16' height='8'>"
+            + "<defs><g id='local'><rect width='1' height='1'/></g></defs>"
+            + "<use " + attributes + "/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
     }
 
     [Fact]

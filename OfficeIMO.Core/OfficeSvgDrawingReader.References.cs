@@ -95,9 +95,12 @@ public static partial class OfficeSvgDrawingReader {
             out XElement? target) {
             id = string.Empty;
             target = null;
-            XAttribute? href = use.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
-            if (href == null
-                || !TryReadLocalElementReference(href.Value, out id)
+            XAttribute[] hrefAttributes = use.Attributes()
+                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+                .Take(2)
+                .ToArray();
+            if (hrefAttributes.Length != 1
+                || !TryReadLocalElementReference(hrefAttributes[0].Value, out id)
                 || !_definitions.TryGetUnique(id, out target)
                 || (expectedTargetName != null
                     && !target!.Name.LocalName.Equals(expectedTargetName, StringComparison.OrdinalIgnoreCase))) {
