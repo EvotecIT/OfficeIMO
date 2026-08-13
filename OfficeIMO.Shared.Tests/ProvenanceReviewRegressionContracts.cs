@@ -189,6 +189,21 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void JumbfStoreRejectsAnUnrecognizedTrailingChildBox() {
+        byte[] manifest = CreateManifestStore();
+        byte[] unrecognized = CreateBox("free", new byte[] { 1 });
+        manifest = Join(manifest, unrecognized);
+        WriteBigEndian(manifest, 0, manifest.Length);
+        byte[] png = CreatePngWithManifest(manifest);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "fixture.png");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void VariationSelectorWrapperWinsOverGenericTextExtension() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
 
@@ -508,6 +523,34 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ZipRewriteDropsCommentDependentUnicodeCommentExtras() {
+        byte[] retainedExtraField = { 0xFE, 0xCA, 0x01, 0x00, 0x42 };
+        byte[] unicodeComment = Encoding.UTF8.GetBytes("legacy comment");
+        byte[] unicodeCommentExtraField = new byte[9 + unicodeComment.Length];
+        WriteLittleEndian16(unicodeCommentExtraField, 0, 0x6375);
+        WriteLittleEndian16(unicodeCommentExtraField, 2, checked((ushort)(5 + unicodeComment.Length)));
+        unicodeCommentExtraField[4] = 1;
+        WriteLittleEndian(unicodeCommentExtraField, 5, 0xDEADBEEFu);
+        Buffer.BlockCopy(unicodeComment, 0, unicodeCommentExtraField, 9, unicodeComment.Length);
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream manifest = archive.CreateEntry("META-INF/content_credential.c2pa").Open()) WriteAll(manifest, CreateManifestStore());
+                using (Stream keep = archive.CreateEntry("keep.txt").Open()) WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = AddCentralDirectoryComment(stream.ToArray(), "keep.txt", new byte[] { 0x82 });
+        }
+        package = AddEntryExtraFields(package, "keep.txt", retainedExtraField, Join(retainedExtraField, unicodeCommentExtraField));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "keep.txt");
+
+        Assert.Equal(retainedExtraField, ReadLocalExtraField(result.ToArray(), centralHeader));
+        Assert.Equal(retainedExtraField, ReadCentralExtraField(result.ToArray(), centralHeader));
+        Assert.Equal("é", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
+    }
+
+    [Fact]
     public void OpcSignatureDetectionIgnoresDirectoryAndUnrelatedXmlSignatureEntries() {
         byte[] package;
         using (var stream = new MemoryStream()) {
@@ -745,6 +788,13 @@ public sealed class ProvenanceReviewRegressionContracts {
             new OfficeProvenanceOptions { MaxExpandedContainerBytes = xmp.Length });
 
         Assert.Single(report.Evidence);
+
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxExpandedContainerBytes = xmp.Length;
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tiff", removalOptions);
+
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
     }
 
     [Fact]

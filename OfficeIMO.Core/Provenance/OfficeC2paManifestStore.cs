@@ -70,10 +70,9 @@ internal static class OfficeC2paManifestStore {
                 nextChildLength > int.MaxValue) {
                 return false;
             }
-            if (nextChildType == "jumb" && IsManifestSuperbox(
-                data, nextChildOffset, (int)nextChildLength, ref visitedBoxes, maximumEntries)) {
-                hasManifest = true;
-            }
+            if (nextChildType != "jumb" || !IsManifestSuperbox(
+                data, nextChildOffset, (int)nextChildLength, ref visitedBoxes, maximumEntries)) return false;
+            hasManifest = true;
             nextChildOffset += (int)nextChildLength;
         }
         if (nextChildOffset != storeEnd || !hasManifest) return false;

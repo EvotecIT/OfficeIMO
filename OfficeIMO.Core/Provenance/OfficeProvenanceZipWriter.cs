@@ -22,6 +22,7 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort StoredMethod = 0;
     private const ushort DeflateMethod = 8;
     private const ushort UnicodePathExtraFieldId = 0x7075;
+    private const ushort UnicodeCommentExtraFieldId = 0x6375;
     private static readonly uint[] CrcTable = CreateCrcTable();
 
     internal static byte[] Write(IReadOnlyList<OfficeProvenanceZipWriteEntry> entries, long maximumExpandedBytes, byte[]? archiveComment = null) {
@@ -38,8 +39,12 @@ internal static class OfficeProvenanceZipWriter {
         foreach (OfficeProvenanceZipWriteEntry entry in entries) {
             byte[] name = Encoding.UTF8.GetBytes(entry.Name);
             if (name.Length > ushort.MaxValue) throw new InvalidDataException("ZIP entry name exceeds the supported length.");
-            byte[] localExtraField = RemoveExtraField(entry.LocalExtraField, UnicodePathExtraFieldId);
-            byte[] centralExtraField = RemoveExtraField(entry.CentralExtraField, UnicodePathExtraFieldId);
+            byte[] localExtraField = RemoveExtraField(
+                RemoveExtraField(entry.LocalExtraField, UnicodePathExtraFieldId),
+                UnicodeCommentExtraFieldId);
+            byte[] centralExtraField = RemoveExtraField(
+                RemoveExtraField(entry.CentralExtraField, UnicodePathExtraFieldId),
+                UnicodeCommentExtraFieldId);
             ushort method = entry.Compress ? DeflateMethod : StoredMethod;
             GetDosTimestamp(entry.LastWriteTime, out ushort dosDate, out ushort dosTime);
             uint localOffset = ToUInt32(output.Position, "local entry offset");

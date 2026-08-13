@@ -74,7 +74,6 @@ internal static class OfficeProvenanceTiff {
                         if (HasOverlappingValueStorage(
                             data,
                             ifds,
-                            entry,
                             xmpOffset,
                             xmpLength,
                             options.Limits.MaxContainerEntries)) {
@@ -84,7 +83,16 @@ internal static class OfficeProvenanceTiff {
                         if (cleaned.Length > xmpLength) throw new InvalidDataException("Rewritten TIFF XMP exceeds its existing allocation.");
                         Buffer.BlockCopy(cleaned, 0, output, xmpOffset, cleaned.Length);
                         Array.Clear(output, xmpOffset + cleaned.Length, xmpLength - cleaned.Length);
-                        WriteEntryCount(output, entry, (ulong)cleaned.Length);
+                        foreach (TiffIfd candidateIfd in ifds) {
+                            foreach (TiffEntry candidateEntry in candidateIfd.Entries) {
+                                if (candidateEntry.Tag == XmpTag &&
+                                    (candidateEntry.Type == ByteType || candidateEntry.Type == UndefinedType) &&
+                                    TryGetPayload(data, candidateEntry, options.Limits.MaxAssetBytes, out int candidateOffset, out int candidateLength) &&
+                                    candidateOffset == xmpOffset && candidateLength == xmpLength) {
+                                    WriteEntryCount(output, candidateEntry, (ulong)cleaned.Length);
+                                }
+                            }
+                        }
                         changes.AddRange(pendingChanges);
                         reserialized = true;
                     }
@@ -129,14 +137,15 @@ internal static class OfficeProvenanceTiff {
     private static bool HasOverlappingValueStorage(
         byte[] data,
         List<TiffIfd> ifds,
-        TiffEntry xmpEntry,
         int xmpOffset,
         int xmpLength,
         int maximumContainerEntries) {
         long xmpEnd = (long)xmpOffset + xmpLength;
         foreach (TiffIfd ifd in ifds) {
             foreach (TiffEntry entry in ifd.Entries) {
-                if (ReferenceEquals(entry, xmpEntry) || !TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
+                if (!TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
+                if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
+                    offset == xmpOffset && length == xmpLength) continue;
                 long end = (long)offset + length;
                 if (offset < xmpEnd && xmpOffset < end) return true;
             }
