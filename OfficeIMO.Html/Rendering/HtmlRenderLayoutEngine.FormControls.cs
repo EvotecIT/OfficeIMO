@@ -590,9 +590,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string fieldName = mappingName;
         if (fieldName.Length == 0) fieldName = NormalizeControlText(element.GetAttribute("id"));
         if (fieldName.Length == 0) fieldName = "html-field-" + nodeId.ToString(CultureInfo.InvariantCulture);
+        string partialFieldName = NormalizePdfPartialFieldName(fieldName);
         string name = fieldKind == HtmlRenderFormFieldKind.RadioButton
-            ? ResolveRadioFieldName(element, fieldName, nodeId)
-            : ResolveUniqueFormFieldName(element, fieldName, nodeId);
+            ? ResolveRadioFieldName(element, fieldName, partialFieldName, nodeId)
+            : ResolveUniqueFormFieldName(element, partialFieldName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
         bool emptyFileSelect = value.Length == 0 && tag == "input" && type == "file";
@@ -666,7 +667,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && HtmlFormControlSemantics.IsRequiredStateApplicable(tag, type)
             && !disabled
             && !readOnly;
-        string alternateName = ResolveFormFieldAccessibleName(element, name);
+        string alternateName = ResolveFormFieldAccessibleName(element, mappingName.Length > 0 ? mappingName : name);
         OfficeColor? borderColor = style.BorderWidth > 0D && style.BorderStyle != "none" ? style.BorderColor : null;
         if (borderColor.HasValue && style.BorderStyle != "solid" && style.BorderStyle != "dashed") {
             ReportUnsupportedFormFieldBorderStyleFallback(source, style.BorderStyle);
@@ -1058,14 +1059,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return type == "checkbox" || type == "radio" || IsInteractiveTextInputType(type);
     }
 
-    private string ResolveRadioFieldName(IElement element, string mappingName, int nodeId) {
+    private string ResolveRadioFieldName(IElement element, string mappingName, string partialName, int nodeId) {
         string owner = ResolveFormOwnerKey(element);
         string key = owner + "\n" + mappingName;
         if (_radioFieldNames.TryGetValue(key, out string? name)) return name;
-        name = ResolveUniqueFormFieldName(element, mappingName, nodeId);
+        name = ResolveUniqueFormFieldName(element, partialName, nodeId);
         _radioFieldNames[key] = name;
         return name;
     }
+
+    private static string NormalizePdfPartialFieldName(string name) => name.Replace('.', '-');
 
     private string ResolveFormOwnerKey(IElement element) {
         IElement? owner = HtmlFormControlSemantics.ResolveFormOwner(element);

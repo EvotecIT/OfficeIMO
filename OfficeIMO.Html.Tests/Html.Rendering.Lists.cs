@@ -120,12 +120,14 @@ public sealed partial class HtmlRenderingTests {
             + "@counter-style base{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';prefix:'<';suffix:'> '}"
             + "@counter-style builtin-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:decimal}"
             + "@counter-style custom-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:base}"
+            + "@counter-style bullet-fallback{system:fixed;symbols:'I';fallback:disc}"
             + "</style><ol start='2' style='list-style-type:builtin-fallback'><li>Built in</li></ol>"
-            + "<ol start='2' style='list-style-type:custom-fallback'><li>Custom</li></ol>";
+            + "<ol start='2' style='list-style-type:custom-fallback'><li>Custom</li></ol>"
+            + "<ol start='2' style='list-style-type:bullet-fallback'><li>Bullet</li></ol>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
 
-        Assert.Equal(new[] { "2. ", "Built in", "<2> ", "Custom" }, rendered.Text.Split('\n'));
+        Assert.Equal(new[] { "2. ", "Built in", "<2> ", "Custom", "• ", "Bullet" }, rendered.Text.Split('\n'));
     }
 
     [Fact]

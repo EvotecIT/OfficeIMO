@@ -754,6 +754,22 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_DottedAuthoredNamesUsePdfSafePartialNamesAndRetainMappingNames() {
+        const string html = "<form><input name='user.email' value='one'><input name='user-email' value='two'>"
+            + "<input type='radio' name='contact.kind' value='mail' checked><input type='radio' name='contact.kind' value='phone'></form>";
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf());
+        PdfCore.PdfFormField[] fields = info.FormFields.ToArray();
+
+        Assert.Equal(3, fields.Length);
+        Assert.All(fields, field => Assert.DoesNotContain('.', field.PartialName));
+        Assert.Equal(3, fields.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+        Assert.Contains(fields, field => field.MappingName == "user.email");
+        Assert.Contains(fields, field => field.MappingName == "user-email");
+        Assert.Contains(fields, field => field.MappingName == "contact.kind" && field.IsRadioButton && field.Widgets.Count == 2);
+    }
+
+    [Fact]
     public void HtmlToPdf_WhitespaceOnlyFieldNameUsesTruthfulStaticFallback() {
         const string html = "<input name='   ' value='Authored value'>";
 

@@ -51,7 +51,7 @@ internal sealed class HtmlCounterStyleRegistry {
         if (!TryFormat(value, decodedName, new HashSet<string>(StringComparer.Ordinal), 0, out string representation, out representationLimited, out string effectiveStyle)) return false;
         marker = _definitions.TryGetValue(effectiveStyle, out RegisteredDefinition? effectiveDefinition)
             ? effectiveDefinition.Value.Prefix + representation + effectiveDefinition.Value.Suffix
-            : representation + HtmlCounterStyleFormatter.MarkerSuffix(effectiveStyle, ordered: true);
+            : representation + HtmlCounterStyleFormatter.MarkerSuffix(effectiveStyle);
         if (marker.Length > HtmlCounterStyleFormatter.MaximumGeneratedRepresentationLength) {
             marker = value.ToString(CultureInfo.InvariantCulture) + ". ";
             representationLimited = true;

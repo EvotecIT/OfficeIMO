@@ -172,6 +172,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_PreservesInteriorTabPositionsInsideSpacedWhitespaceRuns() {
+        const string html = "<pre style='width:140px;margin:0;font:12px/14px Consolas;tab-size:8'><span style='float:left;width:20px;height:14px'></span>A \t B</pre>";
+
+        HtmlRenderText[] text = HtmlRenderTestDriver.Render(html).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText before = Assert.Single(text, item => item.Text == "A ");
+        HtmlRenderText after = Assert.Single(text, item => item.Text == " B");
+
+        Assert.True(after.X > before.X + before.Width + 15D);
+    }
+
+    [Fact]
     public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 100D,

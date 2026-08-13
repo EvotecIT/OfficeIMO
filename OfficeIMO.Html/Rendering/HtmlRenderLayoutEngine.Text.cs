@@ -368,10 +368,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
-                double tabExpandedWidth = 0D;
-                string paintToken = hasTabs
-                    ? ExpandTabs(normalizedToken, run.Style, line.Width, out tabExpandedWidth)
-                    : normalizedToken;
+                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
+                string paintToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
                 HyphenationToken hyphenation = PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
                 paintToken = hyphenation.PaintText;
                 string logicalPaintToken = hyphenation.LogicalText;
@@ -422,6 +420,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (whitespace && !preserveWhitespace) continue;
                 }
 
+                if (hasTabs) {
+                    AddTabExpandedSegments(line, normalizedToken, normalizedLogicalToken, run, visibleTokenStart);
+                    continue;
+                }
                 line.Add(new InlineSegment(paintToken, measured, run, logicalPaintToken, logicalEndProgress: tokenEnd));
             }
         }
@@ -688,29 +690,68 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return start == paintToken.Length;
     }
 
-    private string ExpandTabs(string value, HtmlRenderBoxStyle style, double currentWidth, out double expandedWidth) {
-        expandedWidth = MeasureInlineText(value, style);
-        if (value.IndexOf('\t') < 0) return value;
+    private double MeasureTabExpandedText(string value, HtmlRenderBoxStyle style, double currentWidth) {
+        if (value.IndexOf('\t') < 0) return MeasureInlineText(value, style);
         double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
         double stopWidth = style.TabSizeIsLength ? style.TabSize : style.TabSize * spaceWidth;
-        if (stopWidth <= 0D) {
-            string withoutTabs = value.Replace("\t", string.Empty);
-            expandedWidth = MeasureInlineText(withoutTabs, style);
-            return withoutTabs;
-        }
         double cursor = Math.Max(0D, currentWidth);
-        var expanded = new StringBuilder();
         foreach (char character in value) {
             if (character != '\t') {
-                expanded.Append(character);
                 cursor += MeasureInlineText(character.ToString(), style);
                 continue;
             }
+            if (stopWidth <= 0D) continue;
             double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
             cursor = nextStop;
         }
-        expandedWidth = Math.Max(0D, cursor - Math.Max(0D, currentWidth));
-        return expanded.ToString();
+        return Math.Max(0D, cursor - Math.Max(0D, currentWidth));
+    }
+
+    private void AddTabExpandedSegments(
+        InlineLine line,
+        string paintText,
+        string logicalText,
+        HtmlInlineRun run,
+        int logicalStartProgress = 0) {
+        double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", run.Style));
+        double stopWidth = run.Style.TabSizeIsLength ? run.Style.TabSize : run.Style.TabSize * spaceWidth;
+        int chunkStart = 0;
+        int logicalProgress = logicalStartProgress;
+        for (int index = 0; index < paintText.Length; index++) {
+            if (paintText[index] != '\t') continue;
+            if (index > chunkStart) {
+                string paintChunk = paintText.Substring(chunkStart, index - chunkStart);
+                string logicalChunk = logicalText.Substring(chunkStart, index - chunkStart);
+                logicalProgress += logicalChunk.Length;
+                line.Add(new InlineSegment(
+                    paintChunk,
+                    MeasureInlineText(paintChunk, run.Style),
+                    run,
+                    logicalChunk,
+                    logicalEndProgress: logicalProgress));
+            }
+
+            double tabWidth = 0D;
+            if (stopWidth > 0D) {
+                double nextStop = (Math.Floor(line.Width / stopWidth) + 1D) * stopWidth;
+                tabWidth = Math.Max(0D, nextStop - line.Width);
+            }
+            string logicalTab = logicalText.Substring(index, 1);
+            logicalProgress += logicalTab.Length;
+            line.Add(new InlineSegment(string.Empty, tabWidth, run, logicalTab, logicalEndProgress: logicalProgress));
+            chunkStart = index + 1;
+        }
+
+        if (chunkStart >= paintText.Length) return;
+        string finalPaint = paintText.Substring(chunkStart);
+        string finalLogical = logicalText.Substring(chunkStart);
+        logicalProgress += finalLogical.Length;
+        line.Add(new InlineSegment(
+            finalPaint,
+            MeasureInlineText(finalPaint, run.Style),
+            run,
+            finalLogical,
+            logicalEndProgress: logicalProgress));
     }
 
     private void ApplyEndEllipsis(InlineLine line, double width, int completeLogicalProgress) {

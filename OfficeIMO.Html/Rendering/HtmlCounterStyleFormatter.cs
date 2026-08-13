@@ -122,6 +122,16 @@ internal static class HtmlCounterStyleFormatter {
         return ordered ? ". " : " ";
     }
 
+    internal static string MarkerSuffix(string style) => MarkerSuffix(style, ordered: !UsesBulletSuffix(style));
+
+    internal static bool UsesBulletSuffix(string style) {
+        string normalized = HtmlCssEscapeDecoder.Decode(style.Trim()).ToLowerInvariant();
+        return normalized is "disc" or "circle" or "square"
+            || normalized.StartsWith("'", StringComparison.Ordinal)
+            || normalized.StartsWith("\"", StringComparison.Ordinal)
+            || normalized.StartsWith("symbols(", StringComparison.Ordinal);
+    }
+
     private static bool TryFormatSymbolsFunction(int value, string style, out string formatted, out bool representationLimited) {
         formatted = string.Empty;
         representationLimited = false;

@@ -107,6 +107,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_PreservesInteriorTabPositionsInsideSpacedWhitespaceRuns() {
+        const string html = "<pre style='margin:0;font-family:Consolas;font-size:12px;tab-size:8'>A \t B</pre>";
+
+        HtmlRenderText[] text = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToArray();
+        HtmlRenderText before = Assert.Single(text, item => item.Text == "A ");
+        HtmlRenderText after = Assert.Single(text, item => item.Text == " B");
+
+        Assert.True(after.X > before.X + before.Width + 15D);
+        Assert.Contains("B", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRender_UsesInheritedAbsoluteLengthTabStops() {
         const string html = "<div style='font-size:10px;tab-size:32px'><pre style='margin:0;font-family:Consolas;font-size:20px;letter-spacing:.01px'>A\tB</pre></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
@@ -198,6 +212,30 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(spacedGlyphs[2].X - spacedGlyphs[0].X > normalAdvance / 2D);
         string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(spaced).ToPdf(new HtmlPdfSaveOptions())).ExtractText();
         Assert.Contains("A B", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_PositionsWordSpacingInsideLtrGroupsOfMixedDirectionText() {
+        const string html = "<p style='margin:0;font-family:Arial;font-size:14px;word-spacing:12px'>abc def אבג</p>";
+        const string baselineHtml = "<p style='margin:0;font-family:Arial;font-size:14px;word-spacing:.01px'>abc def אבג</p>";
+
+        HtmlRenderLogicalTextGroup group = Assert.Single(
+            EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+                .OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "abc def אבג");
+        HtmlRenderLogicalTextGroup baselineGroup = Assert.Single(
+            EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(baselineHtml).Pages[0].Scene)
+                .OfType<HtmlRenderLogicalTextGroup>(),
+            item => item.Text == "abc def אבג");
+        HtmlRenderText[] text = group.Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText abc = Assert.Single(text, item => item.Text == "abc");
+        HtmlRenderText def = Assert.Single(text, item => item.Text == "def");
+        HtmlRenderText baselineAbc = Assert.Single(baselineGroup.Visuals.OfType<HtmlRenderText>(), item => item.Text == "abc");
+        HtmlRenderText baselineDef = Assert.Single(baselineGroup.Visuals.OfType<HtmlRenderText>(), item => item.Text == "def");
+
+        Assert.Contains(text, item => item.Text == " ");
+        Assert.True(def.X - abc.X > baselineDef.X - baselineAbc.X + 10D);
+        Assert.Contains("abc def אבג", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

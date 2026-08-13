@@ -716,12 +716,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
         if (marker.Length == 0) return null;
-        string normalizedStyle = HtmlCssEscapeDecoder.Decode(listStyle.Trim()).ToLowerInvariant();
-        bool usesBulletSuffix = normalizedStyle is "disc" or "circle" or "square"
-            || normalizedStyle.StartsWith("'", StringComparison.Ordinal)
-            || normalizedStyle.StartsWith("\"", StringComparison.Ordinal)
-            || normalizedStyle.StartsWith("symbols(", StringComparison.Ordinal);
-        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, markerLimited || !usesBulletSuffix);
+        return marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
     }
 
     private void ReportCounterRepresentationLimit(IElement element, string style) {

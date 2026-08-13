@@ -40,6 +40,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double groupX = cursor;
             if (group.RightToLeft) {
                 AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
+            } else if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D) {
+                result.AddRange(ResolveSpacedPaintSegments(
+                    new InlineSegment(group.Text, group.Width, segment.Run, group.Text),
+                    groupX,
+                    group.LogicalOrder));
             } else {
                 result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
             }
@@ -48,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
     }
 
-    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x) {
+    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x, int? logicalOrder = null) {
         var result = new List<InlinePaintSegment>();
         double cursor = x;
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
@@ -59,7 +64,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
-                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, index));
+                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? index));
                 cursor += advance;
             }
             return result;
@@ -73,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string text = string.Concat(elements.Skip(start).Take(end - start));
             double glyphWidth = MeasureText(text, segment.Run.Style.Font);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
-            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, start));
+            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? start));
             cursor += advance;
             start = end;
         }

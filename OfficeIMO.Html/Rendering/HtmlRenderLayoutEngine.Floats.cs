@@ -170,10 +170,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
-                double tabExpandedWidth = 0D;
-                string expandedToken = hasTabs
-                    ? ExpandTabs(normalizedToken, run.Style, line.Width, out tabExpandedWidth)
-                    : normalizedToken;
+                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
+                string expandedToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
                 HyphenationToken hyphenation = PrepareHyphenationToken(expandedToken, normalizedToken, run.Style);
                 string paintToken = hyphenation.PaintText;
                 double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
@@ -222,6 +220,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > line.AvailableWidth) {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                     if (whitespace && !preserveWhitespace) continue;
+                }
+                if (hasTabs) {
+                    AddTabExpandedSegments(line, normalizedToken, normalizedToken, run);
+                    continue;
                 }
                 line.Add(new InlineSegment(paintToken, measured, run, hyphenation.LogicalText));
             }
