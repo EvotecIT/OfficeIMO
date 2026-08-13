@@ -15,6 +15,28 @@ public class DrawingSvgReaderSecurityTests {
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
     }
 
+    [Fact]
+    public void SvgSafetyPredicateUsesRasterDefinitionIdSemantics() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>"
+            + "<style>.paint{clip-path:url(#clip)}</style>"
+            + "<defs><clipPath id='unused' x:id='clip'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='paint' width='4' height='4'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateBoundsEmbeddedRasterImagePixels() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        string safeSvg = CreateEmbeddedImageSvg(png);
+        WriteBigEndian(png, 16, 100_000);
+        WriteBigEndian(png, 20, 100_000);
+        string oversizedSvg = CreateEmbeddedImageSvg(png);
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(safeSvg)));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oversizedSvg)));
+    }
+
     [Theory]
     [InlineData("clip-path='none' x:clip-path='url(#c)'", false)]
     [InlineData("x:clip-path='url(#c)' clip-path='none'", true)]
@@ -372,14 +394,28 @@ public class DrawingSvgReaderSecurityTests {
 
     [Fact]
     public void SvgSafetyPredicateChargesAttributePayloadPerExpansion() {
-        string href = "data:image/png;base64," + new string('A', 200);
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        string href = "data:image/png;base64," + Convert.ToBase64String(png);
         string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><image id='i' href='"
             + href + "' width='1' height='1'/></defs><use href='#i'/></svg>";
         string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><image id='i' href='"
             + href + "' width='1' height='1'/></defs><use href='#i'/><use href='#i' x='1'/></svg>";
-        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+        int imagePayloadUnits = (href.Length + 2) / 100;
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 3 + imagePayloadUnits };
 
         Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    private static string CreateEmbeddedImageSvg(byte[] png) =>
+        "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
+        + Convert.ToBase64String(png)
+        + "'/></svg>";
+
+    private static void WriteBigEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
     }
 }

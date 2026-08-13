@@ -12,29 +12,47 @@ internal sealed class PdfTextClippingBudget {
     }
 
     internal PdfPageClipPath ResolveActiveClip(PdfPageClipPath? activeClipPath, PdfPageClipPath clipPath) {
-        if (activeClipPath.HasValue && !activeClipPath.Value.IsRectangle && !clipPath.IsRectangle) {
-            long activeContours = CountContours(activeClipPath.Value.Commands);
-            long nextContours = CountContours(clipPath.Commands);
-            long overlapChecks = nextContours * Math.Max(0L, nextContours - 1L) / 2L;
-            long intersectionChecks = activeContours * nextContours;
-            long nextWork = checked(_intersectionWork + overlapChecks + intersectionChecks);
-            if (nextWork > PdfPageClipPath.MaximumTextClippingIntersectionWork) {
-                throw PdfReadLimitException.Create(
-                    PdfReadLimitKind.TextClippingIntersectionWork,
-                    PdfPageClipPath.MaximumTextClippingIntersectionWork,
-                    nextWork);
-            }
-            _intersectionWork = nextWork;
-        }
-
-        return PdfPageClipPath.ResolveActiveClip(activeClipPath, clipPath);
+        return PdfPageClipPath.ResolveActiveClip(activeClipPath, clipPath, this);
     }
 
-    private static long CountContours(IReadOnlyList<OfficePathCommand> commands) {
-        long contours = 0L;
-        for (int index = 0; index < commands.Count; index++) {
-            if (commands[index].Kind == OfficePathCommandKind.MoveTo) contours++;
-        }
-        return contours;
+    internal void ChargeIntersectionWork(
+        IReadOnlyList<List<OfficePoint>> subjectContours,
+        IReadOnlyList<List<OfficePoint>> clipContours) {
+        long subjectVertices = CountVertices(subjectContours);
+        long clipVertices = CountVertices(clipContours);
+        long overlapChecks = SaturatingMultiply(clipContours.Count, Math.Max(0, clipContours.Count - 1)) / 2L;
+        long intersectionChecks = SaturatingMultiply(subjectVertices, clipVertices);
+        long flatteningWork = SaturatingAdd(subjectVertices, clipVertices);
+        long addedWork = SaturatingAdd(flatteningWork, SaturatingAdd(overlapChecks, intersectionChecks));
+        ChargeIntersectionWork(addedWork);
     }
+
+    internal void ChargeLinearIntersectionWork(int pathCommandCount) {
+        ChargeIntersectionWork(pathCommandCount);
+    }
+
+    private void ChargeIntersectionWork(long addedWork) {
+        long nextWork = SaturatingAdd(_intersectionWork, Math.Max(0L, addedWork));
+        if (nextWork > PdfPageClipPath.MaximumTextClippingIntersectionWork) {
+            throw PdfReadLimitException.Create(
+                PdfReadLimitKind.TextClippingIntersectionWork,
+                PdfPageClipPath.MaximumTextClippingIntersectionWork,
+                nextWork);
+        }
+        _intersectionWork = nextWork;
+    }
+
+    private static long CountVertices(IReadOnlyList<List<OfficePoint>> contours) {
+        long vertices = 0L;
+        for (int index = 0; index < contours.Count; index++) {
+            vertices = SaturatingAdd(vertices, contours[index].Count);
+        }
+        return vertices;
+    }
+
+    private static long SaturatingAdd(long left, long right) =>
+        right > long.MaxValue - left ? long.MaxValue : left + right;
+
+    private static long SaturatingMultiply(long left, long right) =>
+        left != 0L && right > long.MaxValue / left ? long.MaxValue : left * right;
 }

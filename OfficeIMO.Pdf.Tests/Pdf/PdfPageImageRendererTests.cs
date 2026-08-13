@@ -602,6 +602,10 @@ public class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
         Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
         Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+
+        PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(pdf).AssessRenderCompatibility());
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, diagnosticException.Kind);
     }
 
     [Fact]
@@ -618,6 +622,84 @@ public class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
         Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
         Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void RenderPage_ChargesVerticesDuringTextClipIntersections() {
+        string activeClip = "0 -20 m " + string.Concat(Enumerable.Range(1, 300)
+            .Select(index => index + " " + (index % 2 == 0 ? -20 : 100) + " l ")) + "h W n ";
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", 1000));
+        byte[] pdf = BuildSingleStreamPdf(
+            activeClip + "BT /F1 12 Tf 4 Tr " + textShows + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void RenderPage_ChargesPathCommandsDuringRectangleTextClipIntersections() {
+        var commands = new List<OfficePathCommand> {
+            OfficePathCommand.MoveTo(new OfficePoint(0D, -20D))
+        };
+        commands.AddRange(Enumerable.Range(1, 300).Select(index =>
+            OfficePathCommand.LineTo(new OfficePoint(index, index % 2 == 0 ? -20D : 100D))));
+        commands.Add(OfficePathCommand.Close());
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
+        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, -20D, 300D, 120D);
+        var budget = new PdfTextClippingBudget();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => {
+            for (int index = 0; index < 3400; index++) {
+                budget.ResolveActiveClip(path, rectangle);
+            }
+        });
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotChargeDisjointTextClipIntersections() {
+        const int runsPerObject = 1416;
+        string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 4 Tr " + runs + "ET BT /F1 12 Tf 1000 1000 Td 4 Tr " + runs + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+
+        Assert.NotNull(drawing);
+    }
+
+    [Fact]
+    public void ImagePlacementParserSharesTextClipBudgetAcrossRepeatedForms() {
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", 1400));
+        string form = BuildStreamObject(
+            5,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 12 Tf 4 Tr " + textShows + "ET");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Fm1 Do /Fm1 Do /Fm1 Do",
+            "<< /XObject << /Fm1 5 0 R >> >>",
+            form);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].GetImagePlacements());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+
+        PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(pdf).AssessRenderCompatibility());
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, diagnosticException.Kind);
     }
 
     [Fact]

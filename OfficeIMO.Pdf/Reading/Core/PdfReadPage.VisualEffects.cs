@@ -92,9 +92,11 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         IReadOnlyList<PdfPageDrawingEffectTransition> local = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
@@ -131,7 +133,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeLineJoin,
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
-                     _limits.MaxContentOperands)) {
+                     _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {
@@ -161,6 +164,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget);
                 transitions.Add(new PdfPageDrawingEffectTransition(invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D), inherited));
             } finally {

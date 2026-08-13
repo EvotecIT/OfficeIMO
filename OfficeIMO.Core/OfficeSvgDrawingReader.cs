@@ -318,7 +318,7 @@ public static partial class OfficeSvgDrawingReader {
                 || name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase);
             if (!isExpandedDefinition) continue;
-            string? id = element.Attribute("id")?.Value.Trim();
+            string? id = ReadRasterElementId(element);
             if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
         }
         return expandedDefinitionIds.Count > 0
@@ -329,16 +329,10 @@ public static partial class OfficeSvgDrawingReader {
                     ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
     }
 
-    private static string? ReadRasterInlineStyleAttribute(XElement element) {
-        string? value = null;
-        foreach (XAttribute attribute in element.Attributes()) {
-            if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace == XNamespace.Xml) continue;
-            // ChartForgeX projects non-XML attributes by local name into a dictionary,
-            // so a later namespace-qualified style replaces an earlier style value.
-            if (attribute.Name.LocalName.Equals("style", StringComparison.Ordinal)) value = attribute.Value;
-        }
-        return value;
-    }
+    // ChartForgeX projects non-XML attributes by local name into a dictionary, so a later
+    // namespace-qualified attribute replaces an earlier value with the same local name.
+    private static string? ReadRasterInlineStyleAttribute(XElement element) =>
+        ReadRasterProjectedAttribute(element, "style");
 
     private static bool TryAddRenderedSvgExpansion(
         XElement element,

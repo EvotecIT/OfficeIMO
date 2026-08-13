@@ -19,7 +19,13 @@ internal readonly struct PdfPageClipPath {
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
         new PdfPageClipPath(x, y, width, height, true, OfficeFillRule.EvenOdd, Array.Empty<OfficePathCommand>());
 
-    public static PdfPageClipPath ResolveActiveClip(PdfPageClipPath? activeClipPath, PdfPageClipPath clipPath) {
+    public static PdfPageClipPath ResolveActiveClip(PdfPageClipPath? activeClipPath, PdfPageClipPath clipPath) =>
+        ResolveActiveClip(activeClipPath, clipPath, textClippingBudget: null);
+
+    internal static PdfPageClipPath ResolveActiveClip(
+        PdfPageClipPath? activeClipPath,
+        PdfPageClipPath clipPath,
+        PdfTextClippingBudget? textClippingBudget) {
         if (!activeClipPath.HasValue) {
             return clipPath;
         }
@@ -28,18 +34,18 @@ internal readonly struct PdfPageClipPath {
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
                 return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(clipPath, active, intersection)
+                    ? IntersectPathWithRectangle(clipPath, active, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
             }
 
             if (clipPath.IsRectangle) {
                 return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(active, clipPath, intersection)
+                    ? IntersectPathWithRectangle(active, clipPath, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
             }
 
             return IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
-                ? IntersectPathWithPath(active, clipPath, pathIntersection)
+                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget)
                 : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
         }
 
@@ -102,19 +108,30 @@ internal readonly struct PdfPageClipPath {
         return true;
     }
 
-    private static PdfPageClipPath IntersectPathWithRectangle(PdfPageClipPath pathClip, PdfPageClipPath rectangleClip, PdfPageClipPath intersection) {
+    private static PdfPageClipPath IntersectPathWithRectangle(
+        PdfPageClipPath pathClip,
+        PdfPageClipPath rectangleClip,
+        PdfPageClipPath intersection,
+        PdfTextClippingBudget? textClippingBudget) {
+        textClippingBudget?.ChargeLinearIntersectionWork(pathClip.Commands.Count);
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(pathClip.Commands, rectangleClip);
         return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
     }
 
-    private static PdfPageClipPath IntersectPathWithPath(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
+    private static PdfPageClipPath IntersectPathWithPath(
+        PdfPageClipPath active,
+        PdfPageClipPath next,
+        PdfPageClipPath intersection,
+        PdfTextClippingBudget? textClippingBudget) {
         List<List<OfficePoint>> subjectContours = FlattenPathContours(active.Commands);
         List<List<OfficePoint>> clipContours = FlattenPathContours(next.Commands);
         if (subjectContours.Count == 0 || clipContours.Count == 0) {
             return Rectangle(intersection.X, intersection.Y, 0D, 0D);
         }
+
+        textClippingBudget?.ChargeIntersectionWork(subjectContours, clipContours);
 
         var intersectedContours = new List<List<OfficePoint>>();
         bool canClipPerContour = clipContours.All(IsConvexContour) && !HasOverlappingContourBounds(clipContours);

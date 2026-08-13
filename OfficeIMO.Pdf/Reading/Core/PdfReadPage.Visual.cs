@@ -410,9 +410,13 @@ public sealed partial class PdfReadPage {
         bool requireVectorOnly = false,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? invocationTextClippingBudget = null,
+        PdfTextClippingBudget? patternTextClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        invocationTextClippingBudget ??= new PdfTextClippingBudget();
+        patternTextClippingBudget ??= new PdfTextClippingBudget();
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new HashSet<double>();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
@@ -446,7 +450,8 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
-                patternInvocationVisitor: name => invokedPatternNames.Add(name));
+                patternInvocationVisitor: name => invokedPatternNames.Add(name),
+                textClippingBudget: patternTextClippingBudget);
         }
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         _ = PdfPageContentVisualParser.Parse(
@@ -533,7 +538,8 @@ public sealed partial class PdfReadPage {
                       unsupportedTextVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
                       unsupportedGraphicsEffectVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
                       unsupportedPatternVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
-                      unsupportedColorVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null)) {
+                      unsupportedColorVisitor: requireVectorOnly ? type3GlyphBudget.RecordFailure : null,
+                      textClippingBudget: invocationTextClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireVectorOnly) type3GlyphBudget.RecordFailure();
                 continue;
@@ -585,6 +591,8 @@ public sealed partial class PdfReadPage {
                     requireVectorOnly: requireVectorOnly,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
+                    invocationTextClippingBudget: invocationTextClippingBudget,
+                    patternTextClippingBudget: patternTextClippingBudget,
                     pageContentBudget: pageContentBudget);
                 if (localPrimitives is not null &&
                     !TryPublishType3LocalPrimitives(localPrimitives, invocation.PaintOrder, paintOrderScale, primitiveVisitor)) {

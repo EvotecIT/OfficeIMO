@@ -665,9 +665,11 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -682,9 +684,10 @@ public sealed partial class PdfReadPage {
                       paintOrderScale,
                       paintOrderOffset,
                       initialClipPath,
-                      maxOperations: _limits.MaxContentOperations,
-                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                      maxOperands: _limits.MaxContentOperands)) {
+                     maxOperations: _limits.MaxContentOperations,
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(
@@ -735,6 +738,7 @@ public sealed partial class PdfReadPage {
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget);
             } finally {
                 activeForms.Remove(formStream);
