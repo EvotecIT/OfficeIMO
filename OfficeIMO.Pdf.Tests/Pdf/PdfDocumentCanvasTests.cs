@@ -233,6 +233,22 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasStructure_KeepsInteractiveFormWidgetsUnderTheActiveSemanticParent() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
+                .TextField("Contact.Name", "Ada", 10D, 10D, 100D, 20D)))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo form = Assert.Single(tagged.StructureElements, element => element.StructureType == "Form");
+
+        Assert.Contains(form.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Equal(1, form.ObjectReferenceCount);
+    }
+
+    [Fact]
     public void CanvasStructure_BuildsNestedListAndTableHierarchyWithCellAttributes() {
         var headerOptions = new PdfCanvasStructureOptions {
             HeaderScope = PdfCanvasTableHeaderScope.Column,

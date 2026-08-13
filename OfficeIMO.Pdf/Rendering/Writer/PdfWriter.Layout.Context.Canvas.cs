@@ -89,8 +89,10 @@ internal static partial class PdfWriter {
                     X2 = item.X + item.Width,
                     Y2 = topY,
                     Option = item.Option,
-                    Style = item.Style
+                    Style = item.Style,
+                    StructureParentElementIndex = _canvasStructureParentElementIndex
                 });
+                field.StructureParentElementIndex = _canvasStructureParentElementIndex;
                 currentPage!.FormFields.Add(field);
                 pageDirty = true;
                 return;
@@ -120,7 +122,8 @@ internal static partial class PdfWriter {
                 SelectedIndices = item.SelectedIndices,
                 IsComboBox = item.IsComboBox,
                 AllowsMultipleSelection = item.AllowsMultipleSelection,
-                Style = item.Style
+                Style = item.Style,
+                StructureParentElementIndex = _canvasStructureParentElementIndex
             });
             pageDirty = true;
         }

@@ -898,7 +898,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (elements.Count == 0) return measured;
         measured += style.LetterSpacing * elements.Count;
         measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
-        return Math.Max(0.01D, measured);
+        return measured;
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {

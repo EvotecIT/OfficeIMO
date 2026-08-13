@@ -228,6 +228,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_NegativeTextSpacingCanMoveFollowingGlyphsBackward() {
+        const string html = "<p style='margin:0;font-family:Consolas;font-size:14px;letter-spacing:-20px'>AB</p>";
+
+        IReadOnlyList<HtmlRenderText> glyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToList();
+
+        Assert.Equal(new[] { "A", "B" }, glyphs.Select(glyph => glyph.Text).ToArray());
+        Assert.True(glyphs[1].X < glyphs[0].X);
+        Assert.All(glyphs, glyph => Assert.True(glyph.Width > 0D));
+    }
+
+    [Fact]
     public void HtmlRender_TextSpacingRetainsFiniteAuthoredLengthsOutsideFontRelativeRanges() {
         const string html = "<p style='margin:0;font-family:Consolas;font-size:16px;letter-spacing:200px;word-spacing:-20px'>A B</p>";
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();

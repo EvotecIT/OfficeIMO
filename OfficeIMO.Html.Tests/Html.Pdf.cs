@@ -391,6 +391,16 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_RadioWidgetsRetainEachOptionsAccessibleName() {
+        const string html = "<input type='radio' name='contact' value='email' aria-label='Email option'><input type='radio' name='contact' value='phone' aria-label='Phone option'>";
+
+        string raw = Encoding.ASCII.GetString(HtmlConversionDocument.Parse(html).ToPdf());
+
+        Assert.Contains("/TU <456D61696C206F7074696F6E>", raw, StringComparison.Ordinal);
+        Assert.Contains("/TU <50686F6E65206F7074696F6E>", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_RadioGroupMergesRequiredStateAcrossWidgetsAndPages() {
         const string html = """
             <style>@page{size:3in 2in;margin:10px}</style>

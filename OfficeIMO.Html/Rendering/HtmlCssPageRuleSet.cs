@@ -59,8 +59,9 @@ internal sealed class HtmlCssPageRuleSet {
 
         double width = _baseWidth ?? options.PageWidth;
         double height = _baseHeight ?? options.PageHeight;
-        if (size.HasValue) {
-            HtmlCssPageSettingsResolver.TryResolvePageSize(size.Value, width, height, options.DefaultFontSize, out width, out height);
+        HtmlCssPageCascadeValue effectiveSize = ResolveLayerRevert(size);
+        if (effectiveSize.HasValue) {
+            HtmlCssPageSettingsResolver.TryResolvePageSize(effectiveSize.Value, width, height, options.DefaultFontSize, out width, out height);
         }
 
         HtmlRenderMargins baseMargins = _baseMargins ?? options.Margins;
@@ -113,8 +114,14 @@ internal sealed class HtmlCssPageRuleSet {
     private static void Consider(ref HtmlCssPageCascadeValue current, HtmlCssPageDeclaration candidate, HtmlCssPageRule rule) {
         if (candidate.Value.Length == 0) return;
         int specificity = PageSelectorSpecificity(rule);
-        if (!current.HasValue || ShouldReplace(current, candidate, rule.LayerOrder, specificity, rule.SourceOrder))
-            current = new HtmlCssPageCascadeValue(candidate.Value, candidate.IsImportant, rule.LayerOrder, specificity, rule.SourceOrder, candidate.Order);
+        var value = new HtmlCssPageCascadeValue(candidate.Value, candidate.IsImportant, rule.LayerOrder, specificity, rule.SourceOrder, candidate.Order);
+        if (!current.HasValue) {
+            current = value;
+        } else if (ShouldReplace(current, candidate, rule.LayerOrder, specificity, rule.SourceOrder)) {
+            current = value.WithAlternatives(CollectCandidates(current));
+        } else {
+            current = current.WithAlternative(value);
+        }
     }
 
     private static bool ShouldReplace(HtmlCssPageCascadeValue current, HtmlCssPageDeclaration candidate, CascadeLayerOrder? layerOrder, int specificity, int sourceOrder) {
@@ -150,6 +157,7 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     private static void ApplySide(HtmlCssPageCascadeValue value, double width, double height, double fontSize, ref double target) {
+        value = ResolveLayerRevert(value);
         if (!value.HasValue) return;
         if (string.Equals(value.Value, "auto", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value.Value, "initial", StringComparison.OrdinalIgnoreCase)
@@ -164,7 +172,8 @@ internal sealed class HtmlCssPageRuleSet {
     internal static bool IsValidPageMarginComponent(string value) {
         if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)
             || string.Equals(value, "initial", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "revert-layer", StringComparison.OrdinalIgnoreCase)) {
             return true;
         }
         return HasPageMarginLengthSyntax(value)
@@ -184,8 +193,31 @@ internal sealed class HtmlCssPageRuleSet {
         return false;
     }
 
+    private static IReadOnlyList<HtmlCssPageCascadeValue> CollectCandidates(HtmlCssPageCascadeValue value) {
+        var candidates = new List<HtmlCssPageCascadeValue>(value.Alternatives.Count + 1) { value };
+        candidates.AddRange(value.Alternatives);
+        return candidates.AsReadOnly();
+    }
+
+    private static HtmlCssPageCascadeValue ResolveLayerRevert(HtmlCssPageCascadeValue value) {
+        if (!value.HasValue || !string.Equals(value.Value, "revert-layer", StringComparison.OrdinalIgnoreCase)) return value;
+        IReadOnlyList<HtmlCssPageCascadeValue> candidates = CollectCandidates(value);
+        var revertedLayers = new HashSet<CascadeLayerOrder?>();
+        while (true) {
+            HtmlCssPageCascadeValue current = default;
+            foreach (HtmlCssPageCascadeValue candidate in candidates) {
+                if (revertedLayers.Contains(candidate.LayerOrder)) continue;
+                var declaration = new HtmlCssPageDeclaration(candidate.Value, candidate.IsImportant, candidate.DeclarationOrder);
+                if (!current.HasValue || ShouldReplace(current, declaration, candidate.LayerOrder, candidate.Specificity, candidate.SourceOrder)) current = candidate;
+            }
+            if (!current.HasValue || !string.Equals(current.Value, "revert-layer", StringComparison.OrdinalIgnoreCase)) return current;
+            if (current.LayerOrder == null) return default;
+            revertedLayers.Add(current.LayerOrder);
+        }
+    }
+
     private readonly struct HtmlCssPageCascadeValue {
-        internal HtmlCssPageCascadeValue(string value, bool isImportant, CascadeLayerOrder? layerOrder, int specificity, int sourceOrder, int declarationOrder) {
+        internal HtmlCssPageCascadeValue(string value, bool isImportant, CascadeLayerOrder? layerOrder, int specificity, int sourceOrder, int declarationOrder, IEnumerable<HtmlCssPageCascadeValue>? alternatives = null) {
             Value = value;
             IsImportant = isImportant;
             LayerOrder = layerOrder;
@@ -193,6 +225,7 @@ internal sealed class HtmlCssPageRuleSet {
             SourceOrder = sourceOrder;
             DeclarationOrder = declarationOrder;
             HasValue = true;
+            Alternatives = new List<HtmlCssPageCascadeValue>(alternatives ?? Array.Empty<HtmlCssPageCascadeValue>()).AsReadOnly();
         }
 
         internal string Value { get; }
@@ -202,6 +235,15 @@ internal sealed class HtmlCssPageRuleSet {
         internal int SourceOrder { get; }
         internal int DeclarationOrder { get; }
         internal bool HasValue { get; }
+        internal IReadOnlyList<HtmlCssPageCascadeValue> Alternatives { get; }
+
+        internal HtmlCssPageCascadeValue WithAlternative(HtmlCssPageCascadeValue alternative) {
+            var alternatives = new List<HtmlCssPageCascadeValue>(Alternatives) { alternative };
+            return WithAlternatives(alternatives);
+        }
+
+        internal HtmlCssPageCascadeValue WithAlternatives(IEnumerable<HtmlCssPageCascadeValue> alternatives) =>
+            new HtmlCssPageCascadeValue(Value, IsImportant, LayerOrder, Specificity, SourceOrder, DeclarationOrder, alternatives);
     }
 
     private sealed class HtmlCssPageMarginCascade {

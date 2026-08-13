@@ -126,7 +126,7 @@ public sealed class HtmlRenderPage {
                     text.Color,
                     text.Alignment,
                     text.LineHeight,
-                    textAdvanceWidth: text.TextAdvanceWidth.Value);
+                    textAdvanceWidth: text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width);
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }

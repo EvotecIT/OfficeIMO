@@ -455,12 +455,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             AddInlineOwnedVisual(visuals, ownedVisuals, linkVisual, segment.Run.OwnerElement, formattingContainer);
                         }
                     }
-                } else if (segment.Text.Length > 0 && segment.Width > 0D) {
+                } else if (segment.Text.Length > 0) {
                     double textLineHeight = current.HasReplacedImage ? segment.Run.Style.LineHeight : lineHeight;
                     double textY = current.HasReplacedImage
                         ? lineY + Math.Max(0D, baseline - ResolveTextAscent(segment.Run.Style))
                         : lineY;
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, segment.Width, textLineHeight, inlineBounds);
+                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, textY, Math.Max(0.01D, segment.Width), textLineHeight, inlineBounds);
                     if (!segment.Run.Style.PaintVisible) {
                         cursor += rightToLeftLine ? -segment.Width : segment.Width;
                         continue;
@@ -486,7 +486,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Run.SemanticRole,
                             layoutY: null,
                             semanticNodeId: segment.Run.SemanticNodeId,
-                            textAdvanceWidth: paintSegment.Width,
+                            textAdvanceWidth: paintSegment.Advance,
                             bidiVisualOrderResolved: segment.BidiResolved));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||

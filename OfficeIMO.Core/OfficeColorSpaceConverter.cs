@@ -104,12 +104,16 @@ public static class OfficeColorSpaceConverter {
 
     /// <summary>Converts XYZ values relative to an explicit source white point to sRGB.</summary>
     public static OfficeColor FromXyz(double x, double y, double z, double sourceWhiteX = D65X, double sourceWhiteY = D65Y, double sourceWhiteZ = D65Z) {
+        ToLinearSrgbFromXyz(x, y, z, sourceWhiteX, sourceWhiteY, sourceWhiteZ, out double linearRed, out double linearGreen, out double linearBlue);
+        return OfficeColor.FromRgb(ToSrgbByte(linearRed), ToSrgbByte(linearGreen), ToSrgbByte(linearBlue));
+    }
+
+    internal static void ToLinearSrgbFromXyz(double x, double y, double z, double sourceWhiteX, double sourceWhiteY, double sourceWhiteZ, out double red, out double green, out double blue) {
         ValidateWhitePoint(sourceWhiteX, sourceWhiteY, sourceWhiteZ);
         AdaptToD65(ref x, ref y, ref z, sourceWhiteX, sourceWhiteY, sourceWhiteZ);
-        double linearRed = (3.2404542D * x) - (1.5371385D * y) - (0.4985314D * z);
-        double linearGreen = (-0.969266D * x) + (1.8760108D * y) + (0.041556D * z);
-        double linearBlue = (0.0556434D * x) - (0.2040259D * y) + (1.0572252D * z);
-        return OfficeColor.FromRgb(ToSrgbByte(linearRed), ToSrgbByte(linearGreen), ToSrgbByte(linearBlue));
+        red = (3.2404542D * x) - (1.5371385D * y) - (0.4985314D * z);
+        green = (-0.969266D * x) + (1.8760108D * y) + (0.041556D * z);
+        blue = (0.0556434D * x) - (0.2040259D * y) + (1.0572252D * z);
     }
 
     private static void AdaptToD65(ref double x, ref double y, ref double z, double whiteX, double whiteY, double whiteZ) {

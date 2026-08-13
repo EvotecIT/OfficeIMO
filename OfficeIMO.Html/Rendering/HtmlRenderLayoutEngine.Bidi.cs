@@ -30,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
-            return new[] { new InlinePaintSegment(segment.Text, x, segment.Width, 0) };
+            return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
         var result = new List<InlinePaintSegment>();
@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (group.RightToLeft) {
                 AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
             } else {
-                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.LogicalOrder));
+                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
             }
             cursor += group.Width;
         }
@@ -55,8 +55,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double advance = MeasureInlineText(element, segment.Run.Style);
-                result.Add(new InlinePaintSegment(element, cursor, advance, index));
+                double glyphWidth = MeasureText(element, segment.Run.Style.Font);
+                double advance = glyphWidth
+                    + segment.Run.Style.LetterSpacing
+                    + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
+                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, index));
                 cursor += advance;
             }
             return result;
@@ -68,8 +71,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int end = start + 1;
             while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
-            double advance = MeasureInlineText(text, segment.Run.Style);
-            result.Add(new InlinePaintSegment(text, cursor, advance, start));
+            double glyphWidth = MeasureText(text, segment.Run.Style.Font);
+            double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
+            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, start));
             cursor += advance;
             start = end;
         }
@@ -228,27 +232,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font))
                 + style.LetterSpacing
                 + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
-            advance = Math.Max(0.01D, advance);
             right -= advance;
+            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font);
             result.Add(new InlinePaintSegment(
                 OfficeBidiTextResolver.MirrorText(element),
                 right,
-                Math.Max(0.01D, advance),
+                Math.Max(0.01D, glyphWidth),
+                advance,
                 group.LogicalOrder));
         }
     }
 
     private readonly struct InlinePaintSegment {
-        internal InlinePaintSegment(string text, double x, double width, int logicalOrder) {
+        internal InlinePaintSegment(string text, double x, double width, double advance, int logicalOrder) {
             Text = text;
             X = x;
             Width = width;
+            Advance = advance;
             LogicalOrder = logicalOrder;
         }
 
         internal string Text { get; }
         internal double X { get; }
         internal double Width { get; }
+        internal double Advance { get; }
         internal int LogicalOrder { get; }
     }
 

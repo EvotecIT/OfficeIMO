@@ -378,6 +378,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(stateName) +
+            BuildFormFieldAlternateNameEntry(style) +
             BuildMkEntry(style) +
             BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
@@ -390,6 +391,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
+
+    private static string BuildFormFieldAlternateNameEntry(PdfFormFieldStyle? style) =>
+        style == null || string.IsNullOrWhiteSpace(style.AlternateName)
+            ? string.Empty
+            : " /TU " + PdfSyntaxEscaper.TextString(style.AlternateName!);
 
     private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
         if (values.Count == 1 && !forceArray) {

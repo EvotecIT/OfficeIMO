@@ -131,14 +131,14 @@ public readonly partial struct OfficeColor {
         string space = interpolation.Substring(3).Trim();
         if (space != "srgb" && space != "srgb-linear" && space != "oklab") return false;
 
-        if (!TryParseColorStop(parts[1], depth, out OfficeColor first, out double? firstPercentage)
-            || !TryParseColorStop(parts[2], depth, out OfficeColor second, out double? secondPercentage)
+        if (!TryParseColorStop(parts[1], depth, out CssMixColor first, out double? firstPercentage)
+            || !TryParseColorStop(parts[2], depth, out CssMixColor second, out double? secondPercentage)
             || !ResolveMixWeights(firstPercentage, secondPercentage, out double firstWeight, out double secondWeight, out double alphaMultiplier)) {
             return false;
         }
 
-        double firstAlpha = first.A / 255D;
-        double secondAlpha = second.A / 255D;
+        double firstAlpha = first.Alpha;
+        double secondAlpha = second.Alpha;
         double weightedFirstAlpha = firstAlpha * firstWeight;
         double weightedSecondAlpha = secondAlpha * secondWeight;
         double mixedAlpha = weightedFirstAlpha + weightedSecondAlpha;
@@ -154,14 +154,14 @@ public readonly partial struct OfficeColor {
         double secondGreen;
         double secondBlue;
         if (space == "srgb") {
-            ToNormalizedSrgb(first, out firstRed, out firstGreen, out firstBlue);
-            ToNormalizedSrgb(second, out secondRed, out secondGreen, out secondBlue);
+            first.ToEncodedSrgb(out firstRed, out firstGreen, out firstBlue);
+            second.ToEncodedSrgb(out secondRed, out secondGreen, out secondBlue);
         } else if (space == "srgb-linear") {
-            ToLinearSrgb(first, out firstRed, out firstGreen, out firstBlue);
-            ToLinearSrgb(second, out secondRed, out secondGreen, out secondBlue);
+            first.ToLinearSrgb(out firstRed, out firstGreen, out firstBlue);
+            second.ToLinearSrgb(out secondRed, out secondGreen, out secondBlue);
         } else {
-            ToOklab(first, out firstRed, out firstGreen, out firstBlue);
-            ToOklab(second, out secondRed, out secondGreen, out secondBlue);
+            first.ToOklab(out firstRed, out firstGreen, out firstBlue);
+            second.ToOklab(out secondRed, out secondGreen, out secondBlue);
         }
 
         double red = PremultipliedMix(firstRed, secondRed, weightedFirstAlpha, weightedSecondAlpha, mixedAlpha);
@@ -183,7 +183,7 @@ public readonly partial struct OfficeColor {
     private static bool TryParseColorStop(
         string value,
         int depth,
-        out OfficeColor color,
+        out CssMixColor color,
         out double? percentage) {
         color = default;
         percentage = null;
@@ -199,7 +199,61 @@ public readonly partial struct OfficeColor {
                 candidate = candidate.Substring(0, separator).Trim();
             }
         }
-        return TryParseCss(candidate, depth, out color);
+        if (TryParseHighPrecisionColorFunction(candidate, out color)) return true;
+        if (!TryParseCss(candidate, depth, out OfficeColor parsed)) return false;
+        color = CssMixColor.FromOfficeColor(parsed);
+        return true;
+    }
+
+    private static bool TryParseHighPrecisionColorFunction(string candidate, out CssMixColor color) {
+        color = default;
+        if (!TryReadFunction(candidate, out string name, out string arguments) || name != "color"
+            || !TrySplitSlash(arguments, out string componentText, out string? alpha)
+            || !TryAlphaChannel(alpha, out byte opacity)) return false;
+        string[] tokens = SplitWhitespace(componentText);
+        if (tokens.Length != 4
+            || !TryColorSpaceChannel(tokens[1], out double first)
+            || !TryColorSpaceChannel(tokens[2], out double second)
+            || !TryColorSpaceChannel(tokens[3], out double third)) return false;
+
+        double red;
+        double green;
+        double blue;
+        switch (tokens[0].ToLowerInvariant()) {
+            case "srgb":
+                red = DecodeSrgb(first); green = DecodeSrgb(second); blue = DecodeSrgb(third);
+                break;
+            case "srgb-linear":
+                red = first; green = second; blue = third;
+                break;
+            case "display-p3":
+                ToDisplayP3Xyz(first, second, third, out double p3X, out double p3Y, out double p3Z);
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(p3X, p3Y, p3Z, 0.95047D, 1D, 1.08883D, out red, out green, out blue);
+                break;
+            case "a98-rgb":
+                ToA98Xyz(first, second, third, out double a98X, out double a98Y, out double a98Z);
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(a98X, a98Y, a98Z, 0.95047D, 1D, 1.08883D, out red, out green, out blue);
+                break;
+            case "prophoto-rgb":
+                ToProPhotoXyz(first, second, third, out double proX, out double proY, out double proZ);
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(proX, proY, proZ, 0.96422D, 1D, 0.82521D, out red, out green, out blue);
+                break;
+            case "rec2020":
+                ToRec2020Xyz(first, second, third, out double recX, out double recY, out double recZ);
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(recX, recY, recZ, 0.95047D, 1D, 1.08883D, out red, out green, out blue);
+                break;
+            case "xyz":
+            case "xyz-d65":
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(first, second, third, 0.95047D, 1D, 1.08883D, out red, out green, out blue);
+                break;
+            case "xyz-d50":
+                OfficeColorSpaceConverter.ToLinearSrgbFromXyz(first, second, third, 0.96422D, 1D, 0.82521D, out red, out green, out blue);
+                break;
+            default:
+                return false;
+        }
+        color = new CssMixColor(red, green, blue, opacity / 255D);
+        return true;
     }
 
     private static bool ResolveMixWeights(
@@ -428,4 +482,72 @@ public readonly partial struct OfficeColor {
 
     private static double SignedPower(double value, double exponent) =>
         value < 0D ? -Math.Pow(-value, exponent) : Math.Pow(value, exponent);
+
+    private readonly struct CssMixColor {
+        internal CssMixColor(double red, double green, double blue, double alpha) {
+            Red = red;
+            Green = green;
+            Blue = blue;
+            Alpha = alpha;
+            EncodedRed = EncodeSrgb(red);
+            EncodedGreen = EncodeSrgb(green);
+            EncodedBlue = EncodeSrgb(blue);
+        }
+
+        private CssMixColor(double red, double green, double blue, double alpha, double encodedRed, double encodedGreen, double encodedBlue) {
+            Red = red;
+            Green = green;
+            Blue = blue;
+            Alpha = alpha;
+            EncodedRed = encodedRed;
+            EncodedGreen = encodedGreen;
+            EncodedBlue = encodedBlue;
+        }
+
+        internal double Red { get; }
+        internal double Green { get; }
+        internal double Blue { get; }
+        internal double Alpha { get; }
+        private double EncodedRed { get; }
+        private double EncodedGreen { get; }
+        private double EncodedBlue { get; }
+
+        internal static CssMixColor FromOfficeColor(OfficeColor color) =>
+            new CssMixColor(
+                DecodeSrgb(color.R / 255D),
+                DecodeSrgb(color.G / 255D),
+                DecodeSrgb(color.B / 255D),
+                color.A / 255D,
+                color.R / 255D,
+                color.G / 255D,
+                color.B / 255D);
+
+        internal void ToLinearSrgb(out double red, out double green, out double blue) {
+            red = Red; green = Green; blue = Blue;
+        }
+
+        internal void ToEncodedSrgb(out double red, out double green, out double blue) {
+            red = EncodedRed; green = EncodedGreen; blue = EncodedBlue;
+        }
+
+        internal void ToOklab(out double lightness, out double a, out double b) {
+            double l = (0.4122214708D * Red) + (0.5363325363D * Green) + (0.0514459929D * Blue);
+            double m = (0.2119034982D * Red) + (0.6806995451D * Green) + (0.1073969566D * Blue);
+            double s = (0.0883024619D * Red) + (0.2817188376D * Green) + (0.6299787005D * Blue);
+            double lRoot = SignedCubeRoot(l);
+            double mRoot = SignedCubeRoot(m);
+            double sRoot = SignedCubeRoot(s);
+            lightness = (0.2104542553D * lRoot) + (0.793617785D * mRoot) - (0.0040720468D * sRoot);
+            a = (1.9779984951D * lRoot) - (2.428592205D * mRoot) + (0.4505937099D * sRoot);
+            b = (0.0259040371D * lRoot) + (0.7827717662D * mRoot) - (0.808675766D * sRoot);
+        }
+
+        private static double EncodeSrgb(double value) {
+            double absolute = Math.Abs(value);
+            double encoded = absolute <= 0.0031308D
+                ? 12.92D * absolute
+                : (1.055D * Math.Pow(absolute, 1D / 2.4D)) - 0.055D;
+            return value < 0D ? -encoded : encoded;
+        }
+    }
 }

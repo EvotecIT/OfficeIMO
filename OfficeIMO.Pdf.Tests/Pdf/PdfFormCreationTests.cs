@@ -462,7 +462,7 @@ public class PdfFormCreationTests {
         string raw = Encoding.ASCII.GetString(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
 
-        Assert.Equal(4, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
+        Assert.Equal(6, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
         Assert.Equal(4, CountOccurrences(raw, "/TM <61636365737369626C652E6669656C64>"));
         Assert.All(info.FormFields, field => Assert.Equal("Accessible field", field.AlternateName));
         Assert.All(info.FormFields, field => Assert.Equal("accessible.field", field.MappingName));

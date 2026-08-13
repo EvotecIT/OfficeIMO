@@ -69,8 +69,8 @@
     {
       "id": "html-renderer-gallery-pdf",
       "path": "/downloads/showcase/html/managed-renderer-gallery.pdf",
-      "bytes": 512788,
-      "sha256": "0b53173c43defd476b3f290c1dcd69b9e5fd50dd9fa2f376e685d97d6f613cd0",
+      "bytes": 512835,
+      "sha256": "351753fd47e378517c2e68080ad1998dcaec4aab5515fa475629fbe1e206be03",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --html-renderer-gallery",
       "evidence": "Searchable managed PDF with native AcroForm controls and page-margin content."
     },

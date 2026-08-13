@@ -44,6 +44,19 @@ public sealed class DrawingCssColorTests {
         Assert.Equal(OfficeColor.FromRgb(0, 44, 28), color);
     }
 
+    [Theory]
+    [InlineData("display-p3", 139)]
+    [InlineData("a98-rgb", 148)]
+    [InlineData("prophoto-rgb", 174)]
+    [InlineData("rec2020", 159)]
+    public void OfficeColor_MixesWideGamutStopsBeforeFinalSrgbClipping(string colorSpace, byte expectedRed) {
+        Assert.True(OfficeColor.TryParseCss("color-mix(in srgb, color(" + colorSpace + " 1 0 0), black)", out OfficeColor color));
+
+        Assert.Equal(OfficeColor.FromRgb(expectedRed, 0, 0), color);
+        Assert.NotEqual(OfficeColor.FromRgb(128, 0, 0), color);
+        Assert.Equal(OfficeColor.FromRgb(188, 188, 0), OfficeColor.ParseCss("color-mix(in srgb-linear, red, lime)"));
+    }
+
     [Fact]
     public void OfficeColor_PreservesHighChromaLchCoordinatesUntilSrgbGamutClipping() {
         Assert.True(OfficeColor.TryParseCss("lch(30 150 0)", out OfficeColor color));

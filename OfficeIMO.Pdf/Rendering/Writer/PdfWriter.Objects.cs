@@ -220,6 +220,7 @@ internal static partial class PdfWriter {
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
+        public int? StructureParentElementIndex { get; set; }
         public System.Collections.Generic.List<RadioButtonWidgetAnnotation> RadioWidgets { get; } = new();
     }
 
@@ -241,6 +242,7 @@ internal static partial class PdfWriter {
         public double Y2 { get; set; }
         public string Option { get; set; } = string.Empty;
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public int? StructureParentElementIndex { get; set; }
     }
 
     private sealed class PositionedRadioButtonSerializationPlan {

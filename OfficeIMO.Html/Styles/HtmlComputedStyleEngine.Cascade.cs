@@ -28,6 +28,13 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
+        if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
+            && IsSupportedDeclarationValue(name, value)
+            && TryExpandContainerShorthand(value, out string containerName, out string containerType)) {
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder);
+        }
+
         CascadedProperty? existing;
         properties.TryGetValue(name, out existing);
         if (string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)) {
@@ -63,6 +70,24 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue);
+    }
+
+    private static bool TryExpandContainerShorthand(string value, out string containerName, out string containerType) {
+        string normalized = value.Trim();
+        if (IsCssWideKeyword(normalized)) {
+            containerName = normalized;
+            containerType = normalized;
+            return true;
+        }
+        if (HtmlCssCustomPropertyResolver.ContainsVarFunction(normalized)) {
+            containerName = string.Empty;
+            containerType = string.Empty;
+            return false;
+        }
+        int slash = normalized.IndexOf('/');
+        containerName = (slash < 0 ? normalized : normalized.Substring(0, slash)).Trim();
+        containerType = slash < 0 ? "normal" : normalized.Substring(slash + 1).Trim();
+        return containerName.Length > 0 && containerType.Length > 0;
     }
 
     private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
