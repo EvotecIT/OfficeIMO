@@ -7,6 +7,7 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
     internal const int DefaultMaxPageContentBytes = 256 * 1024 * 1024;
+    internal const long DefaultMaxRetainedContentBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
@@ -36,6 +37,9 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
+
+    /// <summary>Maximum aggregate decoded content-stream bytes retained by one document-wide validation operation. Default: 512 MiB.</summary>
+    public long MaxRetainedContentBytes { get; init; } = DefaultMaxRetainedContentBytes;
 
     /// <summary>Maximum characters emitted from marked-content ActualText replacements on one page, including nested Form XObjects. Default: 1,000,000.</summary>
     public int MaxActualTextCharacters { get; init; } = DefaultMaxActualTextCharacters;
@@ -125,6 +129,7 @@ public sealed class PdfReadLimits {
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = MaxDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
+            MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
             MaxObjectCharacters = MaxObjectCharacters,
@@ -173,6 +178,9 @@ public sealed class PdfReadLimits {
         }
 
         ValidatePositive(MaxPageContentBytes, nameof(MaxPageContentBytes), "Maximum aggregate page content bytes must be positive.");
+        if (MaxRetainedContentBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxRetainedContentBytes), MaxRetainedContentBytes, "Maximum retained content bytes must be positive.");
+        }
         ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
         ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
 

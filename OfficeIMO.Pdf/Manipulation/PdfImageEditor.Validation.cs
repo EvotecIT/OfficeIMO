@@ -109,10 +109,10 @@ internal static partial class PdfImageEditor {
             try {
                 byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
                 retainedContentBytes += decoded.LongLength;
-                if (retainedContentBytes > limits.MaxPageContentBytes) {
+                if (retainedContentBytes > limits.MaxRetainedContentBytes) {
                     throw PdfReadLimitException.Create(
-                        PdfReadLimitKind.PageContentBytes,
-                        limits.MaxPageContentBytes,
+                        PdfReadLimitKind.RetainedContentBytes,
+                        limits.MaxRetainedContentBytes,
                         retainedContentBytes);
                 }
                 string content = PdfEncoding.Latin1GetString(decoded);
@@ -133,7 +133,59 @@ internal static partial class PdfImageEditor {
         }
 
         effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+        ValidatePerPageContentBudgets(objects, decodedStreams, limits);
         return decodedStreams;
+    }
+
+    private static void ValidatePerPageContentBudgets(
+        Dictionary<int, PdfIndirectObject> objects,
+        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams,
+        PdfReadLimits limits) {
+        var streams = decodedStreams.ToDictionary(static item => item.ObjectNumber);
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary page ||
+                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            long pageBytes = 0L;
+            foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) {
+                var activeForms = new HashSet<int>();
+                ChargePageContentInvocation(reference.ObjectNumber, page, 0, activeForms, streams, objects, limits, ref pageBytes);
+            }
+        }
+    }
+
+    private static void ChargePageContentInvocation(
+        int objectNumber,
+        PdfDictionary resourceOwner,
+        int depth,
+        HashSet<int> activeForms,
+        Dictionary<int, (int ObjectNumber, PdfStream Stream, string Content)> streams,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        ref long pageBytes) {
+        if (!streams.TryGetValue(objectNumber, out (int ObjectNumber, PdfStream Stream, string Content) item)) return;
+        pageBytes += item.Content.Length;
+        if (pageBytes > limits.MaxPageContentBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.PageContentBytes, limits.MaxPageContentBytes, pageBytes);
+        }
+        if (depth >= limits.MaxContentNestingDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth + 1L);
+        }
+        foreach (string name in ReadInvokedResourceNames(item.Content, limits)) {
+            if (!TryGetXObject(objects, resourceOwner, name, out PdfObject? target) ||
+                target is not PdfReference targetReference ||
+                !objects.TryGetValue(targetReference.ObjectNumber, out PdfIndirectObject? targetIndirect) ||
+                targetIndirect.Value is not PdfStream targetStream ||
+                !string.Equals(targetStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+            if (!activeForms.Add(targetReference.ObjectNumber)) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, limits.MaxContentNestingDepth + 1L);
+            }
+            PdfDictionary nextOwner = targetStream.Dictionary.Items.ContainsKey("Resources")
+                ? targetStream.Dictionary
+                : resourceOwner;
+            ChargePageContentInvocation(targetReference.ObjectNumber, nextOwner, depth + 1, activeForms, streams, objects, limits, ref pageBytes);
+            activeForms.Remove(targetReference.ObjectNumber);
+        }
     }
 
     private static bool HasAuthoredRenderingIntent(

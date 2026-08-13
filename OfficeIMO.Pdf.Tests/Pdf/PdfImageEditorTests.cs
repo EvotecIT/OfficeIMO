@@ -402,17 +402,29 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
-    public void ImageValidationBoundsAggregateRetainedPageContent() {
+    public void ImageValidationBoundsDocumentWideRetainedContentSeparately() {
         PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
         PdfImagePlacement placement = document.Images.Placements().First();
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 40 } };
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 100, MaxRetainedContentBytes = 40 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             document.Images.Move(placement, 10D, 0D, readOptions: options));
 
-        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+        Assert.Equal(PdfReadLimitKind.RetainedContentBytes, exception.Kind);
         Assert.Equal(40, exception.Limit);
         Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void ImageValidationAppliesContentByteBudgetPerPage() {
+        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfImagePlacement placement = document.Images.Placements().First();
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 45 } };
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(placement, 10D, 0D, readOptions: options));
+
+        Assert.Contains("multiple content streams", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

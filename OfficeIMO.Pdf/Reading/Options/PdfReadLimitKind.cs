@@ -108,5 +108,8 @@ public enum PdfReadLimitKind {
     Type3GlyphInvocations = 34,
 
     /// <summary>Widget action nodes materialized while reading AcroForm action graphs.</summary>
-    WidgetActions = 35
+    WidgetActions = 35,
+
+    /// <summary>Aggregate decoded content-stream bytes retained by one document-wide validation operation.</summary>
+    RetainedContentBytes = 36
 }
