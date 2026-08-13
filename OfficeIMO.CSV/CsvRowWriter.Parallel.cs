@@ -54,12 +54,18 @@ public sealed partial class CsvRowWriter
 
         if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(
                 reader,
-                out bool[] cloneColumns))
+                parallelOptions.MaximumBufferedCellsPerBatch,
+                out bool[] cloneColumns,
+                out bool fieldLimitExceeded))
         {
             WriteDataReader(reader, cancellationToken);
             return;
         }
 
+        if (fieldLimitExceeded)
+        {
+            throw parallelOptions.CreateFieldCountLimitException(fieldCount);
+        }
         int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
         var columns = new string[fieldCount];

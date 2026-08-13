@@ -506,11 +506,11 @@ internal static partial class PdfCorpusRunner {
 
         string root = Path.GetFullPath(directory);
         string candidate = Path.GetFullPath(Path.Combine(root, entryId + suffix));
-        string rootedPrefix = Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar;
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        if (!candidate.StartsWith(rootedPrefix, comparison)) {
+        string relative = Path.GetRelativePath(root, candidate);
+        if (Path.IsPathRooted(relative)
+            || relative.Equals("..", StringComparison.Ordinal)
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            || relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal)) {
             throw new InvalidDataException($"PDF corpus artifact path for '{entryId}' escapes its output directory.");
         }
         return candidate;

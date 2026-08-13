@@ -61,10 +61,12 @@ public sealed class CsvWriteParallelOptions
         }
         if (fieldCount > MaximumBufferedCellsPerBatch)
         {
-            throw new InvalidOperationException(
-                $"Data reader exposes {fieldCount} fields, exceeding the configured per-batch cell budget of {MaximumBufferedCellsPerBatch}.");
+            throw CreateFieldCountLimitException(fieldCount);
         }
 
         return Math.Min(requestedBatchSize, MaximumBufferedCellsPerBatch / fieldCount);
     }
+
+    internal InvalidOperationException CreateFieldCountLimitException(int fieldCount) =>
+        new($"Data reader exposes {fieldCount} fields, exceeding the configured per-batch cell budget of {MaximumBufferedCellsPerBatch}.");
 }

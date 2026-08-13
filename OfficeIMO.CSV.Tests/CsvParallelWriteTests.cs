@@ -141,7 +141,7 @@ public class CsvParallelWriteTests
         var shared = new MutableFormattable { Value = "safe" };
         using var reader = new ThrowingGetValuesDataReader(
             ["First", "Second", "Third"],
-            [[shared, shared, shared]]);
+            [[1, 2, shared]]);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
 
         CsvDocument.WriteDataReaderParallel(
@@ -155,7 +155,7 @@ public class CsvParallelWriteTests
                 MaximumBufferedCellsPerBatch = 2
             });
 
-        Assert.Equal("First,Second,Third\nsafe,safe,safe\n", writer.ToString());
+        Assert.Equal("First,Second,Third\n1,2,safe\n", writer.ToString());
     }
 
     [Fact]
@@ -208,6 +208,7 @@ public class CsvParallelWriteTests
 
         Assert.Contains("per-batch cell budget", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, reader.GetValueCallCount);
+        Assert.Equal(reader.FieldCount, reader.GetFieldTypeCallCount);
         Assert.Equal(string.Empty, writer.ToString());
     }
 

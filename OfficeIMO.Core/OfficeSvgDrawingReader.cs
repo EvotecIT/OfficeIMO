@@ -663,8 +663,13 @@ public static partial class OfficeSvgDrawingReader {
                 || targetName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) {
                 return TryValidateInheritedGradientReference(target, references);
             }
-            return targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)
-                && TryAddRenderedSvgDefinitionExpansion(
+            if (!targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)) return false;
+            // Pattern units, content units, viewBox, and preserveAspectRatio can remap every
+            // descendant across the consumer bounds. Keep safe patterns compatible while
+            // conservatively charging each expanded paint operation as a viewport repaint.
+            rasterWork.EnterConservativePlacement();
+            try {
+                return TryAddRenderedSvgDefinitionExpansion(
                     target,
                     references,
                     maximumElements,
@@ -674,6 +679,9 @@ public static partial class OfficeSvgDrawingReader {
                     viewX,
                     viewY,
                     rasterWork);
+            } finally {
+                rasterWork.ExitConservativePlacement();
+            }
         } finally {
             references.Exit(referenceId);
         }
