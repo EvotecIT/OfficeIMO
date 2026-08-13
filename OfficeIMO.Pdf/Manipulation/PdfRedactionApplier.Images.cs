@@ -595,6 +595,8 @@ internal static partial class PdfRedactionApplier {
     private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers, PdfReadLimits limits) {
         var invokedNames = new HashSet<string>(StringComparer.Ordinal);
         var pageContentStreamNumbers = new HashSet<int>();
+        var type3CharProcStreams = new HashSet<PdfStream>();
+        var scannedStreams = new HashSet<PdfStream>();
         foreach (PdfIndirectObject candidate in objects.Values) {
             if (candidate.Value is not PdfDictionary page ||
                 !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
@@ -603,10 +605,37 @@ internal static partial class PdfRedactionApplier {
                 pageContentStreamNumbers.Add(reference.ObjectNumber);
             }
         }
+        foreach (PdfIndirectObject candidate in objects.Values) {
+            PdfDictionary? dictionary = candidate.Value switch {
+                PdfDictionary value => value,
+                PdfStream value => value.Dictionary,
+                _ => null
+            };
+            if (dictionary == null ||
+                !string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "Type3", StringComparison.Ordinal) ||
+                !dictionary.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
+                PdfObjectLookup.Resolve(objects, charProcsObject) is not PdfDictionary charProcs) continue;
+            foreach (PdfObject charProcObject in charProcs.Items.Values) {
+                if (PdfObjectLookup.Resolve(objects, charProcObject) is PdfStream charProc) type3CharProcStreams.Add(charProc);
+            }
+        }
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfStream stream ||
-                (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) && !CanOwnContentInvocations(stream.Dictionary)) ||
+                (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) &&
+                 !type3CharProcStreams.Contains(stream) &&
+                 !CanOwnContentInvocations(stream.Dictionary)) ||
                 stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
+            ScanContentInvocations(stream);
+        }
+        foreach (PdfStream charProc in type3CharProcStreams) ScanContentInvocations(charProc);
+        bool changed = false;
+        foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
+        return changed;
+
+        void ScanContentInvocations(PdfStream stream) {
+            if (!scannedStreams.Add(stream) ||
+                stream.DecodingFailed ||
+                StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return;
             string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
             foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(
                 content,
@@ -616,9 +645,6 @@ internal static partial class PdfRedactionApplier {
                 invokedNames.Add(invocation.Name);
             }
         }
-        bool changed = false;
-        foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
-        return changed;
 
         static bool CanOwnContentInvocations(PdfDictionary dictionary) {
             string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;

@@ -304,7 +304,39 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
         EditableField field = RequireField(objects, fields, name);
+        int flags = ReadInheritedFieldFlags(objects, field.Dictionary);
+        if (value is not null &&
+            string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+            (flags & FieldFlagPushButton) == 0 &&
+            !string.Equals(value, "Off", StringComparison.Ordinal) &&
+            !CollectButtonAppearanceStates(objects, field.Dictionary, new HashSet<int>()).Contains(value)) {
+            throw new ArgumentException($"PDF button field cannot use default value '{value}' because it is not one of the available appearance states.", nameof(value));
+        }
         SetDefaultValue(field.Dictionary, field.FieldType, value, "Yes", normalizeButtonValue: false);
+    }
+
+    private static HashSet<string> CollectButtonAppearanceStates(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        HashSet<int> visited) {
+        var states = new HashSet<string>(StringComparer.Ordinal);
+        Collect(field);
+        return states;
+
+        void Collect(PdfDictionary current) {
+            if (current.Items.TryGetValue("AP", out PdfObject? appearanceObject) &&
+                ResolveDictionary(objects, appearanceObject) is PdfDictionary appearances &&
+                appearances.Items.TryGetValue("N", out PdfObject? normalObject) &&
+                ResolveDictionary(objects, normalObject) is PdfDictionary normalAppearances) {
+                foreach (string state in normalAppearances.Items.Keys) states.Add(state);
+            }
+            if (!current.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
+                PdfObjectLookup.Resolve(objects, kidsObject) is not PdfArray kids) return;
+            foreach (PdfObject kidObject in kids.Items) {
+                if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) continue;
+                if (PdfObjectLookup.Resolve(objects, kidObject) is PdfDictionary kid) Collect(kid);
+            }
+        }
     }
 
     private static void ApplyFlags(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, int flags, Dictionary<string, string> refillValues) {

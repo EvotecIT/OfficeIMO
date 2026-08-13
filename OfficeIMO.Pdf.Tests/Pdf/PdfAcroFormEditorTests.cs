@@ -6,6 +6,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAcroFormEditorTests {
     [Fact]
+    public void Edit_RejectsButtonDefaultsWithoutMatchingAppearanceStates() {
+        byte[] checkBox = PdfDocument.Create().CheckBox("Choice", isChecked: true).ToBytes();
+        byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetDefaultValue("Choice", "No")));
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Three")));
+
+        PdfAcroFormEditResult valid = PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Two"));
+        Assert.Equal("Two", Assert.Single(valid.Fields).DefaultValue);
+    }
+
+    [Fact]
     public void Edit_ValidatesOnlyFinalOrderingCommandsInOneTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("First", value: "1")
