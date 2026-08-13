@@ -153,6 +153,14 @@ internal static partial class PdfAcroFormEditor {
         EditableField field = RequireField(objects, fields, name);
         if (field.WidgetObjectNumbers.Count != 1) throw new NotSupportedException("Moving a form field requires exactly one indirect widget.");
         PdfDictionary widget = RequireDictionary(objects, field.WidgetObjectNumbers[0]);
+        PdfDictionary page = RequirePage(objects, pages, pageNumber);
+        int? sourcePageObjectNumber = FindContainingPageObjectNumber(objects, pages, field.WidgetObjectNumbers[0]);
+        bool movesAcrossPages = sourcePageObjectNumber.HasValue
+            ? sourcePageObjectNumber.Value != pages[pageNumber - 1]
+            : !ReferencesObject(widget.Items.TryGetValue("P", out PdfObject? sourcePageObject) ? sourcePageObject : null, pages[pageNumber - 1]);
+        if (movesAcrossPages && IsPushButton(objects, field) && HasResourceLessPushButtonAppearance(objects, widget)) {
+            throw new NotSupportedException("Moving a push button with an appearance that inherits page resources to another page is not supported because its caption or icon resources cannot be preserved safely.");
+        }
         bool pushButtonSizeChanged = IsPushButton(objects, field) && !HasSameRectangleSize(objects, widget, rectangle);
         if (pushButtonSizeChanged && HasPushButtonIcon(objects, widget)) {
             throw new NotSupportedException("Resizing a push button with an icon is not supported because its icon and layout semantics cannot be preserved safely.");
@@ -160,7 +168,6 @@ internal static partial class PdfAcroFormEditor {
         if (pushButtonSizeChanged && HasPushButtonInteractiveAppearances(objects, widget)) {
             throw new NotSupportedException("Resizing a push button with rollover or down appearances is not supported because every interactive appearance state must preserve the authored bounds.");
         }
-        PdfDictionary page = RequirePage(objects, pages, pageNumber);
         PdfArray destinationAnnotations = EnsureAnnotationArray(objects, page);
         int destinationIndex = FindReferenceIndex(destinationAnnotations, field.WidgetObjectNumbers[0]);
         RemoveWidgetReferences(objects, new HashSet<int>(field.WidgetObjectNumbers));
@@ -210,6 +217,33 @@ internal static partial class PdfAcroFormEditor {
         return appearances != null &&
             (appearances.Items.TryGetValue("R", out PdfObject? rollover) && PdfObjectLookup.Resolve(objects, rollover) is not PdfNull ||
              appearances.Items.TryGetValue("D", out PdfObject? down) && PdfObjectLookup.Resolve(objects, down) is not PdfNull);
+    }
+
+    private static bool HasResourceLessPushButtonAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+        PdfDictionary? appearances = ResolveDictionary(
+            objects,
+            widget.Items.TryGetValue("AP", out PdfObject? appearanceObject) ? appearanceObject : null);
+        return appearances != null &&
+            appearances.Items.TryGetValue("N", out PdfObject? normalObject) &&
+            PdfObjectLookup.Resolve(objects, normalObject) is PdfStream normalAppearance &&
+            !normalAppearance.Dictionary.Items.ContainsKey("Resources");
+    }
+
+    private static bool ReferencesObject(PdfObject? value, int objectNumber) =>
+        value is PdfReference reference && reference.ObjectNumber == objectNumber;
+
+    private static int? FindContainingPageObjectNumber(
+        Dictionary<int, PdfIndirectObject> objects,
+        int[] pages,
+        int annotationObjectNumber) {
+        for (int index = 0; index < pages.Length; index++) {
+            PdfDictionary page = RequireDictionary(objects, pages[index]);
+            PdfArray? annotations = ResolveArray(
+                objects,
+                page.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
+            if (annotations != null && FindReferenceIndex(annotations, annotationObjectNumber) >= 0) return pages[index];
+        }
+        return null;
     }
 
     private static bool HasSameRectangleSize(
@@ -307,6 +341,11 @@ internal static partial class PdfAcroFormEditor {
         int flags = ReadInheritedFieldFlags(objects, field.Dictionary);
         if (value is not null &&
             string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
+            (flags & FieldFlagPushButton) != 0) {
+            throw new ArgumentException("PDF push-button fields do not support default values.", nameof(value));
+        }
+        if (value is not null &&
+            string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
             (flags & FieldFlagPushButton) == 0 &&
             !string.Equals(value, "Off", StringComparison.Ordinal) &&
             !CollectButtonAppearanceStates(objects, field.Dictionary, new HashSet<int>()).Contains(value)) {
@@ -391,6 +430,11 @@ internal static partial class PdfAcroFormEditor {
             throw new NotSupportedException("Changing between check-box and radio-button semantics is not supported because it requires rebuilding the complete button state.");
         }
         if (string.Equals(field.FieldType, "Tx", StringComparison.Ordinal) &&
+            (flags & FieldFlagFileSelect) != 0 &&
+            (flags & (FieldFlagMultiline | FieldFlagPassword)) != 0) {
+            throw new NotSupportedException("PDF file-select text fields cannot also be multiline or password fields.");
+        }
+        if (string.Equals(field.FieldType, "Tx", StringComparison.Ordinal) &&
             (flags & FieldFlagComb) != 0 &&
             (!HasInheritedPositiveInteger(objects, field.Dictionary, "MaxLen") ||
              (flags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
@@ -410,6 +454,15 @@ internal static partial class PdfAcroFormEditor {
                 (ReadInheritedFieldObject(objects, field.Dictionary, "V") is PdfArray ||
                  ReadInheritedFieldObject(objects, field.Dictionary, "DV") is PdfArray)) {
                 throw new NotSupportedException("Clearing multi-select is not supported while the choice field stores an array value as its current or default value.");
+            }
+            if (!isEditable) {
+                HashSet<string> options = CollectChoiceExportValues(objects, field.Dictionary);
+                string? currentValue = ReadInheritedSimpleFieldValue(objects, field.Dictionary, "V");
+                string? defaultValue = ReadInheritedSimpleFieldValue(objects, field.Dictionary, "DV");
+                if ((currentValue is not null && !options.Contains(currentValue)) ||
+                    (defaultValue is not null && !options.Contains(defaultValue))) {
+                    throw new NotSupportedException("Clearing editable choice semantics is not supported while the current or default value is absent from the authored options.");
+                }
             }
         }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
@@ -436,6 +489,15 @@ internal static partial class PdfAcroFormEditor {
                 : null;
         }
         return false;
+    }
+
+    private static string? ReadInheritedSimpleFieldValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        string key) {
+        PdfObject? value = ReadInheritedFieldObject(objects, field, key);
+        string? simpleValue = value is PdfStringObj text ? text.Value : value is PdfName name ? name.Name : null;
+        return string.IsNullOrEmpty(simpleValue) ? null : simpleValue;
     }
 
     private static PdfObject? ReadInheritedFieldValue(

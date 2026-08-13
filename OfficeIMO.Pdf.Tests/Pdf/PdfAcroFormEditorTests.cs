@@ -40,6 +40,21 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_RejectsDefaultValuesForPushButtons() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push default")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit"
+        })).ToBytes();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(authored).Forms.Edit(edit => edit.SetDefaultValue("Submit", "On")));
+
+        Assert.Contains("push-button", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Edit_ValidatesOnlyFinalOrderingCommandsInOneTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("First", value: "1")
@@ -294,6 +309,43 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_MoveRejectsCrossPagePushButtonWithResourceLessAppearance() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("First page"))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page"))
+            .ToBytes();
+        source = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit",
+            PageNumber = 1,
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Submit").Value);
+            PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+            PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+            PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+            normalAppearance.Dictionary.Items.Remove("Resources");
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        byte[] samePageMove = PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.Move("Submit", 1, 80D, 430D, 120D, 24D)).ToBytes();
+        Assert.NotEmpty(samePageMove);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Submit", 2, 72D, 440D, 120D, 24D)));
+
+        Assert.Contains("page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Edit_AllowsFurtherLayoutChangesToUnsignedSignatureField() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Signature page")).ToBytes();
         byte[] placed = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
@@ -410,6 +462,41 @@ public class PdfAcroFormEditorTests {
             PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
 
         Assert.Contains("default value", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsDemotingEditableChoiceWithUnlistedDefault() {
+        byte[] source = PdfDocument.Create().ChoiceField(
+            "Country",
+            new[] { "Poland", "Germany" },
+            value: "Poland",
+            style: new PdfFormFieldStyle { IsEditableChoice = true }).ToBytes();
+        source = PdfDocument.Open(source).Forms.Edit(edit => edit.SetDefaultValue("Country", "Custom")).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", 1 << 17)));
+
+        Assert.Contains("authored options", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(1 << 13)]
+    [InlineData(1 << 12)]
+    public void Edit_RejectsFileSelectCombinedWithPasswordOrMultiline(int incompatibleFlag) {
+        const int fileSelectFlag = 1 << 20;
+        byte[] source = PdfDocument.Create().TextField("Upload", value: "file.txt").ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(
+            new PdfFormFieldCreateOptions {
+                Name = "InvalidUpload",
+                Kind = PdfFormFieldCreationKind.Text,
+                Value = "file.txt",
+                FieldFlags = fileSelectFlag | incompatibleFlag
+            })));
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Upload", fileSelectFlag | incompatibleFlag)));
+
+        Assert.Contains("file-select", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

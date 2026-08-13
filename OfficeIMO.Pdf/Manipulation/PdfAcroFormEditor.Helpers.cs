@@ -340,6 +340,11 @@ internal static partial class PdfAcroFormEditor {
             if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
         }
         int fieldFlags = GetCreateFieldFlags(options);
+        if (options.Kind == PdfFormFieldCreationKind.Text &&
+            (fieldFlags & FieldFlagFileSelect) != 0 &&
+            (fieldFlags & (FieldFlagMultiline | FieldFlagPassword)) != 0) {
+            throw new ArgumentException("PDF file-select text fields cannot also be multiline or password fields.", nameof(options));
+        }
         bool requestsComb = options.Style?.IsComb == true || (options.FieldFlags & FieldFlagComb) != 0;
         if (requestsComb &&
             (options.Kind != PdfFormFieldCreationKind.Text ||
