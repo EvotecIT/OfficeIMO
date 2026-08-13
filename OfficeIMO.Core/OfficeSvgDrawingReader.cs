@@ -267,12 +267,16 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool ExceedsSvgRenderedExpansionLimits(XElement root, int maximumElements) {
-        if (HasPotentialStylesheetPatternReference(root)) return true;
+        if (HasPotentialStylesheetRenderedDefinitionReference(root)) return true;
         int commandCount = 0;
         int elementCount = 0;
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
+        string? marker = ResolveInheritedSvgPaint(root, "marker", inherited: null);
+        string? markerStart = ResolveInheritedSvgPaint(root, "marker-start", marker);
+        string? markerMid = ResolveInheritedSvgPaint(root, "marker-mid", marker);
+        string? markerEnd = ResolveInheritedSvgPaint(root, "marker-end", marker);
         foreach (XElement child in root.Elements()) {
             if (!TryAddRenderedSvgExpansion(
                     child,
@@ -281,15 +285,24 @@ public static partial class OfficeSvgDrawingReader {
                     ref elementCount,
                     ref commandCount,
                     fill,
-                    stroke)) return true;
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd)) return true;
         }
         return false;
     }
 
-    private static bool HasPotentialStylesheetPatternReference(XElement root) {
-        bool containsPattern = root.Descendants().Any(element =>
-            element.Name.LocalName.Equals("pattern", StringComparison.OrdinalIgnoreCase));
-        return containsPattern && root.Descendants().Any(element =>
+    private static bool HasPotentialStylesheetRenderedDefinitionReference(XElement root) {
+        bool containsExpandedDefinition = root.Descendants().Any(element => {
+            string name = element.Name.LocalName;
+            return name.Equals("pattern", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("mask", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("filter", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("marker", StringComparison.OrdinalIgnoreCase);
+        });
+        return containsExpandedDefinition && root.Descendants().Any(element =>
             element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
             && element.Value.IndexOf("url", StringComparison.OrdinalIgnoreCase) >= 0);
     }
@@ -301,7 +314,10 @@ public static partial class OfficeSvgDrawingReader {
         ref int elementCount,
         ref int commandCount,
         string? inheritedFill = null,
-        string? inheritedStroke = null) {
+        string? inheritedStroke = null,
+        string? inheritedMarkerStart = null,
+        string? inheritedMarkerMid = null,
+        string? inheritedMarkerEnd = null) {
         elementCount++;
         if (elementCount > maximumElements) return false;
 
@@ -310,6 +326,10 @@ public static partial class OfficeSvgDrawingReader {
 
         string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
         string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
+        string? marker = ResolveInheritedSvgPaint(element, "marker", inherited: null);
+        string? markerStart = ResolveInheritedSvgPaint(element, "marker-start", marker ?? inheritedMarkerStart);
+        string? markerMid = ResolveInheritedSvgPaint(element, "marker-mid", marker ?? inheritedMarkerMid);
+        string? markerEnd = ResolveInheritedSvgPaint(element, "marker-end", marker ?? inheritedMarkerEnd);
         if (IsRenderedSvgPaintConsumer(name)) {
             if (!TryAddRenderedSvgPatternReference(
                     fill,
@@ -324,6 +344,33 @@ public static partial class OfficeSvgDrawingReader {
                     ref elementCount,
                     ref commandCount)) return false;
         }
+
+        SvgMarkerPlacementCounts markerPlacements = CountSvgMarkerPlacements(element);
+        if (markerPlacements.HasAny
+            && (!TryAddRenderedSvgLocalReferenceApplications(
+                    markerStart,
+                    "marker",
+                    markerPlacements.Start,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)
+                || !TryAddRenderedSvgLocalReferenceApplications(
+                    markerMid,
+                    "marker",
+                    markerPlacements.Mid,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)
+                || !TryAddRenderedSvgLocalReferenceApplications(
+                    markerEnd,
+                    "marker",
+                    markerPlacements.End,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount))) return false;
 
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
@@ -349,7 +396,10 @@ public static partial class OfficeSvgDrawingReader {
                     ref elementCount,
                     ref commandCount,
                     fill,
-                    stroke);
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd);
             } finally {
                 references.Exit(referenceId);
             }
@@ -385,7 +435,10 @@ public static partial class OfficeSvgDrawingReader {
                     ref elementCount,
                     ref commandCount,
                     fill,
-                    stroke)) return false;
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd)) return false;
         }
         return true;
     }
@@ -393,10 +446,7 @@ public static partial class OfficeSvgDrawingReader {
     private static readonly string[] RenderedSvgLocalReferenceProperties = {
         "mask",
         "clip-path",
-        "filter",
-        "marker-start",
-        "marker-mid",
-        "marker-end"
+        "filter"
     };
 
     private static bool TryAddRenderedSvgLocalReference(

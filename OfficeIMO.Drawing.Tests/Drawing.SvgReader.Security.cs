@@ -45,12 +45,65 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Fact]
-    public void SvgSafetyPredicateRejectsStylesheetPatternPaintBeforeRasterFallback() {
+    public void SvgSafetyPredicateRejectsAnyStylesheetLocalReferenceBeforeRasterFallback() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
-            + "<style>.patterned { fill: url(#p); }</style>"
-            + "<defs><pattern id='p'><rect width='1' height='1'/></pattern></defs>"
-            + "<rect class='patterned' width='4' height='4'/></svg>";
+            + "<style>.clipped { clip-path: url( '#c' ); }</style>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='clipped' width='4' height='4'/></svg>";
 
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsEscapedStylesheetReferenceToRenderedDefinition() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.clipped { clip-path: url(\\#c); }</style>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect class='clipped' width='4' height='4'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateAllowsStylesheetExternalUrlsWithoutLocalExpansion() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.external { fill: url(https://example.test/pattern.svg); }</style>"
+            + "<rect class='external' width='4' height='4'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesInheritedMarkerMidPerVertex() {
+        const string shortPath = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' marker-mid='url(#m)'>"
+            + "<defs><marker id='m'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1 L2 0'/></svg>";
+        const string longPath = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8' marker-mid='url(#m)'>"
+            + "<defs><marker id='m'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1 L2 0 L3 1'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(shortPath), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(longPath), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesMarkerShorthandPerVertex() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<polyline points='0,0 1,1 2,0 3,1' style='marker:url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesMarkerStartPerSubpath() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><marker id='m'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1 M2 0 L3 1' marker-start='url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
     }
 }
