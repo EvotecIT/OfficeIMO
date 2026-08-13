@@ -145,6 +145,49 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_EvaluatesIndirectOperandInsideInlineVisibilityExpression() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE [/Not 12 0 R] >>",
+            indirectVisibilityExpression: "[/Not 10 0 R]");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsDirectInlineVisibilityExpressionNesting() {
+        string expression = "10 0 R";
+        for (int depth = 0; depth < 129; depth++) expression = "[/Not " + expression + "]";
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE " + expression + " >>");
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentNestingDepth = 256 }
+        };
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(PdfReadDocument.Open(pdf, options));
+
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsIndirectVisibilityExpressionChains() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
+            indirectVisibilityChainLength: 130);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_AllowsRepeatedIndirectVisibilitySubexpressionAcrossSiblings() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
@@ -194,7 +237,8 @@ public class PdfType3OptionalContentTests {
         string hiddenExtraContent = "",
         string? indirectVisibilityExpression = null,
         bool allGroupsOn = false,
-        string? secondaryVisibilityExpression = null) {
+        string? secondaryVisibilityExpression = null,
+        int indirectVisibilityChainLength = 0) {
         string hiddenProperty = inlineMembershipDictionary ?? "/Hidden";
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -223,7 +267,15 @@ public class PdfType3OptionalContentTests {
         }
         objects.Add("10 0 obj\n<< /Type /OCG /Name (Hidden Type 3 layer) >>\nendobj");
         objects.Add("11 0 obj\n<< /Type /OCG /Name (Visible Type 3 layer) >>\nendobj");
-        if (indirectVisibilityExpression is not null) {
+        if (indirectVisibilityChainLength > 0) {
+            for (int index = 0; index < indirectVisibilityChainLength; index++) {
+                int objectNumber = 12 + index;
+                string value = index + 1 == indirectVisibilityChainLength
+                    ? "[/Not 10 0 R]"
+                    : (objectNumber + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R";
+                objects.Add(objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n" + value + "\nendobj");
+            }
+        } else if (indirectVisibilityExpression is not null) {
             objects.Add("12 0 obj\n" + indirectVisibilityExpression + "\nendobj");
         }
         if (secondaryVisibilityExpression is not null) {

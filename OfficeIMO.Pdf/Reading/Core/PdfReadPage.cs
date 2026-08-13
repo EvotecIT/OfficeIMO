@@ -902,7 +902,7 @@ public sealed partial class PdfReadPage {
     }
 
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
-        PdfPageOptionalContentVisibility.Create(resources, _objects);
+        PdfPageOptionalContentVisibility.Create(resources, _objects, _limits.MaxContentNestingDepth);
 
     private static Dictionary<string, Func<byte[], int, string>> MergeDecoders(
         Dictionary<string, Func<byte[], int, string>> parent,

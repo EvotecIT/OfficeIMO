@@ -5,17 +5,21 @@ internal sealed class PdfPageOptionalContentVisibility {
     private readonly HashSet<int> _hiddenObjectNumbers;
     private readonly Dictionary<int, bool> _groupVisibility;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
+    private readonly int _maxExpressionDepth;
 
-    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects) {
+    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects, int maxExpressionDepth) {
         _hiddenProperties = hiddenProperties;
         _hiddenObjectNumbers = hiddenObjectNumbers;
         _groupVisibility = groupVisibility;
         _objects = objects;
+        _maxExpressionDepth = maxExpressionDepth;
     }
 
     public static PdfPageOptionalContentVisibility? Create(
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxExpressionDepth) {
+        int effectiveMaxExpressionDepth = System.Math.Min(maxExpressionDepth, PdfReadLimits.DefaultMaxContentNestingDepth);
         Dictionary<int, bool> groupVisibility = ReadGroupVisibility(objects);
         if (groupVisibility.Count == 0) {
             return null;
@@ -33,7 +37,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 continue;
             }
 
-            if (IsOptionalContentObjectHidden(entry.Value.Value, groupVisibility, objects, new HashSet<int>())) {
+            if (IsOptionalContentObjectHidden(entry.Value.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
                 hiddenObjectNumbers.Add(entry.Key);
             }
         }
@@ -43,13 +47,13 @@ internal sealed class PdfPageOptionalContentVisibility {
             resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) &&
             ResolveObject(propertiesObject, objects) is PdfDictionary properties) {
             foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
-                if (IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects, new HashSet<int>())) {
+                if (IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
                     hiddenProperties[entry.Key] = true;
                 }
             }
         }
 
-        return new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects);
+        return new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects, effectiveMaxExpressionDepth);
     }
 
     public bool IsHidden(string propertyName) =>
@@ -76,7 +80,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                     SkipInlineWhitespace(expression, ref index);
                     if (index == expression.Length &&
                         _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
-                        TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), out expressionVisible)) {
+                        TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), _maxExpressionDepth, depth: 0, out expressionVisible)) {
                         return !expressionVisible;
                     }
                 }
@@ -96,7 +100,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
 
-        if (!TryEvaluateInlineVisibilityExpression(expression, ref index, out visible)) {
+        if (!TryEvaluateInlineVisibilityExpression(expression, ref index, depth: 0, out visible)) {
             return false;
         }
 
@@ -104,26 +108,40 @@ internal sealed class PdfPageOptionalContentVisibility {
         return index == expression.Length;
     }
 
-    private bool TryEvaluateInlineVisibilityExpression(string expression, ref int index, out bool visible) {
+    private bool TryEvaluateInlineVisibilityExpression(string expression, ref int index, int depth, out bool visible) {
         visible = false;
+        if (depth > _maxExpressionDepth) {
+            return false;
+        }
         SkipInlineWhitespace(expression, ref index);
         if (index >= expression.Length) {
             return false;
         }
 
         if (expression[index] == '[') {
-            return TryEvaluateInlineVisibilityArray(expression, ref index, out visible);
+            return TryEvaluateInlineVisibilityArray(expression, ref index, depth, out visible);
         }
 
         if (TryReadInlineReference(expression, ref index, out int objectNumber)) {
-            visible = !_hiddenObjectNumbers.Contains(objectNumber);
-            return true;
+            if (_groupVisibility.TryGetValue(objectNumber, out visible)) {
+                return true;
+            }
+
+            return _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
+                TryEvaluateVisibilityExpression(
+                    indirect.Value,
+                    _groupVisibility,
+                    _objects,
+                    new HashSet<int> { objectNumber },
+                    _maxExpressionDepth,
+                    depth + 1,
+                    out visible);
         }
 
         return false;
     }
 
-    private bool TryEvaluateInlineVisibilityArray(string expression, ref int index, out bool visible) {
+    private bool TryEvaluateInlineVisibilityArray(string expression, ref int index, int depth, out bool visible) {
         visible = false;
         if (index >= expression.Length || expression[index] != '[') {
             return false;
@@ -139,7 +157,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             case "And":
                 visible = true;
                 int andOperandCount = 0;
-                while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
+                while (TryReadInlineExpressionOperand(expression, ref index, depth + 1, out bool operandVisible)) {
                     visible &= operandVisible;
                     andOperandCount++;
                 }
@@ -148,14 +166,14 @@ internal sealed class PdfPageOptionalContentVisibility {
             case "Or":
                 visible = false;
                 int orOperandCount = 0;
-                while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
+                while (TryReadInlineExpressionOperand(expression, ref index, depth + 1, out bool operandVisible)) {
                     visible |= operandVisible;
                     orOperandCount++;
                 }
 
                 return orOperandCount > 0 && TryCloseInlineArray(expression, ref index);
             case "Not":
-                if (!TryReadInlineExpressionOperand(expression, ref index, out bool nestedVisible)) {
+                if (!TryReadInlineExpressionOperand(expression, ref index, depth + 1, out bool nestedVisible)) {
                     return false;
                 }
 
@@ -166,14 +184,14 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
     }
 
-    private bool TryReadInlineExpressionOperand(string expression, ref int index, out bool visible) {
+    private bool TryReadInlineExpressionOperand(string expression, ref int index, int depth, out bool visible) {
         visible = false;
         SkipInlineWhitespace(expression, ref index);
         if (index >= expression.Length || expression[index] == ']') {
             return false;
         }
 
-        return TryEvaluateInlineVisibilityExpression(expression, ref index, out visible);
+        return TryEvaluateInlineVisibilityExpression(expression, ref index, depth, out visible);
     }
 
     private static bool TryCloseInlineArray(string expression, ref int index) {
@@ -387,7 +405,12 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfObject value,
         Dictionary<int, bool> groupVisibility,
         Dictionary<int, PdfIndirectObject> objects,
-        HashSet<int> visited) {
+        HashSet<int> visited,
+        int maxExpressionDepth,
+        int depth) {
+        if (depth > maxExpressionDepth) {
+            return false;
+        }
         if (value is PdfReference reference) {
             if (groupVisibility.TryGetValue(reference.ObjectNumber, out bool groupVisible)) {
                 return !groupVisible;
@@ -397,8 +420,11 @@ internal sealed class PdfPageOptionalContentVisibility {
                 !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) {
                 return false;
             }
-
-            return IsOptionalContentObjectHidden(indirect.Value, groupVisibility, objects, visited);
+            try {
+                return IsOptionalContentObjectHidden(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1);
+            } finally {
+                visited.Remove(reference.ObjectNumber);
+            }
         }
 
         if (ResolveObject(value, objects) is not PdfDictionary dictionary) {
@@ -416,7 +442,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         if (dictionary.Items.TryGetValue("VE", out PdfObject? expressionObject) &&
-            TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), out bool expressionVisible)) {
+            TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1, out bool expressionVisible)) {
             return !expressionVisible;
         }
 
@@ -475,8 +501,13 @@ internal sealed class PdfPageOptionalContentVisibility {
         Dictionary<int, bool> groupVisibility,
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<int> visited,
+        int maxExpressionDepth,
+        int depth,
         out bool visible) {
         visible = false;
+        if (depth > maxExpressionDepth) {
+            return false;
+        }
         if (value is PdfReference reference) {
             if (groupVisibility.TryGetValue(reference.ObjectNumber, out visible)) {
                 return true;
@@ -487,7 +518,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
             try {
                 return objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) &&
-                    TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, out visible);
+                    TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out visible);
             } finally {
                 visited.Remove(reference.ObjectNumber);
             }
@@ -496,7 +527,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfObject? resolved = ResolveObject(value, objects);
         if (resolved is PdfDictionary dictionary) {
             if (string.Equals(ReadName(dictionary, "Type", objects), "OCMD", StringComparison.Ordinal)) {
-                visible = !IsOptionalContentObjectHidden(dictionary, groupVisibility, objects, visited);
+                visible = !IsOptionalContentObjectHidden(dictionary, groupVisibility, objects, visited, maxExpressionDepth, depth + 1);
                 return true;
             }
 
@@ -514,7 +545,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 if (expression.Items.Count < 2) return false;
                 visible = true;
                 for (int i = 1; i < expression.Items.Count; i++) {
-                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
+                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out bool operandVisible)) {
                         return false;
                     }
 
@@ -526,7 +557,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 if (expression.Items.Count < 2) return false;
                 visible = false;
                 for (int i = 1; i < expression.Items.Count; i++) {
-                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
+                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out bool operandVisible)) {
                         return false;
                     }
 
@@ -536,7 +567,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 return true;
             case "Not":
                 if (expression.Items.Count != 2 ||
-                    !TryEvaluateVisibilityExpression(expression.Items[1], groupVisibility, objects, visited, out bool nestedVisible)) {
+                    !TryEvaluateVisibilityExpression(expression.Items[1], groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out bool nestedVisible)) {
                     return false;
                 }
 
