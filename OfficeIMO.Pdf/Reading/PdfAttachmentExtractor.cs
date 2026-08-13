@@ -102,7 +102,8 @@ internal static class PdfAttachmentExtractor {
         long maxDecodedBytes,
         long? maxDecodedBytesPerAttachment = null,
         int? maxSelectedAttachments = null,
-        int? maxStructuralEntries = null) {
+        int? maxStructuralEntries = null,
+        bool requireSuccessfulDecoding = false) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(predicate, nameof(predicate));
         Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
@@ -125,7 +126,10 @@ internal static class PdfAttachmentExtractor {
             if (maxSelectedAttachments.HasValue && attachments.Count >= maxSelectedAttachments.Value) {
                 throw new InvalidDataException($"The asset exceeds the configured carrier limit of {maxSelectedAttachments.Value}.");
             }
-            attachments.Add(descriptor.ToExtractedAttachment(budget.GetDecodedBytes(descriptor.Stream, document.Objects)));
+            attachments.Add(descriptor.ToExtractedAttachment(budget.GetDecodedBytes(
+                descriptor.Stream,
+                document.Objects,
+                requireSuccessfulDecoding)));
         }
         return attachments.AsReadOnly();
     }
@@ -555,7 +559,10 @@ internal static class PdfAttachmentExtractor {
             _attachmentCount = nextCount;
         }
 
-        internal byte[] GetDecodedBytes(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
+        internal byte[] GetDecodedBytes(
+            PdfStream stream,
+            Dictionary<int, PdfIndirectObject> objects,
+            bool requireSuccessfulDecoding = false) {
             if (_decodedEmbeddedStreams.TryGetValue(stream, out byte[]? cachedBytes) && cachedBytes is not null) {
                 return cachedBytes;
             }
@@ -580,7 +587,9 @@ internal static class PdfAttachmentExtractor {
             int decodeLimit = (int)effectiveLimit;
             byte[] bytes;
             try {
-                bytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
+                bytes = requireSuccessfulDecoding
+                    ? StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit)
+                    : StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
                 effectiveLimit < _limits.MaxDecodedStreamBytes) {

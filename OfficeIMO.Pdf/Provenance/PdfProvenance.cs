@@ -28,7 +28,8 @@ public static class PdfProvenance {
             Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)),
             options.MaxManifestBytes,
             options.MaxCarriers,
-            options.MaxContainerEntries);
+            options.MaxContainerEntries,
+            requireSuccessfulDecoding: true);
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
         PdfC2paAssociationProfile associations = CollectAssociationProfile(document, pageTreeObjectNumbers, options.MaxContainerEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
@@ -89,7 +90,8 @@ public static class PdfProvenance {
             Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)),
             options.Limits.MaxManifestBytes,
             options.Limits.MaxCarriers,
-            options.Limits.MaxContainerEntries);
+            options.Limits.MaxContainerEntries,
+            requireSuccessfulDecoding: true);
         var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
