@@ -227,6 +227,54 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicatePreservesExactUseDepthAndRejectsAnOverrun() {
+        static string BuildUseChain(int referencedElements) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs>");
+            for (int index = 0; index < referencedElements; index++) {
+                svg.Append("<g id='r").Append(index).Append("'>");
+                if (index + 1 < referencedElements) {
+                    svg.Append("<use href='#r").Append(index + 1).Append("'/>");
+                } else {
+                    svg.Append("<rect width='1' height='1'/>");
+                }
+                svg.Append("</g>");
+            }
+            return svg.Append("</defs><use href='#r0'/></svg>").ToString();
+        }
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildUseChain(16))));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildUseChain(17))));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsRepeatedUseElementsAgainstRenderedBudget() {
+        const string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='tiles'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></g></defs>"
+            + "<use href='#tiles'/></svg>";
+        const string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='tiles'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></g></defs>"
+            + "<use href='#tiles'/><use href='#tiles'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsRepeatedMaskElementsAgainstRenderedBudget() {
+        const string oneMaskUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><mask id='m' maskUnits='userSpaceOnUse'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></mask></defs>"
+            + "<rect width='4' height='4' mask='url(#m)'/></svg>";
+        const string twoMaskUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><mask id='m' maskUnits='userSpaceOnUse'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></mask></defs>"
+            + "<rect width='4' height='4' mask='url(#m)'/><rect x='5' width='4' height='4' mask='url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneMaskUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoMaskUses), options));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

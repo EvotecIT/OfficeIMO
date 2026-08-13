@@ -114,7 +114,7 @@ public static partial class OfficeSvgDrawingReader {
                 options,
                 allowUnresolvedViewport: true,
                 out XElement root,
-                out _,
+                out int maximumElements,
                 out _,
                 out _,
                 out _,
@@ -126,7 +126,7 @@ public static partial class OfficeSvgDrawingReader {
 
         return !ExceedsSvgElementNestingLimit(root) &&
                !ExceedsSvgDocumentPathCommandLimit(root) &&
-               !ExceedsSvgRenderedPathCommandLimit(root);
+               !ExceedsSvgRenderedExpansionLimits(root, maximumElements);
     }
 
     private static bool TryReadBoundedDocument(
@@ -266,25 +266,67 @@ public static partial class OfficeSvgDrawingReader {
         return false;
     }
 
-    private static bool ExceedsSvgRenderedPathCommandLimit(XElement root) {
+    private static bool ExceedsSvgRenderedExpansionLimits(XElement root, int maximumElements) {
         int commandCount = 0;
+        int elementCount = 0;
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         foreach (XElement child in root.Elements()) {
-            if (!TryAddRenderedSvgGeometryCommands(child, references, ref commandCount)) return true;
+            if (!TryAddRenderedSvgExpansion(
+                    child,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)) return true;
         }
         return false;
     }
 
-    private static bool TryAddRenderedSvgGeometryCommands(
+    private static bool TryAddRenderedSvgExpansion(
         XElement element,
         SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
         ref int commandCount) {
+        elementCount++;
+        if (elementCount > maximumElements) return false;
+
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
-        if (name == "use") {
-            if (!references.TryEnter(element, out string referenceId, out XElement? target)) return true;
+
+        SvgElementReferenceEntryResult maskResult = references.TryEnterLocalDetailed(
+            ReadPresentationProperty(element, "mask"),
+            out string maskId,
+            out XElement? maskElement);
+        if (maskResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
+        if (maskResult == SvgElementReferenceEntryResult.Entered) {
             try {
-                return TryAddRenderedSvgGeometryCommands(target!, references, ref commandCount);
+                foreach (XElement child in maskElement!.Elements()) {
+                    if (!TryAddRenderedSvgExpansion(
+                            child,
+                            references,
+                            maximumElements,
+                            ref elementCount,
+                            ref commandCount)) return false;
+                }
+            } finally {
+                references.Exit(maskId);
+            }
+        }
+
+        if (name == "use") {
+            SvgElementReferenceEntryResult useResult = references.TryEnterDetailed(
+                element,
+                out string referenceId,
+                out XElement? target);
+            if (useResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
+            if (useResult != SvgElementReferenceEntryResult.Entered) return true;
+            try {
+                return TryAddRenderedSvgExpansion(
+                    target!,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount);
             } finally {
                 references.Exit(referenceId);
             }
@@ -292,7 +334,12 @@ public static partial class OfficeSvgDrawingReader {
 
         if (!TryAddSvgGeometryCommands(element, ref commandCount)) return false;
         foreach (XElement child in element.Elements()) {
-            if (!TryAddRenderedSvgGeometryCommands(child, references, ref commandCount)) return false;
+            if (!TryAddRenderedSvgExpansion(
+                    child,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)) return false;
         }
         return true;
     }
