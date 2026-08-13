@@ -6,6 +6,7 @@ internal static partial class PdfTextEditor {
         Guard.NotNull(text, nameof(text));
         if (text.Length == 0) return Array.Empty<TextSearchHit>();
         PdfTextSearchOptions snapshot = (options ?? new PdfTextSearchOptions()).Snapshot();
+        PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         int[] pages = snapshot.PageNumbers == null || snapshot.PageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
@@ -36,6 +37,9 @@ internal static partial class PdfTextEditor {
                     if (unit.HasUnmappedBoundary(found, text.Length)) continue;
                     IReadOnlyList<TextSourceSegment> segments = unit.GetSourceSegments(found, text.Length);
                     if (segments.Count == 0) continue;
+                    if (hits.Count >= limits.MaxTextSearchMatches) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.TextSearchMatches, limits.MaxTextSearchMatches, hits.Count + 1L);
+                    }
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
                     var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);

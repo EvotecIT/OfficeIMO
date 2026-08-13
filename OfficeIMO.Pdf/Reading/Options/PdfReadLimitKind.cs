@@ -111,5 +111,8 @@ public enum PdfReadLimitKind {
     WidgetActions = 35,
 
     /// <summary>Aggregate decoded content-stream bytes retained by one document-wide validation operation.</summary>
-    RetainedContentBytes = 36
+    RetainedContentBytes = 36,
+
+    /// <summary>Text-search matches materialized by one Find or ReplaceAll operation.</summary>
+    TextSearchMatches = 37
 }

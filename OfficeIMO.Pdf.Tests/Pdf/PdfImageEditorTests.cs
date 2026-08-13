@@ -445,6 +445,34 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void PortableImageEditsRejectAlternatePresentations() {
+        byte[] source = BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Alternates []");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+
+        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(placement, 10D, 0D));
+        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Replace(placement, PdfPngTestImages.CreateRgbPng(0, 0, 255)));
+
+        Assert.Contains("alternate", moveException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("alternate", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RemovingPageImageRetainsSharedImageInvokedByTilingPattern() {
+        PdfDocument document = PdfDocument.Open(BuildPatternSharedImagePdf());
+        PdfImagePlacement selected = Assert.Single(document.Images.Placements());
+
+        PdfImageEditResult result = document.Images.Remove(selected);
+        string output = PdfEncoding.Latin1GetString(result.Document.ToBytes());
+
+        Assert.Contains("/ImPattern", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PortableImageEditsRejectContentRenderingIntent() {
         byte[] source = BuildRawImagePdf(
             "q /Perceptual ri 40 0 0 20 20 30 cm /Im0 Do Q\n");
@@ -648,6 +676,21 @@ public class PdfImageEditorTests {
         output.Write(suffixBytes, 0, suffixBytes.Length);
         WriteAscii(output, "endstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 5 >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildPatternSharedImagePdf() {
+        const string pageContent = "q 40 0 0 20 20 30 cm /ImPage Do Q /Pattern cs /P1 scn 0 0 200 120 re f\n";
+        const string patternContent = "q 5 0 0 5 0 0 cm /ImPattern Do Q\n";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /ImPage 6 0 R >> /Pattern << /P1 7 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent.TrimEnd('\n'), "endstream", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "abc", "endstream", "endobj",
+            "7 0 obj", "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << /XObject << /ImPattern 6 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(patternContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", patternContent.TrimEnd('\n'), "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF", string.Empty
+        }));
     }
 
     private static byte[] BuildRepeatedFormImagePdf() {

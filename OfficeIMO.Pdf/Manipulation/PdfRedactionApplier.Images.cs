@@ -605,8 +605,7 @@ internal static partial class PdfRedactionApplier {
         }
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfStream stream ||
-                (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) &&
-                 !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) ||
+                (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) && !CanOwnContentInvocations(stream.Dictionary)) ||
                 stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
             string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
             foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(
@@ -620,6 +619,17 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
         return changed;
+
+        static bool CanOwnContentInvocations(PdfDictionary dictionary) {
+            string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
+            string? type = dictionary.Get<PdfName>("Type")?.Name;
+            if (string.Equals(subtype, "Image", StringComparison.Ordinal) ||
+                string.Equals(type, "EmbeddedFile", StringComparison.Ordinal) ||
+                string.Equals(type, "ObjStm", StringComparison.Ordinal) ||
+                string.Equals(type, "XRef", StringComparison.Ordinal)) return false;
+            return string.Equals(subtype, "Form", StringComparison.Ordinal) ||
+                dictionary.Get<PdfNumber>("PatternType")?.Value == 1D;
+        }
     }
 
     private static IEnumerable<PdfReference> EnumerateContentStreamReferences(

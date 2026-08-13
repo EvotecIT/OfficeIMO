@@ -27,6 +27,36 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void FindAndReplaceAllBoundMaterializedMatches() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (aaaa) Tj ET\n");
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxTextSearchMatches = 2 } };
+
+        PdfReadLimitException findException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source).Text.Find("a", new PdfTextSearchOptions { MatchCase = true }, options));
+        PdfReadLimitException replaceException = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source).Text.ReplaceAll("a", "b", new PdfTextSearchOptions { MatchCase = true }, readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.TextSearchMatches, findException.Kind);
+        Assert.Equal(PdfReadLimitKind.TextSearchMatches, replaceException.Kind);
+        Assert.Equal(2, findException.Limit);
+    }
+
+    [Fact]
+    public void PortableTextRestampsRejectAuthoredRenderingIntent() {
+        byte[] source = BuildRawTextPdf("q /Perceptual ri BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Text.Move(region, 10D, 0D));
+        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Text.Replace(region, "replacement"));
+
+        Assert.Contains("cannot be recreated", moveException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("cannot be recreated", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ReplaceRemovesOnlyTextAndPreservesIntersectingAnnotation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Keep line above"))

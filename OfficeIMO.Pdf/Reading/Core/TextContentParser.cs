@@ -318,6 +318,7 @@ internal static class TextContentParser {
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
+            if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
                 textObjectFirstSpanIndex = spans.Count;
                 textObjectPersistentState = PersistentGraphicsStateFlags.None;
@@ -1217,6 +1218,7 @@ internal static class TextContentParser {
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
+            if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             switch (op) {
                 case "q":
                     gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved));

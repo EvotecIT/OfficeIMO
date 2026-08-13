@@ -10,6 +10,7 @@ public sealed class PdfReadLimits {
     internal const long DefaultMaxRetainedContentBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
+    internal const int DefaultMaxTextSearchMatches = 100_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxJavaScriptBytes = 4_000_000;
@@ -46,6 +47,9 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum font-decoded text characters emitted on one page, including nested Form XObjects. Default: 10,000,000.</summary>
     public int MaxDecodedTextCharacters { get; init; } = DefaultMaxDecodedTextCharacters;
+
+    /// <summary>Maximum text-search matches materialized by one Find or ReplaceAll operation. Default: 100,000.</summary>
+    public int MaxTextSearchMatches { get; init; } = DefaultMaxTextSearchMatches;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = 1_000_000;
@@ -132,6 +136,7 @@ public sealed class PdfReadLimits {
             MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxTextSearchMatches = MaxTextSearchMatches,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -183,6 +188,7 @@ public sealed class PdfReadLimits {
         }
         ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
         ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
+        ValidatePositive(MaxTextSearchMatches, nameof(MaxTextSearchMatches), "Maximum text-search matches must be positive.");
 
         if (MaxObjectCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");
