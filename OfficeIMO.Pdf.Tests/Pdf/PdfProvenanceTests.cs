@@ -1273,15 +1273,15 @@ public sealed partial class PdfProvenanceTests {
         (PdfObjectLookup.Resolve(objects, reference) as PdfDictionary)?.Get<PdfStringObj>("F")?.Value;
 
     private static byte[] CreateManifestStore() {
-        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
-        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
-        byte[] assertionStoreDescription = CreateBox("jumd", Join(C2paUuid("c2as"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
-        byte[] assertionDescription = CreateBox("jumd", Join(C2paUuid("c2ac"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] assertionStoreDescription = CreateBox("jumd", Join(C2paUuid("c2as"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+        byte[] assertionDescription = CreateBox("jumd", Join(C2paUuid("c2ac"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
         byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
             CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
-        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
     }
