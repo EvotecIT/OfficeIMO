@@ -370,7 +370,12 @@ public static class PdfProvenance {
             catalog.Items.TryGetValue("Outlines", out PdfObject? outlines) ? outlines : null,
             result,
             maximumContainerEntries);
-        AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result, maximumContainerEntries);
+        AddCatalogNameTrees(
+            objects,
+            catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null,
+            result,
+            maximumContainerEntries,
+            pageTreeObjectNumbers);
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null,
@@ -533,7 +538,8 @@ public static class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject? value,
         HashSet<PdfObject> result,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        HashSet<int> pageTreeObjectNumbers) {
         if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary names) return;
         result.Add(names);
         foreach (KeyValuePair<string, PdfObject> item in names.Items) {
@@ -542,7 +548,9 @@ public static class PdfProvenance {
                 new[] { item.Value },
                 result,
                 maximumContainerEntries,
-                addLeafValues: string.Equals(item.Key, "Dests", StringComparison.Ordinal));
+                addDestinationLeafValues: string.Equals(item.Key, "Dests", StringComparison.Ordinal),
+                addActionLeafGraphs: string.Equals(item.Key, "JavaScript", StringComparison.Ordinal),
+                pageTreeObjectNumbers: pageTreeObjectNumbers);
         }
     }
 
@@ -551,7 +559,9 @@ public static class PdfProvenance {
         IEnumerable<PdfObject?> values,
         HashSet<PdfObject> result,
         int maximumContainerEntries,
-        bool addLeafValues = false) {
+        bool addDestinationLeafValues,
+        bool addActionLeafGraphs,
+        HashSet<int> pageTreeObjectNumbers) {
         var visited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>(values.Where(static value => value != null).Cast<PdfObject>());
         while (pending.Count > 0) {
@@ -561,10 +571,19 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(dictionary);
-            if (addLeafValues && PdfObjectLookup.Resolve(objects,
+            if ((addDestinationLeafValues || addActionLeafGraphs) && PdfObjectLookup.Resolve(objects,
                     dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray leafNames) {
                 for (int index = 1; index < leafNames.Items.Count; index += 2) {
-                    AddResolvedDictionary(objects, leafNames.Items[index], result);
+                    if (addActionLeafGraphs) {
+                        AddStructuralGraphDictionaries(
+                            objects,
+                            leafNames.Items[index],
+                            result,
+                            maximumContainerEntries,
+                            pageTreeObjectNumbers);
+                    } else {
+                        AddResolvedDictionary(objects, leafNames.Items[index], result);
+                    }
                 }
             }
             if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
