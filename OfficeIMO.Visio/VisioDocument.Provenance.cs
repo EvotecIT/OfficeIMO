@@ -71,12 +71,11 @@ public partial class VisioDocument {
                 PackagePart appProperties = package.GetPart(appPropertiesUri);
                 XDocument? document = null;
                 using (Stream input = appProperties.GetStream(FileMode.Open, FileAccess.Read)) {
-                    if (!input.CanSeek || input.Length != 0) {
-                        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings {
-                            DtdProcessing = DtdProcessing.Prohibit,
-                            XmlResolver = null,
-                            MaxCharactersInDocument = limits.MaxAssetBytes
-                        });
+                    byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+                    if (xml.Length != 0) {
+                        ValidateXmlNodeBudget(xml, limits);
+                        using var xmlInput = new MemoryStream(xml, writable: false);
+                        using XmlReader reader = XmlReader.Create(xmlInput, CreateXmlReaderSettings(limits));
                         document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
                     }
                 }
@@ -92,4 +91,49 @@ public partial class VisioDocument {
         }
         return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
     }
+
+    private static byte[] ReadBoundedXml(Stream input, long maximumBytes) {
+        if (input.CanSeek && input.Length > maximumBytes) {
+            throw new InvalidDataException("Visio app metadata exceeds the configured asset limit.");
+        }
+        using var output = new MemoryStream();
+        byte[] buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = input.Read(buffer, 0, buffer.Length)) > 0) {
+            total += read;
+            if (total > maximumBytes) throw new InvalidDataException("Visio app metadata exceeds the configured asset limit.");
+            output.Write(buffer, 0, read);
+        }
+        return output.ToArray();
+    }
+
+    private static void ValidateXmlNodeBudget(byte[] xml, OfficeProvenanceOptions limits) {
+        using var input = new MemoryStream(xml, writable: false);
+        using XmlReader reader = XmlReader.Create(input, CreateXmlReaderSettings(limits));
+        int materializedNodes = 0;
+        while (reader.Read()) {
+            if (reader.Depth > 256) throw new InvalidDataException("Visio app metadata exceeds the configured XML depth limit.");
+            int nodes = reader.NodeType == XmlNodeType.Element
+                ? 1 + reader.AttributeCount
+                : IsMaterializedXmlNode(reader.NodeType) ? 1 : 0;
+            if (nodes > 0 && materializedNodes > limits.MaxContainerEntries - nodes) {
+                throw new InvalidDataException("Visio app metadata exceeds the configured XML node limit.");
+            }
+            materializedNodes += nodes;
+        }
+    }
+
+    private static XmlReaderSettings CreateXmlReaderSettings(OfficeProvenanceOptions limits) =>
+        new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = limits.MaxAssetBytes,
+            MaxCharactersFromEntities = 0,
+            IgnoreWhitespace = false
+        };
+
+    private static bool IsMaterializedXmlNode(XmlNodeType type) =>
+        type is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.ProcessingInstruction or
+            XmlNodeType.Comment or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace;
 }

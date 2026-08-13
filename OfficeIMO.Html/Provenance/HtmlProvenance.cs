@@ -101,10 +101,15 @@ public static partial class HtmlProvenance {
     public static OfficeProvenanceRemovalResult Remove(string html, OfficeProvenanceRemovalOptions? options = null) {
         if (html == null) throw new ArgumentNullException(nameof(html));
         options ??= new OfficeProvenanceRemovalOptions();
-        return RemoveCore(html, options, enforceUtf8Size: true);
+        return RemoveCore(html, options, enforceUtf8Size: true, outputEncoding: null, outputHadPreamble: false);
     }
 
-    private static OfficeProvenanceRemovalResult RemoveCore(string html, OfficeProvenanceRemovalOptions options, bool enforceUtf8Size) {
+    private static OfficeProvenanceRemovalResult RemoveCore(
+        string html,
+        OfficeProvenanceRemovalOptions options,
+        bool enforceUtf8Size,
+        Encoding? outputEncoding,
+        bool outputHadPreamble) {
         OfficeProvenanceBinary.ValidateLimits(options.Limits);
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
@@ -120,14 +125,27 @@ public static partial class HtmlProvenance {
         }
 
         if (changes.Count == 0) {
-            byte[] original = Encoding.UTF8.GetBytes(html);
+            byte[] original;
+            if (outputEncoding != null) {
+                original = Array.Empty<byte>();
+            } else {
+                int byteCount = Encoding.UTF8.GetByteCount(html);
+                if (byteCount > options.Limits.MaxAssetBytes) throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
+                original = Encoding.UTF8.GetBytes(html);
+            }
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
         }
 
         if (enforceUtf8Size) NormalizeDeclaredEncodingToUtf8(document);
         string outputHtml = document.ToHtml();
-        byte[] output = Encoding.UTF8.GetBytes(outputHtml);
-        if (enforceUtf8Size && output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+        byte[] output;
+        if (outputEncoding == null) {
+            int byteCount = Encoding.UTF8.GetByteCount(outputHtml);
+            if (byteCount > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+            output = Encoding.UTF8.GetBytes(outputHtml);
+        } else {
+            output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble, options.Limits.MaxAssetBytes);
+        }
         OfficeProvenanceReport after = InspectCore(outputHtml, inspectionOptions, enforceUtf8Size);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
@@ -187,16 +205,15 @@ public static partial class HtmlProvenance {
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes);
         string html = DecodeHtml(input, out Encoding encoding, out bool hadPreamble);
-        OfficeProvenanceRemovalResult result = RemoveCore(html, options, enforceUtf8Size: false);
+        OfficeProvenanceRemovalResult result = RemoveCore(
+            html, options, enforceUtf8Size: false, outputEncoding: encoding, outputHadPreamble: hadPreamble);
         if (!result.WasChanged) {
             OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), input);
             return new OfficeProvenanceRemovalResult(
                 (byte[])input.Clone(), result.Before, result.After, result.Changes, result.WasReserialized);
         }
 
-        string outputHtml = Encoding.UTF8.GetString(result.ToArray());
-        byte[] output = EncodeHtml(outputHtml, encoding, hadPreamble);
-        if (output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+        byte[] output = result.ToArray();
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), output);
         return new OfficeProvenanceRemovalResult(
             output, result.Before, result.After, result.Changes, result.WasReserialized);
@@ -226,7 +243,7 @@ public static partial class HtmlProvenance {
                 }
                 if (estimatedBytes > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 ReserveExpandedBytes(ref expandedBytes, estimatedBytes, options.MaxExpandedContainerBytes);
-                if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) {
+                if (!TryDecodeEmbeddedImage(dataUri, options.MaxAssetBytes, out byte[] image)) {
                     diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
                     continue;
                 }
@@ -277,7 +294,7 @@ public static partial class HtmlProvenance {
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
                 if (estimatedBytes > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 ReserveExpandedBytes(ref expandedBytes, estimatedBytes, options.Limits.MaxExpandedContainerBytes);
-                if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) continue;
+                if (!TryDecodeEmbeddedImage(dataUri, options.Limits.MaxAssetBytes, out byte[] image)) continue;
                 if (image.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
                 if (image.LongLength > estimatedBytes) {
                     ReserveExpandedBytes(ref expandedBytes, image.LongLength - estimatedBytes, options.Limits.MaxExpandedContainerBytes);
@@ -449,7 +466,7 @@ public static partial class HtmlProvenance {
         return string.Join(";", metadata);
     }
 
-    private static bool TryDecodeEmbeddedImage(HtmlImageDataUri dataUri, out byte[] image) {
+    private static bool TryDecodeEmbeddedImage(HtmlImageDataUri dataUri, long maximumBytes, out byte[] image) {
         if (!string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
             return dataUri.TryDecodeBytes(out image);
         }
@@ -472,6 +489,8 @@ public static partial class HtmlProvenance {
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
             text = normalized + text.Substring(declarationEnd + 2);
         }
+        int byteCount = Encoding.UTF8.GetByteCount(text);
+        if (byteCount > maximumBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
         image = Encoding.UTF8.GetBytes(text);
         return true;
     }
@@ -590,7 +609,7 @@ public static partial class HtmlProvenance {
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
             }
-            if (!char.IsLetter(next)) {
+            if (!IsAsciiLetter(next)) {
                 index = markup + 1;
                 continue;
             }
@@ -613,6 +632,9 @@ public static partial class HtmlProvenance {
             }
         }
     }
+
+    private static bool IsAsciiLetter(char value) =>
+        value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';
 
     private static int FindRawTextClosingTag(string html, int offset, string tagName) {
         string closingPrefix = "</" + tagName;
@@ -711,12 +733,16 @@ public static partial class HtmlProvenance {
         return encoding.GetString(data, offset, data.Length - offset);
     }
 
-    private static byte[] EncodeHtml(string html, Encoding encoding, bool includePreamble) {
+    private static byte[] EncodeHtml(string html, Encoding encoding, bool includePreamble, long maximumBytes) {
         Encoding strictEncoding = (Encoding)encoding.Clone();
         strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
         string encodableHtml = EscapeUnencodableCharacters(html, strictEncoding);
-        byte[] body = strictEncoding.GetBytes(encodableHtml);
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
+        int bodyLength = strictEncoding.GetByteCount(encodableHtml);
+        if (bodyLength > maximumBytes - preamble.Length) {
+            throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+        }
+        byte[] body = strictEncoding.GetBytes(encodableHtml);
         if (preamble.Length == 0) return body;
         byte[] output = new byte[preamble.Length + body.Length];
         Buffer.BlockCopy(preamble, 0, output, 0, preamble.Length);

@@ -78,10 +78,12 @@ public static partial class HtmlResourcePipeline {
         ISet<int>? usedCustomPropertyDeclarationStarts = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, new HtmlResourcePipelineOptions());
         var emittedRanges = new HashSet<(int Start, int Length)>();
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             bool isCustomProperty = TryGetCustomPropertyName(masked, match.Index, out _);
-            if (!IsCssFunctionNameAt(masked, match.Index, "url") ||
+            if (IsInRanges(match.Index, inactiveRanges) ||
+                !IsCssFunctionNameAt(masked, match.Index, "url") ||
                 IsInsideCssString(masked, match.Index) ||
                 IsImportAtRuleUrl(masked, match.Index) ||
                 IsAtRulePreludeUrl(masked, match.Index) ||
@@ -101,10 +103,11 @@ public static partial class HtmlResourcePipeline {
 
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
             bool isCustomProperty = TryGetCustomPropertyName(masked, reference.Start, out _);
-            if (isCustomProperty
+            if (IsInRanges(reference.Start, inactiveRanges) ||
+                (isCustomProperty
                     ? !TryGetCustomPropertyDeclarationStart(masked, reference.Start, out int declarationStart) ||
                         usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)
-                    : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image) continue;
+                    : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image)) continue;
             if (!emittedRanges.Add((reference.SourceStart, reference.Source.Length))) continue;
             yield return new HtmlCssImageReference(reference.SourceStart, reference.Source.Length, DecodeCssEscapes(reference.Source));
         }
