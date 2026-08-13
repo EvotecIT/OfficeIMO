@@ -13,6 +13,44 @@ namespace OfficeIMO.ChartForgeX.Tests;
 
 public sealed partial class OfficeVisioVisualIntegrationTests {
     [Fact]
+    public void OversizedInterchangeJsonIsRejectedBeforeVisioProjection() {
+        byte[] oversizedJson = new byte[VisualArtifactInterchangeEnvelope.MaximumJsonUtf8Bytes + 1];
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            oversizedJson.ToOfficeVisio());
+
+        Assert.Contains("must not exceed", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(VisualArtifactInterchangeEnvelope.MaximumJsonUtf8Bytes.ToString(), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OversizedTypedEnvelopeIsRejectedBeforeVisioProjection() {
+        VisualArtifactInterchangeEnvelope envelope = TopologyEnvelope("oversized-topology");
+        VisualArtifactInterchangeNode node = TopologyNode("node", "Node");
+        envelope.Nodes.AddRange(Enumerable.Repeat(node, 50_001));
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            envelope.ToOfficeVisio());
+
+        Assert.Contains("nodes must not exceed 50000", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OversizedShapeDataIsRejectedBeforeVisioProjection() {
+        VisualArtifactInterchangeEnvelope envelope = TopologyEnvelope("oversized-shape-data");
+        VisualArtifactInterchangeNode node = TopologyNode("node", "Node");
+        for (int index = 0; index < 545; index++) {
+            node.Extensions.Add("key-" + index, "value");
+        }
+        envelope.Nodes.Add(node);
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            envelope.ToOfficeVisio());
+
+        Assert.Contains("node extensions entries must not exceed 544", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TopologyEnvelopeCreatesEditableValidatedVsdxWithShapeDataAndLinks() {
         VisualArtifactInterchangeEnvelope envelope = CreateTopologyEnvelope();
 
