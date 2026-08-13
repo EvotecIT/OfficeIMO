@@ -84,7 +84,8 @@ public sealed partial class PdfReadPage {
             localPageWidth,
             localPageHeight,
             primitive => {
-                if (primitive.ClipPath.HasValue && !primitive.ClipPath.Value.IsExact) {
+                if ((primitive.ClipPath.HasValue && !primitive.ClipPath.Value.IsExact) ||
+                    !CanRenderTilingPatterns(primitive, localPageWidth, localPageHeight)) {
                     type3GlyphBudget.RecordFailure();
                 } else {
                     elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count));
@@ -120,8 +121,13 @@ public sealed partial class PdfReadPage {
             requireNestedType3Uncolored: requireNestedType3Uncolored,
             type3ImageVisitor: (placement, image, effect) => elements.Add(
                 PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
-            type3PrimitiveVisitor: (primitive, effect) => elements.Add(
-                PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
+            type3PrimitiveVisitor: (primitive, effect) => {
+                if (!CanRenderTilingPatterns(primitive, localPageWidth, localPageHeight)) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect));
+                }
+            },
             type3GroupVisitor: (drawing, transform, paintOrder, key, effect) => elements.Add(
                 PdfPageDrawingElement.FromGroup(drawing, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             tilingPatternResourceCache: tilingPatternResourceCache,

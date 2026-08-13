@@ -682,6 +682,7 @@ public sealed partial class PdfReadPage {
                          patternSelectionVisitor: selection => {
                              if (selection.BaseColorSpace?.UsesIccApproximation == true) {
                                  AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, selection.Name);
+                                 supported = false;
                              }
                          },
                          pageWidth: surfaceWidth)) {

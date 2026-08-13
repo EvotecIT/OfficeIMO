@@ -341,7 +341,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageMaskDeclaration(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
-        if (imageDictionary != null && !HasMatchingType3DctDimensions(image, imageDictionary)) return false;
+        if (imageDictionary != null && !HasMatchingType3DctDimensions(image, imageDictionary, resources)) return false;
         if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
         if (image.TransparencyMaskKind != null && !image.TransparencyMaskResolved) return false;
         if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources)) return false;
@@ -355,10 +355,13 @@ public sealed partial class PdfReadPage {
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
     }
 
-    private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary) {
+    private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary, PdfDictionary? resources) {
         if (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) return true;
         return OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
             validated.Format == OfficeImageFormat.Jpeg &&
+            PdfWriter.TryGetJpegComponentCount(image.Bytes, out int jpegComponentCount) &&
+            TryGetType3ImageComponentCount(imageDictionary, resources, out int authoredComponentCount) &&
+            jpegComponentCount == authoredComponentCount &&
             TryReadExactPositiveInteger(imageDictionary, "Width", out int width) &&
             TryReadExactPositiveInteger(imageDictionary, "Height", out int height) &&
             validated.Width == width &&

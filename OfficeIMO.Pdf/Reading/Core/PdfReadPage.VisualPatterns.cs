@@ -310,7 +310,19 @@ public sealed partial class PdfReadPage {
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
         if (requireSupportedType3Content && !HasExactType3PatternBox(boxObject)) return false;
-        PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
+        PdfDictionary? resources;
+        if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)) {
+            PdfObject? resolvedResources = ResolveEffectObject(resourceObject);
+            if (resolvedResources is PdfNull) {
+                resources = parentResources;
+            } else if (resolvedResources is PdfDictionary dictionary) {
+                resources = dictionary;
+            } else {
+                return false;
+            }
+        } else {
+            resources = parentResources;
+        }
         int failureVersion = type3GlyphBudget.FailureVersion;
         bool uncolored = paintType == 2;
         bool allowNestedPatterns = (allowNestedPatternContent || requireSupportedType3Content) && paintType == 1;
@@ -426,7 +438,13 @@ public sealed partial class PdfReadPage {
             transform,
             width,
             height,
-            primitives.Add,
+            primitive => {
+                if (requireSupportedType3Content && !CanRenderTilingPatterns(primitive, width, height)) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    primitives.Add(primitive);
+                }
+            },
             activeForms,
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
@@ -453,7 +471,13 @@ public sealed partial class PdfReadPage {
                 }
                 elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));
             },
-            type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
+            type3PrimitiveVisitor: (primitive, effect) => {
+                if (requireSupportedType3Content && !CanRenderTilingPatterns(primitive, width, height)) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect));
+                }
+            },
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             graphicsStateVisitor: softMaskValidation == null
                 ? null
