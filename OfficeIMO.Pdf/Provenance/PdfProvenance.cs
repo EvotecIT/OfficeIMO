@@ -302,6 +302,14 @@ public static class PdfProvenance {
             catalog.Items.TryGetValue("Collection", out PdfObject? collection) ? collection : null,
             result,
             maximumContainerEntries);
+        foreach (string key in new[] { "OpenAction", "AA" }) {
+            AddStructuralGraphDictionaries(
+                objects,
+                catalog.Items.TryGetValue(key, out PdfObject? action) ? action : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers);
+        }
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("Dests", out PdfObject? destinations) ? destinations : null,
