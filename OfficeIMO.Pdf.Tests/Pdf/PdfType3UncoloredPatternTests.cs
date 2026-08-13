@@ -375,6 +375,24 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("/Domain [0 /Bad] /C0 [1 0 0] /C1 [0 0 1]")]
+    [InlineData("/Domain [0 1] /C0 [1 0 /Bad] /C1 [0 0 1]")]
+    [InlineData("/Domain [0 1] /C0 [1 0 0] /C1 [0 0 1 0]")]
+    [InlineData("/Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /Range [0 1 0 1 0 /Bad]")]
+    public void RenderPage_FailsClosedForMalformedAuthoredType3ShadingFunctionArrays(string functionEntries) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 " + functionEntries + " /N 1 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForOuterAxialShadingPatternOnType3Stroke() {
         byte[] pdf = BuildUncoloredType3PatternPdf(

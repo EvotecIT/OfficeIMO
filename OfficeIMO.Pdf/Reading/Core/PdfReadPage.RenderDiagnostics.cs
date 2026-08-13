@@ -710,6 +710,14 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
+                bool isTransparencyGroup = form.Dictionary.Items.ContainsKey("Group");
+                if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
+                    !isTransparencyGroup && !TryReadBox(
+                        form.Dictionary.Items.TryGetValue("BBox", out PdfObject? formBoxObject) ? formBoxObject : null,
+                        out _)) {
+                    supported = false;
+                    continue;
+                }
                 if (ResolveXObjectPaintChannels(
                         resources,
                         invocation.Name,
@@ -722,13 +730,13 @@ public sealed partial class PdfReadPage {
                         type3GlyphBudget) == PdfType3PaintChannels.None) {
                     continue;
                 }
-                Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, form.Dictionary);
+                Matrix2D formTransform = Matrix2D.Multiply(invocation.Transform, authoredFormMatrix);
                 PdfPageClipPath? formClipPath = invocation.ClipPath;
                 PdfPagePatternSelection? formFillPattern = invocation.FillPattern;
                 PdfPagePatternSelection? formStrokePattern = invocation.StrokePattern;
                 double formSurfaceWidth = surfaceWidth;
                 double formSurfaceHeight = surfaceHeight;
-                if (form.Dictionary.Items.ContainsKey("Group")) {
+                if (isTransparencyGroup) {
                     if ((invocation.FillOpacity ?? 1D) <= 0D) continue;
                     if (!IsSupportedType3TransparencyGroup(form.Dictionary)) {
                         supported = false;

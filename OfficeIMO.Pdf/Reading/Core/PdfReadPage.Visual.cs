@@ -1036,7 +1036,9 @@ public sealed partial class PdfReadPage {
             ResolveObject(shadingBoxObject) is not PdfNull;
 
         if (dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject) &&
-            !IsCanonicalUnitIntervals(ReadNumberArray(shadingDomainObject), 1)) return false;
+            ResolveObject(shadingDomainObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(shadingDomainObject, 2, out double[] shadingDomain) ||
+             !IsCanonicalUnitIntervals(shadingDomain, 1))) return false;
 
         bool extendsBothEnds = false;
         if (dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) &&
@@ -1112,14 +1114,29 @@ public sealed partial class PdfReadPage {
 
         int? functionType = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
         if (functionType == 2) {
-            IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
-                ? ReadNumberArray(c0Object)
-                : new[] { 0D };
-            IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
-                ? ReadNumberArray(c1Object)
-                : new[] { 1D };
-            return c0.Count == componentCount &&
-                   c1.Count == componentCount &&
+            if (!function.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
+                !TryReadExactFiniteNumberArray(domainObject, 2, out double[] domain) ||
+                !IsCanonicalUnitIntervals(domain, 1) ||
+                function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
+                ResolveObject(rangeObject) is not PdfNull &&
+                (!TryReadExactFiniteNumberArray(rangeObject, componentCount * 2, out double[] range) ||
+                 !IsCanonicalUnitIntervals(range, componentCount))) return false;
+            double[] c0;
+            if (function.Items.TryGetValue("C0", out PdfObject? c0Object) && ResolveObject(c0Object) is not PdfNull) {
+                if (!TryReadExactFiniteNumberArray(c0Object, componentCount, out double[] c0Values)) return false;
+                c0 = c0Values;
+            } else {
+                c0 = new[] { 0D };
+            }
+            double[] c1;
+            if (function.Items.TryGetValue("C1", out PdfObject? c1Object) && ResolveObject(c1Object) is not PdfNull) {
+                if (!TryReadExactFiniteNumberArray(c1Object, componentCount, out double[] c1Values)) return false;
+                c1 = c1Values;
+            } else {
+                c1 = new[] { 1D };
+            }
+            return c0.Length == componentCount &&
+                   c1.Length == componentCount &&
                    c0.All(IsUnitComponent) &&
                    c1.All(IsUnitComponent);
         }
@@ -1129,6 +1146,20 @@ public sealed partial class PdfReadPage {
             ResolveArray(functionsObject) is not PdfArray functions ||
             functions.Items.Count < 2 ||
             functions.Items.Count > 32) return false;
+        if (!function.Items.TryGetValue("Domain", out PdfObject? stitchedDomainObject) ||
+            !TryReadExactFiniteNumberArray(stitchedDomainObject, 2, out double[] stitchedDomain) ||
+            !IsCanonicalUnitIntervals(stitchedDomain, 1) ||
+            !function.Items.TryGetValue("Bounds", out PdfObject? boundsObject) ||
+            !TryReadExactFiniteNumberArray(boundsObject, functions.Items.Count - 1, out double[] bounds) ||
+            !function.Items.TryGetValue("Encode", out PdfObject? encodeObject) ||
+            !TryReadExactFiniteNumberArray(encodeObject, functions.Items.Count * 2, out double[] encode) ||
+            !HasCanonicalFunctionEncode(encode, functions.Items.Count) ||
+            function.Items.TryGetValue("Range", out PdfObject? stitchedRangeObject) &&
+            ResolveObject(stitchedRangeObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(stitchedRangeObject, componentCount * 2, out double[] stitchedRange) ||
+             !IsCanonicalUnitIntervals(stitchedRange, componentCount))) return false;
+        if (bounds.Any(value => value <= stitchedDomain[0] || value >= stitchedDomain[1])) return false;
+        for (int index = 1; index < bounds.Length; index++) if (bounds[index] <= bounds[index - 1]) return false;
         return functions.Items.All(item => HasExactType3FunctionComponentRange(item, componentCount));
     }
 
@@ -1153,31 +1184,29 @@ public sealed partial class PdfReadPage {
 
         PdfArray? functions = ResolveArray(functionsObject);
         if (functions == null || functions.Items.Count < 2 || functions.Items.Count > 32) return false;
-        IReadOnlyList<double> bounds = function.Items.TryGetValue("Bounds", out PdfObject? boundsObject)
-            ? ReadNumberArray(boundsObject)
-            : Array.Empty<double>();
-        if (bounds.Count != functions.Items.Count - 1) return false;
-        IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
-            ? ReadNumberArray(domainObject)
-            : Array.Empty<double>();
+        if (!function.Items.TryGetValue("Bounds", out PdfObject? boundsObject) ||
+            !TryReadExactFiniteNumberArray(boundsObject, functions.Items.Count - 1, out double[] bounds) ||
+            !function.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
+            !TryReadExactFiniteNumberArray(domainObject, 2, out double[] domain)) return false;
         if (!IsCanonicalUnitIntervals(domain, 1)) return false;
         double domainStart = domain[0];
         double domainEnd = domain[1];
-        IReadOnlyList<double> encode = function.Items.TryGetValue("Encode", out PdfObject? encodeObject)
-            ? ReadNumberArray(encodeObject)
-            : Array.Empty<double>();
+        if (!function.Items.TryGetValue("Encode", out PdfObject? encodeObject) ||
+            !TryReadExactFiniteNumberArray(encodeObject, functions.Items.Count * 2, out double[] encode)) return false;
         if (!HasCanonicalFunctionEncode(encode, functions.Items.Count)) return false;
         if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !IsCanonicalUnitIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+            ResolveObject(rangeObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(rangeObject, colorSpace.ComponentCount * 2, out double[] range) ||
+             !IsCanonicalUnitIntervals(range, colorSpace.ComponentCount))) return false;
         if (bounds.Any(value => !IsFinite(value) || value <= domainStart || value >= domainEnd)) return false;
-        for (int index = 1; index < bounds.Count; index++) if (bounds[index] <= bounds[index - 1]) return false;
+        for (int index = 1; index < bounds.Length; index++) if (bounds[index] <= bounds[index - 1]) return false;
 
         var result = new List<OfficeGradientStop>(functions.Items.Count + 1);
         PdfDictionary? first = ResolveFunctionDictionary(functions.Items[0]);
         if (!TryReadType2FunctionColors(first, colorSpace, IsFunctionReversed(encode, 0), out OfficeColor firstStart, out OfficeColor firstEnd)) return false;
         result.Add(new OfficeGradientStop(0D, firstStart));
         OfficeColor previousEnd = firstEnd;
-        for (int i = 0; i < bounds.Count; i++) {
+        for (int i = 0; i < bounds.Length; i++) {
             double offset = Clamp01((bounds[i] - domainStart) / (domainEnd - domainStart));
             if (offset < result[result.Count - 1].Offset) return false;
             result.Add(new OfficeGradientStop(offset, previousEnd));
@@ -1197,31 +1226,40 @@ public sealed partial class PdfReadPage {
         start = OfficeColor.Black;
         end = OfficeColor.Black;
         if (function == null || TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null) != 2) return false;
-        IReadOnlyList<double> domain = function.Items.TryGetValue("Domain", out PdfObject? domainObject)
-            ? ReadNumberArray(domainObject)
-            : Array.Empty<double>();
-        if (!IsCanonicalUnitIntervals(domain, 1) ||
+        if (!function.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
+            !TryReadExactFiniteNumberArray(domainObject, 2, out double[] domain) ||
+            !IsCanonicalUnitIntervals(domain, 1) ||
             !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
             ResolveObject(exponentObject) is not PdfNumber exponent ||
             !IsFinite(exponent.Value) || Math.Abs(exponent.Value - 1D) > 0.000000001D) return false;
-        IReadOnlyList<double> c0 = function.Items.TryGetValue("C0", out PdfObject? c0Object)
-            ? ReadNumberArray(c0Object)
-            : new[] { 0D };
-        IReadOnlyList<double> c1 = function.Items.TryGetValue("C1", out PdfObject? c1Object)
-            ? ReadNumberArray(c1Object)
-            : new[] { 1D };
-        if (c0.Count != colorSpace.ComponentCount || c1.Count != colorSpace.ComponentCount ||
+        double[] c0;
+        if (function.Items.TryGetValue("C0", out PdfObject? c0Object) && ResolveObject(c0Object) is not PdfNull) {
+            if (!TryReadExactFiniteNumberArray(c0Object, colorSpace.ComponentCount, out double[] c0Values)) return false;
+            c0 = c0Values;
+        } else {
+            c0 = new[] { 0D };
+        }
+        double[] c1;
+        if (function.Items.TryGetValue("C1", out PdfObject? c1Object) && ResolveObject(c1Object) is not PdfNull) {
+            if (!TryReadExactFiniteNumberArray(c1Object, colorSpace.ComponentCount, out double[] c1Values)) return false;
+            c1 = c1Values;
+        } else {
+            c1 = new[] { 1D };
+        }
+        if (c0.Length != colorSpace.ComponentCount || c1.Length != colorSpace.ComponentCount ||
             !colorSpace.TryConvertColor(c0, out OfficeColor c0Color) ||
             !colorSpace.TryConvertColor(c1, out OfficeColor c1Color)) return false;
         if (function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
-            !IsCanonicalUnitIntervals(ReadNumberArray(rangeObject), colorSpace.ComponentCount)) return false;
+            ResolveObject(rangeObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(rangeObject, colorSpace.ComponentCount * 2, out double[] range) ||
+             !IsCanonicalUnitIntervals(range, colorSpace.ComponentCount))) return false;
         start = reversed ? c1Color : c0Color;
         end = reversed ? c0Color : c1Color;
         return true;
     }
 
-    private static bool HasValidFunctionIntervals(IReadOnlyList<double> values, int count) {
-        if (values.Count != count * 2) return false;
+    private static bool HasValidFunctionIntervals(double[] values, int count) {
+        if (values.Length != count * 2) return false;
         for (int index = 0; index < count; index++) {
             double minimum = values[index * 2];
             double maximum = values[index * 2 + 1];
@@ -1230,7 +1268,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool IsCanonicalUnitIntervals(IReadOnlyList<double> values, int count) {
+    private static bool IsCanonicalUnitIntervals(double[] values, int count) {
         if (!HasValidFunctionIntervals(values, count)) return false;
         for (int index = 0; index < count; index++) {
             if (Math.Abs(values[index * 2]) > 0.000000001D ||
@@ -1239,7 +1277,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool HasCanonicalFunctionEncode(IReadOnlyList<double> values, int count) {
+    private static bool HasCanonicalFunctionEncode(double[] values, int count) {
         if (!HasFiniteFunctionPairs(values, count)) return false;
         for (int index = 0; index < count; index++) {
             double first = values[index * 2];
@@ -1251,15 +1289,15 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool HasFiniteFunctionPairs(IReadOnlyList<double> values, int count) {
-        if (values.Count != count * 2) return false;
-        for (int index = 0; index < values.Count; index++) if (!IsFinite(values[index])) return false;
+    private static bool HasFiniteFunctionPairs(double[] values, int count) {
+        if (values.Length != count * 2) return false;
+        for (int index = 0; index < values.Length; index++) if (!IsFinite(values[index])) return false;
         return true;
     }
 
-    private static bool IsFunctionReversed(IReadOnlyList<double> encode, int functionIndex) {
+    private static bool IsFunctionReversed(double[] encode, int functionIndex) {
         int offset = functionIndex * 2;
-        return encode.Count > offset + 1 && encode[offset] > encode[offset + 1];
+        return encode.Length > offset + 1 && encode[offset] > encode[offset + 1];
     }
 
     private PdfDictionary? ResolveFunctionDictionary(PdfObject? functionObject) {

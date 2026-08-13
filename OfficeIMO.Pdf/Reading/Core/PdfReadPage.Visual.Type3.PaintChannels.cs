@@ -77,10 +77,14 @@ public sealed partial class PdfReadPage {
         if (cache.VisibleForms.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
         if (!activeStreams.Add(form)) return PdfType3PaintChannels.Both;
         try {
+            if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
+                !form.Dictionary.Items.ContainsKey("Group") && !TryReadBox(
+                    form.Dictionary.Items.TryGetValue("BBox", out PdfObject? formBoxObject) ? formBoxObject : null,
+                    out _)) return PdfType3PaintChannels.Both;
             string content = WrapFormContentWithBoundingBoxClip(
                 PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                 form.Dictionary);
-            Matrix2D formTransform = ApplyFormMatrix(invocationState.Transform, form.Dictionary);
+            Matrix2D formTransform = Matrix2D.Multiply(invocationState.Transform, authoredFormMatrix);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);

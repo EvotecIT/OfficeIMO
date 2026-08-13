@@ -295,7 +295,10 @@ public sealed partial class PdfReadPage {
                 }
             }
 
-            return false;
+            // The fixed interior samples are a proof of intersection, not a proof of
+            // separation. A narrow common strip can lie between them, so remain
+            // conservative when every individual fill intersects the stroke.
+            return true;
         }
 
         private static VisualPath? RoundedRectangle(

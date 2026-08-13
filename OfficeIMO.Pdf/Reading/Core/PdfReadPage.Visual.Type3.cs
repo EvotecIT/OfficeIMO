@@ -988,7 +988,7 @@ public sealed partial class PdfReadPage {
                                      type3GlyphBudget,
                                      pageWidth,
                                      pageHeight,
-                                     depth);
+                                     depth + 1);
                              }
                              return true;
                          },

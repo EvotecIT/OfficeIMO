@@ -19,6 +19,21 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData("/Matrix [1 0 0 1 0]")]
+    [InlineData("/BBox [0 0 0 700]")]
+    public void RenderPage_FailsClosedForMalformedNestedFormInsideType3SoftMask(string formEntry) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string outerState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string outerMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true >> /Resources << /XObject << /Fm1 9 0 R >> >>", "/Fm1 Do");
+        string boundingBox = formEntry.StartsWith("/BBox", StringComparison.Ordinal) ? string.Empty : "/BBox [0 0 500 700]";
+        string nestedForm = BuildStreamObject(9, "<< /Type /XObject /Subtype /Form " + boundingBox + " " + formEntry + " /Resources << >>", "0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, nestedForm);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Theory]
     [InlineData("/Pattern cs /Missing scn 0 0 500 700 re f")]
     [InlineData("/Pattern CS /Missing SCN 10 w 0 0 m 500 700 l S")]
     public void RenderPage_FailsClosedForMissingDirectPatternInsideType3SoftMask(string maskContent) {

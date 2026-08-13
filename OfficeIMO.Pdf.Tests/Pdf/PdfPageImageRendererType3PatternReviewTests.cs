@@ -429,6 +429,21 @@ public partial class PdfPageImageRendererTests {
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
 
+    [Theory]
+    [InlineData("/Matrix [1 0 0 1 0]")]
+    [InlineData("/BBox [0 0 0 700]")]
+    public void RenderPage_FailsClosedForMalformedOrdinaryFormInsideType3Glyph(string formEntry) {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Form 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Form Do");
+        string boundingBox = formEntry.StartsWith("/BBox", StringComparison.Ordinal) ? string.Empty : "/BBox [0 0 500 700]";
+        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form " + boundingBox + " " + formEntry + " /Resources << >>", "0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, form);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedBeforeExpandingOverBudgetType3Pattern() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
@@ -440,7 +455,7 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderDiagnostics_DoesNotChargeNestedType3GlyphsToFormDepth() {
+    public void RenderDrawing_ChargesNestedType3PaintAnalysisToContentDepth() {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FMiddle 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 BT /FMiddle 500 Tf (A) Tj ET");
         string middleFont = "7 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 8 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FInner 9 0 R >> >> >>\nendobj";
@@ -453,10 +468,10 @@ public partial class PdfPageImageRendererTests {
         });
 
         IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = document.Pages[0].GetRenderCapabilityDiagnostics();
-        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Single(drawing.Shapes);
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
     }
 
     [Fact]
