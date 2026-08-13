@@ -483,12 +483,15 @@ internal sealed class PdfPageOptionalContentVisibility {
                 return true;
             }
 
-            if (!visited.Add(reference.ObjectNumber) ||
-                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) {
+            if (!visited.Add(reference.ObjectNumber)) {
                 return false;
             }
-
-            return TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, out visible);
+            try {
+                return objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) &&
+                    TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, out visible);
+            } finally {
+                visited.Remove(reference.ObjectNumber);
+            }
         }
 
         PdfObject? resolved = ResolveObject(value, objects);

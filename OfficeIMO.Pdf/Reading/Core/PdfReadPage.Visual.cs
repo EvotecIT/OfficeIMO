@@ -1017,6 +1017,10 @@ public sealed partial class PdfReadPage {
 
         int? shadingType = TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out PdfObject? shadingTypeObject) ? shadingTypeObject : null);
         IReadOnlyList<double> coords = ReadNumberArray(coordsObject);
+        bool hasExactCoordinates = TryReadExactFiniteNumberArray(
+            coordsObject,
+            shadingType == 2 ? 4 : shadingType == 3 ? 6 : 0,
+            out _);
         if ((shadingType == 2 && coords.Count < 4) ||
             (shadingType == 3 && coords.Count < 6)) {
             return false;
@@ -1051,7 +1055,7 @@ public sealed partial class PdfReadPage {
         exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
 
         if (shadingType == 2) {
-            bool exactAxialFamily = coords.Count == 4 && coords.All(IsFinite);
+            bool exactAxialFamily = hasExactCoordinates;
             shading = new PdfPageShadingResource(
                 coords[0],
                 coords[1],
@@ -1063,7 +1067,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (shadingType == 3) {
-            bool exactRadialFamily = coords.Take(6).All(IsFinite) &&
+            bool exactRadialFamily = hasExactCoordinates &&
                 coords[2] >= 0D &&
                 coords[5] >= 0D &&
                 coords[0].Equals(coords[3]) &&
@@ -1082,6 +1086,20 @@ public sealed partial class PdfReadPage {
         }
 
         return false;
+    }
+
+    private bool TryReadExactFiniteNumberArray(PdfObject? value, int expectedCount, out double[] values) {
+        values = Array.Empty<double>();
+        if (expectedCount <= 0 || ResolveObject(value) is not PdfArray array || array.Items.Count != expectedCount) return false;
+        values = new double[expectedCount];
+        for (int index = 0; index < expectedCount; index++) {
+            if (ResolveObject(array.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) {
+                values = Array.Empty<double>();
+                return false;
+            }
+            values[index] = number.Value;
+        }
+        return true;
     }
 
     private bool HasExactType3FunctionComponentRange(PdfObject? functionObject, int componentCount) {

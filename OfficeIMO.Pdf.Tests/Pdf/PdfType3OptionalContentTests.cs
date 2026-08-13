@@ -114,6 +114,22 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_AllowsRepeatedIndirectVisibilitySubexpressionAcrossSiblings() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
+            includeUnsupportedConditionalContent: false,
+            indirectVisibilityExpression: "[/And 13 0 R 13 0 R]",
+            secondaryVisibilityExpression: "[/Not 10 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(new OfficeColor?[] { OfficeColor.Red, OfficeColor.Lime }, drawing.Shapes.Select(shape => shape.Shape.FillColor));
+    }
+
+    [Fact]
     public void RenderPage_EvaluatesInlineAnyOffWhenEveryOptionalContentGroupIsOn() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
@@ -146,7 +162,8 @@ public class PdfType3OptionalContentTests {
         bool includeUnsupportedConditionalContent = true,
         string hiddenExtraContent = "",
         string? indirectVisibilityExpression = null,
-        bool allGroupsOn = false) {
+        bool allGroupsOn = false,
+        string? secondaryVisibilityExpression = null) {
         string hiddenProperty = inlineMembershipDictionary ?? "/Hidden";
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -177,6 +194,9 @@ public class PdfType3OptionalContentTests {
         objects.Add("11 0 obj\n<< /Type /OCG /Name (Visible Type 3 layer) >>\nendobj");
         if (indirectVisibilityExpression is not null) {
             objects.Add("12 0 obj\n" + indirectVisibilityExpression + "\nendobj");
+        }
+        if (secondaryVisibilityExpression is not null) {
+            objects.Add("13 0 obj\n" + secondaryVisibilityExpression + "\nendobj");
         }
         return Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
     }

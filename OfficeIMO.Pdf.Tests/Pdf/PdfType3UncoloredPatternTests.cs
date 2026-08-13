@@ -359,6 +359,22 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.True(edge.B > center.B);
     }
 
+    [Theory]
+    [InlineData(2, "20 /Bad 100 30 100")]
+    [InlineData(3, "25 /Bad 106 0 25 106 8")]
+    public void RenderPage_FailsClosedForMalformedAuthoredType3ShadingCoordinates(int shadingType, string coordinates) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType " + shadingType + " /ColorSpace /DeviceRGB /Coords [" + coordinates + "] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForOuterAxialShadingPatternOnType3Stroke() {
         byte[] pdf = BuildUncoloredType3PatternPdf(

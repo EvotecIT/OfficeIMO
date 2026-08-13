@@ -492,6 +492,8 @@ public sealed partial class PdfReadPage {
             }
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream form) || !activeForms.Add(form)) return false;
             try {
+                if (form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
+                    ResolveEffectObject(optionalContentObject) is not PdfNull) return false;
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
                 if (form.Dictionary.Items.ContainsKey("Group")) {
                     PdfType3PaintChannels channels = ResolveXObjectPaintChannels(
