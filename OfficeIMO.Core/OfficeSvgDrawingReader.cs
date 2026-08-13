@@ -82,7 +82,9 @@ public static partial class OfficeSvgDrawingReader {
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
             if (allowUnresolvedViewport &&
-                (pathCommandLimitExceeded || ExceedsSvgElementNestingLimit(root))) return false;
+                (pathCommandLimitExceeded ||
+                 ExceedsSvgElementNestingLimit(root) ||
+                 ExceedsSvgDefinitionPathCommandLimit(root))) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
             } else {
@@ -238,6 +240,39 @@ public static partial class OfficeSvgDrawingReader {
             (XElement element, int depth) = pending.Pop();
             if (depth > MaximumSvgNestingDepth) return true;
             foreach (XElement child in element.Elements()) pending.Push((child, depth + 1));
+        }
+        return false;
+    }
+
+    private static bool ExceedsSvgDefinitionPathCommandLimit(XElement root) {
+        int commandCount = 0;
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            string name = element.Name.LocalName;
+            int remaining = MaximumSvgPathCommands - commandCount;
+            if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
+                _ = OfficeSvgPathDataParser.TryParse(
+                    element.Attribute("d")?.Value,
+                    remaining + 1,
+                    out IReadOnlyList<OfficePathCommand> commands,
+                    out bool commandLimitExceeded);
+                if (commandLimitExceeded || commands.Count > remaining) return true;
+                commandCount += commands.Count;
+                continue;
+            }
+
+            bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
+            if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) continue;
+            int maximumValues = (remaining + 1) * 2;
+            bool parsed = TryParseNumberList(
+                element.Attribute("points")?.Value,
+                maximumValues,
+                out IReadOnlyList<double> values,
+                out bool valueLimitExceeded);
+            if (valueLimitExceeded) return true;
+            int elementCommands = values.Count / 2;
+            if (parsed && close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
+            if (elementCommands > remaining) return true;
+            commandCount += elementCommands;
         }
         return false;
     }

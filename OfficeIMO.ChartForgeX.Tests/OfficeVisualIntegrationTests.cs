@@ -197,6 +197,19 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRejectsOverBudgetClipPathDefinitionBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><clipPath id='clip'><path d='M0 0");
+        for (int index = 0; index < 20_000; index++) svg.Append(" L1 1");
+        svg.Append("'/></clipPath></defs><rect width='16' height='8' clip-path='url(#clip)'/></svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlacementCreatesReadableWordExcelPowerPointAndPdfPackages() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

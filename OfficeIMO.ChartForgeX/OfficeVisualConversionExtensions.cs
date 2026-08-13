@@ -25,7 +25,6 @@ public static class OfficeVisualConversionExtensions {
             readerOptions,
             out OfficeDrawing? importedDrawing,
             out int unsupportedFeatureCount);
-        ThrowIfConfiguredImportLimitsWereExceeded(svgBytes, imported, readerOptions);
         double sourceWidth = importedDrawing?.Width ?? artifact.NaturalSize?.Width ?? 1D;
         double sourceHeight = importedDrawing?.Height ?? artifact.NaturalSize?.Height ?? 1D;
         (double widthPoints, double heightPoints) = options.ResolveSize(sourceWidth, sourceHeight);
@@ -99,7 +98,6 @@ public static class OfficeVisualConversionExtensions {
         byte[] svgBytes = source.GetSvgBytes();
         OfficeSvgDrawingReaderOptions readerOptions = CreateReaderOptions(options);
         bool imported = OfficeSvgDrawingReader.TryRead(svgBytes, readerOptions, out OfficeDrawing? importedDrawing, out int unsupportedFeatureCount);
-        ThrowIfConfiguredImportLimitsWereExceeded(svgBytes, imported, readerOptions);
         double sourceWidth = importedDrawing?.Width ?? 1D;
         double sourceHeight = importedDrawing?.Height ?? 1D;
         (double widthPoints, double heightPoints) = options.ResolveSize(sourceWidth, sourceHeight);
@@ -168,17 +166,6 @@ public static class OfficeVisualConversionExtensions {
         MaximumViewportDimension = options.MaximumSvgViewportDimension,
         MaximumViewportPixels = options.MaximumSvgViewportPixels
     };
-
-    private static void ThrowIfConfiguredImportLimitsWereExceeded(
-        byte[] svgBytes,
-        bool imported,
-        OfficeSvgDrawingReaderOptions configuredOptions) {
-        if (imported) {
-            return;
-        }
-
-        ThrowIfRasterFallbackIsUnsafe(svgBytes, configuredOptions);
-    }
 
     private static void ThrowIfRasterFallbackIsUnsafe(
         byte[] svgBytes,

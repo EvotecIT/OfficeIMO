@@ -32,12 +32,6 @@ internal static partial class PdfCorpusRunner {
         if (manifest.SchemaVersion != 1) {
             throw new InvalidDataException($"Unsupported PDF corpus schema {manifest.SchemaVersion}; expected 1.");
         }
-        ValidateEntryIds(manifest.Entries);
-
-        string filesDirectory = Path.Combine(outputDirectory, "files");
-        string diagnosticsDirectory = Path.Combine(outputDirectory, "diagnostics");
-        Directory.CreateDirectory(filesDirectory);
-        Directory.CreateDirectory(diagnosticsDirectory);
         var entries = new List<PdfCorpusEntry>(manifest.Entries);
         if (!string.IsNullOrWhiteSpace(comPdfPath)) {
             entries.Add(new PdfCorpusEntry {
@@ -58,6 +52,12 @@ internal static partial class PdfCorpusRunner {
                 }
             });
         }
+        ValidateEntryIds(entries);
+
+        string filesDirectory = Path.Combine(outputDirectory, "files");
+        string diagnosticsDirectory = Path.Combine(outputDirectory, "diagnostics");
+        Directory.CreateDirectory(filesDirectory);
+        Directory.CreateDirectory(diagnosticsDirectory);
         string? only = GetOption(args, "--only");
         if (!string.IsNullOrWhiteSpace(only)) {
             var selectedIds = new HashSet<string>(

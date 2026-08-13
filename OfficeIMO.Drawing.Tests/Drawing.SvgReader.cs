@@ -190,6 +190,24 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateCountsPathsInsideReferencedDefinitions() {
+        var clipPath = new StringBuilder("M0 0");
+        for (int index = 1; index < 20_000; index++) clipPath.Append(" L1 1");
+        string withinBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='clip'><path d='" + clipPath + "'/></clipPath></defs>"
+            + "<rect width='16' height='8' clip-path='url(#clip)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(withinBudget)));
+
+        clipPath.Append(" L1 1");
+        string overBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='clip'><path d='" + clipPath + "'/></clipPath></defs>"
+            + "<rect width='16' height='8' clip-path='url(#clip)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(overBudget)));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";
