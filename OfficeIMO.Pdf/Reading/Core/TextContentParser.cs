@@ -18,7 +18,14 @@ internal static class TextContentParser {
         Dash = 128,
         RenderingIntent = 256,
         Flatness = 512,
-        ExtendedState = 1024
+        ExtendedState = 1024,
+        TextFont = 2048,
+        TextCharacterSpacing = 4096,
+        TextWordSpacing = 8192,
+        TextHorizontalScale = 16384,
+        TextLeading = 32768,
+        TextRenderingMode = 65536,
+        TextRise = 131072
     }
 
     private sealed class PendingPersistentTextState {
@@ -680,6 +687,14 @@ internal static class TextContentParser {
             "ri" => PersistentGraphicsStateFlags.RenderingIntent,
             "i" => PersistentGraphicsStateFlags.Flatness,
             "gs" => PersistentGraphicsStateFlags.ExtendedState,
+            "Tf" => PersistentGraphicsStateFlags.TextFont,
+            "Tc" => PersistentGraphicsStateFlags.TextCharacterSpacing,
+            "Tw" => PersistentGraphicsStateFlags.TextWordSpacing,
+            "Tz" => PersistentGraphicsStateFlags.TextHorizontalScale,
+            "TL" or "TD" => PersistentGraphicsStateFlags.TextLeading,
+            "Tr" => PersistentGraphicsStateFlags.TextRenderingMode,
+            "Ts" => PersistentGraphicsStateFlags.TextRise,
+            "\"" => PersistentGraphicsStateFlags.TextCharacterSpacing | PersistentGraphicsStateFlags.TextWordSpacing,
             _ => PersistentGraphicsStateFlags.None
         };
 

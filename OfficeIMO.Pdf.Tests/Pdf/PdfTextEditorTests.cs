@@ -489,6 +489,20 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void MutationRejectsRemovingTextObjectWhoseFontStateFeedsLaterText() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F2 20 Tf 50 700 Td (remove me) Tj ET\n" +
+            "BT 50 650 Td (keep me) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "remove me",
+            new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+            new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
+            "updated"));
+    }
+
+    [Fact]
     public void WholeWordSearchDoesNotSplitADecomposedGrapheme() {
         const string decomposed = "re\u0301sume\u0301";
         byte[] source = BuildRawTextPdf(
