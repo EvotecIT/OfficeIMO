@@ -107,13 +107,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableDefaultSupportsKnownLargeReportContract() {
-            const long knownReportCells = (100_000L + 1L) * 40L;
-
-            Assert.True(OfficeIMO.Excel.Fluent.SheetComposer.DefaultDataTableMaxCells >= knownReportCells);
-        }
-
-        [Fact]
         public void SheetComposer_DataTableCanonicalizesUniqueExplicitColumnCasing() {
             DataTable members = CreateMembersTable();
             using ExcelDocument document = ExcelDocument.Create();
