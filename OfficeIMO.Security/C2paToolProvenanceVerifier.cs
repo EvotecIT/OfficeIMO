@@ -15,6 +15,8 @@ namespace OfficeIMO.Security;
 /// <c>c2patool</c> command-line application. The executable is supplied by the host and is not bundled.
 /// </summary>
 public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
+    private static readonly string[] NonObjectReportFinding = { "c2patool returned a non-object JSON report." };
+    private static readonly string[] MalformedActiveManifestFinding = { "c2patool returned malformed active_manifest data." };
     private static readonly HashSet<string> SuccessfulValidationCodes = new(StringComparer.Ordinal) {
         "claimSignature.validated",
         "claimSignature.insideValidity",
@@ -101,15 +103,21 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 CommentHandling = JsonCommentHandling.Disallow,
                 MaxDepth = 128
             });
-            string? activeManifest = document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("active_manifest", out JsonElement activeManifestElement) &&
-                activeManifestElement.ValueKind == JsonValueKind.String
-                    ? activeManifestElement.GetString()
-                    : null;
+            if (document.RootElement.ValueKind != JsonValueKind.Object) {
+                return Result(OfficeProvenanceVerificationStatus.Error,
+                    NonObjectReportFinding, process.StandardOutput, options);
+            }
+            string? activeManifest = null;
+            if (document.RootElement.TryGetProperty("active_manifest", out JsonElement activeManifestElement)) {
+                if (activeManifestElement.ValueKind == JsonValueKind.String) activeManifest = activeManifestElement.GetString();
+                else if (activeManifestElement.ValueKind != JsonValueKind.Null) {
+                    return Result(OfficeProvenanceVerificationStatus.Error,
+                        MalformedActiveManifestFinding, process.StandardOutput, options);
+                }
+            }
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
-            if (document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus) &&
+            if (document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus) &&
                 !TryCollectValidationFindings(validationStatus, findings, findingSet)) {
                 findings.Add("c2patool returned malformed validation_status data.");
                 return Result(OfficeProvenanceVerificationStatus.Error, findings, process.StandardOutput, options);

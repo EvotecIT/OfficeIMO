@@ -56,15 +56,17 @@ internal static class OfficeProvenanceJpegXmp {
 
         var references = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
         var currentPackets = standards.ToDictionary(item => item.SegmentStart, item => item.Packet);
+        bool standardSetIsStructurallyValid = standards.Count <= 1;
         foreach (StandardPacket standard in standards) {
             string location = $"JPEG[{imageIndex}]/APP1-XMP@{standard.SegmentStart}";
-            if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location);
+            if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location, standardSetIsStructurallyValid);
             foreach (string guid in GetExtendedGuids(standard.Packet, options)) {
                 if (!references.TryGetValue(guid, out List<int>? starts)) references.Add(guid, starts = new List<int>());
                 starts.Add(standard.SegmentStart);
             }
             if (removalOptions != null && changes != null &&
-                OfficeProvenanceXmp.TryRemoveAiDeclarations(standard.Packet, removalOptions, location, changes, out byte[] cleaned)) {
+                OfficeProvenanceXmp.TryRemoveAiDeclarations(standard.Packet, removalOptions, location, changes, out byte[] cleaned,
+                    standardSetIsStructurallyValid)) {
                 currentPackets[standard.SegmentStart] = cleaned;
             }
         }
@@ -84,11 +86,12 @@ internal static class OfficeProvenanceJpegXmp {
                 context?.Diagnostics.Add($"{location}: extended XMP digest does not match its standard-packet reference.");
                 continue;
             }
-            if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+            if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, standardSetIsStructurallyValid);
             if (removalOptions == null || changes == null) continue;
 
             var pendingChanges = new List<OfficeProvenanceChange>();
-            if (!OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, pendingChanges, out byte[] cleanedPacket)) continue;
+            if (!OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, pendingChanges, out byte[] cleanedPacket,
+                standardSetIsStructurallyValid)) continue;
             string replacementGuid = ComputeGuid(cleanedPacket);
             var updatedStandards = new Dictionary<int, byte[]>();
             bool referencesUpdated = true;

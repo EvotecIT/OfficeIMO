@@ -40,46 +40,50 @@ internal static class OfficeProvenanceText {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         var evidence = new List<(int Offset, OfficeProvenanceEvidence Evidence)>();
-        int structuredCount = 0;
-        foreach (StructuredBlock block in FindStructuredBlocks(data, options.MaxManifestBytes, options.MaxContainerEntries)) {
+        StructuredBlock[] structuredBlocks = FindStructuredBlocks(data, options.MaxManifestBytes, options.MaxContainerEntries).ToArray();
+        bool structuredSetIsValid = structuredBlocks.Length <= 1;
+        foreach (StructuredBlock block in structuredBlocks) {
             evidence.Add((block.Start, new OfficeProvenanceEvidence(
                 block.IsExternal ? OfficeProvenanceCarrierKind.C2paExternalManifest : OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PA@{block.Start}",
-                block.IsValid,
+                structuredSetIsValid && block.IsValid,
                 block.ManifestLength,
                 block.ExternalUri)));
-            structuredCount++;
         }
-        int wrapperCount = 0;
-        foreach (TextWrapper wrapper in FindWrappers(data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true)) {
+        TextWrapper[] wrappers = FindWrappers(data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true).ToArray();
+        bool wrapperSetIsValid = wrappers.Length <= 1;
+        foreach (TextWrapper wrapper in wrappers) {
             evidence.Add((wrapper.Start, new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PATextManifestWrapper@{wrapper.Start}",
-                wrapper.IsValid,
+                wrapperSetIsValid && wrapper.IsValid,
                 wrapper.ManifestLength)));
-            wrapperCount++;
         }
         foreach ((int _, OfficeProvenanceEvidence item) in evidence.OrderBy(item => item.Offset)) context.Add(item);
-        if (structuredCount > 1) context.Diagnostics.Add("The structured text contains multiple C2PA manifest blocks.");
-        if (wrapperCount > 1) context.Diagnostics.Add("The unstructured text contains multiple C2PA manifest wrappers.");
+        if (!structuredSetIsValid) context.Diagnostics.Add("The structured text contains multiple C2PA manifest blocks.");
+        if (!wrapperSetIsValid) context.Diagnostics.Add("The unstructured text contains multiple C2PA manifest wrappers.");
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
         if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
         var candidates = new List<(int Offset, RemovalRange Range, OfficeProvenanceChange Change)>();
-        foreach (StructuredBlock block in FindStructuredBlocks(
-            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries)) {
+        StructuredBlock[] structuredBlocks = FindStructuredBlocks(
+            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries).ToArray();
+        bool structuredSetIsValid = structuredBlocks.Length <= 1;
+        foreach (StructuredBlock block in structuredBlocks) {
             bool requested = block.IsExternal ? options.RemoveExternalC2paReferences : options.RemoveC2paManifests;
-            if (!requested || (!block.IsValid && options.RequireStructurallyValidCarrier)) continue;
+            if (!requested || (!(structuredSetIsValid && block.IsValid) && options.RequireStructurallyValidCarrier)) continue;
             candidates.Add((block.Start, new RemovalRange(block.LineStart, block.LineEnd - block.LineStart), new OfficeProvenanceChange(
                 block.IsExternal ? OfficeProvenanceCarrierKind.C2paExternalManifest : OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PA@{block.Start}",
                 block.LineEnd - block.LineStart)));
         }
         if (options.RemoveC2paManifests) {
-            foreach (TextWrapper wrapper in FindWrappers(
-                data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true)) {
-                if (!wrapper.IsValid && options.RequireStructurallyValidCarrier) continue;
+            TextWrapper[] wrappers = FindWrappers(
+                data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true).ToArray();
+            bool wrapperSetIsValid = wrappers.Length <= 1;
+            foreach (TextWrapper wrapper in wrappers) {
+                if (!(wrapperSetIsValid && wrapper.IsValid) && options.RequireStructurallyValidCarrier) continue;
                 candidates.Add((wrapper.Start, new RemovalRange(wrapper.Start, wrapper.End - wrapper.Start), new OfficeProvenanceChange(
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"Text/C2PATextManifestWrapper@{wrapper.Start}",

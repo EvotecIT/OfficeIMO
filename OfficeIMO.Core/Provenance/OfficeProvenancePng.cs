@@ -148,7 +148,7 @@ internal static class OfficeProvenancePng {
         cursor = terminator + 1;
         packetOffset = cursor;
         packetLength = end - cursor;
-        fieldsValid = languageValid && translatedKeywordValid;
+        fieldsValid = languageValid && translatedKeywordValid && IsValidUtf8(data, packetOffset, packetLength);
         return packetLength > 0;
     }
 

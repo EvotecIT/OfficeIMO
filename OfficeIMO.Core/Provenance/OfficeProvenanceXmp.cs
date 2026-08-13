@@ -32,8 +32,10 @@ internal static class OfficeProvenanceXmp {
         OfficeProvenanceRemovalOptions options,
         string location,
         List<OfficeProvenanceChange> changes,
-        out byte[] output) {
+        out byte[] output,
+        bool carrierIsStructurallyValid = true) {
         output = packet;
+        if (!carrierIsStructurallyValid && options.RequireStructurallyValidCarrier) return false;
         if (!options.RemoveAiSourceMetadata || !TryLoad(packet, options.Limits, out XDocument? document) || document == null) return false;
         XmpValue[] values = FindValues(document).ToArray();
         bool changed = false;

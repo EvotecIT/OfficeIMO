@@ -29,7 +29,9 @@ internal static class OfficeProvenanceZip {
         ushort flags = OfficeProvenanceBinary.ReadUInt16(data, 6, littleEndian: true);
         ushort compressionMethod = OfficeProvenanceBinary.ReadUInt16(data, 8, littleEndian: true);
         int nameLength = OfficeProvenanceBinary.ReadUInt16(data, 26, littleEndian: true);
-        if ((flags & 0x0001) != 0 || compressionMethod != 0 || nameLength != expectedName.Length || !BytesEqual(data, 30, expectedName) ||
+        int extraFieldLength = OfficeProvenanceBinary.ReadUInt16(data, 28, littleEndian: true);
+        if ((flags & 0x0001) != 0 || compressionMethod != 0 || nameLength != expectedName.Length || extraFieldLength != 0 ||
+            !BytesEqual(data, 30, expectedName) ||
             !HasExactFirstEntryContent(data, expectedValues)) {
             throw new InvalidDataException("The package does not contain the required leading mimetype entry.");
         }
@@ -124,14 +126,14 @@ internal static class OfficeProvenanceZip {
                 occurrence++;
                 continue;
             }
-            if (!options.ProcessEmbeddedAssets ||
+            if (!options.ProcessEmbeddedAssets || !options.Limits.ProcessEmbeddedAssets ||
                 !IsSupportedEmbeddedAsset(entry, entryName, options.Limits, ref inspectionBytes)) continue;
             if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
             ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
             if (!IsSupportedEmbeddedImage(asset, options.Limits)) continue;
             embeddedCount++;
-            if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
+            if (embeddedCount > Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets)) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             OfficeProvenanceRemovalResult nested;
             try {
                 nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
