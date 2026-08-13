@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace OfficeIMO.Provenance;
@@ -38,58 +39,59 @@ internal static class OfficeProvenanceText {
     }
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
+        var evidence = new List<(int Offset, OfficeProvenanceEvidence Evidence)>();
         int structuredCount = 0;
         foreach (StructuredBlock block in FindStructuredBlocks(data, options.MaxManifestBytes, options.MaxContainerEntries)) {
-            context.Add(new OfficeProvenanceEvidence(
+            evidence.Add((block.Start, new OfficeProvenanceEvidence(
                 block.IsExternal ? OfficeProvenanceCarrierKind.C2paExternalManifest : OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PA@{block.Start}",
                 block.IsValid,
                 block.ManifestLength,
-                block.ExternalUri));
+                block.ExternalUri)));
             structuredCount++;
         }
         int wrapperCount = 0;
         foreach (TextWrapper wrapper in FindWrappers(data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true)) {
-            context.Add(new OfficeProvenanceEvidence(
+            evidence.Add((wrapper.Start, new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PATextManifestWrapper@{wrapper.Start}",
                 wrapper.IsValid,
-                wrapper.ManifestLength));
+                wrapper.ManifestLength)));
             wrapperCount++;
         }
+        foreach ((int _, OfficeProvenanceEvidence item) in evidence.OrderBy(item => item.Offset)) context.Add(item);
         if (structuredCount > 1) context.Diagnostics.Add("The structured text contains multiple C2PA manifest blocks.");
         if (wrapperCount > 1) context.Diagnostics.Add("The unstructured text contains multiple C2PA manifest wrappers.");
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
         if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
-        var ranges = new List<RemovalRange>();
+        var candidates = new List<(int Offset, RemovalRange Range, OfficeProvenanceChange Change)>();
         foreach (StructuredBlock block in FindStructuredBlocks(
             data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries)) {
             bool requested = block.IsExternal ? options.RemoveExternalC2paReferences : options.RemoveC2paManifests;
             if (!requested || (!block.IsValid && options.RequireStructurallyValidCarrier)) continue;
-            ranges.Add(new RemovalRange(block.LineStart, block.LineEnd - block.LineStart));
-            changes.Add(new OfficeProvenanceChange(
+            candidates.Add((block.Start, new RemovalRange(block.LineStart, block.LineEnd - block.LineStart), new OfficeProvenanceChange(
                 block.IsExternal ? OfficeProvenanceCarrierKind.C2paExternalManifest : OfficeProvenanceCarrierKind.C2paManifest,
                 $"Text/C2PA@{block.Start}",
-                block.LineEnd - block.LineStart));
+                block.LineEnd - block.LineStart)));
         }
         if (options.RemoveC2paManifests) {
             foreach (TextWrapper wrapper in FindWrappers(
                 data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true)) {
                 if (!wrapper.IsValid && options.RequireStructurallyValidCarrier) continue;
-                ranges.Add(new RemovalRange(wrapper.Start, wrapper.End - wrapper.Start));
-                changes.Add(new OfficeProvenanceChange(
+                candidates.Add((wrapper.Start, new RemovalRange(wrapper.Start, wrapper.End - wrapper.Start), new OfficeProvenanceChange(
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"Text/C2PATextManifestWrapper@{wrapper.Start}",
-                    wrapper.End - wrapper.Start));
+                    wrapper.End - wrapper.Start)));
             }
         }
-        if (ranges.Count == 0) return (byte[])data.Clone();
-        ranges.Sort((left, right) => left.Start.CompareTo(right.Start));
+        if (candidates.Count == 0) return (byte[])data.Clone();
+        candidates.Sort((left, right) => left.Offset.CompareTo(right.Offset));
+        foreach ((int _, RemovalRange _, OfficeProvenanceChange change) in candidates) changes.Add(change);
         using var output = new MemoryStream(data.Length);
         int offset = 0;
-        foreach (RemovalRange range in ranges) {
+        foreach (RemovalRange range in candidates.Select(item => item.Range).OrderBy(item => item.Start)) {
             if (range.Start < offset) continue;
             output.Write(data, offset, range.Start - offset);
             offset = range.Start + range.Length;

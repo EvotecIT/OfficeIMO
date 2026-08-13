@@ -28,6 +28,7 @@ internal static class OfficeProvenancePng {
         OfficeProvenanceRemovalOptions? removalOptions,
         List<OfficeProvenanceChange>? changes) {
         bool reserialized = false;
+        int c2paCount = CountC2paChunks(data, options);
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
@@ -50,7 +51,7 @@ internal static class OfficeProvenancePng {
             string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
             bool isC2pa = type == "caBX";
             if (isC2pa) {
-                bool valid = validHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
+                bool valid = c2paCount == 1 && validHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"PNG/caBX@{offset}";
@@ -94,6 +95,30 @@ internal static class OfficeProvenancePng {
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
         if (offset < data.Length) output?.Write(data, offset, data.Length - offset);
         return reserialized;
+    }
+
+    private static int CountC2paChunks(byte[] data, OfficeProvenanceOptions options) {
+        int offset = SignatureLength;
+        int chunkCount = 0;
+        int c2paCount = 0;
+        bool foundEnd = false;
+        while (offset < data.Length) {
+            if (++chunkCount > options.MaxContainerEntries) {
+                throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
+            }
+            if (data.Length - offset < 12) throw new InvalidDataException("PNG contains a truncated chunk.");
+            uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
+            if (payloadValue > int.MaxValue) throw new InvalidDataException("PNG chunk length exceeds the supported asset bounds.");
+            int payloadLength = (int)payloadValue;
+            long totalValue = 12L + payloadLength;
+            if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
+            bool isEnd = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IEND");
+            offset += (int)totalValue;
+            if (isEnd) { foundEnd = true; break; }
+        }
+        if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
+        return c2paCount;
     }
 
     private static bool TryGetXmpPacket(

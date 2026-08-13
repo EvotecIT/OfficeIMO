@@ -14,28 +14,32 @@ internal static class OfficeProvenanceZip {
     internal static bool HasSignature(byte[] data) => data.Length >= 4 && data[0] == 0x50 && data[1] == 0x4B &&
         ((data[2] == 0x03 && data[3] == 0x04) || (data[2] == 0x05 && data[3] == 0x06) || (data[2] == 0x07 && data[3] == 0x08));
 
-    internal static void ValidateMimetypeEntry(byte[] data, string expectedValue, int maximumEntries) {
+    internal static void ValidateMimetypeEntry(byte[] data, string expectedValue, int maximumEntries) =>
+        ValidateMimetypeEntry(data, new[] { expectedValue }, maximumEntries);
+
+    internal static void ValidateMimetypeEntry(byte[] data, IReadOnlyCollection<string> expectedValues, int maximumEntries) {
         if (data == null) throw new ArgumentNullException(nameof(data));
-        if (expectedValue == null) throw new ArgumentNullException(nameof(expectedValue));
+        if (expectedValues == null) throw new ArgumentNullException(nameof(expectedValues));
+        if (expectedValues.Count == 0 || expectedValues.Any(string.IsNullOrEmpty)) throw new ArgumentException("At least one expected mimetype value is required.", nameof(expectedValues));
         ValidateEntryCount(data, maximumEntries);
         byte[] expectedName = Encoding.ASCII.GetBytes("mimetype");
-        byte[] expectedContent = Encoding.ASCII.GetBytes(expectedValue);
         if (data.Length < 30 || OfficeProvenanceBinary.ReadUInt32(data, 0, littleEndian: true) != 0x04034B50U) {
             throw new InvalidDataException("The package does not start with a local mimetype entry.");
         }
         ushort flags = OfficeProvenanceBinary.ReadUInt16(data, 6, littleEndian: true);
         int nameLength = OfficeProvenanceBinary.ReadUInt16(data, 26, littleEndian: true);
         if ((flags & 0x0001) != 0 || nameLength != expectedName.Length || !BytesEqual(data, 30, expectedName) ||
-            !HasExactFirstEntryContent(data, expectedContent)) {
+            !HasExactFirstEntryContent(data, expectedValues)) {
             throw new InvalidDataException("The package does not contain the required leading mimetype entry.");
         }
     }
 
-    private static bool HasExactFirstEntryContent(byte[] data, byte[] expectedContent) {
+    private static bool HasExactFirstEntryContent(byte[] data, IReadOnlyCollection<string> expectedValues) {
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        if (archive.Entries.Count == 0 || archive.Entries[0].Length != expectedContent.Length) return false;
-        return ReadEntry(archive.Entries[0], expectedContent.Length).SequenceEqual(expectedContent);
+        if (archive.Entries.Count == 0 || archive.Entries[0].Length > 256 || archive.Entries[0].Length > int.MaxValue) return false;
+        byte[] content = ReadEntry(archive.Entries[0], (int)archive.Entries[0].Length);
+        return expectedValues.Any(value => content.SequenceEqual(Encoding.ASCII.GetBytes(value)));
     }
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
@@ -145,7 +149,7 @@ internal static class OfficeProvenanceZip {
         if (changes.Count == 0) return (byte[])data.Clone();
 
         bool hasSignature = options.SignatureMutationPolicy != OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup &&
-            HasPackageSignature(data, input, options);
+            HasPackageSignature(data, input, options, ref inspectionBytes);
         if (hasSignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) {
             throw new InvalidOperationException("Removing provenance would invalidate package signatures. Choose an explicit signature mutation policy.");
         }
@@ -599,9 +603,14 @@ internal static class OfficeProvenanceZip {
                 relativeName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool HasOpcSignatureOriginRelationship(ZipArchive archive, long maximumBytes) {
+    private static bool HasOpcSignatureOriginRelationship(
+        ZipArchive archive,
+        long maximumBytes,
+        long maximumExpandedBytes,
+        ref long expandedBytes) {
         ZipArchiveEntry? relationships = archive.GetEntry("_rels/.rels");
         if (relationships == null || relationships.Length <= 0 || relationships.Length > maximumBytes) return false;
+        ReserveExpandedBytes(ref expandedBytes, relationships.Length, maximumExpandedBytes);
         using Stream source = relationships.Open();
         byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, maximumBytes);
         byte[] marker = System.Text.Encoding.ASCII.GetBytes(
@@ -618,7 +627,35 @@ internal static class OfficeProvenanceZip {
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        return HasPackageSignature(data, archive, options);
+        long expandedBytes = 0;
+        return HasPackageSignature(data, archive, options, ref expandedBytes);
+    }
+
+    internal static bool HasApplicationSignatureMetadata(byte[] data, OfficeProvenanceOptions options) {
+        ValidateEntryCount(data, options.MaxContainerEntries);
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry[] entries = archive.Entries
+            .Where(entry => entry.FullName.Equals("docProps/app.xml", StringComparison.Ordinal))
+            .ToArray();
+        if (entries.Length == 0) return false;
+        if (entries.Length != 1) throw new InvalidDataException("The OPC package contains duplicate application metadata parts.");
+        ZipArchiveEntry entry = entries[0];
+        if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
+            throw new InvalidDataException("Open XML application metadata exceeds the configured asset limit.");
+        }
+        long expandedBytes = 0;
+        ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
+        byte[] xml = ReadEntry(entry, (int)entry.Length);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "Open XML application metadata");
+        using var input = new MemoryStream(xml, writable: false);
+        using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(options));
+        while (reader.Read()) {
+            if (reader.NodeType == XmlNodeType.Element &&
+                reader.LocalName == "DigSig" &&
+                reader.NamespaceURI == "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties") return true;
+        }
+        return false;
     }
 
     internal static void ValidateForOwningPackageMutation(byte[] data, OfficeProvenanceOptions options) {
@@ -649,10 +686,15 @@ internal static class OfficeProvenanceZip {
     private static bool HasPackageSignature(
         byte[] data,
         ZipArchive archive,
-        OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceRemovalOptions options,
+        ref long expandedBytes) {
         bool rawSignatureEvidence = archive.Entries.Any(IsNonOpcSignatureEntry) ||
             archive.Entries.Any(IsOpcSignatureEvidenceEntry) ||
-            HasOpcSignatureOriginRelationship(archive, options.Limits.MaxAssetBytes);
+            HasOpcSignatureOriginRelationship(
+                archive,
+                options.Limits.MaxAssetBytes,
+                options.Limits.MaxExpandedContainerBytes,
+                ref expandedBytes);
         if (archive.GetEntry("[Content_Types].xml") == null) return rawSignatureEvidence;
 
         var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
