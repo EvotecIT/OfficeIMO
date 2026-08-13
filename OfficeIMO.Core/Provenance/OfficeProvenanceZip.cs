@@ -14,15 +14,41 @@ internal static class OfficeProvenanceZip {
     internal static bool HasSignature(byte[] data) => data.Length >= 4 && data[0] == 0x50 && data[1] == 0x4B &&
         ((data[2] == 0x03 && data[3] == 0x04) || (data[2] == 0x05 && data[3] == 0x06) || (data[2] == 0x07 && data[3] == 0x08));
 
+    internal static void ValidateMimetypeEntry(byte[] data, string expectedValue, int maximumEntries) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        if (expectedValue == null) throw new ArgumentNullException(nameof(expectedValue));
+        ValidateEntryCount(data, maximumEntries);
+        byte[] expectedName = Encoding.ASCII.GetBytes("mimetype");
+        byte[] expectedContent = Encoding.ASCII.GetBytes(expectedValue);
+        if (data.Length < 30 || OfficeProvenanceBinary.ReadUInt32(data, 0, littleEndian: true) != 0x04034B50U) {
+            throw new InvalidDataException("The package does not start with a local mimetype entry.");
+        }
+        ushort flags = OfficeProvenanceBinary.ReadUInt16(data, 6, littleEndian: true);
+        int nameLength = OfficeProvenanceBinary.ReadUInt16(data, 26, littleEndian: true);
+        if ((flags & 0x0001) != 0 || nameLength != expectedName.Length || !BytesEqual(data, 30, expectedName) ||
+            !HasExactFirstEntryContent(data, expectedContent)) {
+            throw new InvalidDataException("The package does not contain the required leading mimetype entry.");
+        }
+    }
+
+    private static bool HasExactFirstEntryContent(byte[] data, byte[] expectedContent) {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        if (archive.Entries.Count == 0 || archive.Entries[0].Length != expectedContent.Length) return false;
+        return ReadEntry(archive.Entries[0], expectedContent.Length).SequenceEqual(expectedContent);
+    }
+
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         ValidateEntryCount(data, options.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
         int index = 0;
         int embeddedCount = 0;
         long expandedBytes = 0;
         foreach (ZipArchiveEntry entry in archive.Entries) {
-            if (entry.FullName.Equals(ManifestPath, StringComparison.Ordinal)) {
+            string entryName = entryMetadata[entry].Name;
+            if (entryName.Equals(ManifestPath, StringComparison.Ordinal)) {
                 if (entry.Length > options.MaxManifestBytes || entry.Length > int.MaxValue) {
                     throw new InvalidDataException("ZIP provenance manifest exceeds the configured manifest limit.");
                 }
@@ -38,7 +64,7 @@ internal static class OfficeProvenanceZip {
                 continue;
             }
             if (!options.ProcessEmbeddedAssets ||
-                !IsSupportedEmbeddedAsset(entry, options, ref expandedBytes)) continue;
+                !IsSupportedEmbeddedAsset(entry, entryName, options, ref expandedBytes)) continue;
             if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
                 throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
             }
@@ -49,13 +75,13 @@ internal static class OfficeProvenanceZip {
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             OfficeProvenanceReport nested;
             try {
-                nested = OfficeProvenanceInspector.InspectCore(asset, entry.FullName, CreateNestedOptions(options));
+                nested = OfficeProvenanceInspector.InspectCore(asset, entryName, CreateNestedOptions(options));
             } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
-                context.Diagnostics.Add($"ZIP/{entry.FullName}: embedded asset was preserved because inspection failed: {exception.Message}");
+                context.Diagnostics.Add($"ZIP/{entryName}: embedded asset was preserved because inspection failed: {exception.Message}");
                 continue;
             }
-            foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entry.FullName, evidence));
-            foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entry.FullName}: {diagnostic}");
+            foreach (OfficeProvenanceEvidence evidence in nested.Evidence) context.Add(PrefixEvidence(entryName, evidence));
+            foreach (string diagnostic in nested.Diagnostics) context.Diagnostics.Add($"ZIP/{entryName}: {diagnostic}");
         }
         if (index > 1) context.Diagnostics.Add("The ZIP package contains multiple C2PA manifest entries.");
     }
@@ -70,27 +96,29 @@ internal static class OfficeProvenanceZip {
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         var removable = new HashSet<string>(StringComparer.Ordinal);
         var embeddedRewrites = new Dictionary<ZipArchiveEntry, byte[]>();
         int occurrence = 0;
         int embeddedCount = 0;
         long inspectionBytes = 0;
         foreach (ZipArchiveEntry entry in input.Entries) {
-            if (entry.FullName.Equals(ManifestPath, StringComparison.Ordinal)) {
+            string entryName = entryMetadata[entry].Name;
+            if (entryName.Equals(ManifestPath, StringComparison.Ordinal)) {
                 if (entry.Length > options.Limits.MaxManifestBytes || entry.Length > int.MaxValue) throw new InvalidDataException("ZIP provenance manifest exceeds the configured limit.");
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] manifest = ReadEntry(entry, (int)entry.Length);
                 bool valid = OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
-                    removable.Add(entry.FullName + "\0" + occurrence);
+                    removable.Add(entryName + "\0" + occurrence);
                     changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, $"ZIP/{ManifestPath}[{occurrence}]", 0));
                 }
                 occurrence++;
                 continue;
             }
             if (!options.ProcessEmbeddedAssets ||
-                !IsSupportedEmbeddedAsset(entry, options.Limits, ref inspectionBytes)) continue;
+                !IsSupportedEmbeddedAsset(entry, entryName, options.Limits, ref inspectionBytes)) continue;
             if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
             ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
@@ -99,7 +127,7 @@ internal static class OfficeProvenanceZip {
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             OfficeProvenanceRemovalResult nested;
             try {
-                nested = OfficeProvenanceRemover.Remove(asset, entry.FullName, CreateNestedRemovalOptions(options));
+                nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
             } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
                 continue;
@@ -110,7 +138,7 @@ internal static class OfficeProvenanceZip {
             }
             embeddedRewrites.Add(entry, nested.ToArray());
             foreach (OfficeProvenanceChange change in nested.Changes) {
-                changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entry.FullName}/{change.Location}", 0));
+                changes.Add(new OfficeProvenanceChange(change.Carrier, $"ZIP/{entryName}/{change.Location}", 0));
             }
             if (nested.WasReserialized) reserialized = true;
         }
@@ -130,13 +158,13 @@ internal static class OfficeProvenanceZip {
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
-        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         occurrence = 0;
         IEnumerable<ZipArchiveEntry> orderedEntries = input.Entries
-            .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal));
+            .OrderByDescending(entry => entryMetadata[entry].Name.Equals("mimetype", StringComparison.Ordinal));
         foreach (ZipArchiveEntry entry in orderedEntries) {
-            bool isManifest = entry.FullName.Equals(ManifestPath, StringComparison.Ordinal);
-            string key = entry.FullName + "\0" + occurrence;
+            string entryName = entryMetadata[entry].Name;
+            bool isManifest = entryName.Equals(ManifestPath, StringComparison.Ordinal);
+            string key = entryName + "\0" + occurrence;
             if (isManifest) occurrence++;
             if (isManifest && removable.Contains(key)) continue;
             embeddedRewrites.TryGetValue(entry, out byte[]? rewritten);
@@ -235,10 +263,10 @@ internal static class OfficeProvenanceZip {
         ZipArchiveEntry entry,
         OfficeProvenanceZipEntryMetadata metadata,
         byte[]? replacement = null) {
-        bool isMimetype = entry.FullName.Equals("mimetype", StringComparison.Ordinal);
+        bool isMimetype = metadata.Name.Equals("mimetype", StringComparison.Ordinal);
         if (replacement != null) {
             return new OfficeProvenanceZipWriteEntry(
-                entry.FullName,
+                metadata.Name,
                 replacement.LongLength,
                 compress: !isMimetype,
                 entry.LastWriteTime,
@@ -250,7 +278,7 @@ internal static class OfficeProvenanceZip {
                 () => new MemoryStream(replacement, writable: false));
         }
         return new OfficeProvenanceZipWriteEntry(
-            entry.FullName,
+            metadata.Name,
             entry.Length,
             compress: !isMimetype,
             entry.LastWriteTime,
@@ -275,20 +303,21 @@ internal static class OfficeProvenanceZip {
         if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
-        bool hadMatches = input.Entries.Any(entry => shouldRemove(entry.FullName));
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
+        bool hadMatches = input.Entries.Any(entry => shouldRemove(entryMetadata[entry].Name));
         if (!hadMatches) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
 
-        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
         foreach (ZipArchiveEntry entry in input.Entries
-            .OrderByDescending(candidate => candidate.FullName.Equals("mimetype", StringComparison.Ordinal))) {
-            if (shouldRemove(entry.FullName)) continue;
+            .OrderByDescending(candidate => entryMetadata[candidate].Name.Equals("mimetype", StringComparison.Ordinal))) {
+            string entryName = entryMetadata[entry].Name;
+            if (shouldRemove(entryName)) continue;
             byte[]? replacement = null;
-            if (shouldReplace?.Invoke(entry.FullName) == true) {
+            if (shouldReplace?.Invoke(entryName) == true) {
                 if (replace == null || entry.Length > maximumReplacementBytes || entry.Length > int.MaxValue) {
                     throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
                 }
-                replacement = replace(entry.FullName, ReadEntry(entry, (int)entry.Length));
+                replacement = replace(entryName, ReadEntry(entry, (int)entry.Length));
                 if (replacement.LongLength > maximumReplacementBytes) {
                     throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
                 }
@@ -421,6 +450,9 @@ internal static class OfficeProvenanceZip {
             if (recordEnd > data.Length) throw new InvalidDataException("ZIP central-directory entry exceeds the package bounds.");
             byte[] centralExtraField = new byte[extraLength];
             if (extraLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength, centralExtraField, 0, extraLength);
+            byte[] rawName = new byte[nameLength];
+            if (nameLength != 0) Buffer.BlockCopy(data, cursor + 46, rawName, 0, nameLength);
+            string decodedName = DecodeZipEntryName(rawName, flags, centralExtraField);
             if (localHeaderOffset == uint.MaxValue) {
                 localHeaderOffset = ResolveZip64LocalHeaderOffset(data, cursor, centralExtraField);
             }
@@ -438,9 +470,12 @@ internal static class OfficeProvenanceZip {
             int localExtraLength = OfficeProvenanceBinary.ReadUInt16(data, localOffset + 28, littleEndian: true);
             long localHeaderEnd = (long)localOffset + 30 + localNameLength + localExtraLength;
             if (localHeaderEnd > data.Length) throw new InvalidDataException("ZIP local-file header exceeds the package bounds.");
+            if (localNameLength != rawName.Length || !BytesEqual(data, localOffset + 30, rawName)) {
+                throw new InvalidDataException("ZIP local and central entry names do not match.");
+            }
             byte[] localExtraField = new byte[localExtraLength];
             if (localExtraLength != 0) Buffer.BlockCopy(data, localOffset + 30 + localNameLength, localExtraField, 0, localExtraLength);
-            metadata.Add(new OfficeProvenanceZipEntryMetadata(localExtraField, centralExtraField, comment, internalAttributes));
+            metadata.Add(new OfficeProvenanceZipEntryMetadata(decodedName, localExtraField, centralExtraField, comment, internalAttributes));
             cursor = (int)recordEnd;
         }
         return metadata;
@@ -448,18 +483,67 @@ internal static class OfficeProvenanceZip {
 
     private static byte[] TranscodeLegacyZipComment(byte[] comment) {
         if (comment.Length == 0) return comment;
+        char[] decoded = DecodeCp437(comment);
+        int encodedLength = Encoding.UTF8.GetByteCount(decoded);
+        if (encodedLength <= ushort.MaxValue) return Encoding.UTF8.GetBytes(decoded);
+        throw new InvalidDataException("A legacy ZIP entry comment cannot be represented completely as UTF-8 within the ZIP length limit.");
+    }
+
+    private static string DecodeZipEntryName(byte[] rawName, ushort flags, byte[] extraField) {
+        if ((flags & 0x0800) != 0) {
+            try { return new UTF8Encoding(false, true).GetString(rawName); }
+            catch (DecoderFallbackException exception) { throw new InvalidDataException("A UTF-8 ZIP entry name is malformed.", exception); }
+        }
+        if (TryReadUnicodePath(extraField, rawName, out string? unicodeName)) return unicodeName!;
+        return new string(DecodeCp437(rawName));
+    }
+
+    private static bool TryReadUnicodePath(byte[] extraField, byte[] rawName, out string? name) {
+        name = null;
+        int cursor = 0;
+        while (cursor <= extraField.Length - 4) {
+            ushort fieldId = OfficeProvenanceBinary.ReadUInt16(extraField, cursor, littleEndian: true);
+            int dataLength = OfficeProvenanceBinary.ReadUInt16(extraField, cursor + 2, littleEndian: true);
+            cursor += 4;
+            if (dataLength > extraField.Length - cursor) return false;
+            if (fieldId == 0x7075 && dataLength >= 5 && extraField[cursor] == 1 &&
+                OfficeProvenanceBinary.ReadUInt32(extraField, cursor + 1, littleEndian: true) == ComputeCrc32(rawName)) {
+                try {
+                    name = new UTF8Encoding(false, true).GetString(extraField, cursor + 5, dataLength - 5);
+                    return true;
+                } catch (DecoderFallbackException) { return false; }
+            }
+            cursor += dataLength;
+        }
+        return false;
+    }
+
+    private static char[] DecodeCp437(byte[] bytes) {
         const string highCharacters =
             "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»" +
             "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌" +
             "█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
-        var decoded = new char[comment.Length];
-        for (int index = 0; index < comment.Length; index++) {
-            byte value = comment[index];
+        var decoded = new char[bytes.Length];
+        for (int index = 0; index < bytes.Length; index++) {
+            byte value = bytes[index];
             decoded[index] = value < 0x80 ? (char)value : highCharacters[value - 0x80];
         }
-        int encodedLength = Encoding.UTF8.GetByteCount(decoded);
-        if (encodedLength <= ushort.MaxValue) return Encoding.UTF8.GetBytes(decoded);
-        throw new InvalidDataException("A legacy ZIP entry comment cannot be represented completely as UTF-8 within the ZIP length limit.");
+        return decoded;
+    }
+
+    private static uint ComputeCrc32(byte[] bytes) {
+        uint crc = uint.MaxValue;
+        foreach (byte value in bytes) {
+            crc ^= value;
+            for (int bit = 0; bit < 8; bit++) crc = (crc & 1) != 0 ? 0xEDB88320U ^ (crc >> 1) : crc >> 1;
+        }
+        return ~crc;
+    }
+
+    private static bool BytesEqual(byte[] data, int offset, byte[] expected) {
+        if (offset < 0 || offset > data.Length - expected.Length) return false;
+        for (int index = 0; index < expected.Length; index++) if (data[offset + index] != expected[index]) return false;
+        return true;
     }
 
     private static uint ResolveZip64LocalHeaderOffset(byte[] data, int centralHeaderOffset, byte[] extraField) {
@@ -589,9 +673,10 @@ internal static class OfficeProvenanceZip {
 
     private static bool IsSupportedEmbeddedAsset(
         ZipArchiveEntry entry,
+        string entryName,
         OfficeProvenanceOptions options,
         ref long expandedBytes) {
-        string extension = Path.GetExtension(entry.FullName).ToLowerInvariant();
+        string extension = Path.GetExtension(entryName).ToLowerInvariant();
         if (extension is ".jpg" or ".jpeg" or ".png" or ".webp" or ".gif" or ".tif" or ".tiff" or ".svg") {
             return true;
         }
@@ -609,7 +694,7 @@ internal static class OfficeProvenanceZip {
             read += current;
         }
         if (read != prefix.Length) Array.Resize(ref prefix, read);
-        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(prefix, entry.FullName, options);
+        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(prefix, entryName, options);
         bool supported = format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
             OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
@@ -687,13 +772,15 @@ internal static class OfficeProvenanceZip {
     }
 
     private sealed class OfficeProvenanceZipEntryMetadata {
-        internal OfficeProvenanceZipEntryMetadata(byte[] localExtraField, byte[] centralExtraField, byte[] comment, ushort internalAttributes) {
+        internal OfficeProvenanceZipEntryMetadata(string name, byte[] localExtraField, byte[] centralExtraField, byte[] comment, ushort internalAttributes) {
+            Name = name;
             LocalExtraField = localExtraField;
             CentralExtraField = centralExtraField;
             Comment = comment;
             InternalAttributes = internalAttributes;
         }
 
+        internal string Name { get; }
         internal byte[] LocalExtraField { get; }
         internal byte[] CentralExtraField { get; }
         internal byte[] Comment { get; }

@@ -20,14 +20,15 @@ internal static class OfficeProvenancePackageMutation {
         string outputPath,
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
-        Func<byte[], bool>? hasSignatures = null) {
+        Func<byte[], bool>? hasSignatures = null,
+        Action<byte[], OfficeProvenanceOptions>? validatePackage = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
         string fullInputPath = Path.GetFullPath(inputPath);
         byte[] data;
         using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
-        OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options, stripSignatures, hasSignatures);
+        OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options, stripSignatures, hasSignatures, validatePackage);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), result.ToArray());
         return result;
     }
@@ -37,10 +38,12 @@ internal static class OfficeProvenancePackageMutation {
         string fileName,
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
-        Func<byte[], bool>? hasSignatures = null) {
+        Func<byte[], bool>? hasSignatures = null,
+        Action<byte[], OfficeProvenanceOptions>? validatePackage = null) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
         options ??= new OfficeProvenanceRemovalOptions();
+        validatePackage?.Invoke(data, options.Limits);
         if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
             return OfficeProvenanceRemover.Remove(data, fileName, options);
         }

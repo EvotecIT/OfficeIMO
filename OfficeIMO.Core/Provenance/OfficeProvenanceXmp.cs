@@ -21,7 +21,7 @@ internal static class OfficeProvenanceXmp {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.IptcDigitalSourceType,
                 $"{location}/DigitalSourceType[{index++}]",
-                isStructurallyValid: carrierIsStructurallyValid,
+                isStructurallyValid: carrierIsStructurallyValid && value.IsStructurallyValid,
                 value: value.Value,
                 digitalSourceKind: value.Kind));
         }
@@ -41,7 +41,7 @@ internal static class OfficeProvenanceXmp {
         foreach (XmpValue value in values) {
             bool remove = value.Kind == OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia ||
                 value.Kind == OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia;
-            if (remove) {
+            if (remove && (value.IsStructurallyValid || !options.RequireStructurallyValidCarrier)) {
                 if (value.Element != null) value.Element.Remove();
                 else value.Attribute?.Remove();
                 changes.Add(new OfficeProvenanceChange(
@@ -90,11 +90,11 @@ internal static class OfficeProvenanceXmp {
             if (element.Name.NamespaceName == IptcNamespace && element.Name.LocalName == "DigitalSourceType") {
                 XAttribute? resource = element.Attribute(RdfNamespace + "resource");
                 string value = resource?.Value ?? element.Value;
-                yield return new XmpValue(value, Classify(value), resource, element);
+                yield return new XmpValue(value, Classify(value), resource, element, IsScalarRdfProperty(element, resource));
             }
             foreach (XAttribute attribute in element.Attributes()) {
                 if (attribute.Name.NamespaceName == IptcNamespace && attribute.Name.LocalName == "DigitalSourceType") {
-                    yield return new XmpValue(attribute.Value, Classify(attribute.Value), attribute, null);
+                    yield return new XmpValue(attribute.Value, Classify(attribute.Value), attribute, null, isStructurallyValid: true);
                 }
             }
         }
@@ -105,20 +105,35 @@ internal static class OfficeProvenanceXmp {
         return description != null && description.Ancestors().Any(candidate => candidate.Name == RdfNamespace + "RDF");
     }
 
+    private static bool IsScalarRdfProperty(XElement element, XAttribute? resource) {
+        if (element.HasElements || element.Nodes().Any(node => node is not XText)) return false;
+        if (resource != null) {
+            if (!string.IsNullOrWhiteSpace(element.Value)) return false;
+            return element.Attributes().All(attribute => attribute.IsNamespaceDeclaration || attribute == resource);
+        }
+        if (element.Attribute(RdfNamespace + "parseType") != null ||
+            element.Attribute(RdfNamespace + "nodeID") != null) return false;
+        return element.Attributes().All(attribute => attribute.IsNamespaceDeclaration ||
+            attribute.Name == XNamespace.Xml + "lang" || attribute.Name == RdfNamespace + "datatype");
+    }
+
     private static bool TryLoad(byte[] packet, OfficeProvenanceOptions options, out XDocument? document) {
         return OfficeProvenanceXml.TryLoadDocument(packet, options, out document);
     }
 
     private sealed class XmpValue {
-        internal XmpValue(string value, OfficeProvenanceDigitalSourceKind kind, XAttribute? attribute, XElement? element) {
+        internal XmpValue(string value, OfficeProvenanceDigitalSourceKind kind, XAttribute? attribute, XElement? element,
+            bool isStructurallyValid) {
             Value = value;
             Kind = kind;
             Attribute = attribute;
             Element = element;
+            IsStructurallyValid = isStructurallyValid;
         }
         internal string Value { get; }
         internal OfficeProvenanceDigitalSourceKind Kind { get; }
         internal XAttribute? Attribute { get; }
         internal XElement? Element { get; }
+        internal bool IsStructurallyValid { get; }
     }
 }

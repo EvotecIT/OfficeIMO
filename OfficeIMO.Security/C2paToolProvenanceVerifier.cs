@@ -274,6 +274,8 @@ internal sealed class C2paToolProcessResult {
 }
 
 internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
+    private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
+
     public C2paToolProcessResult Run(C2paToolProcessRequest request) {
         var startInfo = new ProcessStartInfo {
             FileName = request.ExecutablePath,
@@ -330,11 +332,7 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static void Terminate(Process process) {
         try {
             if (!process.HasExited) {
-#if NET8_0_OR_GREATER
-                process.Kill(entireProcessTree: true);
-#else
-                process.Kill();
-#endif
+                if (!TryKillEntireProcessTree(process)) process.Kill();
                 process.WaitForExit(1000);
             }
         } catch (InvalidOperationException) { }
@@ -342,6 +340,85 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         finally {
             try { process.StandardOutput.Dispose(); } catch (InvalidOperationException) { }
             try { process.StandardError.Dispose(); } catch (InvalidOperationException) { }
+        }
+    }
+
+    private static bool TryKillEntireProcessTree(Process process) {
+        System.Reflection.MethodInfo? method = typeof(Process).GetMethod("Kill", new[] { typeof(bool) });
+        if (method != null) {
+            try {
+                method.Invoke(process, new object[] { true });
+                return true;
+            } catch (System.Reflection.TargetInvocationException exception) when (
+                exception.InnerException is InvalidOperationException || exception.InnerException is Win32Exception) { }
+        }
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT) return TryKillWithTaskKill(process);
+        return TryKillUnixProcessTree(process);
+    }
+
+    private static bool TryKillWithTaskKill(Process process) {
+        try {
+            using Process? killer = Process.Start(new ProcessStartInfo {
+                FileName = "taskkill.exe",
+                Arguments = $"/PID {process.Id} /T /F",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            if (killer == null || !killer.WaitForExit(2000)) return false;
+            return killer.ExitCode == 0 || process.HasExited;
+        } catch (InvalidOperationException) { return false; }
+        catch (Win32Exception) { return false; }
+    }
+
+    private static bool TryKillUnixProcessTree(Process process) {
+        try {
+            var children = new Dictionary<int, List<int>>();
+            using Process? snapshot = Process.Start(new ProcessStartInfo {
+                FileName = "/bin/ps",
+                Arguments = "-e -o pid= -o ppid=",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            });
+            if (snapshot == null) return false;
+            string output = ReadProcessSnapshot(snapshot.StandardOutput, 4 * 1024 * 1024);
+            if (!snapshot.WaitForExit(2000) || snapshot.ExitCode != 0) return false;
+            foreach (string line in output.Split(ProcessSnapshotLineSeparators, StringSplitOptions.RemoveEmptyEntries)) {
+                string[] fields = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                if (fields.Length != 2 || !int.TryParse(fields[0], out int pid) || !int.TryParse(fields[1], out int parent)) continue;
+                if (!children.TryGetValue(parent, out List<int>? list)) children.Add(parent, list = new List<int>());
+                list.Add(pid);
+            }
+            var descendants = new List<int>();
+            var pending = new Stack<int>();
+            pending.Push(process.Id);
+            while (pending.Count > 0) {
+                int parent = pending.Pop();
+                if (!children.TryGetValue(parent, out List<int>? direct)) continue;
+                foreach (int child in direct) { descendants.Add(child); pending.Push(child); }
+            }
+            process.Kill();
+            for (int index = descendants.Count - 1; index >= 0; index--) {
+                try { using Process child = Process.GetProcessById(descendants[index]); child.Kill(); }
+                catch (ArgumentException) { }
+                catch (InvalidOperationException) { }
+                catch (Win32Exception) { }
+            }
+            return true;
+        } catch (InvalidOperationException) { return false; }
+        catch (Win32Exception) { return false; }
+        catch (InvalidDataException) { return false; }
+    }
+
+    private static string ReadProcessSnapshot(TextReader reader, int maximumCharacters) {
+        var builder = new StringBuilder();
+        char[] buffer = new char[4096];
+        while (true) {
+            int read = reader.Read(buffer, 0, buffer.Length);
+            if (read <= 0) return builder.ToString();
+            if (builder.Length > maximumCharacters - read) throw new InvalidDataException("The process-tree snapshot exceeds its safety limit.");
+            builder.Append(buffer, 0, read);
         }
     }
 
