@@ -72,7 +72,9 @@ public sealed partial class PdfReadPage {
             int expectedComponents = groupColorSpace?.Name == "DeviceGray"
                 ? 1
                 : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Length;
-            if ((expectedComponents != 1 && expectedComponents != 3) || values.Length != expectedComponents) return null;
+            if ((expectedComponents != 1 && expectedComponents != 3) ||
+                values.Length != expectedComponents ||
+                values.Any(static value => !IsByteRepresentableComponent(value))) return null;
             backdrop = values.Length == 1
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));

@@ -1686,6 +1686,75 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Fact]
+    public void VisualParser_RejectsToleranceCollapsedRadialShadingRadii() {
+        var shading = new PdfPageShadingResource(
+            0D, 0D, 1D,
+            0D, 0D, 1.01D,
+            OfficeColor.Red,
+            OfficeColor.Blue);
+
+        bool supported = PdfPageContentVisualParser.IsSupportedExactShadingPlacement(
+            shading,
+            Matrix2D.Identity,
+            0D,
+            0D,
+            20D,
+            20D,
+            20D);
+
+        Assert.False(supported);
+    }
+
+    [Fact]
+    public void VisualParser_PreservesPositiveStrokeBelowHairlineThreshold() {
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = PdfPageContentVisualParser.Parse(
+            "0.0005 w 1000 0 0 1000 0 0 cm 0 0 m 1 0 l S",
+            2000D,
+            2000D,
+            graphicsStates: null,
+            colorSpaces: null,
+            shadings: null,
+            shadingPatterns: null,
+            tilingPatterns: null,
+            scaleStrokeWidthWithTransform: true);
+
+        PdfPageVisualPrimitive primitive = Assert.Single(primitives);
+        Assert.Equal(0.5D, primitive.StrokeWidth, 8);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForMalformedStrictMarkedContentOperands() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Tag << /Bad 1e999 >> BDC 0 0 500 700 re f EMC");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForNonByteRepresentableLuminosityBackdrop() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
+            glyphResources: "<< /ExtGState << /Masked << /ca 0.34 /SMask << /S /Luminosity /BC [0.00584] /G 9 0 R >> >> >> >>",
+            extraObjects: new[] {
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", "1 g 0 0 500 700 re f")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private static byte[] BuildUncoloredType3PatternPdf(
         string pageContent,
         string pageColorSpaceResources,

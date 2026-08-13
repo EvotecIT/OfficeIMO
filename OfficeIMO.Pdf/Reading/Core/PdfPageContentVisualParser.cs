@@ -138,10 +138,15 @@ internal static class PdfPageContentVisualParser {
             double startY = ((pageHeight - start.Y) - y) / height;
             double endX = (end.X - x) / width;
             double endY = ((pageHeight - end.Y) - y) / height;
-            return IsFiniteNumber(startX) && IsFiniteNumber(startY) &&
-                   IsFiniteNumber(endX) && IsFiniteNumber(endY) &&
-                   IsFiniteNumber(startRadiusX) && IsFiniteNumber(startRadiusY) &&
-                   IsFiniteNumber(endRadiusX) && IsFiniteNumber(endRadiusY);
+            bool finite = IsFiniteNumber(startX) && IsFiniteNumber(startY) &&
+                          IsFiniteNumber(endX) && IsFiniteNumber(endY) &&
+                          IsFiniteNumber(startRadiusX) && IsFiniteNumber(startRadiusY) &&
+                          IsFiniteNumber(endRadiusX) && IsFiniteNumber(endRadiusY);
+            if (!finite) return false;
+            return !(Math.Abs(startX - endX) <= 0.001D &&
+                     Math.Abs(startY - endY) <= 0.001D &&
+                     Math.Abs(startRadiusX - endRadiusX) <= 0.001D &&
+                     Math.Abs(startRadiusY - endRadiusY) <= 0.001D);
         }
         double x0 = (start.X - x) / width;
         double y0 = ((pageHeight - start.Y) - y) / height;
@@ -195,7 +200,7 @@ internal static class PdfPageContentVisualParser {
             return 0D;
         }
 
-        return Math.Abs(value) <= 0.001D ? HairlineStrokeWidth : value;
+        return value == 0D ? HairlineStrokeWidth : value;
     }
 
     private sealed class Parser {
@@ -412,6 +417,10 @@ internal static class PdfPageContentVisualParser {
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
+            bool hasValidMarkedContentOperands = HasValidMarkedContentOperands(op, hasInvalidOperands);
+            if (!hasValidMarkedContentOperands) {
+                _unsupportedOperatorVisitor?.Invoke(op);
+            }
             if ((_args.Count != 0 || hasInvalidOperands) && RequiresZeroOperands(op)) {
                 _unsupportedOperatorVisitor?.Invoke(op);
             }
@@ -785,14 +794,15 @@ internal static class PdfPageContentVisualParser {
                 case "BI":
                     break;
                 case "BDC":
+                    if (!hasValidMarkedContentOperands) {
+                        _hiddenContentStack.Push(false);
+                        break;
+                    }
                     _hiddenContentStack.Push(
-                        hasInvalidOperands ||
-                        IsHiddenOptionalContent(
-                            _args.Count > 1 ? _args[_args.Count - 2] : null,
-                            _args.Count > 0 ? _args[_args.Count - 1] : null));
+                        IsHiddenOptionalContent(_args[0], _args[1]));
                     break;
                 case "BMC":
-                    _hiddenContentStack.Push(hasInvalidOperands);
+                    _hiddenContentStack.Push(false);
                     break;
                 case "EMC":
                     if (_hiddenContentStack.Count > 0) {
@@ -1061,6 +1071,17 @@ internal static class PdfPageContentVisualParser {
                 default:
                     return true;
             }
+        }
+
+        private bool HasValidMarkedContentOperands(string value, bool hasInvalidOperands) {
+            if (value is not ("MP" or "DP" or "BMC" or "BDC")) return true;
+            if (hasInvalidOperands) return false;
+            if (value is "MP" or "BMC") {
+                return _args.Count == 1 && _args[0] is string;
+            }
+            return _args.Count == 2 &&
+                   _args[0] is string &&
+                   (_args[1] is string || _args[1] is PdfContentDictionary);
         }
 
         private bool TryGetShadingPaintBounds(out double x, out double y, out double width, out double height) {

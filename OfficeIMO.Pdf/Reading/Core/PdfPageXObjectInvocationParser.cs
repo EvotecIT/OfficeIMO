@@ -11,7 +11,7 @@ internal static class PdfPageXObjectInvocationParser {
             return 0D;
         }
 
-        return Math.Abs(value) <= 0.001D ? HairlineStrokeWidth : value;
+        return value == 0D ? HairlineStrokeWidth : value;
     }
 
     public static IReadOnlyList<PdfPageXObjectInvocation> Parse(string content, Matrix2D baseTransform, double pageHeight) {
