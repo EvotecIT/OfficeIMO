@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional HtmlTinkerX browser-PDF bridge for OfficeIMO.</Description>
+    <AssemblyName>OfficeIMO.Html.Pdf.Browser</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Html.Pdf.Browser</AssemblyTitle>
+    <VersionPrefix>3.2.1</VersionPrefix>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Html.Pdf.Browser</PackageId>
+    <PackageTags>html;website;browser;chromium;pdf;converter;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPublishable>True</IsPublishable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <HtmlTinkerXVersion>3.0.0</HtmlTinkerXVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(HtmlTinkerXProjectPath)' != '' ">
+    <ProjectReference Include="$(HtmlTinkerXProjectPath)" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(HtmlTinkerXProjectPath)' == '' ">
+    <PackageReference Include="HtmlTinkerX" Version="$(HtmlTinkerXVersion)" />
+  </ItemGroup>
+</Project>

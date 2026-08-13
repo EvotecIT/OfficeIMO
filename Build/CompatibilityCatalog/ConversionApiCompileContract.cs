@@ -1,6 +1,7 @@
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
+using OfficeIMO.Html.Pdf.Browser;
 using OfficeIMO.Latex;
 using OfficeIMO.Markdown;
 using OfficeIMO.Mhtml;
@@ -11,6 +12,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
+using HtmlTinkerX;
 
 internal static class ConversionApiCompileContract {
     // This method is intentionally never executed. Its body makes every representative
@@ -22,6 +24,7 @@ internal static class ConversionApiCompileContract {
         AsciiDocDocument asciiDoc,
         ExcelDocument excel,
         HtmlConversionDocument html,
+        HtmlBrowserPdfResult browserPdf,
         LatexDocument latex,
         MarkdownDoc markdown,
         MhtmlDocument mhtml,
@@ -75,6 +78,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocumentResult(powerPoint);
         _ = OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(pdf);
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
+        _ = browserPdf.ToPdfDocumentResult();
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
         _ = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(rtf);

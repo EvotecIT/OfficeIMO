@@ -396,6 +396,17 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
+    public void BrowserPdfBridge_IsExplicitAndDoesNotChangeTheManagedHtmlPdfDependencyBoundary() {
+        string bridgeProject = GetRepositoryPath("OfficeIMO.Html.Pdf.Browser/OfficeIMO.Html.Pdf.Browser.csproj");
+
+        Assert.Equal(
+            ["../OfficeIMO.Core/OfficeIMO.Core.csproj", "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj", "$(HtmlTinkerXProjectPath)"],
+            GetProjectReferences(bridgeProject));
+        Assert.Equal(["HtmlTinkerX"], GetPackageReferences(bridgeProject));
+        Assert.Empty(GetPackageReferences(GetRepositoryPath("OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj")));
+    }
+
+    [Fact]
     public void RetiredPackages_AreNotReferencedBySolutionOrProjects() {
         string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Reader.Text"];
 
