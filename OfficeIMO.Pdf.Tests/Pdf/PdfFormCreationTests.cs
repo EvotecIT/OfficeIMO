@@ -614,6 +614,26 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void GeneratedMultilineTextField_SoftWrapsInitialAppearanceToWidgetWidth() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TextField(
+                "Notes",
+                value: "Alpha Beta",
+                width: 50,
+                height: 48,
+                style: new PdfFormFieldStyle { IsMultiline = true })
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("<" + Hex("Alpha") + "> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<" + Hex("Beta") + "> Tj", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<" + Hex("Alpha Beta") + "> Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GeneratedPasswordTextField_MasksNormalAppearance() {
         var style = new PdfFormFieldStyle {
             IsPassword = true

@@ -208,19 +208,26 @@ internal static partial class PdfWriter {
         PdfOptions formOptions,
         Func<PdfStandardFont, PdfOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
-        string[] lines = SplitFormTextFieldAppearanceLines(displayValue);
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
+        List<List<RichSeg>> lines = BuildWrappedFormAppearanceLines(
+            displayValue,
+            availableTextWidth,
+            fontSize,
+            lineHeight,
+            effectiveStyle,
+            formOptions);
         double baseline = Math.Max(2D, height - fontSize * 1.15D);
-        for (int i = 0; i < lines.Length && baseline >= 2D; i++) {
-            string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
-            AppendFormFieldTextAppearanceLine(
+        for (int i = 0; i < lines.Count && baseline >= 2D; i++) {
+            IReadOnlyList<RichSeg> line = lines[i];
+            EnsureCanWriteFormAppearanceLine(line, formOptions);
+            double lineWidth = MeasureRichLineWidth(line, formOptions);
+            double textX = CalculateFormFieldAppearanceAlignedTextX(availableTextWidth, lineWidth, alignment);
+            AppendFormAppearanceSegments(
                 sb,
                 line,
-                availableTextWidth,
-                fontSize,
+                textX,
                 baseline,
-                effectiveStyle,
-                alignment,
+                effectiveStyle.TextColor,
                 formOptions,
                 ensureFont,
                 fontResources);
@@ -289,21 +296,47 @@ internal static partial class PdfWriter {
     }
 
     private static IReadOnlyList<RichSeg> BuildFormAppearanceSegments(string text, double fontSize, PdfFormFieldStyle effectiveStyle, PdfOptions formOptions) {
+        List<List<RichSeg>> wrapped = BuildWrappedFormAppearanceLines(
+            text,
+            Math.Max(1D, 1000000D),
+            fontSize,
+            Math.Max(fontSize, fontSize * 1.2D),
+            effectiveStyle,
+            formOptions);
+        return wrapped.Count == 0
+            ? Array.Empty<RichSeg>()
+            : wrapped[0];
+    }
+
+    private static List<List<RichSeg>> BuildWrappedFormAppearanceLines(
+        string text,
+        double availableTextWidth,
+        double fontSize,
+        double lineHeight,
+        PdfFormFieldStyle effectiveStyle,
+        PdfOptions formOptions) {
+        if (availableTextWidth <= 0.001D) {
+            int lineCount = SplitFormTextFieldAppearanceLines(text).Length;
+            var emptyLines = new List<List<RichSeg>>(lineCount);
+            for (int index = 0; index < lineCount; index++) {
+                emptyLines.Add(new List<RichSeg>());
+            }
+
+            return emptyLines;
+        }
+
         var runs = new[] {
             PdfTextRun.Normal(text, effectiveStyle.TextColor, fontSize, font: PdfStandardFont.Helvetica)
         };
-        var wrapped = WrapRichRunsCore(
+        return WrapRichRunsCore(
             runs,
-            Math.Max(1D, 1000000D),
+            availableTextWidth,
             fontSize,
             PdfStandardFont.Helvetica,
-            Math.Max(fontSize, fontSize * 1.2D),
+            lineHeight,
             firstLineWidthPts: null,
             DefaultParagraphTabStopWidth,
-            formOptions);
-        return wrapped.Lines.Count == 0
-            ? Array.Empty<RichSeg>()
-            : wrapped.Lines[0];
+            formOptions).Lines;
     }
 
     private static void EnsureCanWriteFormAppearanceLine(IReadOnlyList<RichSeg> line, PdfOptions formOptions) {
