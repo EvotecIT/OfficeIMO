@@ -48,6 +48,7 @@ internal static class OfficeProvenanceZip {
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
+        bool hasDuplicateManifests = CountManifestEntries(archive, entryMetadata) > 1;
         int index = 0;
         int embeddedCount = 0;
         long expandedBytes = 0;
@@ -59,7 +60,7 @@ internal static class OfficeProvenanceZip {
                 }
                 ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
                 byte[] manifest = ReadEntry(entry, (int)entry.Length);
-                bool valid = OfficeC2paManifestStore.IsValid(
+                bool valid = !hasDuplicateManifests && OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 context.Add(new OfficeProvenanceEvidence(
                     OfficeProvenanceCarrierKind.C2paManifest,
@@ -102,6 +103,7 @@ internal static class OfficeProvenanceZip {
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
+        bool hasDuplicateManifests = CountManifestEntries(input, entryMetadata) > 1;
         var removable = new HashSet<string>(StringComparer.Ordinal);
         var embeddedRewrites = new Dictionary<ZipArchiveEntry, byte[]>();
         int occurrence = 0;
@@ -113,7 +115,7 @@ internal static class OfficeProvenanceZip {
                 if (entry.Length > options.Limits.MaxManifestBytes || entry.Length > int.MaxValue) throw new InvalidDataException("ZIP provenance manifest exceeds the configured limit.");
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] manifest = ReadEntry(entry, (int)entry.Length);
-                bool valid = OfficeC2paManifestStore.IsValid(
+                bool valid = !hasDuplicateManifests && OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
                     removable.Add(entryName + "\0" + occurrence);
@@ -177,6 +179,16 @@ internal static class OfficeProvenanceZip {
         }
         reserialized = true;
         return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes, ReadArchiveComment(data));
+    }
+
+    private static int CountManifestEntries(
+        ZipArchive archive,
+        IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata) {
+        int count = 0;
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (entryMetadata[entry].Name.Equals(ManifestPath, StringComparison.Ordinal) && ++count > 1) return count;
+        }
+        return count;
     }
 
     private static void RemoveOpcManifestReferences(

@@ -46,6 +46,7 @@ internal static class OfficeProvenanceJpeg {
             int offset = imageStart + 2;
             OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
                 data, offset, imageIndex, options, context, removalOptions, changes);
+            bool hasDuplicateC2paSequences = CountStructurallyValidC2paSequences(data, offset, options) > 1;
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
@@ -78,6 +79,7 @@ internal static class OfficeProvenanceJpeg {
 
                 if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
                     out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
+                    structurallyValid &= !hasDuplicateC2paSequences;
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
                         OfficeProvenanceCarrierKind.C2paManifest,
@@ -102,6 +104,27 @@ internal static class OfficeProvenanceJpeg {
         SortBySourceOffset(context?.Evidence);
         SortBySourceOffset(changes);
         return reserialized;
+    }
+
+    private static int CountStructurallyValidC2paSequences(byte[] data, int offset, OfficeProvenanceOptions options) {
+        int count = 0;
+        int markers = 0;
+        while (offset < data.Length) {
+            if (!TryReadMarker(data, offset, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
+                throw new InvalidDataException("JPEG contains an invalid marker sequence.");
+            }
+            ReserveMarker(ref markers, options.MaxContainerEntries);
+            if (marker == 0xD8) throw new InvalidDataException("JPEG contains a nested start-of-image marker.");
+            if (marker == 0xD9 || marker == 0xDA) return count;
+            if (marker == 0xEB && TryGetC2paSequence(data, offset, payloadOffset, payloadLength, options, ref markers,
+                out int sequenceEnd, out _, out bool structurallyValid)) {
+                if (structurallyValid) count++;
+                offset = sequenceEnd;
+            } else {
+                offset = segmentEnd;
+            }
+        }
+        throw new InvalidDataException("JPEG does not contain an end marker.");
     }
 
     private static void SortBySourceOffset<T>(List<T>? items) {

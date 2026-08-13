@@ -161,7 +161,7 @@ internal static class OfficeProvenanceJpegXmp {
     private static IEnumerable<string> GetExtendedGuids(byte[] packet, OfficeProvenanceOptions options) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) yield break;
         foreach (XObject node in FindGuidNodes(document)) {
-            string value = node is XAttribute attribute ? attribute.Value : ((XElement)node).Value;
+            if (!TryGetScalarGuidValue(node, out string value)) continue;
             string guid = value.Trim();
             if (guid.Length == GuidLength && guid.All(Uri.IsHexDigit)) yield return guid;
         }
@@ -177,7 +177,7 @@ internal static class OfficeProvenanceJpegXmp {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return false;
         bool changed = false;
         foreach (XObject node in FindGuidNodes(document)) {
-            string value = node is XAttribute attribute ? attribute.Value : ((XElement)node).Value;
+            if (!TryGetScalarGuidValue(node, out string value)) continue;
             if (!string.Equals(value.Trim(), oldGuid, StringComparison.OrdinalIgnoreCase)) continue;
             if (node is XAttribute matchingAttribute) matchingAttribute.Value = newGuid;
             else ((XElement)node).Value = newGuid;
@@ -186,6 +186,21 @@ internal static class OfficeProvenanceJpegXmp {
         if (!changed) return false;
         updated = Serialize(document);
         return true;
+    }
+
+    private static bool TryGetScalarGuidValue(XObject node, out string value) {
+        if (node is XAttribute attribute) {
+            value = attribute.Value;
+            return true;
+        }
+        var element = (XElement)node;
+        XNode? first = element.FirstNode;
+        if (first is XText text && first.NextNode == null) {
+            value = text.Value;
+            return true;
+        }
+        value = string.Empty;
+        return false;
     }
 
     private static IEnumerable<XObject> FindGuidNodes(XDocument document) {

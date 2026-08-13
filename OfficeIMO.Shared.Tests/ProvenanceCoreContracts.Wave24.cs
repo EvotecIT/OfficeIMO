@@ -85,7 +85,9 @@ public sealed partial class ProvenanceCoreContracts {
         });
         using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
 
-        Assert.Single(archive.Entries, entry => entry.FullName == "META-INF/content_credential.c2pa");
+        Assert.Equal(2, archive.Entries.Count(entry => entry.FullName == "META-INF/content_credential.c2pa"));
+        Assert.False(result.WasChanged);
+        Assert.Equal(package, result.ToArray());
         Assert.Contains("content_credential.c2pa", Encoding.UTF8.GetString(ReadZipEntry(result.ToArray(), "_rels/.rels")), StringComparison.Ordinal);
         Assert.Contains("content_credential.c2pa", Encoding.UTF8.GetString(ReadZipEntry(result.ToArray(), "[Content_Types].xml")), StringComparison.Ordinal);
     }

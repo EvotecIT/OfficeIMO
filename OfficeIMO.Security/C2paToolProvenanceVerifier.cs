@@ -109,8 +109,10 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
             if (document.RootElement.ValueKind == JsonValueKind.Object &&
-                document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus)) {
-                CollectValidationFindings(validationStatus, findings, findingSet);
+                document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus) &&
+                !TryCollectValidationFindings(validationStatus, findings, findingSet)) {
+                findings.Add("c2patool returned malformed validation_status data.");
+                return Result(OfficeProvenanceVerificationStatus.Error, findings, process.StandardOutput, options);
             }
             if (string.IsNullOrWhiteSpace(activeManifest)) {
                 if (findings.Count > 0) {
@@ -148,10 +150,10 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         }
     }
 
-    private static void CollectValidationFindings(JsonElement validationStatus, List<string> findings, HashSet<string> findingSet) {
-        if (validationStatus.ValueKind != JsonValueKind.Array) return;
+    private static bool TryCollectValidationFindings(JsonElement validationStatus, List<string> findings, HashSet<string> findingSet) {
+        if (validationStatus.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement status in validationStatus.EnumerateArray()) {
-            if (status.ValueKind != JsonValueKind.Object) continue;
+            if (status.ValueKind != JsonValueKind.Object) return false;
             string? code = status.TryGetProperty("code", out JsonElement codeElement) && codeElement.ValueKind == JsonValueKind.String
                 ? codeElement.GetString()
                 : null;
@@ -167,6 +169,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
             if (findingSet.Add(finding)) findings.Add(finding);
         }
+        return true;
     }
 
     private static bool IsTrustFinding(string finding) {
