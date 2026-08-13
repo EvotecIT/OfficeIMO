@@ -89,6 +89,19 @@ public class PdfAcroFormReviewRegressionTests {
         Assert.Equal(new[] { 0D, 0D, 180D, 40D }, boundingBox.Items.Cast<PdfNumber>().Select(number => number.Value));
     }
 
+    [Theory]
+    [InlineData(double.NaN, 20D, 100D, 20D)]
+    [InlineData(20D, double.PositiveInfinity, 100D, 20D)]
+    [InlineData(20D, 20D, 0D, 20D)]
+    [InlineData(20D, 20D, 100D, -1D)]
+    [InlineData(double.MaxValue, 20D, double.MaxValue, 20D)]
+    public void Move_RejectsInvalidDestinationRectangles(double x, double y, double width, double height) {
+        var edit = new PdfAcroFormEditSession();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            edit.Move("field", pageNumber: 1, x, y, width, height));
+    }
+
     [Fact]
     public void MoveThenRenamePreservesQueuedInheritedFieldValue() {
         byte[] source = BuildInheritedTerminalFieldPdf();
@@ -273,6 +286,58 @@ public class PdfAcroFormReviewRegressionTests {
             }));
 
         Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_RaisesPdf14HeaderForCommitOnSelectionChoiceField() {
+        byte[] source = BuildSinglePagePdf("1.4");
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(
+            edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" },
+                Style = new PdfFormFieldStyle { CommitsOnSelectionChange = true }
+            }));
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(
+            edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "country",
+                Kind = PdfFormFieldCreationKind.Choice,
+                ChoiceOptions = new[] { "Poland", "Germany" }
+            })).ToBytes();
+        PdfAcroFormEditResult rawFlags = PdfDocument.Open(authored).Forms.Edit(
+            edit => edit.SetFlags("country", 67108864));
+
+        Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(rawFlags.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetTabOrder_RaisesPdf17HeaderForAnnotationArrayOrdering() {
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(
+            edit => edit.SetTabOrder(1, PdfPageTabOrder.Annotations));
+
+        Assert.StartsWith("%PDF-2.0", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+        Assert.Equal("A", PdfInspector.Inspect(result.ToBytes()).Pages[0].TabOrder);
+    }
+
+    [Fact]
+    public void Create_PreflightsAggregateWidgetJavaScriptBeforeGraphMaterialization() {
+        const string script = "app.alert('budget');";
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits {
+                MaxJavaScripts = 2,
+                MaxTotalJavaScriptBytes = 1_000_000L
+            }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit => edit
+                .Create(new PdfFormFieldCreateOptions { Name = "one", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })
+                .Create(new PdfFormFieldCreateOptions { Name = "two", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })
+                .Create(new PdfFormFieldCreateOptions { Name = "three", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })));
+
+        Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
+        Assert.Equal(3, exception.Actual);
     }
 
     [Fact]

@@ -582,12 +582,13 @@ public sealed class PdfFormWidget {
 
 /// <summary>Action metadata and safe JavaScript source read from an AcroForm widget.</summary>
 public sealed class PdfFormWidgetAction {
-    internal PdfFormWidgetAction(string triggerName, string actionType, string? javaScript, string? uri, string? payloadFingerprint = null) {
+    internal PdfFormWidgetAction(string triggerName, string actionType, string? javaScript, string? uri, string? payloadFingerprint = null, long javaScriptSourceBytes = 0L) {
         TriggerName = triggerName;
         ActionType = actionType;
         JavaScript = javaScript;
         Uri = uri;
         PayloadFingerprint = payloadFingerprint;
+        JavaScriptSourceBytes = javaScriptSourceBytes;
     }
 
     /// <summary>PDF action path rooted at A for the primary activation action or an /AA key such as U, D, Fo, or Bl. Chained actions append .Next and an optional array index.</summary>
@@ -603,6 +604,8 @@ public sealed class PdfFormWidgetAction {
     public string? Uri { get; }
 
     internal string? PayloadFingerprint { get; }
+
+    internal long JavaScriptSourceBytes { get; }
 
     /// <summary>True when this is the widget's primary /A activation action.</summary>
     public bool IsPrimary => string.Equals(TriggerName, "A", StringComparison.Ordinal);

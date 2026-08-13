@@ -424,13 +424,14 @@ public sealed partial class PdfReadDocument {
         }
 
         string? javaScript = null;
+        long sourceBytes = 0L;
         if (string.Equals(actionType, "JavaScript", StringComparison.Ordinal)) {
             budget.Count++;
             if (budget.Count > _options.Limits.MaxJavaScripts) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, _options.Limits.MaxJavaScripts, budget.Count);
             }
 
-            bool hasReadableSource = TryReadWidgetJavaScript(action, out javaScript, out long sourceBytes);
+            bool hasReadableSource = TryReadWidgetJavaScript(action, out javaScript, out sourceBytes);
             budget.TotalBytes = checked(budget.TotalBytes + sourceBytes);
             if (budget.TotalBytes > _options.Limits.MaxTotalJavaScriptBytes) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, _options.Limits.MaxTotalJavaScriptBytes, budget.TotalBytes);
@@ -441,7 +442,13 @@ public sealed partial class PdfReadDocument {
         string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal)
             ? TryReadText(action, "URI")
             : null;
-        actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript, uri, PdfActionPayloadFingerprint.Create(action, _objects, _options.Limits)));
+        actions.Add(new PdfFormWidgetAction(
+            triggerName,
+            actionType,
+            javaScript,
+            uri,
+            PdfActionPayloadFingerprint.Create(action, _objects, _options.Limits),
+            string.Equals(actionType, "JavaScript", StringComparison.Ordinal) ? sourceBytes : 0L));
         if (action.Items.TryGetValue("Next", out PdfObject? nextAction)) {
             AddWidgetNextActions(triggerName + ".Next", nextAction, actions, budget, pathReferences, depth + 1);
         }

@@ -26,7 +26,8 @@ internal static partial class PdfTextEditor {
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
                 TextLayoutEngine.TextLine line = lines[lineIndex];
                 if (line.Spans.Count == 0) continue;
-                var unit = new TextSearchUnit(line.Spans);
+                PdfTextSpan[] lineSpans = line.Spans.ToArray();
+                var unit = new TextSearchUnit(lineSpans);
                 if (unit.Text.Length == 0) continue;
                 int start = 0;
                 while (start <= unit.Text.Length - text.Length) {
@@ -43,7 +44,7 @@ internal static partial class PdfTextEditor {
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
                     var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
-                    hits.Add(new TextSearchHit(pageNumber, segments, line.Spans, match));
+                    hits.Add(new TextSearchHit(pageNumber, segments, lineSpans, match));
                 }
             }
         }
@@ -226,7 +227,7 @@ internal static partial class PdfTextEditor {
         value >= 0x1E800 && value <= 0x1EEFF;
 
     private sealed class TextSearchHit {
-        internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, IReadOnlyList<PdfTextSpan> lineSpans, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); LineSpans = lineSpans.ToArray(); Match = match; }
+        internal TextSearchHit(int pageNumber, IReadOnlyList<TextSourceSegment> segments, PdfTextSpan[] lineSpans, PdfTextMatch match) { PageNumber = pageNumber; Segments = segments.ToArray(); LineSpans = lineSpans; Match = match; }
         internal int PageNumber { get; }
         internal TextSourceSegment[] Segments { get; }
         internal PdfTextSpan[] LineSpans { get; }

@@ -72,12 +72,12 @@ internal static partial class PdfAcroFormEditor {
         string partialName,
         int[] pages,
         PdfFormFieldCreateOptions options,
+        byte[]? encodedJavaScript,
         string appearanceFontName,
         Dictionary<string, string> refillValues,
         PdfFormFillerOptions? appearanceOptions,
         PdfReadLimits limits,
         ref int nextObjectNumber) {
-        byte[]? encodedJavaScript = ValidateRepeatedWidgetJavaScript(options.JavaScript, options.ChoiceOptions.Count, limits);
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
         int parentObjectNumber = nextObjectNumber++;
         string selectedValue = ResolveInitialValue(options);
@@ -262,19 +262,6 @@ internal static partial class PdfAcroFormEditor {
             border.Items["D"] = dash;
         }
         widget.Items["BS"] = border;
-    }
-
-    private static byte[]? ValidateRepeatedWidgetJavaScript(string? javaScript, int widgetCount, PdfReadLimits limits) {
-        if (javaScript is null) return null;
-        if (widgetCount > limits.MaxJavaScripts) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, limits.MaxJavaScripts, widgetCount);
-        }
-        byte[] encoded = PdfJavaScriptStringEncoding.EncodeUnicode(javaScript, nameof(javaScript));
-        long totalBytes = (long)encoded.Length * widgetCount;
-        if (totalBytes > limits.MaxTotalJavaScriptBytes) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, limits.MaxTotalJavaScriptBytes, totalBytes);
-        }
-        return encoded;
     }
 
     private static void ApplyWidgetJavaScript(PdfDictionary widget, string? javaScript, bool usePrimaryAction, byte[]? preencodedSource = null) {

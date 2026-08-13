@@ -12,6 +12,7 @@ internal static partial class PdfAcroFormEditor {
         var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
         edit(session);
         if (session.Commands.Count == 0) throw new ArgumentException("At least one AcroForm edit command is required.", nameof(edit));
+        ValidatePlannedWidgetJavaScriptBudget(source, session.Commands);
         string[] fieldNames = session.Commands.SelectMany(GetCommandFieldNames).Distinct(StringComparer.Ordinal).ToArray();
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAcroForm, readOptions, fieldNames);
 
@@ -69,12 +70,17 @@ internal static partial class PdfAcroFormEditor {
         bool hasOpenType = objects.Values.Any(indirect =>
             indirect.Value is PdfStream stream &&
             stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");
-        bool hasComb = objects.Values.Any(indirect =>
+        bool hasPdf15FieldFlag = objects.Values.Any(indirect =>
             indirect.Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
-            ((int)flags.Value & FieldFlagComb) != 0);
+            ((int)flags.Value & (FieldFlagComb | FieldFlagCommitOnSelectionChange)) != 0);
+        bool hasAnnotationTabOrder = objects.Values.Any(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
+            string.Equals(dictionary.Get<PdfName>("Tabs")?.Name, "A", StringComparison.Ordinal));
         return sourceVersion < PdfFileVersion.Pdf16 && hasOpenType ||
-            sourceVersion < PdfFileVersion.Pdf15 && hasComb;
+            sourceVersion < PdfFileVersion.Pdf15 && hasPdf15FieldFlag ||
+            sourceVersion < PdfFileVersion.Pdf20 && hasAnnotationTabOrder;
     }
 
     private static IEnumerable<string> GetCommandFieldNames(PdfAcroFormEditSession.EditCommand command) {

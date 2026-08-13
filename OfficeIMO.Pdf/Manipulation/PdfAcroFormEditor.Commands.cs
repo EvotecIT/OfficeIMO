@@ -18,7 +18,7 @@ internal static partial class PdfAcroFormEditor {
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, refillValues, appearanceOptions, limits, ref nextObjectNumber);
+                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref nextObjectNumber);
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
@@ -62,13 +62,13 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int nextObjectNumber) {
+    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, byte[]? encodedJavaScript, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FieldPathExists(objects, fields, options.Name)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
         (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
-            ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, appearanceFontName, refillValues, appearanceOptions, limits, ref nextObjectNumber);
+            ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, encodedJavaScript, appearanceFontName, refillValues, appearanceOptions, limits, ref nextObjectNumber);
             if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
             return;
         }
@@ -90,7 +90,7 @@ internal static partial class PdfAcroFormEditor {
             SetFieldValue(field, GetFieldType(options.Kind), initialValue, options.CheckedValueName, setAppearanceState: true);
             SetDefaultValue(field, GetFieldType(options.Kind), options.DefaultValue, options.CheckedValueName, normalizeButtonValue: true);
         }
-        ApplyWidgetJavaScript(field, options.JavaScript, usePrimaryAction: options.Kind == PdfFormFieldCreationKind.PushButton);
+        ApplyWidgetJavaScript(field, options.JavaScript, usePrimaryAction: options.Kind == PdfFormFieldCreationKind.PushButton, encodedJavaScript);
         if (options.Kind == PdfFormFieldCreationKind.CheckBox) {
             AddCheckBoxAppearances(objects, field, options, ref nextObjectNumber);
         }

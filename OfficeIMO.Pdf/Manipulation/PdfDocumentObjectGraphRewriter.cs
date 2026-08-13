@@ -28,14 +28,18 @@ internal static class PdfDocumentObjectGraphRewriter {
 
         IReadOnlyList<int> reachableObjectNumbers = collector.ObjectIds;
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
+        bool requiresPdf20 = reachableObjectNumbers.Any(objectNumber =>
+            objects[objectNumber].Value is PdfDictionary dictionary &&
+            string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
+            string.Equals(dictionary.Get<PdfName>("Tabs")?.Name, "A", StringComparison.Ordinal));
         bool requiresPdf16 = reachableObjectNumbers.Any(objectNumber =>
                 objects[objectNumber].Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");
         bool requiresPdf15 = reachableObjectNumbers.Any(objectNumber =>
             objects[objectNumber].Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
-            ((int)flags.Value & 16777216) != 0);
-        PdfFileVersion minimumVersion = requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
+            ((int)flags.Value & (16777216 | 67108864)) != 0);
+        PdfFileVersion minimumVersion = requiresPdf20 ? PdfFileVersion.Pdf20 : requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
         if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
