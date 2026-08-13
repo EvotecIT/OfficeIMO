@@ -79,6 +79,19 @@ internal static partial class PdfAcroFormEditor {
         PdfReadLimits limits,
         ref int nextObjectNumber) {
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
+        int optionCount = options.ChoiceOptions.Count;
+        if (optionCount > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, optionCount);
+        }
+        PdfArray existingAnnotations = EnsureAnnotationArray(objects, page);
+        long finalAnnotationCount = (long)existingAnnotations.Items.Count + optionCount;
+        if (finalAnnotationCount > limits.MaxAnnotationsPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.AnnotationsPerPage, limits.MaxAnnotationsPerPage, finalAnnotationCount);
+        }
+        long minimumFinalObjectCount = (long)objects.Count + 1L + (optionCount * 3L);
+        if (minimumFinalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, minimumFinalObjectCount);
+        }
         int parentObjectNumber = nextObjectNumber++;
         string selectedValue = ResolveInitialValue(options);
         var parent = new PdfDictionary();
@@ -95,7 +108,8 @@ internal static partial class PdfAcroFormEditor {
         objects[parentObjectNumber] = new PdfIndirectObject(parentObjectNumber, 0, parent);
         fieldOwner.Items.Add(new PdfReference(parentObjectNumber, 0));
 
-        PdfArray annotations = EnsureAnnotationArray(objects, page);
+        PdfArray annotations = existingAnnotations;
+        int fontPlanObjectNumberStart = nextObjectNumber;
         PdfFormFiller.TextAppearanceFontPlan? sharedLabelFontPlan = PdfFormFiller.CreateAuthoredSharedTextAppearanceFontPlan(
             objects,
             acroForm,
@@ -103,7 +117,14 @@ internal static partial class PdfAcroFormEditor {
             options.ChoiceOptions,
             appearanceOptions,
             options.Name,
-            ref nextObjectNumber);
+            ref nextObjectNumber,
+            materialize: false);
+        long plannedFontObjectCount = nextObjectNumber - fontPlanObjectNumberStart;
+        long finalObjectCount = (long)objects.Count + plannedFontObjectCount + (optionCount * 3L);
+        if (finalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, finalObjectCount);
+        }
+        sharedLabelFontPlan?.Materialize(objects);
         double top = options.Y + options.Height;
         for (int i = 0; i < options.ChoiceOptions.Count; i++) {
             string option = options.ChoiceOptions[i];

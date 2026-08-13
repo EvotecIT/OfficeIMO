@@ -226,8 +226,32 @@ internal static partial class PdfAcroFormEditor {
             widget.Items.TryGetValue("AP", out PdfObject? appearanceObject) ? appearanceObject : null);
         return appearances != null &&
             appearances.Items.TryGetValue("N", out PdfObject? normalObject) &&
-            PdfObjectLookup.Resolve(objects, normalObject) is PdfStream normalAppearance &&
-            !normalAppearance.Dictionary.Items.ContainsKey("Resources");
+            HasResourceLessAppearance(objects, normalObject, new HashSet<(int ObjectNumber, int Generation)>());
+    }
+
+    private static bool HasResourceLessAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<(int ObjectNumber, int Generation)> visited) {
+        PdfObject resolved = value;
+        (int ObjectNumber, int Generation)? referenceKey = null;
+        if (value is PdfReference reference) {
+            referenceKey = (reference.ObjectNumber, reference.Generation);
+            if (!visited.Add(referenceKey.Value) ||
+                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Generation != reference.Generation) return true;
+            resolved = indirect.Value;
+        }
+        try {
+            if (resolved is PdfStream stream) return !stream.Dictionary.Items.ContainsKey("Resources");
+            if (resolved is not PdfDictionary states) return true;
+            foreach (PdfObject state in states.Items.Values) {
+                if (HasResourceLessAppearance(objects, state, visited)) return true;
+            }
+            return false;
+        } finally {
+            if (referenceKey.HasValue) visited.Remove(referenceKey.Value);
+        }
     }
 
     private static bool ReferencesObject(PdfObject? value, int objectNumber) =>
@@ -340,6 +364,9 @@ internal static partial class PdfAcroFormEditor {
     private static void ApplyDefaultValue(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string? value) {
         EditableField field = RequireField(objects, fields, name);
         int flags = ReadInheritedFieldFlags(objects, field.Dictionary);
+        if (value is not null && string.Equals(field.FieldType, "Sig", StringComparison.Ordinal)) {
+            throw new ArgumentException("PDF signature fields do not support default values.", nameof(value));
+        }
         if (value is not null &&
             string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) &&
             (flags & FieldFlagPushButton) != 0) {

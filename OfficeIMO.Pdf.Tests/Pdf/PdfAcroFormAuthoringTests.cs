@@ -574,7 +574,7 @@ public class PdfAcroFormAuthoringTests {
             JavaScript = script
         })).ToBytes();
         byte[] nonJavaScript = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(scripted)
-            .Replace("/S /JavaScript /JS", "/S /URI /URI", StringComparison.Ordinal));
+            .Replace("/S /JavaScript /JS", "/S /URI /URI"));
         var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>

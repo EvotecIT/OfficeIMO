@@ -232,7 +232,8 @@ internal static partial class PdfFormFiller {
         IReadOnlyList<string> values,
         PdfFormFillerOptions? appearanceOptions,
         string fieldName,
-        ref int nextObjectNumber) {
+        ref int nextObjectNumber,
+        bool materialize = true) {
         string displayValue = string.Concat(values);
         if (displayValue.Length == 0) return null;
 
@@ -252,7 +253,7 @@ internal static partial class PdfFormFiller {
             }
         }
 
-        fontPlan?.Materialize(objects);
+        if (materialize) fontPlan?.Materialize(objects);
         return fontPlan;
     }
 

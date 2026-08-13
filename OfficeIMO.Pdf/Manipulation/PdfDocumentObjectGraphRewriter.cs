@@ -38,7 +38,11 @@ internal static class PdfDocumentObjectGraphRewriter {
         bool requiresPdf15 = reachableObjectNumbers.Any(objectNumber =>
             objects[objectNumber].Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
-            ((int)flags.Value & (16777216 | 67108864)) != 0);
+            ((int)flags.Value & (16777216 | 67108864)) != 0) ||
+            reachableObjectNumbers.Any(objectNumber =>
+                objects[objectNumber].Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
+                dictionary.Get<PdfName>("Tabs") is not null);
         PdfFileVersion minimumVersion = requiresPdf20 ? PdfFileVersion.Pdf20 : requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
         if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);

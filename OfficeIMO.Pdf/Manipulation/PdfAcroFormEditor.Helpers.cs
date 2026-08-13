@@ -313,6 +313,7 @@ internal static partial class PdfAcroFormEditor {
         if (nameComponents.Any(static component => component.Length == 0)) throw new ArgumentException("Field names cannot contain empty path components.", nameof(options));
         if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
         if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.Signature && options.DefaultValue is not null) throw new ArgumentException("Signature fields do not support default values.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.CheckBox && (options.FieldFlags & (FieldFlagRadio | FieldFlagPushButton)) != 0) throw new ArgumentException("Check-box fields cannot declare radio or push-button flags.", nameof(options));
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (options.FieldFlags & FieldFlagPushButton) != 0) throw new ArgumentException("Radio-button fields cannot declare the push-button flag.", nameof(options));
@@ -351,6 +352,10 @@ internal static partial class PdfAcroFormEditor {
              options.Style?.MaxLength is null ||
              (fieldFlags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
             throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(options));
+        }
+        if (options.Kind == PdfFormFieldCreationKind.Text && options.Style?.MaxLength is int maximumLength &&
+            ((options.Value?.Length ?? 0) > maximumLength || (options.DefaultValue?.Length ?? 0) > maximumLength)) {
+            throw new ArgumentException("Text field values and default values cannot exceed MaxLength.", nameof(options));
         }
     }
 

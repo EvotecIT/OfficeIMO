@@ -74,12 +74,18 @@ internal static partial class PdfAcroFormEditor {
             indirect.Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
             ((int)flags.Value & (FieldFlagComb | FieldFlagCommitOnSelectionChange)) != 0);
-        bool hasAnnotationTabOrder = objects.Values.Any(indirect =>
-            indirect.Value is PdfDictionary dictionary &&
-            string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
-            string.Equals(dictionary.Get<PdfName>("Tabs")?.Name, "A", StringComparison.Ordinal));
+        string[] tabOrders = objects.Values
+            .Where(indirect => indirect.Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal))
+            .Select(indirect => ((PdfDictionary)indirect.Value).Get<PdfName>("Tabs")?.Name)
+            .Where(static value => value is not null)
+            .Cast<string>()
+            .ToArray();
+        bool hasAnnotationTabOrder = tabOrders.Any(static value => string.Equals(value, "A", StringComparison.Ordinal));
+        bool hasPageTabOrder = tabOrders.Length > 0;
         return sourceVersion < PdfFileVersion.Pdf16 && hasOpenType ||
             sourceVersion < PdfFileVersion.Pdf15 && hasPdf15FieldFlag ||
+            sourceVersion < PdfFileVersion.Pdf15 && hasPageTabOrder ||
             sourceVersion < PdfFileVersion.Pdf20 && hasAnnotationTabOrder;
     }
 

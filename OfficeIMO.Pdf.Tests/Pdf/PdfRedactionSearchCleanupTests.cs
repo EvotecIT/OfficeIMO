@@ -109,6 +109,29 @@ public class PdfRedactionSearchCleanupTests {
         Assert.Contains("maximum 24", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Apply_TextScrubbingHonorsCallerDecodedStreamLimit() {
+        const string content = "BT /F1 12 Tf (SECRET) Tj ET";
+        string encoded = string.Concat(Encoding.ASCII.GetBytes(content).Select(static value => value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture))) + ">";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>", "endobj",
+            "4 0 obj", "<< /Filter /ASCIIHexDecode /Length " + encoded.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>", "stream", encoded, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(source, new PdfRedactionSearchOptions().AddLiteral("SECRET"));
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16 } };
+
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
+            PdfRedactionApplier.Apply(source, plan, readOptions: readOptions));
+
+        Assert.Contains("DecodedStreamBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("maximum 16", exception.Message, StringComparison.Ordinal);
+    }
+
     private sealed class RawMarkerValidator : IPdfRedactionExternalValidator {
         private readonly string _marker;
         internal RawMarkerValidator(string marker) { _marker = marker; }
