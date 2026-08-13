@@ -7,6 +7,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private sealed class SvgRasterWorkBudget {
         private const double MaximumViewportRepaints = 256D;
+        private const double MaximumTextIntermediatePixels = 8000000D;
         private readonly double _viewLeft;
         private readonly double _viewTop;
         private readonly double _viewRight;
@@ -15,6 +16,8 @@ public static partial class OfficeSvgDrawingReader {
         private readonly double _pixelScaleY;
         private readonly double _viewportPixels;
         private double _remainingWork;
+        private double _remainingTextIntermediateWork = MaximumTextIntermediatePixels * MaximumViewportRepaints;
+        private int _conservativePlacementDepth;
 
         internal SvgRasterWorkBudget(
             double maximumViewportPixels,
@@ -40,13 +43,16 @@ public static partial class OfficeSvgDrawingReader {
             XElement element,
             OfficeTransform transform,
             string? stroke,
-            SvgRasterStrokeStyle strokeStyle) {
+            SvgRasterStrokeStyle strokeStyle,
+            SvgRasterTextStyle textStyle) {
             string name = element.Name.LocalName.ToLowerInvariant();
             if (name is "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or
                 "clippath" or "filter" or "marker" or "style" or "use" or "defs" or "title" or
                 "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
 
-            if (!TryGetPaintBounds(element, name, out double x, out double y, out double width, out double height)) {
+            if (_conservativePlacementDepth > 0 && !TryCharge(_viewportPixels)) return false;
+
+            if (!TryGetPaintBounds(element, name, textStyle, out double x, out double y, out double width, out double height)) {
                 return TryCharge(_viewportPixels);
             }
             if (width < 0D || height < 0D) return false;
@@ -64,6 +70,14 @@ public static partial class OfficeSvgDrawingReader {
             }
 
             (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x, y, width, height);
+            if (name is "text" or "tspan" or "textpath") {
+                double intermediatePixels = Math.Min(
+                    MaximumTextIntermediatePixels,
+                    Math.Max(1D, (right - left) * _pixelScaleX * (bottom - top) * _pixelScaleY));
+                if (double.IsNaN(intermediatePixels) || double.IsInfinity(intermediatePixels)
+                    || intermediatePixels < 0D || intermediatePixels > _remainingTextIntermediateWork) return false;
+                _remainingTextIntermediateWork -= intermediatePixels;
+            }
             left = Math.Max(left, _viewLeft);
             top = Math.Max(top, _viewTop);
             right = Math.Min(right, _viewRight);
@@ -116,6 +130,12 @@ public static partial class OfficeSvgDrawingReader {
             return true;
         }
 
+        internal bool TryChargeFullViewport() => TryCharge(_viewportPixels);
+
+        internal void EnterConservativePlacement() => _conservativePlacementDepth++;
+
+        internal void ExitConservativePlacement() => _conservativePlacementDepth--;
+
         private bool TryCharge(double work) {
             if (double.IsNaN(work) || double.IsInfinity(work) || work < 0D || work > _remainingWork) return false;
             _remainingWork -= work;
@@ -125,6 +145,7 @@ public static partial class OfficeSvgDrawingReader {
         private static bool TryGetPaintBounds(
             XElement element,
             string name,
+            SvgRasterTextStyle textStyle,
             out double x,
             out double y,
             out double width,
@@ -177,20 +198,27 @@ public static partial class OfficeSvgDrawingReader {
                 case "text":
                 case "tspan":
                 case "textpath":
+                    if (textStyle.HasAmbiguousLayout || HasRasterTextPositionAdjustment(element)) return false;
                     if (!TryReadLength(element, "x", 0D, out x)
                         || !TryReadLength(element, "y", 0D, out y)) return false;
-                    double fontSize = 16D;
-                    string? fontSizeText = ReadRasterPresentationProperty(element, "font-size");
-                    if (!string.IsNullOrWhiteSpace(fontSizeText)
-                        && !OfficeImageReader.TryParseSvgLength(fontSizeText, out fontSize)) return false;
+                    double fontSize = textStyle.FontSize;
                     width = Math.Max(1D, element.Value.Length * fontSize);
                     height = Math.Max(1D, fontSize * 1.5D);
                     y -= fontSize;
+                    if (textStyle.Anchor.Equals("middle", StringComparison.OrdinalIgnoreCase)) x -= width * 0.5D;
+                    else if (textStyle.Anchor.Equals("end", StringComparison.OrdinalIgnoreCase)) x -= width;
                     return true;
                 default:
                     return false;
             }
         }
+
+        private static bool HasRasterTextPositionAdjustment(XElement element) =>
+            ReadRasterProjectedAttribute(element, "dx") != null
+            || ReadRasterProjectedAttribute(element, "dy") != null
+            || ReadRasterProjectedAttribute(element, "rotate") != null
+            || ReadRasterProjectedAttribute(element, "textLength") != null
+            || ReadRasterProjectedAttribute(element, "lengthAdjust") != null;
 
         private static bool TryReadLength(XElement element, string name, double defaultValue, out double value) {
             string? text = ReadRasterProjectedAttribute(element, name);
@@ -314,6 +342,67 @@ public static partial class OfficeSvgDrawingReader {
         internal static SvgRasterStrokeStyle Default => new SvgRasterStrokeStyle(1D, 4D, miterJoin: true, nonScaling: false);
     }
 
+    private readonly struct SvgRasterTextStyle {
+        internal SvgRasterTextStyle(double fontSize, string anchor, bool hasAmbiguousLayout) {
+            FontSize = fontSize;
+            Anchor = anchor;
+            HasAmbiguousLayout = hasAmbiguousLayout;
+            IsInitialized = true;
+        }
+
+        internal double FontSize { get; }
+        internal string Anchor { get; }
+        internal bool HasAmbiguousLayout { get; }
+        internal bool IsInitialized { get; }
+
+        internal static SvgRasterTextStyle Default => new SvgRasterTextStyle(16D, "start", hasAmbiguousLayout: false);
+    }
+
+    private static bool TryResolveRasterTextStyle(
+        XElement element,
+        SvgRasterTextStyle inherited,
+        out SvgRasterTextStyle style) {
+        if (!inherited.IsInitialized) inherited = SvgRasterTextStyle.Default;
+        double fontSize = inherited.FontSize;
+        string? fontSizeText = ReadRasterPresentationProperty(element, "font-size");
+        if (!string.IsNullOrWhiteSpace(fontSizeText) && !fontSizeText!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            if (!OfficeImageReader.TryParseSvgLength(fontSizeText, out fontSize)
+                || double.IsNaN(fontSize)
+                || double.IsInfinity(fontSize)
+                || fontSize <= 0D) {
+                style = default;
+                return false;
+            }
+        }
+
+        string anchor = inherited.Anchor;
+        string? anchorText = ReadRasterPresentationProperty(element, "text-anchor");
+        if (!string.IsNullOrWhiteSpace(anchorText) && !anchorText!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            anchor = anchorText.Trim().ToLowerInvariant();
+            if (anchor is not ("start" or "middle" or "end")) {
+                style = default;
+                return false;
+            }
+        }
+
+        bool hasAmbiguousLayout = inherited.HasAmbiguousLayout || HasRasterTextLayoutProperty(element);
+        style = new SvgRasterTextStyle(fontSize, anchor, hasAmbiguousLayout);
+        return true;
+    }
+
+    private static bool HasRasterTextLayoutProperty(XElement element) {
+        foreach (string propertyName in RasterTextLayoutProperties) {
+            if (ReadRasterPresentationProperty(element, propertyName) != null) return true;
+        }
+        return false;
+    }
+
+    private static readonly string[] RasterTextLayoutProperties = {
+        "font-family", "font-style", "font-weight", "dominant-baseline", "alignment-baseline",
+        "baseline-shift", "white-space", "letter-spacing", "word-spacing", "direction", "unicode-bidi",
+        "writing-mode", "glyph-orientation-horizontal", "glyph-orientation-vertical"
+    };
+
     private static bool TryResolveRasterStrokeStyle(
         XElement element,
         SvgRasterStrokeStyle inherited,
@@ -348,6 +437,14 @@ public static partial class OfficeSvgDrawingReader {
                 style = default;
                 return false;
             }
+        }
+
+        string? dashArray = ReadRasterPresentationProperty(element, "stroke-dasharray");
+        if (!string.IsNullOrWhiteSpace(dashArray)
+            && !dashArray!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)
+            && !dashArray.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            style = default;
+            return false;
         }
 
         style = new SvgRasterStrokeStyle(width, miterLimit, miterJoin, nonScaling);

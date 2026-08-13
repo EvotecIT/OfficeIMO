@@ -611,6 +611,91 @@ public class DrawingSvgReaderSecurityTests {
         }
     }
 
+    [Fact]
+    public void SvgSafetyPredicateChargesMarkerApplicationsConservatively() {
+        Assert.True(IsSafe(1));
+        Assert.False(IsSafe(257));
+
+        static bool IsSafe(int applications) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>")
+                .Append("<defs><marker id='m' markerWidth='4096' markerHeight='4096' viewBox='0 0 1 1'>")
+                .Append("<rect width='1' height='1'/></marker></defs><polyline marker-mid='url(#m)' points='");
+            for (int index = 0; index < applications + 2; index++) svg.Append(index).Append(",0 ");
+            svg.Append("'/></svg>");
+            return OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString()));
+        }
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesMarkerDescendantsConservatively() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>")
+            .Append("<defs><marker id='m' markerWidth='4096' markerHeight='4096' viewBox='10000 0 1 1' refX='10000'>");
+        for (int index = 0; index < 257; index++) svg.Append("<rect x='10000' width='1' height='1'/>");
+        svg.Append("</marker></defs><line marker-start='url(#m)'/></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Theory]
+    [InlineData("stroke-width")]
+    [InlineData("str\\6f ke-width")]
+    public void SvgSafetyPredicateRejectsStylesheetGeometryDeclarations(string propertyName) {
+        const string paintOnly = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<style>.painted{fill:red;content:'stroke-width:4096'}</style><rect class='painted' width='1' height='1'/></svg>";
+        string geometry = "<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>"
+            + "<style>line{stroke:black;" + propertyName + ":4096}</style><line x1='0' x2='4096'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(paintOnly)));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(geometry)));
+    }
+
+    [Theory]
+    [InlineData("stroke-dasharray='1e-300'")]
+    [InlineData("style='stroke-dasharray:1e-300'")]
+    public void SvgSafetyPredicateRejectsUnboundedDashWork(string dashAttribute) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<path stroke='black' " + dashAttribute + " d='M0 0L1 0'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesOffCanvasTextIntermediates() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'><g font-size='4096'>");
+        for (int index = 0; index < 600; index++) svg.Append("<text x='10000'>X</text>");
+        svg.Append("</g></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesInheritedAnchoredTextBounds() {
+        Assert.True(IsSafe(1, anchored: false));
+        Assert.True(IsSafe(1, anchored: true));
+        Assert.False(IsSafe(257, anchored: true));
+
+        static bool IsSafe(int runs, bool anchored) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>")
+                .Append("<g font-size='4096'");
+            if (anchored) svg.Append(" text-anchor='end'");
+            svg.Append(">");
+            for (int index = 0; index < runs; index++) svg.Append("<text x='4096' y='4096'>X</text>");
+            svg.Append("</g></svg>");
+            return OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString()));
+        }
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsAmbiguousTextPositioning() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>");
+        for (int index = 0; index < 257; index++) {
+            svg.Append("<text x='10000' dx='-10000' font-size='4096'>X</text>");
+        }
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
     private static string CreateEmbeddedImageSvg(byte[] png) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
         + Convert.ToBase64String(png)

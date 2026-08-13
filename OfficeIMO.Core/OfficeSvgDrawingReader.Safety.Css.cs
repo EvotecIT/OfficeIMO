@@ -1,10 +1,71 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
+    private static readonly ISet<string> RasterGeometryCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray",
+        "font-size", "font-weight", "text-anchor", "dominant-baseline", "alignment-baseline", "white-space"
+    };
+
+    private static bool HasStylesheetRasterGeometryDeclaration(XElement root) {
+        foreach (XElement style in root.DescendantsAndSelf()
+                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+            if (ContainsStylesheetRasterGeometryDeclaration(style.Value)) return true;
+        }
+        return false;
+    }
+
+    private static bool ContainsStylesheetRasterGeometryDeclaration(string? stylesheet) {
+        if (string.IsNullOrWhiteSpace(stylesheet)) return false;
+        string normalized = StripCssComments(stylesheet!);
+        int depth = 0;
+        int declarationsStart = -1;
+        char quote = '\0';
+        for (int index = 0; index < normalized.Length; index++) {
+            char current = normalized[index];
+            if (quote != '\0') {
+                if (current == '\\') {
+                    int escapedIndex = index;
+                    if (TryReadCssCharacter(normalized, ref escapedIndex, out _)) {
+                        index = escapedIndex - 1;
+                        continue;
+                    }
+                }
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+                continue;
+            }
+            if (current == '{') {
+                depth++;
+                if (depth == 1) declarationsStart = index + 1;
+                continue;
+            }
+            if (current != '}' || depth <= 0) continue;
+            if (depth == 1 && declarationsStart >= 0
+                && ContainsRasterGeometryDeclaration(normalized.Substring(declarationsStart, index - declarationsStart))) return true;
+            depth--;
+            if (depth == 0) declarationsStart = -1;
+        }
+        return depth != 0 || quote != '\0';
+    }
+
+    private static bool ContainsRasterGeometryDeclaration(string declarations) {
+        foreach (string declaration in SplitRasterStyleDeclarations(declarations)) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0 || !TryDecodeCssIdentifier(declaration.Substring(0, colon).Trim(), out string propertyName)) continue;
+            if (RasterGeometryCssProperties.Contains(propertyName)) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsLocalCssUrlReference(string? value, ISet<string> relevantIds) {
         if (string.IsNullOrWhiteSpace(value) || relevantIds.Count == 0) return false;
         string normalized = StripCssComments(value!);

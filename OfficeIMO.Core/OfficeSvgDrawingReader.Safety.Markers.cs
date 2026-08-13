@@ -27,18 +27,28 @@ public static partial class OfficeSvgDrawingReader {
             if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
             if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
             try {
-                if (!TryResolveRenderedSvgAncestorStrokeStyle(target!, out SvgRasterStrokeStyle strokeStyle)
-                    || !TryAddRenderedSvgExpansion(
-                        target!,
-                        references,
-                        maximumElements,
-                        ref elementCount,
-                        ref commandCount,
-                        transform,
-                        viewX,
-                        viewY,
-                        rasterWork,
-                        inheritedStrokeStyle: strokeStyle)) return false;
+                // Marker viewport, ref-point, orientation, and markerUnits transforms vary per
+                // placement. Charge the complete raster viewport before expanding each instance.
+                if (!rasterWork.TryChargeFullViewport()) return false;
+                rasterWork.EnterConservativePlacement();
+                try {
+                    if (!TryResolveRenderedSvgAncestorStrokeStyle(target!, out SvgRasterStrokeStyle strokeStyle)
+                        || !TryResolveRenderedSvgAncestorTextStyle(target!, out SvgRasterTextStyle textStyle)
+                        || !TryAddRenderedSvgExpansion(
+                            target!,
+                            references,
+                            maximumElements,
+                            ref elementCount,
+                            ref commandCount,
+                            transform,
+                            viewX,
+                            viewY,
+                            rasterWork,
+                            inheritedStrokeStyle: strokeStyle,
+                            inheritedTextStyle: textStyle)) return false;
+                } finally {
+                    rasterWork.ExitConservativePlacement();
+                }
             } finally {
                 references.Exit(referenceId);
             }

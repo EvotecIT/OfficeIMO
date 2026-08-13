@@ -25,6 +25,7 @@ public static partial class OfficeSvgDrawingReader {
         if (result != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(element);
         try {
             return TryResolveRenderedSvgAncestorStrokeStyle(target!, out SvgRasterStrokeStyle strokeStyle)
+                && TryResolveRenderedSvgAncestorTextStyle(target!, out SvgRasterTextStyle textStyle)
                 && TryAddRenderedSvgExpansion(
                 target!,
                 references,
@@ -35,7 +36,8 @@ public static partial class OfficeSvgDrawingReader {
                 viewX,
                 viewY,
                 rasterWork,
-                inheritedStrokeStyle: strokeStyle);
+                inheritedStrokeStyle: strokeStyle,
+                inheritedTextStyle: textStyle);
         } finally {
             references.Exit(referenceId);
         }
