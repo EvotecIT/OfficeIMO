@@ -398,6 +398,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(300D, FindShape(rendered, "section#height-conflict").Height, 3);
     }
 
+    [Fact]
+    public void HtmlRendering_AutoHeightSizeContainerUsesItsDefiniteMinimumForQueries() {
+        const string html = """
+            <style>
+              @container (height:100px) { #content-box { background:red; } }
+              @container (height:70px) { #border-box { background:red; } }
+            </style>
+            <section style="width:200px;min-height:100px;container-type:size">
+              <div id="content-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="box-sizing:border-box;width:200px;min-height:100px;padding:10px;border:5px solid black;container-type:size">
+              <div id="border-box" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#content-box").Shape.FillColor);
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#border-box").Shape.FillColor);
+    }
+
     [Theory]
     [InlineData("(container-name:card)", true)]
     [InlineData("(container-name:-card)", true)]

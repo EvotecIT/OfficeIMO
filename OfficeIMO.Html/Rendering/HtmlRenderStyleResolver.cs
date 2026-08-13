@@ -674,7 +674,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
-        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;

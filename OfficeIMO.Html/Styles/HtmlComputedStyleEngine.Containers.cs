@@ -177,26 +177,29 @@ public static partial class HtmlComputedStyleEngine {
         string height = style.GetValue("height");
         ResolveContainerInsets(style, containingWidth, fontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight, out double horizontalInsets, out double verticalInsets);
         bool borderBox = IsBorderBox(style);
-        double contentHeight;
+        double contentHeight = 0D;
+        bool hasDefiniteHeight = false;
         if (HtmlRenderCssValues.TryLength(height, containingHeight ?? double.NaN, fontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double resolved)
             && resolved >= 0D) {
             contentHeight = Math.Max(0D, resolved - (borderBox ? verticalInsets : 0D));
+            hasDefiniteHeight = true;
         } else if (HtmlCssReplacedElementParser.TryParseAspectRatio(style.GetValue("aspect-ratio"), out double? ratio, out _, out _)
             && ratio.HasValue) {
             double ratioWidth = borderBox ? contentWidth + horizontalInsets : contentWidth;
             double ratioHeight = ratioWidth / ratio.Value;
             contentHeight = Math.Max(0D, ratioHeight - (borderBox ? verticalInsets : 0D));
-        } else {
-            return null;
+            hasDefiniteHeight = true;
         }
         double containingSize = containingHeight ?? double.NaN;
-        if (TryResolveContainerDimensionConstraint(style.GetValue("max-height"), containingSize, fontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight, verticalInsets, borderBox, out double maximum)) {
+        if (hasDefiniteHeight
+            && TryResolveContainerDimensionConstraint(style.GetValue("max-height"), containingSize, fontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight, verticalInsets, borderBox, out double maximum)) {
             contentHeight = Math.Min(contentHeight, maximum);
         }
         if (TryResolveContainerDimensionConstraint(style.GetValue("min-height"), containingSize, fontSize, rootFontSize, environment, containerUnitWidth, containerUnitHeight, verticalInsets, borderBox, out double minimum)) {
             contentHeight = Math.Max(contentHeight, minimum);
+            hasDefiniteHeight = true;
         }
-        return contentHeight;
+        return hasDefiniteHeight ? contentHeight : null;
     }
 
     private static bool IsBorderBox(HtmlComputedStyle style) =>
