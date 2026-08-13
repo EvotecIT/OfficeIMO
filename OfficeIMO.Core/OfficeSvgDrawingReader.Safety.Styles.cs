@@ -63,7 +63,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY) {
         ResolveRenderedSvgAncestorPaint(
             target,
             out string? fill,
@@ -77,6 +80,9 @@ public static partial class OfficeSvgDrawingReader {
             maximumElements,
             ref elementCount,
             ref commandCount,
+            transform,
+            viewX,
+            viewY,
             fill,
             stroke,
             markerStart,

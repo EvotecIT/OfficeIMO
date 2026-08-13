@@ -162,7 +162,7 @@ public class CsvMappingTests
             .Build();
 
         string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
-            "# generated export\nId\n42\n",
+            "# generated export\nId\n001\n",
             _ => record => $"{record.GetString(0)}:{record.GetSpan(0).ToString()}",
             readerOptions: new CsvDataReaderOptions { Schema = schema },
             parallelOptions: new ParallelRowMappingOptions
@@ -171,7 +171,7 @@ public class CsvMappingTests
                 BatchSize = 1
             }).ToArray();
 
-        Assert.Equal(new[] { "42:42" }, rows);
+        Assert.Equal(new[] { "001:001" }, rows);
     }
 
     [Theory]

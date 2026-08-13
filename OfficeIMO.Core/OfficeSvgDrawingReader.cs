@@ -117,8 +117,8 @@ public static partial class OfficeSvgDrawingReader {
                 out int maximumElements,
                 out _,
                 out _,
-                out _,
-                out _,
+                out double viewX,
+                out double viewY,
                 out _,
                 out _,
                 out _,
@@ -126,7 +126,7 @@ public static partial class OfficeSvgDrawingReader {
 
         return !ExceedsSvgElementNestingLimit(root) &&
                !ExceedsSvgDocumentPathCommandLimit(root) &&
-               !ExceedsSvgRenderedExpansionLimits(root, maximumElements);
+               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, viewX, viewY);
     }
 
     private static bool TryReadBoundedDocument(
@@ -279,8 +279,18 @@ public static partial class OfficeSvgDrawingReader {
         return false;
     }
 
-    private static bool ExceedsSvgRenderedExpansionLimits(XElement root, int maximumElements) {
+    private static bool ExceedsSvgRenderedExpansionLimits(
+        XElement root,
+        int maximumElements,
+        double viewX,
+        double viewY) {
         if (HasPotentialStylesheetRenderedDefinitionReference(root)) return true;
+        if (!TryResolveSupportedRasterTransform(
+                root,
+                OfficeTransform.Identity,
+                viewX,
+                viewY,
+                out OfficeTransform rootTransform)) return true;
         int commandCount = 0;
         int elementCount = 0;
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
@@ -297,6 +307,9 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements,
                     ref elementCount,
                     ref commandCount,
+                    rootTransform,
+                    viewX,
+                    viewY,
                     fill,
                     stroke,
                     markerStart,
@@ -340,6 +353,9 @@ public static partial class OfficeSvgDrawingReader {
         int maximumElements,
         ref int elementCount,
         ref int commandCount,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
         string? inheritedFill = null,
         string? inheritedStroke = null,
         string? inheritedMarkerStart = null,
@@ -350,6 +366,13 @@ public static partial class OfficeSvgDrawingReader {
 
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
+        if (!TryResolveSupportedRasterTransform(
+                element,
+                inheritedTransform,
+                viewX,
+                viewY,
+                out OfficeTransform transform)) return false;
+
         if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
         if (name == "textpath"
             && !TryAddRenderedSvgElementReference(
@@ -358,7 +381,10 @@ public static partial class OfficeSvgDrawingReader {
                 references,
                 maximumElements,
                 ref elementCount,
-                ref commandCount)) return false;
+                ref commandCount,
+                transform,
+                viewX,
+                viewY)) return false;
 
         string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
         string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
@@ -372,13 +398,19 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY)
                 || !TryAddRenderedSvgPatternReference(
                     stroke,
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)) return false;
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY)) return false;
         }
 
         SvgMarkerPlacementCounts markerPlacements = CountSvgMarkerPlacements(element);
@@ -390,7 +422,10 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY)
                 || !TryAddRenderedSvgLocalReferenceApplications(
                     markerMid,
                     "marker",
@@ -398,7 +433,10 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY)
                 || !TryAddRenderedSvgLocalReferenceApplications(
                     markerEnd,
                     "marker",
@@ -406,7 +444,10 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount))) return false;
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY))) return false;
 
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
@@ -414,7 +455,10 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)) return false;
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY)) return false;
         }
 
         if (name == "use") {
@@ -431,6 +475,9 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements,
                     ref elementCount,
                     ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
                     fill,
                     stroke,
                     markerStart,
@@ -457,7 +504,10 @@ public static partial class OfficeSvgDrawingReader {
                             references,
                             maximumElements,
                             ref elementCount,
-                            ref commandCount)) return false;
+                            ref commandCount,
+                            transform,
+                            viewX,
+                            viewY)) return false;
                 } finally {
                     references.Exit(inheritedPatternId);
                 }
@@ -472,6 +522,9 @@ public static partial class OfficeSvgDrawingReader {
                     maximumElements,
                     ref elementCount,
                     ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
                     fill,
                     stroke,
                     markerStart,
@@ -492,7 +545,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY) {
         SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
             value,
             out string referenceId,
@@ -505,7 +561,10 @@ public static partial class OfficeSvgDrawingReader {
                 references,
                 maximumElements,
                 ref elementCount,
-                ref commandCount);
+                ref commandCount,
+                transform,
+                viewX,
+                viewY);
         } finally {
             references.Exit(referenceId);
         }
@@ -516,7 +575,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY) {
         SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
             value,
             out string referenceId,
@@ -535,7 +597,10 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount);
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY);
         } finally {
             references.Exit(referenceId);
         }
@@ -576,7 +641,7 @@ public static partial class OfficeSvgDrawingReader {
         int remaining = MaximumSvgPathCommands - commandCount;
         if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
             _ = OfficeSvgPathDataParser.TryParse(
-                element.Attribute("d")?.Value,
+                ReadRasterProjectedAttribute(element, "d"),
                 remaining + 1,
                 out IReadOnlyList<OfficePathCommand> commands,
                 out bool commandLimitExceeded);
@@ -589,7 +654,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) return true;
         int maximumValues = (remaining + 1) * 2;
         bool parsed = TryParseNumberList(
-            element.Attribute("points")?.Value,
+            ReadRasterProjectedAttribute(element, "points"),
             maximumValues,
             out IReadOnlyList<double> values,
             out bool valueLimitExceeded);

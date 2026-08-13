@@ -12,7 +12,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY) {
         if (applications <= 0) return true;
         for (int application = 0; application < applications; application++) {
             SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
@@ -28,7 +31,10 @@ public static partial class OfficeSvgDrawingReader {
                         references,
                         maximumElements,
                         ref elementCount,
-                        ref commandCount)) return false;
+                        ref commandCount,
+                        transform,
+                        viewX,
+                        viewY)) return false;
             } finally {
                 references.Exit(referenceId);
             }
@@ -42,7 +48,7 @@ public static partial class OfficeSvgDrawingReader {
         if (name is "rect" or "circle" or "ellipse") return SvgMarkerPlacementCounts.ForClosedVertices(4);
         if (name is "polygon" or "polyline") {
             if (!TryParseNumberList(
-                    element.Attribute("points")?.Value,
+                    ReadRasterProjectedAttribute(element, "points"),
                     MaximumSvgPathCommands * 2,
                     out IReadOnlyList<double> values,
                     out _)) return default;
@@ -53,7 +59,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (name != "path") return default;
         _ = OfficeSvgPathDataParser.TryParse(
-            element.Attribute("d")?.Value,
+            ReadRasterProjectedAttribute(element, "d"),
             MaximumSvgPathCommands,
             out IReadOnlyList<OfficePathCommand> commands,
             out _);

@@ -418,6 +418,58 @@ public class DrawingSvgReaderSecurityTests {
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
     }
 
+    [Fact]
+    public void SvgSafetyPredicateUsesRasterizerGeometryAttributeIdentity() {
+        string commands = "M0 0" + string.Concat(Enumerable.Repeat(" L1 1", 20000));
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>"
+            + "<path d='' x:d='" + commands + "'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateUsesRasterizerGeometryIdentityForMarkerPlacements() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>"
+            + "<defs><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<polyline points='0,0' x:points='0,0 1,1 2,0 3,1' marker-mid='url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 4 };
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
+    }
+
+    [Theory]
+    [InlineData("matrix(1024 0 0 1 0 0)", true)]
+    [InlineData("matrix(1025 0 0 1 0 0)", false)]
+    [InlineData("matrix(1 0 0 1 1000000 0)", true)]
+    [InlineData("matrix(1 0 0 1 1000001 0)", false)]
+    public void SvgSafetyPredicateEnforcesTransformCeilings(string transform, bool expected) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<g transform='" + transform + "'><rect width='1' height='1'/></g></svg>";
+
+        Assert.Equal(expected, OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateEnforcesEffectiveReferencedTransformCeilings() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='scaled' transform='scale(33)'><rect width='1' height='1'/></g></defs>"
+            + "<use href='#scaled' transform='scale(33)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChecksRasterizerTransformIdentityAndOnlyRenderedDefinitions() {
+        const string namespaceCollision = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='16' height='8'>"
+            + "<g transform='scale(1)' x:transform='scale(1025)'><rect width='1' height='1'/></g></svg>";
+        const string unusedDefinition = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='unused' transform='scale(1025)'><rect width='1' height='1'/></g></defs>"
+            + "<rect width='1' height='1'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(namespaceCollision)));
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(unusedDefinition)));
+    }
+
     private static string CreateEmbeddedImageSvg(byte[] png) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
         + Convert.ToBase64String(png)

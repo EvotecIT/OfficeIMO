@@ -727,6 +727,60 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPageSharesTextClipBudgetAcrossTilingPatternSurfaces() {
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", 3000));
+        string pattern1 = BuildStreamObject(
+            5,
+            "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 1 Tf 4 Tr " + textShows + "ET");
+        string pattern2 = BuildStreamObject(
+            6,
+            "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 1 Tf 4 Tr " + textShows + "ET");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs /P1 scn 0 0 10 10 re f /P2 scn 10 0 10 10 re f",
+            "<< /Pattern << /P1 5 0 R /P2 6 0 R >> >>",
+            pattern1,
+            pattern2);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPageSharesTextClipBudgetAcrossSoftMaskSurfaces() {
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", 3000));
+        string graphicsState1 = "5 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>\nendobj";
+        string graphicsState2 = "6 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string mask1 = BuildStreamObject(
+            7,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 1 Tf 4 Tr " + textShows + "ET");
+        string mask2 = BuildStreamObject(
+            8,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 1 Tf 4 Tr " + textShows + "ET");
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs 0 0 10 10 re f /GS2 gs 10 0 10 10 re f",
+            "<< /ExtGState << /GS1 5 0 R /GS2 6 0 R >> >>",
+            graphicsState1,
+            graphicsState2,
+            mask1,
+            mask2);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+    }
+
+    [Fact]
     public void RenderPageDoesNotChargeSkippedOverlappingContourIntersections() {
         string activeClip = "0 -20 m " + string.Concat(Enumerable.Range(1, 300)
             .Select(index => index + " " + (index % 2 == 0 ? -20 : 100) + " l ")) + "h W n ";

@@ -11,7 +11,10 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY) {
         SvgElementReferenceEntryResult result = references.TryEnterDetailed(
             element,
             expectedTargetName,
@@ -25,7 +28,10 @@ public static partial class OfficeSvgDrawingReader {
                 references,
                 maximumElements,
                 ref elementCount,
-                ref commandCount);
+                ref commandCount,
+                transform,
+                viewX,
+                viewY);
         } finally {
             references.Exit(referenceId);
         }

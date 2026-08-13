@@ -157,8 +157,14 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             return ordinal < _currentStringRow.Count ? _currentStringRow[ordinal] : string.Empty;
         }
 
-        object? value = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
-        return value as string ?? Convert.ToString(value, _culture) ?? string.Empty;
+        if (_rawRowsAreParsedStringsOnly)
+        {
+            object? value = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+            return value as string ?? string.Empty;
+        }
+
+        throw new InvalidOperationException(
+            "The current CSV row is not backed by decoded source text.");
     }
 #endif
 
