@@ -613,6 +613,44 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGradients_ResolveContainerUnitsAgainstTheActiveQueryContainer() {
+        const string html = "<section style='width:200px;height:100px;container-type:size'>"
+            + "<div style='width:100px;height:20px;background:linear-gradient(to right,red 0,blue 10cqw)'></div>"
+            + "<div style='width:100px;height:50px;background:radial-gradient(circle 10cqw at 10cqw 10cqh,red,blue)'></div>"
+            + "</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 500D,
+            ViewportHeight = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        OfficeLinearGradient linear = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        OfficeRadialGradient radial = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillRadialGradient != null).Shape.FillRadialGradient!;
+
+        Assert.Contains(linear.Stops, stop => Math.Abs(stop.Offset - 0.2D) < 0.0001D);
+        Assert.Equal(0.2D, radial.EndX, 6);
+        Assert.Equal(0.2D, radial.EndY, 6);
+        Assert.Equal(0.2D, radial.EndRadiusX, 6);
+        Assert.Equal(0.4D, radial.EndRadiusY, 6);
+
+        Assert.True(HtmlCssConicGradientParser.TryParse(
+            "conic-gradient(at 10cqw 10cqh,red,blue)",
+            8,
+            out HtmlCssConicGradientDefinition? definition,
+            out bool stopLimitExceeded));
+        Assert.NotNull(definition);
+        Assert.False(stopLimitExceeded);
+        Assert.True(definition!.TryResolve(100D, 50D, 16D, 16D, 500D, 300D, 200D, 100D, out OfficeConicGradient? conic, out _));
+        Assert.NotNull(conic);
+        Assert.Equal(0.2D, conic!.CenterX, 6);
+        Assert.Equal(0.2D, conic.CenterY, 6);
+    }
+
+    [Fact]
     public void HtmlConicGradient_AcceptsCssColor4Stops() {
         const string gradient = "conic-gradient(from 210deg at 80% 20%,oklch(72% .18 155),oklch(62% .2 245),oklch(68% .2 320),oklch(72% .18 155))";
         string html = "<style>.hero{width:80px;height:60px;background:" + gradient + "}</style><div class='hero'></div>";

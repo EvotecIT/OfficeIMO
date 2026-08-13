@@ -1,4 +1,5 @@
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf.Filters;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
@@ -647,6 +648,48 @@ public sealed class HtmlPdfTests {
         Assert.Equal(2, statuses.Length);
         Assert.All(statuses, field => Assert.Equal(2, field.Widgets.Count));
         Assert.Equal(2, statuses.Select(field => field.Name).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void HtmlToPdf_RepeatedTableHeaderAndFooterControlsUseTruthfulStaticFallback() {
+        string rows = string.Concat(Enumerable.Range(1, 18).Select(index => "<tr><td style='height:28px'>Row " + index + "</td></tr>"));
+        string html = "<table><thead><tr><th><input name='filter' value='All rows'></th></tr></thead>"
+            + "<tbody>" + rows + "</tbody>"
+            + "<tfoot><tr><td><input name='summary' value='Totals'></td></tr></tfoot></table>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields.Where(field => field.MappingName is "filter" or "summary"));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("All rows", text, StringComparison.Ordinal);
+        Assert.Contains("Totals", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToPdf_FixedControlsRepeatedAcrossPagesUseTruthfulStaticFallback() {
+        string body = string.Concat(Enumerable.Range(1, 24).Select(index => "<p>Paragraph " + index + "</p>"));
+        string html = "<input name='fixed-search' value='Search' style='position:fixed;top:4px;left:4px'>" + body;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(16D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields.Where(field => field.MappingName == "fixed-search"));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
+        Assert.Contains("Paragraph", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -20,6 +20,10 @@ internal sealed class HtmlCssLinearGradientDefinition {
     }
 
     internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded);
+    }
+
+    internal bool TryResolve(double width, double height, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out OfficeLinearGradient? gradient, out bool stopLimitExceeded) {
         gradient = null;
         stopLimitExceeded = false;
         if (width <= 0D || height <= 0D) return false;
@@ -27,7 +31,7 @@ internal sealed class HtmlCssLinearGradientDefinition {
         double dx = (geometry.EndX - geometry.StartX) * width;
         double dy = (geometry.EndY - geometry.StartY) * height;
         double lineLength = Math.Sqrt((dx * dx) + (dy * dy));
-        if (!_stops.TryResolve(lineLength, fontSize, rootFontSize, viewportWidth, viewportHeight, _repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded) || stops == null) return false;
+        if (!_stops.TryResolve(lineLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, _repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded) || stops == null) return false;
         gradient = _explicitAngle
             ? OfficeLinearGradient.CreateImported(geometry.StartX, geometry.StartY, geometry.EndX, geometry.EndY, stops)
             : new OfficeLinearGradient(geometry.StartX, geometry.StartY, geometry.EndX, geometry.EndY, stops);

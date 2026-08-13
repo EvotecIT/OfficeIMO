@@ -612,21 +612,61 @@ public static partial class OfficeSvgDrawingReader {
             int colon = declaration.IndexOf(':');
             if (colon <= 0) continue;
             string name = declaration.Substring(0, colon).Trim();
-            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
-            if (name.Equals("line-height", StringComparison.OrdinalIgnoreCase)) {
-                string inlineLineHeight = declaration.Substring(colon + 1).Trim();
-                if (inlineLineHeight.Equals("inherit", StringComparison.OrdinalIgnoreCase)
-                    || TryParseLineHeight(inlineLineHeight, result.FontSize, out _)) {
-                    authoredLineHeight = inlineLineHeight;
-                } else {
-                    unsupported++;
-                }
-                continue;
-            }
+            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("line-height", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) continue;
             ApplyProperty(name, declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
         }
+        if (TryResolveInlineProperty(declarations, "baseline-shift", IsValidBaselineShiftValue, out string? inlineBaselineShift, out int invalidBaselineShifts)) {
+            ApplyProperty("baseline-shift", inlineBaselineShift, paintServers, ref result, ref unsupported);
+        }
+        unsupported += invalidBaselineShifts;
+        if (TryResolveInlineProperty(
+                declarations,
+                "line-height",
+                candidate => candidate.Equals("inherit", StringComparison.OrdinalIgnoreCase) || TryParseLineHeight(candidate, result.FontSize, out _),
+                out string? inlineLineHeight,
+                out int invalidLineHeights)) {
+            authoredLineHeight = inlineLineHeight;
+        }
+        unsupported += invalidLineHeights;
         ApplyProperty("line-height", authoredLineHeight, paintServers, ref result, ref unsupported);
         return result;
+    }
+
+    private static bool TryResolveInlineProperty(
+        IEnumerable<string> declarations,
+        string propertyName,
+        Func<string, bool> validator,
+        out string? value,
+        out int invalidCount) {
+        value = null;
+        invalidCount = 0;
+        bool hasWinner = false;
+        bool winnerIsImportant = false;
+        foreach (string declaration in declarations) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
+            string candidate = declaration.Substring(colon + 1).Trim();
+            bool important = TryStripImportant(candidate, out candidate);
+            if (!validator(candidate)) {
+                invalidCount++;
+                continue;
+            }
+            if (hasWinner && winnerIsImportant && !important) continue;
+            value = candidate;
+            hasWinner = true;
+            winnerIsImportant = important;
+        }
+        return hasWinner;
+    }
+
+    private static bool TryStripImportant(string value, out string normalized) {
+        normalized = value.Trim();
+        int bang = normalized.LastIndexOf('!');
+        if (bang < 0 || !normalized.Substring(bang + 1).Trim().Equals("important", StringComparison.OrdinalIgnoreCase)) return false;
+        normalized = normalized.Substring(0, bang).Trim();
+        return true;
     }
 
     private static void ApplyProperty(string name, string? value, SvgPaintServerRegistry paintServers, ref SvgPaintContext style, ref int unsupported) {

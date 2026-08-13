@@ -33,6 +33,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("<span style='white-space:nowrap'>Alpha beta gamma delta</span>")]
+    [InlineData("SupercalifragilisticexpialidociousTail")]
+    public void HtmlRender_EmitsEllipsisForAnyClippedOverflowingLine(string content) {
+        string html = "<div style='width:75px;overflow:hidden;text-overflow:ellipsis;font-size:14px'>" + content + "</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderText[] text = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(text, run => run.Text.EndsWith("\u2026", StringComparison.Ordinal));
+        Assert.DoesNotContain(text, run => run.Text.Contains("delta", StringComparison.Ordinal) || run.Text.Contains("Tail", StringComparison.Ordinal));
+    }
+
+    [Theory]
     [InlineData("line-clamp")]
     [InlineData("-webkit-line-clamp")]
     public void HtmlRender_ClampsLinesAndAddsAnEllipsis(string property) {

@@ -842,7 +842,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback,
-            "HTML controls sharing one submitted name were rendered as static content because distinct PDF fields cannot preserve repeated form-data entries under one field name.",
+            "HTML controls that repeat across PDF pages or share one submitted name were rendered as static content because separate PDF widgets cannot safely preserve that authored field identity.",
             HtmlDiagnosticSeverity.Warning,
             source,
             "name=" + groupKey.Substring(groupKey.LastIndexOf('\n') + 1),
@@ -983,8 +983,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
 
-        IElement[] controls = _document.QuerySelectorAll("input,textarea,select")
+        IElement[] allControls = _document.QuerySelectorAll("input,textarea,select")
             .Where(IsSupportedInteractiveFormControl)
+            .ToArray();
+        IElement[] controls = allControls
             .Where(element => element.GetAttribute("name") is { Length: > 0 })
             .ToArray();
         foreach (IGrouping<IElement?, IElement> ownerGroup in controls.GroupBy(HtmlFormControlSemantics.ResolveFormOwner)) {
@@ -997,6 +999,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (IElement element in members) _staticRepeatedControlGroupKeys[element] = key;
             }
         }
+        if (_options.Mode != HtmlRenderMode.Paged) return;
+        foreach (IElement element in allControls.Where(IsInRepeatedPageContent)) {
+            string authoredName = element.GetAttribute("name") ?? string.Empty;
+            string key = HtmlRenderStyleResolver.DescribeSource(element) + "\n" + (authoredName.Length > 0 ? authoredName : "repeated-page-control");
+            _staticRepeatedControlGroupKeys[element] = key;
+            if (NormalizeInputType(element) != "radio" || authoredName.Length == 0) continue;
+            IElement? owner = HtmlFormControlSemantics.ResolveFormOwner(element);
+            foreach (IElement member in radios.Where(candidate =>
+                         ReferenceEquals(HtmlFormControlSemantics.ResolveFormOwner(candidate), owner)
+                         && string.Equals(candidate.GetAttribute("name"), authoredName, StringComparison.Ordinal))) {
+                _staticRepeatedControlGroupKeys[member] = key;
+            }
+        }
+    }
+
+    private bool IsInRepeatedPageContent(IElement element) {
+        for (IElement? current = element; current != null; current = current.ParentElement) {
+            if (current.LocalName == "thead" || current.LocalName == "tfoot") return true;
+            if (_styleResolver.Resolve(current, _options.PageWidth).Position == "fixed") return true;
+        }
+        return false;
     }
 
     private static bool IsSupportedInteractiveFormControl(IElement element) {

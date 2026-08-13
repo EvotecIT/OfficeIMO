@@ -31,11 +31,25 @@ internal sealed class HtmlCssConicGradientDefinition {
         double viewportHeight,
         out OfficeConicGradient? gradient,
         out bool stopLimitExceeded) {
+        return TryResolve(width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, out gradient, out stopLimitExceeded);
+    }
+
+    internal bool TryResolve(
+        double width,
+        double height,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        out OfficeConicGradient? gradient,
+        out bool stopLimitExceeded) {
         gradient = null;
         stopLimitExceeded = false;
         if (width <= 0D || height <= 0D
-            || !HtmlRenderCssValues.TryLength(_centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, out double centerX)
-            || !HtmlRenderCssValues.TryLength(_centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, out double centerY)
+            || !HtmlRenderCssValues.TryLength(_centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX)
+            || !HtmlRenderCssValues.TryLength(_centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerY)
             || double.IsNaN(centerX) || double.IsInfinity(centerX)
             || double.IsNaN(centerY) || double.IsInfinity(centerY)
             || !_stops.TryResolveConic(_repeating, out IReadOnlyList<OfficeGradientStop>? stops, out stopLimitExceeded)

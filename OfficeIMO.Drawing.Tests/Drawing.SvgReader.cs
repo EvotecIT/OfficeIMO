@@ -334,6 +334,21 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderHonorsImportantInlineBaselineShiftAndLineHeight() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 50'>"
+            + "<text x='2' y='40' font-size='10'><tspan baseline-shift='2px' line-height='12px' "
+            + "style='baseline-shift:50% !important;baseline-shift:1px;line-height:20px !important;line-height:10px'>Text</tspan></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText run = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal("Text", run.Text);
+        Assert.Equal(20D, run.Y, 6);
+    }
+
+    [Fact]
     public void SvgReaderPreservesRgbAndRgbaPaint() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
             + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"

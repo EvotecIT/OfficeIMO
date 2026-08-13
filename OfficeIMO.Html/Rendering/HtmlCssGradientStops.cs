@@ -81,6 +81,20 @@ internal sealed class HtmlCssGradientStops {
         bool repeating,
         out IReadOnlyList<OfficeGradientStop>? stops,
         out bool stopLimitExceeded) {
+        return TryResolve(referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, double.NaN, double.NaN, repeating, out stops, out stopLimitExceeded);
+    }
+
+    internal bool TryResolve(
+        double referenceLength,
+        double fontSize,
+        double rootFontSize,
+        double viewportWidth,
+        double viewportHeight,
+        double containerWidth,
+        double containerHeight,
+        bool repeating,
+        out IReadOnlyList<OfficeGradientStop>? stops,
+        out bool stopLimitExceeded) {
         stops = null;
         stopLimitExceeded = false;
         if (referenceLength <= 0D || double.IsNaN(referenceLength) || double.IsInfinity(referenceLength)) return false;
@@ -90,7 +104,7 @@ internal sealed class HtmlCssGradientStops {
             HtmlCssGradientStop stop = _stops[index];
             colors[index] = stop.Color;
             if (stop.Position == null) continue;
-            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, out double pixels)) return false;
+            if (!HtmlRenderCssValues.TryLength(stop.Position, referenceLength, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double pixels)) return false;
             double offset = pixels / referenceLength;
             if (double.IsNaN(offset) || double.IsInfinity(offset)) return false;
             offsets[index] = offset;

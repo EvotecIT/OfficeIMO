@@ -446,11 +446,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lines.RemoveRange(paragraphStyle.LineClamp.Value, lines.Count - paragraphStyle.LineClamp.Value);
             ApplyEndEllipsis(lines[lines.Count - 1], width, completeLogicalProgress);
         } else if (paragraphStyle.TextOverflow == "ellipsis"
-            && paragraphStyle.PreventTextWrapping
-            && paragraphStyle.OverflowX != "visible"
-            && lines.Count > 0
-            && lines[0].Width > width + 0.0001D) {
-            ApplyEndEllipsis(lines[0], width, completeLogicalProgress);
+            && paragraphStyle.OverflowX != "visible") {
+            foreach (InlineLine overflowingLine in lines.Where(candidate =>
+                         candidate.Width > (candidate.HasExplicitPlacement ? candidate.AvailableWidth : width) + 0.0001D)) {
+                int lineLogicalProgress = overflowingLine.Segments
+                    .Select(segment => segment.LogicalEndProgress)
+                    .DefaultIfEmpty(completeLogicalProgress)
+                    .Max();
+                ApplyEndEllipsis(overflowingLine, width, lineLogicalProgress);
+            }
         }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
     }

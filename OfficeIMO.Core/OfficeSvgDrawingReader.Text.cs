@@ -113,13 +113,9 @@ public static partial class OfficeSvgDrawingReader {
         double inheritedOwnBaselineShift) {
         string? value = element.Attribute("baseline-shift")?.Value;
         string? styleText = element.Attribute("style")?.Value;
-        if (!string.IsNullOrWhiteSpace(styleText)) {
-            foreach (string declaration in styleText!.Split(';')) {
-                int colon = declaration.IndexOf(':');
-                if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) continue;
-                string candidate = declaration.Substring(colon + 1).Trim();
-                if (IsValidBaselineShiftValue(candidate)) value = candidate;
-            }
+        if (!string.IsNullOrWhiteSpace(styleText)
+            && TryResolveInlineProperty(styleText!.Split(';'), "baseline-shift", IsValidBaselineShiftValue, out string? inlineValue, out _)) {
+            value = inlineValue;
         }
         if (string.IsNullOrWhiteSpace(value)) return 0D;
         string normalized = value!.Trim();
