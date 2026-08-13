@@ -32,10 +32,12 @@ internal readonly struct PdfPageDrawingEffect {
 
     public PdfPageDrawingEffect Apply(PdfPageGraphicsStateResource resource) => new PdfPageDrawingEffect(
         resource.BlendMode ?? BlendMode,
-        resource.HasSoftMask ? resource.SoftMask : SoftMask,
+        resource.SoftMaskEnabled.HasValue
+            ? resource.SoftMaskEnabled.Value ? resource.SoftMask : null
+            : SoftMask,
         HasBlendMode || resource.BlendMode.HasValue,
-        HasSoftMask || resource.HasSoftMask,
-        resource.HasSoftMask ? null : SoftMaskTransform);
+        HasSoftMask || resource.SoftMaskEnabled.HasValue,
+        resource.SoftMaskEnabled.HasValue ? null : SoftMaskTransform);
 
     internal PdfPageDrawingEffect OverlayOn(PdfPageDrawingEffect inherited) => new PdfPageDrawingEffect(
         HasBlendMode ? BlendMode : inherited.BlendMode,

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -205,8 +206,7 @@ namespace OfficeIMO.Core.Internal {
                 directory = Directory.GetCurrentDirectory();
             }
 
-            string fileName = Path.GetFileName(fullTargetPath);
-            return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}.tmp");
+            return Path.Combine(directory, $".officeimo-{Guid.NewGuid():N}.tmp");
         }
 
         /// <summary>Creates an owner-only same-directory staging file suitable for an atomic commit.</summary>
@@ -227,8 +227,7 @@ namespace OfficeIMO.Core.Internal {
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
 
             string extension = Path.GetExtension(fullTargetPath);
-            string fileName = Path.GetFileNameWithoutExtension(fullTargetPath);
-            return Path.Combine(directory, $".{fileName}.{Guid.NewGuid():N}{extension}");
+            return Path.Combine(directory, $".officeimo-{Guid.NewGuid():N}{extension}");
         }
 
         /// <summary>Commits a completed temporary file to its destination.</summary>
@@ -495,7 +494,7 @@ namespace OfficeIMO.Core.Internal {
         private static string CreateBackupPath(string targetPath) {
             string? directory = Path.GetDirectoryName(targetPath);
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
-            return Path.Combine(directory, $".{Path.GetFileName(targetPath)}.{Guid.NewGuid():N}.bak");
+            return Path.Combine(directory, $".officeimo-{Guid.NewGuid():N}.bak");
         }
 
         private static void ReplaceUsingBackup(string temporaryPath, string targetPath) {
@@ -613,9 +612,35 @@ namespace OfficeIMO.Core.Internal {
         private static string CreateClaimPath(string targetPath) {
             string? directory = Path.GetDirectoryName(targetPath);
             if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
-            return Path.Combine(
-                directory,
-                $".{Path.GetFileName(targetPath)}.officeimo-commit");
+            string legacyClaimName = "." + Path.GetFileName(targetPath) + ".officeimo-commit";
+            string legacyClaimPath = Path.Combine(directory, legacyClaimName);
+            if (Encoding.UTF8.GetByteCount(legacyClaimName) <= 255 &&
+                (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || legacyClaimPath.Length < 260)) {
+                // Preserve coordination with OfficeIMO versions that use the destination-derived
+                // claim name. Fall back to the compact hash only when that legacy path is not
+                // portable enough to create.
+                return legacyClaimPath;
+            }
+
+            string fullTargetPath = Path.GetFullPath(targetPath);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                fullTargetPath = fullTargetPath.ToUpperInvariant();
+            }
+
+            byte[] pathBytes = Encoding.UTF8.GetBytes(fullTargetPath);
+            byte[] hash;
+            using (SHA256 sha256 = SHA256.Create()) {
+                hash = sha256.ComputeHash(pathBytes);
+            }
+
+            const string hex = "0123456789abcdef";
+            var token = new char[24];
+            for (int index = 0; index < token.Length / 2; index++) {
+                token[index * 2] = hex[hash[index] >> 4];
+                token[(index * 2) + 1] = hex[hash[index] & 0x0F];
+            }
+
+            return Path.Combine(directory, ".officeimo-" + new string(token) + ".commit");
         }
     }
 }

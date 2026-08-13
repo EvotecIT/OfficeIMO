@@ -125,7 +125,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.DateTime:
                         if (value is DateTime dateTime) {
-                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
+                            WriteDateTimeSerialCell(writer, dateTime, dateSystem);
                             return;
                         }
 
@@ -224,7 +224,7 @@ namespace OfficeIMO.Excel {
 #if NET6_0_OR_GREATER
                     case DirectCellValueKind.DateOnly:
                         if (value is DateOnly dateOnly) {
-                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem));
+                            WriteDateTimeSerialCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem);
                             return;
                         }
 
@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
                         writer.Write(boolValue ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
                         return;
                     case DateTime dateTime:
-                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
+                        WriteDateTimeSerialCell(writer, dateTime, dateSystem);
                         return;
                     case DateTimeOffset dateTimeOffset:
                         WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy, dateSystem);
@@ -304,7 +304,7 @@ namespace OfficeIMO.Excel {
                         return;
 #if NET6_0_OR_GREATER
                     case DateOnly dateOnly:
-                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem));
+                        WriteDateTimeSerialCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem);
                         return;
                     case TimeOnly timeOnly:
                         WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
@@ -365,28 +365,29 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
-                if (!TryGetDateTimeOffsetSerial(value, dateTimeOffsetWriteStrategy, dateSystem, out double dateTimeOffsetSerial)) {
+                if (!TryGetDateTimeOffsetValue(value, dateTimeOffsetWriteStrategy, out DateTime dateTimeValue)) {
                     WriteStringCell(writer, value.ToString("o", CultureInfo.InvariantCulture), validateLength: true);
                     return;
                 }
 
-                WriteRawValueCell(writer, dateTimeOffsetSerial);
+                WriteDateTimeSerialCell(writer, dateTimeValue, dateSystem);
             }
 
-            private static bool TryGetDateTimeOffsetSerial(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem, out double serial) {
+            private static bool TryGetDateTimeOffsetValue(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out DateTime convertedValue) {
                 try {
                     if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
-                        serial = 0D;
+                        convertedValue = default;
                         return false;
                     }
 
-                    serial = ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(value), dateSystem);
+                    convertedValue = dateTimeOffsetWriteStrategy(value);
+                    _ = convertedValue.ToOADate();
                     return true;
                 } catch (ArgumentException) {
-                    serial = 0D;
+                    convertedValue = default;
                     return false;
                 } catch (OverflowException) {
-                    serial = 0D;
+                    convertedValue = default;
                     return false;
                 }
             }
@@ -437,6 +438,112 @@ namespace OfficeIMO.Excel {
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
             }
+
+            internal static void WriteDateTimeSerialCell(TextWriter writer, DateTime value, ExcelDateSystem dateSystem) {
+#if NET7_0_OR_GREATER
+                DateTime fastPathMinimum = dateSystem == ExcelDateSystem.NineteenFour
+                    ? NineteenFourFastDateSerialMinimum
+                    : NineteenHundredFastDateSerialMinimum;
+                if (value >= fastPathMinimum) {
+                    const long oaEpochDay = 693_593L;
+                    const ulong millisecondsPerDay = 86_400_000UL;
+
+                    long ticks = value.Ticks;
+                    int daySerial = checked((int)((ticks / TimeSpan.TicksPerDay) - oaEpochDay));
+                    if (dateSystem == ExcelDateSystem.NineteenFour) {
+                        daySerial -= (int)ExcelDateSystemConverter.Date1904OffsetDays;
+                    }
+
+                    if (daySerial == 0) {
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(value, dateSystem));
+                        return;
+                    }
+
+                    string daySerialText = InvariantNumberText.Get(daySerial);
+                    long timeTicks = ticks % TimeSpan.TicksPerDay;
+                    if (daySerialText.Length == 5 && timeTicks % TimeSpan.TicksPerMinute == 0) {
+                        writer.Write("><v>");
+                        writer.Write(daySerialText);
+                        writer.Write(FiveDigitDayMinuteFractionSuffixes[checked((int)(timeTicks / TimeSpan.TicksPerMinute))]);
+                        writer.Write("</v></c>");
+                        return;
+                    }
+
+                    ulong millisecondsAfterMidnight = (ulong)(timeTicks / TimeSpan.TicksPerMillisecond);
+                    ulong fraction = 0;
+                    int fractionDigitCount = 0;
+                    if (millisecondsAfterMidnight != 0) {
+                        fractionDigitCount = 17 - daySerialText.Length;
+                        ulong fractionScale = DecimalPowers[fractionDigitCount];
+                        UInt128 scaledMilliseconds = (UInt128)millisecondsAfterMidnight * fractionScale;
+                        fraction = (ulong)(scaledMilliseconds / millisecondsPerDay);
+                        UInt128 remainder = scaledMilliseconds % millisecondsPerDay;
+                        if (remainder * 2 >= millisecondsPerDay) {
+                            fraction++;
+                        }
+
+                        if (fraction == fractionScale) {
+                            daySerial++;
+                            daySerialText = InvariantNumberText.Get(daySerial);
+                            fraction = 0;
+                        }
+                    }
+
+                    writer.Write("><v>");
+                    writer.Write(daySerialText);
+                    if (fraction != 0) {
+                        Span<char> digits = stackalloc char[17];
+                        for (int index = fractionDigitCount - 1; index >= 0; index--) {
+                            digits[index] = (char)('0' + (fraction % 10));
+                            fraction /= 10;
+                        }
+
+                        int digitCount = fractionDigitCount;
+                        while (digitCount > 0 && digits[digitCount - 1] == '0') {
+                            digitCount--;
+                        }
+
+                        writer.Write('.');
+                        writer.Write(digits.Slice(0, digitCount));
+                    }
+
+                    writer.Write("</v></c>");
+                    return;
+                }
+#endif
+                WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(value, dateSystem));
+            }
+
+#if NET7_0_OR_GREATER
+            private static string[] CreateFiveDigitDayMinuteFractionSuffixes() {
+                const int fractionDigitCount = 12;
+                const ulong fractionScale = 1_000_000_000_000UL;
+                const ulong millisecondsPerDay = 86_400_000UL;
+                var suffixes = new string[24 * 60];
+                suffixes[0] = string.Empty;
+                Span<char> digits = stackalloc char[fractionDigitCount];
+                for (int minute = 1; minute < suffixes.Length; minute++) {
+                    ulong millisecondsAfterMidnight = (ulong)minute * 60_000UL;
+                    UInt128 scaledMilliseconds = (UInt128)millisecondsAfterMidnight * fractionScale;
+                    ulong fraction = (ulong)(scaledMilliseconds / millisecondsPerDay);
+                    if ((scaledMilliseconds % millisecondsPerDay) * 2 >= millisecondsPerDay) {
+                        fraction++;
+                    }
+
+                    for (int index = fractionDigitCount - 1; index >= 0; index--) {
+                        digits[index] = (char)('0' + (fraction % 10));
+                        fraction /= 10;
+                    }
+
+                    int digitCount = fractionDigitCount;
+                    while (digits[digitCount - 1] == '0') {
+                        digitCount--;
+                    }
+                    suffixes[minute] = "." + new string(digits.Slice(0, digitCount));
+                }
+                return suffixes;
+            }
+#endif
 
             private static bool TryWriteTwoDecimalRawValueCell(TextWriter writer, double value) {
                 const double minimumScaledValue = -9007199254740991D;

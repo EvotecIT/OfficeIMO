@@ -28,7 +28,10 @@ internal static partial class CsvParser
             {
                 if (index != fieldStart)
                 {
-                    return true;
+                    if (!trim || !IsTextFieldPadding(text.Slice(fieldStart, index - fieldStart)))
+                    {
+                        return true;
+                    }
                 }
 
                 index++;
@@ -84,6 +87,19 @@ internal static partial class CsvParser
         }
 
         return false;
+    }
+
+    private static bool IsTextFieldPadding(ReadOnlySpan<char> value)
+    {
+        foreach (var character in value)
+        {
+            if (!char.IsWhiteSpace(character))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static int ReadFlexibleTextRecordFieldSpans<TVisitor>(

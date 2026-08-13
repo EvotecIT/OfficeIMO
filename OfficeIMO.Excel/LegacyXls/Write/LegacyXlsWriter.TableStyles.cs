@@ -3,7 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
-        private const uint LegacyXlsBuiltInTableStyleCount = 145;
+        private const uint LegacyXlsBuiltInTableStyleCount = 144;
 
         internal static bool SupportsWorkbookTableStyles(Stylesheet? stylesheet, out string? reason) {
             reason = null;
@@ -20,6 +20,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
+            if (customStyles.Count != 0) {
+                reason = "custom table styles";
+                return false;
+            }
+
             if (!IsSupportedTableStyleNameLength(tableStyles.DefaultTableStyle?.Value)
                 || !IsSupportedTableStyleNameLength(tableStyles.DefaultPivotStyle?.Value)) {
                 reason = "table style name lengths outside BIFF8 limits";
@@ -29,12 +34,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             if (tableStyles.Count?.Value is uint declaredCount && declaredCount != customStyles.Count) {
                 reason = "custom table style counts outside native subset";
                 return false;
-            }
-
-            foreach (DocumentFormat.OpenXml.Spreadsheet.TableStyle customStyle in customStyles) {
-                if (!IsSupportedCustomTableStyle(customStyle, out reason)) {
-                    return false;
-                }
             }
 
             return true;

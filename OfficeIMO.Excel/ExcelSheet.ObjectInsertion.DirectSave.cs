@@ -66,7 +66,9 @@ namespace OfficeIMO.Excel {
             int rowCount,
             int startRow,
             bool includeHeaders,
-            string range) {
+            string range,
+            bool includeCellReferences = true,
+            bool valuesMatchColumnTypes = false) {
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
             if (values == null) throw new ArgumentNullException(nameof(values));
@@ -90,9 +92,10 @@ namespace OfficeIMO.Excel {
                 values,
                 columnCount,
                 rowCount,
-                valuesMatchColumnTypes: false,
+                valuesMatchColumnTypes,
                 includeHeaders,
-                range);
+                range,
+                includeCellReferences: includeCellReferences);
         }
 
         private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames) {

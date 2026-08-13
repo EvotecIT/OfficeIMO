@@ -124,6 +124,7 @@ function Get-ScenarioCategory([string] $Scenario, [string] $ArtifactKind) {
         if ($Scenario -like "*plain*") { return "Plain streaming export" }
         return "DataTable table export"
     }
+    if ($Scenario -eq "write-flat-dictionaries-direct-package") { return "Dictionary streaming export" }
     if ($Scenario -like "*insertobjects*" -or $Scenario -like "*rowsfrom*") { return "Typed object export" }
     if ($Scenario -like "*cellvalues*" -or $Scenario -eq "append-plain-rows") { return "Plain cell export" }
     if ($Scenario -like "*cellvalue-*") { return "Cell writer" }

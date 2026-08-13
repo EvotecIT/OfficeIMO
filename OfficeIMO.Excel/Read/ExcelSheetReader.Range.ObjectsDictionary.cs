@@ -13,13 +13,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class ExcelSheetReader {
         private bool CanUseReadObjectsXmlFastPath(OfficeIMO.Excel.ExcelExecutionMode? mode) {
-            var policy = _opt.Execution;
-            var decided = mode ?? policy.Mode;
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Parallel) {
-                return false;
-            }
-
-            return policy.OnDecision == null && CanUseXmlFastReader();
+            return CanUseXmlFastReader();
         }
 
         private bool TryReadObjectsDictionaryXmlStreamingFast(

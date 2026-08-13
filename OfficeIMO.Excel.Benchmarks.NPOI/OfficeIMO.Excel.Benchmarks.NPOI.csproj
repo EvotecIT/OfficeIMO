@@ -19,4 +19,8 @@
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
+  </ItemGroup>
+
 </Project>

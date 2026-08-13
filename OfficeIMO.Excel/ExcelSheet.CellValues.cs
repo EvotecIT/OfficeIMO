@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int DirectSequentialCellWriteLimit = 16;
         private const int DirectCellValuesLinearHeaderDuplicateCheckLimit = 32;
+        private const int DirectCellValuesCompactReferenceCellThreshold = 4_096;
         private const int DirectCellValuesFlatSnapshotCellLimit = 500_000;
 
         /// <summary>

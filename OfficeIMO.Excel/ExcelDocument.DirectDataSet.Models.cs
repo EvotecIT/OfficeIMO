@@ -450,7 +450,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 string value = _multipleUnderscoresRegex.Replace(builder.ToString().Trim(), "_");
-                return value.Trim('_');
+                value = value.Trim('_');
+                if (string.IsNullOrWhiteSpace(value)) {
+                    return "Sheet1";
+                }
+
+                return value.Length > 31 ? value.Substring(0, 31) : value;
             }
 
             private static string SanitizeTableName(string name) {
@@ -468,7 +473,7 @@ namespace OfficeIMO.Excel {
                     value = "_" + value;
                 }
 
-                return value;
+                return value.Length > 255 ? value.Substring(0, 255) : value;
             }
         }
 

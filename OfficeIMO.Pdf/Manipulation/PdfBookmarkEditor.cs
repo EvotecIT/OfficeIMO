@@ -14,7 +14,8 @@ public sealed class PdfBookmarkValidationIssue {
 /// <summary>Existing-document bookmark edit result.</summary>
 public sealed class PdfBookmarkEditResult {
     private readonly byte[] _pdf;
-    internal PdfBookmarkEditResult(byte[] pdf, PdfMutationPlan plan, IReadOnlyList<PdfOutlineItem> outlines) { _pdf = (byte[])pdf.Clone(); MutationPlan = plan; Outlines = outlines; }
+    private readonly PdfReadOptions _readOptions;
+    internal PdfBookmarkEditResult(byte[] pdf, PdfMutationPlan plan, IReadOnlyList<PdfOutlineItem> outlines, PdfReadOptions readOptions) { _pdf = (byte[])pdf.Clone(); _readOptions = readOptions; MutationPlan = plan; Outlines = outlines; }
     /// <summary>Shared full-rewrite mutation plan.</summary>
     public PdfMutationPlan MutationPlan { get; }
     /// <summary>Bookmarks read back from the saved artifact.</summary>
@@ -22,7 +23,7 @@ public sealed class PdfBookmarkEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
 }
 
 /// <summary>Adds, removes, renames, moves, nests, retargets, and rebuilds existing-document bookmarks.</summary>
@@ -54,7 +55,7 @@ internal static class PdfBookmarkEditor {
             output.LongLength);
         IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output, outputReadOptions).Outlines;
         if (!Matches(target, actual)) throw new InvalidOperationException("PDF bookmark post-save validation failed; the artifact was not returned.");
-        return new PdfBookmarkEditResult(output, plan, actual);
+        return new PdfBookmarkEditResult(output, plan, actual, outputReadOptions);
     }
 
     private static void RewriteOutlines(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security, PdfReadDocument document, IReadOnlyList<PdfBookmarkNode> roots) {

@@ -3,6 +3,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -15,6 +16,8 @@ internal static partial class CsvParser
         private readonly CsvLoadOptions _options;
         private CsvTextFieldSpanReadState _state;
         private CsvDataReaderTextRowVisitor _visitor;
+        private CsvTextDataReaderBatch? _batch;
+        private bool _usingBatchRow;
         private bool _disposed;
 
         internal CsvTextDataReaderRowSource(
@@ -27,28 +30,123 @@ internal static partial class CsvParser
             _options = options;
             _state = CreateTextFieldSpanReadState(text.AsSpan(), options, recordsToSkip);
             _visitor = new CsvDataReaderTextRowVisitor(text, sourceColumnCount);
+            _batch = sourceColumnCount is > 0 and <= TextQuoteAwareFieldSpanCapacity
+                ? new CsvTextDataReaderBatch(
+                    text,
+                    sourceColumnCount,
+                    options.Culture,
+                    options.DateTimeFormats)
+                : null;
         }
+
+        internal int PreferredParallelBatchSize => GetPreferredTextParallelBatchSize();
+
+        internal bool CanTakeParallelBatch => !_disposed && _batch is not null && !_batch.HasStarted;
 
         public bool Read()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _visitor.Reset();
+            if (_batch is not null)
+            {
+                if (_batch.MoveNext() ||
+                    (TryFillTextDataReaderBatchAvx2(_text.AsSpan(), _options, ref _state, _batch) && _batch.MoveNext()))
+                {
+                    _usingBatchRow = true;
+                    ValidateFieldCount(_batch.CurrentFieldCount);
+                    return true;
+                }
+            }
+
+            _usingBatchRow = false;
             if (!TryReadNextTextRecordFieldSpans(_text.AsSpan(), _options, null, ref _state, ref _visitor, out var fieldCount))
             {
                 return false;
             }
 
+            ValidateFieldCount(fieldCount);
             _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
             return true;
         }
 
-        public ReadOnlySpan<char> GetSpan(int ordinal) => _visitor.GetSpan(ordinal);
+        internal bool TryTakeParallelBatch(
+            int preferredBatchSize,
+            CancellationToken cancellationToken,
+            out ICsvDataReaderTextRowSource? rows)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            rows = null;
+            if (_batch is null || _batch.HasStarted)
+            {
+                return false;
+            }
 
-        public string GetString(int ordinal) => _visitor.GetString(ordinal);
+            int requestedRowCapacity = Math.Max(
+                1,
+                Math.Min(MaximumTextDataReaderBatchRowCapacity, preferredBatchSize));
+            if (_batch.RowCapacity != requestedRowCapacity)
+            {
+                _batch.Dispose();
+                _batch = new CsvTextDataReaderBatch(
+                    _text,
+                    _visitor.SourceColumnCount,
+                    _options.Culture,
+                    _options.DateTimeFormats,
+                    requestedRowCapacity);
+            }
+
+            SkipPendingTextDataReaderRecords(_text.AsSpan(), _options, cancellationToken, ref _state);
+
+            if (_state.Position >= _text.Length)
+            {
+                return true;
+            }
+
+            if (!TryFillTextDataReaderBatchAvx2(
+                    _text.AsSpan(),
+                    _options,
+                    ref _state,
+                    _batch,
+                    cancellationToken) &&
+                !TryFillTextDataReaderBatchScalar(
+                    _text,
+                    _options,
+                    ref _state,
+                    _batch,
+                    cancellationToken))
+            {
+                return false;
+            }
+
+            CsvTextDataReaderBatch detached = _batch;
+            _batch = new CsvTextDataReaderBatch(
+                _text,
+                detached.SourceColumnCount,
+                _options.Culture,
+                _options.DateTimeFormats,
+                preferredBatchSize);
+            rows = detached;
+            return true;
+        }
+
+        public ReadOnlySpan<char> GetSpan(int ordinal) => _usingBatchRow
+            ? _batch!.GetSpan(ordinal)
+            : _visitor.GetSpan(ordinal);
+
+        public string GetString(int ordinal) => _usingBatchRow
+            ? _batch!.GetString(ordinal)
+            : _visitor.GetString(ordinal);
+
+        public bool IsMissing(int ordinal) => _usingBatchRow
+            ? _batch!.IsMissing(ordinal)
+            : _visitor.IsMissing(ordinal);
 
         public bool IsNull(int ordinal, string? nullValue)
         {
-            return !_visitor.IsMissing(ordinal) &&
+            var isMissing = _usingBatchRow
+                ? _batch!.IsMissing(ordinal)
+                : _visitor.IsMissing(ordinal);
+            return !isMissing &&
                 nullValue is not null &&
                 GetSpan(ordinal).SequenceEqual(nullValue.AsSpan());
         }
@@ -69,6 +167,15 @@ internal static partial class CsvParser
             return count;
         }
 
+        private void ValidateFieldCount(int fieldCount)
+        {
+            if (_options.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
+                fieldCount != _visitor.SourceColumnCount)
+            {
+                throw new CsvException($"Row contains {fieldCount} values but header defines {_visitor.SourceColumnCount} columns.");
+            }
+        }
+
         public void Dispose()
         {
             if (_disposed)
@@ -77,6 +184,8 @@ internal static partial class CsvParser
             }
 
             _disposed = true;
+            _batch?.Dispose();
+            _batch = null;
             if (_state.Scratch is not null)
             {
                 ArrayPool<char>.Shared.Return(_state.Scratch);
@@ -91,7 +200,6 @@ internal static partial class CsvParser
         private readonly int[] _starts;
         private readonly int[] _lengths;
         private readonly string?[] _materialized;
-        private bool _nextVisitIsUnescapedScratch;
 
         internal CsvDataReaderTextRowVisitor(string text, int sourceColumnCount)
         {
@@ -99,33 +207,18 @@ internal static partial class CsvParser
             _starts = new int[sourceColumnCount];
             _lengths = new int[sourceColumnCount];
             _materialized = new string?[sourceColumnCount];
-            _nextVisitIsUnescapedScratch = false;
         }
 
         internal int SourceColumnCount => _starts.Length;
-
-        internal void Reset()
-        {
-            _nextVisitIsUnescapedScratch = false;
-        }
 
         public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
         {
             if ((uint)fieldIndex >= (uint)_starts.Length)
             {
-                _nextVisitIsUnescapedScratch = false;
                 return;
             }
 
             _lengths[fieldIndex] = value.Length;
-            if (_nextVisitIsUnescapedScratch)
-            {
-                _starts[fieldIndex] = -1;
-                _materialized[fieldIndex] = value.Length == 0 ? string.Empty : value.ToString();
-                _nextVisitIsUnescapedScratch = false;
-                return;
-            }
-
             ref char textStart = ref MemoryMarshal.GetReference(_text.AsSpan());
             ref char valueStart = ref MemoryMarshal.GetReference(value);
             var byteOffset = Unsafe.ByteOffset(ref textStart, ref valueStart);
@@ -148,13 +241,40 @@ internal static partial class CsvParser
 
         public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
         {
-            _nextVisitIsUnescapedScratch = true;
-            return false;
+            if ((uint)fieldIndex >= (uint)_starts.Length)
+            {
+                return true;
+            }
+
+            ref char textStart = ref MemoryMarshal.GetReference(_text.AsSpan());
+            ref char valueStart = ref MemoryMarshal.GetReference(escapedValue);
+            var byteOffset = Unsafe.ByteOffset(ref textStart, ref valueStart);
+            var sourceStart = checked((int)(byteOffset / 2));
+            _starts[fieldIndex] = -1;
+            _lengths[fieldIndex] = unescapedLength;
+            _materialized[fieldIndex] = string.Create(
+                unescapedLength,
+                (Text: _text, Start: sourceStart, Length: escapedValue.Length),
+                static (destination, state) =>
+                {
+                    var source = state.Text.AsSpan(state.Start, state.Length);
+                    var sourceIndex = 0;
+                    var destinationIndex = 0;
+                    while (sourceIndex < source.Length)
+                    {
+                        var value = source[sourceIndex++];
+                        destination[destinationIndex++] = value;
+                        if (value == '"' && sourceIndex < source.Length && source[sourceIndex] == '"')
+                        {
+                            sourceIndex++;
+                        }
+                    }
+                });
+            return true;
         }
 
         public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
         {
-            _nextVisitIsUnescapedScratch = false;
             if ((uint)fieldIndex >= (uint)_starts.Length)
             {
                 return;
@@ -240,6 +360,160 @@ internal static partial class CsvParser
             !options.NormalizeQuotes &&
             !options.InternStrings &&
             options.StaticColumns is null;
+    }
+
+    internal static bool TryGetFirstTextDataReaderRecordFieldCount(
+        string text,
+        CsvLoadOptions options,
+        int recordsToSkip,
+        out int fieldCount)
+    {
+        var state = CreateTextFieldSpanReadState(text.AsSpan(), options, recordsToSkip);
+        var visitor = new CsvFieldCountOnlyVisitor();
+        try
+        {
+            return TryReadNextTextRecordFieldSpans(
+                text.AsSpan(),
+                options,
+                null,
+                ref state,
+                ref visitor,
+                out fieldCount);
+        }
+        finally
+        {
+            if (state.Scratch is not null)
+            {
+                ArrayPool<char>.Shared.Return(state.Scratch);
+            }
+        }
+    }
+
+    private readonly struct CsvFieldCountOnlyVisitor : ICsvFieldSpanVisitor
+    {
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+        }
+
+        public bool TryVisitEscapedField(
+            int recordIndex,
+            int fieldIndex,
+            ReadOnlySpan<char> escapedValue,
+            int unescapedLength) => true;
+    }
+
+    private static void SkipPendingTextDataReaderRecords(
+        ReadOnlySpan<char> text,
+        CsvLoadOptions options,
+        CancellationToken cancellationToken,
+        ref CsvTextFieldSpanReadState state)
+    {
+        if (state.RecordsToSkip == 0)
+        {
+            return;
+        }
+
+        var delimiter = GetDelimiterChar(options);
+        var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
+        var allowEmpty = options.AllowEmptyLines;
+        var visitor = new CsvFieldCountOnlyVisitor();
+        while (state.RecordsToSkip > 0 && state.Position < text.Length)
+        {
+            ThrowIfCancellationRequested(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            int recordStart = state.Position;
+            if (TrySkipTextEmptyRecord(text, trim, allowEmpty, ref state.Position))
+            {
+                continue;
+            }
+
+            bool startsWithCommentCharacter = text[state.Position] == options.CommentCharacter;
+            bool isW3CFieldsHeader = startsWithCommentCharacter &&
+                CanReadW3CFieldsHeader(options, state.EmittedRecordCount) &&
+                IsTextW3CFieldsLine(text, state.Position);
+            bool skipCommentRecord = startsWithCommentCharacter &&
+                !isW3CFieldsHeader &&
+                (options.SkipCommentRows ||
+                    (options.HasHeaderRow &&
+                        options.Header is null &&
+                        options.SkipCommentRowsBeforeHeader &&
+                        state.EmittedRecordCount <= GetParserInitialRecordsToSkip(options)));
+            if (skipCommentRecord)
+            {
+                SkipTextRecord(text, ref state.Position);
+                continue;
+            }
+
+            if (!trim &&
+                TrySkipTextUnquotedRecord(text, delimiter, ref state.Position, out int skippedDelimiterCount))
+            {
+                state.UnquotedDelimiterIndexCapacity = GetTextDelimiterIndexCapacity(skippedDelimiterCount);
+                state.RecordsToSkip--;
+                continue;
+            }
+
+            int fieldCount;
+            int firstFieldLength;
+            try
+            {
+                if (!TryReadTextUnquotedRecordFieldSpans(
+                        text,
+                        delimiter,
+                        trim,
+                        allowEmpty,
+                        emitFields: false,
+                        state.RecordIndex,
+                        ref state.UseAvx2UnquotedFastPath,
+                        ref state.UnquotedDelimiterIndexCapacity,
+                        state.TextMayContainQuote,
+                        state.DelimiterVector,
+                        ref state.Position,
+                        projectedFieldVisitor: null,
+                        ref visitor,
+                        ref state.Scratch,
+                        out fieldCount,
+                        out firstFieldLength))
+                {
+                    fieldCount = ReadTextRecordFieldSpans(
+                        text,
+                        delimiter,
+                        trim,
+                        strictQuotes,
+                        emitFields: false,
+                        state.RecordIndex,
+                        ref state.Position,
+                        projectedFieldVisitor: null,
+                        ref visitor,
+                        ref state.Scratch,
+                        out firstFieldLength);
+                }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, state.LineNumber))
+            {
+                state.Position = recordStart;
+                SkipTextRecord(text, ref state.Position);
+                state.LineNumber++;
+                continue;
+            }
+
+            int requiredFieldCapacity = GetTextDelimiterIndexCapacity(fieldCount);
+            if (requiredFieldCapacity > state.UnquotedDelimiterIndexCapacity)
+            {
+                state.UnquotedDelimiterIndexCapacity = requiredFieldCapacity;
+            }
+
+            bool isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
+            if (fieldCount != 0 && (allowEmpty || !isEmptyRecord))
+            {
+                state.RecordsToSkip--;
+            }
+
+            if (state.Position == recordStart)
+            {
+                state.Position = text.Length;
+            }
+        }
     }
 
     private static CsvTextFieldSpanReadState CreateTextFieldSpanReadState(

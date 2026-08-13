@@ -15,6 +15,23 @@ public sealed class PdfCompose {
         return this;
     }
 
+    /// <summary>
+    /// Updates document-wide rendering, catalog, security, compliance, and attachment settings.
+    /// This is primarily useful to adapters that compose a document incrementally after creation.
+    /// </summary>
+    public PdfCompose Settings(System.Action<PdfOptions> configure) {
+        _doc.ConfigureSettings(configure);
+        return this;
+    }
+
+    /// <summary>
+    /// Updates document-wide page defaults without introducing a page or section boundary.
+    /// </summary>
+    public PdfCompose Defaults(System.Action<PdfPageCompose> configure) {
+        _doc.ConfigureDefaults(configure);
+        return this;
+    }
+
     /// <summary>Configures a page (size, margins, content, footer).</summary>
     public PdfCompose Page(System.Action<PdfPageCompose> configure) {
         _doc.AddComposedPage(configure);

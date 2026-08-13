@@ -144,12 +144,30 @@ namespace OfficeIMO.Excel {
             destination.SetLength(0);
         }
 
-        private static FileStream? CreateBoundedPackageStagingStream(
+        private static Stream? CreateBoundedPackageWriteStream(
             Stream destination,
             ExcelSaveOptions? options,
             bool forceStaging = false) {
             long? maximumBytes = GetPackageMaterializationLimit(options);
-            if (!forceStaging && (!(destination is MemoryStream) || !maximumBytes.HasValue)) {
+            if (!forceStaging && destination is MemoryStream && maximumBytes.HasValue) {
+                if (destination.Length == 0 && destination.Position == 0) {
+                    return new ExcelBoundedSeekableStream(
+                        destination,
+                        maximumBytes.Value,
+                        leaveOpen: true,
+                        limitExceededExceptionFactory: static limit =>
+                            CreatePackageMaterializationLimitException($"The Excel package exceeds the {limit}-byte in-memory save limit."),
+                        restoreEmptyStreamOnFailure: true);
+                }
+
+                return OfficeTemporaryFile.Create(
+                    "OfficeIMO.Excel-FastSave-",
+                    ".tmp",
+                    FileOptions.SequentialScan,
+                    out _);
+            }
+
+            if (!forceStaging) {
                 return null;
             }
 

@@ -111,7 +111,10 @@ namespace OfficeIMO.Data {
                 }
             }
             if (entries.Count >= maximumEntries) {
-                throw new InvalidDataException($"The dictionary exceeds the {maximumEntries}-column flattening limit.");
+                throw ObjectFlattener.CreateRawColumnLimitException(
+                    "Dictionary flattening",
+                    checked(entries.Count + 1),
+                    maximumEntries);
             }
             if (retainedIndexes != null) retainedIndexes.Add(resolvedKey!, entries.Count);
             entries.Add(entry);

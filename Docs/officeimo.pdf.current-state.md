@@ -14,7 +14,7 @@ The machine-readable [`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.
 
 ## Public workflow
 
-- `PdfDocument.Create(pdf => ...)` is the normal authoring entry point. `Compose(...)` appends through the same closed builder model; flow authoring is not duplicated on the root document.
+- `PdfDocument.Create(pdf => ...)` is the normal authoring entry point. `Compose(...)` appends through the same closed builder model; flow authoring is not duplicated on the root document. Incremental hosts can use `compose.Settings(...)` for the document-owned `PdfOptions` snapshot and `compose.Defaults(...)` for top-level page defaults without introducing a page boundary.
 - `PdfDocument.Open(...)` is the normal read, inspect, and processing entry point.
 - `PdfDocument.Read`, `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`, `Stamp`, `Security`, `Redactions`, `Optimization`, and `Proof` expose focused workflow surfaces.
 - `PdfDocument.Preflight(...)` provides non-throwing readiness and security evidence before a workflow is selected.

@@ -41,7 +41,7 @@ internal static class PdfAttachmentEditor {
             PreserveRevisionStructure = false
         };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
-        return new PdfAttachmentEditResult(output, plan, preservation, validations);
+        return new PdfAttachmentEditResult(output, plan, preservation, validations, outputReadOptions);
     }
 
     /// <summary>Adds one attachment.</summary>

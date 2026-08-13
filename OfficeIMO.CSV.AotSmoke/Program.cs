@@ -1,3 +1,5 @@
+using System.Data;
+using System.Globalization;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
 
@@ -42,7 +44,59 @@ if (explicitlyStreamed.Name != "Alice" || explicitlyStreamed.Score != 42 ||
     throw new InvalidOperationException("The explicit forward-only typed-row mapper lost a value.");
 }
 
-Console.WriteLine("PASS | CSV parse, schema inspection, automatic mapping, and explicit AOT mapping");
+CsvSchema parallelSchema = new CsvSchemaBuilder()
+    .Column("Name").AsString()
+    .Column("Score").AsInt32()
+    .Column("Date").AsType(typeof(DateOnly))
+    .Column("Time").AsType(typeof(TimeOnly))
+    .Done()
+    .Build();
+using (var parallelReader = CsvDocument.OpenTextDataReader(
+           "Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\nBob,43,2026-08-07,15:36:13\n",
+           readerOptions: new CsvDataReaderOptions {
+               Schema = parallelSchema,
+               ParallelProcessing = new CsvDataReaderParallelOptions {
+                   MaxDegreeOfParallelism = 2,
+                   BatchSize = 1
+               }
+           })) {
+    int score = 0;
+    while (parallelReader.Read()) score += parallelReader.GetInt32(1);
+    if (score != 85) {
+        throw new InvalidOperationException("The AOT-safe parallel CSV data reader lost a value.");
+    }
+}
+
+var exportedRows = new DataTable();
+exportedRows.Columns.Add("Name", typeof(string));
+exportedRows.Columns.Add("Score", typeof(decimal));
+exportedRows.Columns.Add("Created", typeof(DateTime));
+exportedRows.Columns.Add("Enabled", typeof(bool));
+exportedRows.Rows.Add("Alice", 42.5m, new DateTime(2026, 8, 6, 14, 35, 12, DateTimeKind.Utc), true);
+using (var exportedReader = exportedRows.CreateDataReader())
+using (var exportedText = new StringWriter(CultureInfo.InvariantCulture)) {
+    CsvDocument.WriteDataReader(
+        exportedText,
+        exportedReader,
+        new CsvSaveOptions { NewLine = "\n", DateTimeFormat = "yyyy-MM-dd HH:mm:ss" });
+    if (exportedText.ToString() != "Name,Score,Created,Enabled\nAlice,42.5,2026-08-06 14:35:12,True\n") {
+        throw new InvalidOperationException("The AOT-safe typed DataReader writer lost a value.");
+    }
+}
+
+using (var parallelExportedReader = exportedRows.CreateDataReader())
+using (var parallelExportedText = new StringWriter(CultureInfo.InvariantCulture)) {
+    CsvDocument.WriteDataReaderParallel(
+        parallelExportedText,
+        parallelExportedReader,
+        new CsvSaveOptions { NewLine = "\n", DateTimeFormat = "yyyy-MM-dd HH:mm:ss" },
+        new CsvWriteParallelOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 });
+    if (parallelExportedText.ToString() != "Name,Score,Created,Enabled\nAlice,42.5,2026-08-06 14:35:12,True\n") {
+        throw new InvalidOperationException("The AOT-safe parallel DataReader writer lost a value.");
+    }
+}
+
+Console.WriteLine("PASS | CSV parse, schema inspection, mapping, and sequential/parallel typed DataReader writing");
 
 internal sealed class CsvSmokeRow {
     public string Name { get; set; } = string.Empty;

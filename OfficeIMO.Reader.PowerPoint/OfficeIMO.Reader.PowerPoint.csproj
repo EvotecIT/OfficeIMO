@@ -3,7 +3,7 @@
     <Description>PowerPoint presentation adapter for OfficeIMO.Reader.Core.</Description>
     <AssemblyName>OfficeIMO.Reader.PowerPoint</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.PowerPoint</AssemblyTitle>
-    <VersionPrefix>3.2.1</VersionPrefix>
+    <VersionPrefix>3.2.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

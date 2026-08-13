@@ -16,6 +16,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddWorksheet("TableStyles");
                     sheet.CellValue(1, 1, "Default table style names");
+                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                         ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -29,6 +30,10 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
+                AssertWorkbookOpensViaExcelComWhenAvailable(
+                    xlsOutputPath,
+                    "The XLS workbook with default table-style metadata failed to open in desktop Excel.");
+                AssertBiffRecordOccursBefore(xlsOutputPath, 0x088e, 0x0092);
                 using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
                 result.EnsureNoImportErrors();
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
@@ -51,7 +56,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_WritesCustomWorkbookTableStyles() {
+        public void LegacyXls_NativeSave_RejectsCustomWorkbookTableStylesBeforeWriting() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -97,41 +102,11 @@ namespace OfficeIMO.Tests {
                     tableStyles.Count = 1U;
                     stylesheet.Save();
 
-                    document.Save(xlsOutputPath);
+                    NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
+                    Assert.Contains("custom table styles", exception.Message, StringComparison.OrdinalIgnoreCase);
                 }
 
-                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
-                result.EnsureNoImportErrors();
-
-                LegacyXlsTableStyleCollection collection = Assert.Single(result.Workbook.TableStyleCollections);
-                Assert.Equal(146U, collection.TotalStyleCount);
-                Assert.Equal("TableStyleMedium2", collection.DefaultTableStyleName);
-                Assert.Equal("PivotStyleLight16", collection.DefaultPivotStyleName);
-
-                LegacyXlsTableStyle style = Assert.Single(result.Workbook.TableStyles);
-                Assert.Equal("OfficeIMOCustomTableStyle", style.Name);
-                Assert.True(style.AppliesToTables);
-                Assert.False(style.AppliesToPivotTables);
-                Assert.Equal(2U, style.DeclaredElementCount);
-
-                Assert.Collection(
-                    style.Elements,
-                    element => {
-                        Assert.Equal("HeaderRow", element.ElementTypeName);
-                        Assert.Equal(0U, element.StripeSize);
-                        Assert.Equal(3U, element.DifferentialFormatIndex);
-                    },
-                    element => {
-                        Assert.Equal("RowStripe1", element.ElementTypeName);
-                        Assert.Equal(2U, element.StripeSize);
-                        Assert.Equal(4U, element.DifferentialFormatIndex);
-                    });
-
-                Assert.Equal(1, result.ImportReport.TableStyleDefinitionCount);
-                Assert.Equal(2, result.ImportReport.TableStyleElementRecordCount);
-                Assert.Equal(1, result.ImportReport.TableStylesByName["OfficeIMOCustomTableStyle"]);
-                Assert.Equal(1, result.ImportReport.TableStyleElementsByType["HeaderRow"]);
-                Assert.Equal(1, result.ImportReport.TableStyleElementsByType["RowStripe1"]);
+                Assert.False(File.Exists(xlsOutputPath));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);

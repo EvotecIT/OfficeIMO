@@ -16,8 +16,8 @@ namespace OfficeIMO.Excel {
         /// <returns>Typed matrix populated from the worksheet used range.</returns>
         public object?[,] ReadUsedRange(CancellationToken ct = default) {
             if (CanUseXmlFastReader()
-                && CanUseAutomaticXmlReadFastPath(_opt.Execution)
                 && TryReadTableBackedUsedRangeXmlFast(ct, out object?[,] values)) {
+                _opt.Execution.ReportDecision("ReadRange", values.Length, OfficeIMO.Excel.ExcelExecutionMode.Sequential);
                 return values;
             }
 

@@ -41,14 +41,14 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string BuildFigureStructElement(int parentId, int pageId, int markedContentId, string alternativeText) {
+    internal static string BuildFigureStructElement(int parentId, int pageId, int markedContentId, string alternativeText, int? contentStreamObjectId = null) {
         Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
-        return BuildStructElement(parentId, pageId, "Figure", markedContentId, alternativeText);
+        return BuildStructElement(parentId, pageId, "Figure", markedContentId, alternativeText, contentStreamObjectId: contentStreamObjectId);
     }
 
-    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null) {
+    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
-        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds);
+        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds, contentStreamObjectId, additionalContentStreamObjectIds);
     }
 
     internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
@@ -76,7 +76,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null) {
+    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
         if (annotationObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(annotationObjectId), annotationObjectId, "PDF annotation object id must be positive.");
         }
@@ -93,11 +93,11 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(" /K ");
         if (markedContentId.HasValue) {
             sb.Append('[');
-            AppendMarkedContentReference(sb, pageId, markedContentId.Value);
+            AppendMarkedContentReference(sb, pageId, markedContentId.Value, contentStreamObjectId);
             if (additionalMarkedContentIds != null) {
                 for (int i = 0; i < additionalMarkedContentIds.Count; i++) {
                     sb.Append(' ');
-                    AppendMarkedContentReference(sb, pageId, additionalMarkedContentIds[i]);
+                    AppendMarkedContentReference(sb, pageId, additionalMarkedContentIds[i], ContentStreamAt(additionalContentStreamObjectIds, i));
                 }
             }
 
@@ -145,19 +145,24 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         }
     }
 
-    private static void AppendMarkedContentReference(StringBuilder sb, int pageId, int markedContentId) {
+    private static void AppendMarkedContentReference(StringBuilder sb, int pageId, int markedContentId, int? contentStreamObjectId = null) {
         if (markedContentId < 0) {
             throw new ArgumentOutOfRangeException(nameof(markedContentId), markedContentId, "PDF marked-content id must be non-negative.");
         }
 
         sb.Append("<< /Type /MCR /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /MCID ")
+            .Append(PdfSyntaxEscaper.IndirectReference(pageId));
+        if (contentStreamObjectId.HasValue) {
+            sb.Append(" /Stm ")
+                .Append(PdfSyntaxEscaper.IndirectReference(contentStreamObjectId.Value));
+        }
+
+        sb.Append(" /MCID ")
             .Append(markedContentId.ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Append(" >>");
     }
 
-    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null) {
+    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null, int? contentStreamObjectId = null, IReadOnlyList<int?>? additionalContentStreamObjectIds = null) {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
@@ -168,15 +173,15 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(" /K ");
         if (additionalMarkedContentIds != null && additionalMarkedContentIds.Count > 0) {
             sb.Append('[');
-            AppendMarkedContentReference(sb, pageId, markedContentId);
+            AppendMarkedContentReference(sb, pageId, markedContentId, contentStreamObjectId);
             for (int i = 0; i < additionalMarkedContentIds.Count; i++) {
                 sb.Append(' ');
-                AppendMarkedContentReference(sb, pageId, additionalMarkedContentIds[i]);
+                AppendMarkedContentReference(sb, pageId, additionalMarkedContentIds[i], ContentStreamAt(additionalContentStreamObjectIds, i));
             }
 
             sb.Append(']');
         } else {
-            AppendMarkedContentReference(sb, pageId, markedContentId);
+            AppendMarkedContentReference(sb, pageId, markedContentId, contentStreamObjectId);
         }
 
         if (!string.IsNullOrWhiteSpace(alternativeText)) {
@@ -190,6 +195,12 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
         sb.Append(" >>\n");
         return sb.ToString();
+    }
+
+    private static int? ContentStreamAt(IReadOnlyList<int?>? contentStreamObjectIds, int index) {
+        return contentStreamObjectIds != null && index >= 0 && index < contentStreamObjectIds.Count
+            ? contentStreamObjectIds[index]
+            : null;
     }
 
     private static bool ShouldEmitTableAttributes(string structureType, string tableHeaderScope, int tableColumnSpan, int tableRowSpan) {
@@ -225,19 +236,26 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
     internal static string BuildParentTree(IReadOnlyList<ParentTreeEntry> entries) {
         Guard.NotNull(entries, nameof(entries));
+        ParentTreeEntry[] orderedEntries = entries.OrderBy(entry => entry.StructParentIndex).ToArray();
+        for (int i = 1; i < orderedEntries.Length; i++) {
+            if (orderedEntries[i - 1].StructParentIndex == orderedEntries[i].StructParentIndex) {
+                throw new ArgumentException("PDF parent-tree indexes must be unique.", nameof(entries));
+            }
+        }
+
         var sb = new StringBuilder();
         sb.Append("<< /Nums [");
-        for (int i = 0; i < entries.Count; i++) {
+        for (int i = 0; i < orderedEntries.Length; i++) {
             if (i > 0) {
                 sb.Append(' ');
             }
 
-            sb.Append(entries[i].StructParentIndex.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            sb.Append(orderedEntries[i].StructParentIndex.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Append(' ');
-            if (entries[i].IsArrayEntry) {
-                AppendReferenceArray(sb, entries[i].StructElementIds);
+            if (orderedEntries[i].IsArrayEntry) {
+                AppendNullableReferenceArray(sb, orderedEntries[i].StructElementIds);
             } else {
-                sb.Append(PdfSyntaxEscaper.IndirectReference(entries[i].StructElementId));
+                sb.Append(PdfSyntaxEscaper.IndirectReference(orderedEntries[i].StructElementId));
             }
         }
 
@@ -258,26 +276,47 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         sb.Append(']');
     }
 
+    private static void AppendNullableReferenceArray(StringBuilder sb, IReadOnlyList<int?> objectIds) {
+        sb.Append('[');
+        for (int i = 0; i < objectIds.Count; i++) {
+            if (i > 0) sb.Append(' ');
+            if (objectIds[i].HasValue) sb.Append(PdfSyntaxEscaper.IndirectReference(objectIds[i]!.Value));
+            else sb.Append("null");
+        }
+
+        sb.Append(']');
+    }
+
     internal sealed class ParentTreeEntry {
-        private ParentTreeEntry(int structParentIndex, IReadOnlyList<int>? structElementIds, int structElementId) {
+        private ParentTreeEntry(int structParentIndex, IReadOnlyList<int?>? structElementIds, int structElementId) {
             if (structParentIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(structParentIndex), structParentIndex, "PDF parent-tree index must be non-negative.");
             }
 
             StructParentIndex = structParentIndex;
-            StructElementIds = structElementIds ?? Array.Empty<int>();
+            StructElementIds = structElementIds ?? Array.Empty<int?>();
             StructElementId = structElementId;
         }
 
         public int StructParentIndex { get; }
 
-        public IReadOnlyList<int> StructElementIds { get; }
+        public IReadOnlyList<int?> StructElementIds { get; }
 
         public int StructElementId { get; }
 
         public bool IsArrayEntry => StructElementIds.Count > 0;
 
         public static ParentTreeEntry ForMarkedContentPage(int structParentIndex, IReadOnlyList<int> structElementIds) {
+            Guard.NotNull(structElementIds, nameof(structElementIds));
+            return new ParentTreeEntry(structParentIndex, structElementIds.Select(id => (int?)id).ToArray(), 0);
+        }
+
+        public static ParentTreeEntry ForMarkedContentPage(int structParentIndex, IReadOnlyList<int?> structElementIds) {
+            Guard.NotNull(structElementIds, nameof(structElementIds));
+            return new ParentTreeEntry(structParentIndex, structElementIds, 0);
+        }
+
+        public static ParentTreeEntry ForMarkedContentContainer(int structParentIndex, IReadOnlyList<int?> structElementIds) {
             Guard.NotNull(structElementIds, nameof(structElementIds));
             return new ParentTreeEntry(structParentIndex, structElementIds, 0);
         }

@@ -139,6 +139,91 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasDrawing_UsesOneOuterFigureForNestedImageAccessibility() {
+        var drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
+                "Nested image alternative text");
+
+        foreach (double size in new[] { 20D, 40D }) {
+            byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+                .TaggedPdfCatalogMarkers()
+                .Canvas(canvas => canvas.Drawing(
+                    drawing,
+                    10D,
+                    10D,
+                    size,
+                    size,
+                    new PdfDrawingStyle { AlternativeText = "Outer drawing alternative text" }))
+                .ToBytes();
+
+            PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+            PdfStructureElementInfo figure = Assert.Single(tagged.StructureElements, element => element.StructureType == "Figure");
+            Assert.Equal("Outer drawing alternative text", figure.AlternateText);
+            Assert.Equal(1, CountOccurrences(Encoding.ASCII.GetString(bytes), "/Figure <<"));
+
+            byte[] decorative = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+                .Canvas(canvas => canvas.Drawing(
+                    drawing,
+                    10D,
+                    10D,
+                    size,
+                    size,
+                    new PdfDrawingStyle { Decorative = true }))
+                .ToBytes();
+            Assert.DoesNotContain("/Figure << /Alt", Encoding.ASCII.GetString(decorative), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void CanvasStructure_RetainedImageKeepsFigureUnderDeclaredParent() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
+                .Image(CreateMinimalRgbPng(), 10D, 10D, 20D, 20D, alternativeText: "Nested image alternative text")))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo figure = Assert.Single(tagged.StructureElements, element => element.StructureType == "Figure");
+        Assert.Equal("Nested image alternative text", figure.AlternateText);
+        Assert.Contains(figure.ObjectNumber, section.ChildElementObjectNumbers);
+    }
+
+    [Fact]
+    public void CanvasClip_DropsStructureForAChildImageOutsideTheClip() {
+        OfficeDrawing drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
+                "Clipped image alternative text");
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 20D, clipped => clipped
+                .Image(CreateMinimalRgbPng(), 10D, 40D, 20D, 20D, alternativeText: "Direct clipped image alternative text")
+                .Drawing(drawing, 10D, 10D, 20D, 20D)))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Figure");
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("/Figure << /Alt", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Image", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
@@ -292,12 +377,65 @@ public class PdfDocumentCanvasTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("2 0 0 2 20 70 cm", content, StringComparison.Ordinal);
-        Assert.Contains("5 5 20 10 re", content, StringComparison.Ordinal);
+        Assert.Contains("/Group << /S /Transparency /I true /K false >>", content, StringComparison.Ordinal);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        var letters = pdf.GetPage(1).Letters;
+        string text = string.Join("", letters.Select(letter => letter.Value));
         Assert.Contains("SceneText", text, StringComparison.Ordinal);
+        Assert.All(letters, letter => Assert.InRange(letter.StartBaseLine.X, 20D, 120D));
+    }
+
+    [Fact]
+    public void CanvasClip_KeepsImagesWhoseTransformedDrawingBoundsIntersectTheClip() {
+        var drawing = new OfficeDrawing(20D, 20D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(60D, 10D, 20D, 80D, clipped =>
+                clipped.Drawing(drawing, 10D, 10D, 80D, 80D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("4 0 0 4", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasClip_KeepsEffectImagesWhenOnlyTheRotatedFootprintIntersects() {
+        var source = new OfficeDrawing(60D, 50D)
+            .AddImage(
+                CreateMinimalRgbPng(),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(10D, 20D, 40D, 10D), rotationDegrees: 45D));
+        var drawing = new OfficeDrawing(100D, 50D)
+            .AddEffectDrawing(source, OfficeTransform.Translate(40D, 0D));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 120D,
+                PageHeight = 120D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(0D, 18D, 120D, 2D, clipped =>
+                clipped.Drawing(drawing, 10D, 10D, 100D, 50D)))
+            .ToBytes();
+
+        Assert.Contains("/Im1 Do", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -818,7 +956,12 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("0 12 -12 0", raw, StringComparison.Ordinal);
+        int tableTransform = raw.IndexOf("0 1 -1 0", StringComparison.Ordinal);
+        int imageDraw = raw.IndexOf("/Im1 Do", StringComparison.Ordinal);
+        Assert.True(tableTransform >= 0, "Expected a rotation matrix around the declared table frame center.");
+        Assert.True(imageDraw > tableTransform, "Expected the cell image to render inside the rotated table frame.");
+        Assert.Contains("12 0 0 12", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 12 -12 0", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Contains(info.FormFields, field => field.Name == "Canvas.Rotated" && field.IsCheckBox && field.Value == "Yes");
@@ -826,7 +969,7 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
-    public void CanvasClip_ClipsDeferredTableImagesAndFormControls() {
+    public void CanvasClip_ClipsInlineTableImagesAndFormControls() {
         var rows = new[] {
             new[] {
                 PdfTableCell.WithImages(
@@ -849,8 +992,11 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
-        Assert.Contains("50 90 20 40 re W", raw, StringComparison.Ordinal);
+        int clip = raw.IndexOf("50 50 34 86 re W", StringComparison.Ordinal);
+        int imageDraw = raw.IndexOf("/Im1 Do", StringComparison.Ordinal);
+        Assert.True(clip >= 0, "Expected the canvas clip path in the page content stream.");
+        Assert.True(imageDraw > clip, "Expected the table-cell image to render inside the canvas clip state.");
+        Assert.DoesNotContain("50 90 20 40 re W", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "Canvas.ClippedOwner");
@@ -949,7 +1095,7 @@ public class PdfDocumentCanvasTests {
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("20 140 m 120 140 l 70 60 l h W n", raw, StringComparison.Ordinal);
+        Assert.Contains("20 140 m 120 140 l 70 60 l h W* n", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("20 60 100 80 re W", raw, StringComparison.Ordinal);
     }
 

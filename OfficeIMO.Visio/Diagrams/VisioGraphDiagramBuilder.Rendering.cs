@@ -24,6 +24,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme,
                     _unit);
+                if (zone.FillColor.HasValue) shape.FillColor = zone.FillColor.Value;
+                if (zone.LineColor.HasValue) shape.LineColor = zone.LineColor.Value;
                 page.Shapes.Add(shape);
                 ApplyZoneMetadata(shape, zone);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
@@ -52,6 +54,9 @@ namespace OfficeIMO.Visio.Diagrams {
                     (node.StyleOverride ?? GetNodeStyle(node.Kind)).ApplyTo(shape);
                     page.Shapes.Add(shape);
                 }
+
+                if (node.FillColor.HasValue) shape.FillColor = node.FillColor.Value;
+                if (node.LineColor.HasValue) shape.LineColor = node.LineColor.Value;
 
                 node.Shape = shape;
                 ApplyNodeMetadata(shape, node);
@@ -112,7 +117,15 @@ namespace OfficeIMO.Visio.Diagrams {
                     throw new InvalidOperationException("Nodes must be placed before graph edges are created.");
                 }
 
-                VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
+                bool selfEdge = ReferenceEquals(from.Shape, to.Shape);
+                VisioSide fromSide;
+                VisioSide toSide;
+                if (selfEdge) {
+                    fromSide = VisioSide.Right;
+                    toSide = VisioSide.Top;
+                } else {
+                    VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out fromSide, out toSide);
+                }
                 ConnectorKind connectorKind = _layout == VisioGraphLayout.Radial ? ConnectorKind.Straight : ConnectorKind.RightAngle;
                 string connectorId = edge.Id ?? ReserveGeneratedConnectorId(reservedConnectorIds);
                 VisioConnector connector = page.AddConnector(connectorId, from.Shape, to.Shape, connectorKind, fromSide, toSide);
@@ -120,7 +133,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).ApplyTo(connector);
                 connector.Label = edge.Label;
                 ApplyEdgeMetadata(connector, edge);
-                if (_layout != VisioGraphLayout.Radial) {
+                if (selfEdge) {
+                    connector.RouteSelfLoop(clearance: 0.35D + ((routeIndex % 7) * 0.05D));
+                } else if (_layout != VisioGraphLayout.Radial) {
                     connector.RouteOrthogonal(offset: (routeIndex % 7) * 0.05D);
                 }
 

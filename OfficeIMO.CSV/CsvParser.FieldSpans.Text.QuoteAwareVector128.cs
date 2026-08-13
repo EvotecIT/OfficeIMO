@@ -87,6 +87,7 @@ internal static partial class CsvParser
                     return CompleteTextQuoteAwareRecord(
                         text,
                         fields.Slice(0, fieldCount),
+                        trim: false,
                         allowEmpty,
                         emitFields,
                         recordIndex,
@@ -119,6 +120,7 @@ internal static partial class CsvParser
         return CompleteTextQuoteAwareRecord(
             text,
             fields.Slice(0, fieldCount),
+            trim: false,
             allowEmpty,
             emitFields,
             recordIndex,

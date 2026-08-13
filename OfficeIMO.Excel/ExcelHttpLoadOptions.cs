@@ -4,7 +4,7 @@ using System.Net.Http;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Controls HTTP workbook loading behavior for <see cref="ExcelDocument"/> and <see cref="ExcelDocumentReader"/>.
+    /// Controls HTTP workbook loading behavior for <see cref="ExcelDocument"/> and its public reader APIs.
     /// </summary>
     public sealed class ExcelHttpLoadOptions {
         /// <summary>

@@ -26,6 +26,31 @@ try {
         sales.Rows.Add("North", 1250000M, new DateOnly(2026, 8, 6), new TimeOnly(14, 35, 12));
         sales.Rows.Add("South", 980000M, new DateOnly(2026, 8, 7), new TimeOnly(9, 15, 0));
 
+        using (var dataReaderPackage = new MemoryStream()) {
+            using var dataReader = sales.CreateDataReader();
+            ExcelDataSetImportResult dataReaderResult = ExcelDocument.WriteDataReader(
+                dataReaderPackage,
+                dataReader,
+                new ExcelTabularWriteOptions {
+                    CreateTable = true,
+                    TableName = "AotDataReader",
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+            if (dataReaderResult.Range != "A1:D3" || dataReaderResult.RowCount != 2 ||
+                dataReaderResult.TableName != "AotDataReader") {
+                throw new InvalidOperationException("The AOT-safe DataReader writer returned an unexpected range.");
+            }
+
+            dataReaderPackage.Position = 0;
+            using ExcelWorkbookDataReader dataReaderWorkbook = ExcelDocument.OpenDataReader(dataReaderPackage);
+            if (!dataReaderWorkbook.Read() || dataReaderWorkbook.GetString(0) != "North" ||
+                !dataReaderWorkbook.Read() ||
+                Convert.ToDecimal(dataReaderWorkbook.GetValue(1), System.Globalization.CultureInfo.InvariantCulture) != 980000M) {
+                throw new InvalidOperationException("The AOT-safe DataReader writer lost typed values.");
+            }
+        }
+
         ExcelSheet sheet = document.AddWorksheet("NativeAOT data");
         string range = sheet.InsertDataTableAsTable(sales, tableName: "Sales");
         if (range != "A1:D3") {
@@ -72,7 +97,7 @@ try {
         throw new InvalidOperationException("TableFrom did not preserve generic-only dictionary columns under NativeAOT.");
     }
 
-    Console.WriteLine("PASS | Excel typed and generic-only dictionary tables create, save, and reload");
+    Console.WriteLine("PASS | Excel DataReader, typed, and generic-only dictionary tables create, save, and reload");
 } finally {
     if (File.Exists(path)) File.Delete(path);
 }

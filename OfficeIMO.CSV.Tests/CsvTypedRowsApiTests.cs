@@ -1,6 +1,7 @@
 using OfficeIMO.CSV;
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using Xunit;
 
@@ -108,6 +109,26 @@ public sealed class CsvTypedRowsApiTests {
     }
 
     [Fact]
+    public void ReaderRowsAs_InvalidAutomaticValueReportsTargetProperty() {
+        using var reader = CsvDocument.OpenTextDataReader("Order Id\nnot-an-integer\n");
+
+        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
+            reader.RowsAs<SalesRow>().ToArray());
+
+        Assert.Contains("SalesRow.OrderId", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReaderRowsAs_DoesNotRetryAPropertySetterThatThrowsAConversionException() {
+        ThrowingSetterRow.SetterCalls = 0;
+        using var reader = CsvDocument.OpenTextDataReader("Value\n42\n");
+
+        Assert.Throws<FormatException>(() => reader.RowsAs<ThrowingSetterRow>().ToArray());
+
+        Assert.Equal(1, ThrowingSetterRow.SetterCalls);
+    }
+
+    [Fact]
     public void ReaderRowsAs_UsesCsvReaderCulture() {
         var options = new CsvLoadOptions {
             Delimiter = ';',
@@ -118,6 +139,70 @@ public sealed class CsvTypedRowsApiTests {
         SalesRow row = Assert.Single(reader.RowsAs<SalesRow>());
 
         Assert.Equal(165258.24m, row.Amount);
+    }
+
+    [Fact]
+    public void ReaderRowsAs_MapsSupportedTypedGettersWithoutChangingValues() {
+        const string batchId = "2fae048c-5886-43ec-b03f-e5814c5d52ba";
+        const string created = "2026-08-07T17:05:04.1234567Z";
+        const string csv =
+            "Text,Flag,ByteValue,Code,Created,Amount,DoubleValue,FloatValue,BatchId,ShortValue,IntValue,LongValue\n" +
+            $"Alpha,true,255,Z,{created},12345.6789,1.25,2.5,{batchId},-1234,123456789,-9876543210\n";
+
+        using var reader = CsvDocument.OpenTextDataReader(csv);
+        TypedGetterRow row = Assert.Single(reader.RowsAs<TypedGetterRow>());
+
+        Assert.Equal("Alpha", row.Text);
+        Assert.True(row.Flag);
+        Assert.Equal(byte.MaxValue, row.ByteValue);
+        Assert.Equal('Z', row.Code);
+        Assert.Equal(DateTimeKind.Utc, row.Created.Kind);
+        Assert.Equal(DateTime.Parse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), row.Created);
+        Assert.Equal(12345.6789m, row.Amount);
+        Assert.Equal(1.25d, row.DoubleValue);
+        Assert.Equal(2.5f, row.FloatValue);
+        Assert.Equal(Guid.Parse(batchId), row.BatchId);
+        Assert.Equal((short)-1234, row.ShortValue);
+        Assert.Equal(123456789, row.IntValue);
+        Assert.Equal(-9876543210L, row.LongValue);
+    }
+
+    [Theory]
+    [InlineData("2026-08-07T17:05:04.1234567Z", DateTimeKind.Utc)]
+    [InlineData("2026-08-07T17:05:04.1234567", DateTimeKind.Unspecified)]
+    public void RowsAs_PreservesRoundTripDateTimeKind(string value, DateTimeKind expectedKind) {
+        string csv = $"Created\n{value}\n";
+        DateTime expected = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv).RowsAs<DateTimeRow>());
+        using var reader = CsvDocument.OpenTextDataReader(csv);
+        DateTimeRow forwardOnly = Assert.Single(reader.RowsAs<DateTimeRow>());
+
+        Assert.Equal(expectedKind, materialized.Created.Kind);
+        Assert.Equal(expectedKind, forwardOnly.Created.Kind);
+        Assert.Equal(expected.Ticks, materialized.Created.Ticks);
+        Assert.Equal(expected.Ticks, forwardOnly.Created.Ticks);
+    }
+
+    [Fact]
+    public void RowsAs_PreservesRoundTripDateTimeWithExactFormat() {
+        const string value = "2026-08-07T17:05:04.1234567Z";
+        string csv = $"Created\n{value}\n";
+        var options = new CsvLoadOptions { DateTimeFormats = new[] { "O" } };
+        DateTime expected = DateTime.ParseExact(
+            value,
+            "O",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind);
+
+        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv, options).RowsAs<DateTimeRow>());
+        using var reader = CsvDocument.OpenTextDataReader(csv, options);
+        DateTimeRow forwardOnly = Assert.Single(reader.RowsAs<DateTimeRow>());
+
+        Assert.Equal(DateTimeKind.Utc, materialized.Created.Kind);
+        Assert.Equal(DateTimeKind.Utc, forwardOnly.Created.Kind);
+        Assert.Equal(expected.Ticks, materialized.Created.Ticks);
+        Assert.Equal(expected.Ticks, forwardOnly.Created.Ticks);
     }
 
     [Fact]
@@ -195,6 +280,37 @@ public sealed class CsvTypedRowsApiTests {
         public int OrderId { get; set; }
         public string SalesChannel { get; set; } = string.Empty;
         public decimal Amount { get; set; }
+    }
+
+    private sealed class ThrowingSetterRow {
+        internal static int SetterCalls;
+
+        public int Value {
+            get => 0;
+            set {
+                SetterCalls++;
+                throw new FormatException("Property setter failure.");
+            }
+        }
+    }
+
+    private sealed class DateTimeRow {
+        public DateTime Created { get; set; }
+    }
+
+    private sealed class TypedGetterRow {
+        public string Text { get; set; } = string.Empty;
+        public bool Flag { get; set; }
+        public byte ByteValue { get; set; }
+        public char Code { get; set; }
+        public DateTime Created { get; set; }
+        public decimal Amount { get; set; }
+        public double DoubleValue { get; set; }
+        public float FloatValue { get; set; }
+        public Guid BatchId { get; set; }
+        public short ShortValue { get; set; }
+        public int IntValue { get; set; }
+        public long LongValue { get; set; }
     }
 
     private sealed class AliasedSalesRow {

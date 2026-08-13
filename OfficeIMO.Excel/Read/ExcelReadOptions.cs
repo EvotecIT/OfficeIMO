@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>Maximum workbook bytes buffered by <see cref="ExcelDocumentReader"/>. Default: 512 MiB.</summary>
+        /// <summary>Maximum workbook bytes buffered by the Excel reader APIs. Default: 512 MiB.</summary>
         public long MaxInputBytes {
             get => _maxInputBytes;
             set {

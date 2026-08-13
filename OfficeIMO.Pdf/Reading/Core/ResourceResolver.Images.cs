@@ -138,12 +138,13 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor? imageMaskColor,
+        int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         if (imageMaskColor.HasValue) {
-            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor.Value, out pngBytes);
+            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor.Value, maximumDecodedStreamBytes, out pngBytes);
         }
 
-        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, out pngBytes);
+        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maximumDecodedStreamBytes, out pngBytes);
     }
 
     private static bool TryBuildPngFileFromImageMask(
@@ -153,6 +154,7 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor imageMaskColor,
+        int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (bitsPerComponent is not (0 or 1)) {
@@ -162,7 +164,7 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maximumDecodedStreamBytes)) {
             return false;
         }
         byte[] scanlines = new byte[scanlineBytes];
@@ -437,8 +439,9 @@ internal static partial class ResourceResolver {
     private static bool TryDecodeImageStream(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
-        out byte[] decoded) =>
-        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded);
+        out byte[] decoded,
+        int maximumDecodedStreamBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maximumDecodedStreamBytes);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;
