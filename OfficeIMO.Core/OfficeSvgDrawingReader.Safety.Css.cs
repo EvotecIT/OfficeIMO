@@ -1,21 +1,60 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgDrawingReader {
+    private static bool ContainsLocalCssUrlReference(string? value, ISet<string> relevantIds) {
+        if (string.IsNullOrWhiteSpace(value) || relevantIds.Count == 0) return false;
+        for (int start = 0; start < value!.Length; start++) {
+            int index = start;
+            if (!TryReadCssIdentifier(value, ref index, "url") || index >= value.Length || value[index] != '(') continue;
+            index++;
+            var target = new StringBuilder();
+            char quote = '\0';
+            bool closed = false;
+            while (index < value.Length) {
+                char current = value[index];
+                if (quote == '\0' && current == ')') {
+                    index++;
+                    closed = true;
+                    break;
+                }
+                if (current is '\'' or '"') {
+                    index++;
+                    if (quote == '\0') quote = current;
+                    else if (quote == current) quote = '\0';
+                    else target.Append(current);
+                    continue;
+                }
+                if (!TryReadCssCharacter(value, ref index, out char decoded)) break;
+                target.Append(decoded);
+            }
+            if (!closed || quote != '\0') continue;
+            string reference = target.ToString().Trim();
+            if (reference.Length > 1 && reference[0] == '#' && relevantIds.Contains(reference.Substring(1))) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsPotentialCssIdentifier(string? value, string identifier) {
         if (string.IsNullOrWhiteSpace(value)) return false;
         for (int start = 0; start < value!.Length; start++) {
             int index = start;
-            bool matches = true;
-            for (int expectedIndex = 0; expectedIndex < identifier.Length; expectedIndex++) {
-                if (!TryReadCssCharacter(value, ref index, out char actual)
-                    || char.ToLowerInvariant(actual) != char.ToLowerInvariant(identifier[expectedIndex])) {
-                    matches = false;
-                    break;
-                }
-            }
-            if (matches && index < value.Length && value[index] == '(') return true;
+            if (TryReadCssIdentifier(value, ref index, identifier)
+                && index < value.Length
+                && value[index] == '(') return true;
         }
         return false;
+    }
+
+    private static bool TryReadCssIdentifier(string value, ref int index, string identifier) {
+        for (int expectedIndex = 0; expectedIndex < identifier.Length; expectedIndex++) {
+            if (!TryReadCssCharacter(value, ref index, out char actual)
+                || char.ToLowerInvariant(actual) != char.ToLowerInvariant(identifier[expectedIndex])) return false;
+        }
+        return true;
     }
 
     private static bool TryReadCssCharacter(string value, ref int index, out char character) {

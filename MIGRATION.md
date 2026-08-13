@@ -52,7 +52,7 @@ Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete imag
 
 ## OfficeIMO 3.2: bounded PDF text clipping
 
-PDF reading now accepts at most 4,096 pending glyph clipping paths in one text object. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
+PDF reading now accepts at most 4,096 pending text-show clipping paths in one text object. The limit counts shown-string runs (`Tj` operations and string entries in `TJ` arrays), not individual glyphs. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 

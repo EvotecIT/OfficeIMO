@@ -83,9 +83,34 @@ public class DrawingSvgReaderSecurityTests {
     public void SvgSafetyPredicateAllowsStylesheetExternalUrlsWithoutLocalExpansion() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
             + "<style>.external { fill: url(https://example.test/pattern.svg); }</style>"
+            + "<defs><clipPath id='unused'><rect width='1' height='1'/></clipPath></defs>"
             + "<rect class='external' width='4' height='4'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsAmbiguousLocalUseReferences() {
+        const string ambiguous = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='duplicate'><rect width='1' height='1'/></g>"
+            + "<g id='duplicate'><circle r='1'/></g></defs><use href='#duplicate'/></svg>";
+        const string external = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='local'><rect width='1' height='1'/></g></defs>"
+            + "<use href='https://example.test/shapes.svg#external'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(ambiguous)));
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(external)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsAmbiguousInheritedPatternReferences() {
+        const string ambiguous = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><pattern id='base'><rect width='1' height='1'/></pattern>"
+            + "<pattern id='base'><circle r='1'/></pattern>"
+            + "<pattern id='derived' href='#base'/></defs>"
+            + "<rect width='4' height='4' fill='url(#derived)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(ambiguous)));
     }
 
     [Fact]

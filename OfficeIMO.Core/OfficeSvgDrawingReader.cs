@@ -294,17 +294,21 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool HasPotentialStylesheetRenderedDefinitionReference(XElement root) {
-        bool containsExpandedDefinition = root.Descendants().Any(element => {
+        var expandedDefinitionIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement element in root.Descendants()) {
             string name = element.Name.LocalName;
-            return name.Equals("pattern", StringComparison.OrdinalIgnoreCase)
+            bool isExpandedDefinition = name.Equals("pattern", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("mask", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("filter", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("marker", StringComparison.OrdinalIgnoreCase);
-        });
-        return containsExpandedDefinition && root.Descendants().Any(element =>
+            if (!isExpandedDefinition) continue;
+            string? id = element.Attribute("id")?.Value.Trim();
+            if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
+        }
+        return expandedDefinitionIds.Count > 0 && root.Descendants().Any(element =>
             element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
-            && HasPotentialSvgUrlFunction(element.Value));
+            && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds));
     }
 
     private static bool TryAddRenderedSvgExpansion(
@@ -395,8 +399,8 @@ public static partial class OfficeSvgDrawingReader {
                 element,
                 out string referenceId,
                 out XElement? target);
-            if (useResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
-            if (useResult != SvgElementReferenceEntryResult.Entered) return true;
+            if (useResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (useResult != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(element);
             try {
                 return TryAddRenderedSvgExpansion(
                     target!,
@@ -420,7 +424,9 @@ public static partial class OfficeSvgDrawingReader {
                 "pattern",
                 out string inheritedPatternId,
                 out XElement? inheritedPattern);
-            if (inheritedPatternResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
+            if (inheritedPatternResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (inheritedPatternResult != SvgElementReferenceEntryResult.Entered
+                && HasLocalSvgElementReference(element)) return false;
             if (inheritedPatternResult == SvgElementReferenceEntryResult.Entered) {
                 try {
                     if (!TryAddRenderedSvgExpansion(

@@ -18,11 +18,7 @@ public static partial class OfficeSvgDrawingReader {
             out string referenceId,
             out XElement? target);
         if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
-        if (result != SvgElementReferenceEntryResult.Entered) {
-            string? href = element.Attributes()
-                .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))?.Value;
-            return string.IsNullOrWhiteSpace(href) || !href!.TrimStart().StartsWith("#", StringComparison.Ordinal);
-        }
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(element);
         try {
             return TryAddRenderedSvgExpansion(
                 target!,
@@ -33,5 +29,11 @@ public static partial class OfficeSvgDrawingReader {
         } finally {
             references.Exit(referenceId);
         }
+    }
+
+    private static bool HasLocalSvgElementReference(XElement element) {
+        string? href = element.Attributes()
+            .FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))?.Value;
+        return !string.IsNullOrWhiteSpace(href) && href!.TrimStart().StartsWith("#", StringComparison.Ordinal);
     }
 }
