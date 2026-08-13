@@ -594,6 +594,33 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void RemovalDropsAnEntireMalformedNameTreePairWhenTheTargetOccupiesTheKeySlot() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] malformed = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
+            PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            entries.Items.Insert(0, PdfNull.Instance);
+            entries.Items.Insert(0, candidate);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(malformed);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(PdfSyntax.FindCatalog(parsed.Map, parsed.TrailerRaw));
+        PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, catalog.Items["Names"]));
+        PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(parsed.Map, names.Items["EmbeddedFiles"]));
+        PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, embeddedFiles.Items["Names"]));
+
+        Assert.Equal(2, entries.Items.Count);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(entries.Items[0]).Value);
+        Assert.Equal("keep.txt", GetFileSpecName(parsed.Map, Assert.IsType<PdfReference>(entries.Items[1])));
+    }
+
+    [Fact]
     public void RemovalDeletesPopupsLinkedToRemovedFileAttachmentAnnotations() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         int attachmentNumber = 0;
@@ -860,6 +887,29 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void ActiveResourceDictionaryCannotMasqueradeAsAnUntypedFileSpecification() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] resourceFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values
+                .Select(item => item.Value)
+                .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+            page.Items["Resources"] = candidate;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(resourceFileSpecification);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(resourceFileSpecification);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void ResourceDictionaryDiscoveryHandlesDeepIndirectChainsIteratively() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
@@ -880,6 +930,35 @@ public sealed class PdfProvenanceTests {
         OfficeProvenanceReport report = PdfProvenance.Inspect(
             deeplyLinked,
             new OfficeProvenanceOptions { MaxContainerEntries = 20_000 },
+            new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
+
+        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void CatalogNameTreeDiscoveryHandlesDeepIndirectChainsIteratively() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
+            int firstObjectNumber = objects.Keys.Max() + 1;
+            const int chainLength = 10_000;
+            for (int index = 0; index < chainLength; index++) {
+                var dictionary = new PdfDictionary();
+                if (index + 1 < chainLength) {
+                    var kids = new PdfArray();
+                    kids.Items.Add(new PdfReference(firstObjectNumber + index + 1, 0));
+                    dictionary.Items["Kids"] = kids;
+                }
+                objects[firstObjectNumber + index] = new PdfIndirectObject(firstObjectNumber + index, 0, dictionary);
+            }
+            names.Items["Custom"] = new PdfReference(firstObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(
+            deeplyLinked,
+            new OfficeProvenanceOptions { MaxContainerEntries = 50_000 },
             new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
 
         Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);

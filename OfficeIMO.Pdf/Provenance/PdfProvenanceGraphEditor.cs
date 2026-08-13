@@ -41,7 +41,7 @@ internal static class PdfProvenanceGraphEditor {
             PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is not PdfDictionary names ||
             !names.Items.TryGetValue("EmbeddedFiles", out PdfObject? embeddedFiles)) return;
         if (PdfObjectLookup.Resolve(objects, embeddedFiles) is not PdfDictionary rootTree) return;
-        if (!PruneNameTree(objects, rootTree, targets, new HashSet<PdfObject>(), out _, out _)) {
+        if (!PruneNameTree(objects, rootTree, targets)) {
             names.Items.Remove("EmbeddedFiles");
         }
     }
@@ -49,50 +49,77 @@ internal static class PdfProvenanceGraphEditor {
     private static bool PruneNameTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
+        HashSet<int> targets) {
+        PdfObject? root = PdfObjectLookup.Resolve(objects, value);
+        if (root is not PdfDictionary rootDictionary) return false;
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<(PdfDictionary Dictionary, bool Expanded)>();
+        var results = new Dictionary<PdfDictionary, NameTreeResult>();
+        visited.Add(rootDictionary);
+        pending.Push((rootDictionary, false));
+        while (pending.Count > 0) {
+            (PdfDictionary dictionary, bool expanded) = pending.Pop();
+            if (!expanded) {
+                pending.Push((dictionary, true));
+                if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
+                    for (int index = kids.Items.Count - 1; index >= 0; index--) {
+                        if (PdfObjectLookup.Resolve(objects, kids.Items[index]) is PdfDictionary child && visited.Add(child)) {
+                            pending.Push((child, false));
+                        }
+                    }
+                }
+                continue;
+            }
+            results[dictionary] = PruneNameTreeDictionary(objects, dictionary, targets, results);
+        }
+        return results.TryGetValue(rootDictionary, out NameTreeResult result) && result.HasEntries;
+    }
+
+    private static NameTreeResult PruneNameTreeDictionary(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
         HashSet<int> targets,
-        HashSet<PdfObject> visited,
-        out PdfObject? firstName,
-        out PdfObject? lastName) {
-        firstName = lastName = null;
-        PdfObject? resolved = PdfObjectLookup.Resolve(objects, value);
-        if (resolved == null || !visited.Add(resolved) || resolved is not PdfDictionary dictionary) return false;
+        Dictionary<PdfDictionary, NameTreeResult> results) {
         bool hadLimits = dictionary.Items.ContainsKey("Limits");
+        PdfObject? firstName = null;
+        PdfObject? lastName = null;
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
             int completePairCount = names.Items.Count / 2;
             for (int pair = completePairCount - 1; pair >= 0; pair--) {
                 int index = pair * 2;
-                PdfObject fileSpecification = names.Items[index + 1];
-                if (fileSpecification is not PdfReference reference ||
-                    !targets.Contains(reference.ObjectNumber) ||
-                    !PdfObjectLookup.TryGet(objects, reference, out _)) continue;
+                if (!IsTargetReference(objects, names.Items[index], targets) &&
+                    !IsTargetReference(objects, names.Items[index + 1], targets)) continue;
                 names.Items.RemoveAt(index + 1);
                 names.Items.RemoveAt(index);
             }
-            if (names.Items.Count == 0) dictionary.Items.Remove("Names");
+            if (names.Items.Count % 2 != 0 && IsTargetReference(objects, names.Items[names.Items.Count - 1], targets)) {
+                names.Items.RemoveAt(names.Items.Count - 1);
+            }
+            completePairCount = names.Items.Count / 2;
+            if (completePairCount == 0) dictionary.Items.Remove("Names");
             else {
-                completePairCount = names.Items.Count / 2;
-                if (completePairCount == 0) {
-                    dictionary.Items.Remove("Names");
-                } else {
-                    firstName = names.Items[0];
-                    lastName = names.Items[(completePairCount - 1) * 2];
-                }
+                firstName = names.Items[0];
+                lastName = names.Items[(completePairCount - 1) * 2];
             }
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
             for (int index = kids.Items.Count - 1; index >= 0; index--) {
-                if (!PruneNameTree(objects, kids.Items[index], targets, visited, out PdfObject? childFirst, out PdfObject? childLast)) {
+                if (PdfObjectLookup.Resolve(objects, kids.Items[index]) is not PdfDictionary child ||
+                    !results.TryGetValue(child, out NameTreeResult childResult) || !childResult.HasEntries) {
                     kids.Items.RemoveAt(index);
-                    continue;
                 }
-                firstName = childFirst ?? firstName;
-                if (lastName == null) lastName = childLast;
+            }
+            foreach (PdfObject childValue in kids.Items) {
+                if (PdfObjectLookup.Resolve(objects, childValue) is not PdfDictionary child ||
+                    !results.TryGetValue(child, out NameTreeResult childResult)) continue;
+                firstName ??= childResult.FirstName;
+                lastName = childResult.LastName ?? lastName;
             }
             if (kids.Items.Count == 0) dictionary.Items.Remove("Kids");
         }
         if (firstName == null || lastName == null) {
             dictionary.Items.Remove("Limits");
-            return false;
+            return default;
         }
         if (hadLimits) {
             var limits = new PdfArray();
@@ -100,7 +127,26 @@ internal static class PdfProvenanceGraphEditor {
             limits.Items.Add(lastName);
             dictionary.Items["Limits"] = limits;
         }
-        return true;
+        return new NameTreeResult(firstName, lastName);
+    }
+
+    private static bool IsTargetReference(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        HashSet<int> targets) =>
+        value is PdfReference reference &&
+        targets.Contains(reference.ObjectNumber) &&
+        PdfObjectLookup.TryGet(objects, reference, out _);
+
+    private readonly struct NameTreeResult {
+        internal NameTreeResult(PdfObject firstName, PdfObject lastName) {
+            FirstName = firstName;
+            LastName = lastName;
+        }
+
+        internal PdfObject? FirstName { get; }
+        internal PdfObject? LastName { get; }
+        internal bool HasEntries => FirstName != null && LastName != null;
     }
 
     private static HashSet<PdfDictionary> CollectFileAttachmentAnnotations(
