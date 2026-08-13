@@ -15,7 +15,7 @@ using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
-public sealed class ProvenanceDocumentContracts {
+public sealed partial class ProvenanceDocumentContracts {
     [Fact]
     public void HtmlRemovesNativeCarriersAndEmbeddedImageProvenanceOffline() {
         byte[] manifest = CreateManifestStore();

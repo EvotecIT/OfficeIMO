@@ -34,7 +34,8 @@ public static class HtmlProvenance {
         InspectManifestCarriers(document, options, evidence, diagnostics, "HTML");
         if (options.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries, srcDocDepth: 0);
+            long expandedBytes = 0;
+            InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
         }
         return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
     }
@@ -107,7 +108,8 @@ public static class HtmlProvenance {
         RemoveManifestCarriers(document, options, changes, "HTML");
         if (inspectionOptions.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries, srcDocDepth: 0);
+            long expandedBytes = 0;
+            RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
         }
 
         if (changes.Count == 0) {
@@ -193,6 +195,7 @@ public static class HtmlProvenance {
         List<string> diagnostics,
         ref int count,
         ref int structuralEntries,
+        ref long expandedBytes,
         int srcDocDepth) {
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
         HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
@@ -207,11 +210,15 @@ public static class HtmlProvenance {
                     continue;
                 }
                 if (estimatedBytes > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                ReserveExpandedBytes(ref expandedBytes, estimatedBytes, options.MaxExpandedContainerBytes);
                 if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) {
                     diagnostics.Add($"{location}: embedded image data URI could not be decoded.");
                     continue;
                 }
                 if (image.LongLength > options.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                if (image.LongLength > estimatedBytes) {
+                    ReserveExpandedBytes(ref expandedBytes, image.LongLength - estimatedBytes, options.MaxExpandedContainerBytes);
+                }
                 try {
                     OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
                     foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
@@ -229,7 +236,7 @@ public static class HtmlProvenance {
             string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
             InspectManifestCarriers(nested, options, evidence, diagnostics, location);
-            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries, srcDocDepth + 1);
+            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
         }
     }
 
@@ -239,6 +246,7 @@ public static class HtmlProvenance {
         List<OfficeProvenanceChange> changes,
         ref int count,
         ref int structuralEntries,
+        ref long expandedBytes,
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
@@ -252,8 +260,12 @@ public static class HtmlProvenance {
                 if (count > maxEmbeddedAssets) throw new InvalidDataException("The HTML document exceeds the configured embedded-asset limit.");
                 if (!dataUri.TryEstimateDecodedByteCount(out long estimatedBytes)) continue;
                 if (estimatedBytes > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                ReserveExpandedBytes(ref expandedBytes, estimatedBytes, options.Limits.MaxExpandedContainerBytes);
                 if (!TryDecodeEmbeddedImage(dataUri, out byte[] image)) continue;
                 if (image.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
+                if (image.LongLength > estimatedBytes) {
+                    ReserveExpandedBytes(ref expandedBytes, image.LongLength - estimatedBytes, options.Limits.MaxExpandedContainerBytes);
+                }
                 try {
                     OfficeProvenanceRemovalResult nested = OfficeProvenanceRemover.Remove(
                         image,
@@ -283,7 +295,7 @@ public static class HtmlProvenance {
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries);
             int priorChanges = changes.Count;
             RemoveManifestCarriers(nested, options, changes, location);
-            RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries, srcDocDepth + 1);
+            RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
             if (changes.Count != priorChanges) iframe.SetAttribute("srcdoc", nested.ToHtml());
         }
     }
@@ -560,6 +572,13 @@ public static class HtmlProvenance {
     private static void AddEvidence(List<OfficeProvenanceEvidence> evidence, OfficeProvenanceOptions options, OfficeProvenanceEvidence item) {
         if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
         evidence.Add(item);
+    }
+
+    private static void ReserveExpandedBytes(ref long expandedBytes, long additionalBytes, long maximumBytes) {
+        if (additionalBytes < 0 || expandedBytes > maximumBytes - additionalBytes) {
+            throw new InvalidDataException("Embedded HTML images exceed the configured expanded-container limit.");
+        }
+        expandedBytes += additionalBytes;
     }
 
     private static OfficeProvenanceEvidence Prefix(string prefix, OfficeProvenanceEvidence item) =>

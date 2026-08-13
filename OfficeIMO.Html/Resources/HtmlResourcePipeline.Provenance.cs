@@ -71,7 +71,10 @@ public static partial class HtmlResourcePipeline {
         }
 
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
-            if (ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image) continue;
+            bool isCustomProperty = TryGetCustomPropertyName(masked, reference.Start, out string customPropertyName);
+            if (isCustomProperty
+                    ? !usedImageProperties.Contains(DecodeCssEscapes(customPropertyName))
+                    : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image) continue;
             int start = css.IndexOf(reference.Source, reference.Start, Math.Min(css.Length - reference.Start, reference.End - reference.Start), StringComparison.Ordinal);
             if (start < 0 || !emittedRanges.Add((start, reference.Source.Length))) continue;
             yield return new HtmlCssImageReference(start, reference.Source.Length, DecodeCssEscapes(reference.Source));
