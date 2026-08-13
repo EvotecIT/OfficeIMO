@@ -8,6 +8,8 @@ namespace OfficeIMO.Visio;
 public partial class VisioDocument {
     private const string SignatureOriginRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
     private const string SignaturePartRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature";
+    private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
+    private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved VSDX package and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
@@ -34,22 +36,33 @@ public partial class VisioDocument {
         bool hadSignatures = false;
         using (Package package = Package.Open(stream, FileMode.Open, FileAccess.ReadWrite)) {
             PackageRelationship[] origins = package.GetRelationshipsByType(SignatureOriginRelationship).ToArray();
+            var originParts = new List<PackagePart>();
+            var signatureParts = new List<PackagePart>();
             foreach (PackageRelationship relationship in origins) {
                 hadSignatures = true;
-                if (relationship.TargetMode == TargetMode.External) {
-                    package.DeleteRelationship(relationship.Id);
-                    continue;
-                }
+                if (relationship.TargetMode == TargetMode.External) continue;
                 Uri originUri = PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri);
                 if (package.PartExists(originUri)) {
                     PackagePart origin = package.GetPart(originUri);
+                    if (!string.Equals(origin.ContentType, SignatureOriginContentType, StringComparison.OrdinalIgnoreCase)) {
+                        throw new InvalidDataException("A Visio signature-origin relationship targets a part with an unexpected content type.");
+                    }
+                    originParts.Add(origin);
                     foreach (PackageRelationship signature in origin.GetRelationshipsByType(SignaturePartRelationship).ToArray()) {
                         if (signature.TargetMode == TargetMode.External) continue;
                         Uri signatureUri = PackUriHelper.ResolvePartUri(origin.Uri, signature.TargetUri);
-                        if (package.PartExists(signatureUri)) package.DeletePart(signatureUri);
+                        if (!package.PartExists(signatureUri)) continue;
+                        PackagePart signaturePart = package.GetPart(signatureUri);
+                        if (!string.Equals(signaturePart.ContentType, SignaturePartContentType, StringComparison.OrdinalIgnoreCase)) {
+                            throw new InvalidDataException("A Visio signature relationship targets a part with an unexpected content type.");
+                        }
+                        signatureParts.Add(signaturePart);
                     }
-                    package.DeletePart(originUri);
                 }
+            }
+            foreach (PackagePart signaturePart in signatureParts.Distinct()) package.DeletePart(signaturePart.Uri);
+            foreach (PackagePart originPart in originParts.Distinct()) package.DeletePart(originPart.Uri);
+            foreach (PackageRelationship relationship in origins) {
                 package.DeleteRelationship(relationship.Id);
             }
 

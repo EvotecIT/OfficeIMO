@@ -23,7 +23,7 @@ public abstract partial class OdfDocument {
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
         return OfficeProvenanceZip.RemoveEntries(data, path =>
-            path.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
+            path.StartsWith("META-INF/", StringComparison.Ordinal) &&
             path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase));
     }
 }

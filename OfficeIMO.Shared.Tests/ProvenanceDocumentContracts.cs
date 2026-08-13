@@ -218,6 +218,23 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlSrcsetPreservesLiteralCommasInsideEmbeddedSvgPayloads() {
+        string svg =
+            "<svg xmlns=\"http://www.w3.org/2000/svg\"><!--foo,bar.png-->" +
+            "<metadata><c2pa:manifest xmlns:c2pa=\"http://c2pa.org/manifest\">" +
+            Convert.ToBase64String(CreateManifestStore()) +
+            "</c2pa:manifest></metadata></svg>";
+        string dataUri = "data:image/svg+xml," + Uri.EscapeDataString(svg).Replace("%2C", ",").Replace("%2c", ",");
+        string html = $"<html><head></head><body><source srcset=\"{dataUri} 1x\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Contains(result.Before.Evidence, item => item.Location.Contains("[srcset]", StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+        Assert.True(result.WasChanged);
+    }
+
+    [Fact]
     public void HtmlSanitizesConsecutiveDataUrisWhenTheFirstSrcsetCandidateHasNoDescriptor() {
         byte[] image = CreatePngWithManifest(CreateManifestStore());
         string first = "data:image/png;base64," + Convert.ToBase64String(image);
@@ -561,6 +578,19 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OdfIgnoresCaseDistinctSignatureLikeResources() {
+        const string resourcePath = "meta-inf/customsignatures.xml";
+        byte[] package = CreateZipPackage("odt", resourcePath, CreatePngWithManifest(CreateManifestStore()));
+
+        OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt");
+
+        using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
+        Assert.False(result.WereInvalidatedSignaturesRemoved);
+        Assert.Contains(archive.Entries, entry => entry.FullName.Equals(resourcePath, StringComparison.Ordinal));
+        Assert.Empty(result.After.Evidence);
+    }
+
     [Theory]
     [InlineData("META-INF/customsignatures.xml")]
     [InlineData("META-INF/SIGNATURES.XML")]
@@ -672,6 +702,41 @@ public sealed class ProvenanceDocumentContracts {
 
         Assert.True(result.WasChanged);
         Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void VisioSignatureRemovalRejectsAnOriginRelationshipToDocumentContent() {
+        byte[] package;
+        using (var output = new MemoryStream()) {
+            using (Package packageHandle = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
+                Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
+                PackagePart document = packageHandle.CreatePart(documentUri, "application/xml", CompressionOption.Maximum);
+                using (Stream target = document.GetStream()) {
+                    byte[] content = Encoding.UTF8.GetBytes("<document>keep</document>");
+                    target.Write(content, 0, content.Length);
+                }
+                packageHandle.CreateRelationship(
+                    documentUri,
+                    TargetMode.Internal,
+                    "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
+                Uri manifestUri = PackUriHelper.CreatePartUri(new Uri("/META-INF/content_credential.c2pa", UriKind.Relative));
+                using Stream manifestTarget = packageHandle.CreatePart(
+                    manifestUri,
+                    "application/c2pa",
+                    CompressionOption.Maximum).GetStream();
+                byte[] manifest = CreateManifestStore();
+                manifestTarget.Write(manifest, 0, manifest.Length);
+            }
+            package = output.ToArray();
+        }
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            VisioDocument.RemoveProvenance(package, options: options));
+
+        Assert.Contains("signature-origin", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

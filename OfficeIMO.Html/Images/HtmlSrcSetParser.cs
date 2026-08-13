@@ -114,7 +114,8 @@ public static class HtmlSrcSetParser {
                 return false;
             }
 
-            return HasFollowingUrlCandidate(value, index);
+            return index + 1 < value.Length && char.IsWhiteSpace(value[index + 1]) &&
+                HasFollowingUrlCandidate(value, index);
         }
 
         if (ContainsQuerySeparator(value, urlStart, index)

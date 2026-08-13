@@ -696,6 +696,16 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlSrcSetParser_PreservesLiteralCommasInsideDataUriPayloads() {
+        const string dataUri = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3C!--foo,bar.png--%3E%3C/svg%3E";
+
+        HtmlSrcSetCandidate candidate = Assert.Single(HtmlSrcSetParser.Parse(dataUri + " 1x"));
+
+        Assert.Equal(dataUri, candidate.Url);
+        Assert.Equal("1x", candidate.Descriptor);
+    }
+
+    [Fact]
     public void HtmlImageDataUri_ParsesAndDecodesBase64Images() {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";
         string dataUri = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
