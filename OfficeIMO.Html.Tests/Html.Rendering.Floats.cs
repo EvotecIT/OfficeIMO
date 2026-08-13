@@ -183,6 +183,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_HyphenateLimitLastAlwaysDoesNotSuppressEarlierWordBreaks() {
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 180D }
+            .UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(
+                new[] { "ty-pog-ra-phy" },
+                minimumPrefixLength: 1,
+                minimumSuffixLength: 1));
+        const string html = "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>"
+            + "<span style='float:left;width:8px;height:10px'></span>to show typography continues</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string text = string.Join("\n", rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(fragment => fragment.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text))));
+
+        Assert.Contains("-", text, StringComparison.Ordinal);
+        Assert.EndsWith("continues", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 100D,

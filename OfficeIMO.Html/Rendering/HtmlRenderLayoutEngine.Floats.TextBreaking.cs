@@ -10,9 +10,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatContext context,
         double lineHeight,
         HtmlInlineRun run,
-        HyphenationToken token) {
+        HyphenationToken token,
+        bool isFinalContentToken) {
         if (!token.HasBreaks || token.PaintText.Length != token.LogicalText.Length) return false;
         if (run.Style.HyphenateLimitLast == "always"
+            && isFinalContentToken
             && line.HasFlowContent
             && MeasureInlineText(token.PaintText, run.Style) <= line.AvailableWidth + 0.0001D) {
             CommitFloatLine(lines, ref line, ref y, context, lineHeight);

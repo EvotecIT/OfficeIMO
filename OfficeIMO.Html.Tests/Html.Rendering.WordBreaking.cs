@@ -272,6 +272,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_HyphenateLimitLastAlwaysDoesNotSuppressEarlierWordBreaks() {
+        var lexicon = new OfficeTextHyphenationLexicon(new[] { "ty-pog-ra-phy" }, minimumPrefixLength: 1, minimumSuffixLength: 1);
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 180D }
+            .UseTextHyphenationLexicon(lexicon);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>to show typography continues</div>",
+            options);
+        string text = string.Join("\n", rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(fragment => fragment.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text))));
+
+        Assert.Contains("-", text, StringComparison.Ordinal);
+        Assert.EndsWith("continues", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRenderOptions_ClonePreservesTheHyphenationCallback() {
         OfficeTextHyphenationCallback callback = token => token == "typography" ? new[] { 2 } : Array.Empty<int>();
         var options = new HtmlRenderOptions { TextHyphenationCallback = callback };

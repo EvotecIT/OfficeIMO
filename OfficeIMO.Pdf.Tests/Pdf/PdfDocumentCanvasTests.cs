@@ -1562,6 +1562,36 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+            canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
+                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+
+        byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
+            canvas.Effect(OfficeTransform.Identity, 1D, nested =>
+                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))).ToBytes();
+        Assert.Single(PdfInspector.Inspect(identityBytes).FormFields);
+    }
+
+    [Fact]
+    public void CanvasMultiSelect_SerializesSelectionsInOptionOrder() {
+        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.ChoiceField(
+            "Letters",
+            new[] { "A", "B", "C" },
+            new[] { "C", "A" },
+            10D,
+            10D,
+            100D,
+            50D,
+            isComboBox: false,
+            allowsMultipleSelection: true)).ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal(new[] { 0, 2 }, field.SelectedIndices);
+        Assert.Equal(new[] { "A", "C" }, field.SelectedOptions.Select(option => option.ExportValue).ToArray());
+    }
+
+    [Fact]
     public void CanvasItem_OutsidePageBounds_ThrowsClearDiagnostic() {
         var doc = PdfDocument.Create(new PdfOptions {
                 PageWidth = 100,

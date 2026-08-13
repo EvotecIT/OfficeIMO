@@ -87,12 +87,14 @@ internal static partial class PdfWriter {
         Func<PdfStandardFont, PdfOptions, int> ensureFont,
         out IReadOnlyList<(string Name, int Id)> fontResources,
         out IReadOnlyList<PdfFormFieldOption> options,
+        out IReadOnlyList<string> selectedValues,
         out IReadOnlyList<int> selectedIndices,
         out int? topIndex) {
         options = field.ChoiceOptions.Count > 0
             ? field.ChoiceOptions
             : field.Options.Select(option => new PdfFormFieldOption(option, option)).ToList();
         if (field.IsComboBox) {
+            selectedValues = field.Values;
             selectedIndices = Array.Empty<int>();
             topIndex = null;
             return BuildFormFieldTextAppearanceContent(
@@ -106,7 +108,8 @@ internal static partial class PdfWriter {
                 out fontResources);
         }
 
-        selectedIndices = ResolveChoiceSelectedIndices(field, options);
+        IReadOnlyList<int> resolvedIndices = ResolveChoiceSelectedIndices(field, options);
+        (selectedIndices, selectedValues) = SortChoiceSelections(resolvedIndices, field.Values);
         PdfFormFieldStyle style = field.Style;
         double rowHeight = Math.Max(field.FontSize + 2D, field.FontSize * 1.2D);
         int visibleRows = Math.Max(1, (int)Math.Floor(Math.Max(rowHeight, height - 4D) / rowHeight));
@@ -146,6 +149,16 @@ internal static partial class PdfWriter {
         sb.Append("Q\n");
         fontResources = resources;
         return sb.ToString();
+    }
+
+    private static (IReadOnlyList<int> Indices, IReadOnlyList<string> Values) SortChoiceSelections(
+        IReadOnlyList<int> indices,
+        IReadOnlyList<string> values) {
+        if (indices.Count == 0 || indices.Count != values.Count) return (indices, values);
+        var ordered = indices.Select((index, valueIndex) => (Index: index, Value: values[valueIndex]))
+            .OrderBy(pair => pair.Index)
+            .ToList();
+        return (ordered.Select(pair => pair.Index).ToList(), ordered.Select(pair => pair.Value).ToList());
     }
 
     private static IReadOnlyList<int> ResolveChoiceSelectedIndices(FormFieldAnnotation field, IReadOnlyList<PdfFormFieldOption> options) {

@@ -374,8 +374,34 @@ public sealed partial class PdfPageCanvas {
         Guard.NotNull(build, nameof(build));
         var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(nestedCanvas);
+        bool trivialEffect = transform == OfficeTransform.Identity && Math.Abs(opacity - 1D) <= 0.000001D;
+        if (ContainsInteractiveFormContent(nestedCanvas.Items)) {
+            if (!trivialEffect) {
+                throw new ArgumentException("Interactive form fields cannot be nested inside a transformed or translucent canvas effect.", nameof(build));
+            }
+            _items.AddRange(nestedCanvas.Items);
+            return this;
+        }
         _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, transform, opacity));
         return this;
+    }
+
+    private static bool ContainsInteractiveFormContent(IReadOnlyList<PdfCanvasItem> items) {
+        foreach (PdfCanvasItem item in items) {
+            if (item is PdfCanvasFormFieldItem) return true;
+            if (item is PdfCanvasTableItem table
+                && table.Block.Cells.Any(row => row.Any(cell => cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0))) return true;
+            IReadOnlyList<PdfCanvasItem>? nested = item switch {
+                PdfCanvasClipItem clip => clip.Items,
+                PdfCanvasEffectItem effect => effect.Items,
+                PdfCanvasFigureItem figure => figure.Items,
+                PdfCanvasStructureItem structure => structure.Items,
+                PdfCanvasActualTextItem actualText => actualText.Items,
+                _ => null
+            };
+            if (nested != null && ContainsInteractiveFormContent(nested)) return true;
+        }
+        return false;
     }
 
     private static OfficeShape CreateRotatedShape(OfficeShape shape, double rotationAngle) {

@@ -573,6 +573,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.15D, radial!.EndX, 6);
         Assert.Equal(1D, radial.EndY, 6);
 
+        Assert.True(HtmlCssRadialGradientParser.TryParse(
+            "radial-gradient(circle at center top 10px,red,blue)",
+            8,
+            out HtmlCssRadialGradientDefinition? centeredRadialDefinition,
+            out _));
+        Assert.True(centeredRadialDefinition!.TryResolve(100D, 80D, 16D, 16D, 100D, 80D, out OfficeRadialGradient? centeredRadial, out _));
+        Assert.Equal(0.5D, centeredRadial!.EndX, 6);
+        Assert.Equal(0.125D, centeredRadial.EndY, 6);
+
+        Assert.True(HtmlCssConicGradientParser.TryParse(
+            "conic-gradient(at right 10px center,red,blue)",
+            8,
+            out HtmlCssConicGradientDefinition? centeredConicDefinition,
+            out _));
+        Assert.True(centeredConicDefinition!.TryResolve(100D, 80D, 16D, 16D, 100D, 80D, out OfficeConicGradient? centeredConic, out _));
+        Assert.Equal(0.9D, centeredConic!.CenterX, 6);
+        Assert.Equal(0.5D, centeredConic.CenterY, 6);
+
         Assert.False(HtmlCssConicGradientParser.TryParse(
             "conic-gradient(at right 10px left 20px,red,blue)",
             8,

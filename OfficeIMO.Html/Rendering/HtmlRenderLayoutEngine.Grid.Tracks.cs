@@ -264,13 +264,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Where(index => tracks[index].MinimumSizing != GridIntrinsicSizing.None));
             }
             if (intrinsicTracks.Count == 0) continue;
-            double addition = deficit / intrinsicTracks.Count;
-            foreach (int index in intrinsicTracks) {
-                double candidate = sizes[index] + addition;
-                double? growthLimit = tracks[index].GrowthLimit;
-                sizes[index] = growthLimit.HasValue && usesMaxContentContribution
-                    ? Math.Min(candidate, growthLimit.Value)
-                    : candidate;
+            double remainingDeficit = deficit;
+            var growableTracks = new List<int>(intrinsicTracks);
+            while (remainingDeficit > 0.0001D && growableTracks.Count > 0) {
+                double addition = remainingDeficit / growableTracks.Count;
+                double distributed = 0D;
+                var nextGrowableTracks = new List<int>(growableTracks.Count);
+                foreach (int index in growableTracks) {
+                    double availableGrowth = usesMaxContentContribution && tracks[index].GrowthLimit.HasValue
+                        ? Math.Max(0D, tracks[index].GrowthLimit!.Value - sizes[index])
+                        : double.PositiveInfinity;
+                    double growth = Math.Min(addition, availableGrowth);
+                    sizes[index] += growth;
+                    distributed += growth;
+                    if (availableGrowth > growth + 0.0001D) nextGrowableTracks.Add(index);
+                }
+                if (distributed <= 0.0001D) break;
+                remainingDeficit = Math.Max(0D, remainingDeficit - distributed);
+                growableTracks = nextGrowableTracks;
             }
 
             // fit-content() limits max-content growth, but its automatic minimum still

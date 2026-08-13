@@ -269,7 +269,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
         bool noWrapRangeStartedAfterContent = false;
-        foreach (HtmlInlineRun run in runs) {
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            HtmlInlineRun run = runs[runIndex];
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
             if (!runPreventsWrapping && noWrapRangeStart >= 0) {
                 previousWasCollapsibleSpace = FinalizeNoWrapRange(
@@ -311,7 +312,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             int logicalOffset = 0;
             bool preserveWhitespace = run.Style.PreserveWhitespace;
-            foreach (string token in Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces)) {
+            IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
+            for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
+                string token = tokens[tokenIndex];
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     if (noWrapRangeStart >= 0) {
@@ -386,7 +389,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         hyphenation,
                         width,
                         visibleTokenStart,
-                        tokenEnd)) {
+                        tokenEnd,
+                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex))) {
                     continue;
                 }
                 if (!preventTokenWrapping
@@ -459,6 +463,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, supportsContinuationReflow: supportsContinuationReflow);
+    }
+
+    private static bool HasRemainingInlineFlowContent(
+        IReadOnlyList<HtmlInlineRun> runs,
+        int runIndex,
+        IReadOnlyList<string> tokens,
+        int tokenIndex) {
+        for (int index = tokenIndex + 1; index < tokens.Count; index++) {
+            if (!string.IsNullOrWhiteSpace(tokens[index])) return true;
+        }
+        for (int index = runIndex + 1; index < runs.Count; index++) {
+            HtmlInlineRun candidate = runs[index];
+            if (candidate.AtomicBlock != null || candidate.FloatingBlock != null) return true;
+            if (!string.IsNullOrWhiteSpace(candidate.Text)) return true;
+        }
+        return false;
     }
 
     private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
@@ -543,9 +563,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HyphenationToken token,
         double width,
         int logicalStartProgress,
-        int logicalEndProgress) {
+        int logicalEndProgress,
+        bool isFinalContentToken) {
         if (!token.HasBreaks || token.PaintText.Length != token.LogicalText.Length) return false;
         if (run.Style.HyphenateLimitLast == "always"
+            && isFinalContentToken
             && line.HasFlowContent
             && MeasureInlineText(token.PaintText, run.Style) <= width + 0.0001D) {
             TrimTrailingWhitespace(line);

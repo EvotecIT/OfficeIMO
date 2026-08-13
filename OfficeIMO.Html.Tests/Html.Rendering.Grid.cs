@@ -121,6 +121,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RedistributesSpanningMaxContentAfterFitContentCaps() {
+        const string html = "<div style='display:grid;width:260px;grid-template-columns:fit-content(10px) max-content;justify-content:start'>"
+            + "<span id='spanning' style='grid-column:1 / span 2;white-space:nowrap;background:green'>long spanning intrinsic contribution</span>"
+            + "<span id='capped' style='grid-column:1;background:red'>A</span>"
+            + "<span id='growing' style='grid-column:2;background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape capped = FindGridShape(rendered, "span#capped");
+        HtmlRenderShape growing = FindGridShape(rendered, "span#growing");
+        HtmlRenderShape spanning = FindGridShape(rendered, "span#spanning");
+
+        Assert.True(capped.Width <= 20D, $"Expected capped track near fit-content limit, got {capped.Width:F2}; growing={growing.Width:F2}; spanning={spanning.Width:F2}.");
+        Assert.True(growing.Width > capped.Width * 5D, $"Expected remaining deficit in uncapped track, got capped={capped.Width:F2}; growing={growing.Width:F2}; spanning={spanning.Width:F2}.");
+        Assert.Equal(capped.Width + growing.Width, spanning.Width, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_ColumnSubgridAcceptsAdditionalLineNames() {
         const string html = """
             <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">

@@ -26,6 +26,28 @@ internal static class HtmlCssGradientPositionParser {
     private static bool TryExtendedEdgeOffsets(IReadOnlyList<string> parts, out string x, out string y) {
         x = string.Empty;
         y = string.Empty;
+        int centerIndex = -1;
+        for (int index = 0; index < parts.Count; index++) {
+            if (!string.Equals(parts[index], "center", StringComparison.OrdinalIgnoreCase)) continue;
+            if (centerIndex >= 0 || parts.Count != 3) return false;
+            centerIndex = index;
+        }
+        if (centerIndex >= 0) {
+            string[] edgeParts = parts.Where((_, index) => index != centerIndex).ToArray();
+            if (edgeParts.Length != 2 || !IsLengthPercentage(edgeParts[1])) return false;
+            string edge = edgeParts[0].ToLowerInvariant();
+            if (edge == "left" || edge == "right") {
+                x = ResolveEdge(edge, edgeParts[1]);
+                y = "50%";
+                return true;
+            }
+            if (edge == "top" || edge == "bottom") {
+                x = "50%";
+                y = ResolveEdge(edge, edgeParts[1]);
+                return true;
+            }
+            return false;
+        }
         bool hasHorizontal = false;
         bool hasVertical = false;
         for (int index = 0; index < parts.Count;) {

@@ -808,6 +808,7 @@ internal static partial class PdfWriter {
                             EnsureFont,
                             out IReadOnlyList<(string Name, int Id)> appearanceFontResources,
                             out IReadOnlyList<PdfFormFieldOption> appearanceOptions,
+                            out IReadOnlyList<string> selectedValues,
                             out IReadOnlyList<int> selectedIndices,
                             out int? topIndex);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
@@ -815,11 +816,11 @@ internal static partial class PdfWriter {
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = field.ChoiceOptions.Count > 0
                             ? PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, field.Values, field.FontSize,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, appearanceOptions, selectedValues, field.FontSize,
                                 appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex)
                             : PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
-                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values, field.FontSize,
+                                field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, selectedValues, field.FontSize,
                                 appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style,
                                 formWidgetStructureReference?.StructParentIndex, selectedIndices, topIndex);
                     } else {

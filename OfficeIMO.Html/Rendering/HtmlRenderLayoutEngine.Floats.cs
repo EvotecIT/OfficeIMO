@@ -78,7 +78,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int noWrapRangeStart = -1;
         bool noWrapRangeStartedAfterContent = false;
 
-        foreach (HtmlInlineRun run in runs) {
+        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+            HtmlInlineRun run = runs[runIndex];
             if (run.FloatingBlock != null) {
                 if (noWrapRangeStart >= 0) {
                     previousWasCollapsibleSpace = FinalizeFloatNoWrapRange(
@@ -141,7 +142,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             bool preserveWhitespace = run.Style.PreserveWhitespace;
-            foreach (string token in Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces)) {
+            IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
+            for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
+                string token = tokens[tokenIndex];
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     if (noWrapRangeStart >= 0) {
                         FinalizeFloatNoWrapRange(
@@ -187,7 +190,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         context,
                         paragraphStyle.LineHeight,
                         run,
-                        hyphenation)) {
+                        hyphenation,
+                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex))) {
                     continue;
                 }
                 if (!preventTokenWrapping
