@@ -101,9 +101,10 @@ internal readonly struct PdfPageClipPath {
 
     private static PdfPageClipPath IntersectPathWithRectangle(PdfPageClipPath pathClip, PdfPageClipPath rectangleClip, PdfPageClipPath intersection) {
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(pathClip.Commands, rectangleClip);
-        return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
+        PdfPageClipPath result = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+        return result.WithExactness(pathClip.IsExact && !ContainsCurve(pathClip.Commands));
     }
 
     private static PdfPageClipPath IntersectPathWithPath(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
@@ -141,6 +142,14 @@ internal readonly struct PdfPageClipPath {
         if (path.IsRectangle) return true;
         List<List<OfficePoint>> contours = FlattenPathContours(path.Commands);
         return contours.Count > 0 && contours.All(IsConvexContour) && !HasOverlappingContourBounds(contours);
+    }
+
+    private static bool ContainsCurve(IReadOnlyList<OfficePathCommand> commands) {
+        for (int i = 0; i < commands.Count; i++) {
+            if (commands[i].Kind == OfficePathCommandKind.QuadraticBezierTo ||
+                commands[i].Kind == OfficePathCommandKind.CubicBezierTo) return true;
+        }
+        return false;
     }
 
     private static bool IsConvexContour(List<OfficePoint> contour) {
@@ -589,7 +598,7 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath result = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(bounds.X, bounds.Y, 0D, 0D);
-        return result.WithExactness(IsExact);
+        return result.WithExactness(IsExact && !ContainsCurve(Commands));
     }
 
     internal PdfPageClipPath Translate(double offsetX, double offsetY) {

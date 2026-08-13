@@ -398,6 +398,9 @@ internal static class PdfPageContentVisualParser {
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
+            if (_args.Count != 0 && RequiresZeroOperands(op)) {
+                _unsupportedOperatorVisitor?.Invoke(op);
+            }
             switch (op) {
                 case "q":
                     _stack.Push(_state);
@@ -962,6 +965,19 @@ internal static class PdfPageContentVisualParser {
                 case "Td": case "TD": case "Tm": case "T*": case "Tj": case "TJ": case "'": case "\"": case "d0": case "d1":
                 case "CS": case "cs": case "SC": case "SCN": case "sc": case "scn": case "G": case "g": case "RG": case "rg": case "K": case "k":
                 case "sh": case "BI": case "Do": case "MP": case "DP": case "BMC": case "BDC": case "EMC": case "BX": case "EX":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool RequiresZeroOperands(string value) {
+            switch (value) {
+                case "q": case "Q": case "h":
+                case "S": case "s": case "f": case "F": case "f*":
+                case "B": case "B*": case "b": case "b*": case "n":
+                case "W": case "W*": case "BT": case "ET": case "T*":
+                case "EMC": case "BX": case "EX":
                     return true;
                 default:
                     return false;

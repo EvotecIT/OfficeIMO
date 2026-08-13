@@ -351,6 +351,12 @@ public sealed partial class PdfReadPage {
         (double X, double Y) transformedTopRight = transform.Transform(bbox.X2, bbox.Y1);
         (double X, double Y) transformedBottomLeft = transform.Transform(bbox.X1, bbox.Y2);
         (double X, double Y) transformedBottomRight = transform.Transform(bbox.X2, bbox.Y2);
+        if (!IsFinite(transformedTopLeft.X) || !IsFinite(transformedTopLeft.Y) ||
+            !IsFinite(transformedTopRight.X) || !IsFinite(transformedTopRight.Y) ||
+            !IsFinite(transformedBottomLeft.X) || !IsFinite(transformedBottomLeft.Y) ||
+            !IsFinite(transformedBottomRight.X) || !IsFinite(transformedBottomRight.Y)) {
+            return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
         (double X, double Y) topLeft = (transformedTopLeft.X, pageHeight - transformedTopLeft.Y);
         (double X, double Y) topRight = (transformedTopRight.X, pageHeight - transformedTopRight.Y);
         (double X, double Y) bottomLeft = (transformedBottomLeft.X, pageHeight - transformedBottomLeft.Y);
@@ -359,6 +365,10 @@ public sealed partial class PdfReadPage {
         double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
         double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
         double bottom = Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y));
+        if (!IsFinite(left) || !IsFinite(top) || !IsFinite(right) || !IsFinite(bottom) ||
+            !IsFinite(right - left) || !IsFinite(bottom - top)) {
+            return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
         PdfPageClipPath projectedBounds;
         bool firstEdgeHorizontal = NearlyEqual(topLeft.Y, topRight.Y);
         bool firstEdgeVertical = NearlyEqual(topLeft.X, topRight.X);
