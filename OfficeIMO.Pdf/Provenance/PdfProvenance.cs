@@ -282,9 +282,14 @@ public static class PdfProvenance {
         int maximumContainerEntries) {
         var result = new HashSet<PdfObject>();
         AddResolvedDictionary(objects, activeInfoReference, result);
-        foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo", "StructTreeRoot" }) {
+        foreach (string key in new[] { "AcroForm", "ViewerPreferences", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) ? optionalContent : null,
+            result,
+            maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("Dests", out PdfObject? destinations) ? destinations : null,
@@ -306,7 +311,11 @@ public static class PdfProvenance {
             result,
             maximumContainerEntries);
         AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result, maximumContainerEntries);
-        AddNameTreeDictionaries(objects, new[] { catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null }, result, maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null,
+            result,
+            maximumContainerEntries);
         AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
         var resourceSites = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
