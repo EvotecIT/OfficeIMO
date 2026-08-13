@@ -404,6 +404,42 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlSanitizesNativeManifestInsideIframeSrcdoc() {
+        string nested = $"<html><head><script type=\"application/c2pa\">{Convert.ToBase64String(CreateManifestStore())}</script></head><body></body></html>";
+        string html = $"<html><head></head><body><iframe srcdoc=\"{System.Net.WebUtility.HtmlEncode(nested)}\"></iframe></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain("application/c2pa", Encoding.UTF8.GetString(result.ToArray()), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlSanitizesSvgFeImageDataUris() {
+        byte[] image = CreatePngWithManifest(CreateManifestStore());
+        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+        string html = $"<html><body><svg><filter><feImage href=\"{dataUri}\"></feImage></filter></svg></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+
+        Assert.Single(result.Before.Evidence);
+        Assert.Empty(result.After.Evidence);
+        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlDomElementsShareTheConfiguredContainerEntryLimit() {
+        const string html = "<html><body><div></div><div></div><div></div><div></div></body></html>";
+        var inspectionOptions = new OfficeProvenanceOptions { MaxContainerEntries = 5 };
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 5;
+
+        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(html, inspectionOptions));
+        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Remove(html, removalOptions));
+    }
+
+    [Fact]
     public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);

@@ -27,15 +27,30 @@ public static class HtmlProvenance {
             throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
         }
 
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        int structuralEntries = 0;
+        IHtmlDocument document = ParseBoundedDocument(html, options.MaxContainerEntries, ref structuralEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
         var diagnostics = new List<string>();
+        InspectManifestCarriers(document, options, evidence, diagnostics, "HTML");
+        if (options.ProcessEmbeddedAssets) {
+            int embeddedAssetCount = 0;
+            InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries, srcDocDepth: 0);
+        }
+        return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
+    }
+
+    private static void InspectManifestCarriers(
+        IHtmlDocument document,
+        OfficeProvenanceOptions options,
+        List<OfficeProvenanceEvidence> evidence,
+        List<string> diagnostics,
+        string documentLocation) {
         IElement? head = document.Head;
-        if (head == null) return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
+        if (head == null) return;
         IElement[] manifestElements = head.QuerySelectorAll("script[type],link[rel][href]")
             .Where(IsManifestElement)
             .ToArray();
-        if (manifestElements.Length > 1) diagnostics.Add("manifest.html.multipleManifests: the HTML head contains multiple C2PA manifest associations.");
+        if (manifestElements.Length > 1) diagnostics.Add($"{documentLocation}: manifest.html.multipleManifests: the HTML head contains multiple C2PA manifest associations.");
         int carrierIndex = 0;
         foreach (IElement script in head.QuerySelectorAll("script[type]")) {
             if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
@@ -45,7 +60,7 @@ public static class HtmlProvenance {
                     manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             AddEvidence(evidence, options, new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paManifest,
-                $"HTML/script[type=application/c2pa][{carrierIndex++}]",
+                $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]",
                 valid,
                 manifest.Length));
         }
@@ -57,14 +72,12 @@ public static class HtmlProvenance {
             bool valid = manifestElements.Length == 1 && safeReference;
             AddEvidence(evidence, options, new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.C2paExternalManifest,
-                $"HTML/link[rel=c2pa-manifest][{carrierIndex++}]",
+                $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]",
                 valid,
                 0,
                 valid && uri!.IsAbsoluteUri ? uri.AbsoluteUri : value));
         }
 
-        if (options.ProcessEmbeddedAssets) InspectEmbeddedImages(document, options, evidence, diagnostics);
-        return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
     }
 
     /// <summary>Inspects a bounded HTML file without resolving external resources.</summary>
@@ -88,8 +101,32 @@ public static class HtmlProvenance {
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
         OfficeProvenanceReport before = InspectCore(html, inspectionOptions, enforceUtf8Size);
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        int structuralEntries = 0;
+        IHtmlDocument document = ParseBoundedDocument(html, options.Limits.MaxContainerEntries, ref structuralEntries);
         var changes = new List<OfficeProvenanceChange>();
+        RemoveManifestCarriers(document, options, changes, "HTML");
+        if (inspectionOptions.ProcessEmbeddedAssets) {
+            int embeddedAssetCount = 0;
+            RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries, srcDocDepth: 0);
+        }
+
+        if (changes.Count == 0) {
+            byte[] original = Encoding.UTF8.GetBytes(html);
+            return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
+        }
+
+        string outputHtml = document.ToHtml();
+        byte[] output = Encoding.UTF8.GetBytes(outputHtml);
+        if (enforceUtf8Size && output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+        OfficeProvenanceReport after = InspectCore(outputHtml, inspectionOptions, enforceUtf8Size);
+        return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
+    }
+
+    private static void RemoveManifestCarriers(
+        IHtmlDocument document,
+        OfficeProvenanceRemovalOptions options,
+        List<OfficeProvenanceChange> changes,
+        string documentLocation) {
         IElement? head = document.Head;
         IEnumerable<IElement> scripts = head == null
             ? Enumerable.Empty<IElement>()
@@ -106,7 +143,7 @@ public static class HtmlProvenance {
             bool valid = manifestElementCount == 1 && manifest.Length != 0 &&
                 OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
-            string location = $"HTML/script[type=application/c2pa][{carrierIndex++}]";
+            string location = $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]";
             if (!options.RemoveC2paManifests || (!valid && options.RequireStructurallyValidCarrier)) continue;
             script.Remove();
             changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, manifest.Length));
@@ -116,23 +153,12 @@ public static class HtmlProvenance {
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
             string value = link.GetAttribute("href")?.Trim() ?? string.Empty;
             bool valid = manifestElementCount == 1 && IsSafeManifestReference(value, out _);
-            string location = $"HTML/link[rel=c2pa-manifest][{carrierIndex++}]";
+            string location = $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]";
             if (!options.RemoveExternalC2paReferences || (!valid && options.RequireStructurallyValidCarrier)) continue;
             RemoveRelationship(link, "c2pa-manifest");
             changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paExternalManifest, location, 0));
         }
 
-        if (inspectionOptions.ProcessEmbeddedAssets) RemoveEmbeddedImages(document, options, changes);
-        if (changes.Count == 0) {
-            byte[] original = Encoding.UTF8.GetBytes(html);
-            return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
-        }
-
-        string outputHtml = document.ToHtml();
-        byte[] output = Encoding.UTF8.GetBytes(outputHtml);
-        if (enforceUtf8Size && output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
-        OfficeProvenanceReport after = InspectCore(outputHtml, inspectionOptions, enforceUtf8Size);
-        return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
 
     /// <summary>Removes selected provenance and atomically writes the resulting HTML file.</summary>
@@ -164,17 +190,9 @@ public static class HtmlProvenance {
         IHtmlDocument document,
         OfficeProvenanceOptions options,
         List<OfficeProvenanceEvidence> evidence,
-        List<string> diagnostics) {
-        int count = 0;
-        InspectEmbeddedImages(document, options, evidence, diagnostics, ref count, srcDocDepth: 0);
-    }
-
-    private static void InspectEmbeddedImages(
-        IHtmlDocument document,
-        OfficeProvenanceOptions options,
-        List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics,
         ref int count,
+        ref int structuralEntries,
         int srcDocDepth) {
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
         HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
@@ -204,20 +222,15 @@ public static class HtmlProvenance {
             }
         }
         if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
-            IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc);
-            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, srcDocDepth + 1);
+            string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
+            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
+            InspectManifestCarriers(nested, options, evidence, diagnostics, location);
+            InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries, srcDocDepth + 1);
         }
-    }
-
-    private static void RemoveEmbeddedImages(
-        IHtmlDocument document,
-        OfficeProvenanceRemovalOptions options,
-        List<OfficeProvenanceChange> changes) {
-        int count = 0;
-        RemoveEmbeddedImages(document, options, changes, ref count, srcDocDepth: 0);
     }
 
     private static void RemoveEmbeddedImages(
@@ -225,6 +238,7 @@ public static class HtmlProvenance {
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes,
         ref int count,
+        ref int structuralEntries,
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
@@ -261,12 +275,15 @@ public static class HtmlProvenance {
             ApplyEmbeddedImageReplacements(element, replacements);
         }
         if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
-            IHtmlDocument nested = HtmlDocumentParser.ParseDocument(srcdoc);
+            string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
+            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries);
             int priorChanges = changes.Count;
-            RemoveEmbeddedImages(nested, options, changes, ref count, srcDocDepth + 1);
+            RemoveManifestCarriers(nested, options, changes, location);
+            RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries, srcDocDepth + 1);
             if (changes.Count != priorChanges) iframe.SetAttribute("srcdoc", nested.ToHtml());
         }
     }
@@ -340,7 +357,7 @@ public static class HtmlProvenance {
     }
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
-        document.QuerySelectorAll("img,source,video,input,image,feimage,use,link,[background],style,[style]").Distinct();
+        document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]").Distinct();
 
     private static HashSet<string> GetUsedCssImageCustomProperties(IEnumerable<IElement> elements) =>
         HtmlResourcePipeline.CollectProvenanceCssImageCustomProperties(elements.SelectMany(element => {
@@ -472,6 +489,29 @@ public static class HtmlProvenance {
         if (parsed.IsAbsoluteUri && parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) return false;
         uri = parsed;
         return true;
+    }
+
+    private static IHtmlDocument ParseBoundedDocument(string html, int maximumEntries, ref int structuralEntries) {
+        int remaining = maximumEntries - structuralEntries;
+        if (remaining <= 0) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
+        ValidatePotentialElementCount(html, remaining);
+        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        int elementCount = document.All.Length;
+        if (elementCount > remaining) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
+        structuralEntries += elementCount;
+        return document;
+    }
+
+    private static void ValidatePotentialElementCount(string html, int maximumEntries) {
+        int count = 0;
+        for (int index = 0; index < html.Length - 1; index++) {
+            if (html[index] != '<') continue;
+            char next = html[index + 1];
+            if (!char.IsLetter(next)) continue;
+            if (++count > maximumEntries) {
+                throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
+            }
+        }
     }
 
     private static void AddEvidence(List<OfficeProvenanceEvidence> evidence, OfficeProvenanceOptions options, OfficeProvenanceEvidence item) {
