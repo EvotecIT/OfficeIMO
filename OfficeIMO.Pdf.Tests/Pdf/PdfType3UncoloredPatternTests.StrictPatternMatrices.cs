@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -71,5 +72,53 @@ public partial class PdfType3UncoloredPatternTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
+    [InlineData("99 /DeviceRGB cs")]
+    [InlineData("99 /DeviceRGB CS")]
+    [InlineData("99 /Missing sh")]
+    public void RenderPage_FailsClosedForSurplusStrictNameOperands(string patternContent) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: patternContent);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForMalformedXObjectInvocationInsidePatternForm() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << /XObject << /Nested 10 0 R >> >>",
+            patternContent: "/Nested Do",
+            extraObjects: new[] {
+                StreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 5 5] /Resources << >>", "99 /Missing Do")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void VisualParser_RejectsApproximatelyAxisAlignedRadialShadingTransform() {
+        var shading = new PdfPageShadingResource(
+            0D, 0D, 0D,
+            10D, 10D, 5D,
+            OfficeColor.Red,
+            OfficeColor.Blue);
+        var pattern = new PdfPageShadingPatternResource(shading, Matrix2D.Identity);
+
+        bool supported = PdfPageContentVisualParser.IsSupportedShadingTransform(
+            pattern,
+            new Matrix2D(1D, 0.0000000001D, 0D, 2D, 0D, 0D));
+
+        Assert.False(supported);
     }
 }

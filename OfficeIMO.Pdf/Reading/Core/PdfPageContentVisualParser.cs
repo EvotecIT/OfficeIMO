@@ -109,13 +109,11 @@ internal static class PdfPageContentVisualParser {
         Matrix2D transform = Matrix2D.Multiply(paintTransform, pattern.Matrix);
         double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
         double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
-        double scale = Math.Max(firstLengthSquared, secondLengthSquared);
         double dot = (transform.A * transform.C) + (transform.B * transform.D);
-        double orthogonalityTolerance = Math.Sqrt(firstLengthSquared * secondLengthSquared) * 0.000000001D;
         return firstLengthSquared > 0D &&
                secondLengthSquared > 0D &&
-               Math.Abs(firstLengthSquared - secondLengthSquared) <= scale * 0.000000001D &&
-               Math.Abs(dot) <= orthogonalityTolerance;
+               firstLengthSquared == secondLengthSquared &&
+               dot == 0D;
     }
 
     internal static bool IsSupportedExactShadingPlacement(
@@ -187,17 +185,9 @@ internal static class PdfPageContentVisualParser {
         if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
             double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
             double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
-        double scale = Math.Max(firstLengthSquared, secondLengthSquared);
         double dot = (transform.A * transform.C) + (transform.B * transform.D);
-        double orthogonalityTolerance = Math.Sqrt(firstLengthSquared * secondLengthSquared) * 0.000000001D;
-        if (Math.Abs(firstLengthSquared - secondLengthSquared) <= scale * 0.000000001D &&
-            Math.Abs(dot) <= orthogonalityTolerance) return true;
-
-        double componentScale = Math.Max(
-            Math.Max(Math.Abs(transform.A), Math.Abs(transform.B)),
-            Math.Max(Math.Abs(transform.C), Math.Abs(transform.D)));
-        double componentTolerance = componentScale * 0.000000001D;
-        return Math.Abs(transform.B) <= componentTolerance && Math.Abs(transform.C) <= componentTolerance;
+        if (firstLengthSquared == secondLengthSquared && dot == 0D) return true;
+        return transform.B == 0D && transform.C == 0D;
     }
 
     private static double ResolveStrokeWidth(double value) {
@@ -524,24 +514,28 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "cs":
-                    if (_args.Count >= 1 &&
-                        _args[_args.Count - 1] is string fillColorSpaceName &&
+                    if (_args.Count == 1 &&
+                        _args[0] is string fillColorSpaceName &&
                         TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _state = _state.WithFillColorSpace(fillColorSpace);
                         _fillPatternBaseColorSpace = ReadPatternBaseColorSpace(fillColorSpaceName, fillColorSpace);
                         _fillTilingPattern = null;
                         _fillTilingTint = null;
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("cs");
                     }
 
                     break;
                 case "CS":
-                    if (_args.Count >= 1 &&
-                        _args[_args.Count - 1] is string strokeColorSpaceName &&
+                    if (_args.Count == 1 &&
+                        _args[0] is string strokeColorSpaceName &&
                         TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
                         _strokePatternBaseColorSpace = ReadPatternBaseColorSpace(strokeColorSpaceName, strokeColorSpace);
                         _strokeTilingPattern = null;
                         _strokeTilingTint = null;
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("CS");
                     }
 
                     break;
@@ -772,8 +766,10 @@ internal static class PdfPageContentVisualParser {
                     PaintPath(fill: true, stroke: true, OfficeFillRule.EvenOdd, paintOrder);
                     break;
                 case "sh":
-                    if (_args.Count >= 1 && _args[_args.Count - 1] is string shadingName) {
+                    if (_args.Count == 1 && _args[0] is string shadingName) {
                         PaintShading(shadingName, paintOrder);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("sh");
                     }
 
                     break;

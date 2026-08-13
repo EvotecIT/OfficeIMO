@@ -796,12 +796,13 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "sh":
-                    if (!HasHiddenContent() &&
+                    if (_args.Count != 1 || _args[0] is not string) {
+                        if (!HasHiddenContent()) _unsupportedGraphicsEffectVisitor?.Invoke();
+                    } else if (!HasHiddenContent() &&
                         !IsCurrentPaintSuppressedBySoftMask() &&
                         (_state.FillOpacity ?? 1D) > 0D &&
                         IsCurrentClipPotentiallyVisible() &&
-                        _args.Count >= 1 &&
-                        _args[_args.Count - 1] is string shadingName &&
+                        _args[0] is string shadingName &&
                         !string.IsNullOrEmpty(shadingName)) {
                         _visibleShadingVisitor?.Invoke(shadingName);
                         PublishActiveGraphicsEffectUse();
@@ -809,8 +810,8 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "cs":
-                    if (_args.Count >= 1 &&
-                        _args[_args.Count - 1] is string fillColorSpaceName &&
+                    if (_args.Count == 1 &&
+                        _args[0] is string fillColorSpaceName &&
                         TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _state = _state.WithFillColorSpace(fillColorSpace);
                         _patternState = _patternState.WithFill(
@@ -822,8 +823,8 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "CS":
-                    if (_args.Count >= 1 &&
-                        _args[_args.Count - 1] is string strokeColorSpaceName &&
+                    if (_args.Count == 1 &&
+                        _args[0] is string strokeColorSpaceName &&
                         TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
                         _patternState = _patternState.WithStroke(

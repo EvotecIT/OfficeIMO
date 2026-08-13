@@ -617,7 +617,7 @@ public sealed partial class PdfReadPage {
         if (resource == null) {
             return false;
         }
-        if (resource.ConsumesInheritedLineState || resource.HasMalformedStrictXObjectInvocation) return false;
+        if (resource.ConsumesInheritedLineState || resource.HasMalformedStrictInvocation) return false;
         if (resource.Uncolored && !selection.Value.Tint.HasValue) return false;
 
         var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
@@ -638,7 +638,7 @@ public sealed partial class PdfReadPage {
         PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
         return pattern != null &&
             !pattern.ConsumesInheritedLineState &&
-            !pattern.HasMalformedStrictXObjectInvocation &&
+            !pattern.HasMalformedStrictInvocation &&
             (!pattern.Uncolored || selection.Value.Tint.HasValue);
     }
 

@@ -313,7 +313,7 @@ public sealed partial class PdfReadPage {
             allowNestedPatterns,
             contentNestingDepth,
             out bool consumesInheritedLineState,
-            out bool hasMalformedStrictXObjectInvocation);
+            out bool hasMalformedStrictInvocation);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
         Matrix2D matrix;
         if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
@@ -327,7 +327,7 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         bool uncolored = paintType == 2;
-        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictXObjectInvocation);
+        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation);
         return true;
     }
 
@@ -361,21 +361,26 @@ public sealed partial class PdfReadPage {
         bool allowNestedPatterns,
         int contentNestingDepth,
         out bool consumesInheritedLineState,
-        out bool hasMalformedStrictXObjectInvocation) {
+        out bool hasMalformedStrictInvocation) {
         var drawing = new OfficeDrawing(width, height);
         consumesInheritedLineState = false;
-        hasMalformedStrictXObjectInvocation = false;
+        hasMalformedStrictInvocation = false;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
-        hasMalformedStrictXObjectInvocation = HasMalformedStrictXObjectInvocation(content);
+        hasMalformedStrictInvocation = HasMalformedStrictInvocation(
+            content,
+            resources,
+            pageContentBudget,
+            new HashSet<PdfStream>(),
+            contentNestingDepth);
         consumesInheritedLineState = ConsumesInheritedPatternLineState(
             content,
             resources,
             pageContentBudget,
             new HashSet<PdfStream>(),
             contentNestingDepth);
-        if (requireSupportedType3Content && (consumesInheritedLineState || hasMalformedStrictXObjectInvocation)) {
+        if (requireSupportedType3Content && (consumesInheritedLineState || hasMalformedStrictInvocation)) {
             type3GlyphBudget.RecordFailure();
             return drawing;
         }
@@ -519,22 +524,6 @@ public sealed partial class PdfReadPage {
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         }
         return drawing;
-    }
-
-    private bool HasMalformedStrictXObjectInvocation(string content) {
-        bool malformed = false;
-        PdfContentStreamInterpreter.InterpretUntil(
-            content,
-            _limits.MaxContentOperations,
-            operation => {
-                malformed = string.Equals(operation.Name, "Do", StringComparison.Ordinal) &&
-                    (operation.HasInvalidOperands || operation.Operands.Count != 1 || operation.Operands[0] is not string);
-                return !malformed;
-            },
-            maxNestingDepth: _limits.MaxContentNestingDepth,
-            maxOperands: _limits.MaxContentOperands,
-            dispatchInvalidOperations: true);
-        return malformed;
     }
 
     private bool ConsumesInheritedPatternLineState(

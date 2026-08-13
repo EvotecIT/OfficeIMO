@@ -366,14 +366,15 @@ public sealed partial class PdfReadPage {
             content,
             _limits.MaxContentOperations,
             operation => {
-                if (operation.Name is "BT" or "Do" or "BI") {
+                if (operation.HasInvalidOperands || operation.Name is "BT" or "Do" or "BI") {
                     vectorOnly = false;
                     return false;
                 }
                 return true;
             },
             maxNestingDepth: _limits.MaxContentNestingDepth,
-            maxOperands: _limits.MaxContentOperands);
+            maxOperands: _limits.MaxContentOperands,
+            dispatchInvalidOperations: true);
         return vectorOnly;
     }
 
