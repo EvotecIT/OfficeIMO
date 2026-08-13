@@ -9,7 +9,18 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private static readonly ISet<string> RasterGeometryCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray",
-        "font-size", "font-weight", "text-anchor", "dominant-baseline", "alignment-baseline", "white-space"
+        "transform", "transform-origin", "transform-box",
+        "font-family", "font-size", "font-style", "font-weight", "text-anchor", "dominant-baseline",
+        "alignment-baseline", "baseline-shift", "white-space", "letter-spacing", "word-spacing", "direction",
+        "unicode-bidi", "writing-mode", "glyph-orientation-horizontal", "glyph-orientation-vertical"
+    };
+
+    private static readonly ISet<string> UnsupportedInlineRasterGeometryCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "transform", "transform-origin", "transform-box"
+    };
+
+    private static readonly ISet<string> StylesheetNonScalingStrokeCssProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+        "vector-effect"
     };
 
     private static bool HasStylesheetRasterGeometryDeclaration(XElement root) {
@@ -20,7 +31,30 @@ public static partial class OfficeSvgDrawingReader {
         return false;
     }
 
+    private static bool HasStylesheetNonScalingStrokeDeclaration(XElement root) {
+        foreach (XElement style in root.DescendantsAndSelf()
+                     .Where(element => element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
+            if (ContainsStylesheetRasterDeclaration(style.Value, StylesheetNonScalingStrokeCssProperties)) return true;
+        }
+        return false;
+    }
+
+    private static bool HasUnsupportedInlineRasterGeometryDeclaration(XElement root) {
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            string? style = ReadRasterInlineStyleAttribute(element);
+            if (!string.IsNullOrWhiteSpace(style)
+                && ContainsRasterDeclaration(
+                    StripCssComments(style!),
+                    UnsupportedInlineRasterGeometryCssProperties)) return true;
+        }
+        return false;
+    }
+
     private static bool ContainsStylesheetRasterGeometryDeclaration(string? stylesheet) {
+        return ContainsStylesheetRasterDeclaration(stylesheet, RasterGeometryCssProperties);
+    }
+
+    private static bool ContainsStylesheetRasterDeclaration(string? stylesheet, ISet<string> relevantProperties) {
         if (string.IsNullOrWhiteSpace(stylesheet)) return false;
         string normalized = StripCssComments(stylesheet!);
         int depth = 0;
@@ -50,18 +84,20 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (current != '}' || depth <= 0) continue;
             if (depth == 1 && declarationsStart >= 0
-                && ContainsRasterGeometryDeclaration(normalized.Substring(declarationsStart, index - declarationsStart))) return true;
+                && ContainsRasterDeclaration(
+                    normalized.Substring(declarationsStart, index - declarationsStart),
+                    relevantProperties)) return true;
             depth--;
             if (depth == 0) declarationsStart = -1;
         }
         return depth != 0 || quote != '\0';
     }
 
-    private static bool ContainsRasterGeometryDeclaration(string declarations) {
+    private static bool ContainsRasterDeclaration(string declarations, ISet<string> relevantProperties) {
         foreach (string declaration in SplitRasterStyleDeclarations(declarations)) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0 || !TryDecodeCssIdentifier(declaration.Substring(0, colon).Trim(), out string propertyName)) continue;
-            if (RasterGeometryCssProperties.Contains(propertyName)) return true;
+            if (relevantProperties.Contains(propertyName)) return true;
         }
         return false;
     }

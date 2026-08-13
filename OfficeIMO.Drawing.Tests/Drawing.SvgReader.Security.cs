@@ -707,6 +707,48 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Theory]
+    [InlineData("transform:scale(4096)")]
+    [InlineData("tr\\61nsform:scale(4096)")]
+    [InlineData("letter-spacing:4096")]
+    [InlineData("word-spacing:4096")]
+    [InlineData("baseline-shift:4096")]
+    [InlineData("writing-mode:vertical-rl")]
+    public void SvgSafetyPredicateRejectsStylesheetLayoutGeometry(string declaration) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>"
+            + "<style>rect{" + declaration + "}</style><rect width='1' height='1'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesStylesheetNonScalingStrokePerPaintedElement() {
+        const string safe = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'>"
+            + "<style>.line{vector-effect:non-scaling-stroke}</style>"
+            + "<rect class='line' width='1' height='1' fill='none' stroke='black'/></svg>";
+        var amplified = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'>"
+            + "<style>.line{vector-effect:non-scaling-stroke}</style>");
+        for (int index = 0; index < 257; index++) {
+            amplified.Append("<rect class='line' width='1' height='1' fill='none' stroke='black'/>");
+        }
+        amplified.Append("</svg>");
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(safe)));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(amplified.ToString())));
+    }
+
+    [Theory]
+    [InlineData("transform:scale(4096)")]
+    [InlineData("tr\\61nsform:scale(4096)")]
+    [InlineData("transform-origin:50% 50%")]
+    [InlineData("transform-box:fill-box")]
+    public void SvgSafetyPredicateRejectsUnmodeledInlineTransforms(string declaration) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>"
+            + "<rect style='" + declaration + "' width='1' height='1'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Theory]
     [InlineData("stroke-dasharray='1e-300'")]
     [InlineData("style='stroke-dasharray:1e-300'")]
     public void SvgSafetyPredicateRejectsUnboundedDashWork(string dashAttribute) {

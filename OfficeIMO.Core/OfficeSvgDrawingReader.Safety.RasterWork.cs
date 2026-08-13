@@ -15,6 +15,7 @@ public static partial class OfficeSvgDrawingReader {
         private readonly double _pixelScaleX;
         private readonly double _pixelScaleY;
         private readonly double _viewportPixels;
+        private readonly bool _assumeNonScalingStroke;
         private double _remainingWork;
         private double _remainingTextIntermediateWork = MaximumTextIntermediatePixels * MaximumViewportRepaints;
         private int _conservativePlacementDepth;
@@ -28,7 +29,8 @@ public static partial class OfficeSvgDrawingReader {
             double viewportWidth,
             double viewportHeight,
             double pixelScaleX,
-            double pixelScaleY) {
+            double pixelScaleY,
+            bool assumeNonScalingStroke) {
             _viewLeft = viewX;
             _viewTop = viewY;
             _viewRight = viewX + viewWidth;
@@ -36,6 +38,7 @@ public static partial class OfficeSvgDrawingReader {
             _pixelScaleX = pixelScaleX;
             _pixelScaleY = pixelScaleY;
             _viewportPixels = Math.Min(maximumViewportPixels, viewportWidth * viewportHeight);
+            _assumeNonScalingStroke = assumeNonScalingStroke;
             _remainingWork = _viewportPixels * MaximumViewportRepaints;
         }
 
@@ -59,7 +62,7 @@ public static partial class OfficeSvgDrawingReader {
 
             if (!string.IsNullOrWhiteSpace(stroke)
                 && !stroke!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
-                if (strokeStyle.NonScaling) return TryCharge(_viewportPixels);
+                if (strokeStyle.NonScaling || _assumeNonScalingStroke) return TryCharge(_viewportPixels);
                 double strokeExtent = strokeStyle.Width * 0.5D;
                 if (strokeStyle.MiterJoin) strokeExtent *= strokeStyle.MiterLimit;
                 if (double.IsNaN(strokeExtent) || double.IsInfinity(strokeExtent) || strokeExtent < 0D) return false;

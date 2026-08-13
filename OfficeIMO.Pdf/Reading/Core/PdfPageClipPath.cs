@@ -130,6 +130,7 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath next,
         PdfPageClipPath intersection,
         PdfTextClippingBudget? textClippingBudget) {
+        textClippingBudget?.ChargeFlattenedPathWork(active.Commands, next.Commands);
         List<List<OfficePoint>> subjectContours = FlattenPathContours(active.Commands);
         List<List<OfficePoint>> clipContours = FlattenPathContours(next.Commands);
         if (subjectContours.Count == 0 || clipContours.Count == 0) {
@@ -137,7 +138,6 @@ internal readonly struct PdfPageClipPath {
         }
 
         var intersectedContours = new List<List<OfficePoint>>();
-        textClippingBudget?.ChargeFlattenedPathWork(subjectContours, clipContours);
         bool canClipPerContour = AreAllConvexContours(clipContours, textClippingBudget)
             && !HasOverlappingContourBounds(clipContours, textClippingBudget);
         if (!canClipPerContour) {
@@ -455,7 +455,7 @@ internal readonly struct PdfPageClipPath {
         return clippedCommands;
     }
 
-    private static long CountFlattenedPathVertices(IReadOnlyList<OfficePathCommand> commands) {
+    internal static long CountFlattenedPathVertices(IReadOnlyList<OfficePathCommand> commands) {
         long vertices = 0L;
         for (int index = 0; index < commands.Count; index++) {
             vertices += commands[index].Kind switch {

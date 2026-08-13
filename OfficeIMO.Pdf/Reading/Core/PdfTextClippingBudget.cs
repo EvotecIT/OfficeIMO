@@ -16,10 +16,10 @@ internal sealed class PdfTextClippingBudget {
     }
 
     internal void ChargeFlattenedPathWork(
-        IReadOnlyList<List<OfficePoint>> subjectContours,
-        IReadOnlyList<List<OfficePoint>> clipContours) {
-        long subjectVertices = CountVertices(subjectContours);
-        long clipVertices = CountVertices(clipContours);
+        IReadOnlyList<OfficePathCommand> subjectCommands,
+        IReadOnlyList<OfficePathCommand> clipCommands) {
+        long subjectVertices = PdfPageClipPath.CountFlattenedPathVertices(subjectCommands);
+        long clipVertices = PdfPageClipPath.CountFlattenedPathVertices(clipCommands);
         ChargeIntersectionWork(SaturatingAdd(subjectVertices, clipVertices));
     }
 

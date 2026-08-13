@@ -291,7 +291,8 @@ public static partial class OfficeSvgDrawingReader {
         double viewportWidth,
         double viewportHeight) {
         if (HasPotentialStylesheetRenderedDefinitionReference(root)
-            || HasStylesheetRasterGeometryDeclaration(root)) return true;
+            || HasStylesheetRasterGeometryDeclaration(root)
+            || HasUnsupportedInlineRasterGeometryDeclaration(root)) return true;
         if (!TryResolveSupportedRasterTransform(
                 root,
                 OfficeTransform.Identity,
@@ -309,7 +310,8 @@ public static partial class OfficeSvgDrawingReader {
         int commandCount = 0;
         int elementCount = 0;
         var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
-            viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY);
+            viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY,
+            HasStylesheetNonScalingStrokeDeclaration(root));
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
