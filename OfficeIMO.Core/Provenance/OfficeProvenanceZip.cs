@@ -125,7 +125,7 @@ internal static class OfficeProvenanceZip {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
         }
 
-        if (removable.Count != 0 && input.GetEntry("[Content_Types].xml") != null) {
+        if (removable.Count != 0 && removable.Count == occurrence && input.GetEntry("[Content_Types].xml") != null) {
             RemoveOpcManifestReferences(input, embeddedRewrites, options.Limits, ref inspectionBytes);
         }
 
@@ -161,9 +161,10 @@ internal static class OfficeProvenanceZip {
             }
             ReserveExpandedBytes(ref expandedBytes, entry.Length, limits.MaxExpandedContainerBytes);
             byte[] original = ReadEntry(entry, (int)entry.Length);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(original, limits, "OPC relationship metadata");
             var document = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
             using (var stream = new MemoryStream(original, writable: false))
-            using (XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })) {
+            using (XmlReader reader = XmlReader.Create(stream, OfficeProvenanceXml.CreateReaderSettings(limits))) {
                 document.Load(reader);
             }
             bool changed = false;

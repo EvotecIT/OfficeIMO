@@ -27,6 +27,10 @@ internal static class OfficeC2paManifestStore {
         0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
+    private static readonly byte[] DataBoxStoreUuid = {
+        0x63, 0x32, 0x64, 0x62, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
 
     internal static bool IsValid(
         byte[] data,
@@ -126,10 +130,58 @@ internal static class OfficeC2paManifestStore {
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimSignatureUuid)) {
                 claimSignatureCount++;
                 if (!IsClaimSignatureSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+            } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, DataBoxStoreUuid)) {
+                if (!IsExtensionSuperbox(
+                    data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, "c2pa.databoxes", "cbor")) return false;
+            } else if (childType != "jumb" || !IsExtensionSuperbox(
+                data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, expectedLabel: null, requiredChildType: null)) {
+                // C2PA permits private and future extension superboxes, but not arbitrary raw
+                // content or padding boxes as direct manifest children.
+                return false;
             }
             cursor += (int)childLength;
         }
         return cursor == manifestEnd && assertionStoreCount == 1 && claimCount == 1 && claimSignatureCount == 1;
+    }
+
+    private static bool IsExtensionSuperbox(
+        byte[] data,
+        int offset,
+        int availableLength,
+        ref int visitedBoxes,
+        int maximumEntries,
+        string? expectedLabel,
+        string? requiredChildType) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries) ||
+            !TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+                out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + 18)) return false;
+        int togglesOffset = descriptionOffset + descriptionHeaderLength + 16;
+        int labelOffset = togglesOffset + 1;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        if ((data[togglesOffset] & 0x02) == 0 || !HasValidUtf8Label(data, labelOffset, descriptionEnd)) return false;
+        if (expectedLabel != null) {
+            int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
+            if (terminator < 0 || OfficeProvenanceBinary.DecodeUtf8(data, labelOffset, terminator - labelOffset) != expectedLabel) {
+                return false;
+            }
+        }
+
+        int cursor = descriptionEnd;
+        int end = offset + availableLength;
+        bool hasContent = false;
+        while (cursor < end) {
+            if (!TryReserveBox(ref visitedBoxes, maximumEntries) ||
+                !TryReadBox(data, cursor, end - cursor, out _, out ulong childLength, out string childType) ||
+                childLength > int.MaxValue) return false;
+            if (requiredChildType != null && childType != requiredChildType) return false;
+            hasContent = true;
+            cursor += (int)childLength;
+        }
+        return cursor == end && hasContent;
     }
 
     private static bool IsAssertionStoreSuperbox(

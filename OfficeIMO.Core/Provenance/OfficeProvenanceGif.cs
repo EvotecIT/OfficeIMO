@@ -65,9 +65,10 @@ internal static class OfficeProvenanceGif {
                 if (offset >= data.Length) throw new InvalidDataException("GIF application extension is truncated.");
                 int headerLength = data[offset++];
                 if (headerLength > data.Length - offset) throw new InvalidDataException("GIF application extension header is truncated.");
-                bool isC2pa = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, offset, "C2PA_GIF") &&
+                bool isGif89a = OfficeProvenanceBinary.MatchesAscii(data, 0, "GIF89a");
+                bool isC2paApplication = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, offset, "C2PA_GIF") &&
                     data[offset + 8] == 0x01 && data[offset + 9] == 0x00 && data[offset + 10] == 0x00;
-                bool isXmp = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, 0, "GIF89a") &&
+                bool isXmp = headerLength == 11 && isGif89a &&
                     OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP DataXMP");
                 offset += headerLength;
                 int payloadStart = offset;
@@ -89,11 +90,11 @@ internal static class OfficeProvenanceGif {
                     offset = extensionEnd;
                     continue;
                 }
-                offset = SkipSubBlocks(data, offset, isC2pa ? options.MaxManifestBytes : options.MaxAssetBytes,
+                offset = SkipSubBlocks(data, offset, isC2paApplication ? options.MaxManifestBytes : options.MaxAssetBytes,
                     ref entryCount, options.MaxContainerEntries, out int payloadLength);
-                if (isC2pa) {
+                if (isC2paApplication) {
                     byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
-                    bool valid = OfficeC2paManifestStore.IsValid(
+                    bool valid = isGif89a && OfficeC2paManifestStore.IsValid(
                         manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
                     context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
