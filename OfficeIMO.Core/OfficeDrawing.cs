@@ -570,7 +570,7 @@ public sealed partial class OfficeDrawing {
             _images.Add(item);
             _elements.Add(item);
         } else {
-            AddImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
+            AddImage(image.EncodedBytes, image.ContentType, projection, image.Interpolate, image.AlternativeText, image.Opacity);
         }
     }
 

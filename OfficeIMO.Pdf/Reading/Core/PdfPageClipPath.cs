@@ -228,7 +228,7 @@ internal readonly partial struct PdfPageClipPath {
             OfficePoint b = contour[(i + 1) % contour.Count];
             OfficePoint c = contour[(i + 2) % contour.Count];
             double cross = ((b.X - a.X) * (c.Y - b.Y)) - ((b.Y - a.Y) * (c.X - b.X));
-            if (Math.Abs(cross) <= 0.001D) {
+            if (cross == 0D) {
                 continue;
             }
 
@@ -240,7 +240,7 @@ internal readonly partial struct PdfPageClipPath {
             }
         }
 
-        return true;
+        return sign != 0D;
     }
 
     private static bool HasOverlappingContourBounds(List<List<OfficePoint>> contours) {

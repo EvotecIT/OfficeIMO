@@ -72,6 +72,32 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ShallowConcaveClipIntersectionCannotRemainExact() {
+        OfficePathCommand[] firstCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(10D, 10D),
+            OfficePathCommand.LineTo(5D, 9.99995D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] secondCommands = {
+            OfficePathCommand.MoveTo(2D, 2D),
+            OfficePathCommand.LineTo(12D, 2D),
+            OfficePathCommand.LineTo(12D, 12D),
+            OfficePathCommand.LineTo(7D, 11.99995D),
+            OfficePathCommand.LineTo(2D, 12D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(firstCommands, OfficeFillRule.NonZero, out PdfPageClipPath first));
+        Assert.True(PdfPageClipPath.TryCreatePath(secondCommands, OfficeFillRule.NonZero, out PdfPageClipPath second));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(first, second);
+
+        Assert.False(intersection.IsExact);
+    }
+
+    [Fact]
     public void VisualParser_RejectsAxialShadingCollapsedByRendererTolerance() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0.05D, 0D,
