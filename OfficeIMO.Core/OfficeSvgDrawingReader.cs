@@ -551,19 +551,19 @@ public static partial class OfficeSvgDrawingReader {
             }
         }
 
-        if (name == "pattern") {
-            SvgElementReferenceEntryResult inheritedPatternResult = references.TryEnterDetailed(
+        if (name is "pattern" or "filter") {
+            SvgElementReferenceEntryResult inheritedDefinitionResult = references.TryEnterDetailed(
                 element,
-                "pattern",
-                out string inheritedPatternId,
-                out XElement? inheritedPattern);
-            if (inheritedPatternResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
-            if (inheritedPatternResult != SvgElementReferenceEntryResult.Entered
+                name,
+                out string inheritedDefinitionId,
+                out XElement? inheritedDefinition);
+            if (inheritedDefinitionResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (inheritedDefinitionResult != SvgElementReferenceEntryResult.Entered
                 && HasLocalSvgElementReference(element)) return false;
-            if (inheritedPatternResult == SvgElementReferenceEntryResult.Entered) {
+            if (inheritedDefinitionResult == SvgElementReferenceEntryResult.Entered) {
                 try {
                     if (!TryAddRenderedSvgDefinitionExpansion(
-                            inheritedPattern!,
+                            inheritedDefinition!,
                             references,
                             maximumElements,
                             ref elementCount,
@@ -573,7 +573,7 @@ public static partial class OfficeSvgDrawingReader {
                             viewY,
                             rasterWork)) return false;
                 } finally {
-                    references.Exit(inheritedPatternId);
+                    references.Exit(inheritedDefinitionId);
                 }
             }
         }

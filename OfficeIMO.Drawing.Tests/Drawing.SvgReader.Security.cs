@@ -536,6 +536,42 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Theory]
+    [InlineData("href='#expensive'")]
+    [InlineData("x:href='#expensive'")]
+    public void SvgSafetyPredicateChargesInheritedFilterWork(string hrefAttribute) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='256' height='256'>"
+            + "<defs><filter id='expensive'><feGaussianBlur stdDeviation='1000000'/></filter>"
+            + "<filter id='f' " + hrefAttribute + "/></defs>"
+            + "<rect width='256' height='256' filter='url(#f)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Theory]
+    [InlineData(16, true)]
+    [InlineData(17, false)]
+    public void SvgSafetyPredicateBoundsInheritedFilterDepth(int filterCount, bool expected) {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><defs>");
+        for (int index = 0; index < filterCount; index++) {
+            svg.Append("<filter id='f").Append(index).Append("'");
+            if (index + 1 < filterCount) svg.Append(" href='#f").Append(index + 1).Append("'");
+            svg.Append(index + 1 == filterCount ? "><feGaussianBlur stdDeviation='0'/></filter>" : "/>");
+        }
+        svg.Append("</defs><rect width='256' height='256' filter='url(#f0)'/></svg>");
+
+        Assert.Equal(expected, OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsInheritedFilterCycle() {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>"
+            + "<defs><filter id='f0' href='#f1'/><filter id='f1' href='#f0'/></defs>"
+            + "<rect width='256' height='256' filter='url(#f0)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Theory]
     [InlineData("clip-path", "clipPath")]
     [InlineData("mask", "mask")]
     [InlineData("filter", "filter")]
