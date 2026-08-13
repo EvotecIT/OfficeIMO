@@ -50,7 +50,13 @@ public sealed partial class PdfReadPage {
 
             string? actionType = TryReadActionType(dictionary);
             if (!string.IsNullOrEmpty(actionType)) {
-                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath));
+                string? uri = null;
+                if (string.Equals(actionType, "URI", StringComparison.Ordinal) &&
+                    dictionary.Items.TryGetValue("URI", out PdfObject? uriObject) &&
+                    ResolveObject(uriObject) is PdfStringObj uriText) {
+                    uri = uriText.Value;
+                }
+                result.Add(new PdfPageAction(null, triggerName, actionType!, actionPath, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _limits)));
             }
 
             if (dictionary.Items.TryGetValue("Next", out var nextAction)) {

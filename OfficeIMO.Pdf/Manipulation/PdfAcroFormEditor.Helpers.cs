@@ -31,11 +31,13 @@ internal static partial class PdfAcroFormEditor {
         return acroForm;
     }
 
-    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: false) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
 
-    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) {
+    private static EditableField RequireFieldSubtree(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: true) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+
+    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, bool includeNonterminalFields) {
         var found = new List<EditableField>();
-        CollectFields(objects, fields, null, null, found, new HashSet<int>());
+        CollectFields(objects, fields, null, null, found, new HashSet<int>(), includeNonterminalFields);
         EditableField? match = null;
         for (int i = 0; i < found.Count; i++) {
             if (!string.Equals(found[i].FullName, name, StringComparison.Ordinal)) continue;
@@ -45,15 +47,43 @@ internal static partial class PdfAcroFormEditor {
         return match;
     }
 
-    private static IReadOnlyList<string> ReadCalculationOrder(byte[] pdf) {
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf).Map;
+    private static bool FieldPathExists(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) {
+        var pending = new Stack<(PdfArray Owner, string? ParentName)>();
+        var visited = new HashSet<int>();
+        pending.Push((fields, null));
+        while (pending.Count > 0) {
+            (PdfArray owner, string? parentName) = pending.Pop();
+            for (int index = 0; index < owner.Items.Count; index++) {
+                if (owner.Items[index] is not PdfReference reference || !visited.Add(reference.ObjectNumber)) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
+                }
+                PdfDictionary field = RequireDictionary(objects, reference.ObjectNumber);
+                string? fullName = CombineName(parentName, ReadText(field, "T"));
+                if (string.Equals(fullName, name, StringComparison.Ordinal)) return true;
+                if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) || ResolveArray(objects, kidsObject) is not PdfArray kids) continue;
+                bool hasNamedFieldKids = false;
+                for (int kidIndex = 0; kidIndex < kids.Items.Count; kidIndex++) {
+                    PdfDictionary? kid = ResolveDictionary(objects, kids.Items[kidIndex]);
+                    if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) {
+                        hasNamedFieldKids = true;
+                        break;
+                    }
+                }
+                if (hasNamedFieldKids) pending.Push((kids, fullName));
+            }
+        }
+        return false;
+    }
+
+    private static IReadOnlyList<string> ReadCalculationOrder(byte[] pdf, PdfReadOptions? readOptions) {
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         PdfDictionary catalog = RequireCatalog(objects, security);
         if (!catalog.Items.TryGetValue("AcroForm", out PdfObject? acroFormObject) || ResolveDictionary(objects, acroFormObject) is not PdfDictionary acroForm ||
             !acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsObject) || ResolveArray(objects, fieldsObject) is not PdfArray fields ||
             !acroForm.Items.TryGetValue("CO", out PdfObject? orderObject) || ResolveArray(objects, orderObject) is not PdfArray order) return Array.Empty<string>();
         var editable = new List<EditableField>();
-        CollectFields(objects, fields, null, null, editable, new HashSet<int>());
+        CollectFields(objects, fields, null, null, editable, new HashSet<int>(), includeNonterminalFields: false);
         var names = editable.Where(static field => field.Reference is PdfReference).ToDictionary(static field => ((PdfReference)field.Reference).ObjectNumber, static field => field.FullName);
         var result = new List<string>(order.Items.Count);
         for (int i = 0; i < order.Items.Count; i++) {
@@ -63,7 +93,7 @@ internal static partial class PdfAcroFormEditor {
         return result.AsReadOnly();
     }
 
-    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited) {
+    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited, bool includeNonterminalFields = false) {
         for (int i = 0; i < owner.Items.Count; i++) {
             PdfObject fieldObject = owner.Items[i];
             if (fieldObject is not PdfReference reference || !visited.Add(reference.ObjectNumber)) throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
@@ -77,7 +107,12 @@ internal static partial class PdfAcroFormEditor {
                 if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) { hasNamedFieldKids = true; break; }
             }
             if (kids is not null && hasNamedFieldKids) {
-                CollectFields(objects, kids, fullName, fieldType, result, visited);
+                if (includeNonterminalFields && !string.IsNullOrEmpty(fullName)) {
+                    var subtreeWidgetNumbers = new List<int>(); var subtreeObjectNumbers = new List<int>();
+                    CollectSubtreeObjects(objects, fieldObject, subtreeObjectNumbers, subtreeWidgetNumbers, new HashSet<int>());
+                    result.Add(new EditableField(fullName!, fieldType, field, owner, fieldObject, subtreeWidgetNumbers.AsReadOnly(), subtreeObjectNumbers.AsReadOnly()));
+                }
+                CollectFields(objects, kids, fullName, fieldType, result, visited, includeNonterminalFields);
                 continue;
             }
             if (string.IsNullOrEmpty(fullName)) continue;
@@ -120,6 +155,173 @@ internal static partial class PdfAcroFormEditor {
         return annots;
     }
 
+    private static (PdfArray Owner, PdfReference? Parent, string PartialName) EnsureCreatedFieldOwner(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string fullName,
+        ref int nextObjectNumber) {
+        string[] components = fullName.Split('.');
+        PdfArray owner = fields;
+        PdfReference? parentReference = null;
+        for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            string component = components[componentIndex];
+            PdfReference? matchingReference = null;
+            PdfDictionary? matchingDictionary = null;
+            for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
+                }
+                PdfDictionary candidate = RequireDictionary(objects, candidateReference.ObjectNumber);
+                if (!string.Equals(ReadText(candidate, "T"), component, StringComparison.Ordinal)) continue;
+                if (matchingReference is not null) throw new InvalidOperationException("PDF contains duplicate partial form field names: " + component);
+                matchingReference = candidateReference;
+                matchingDictionary = candidate;
+            }
+
+            if (matchingReference is null || matchingDictionary is null) {
+                int objectNumber = nextObjectNumber++;
+                matchingReference = new PdfReference(objectNumber, 0);
+                var parent = new PdfDictionary();
+                parent.Items["T"] = new PdfStringObj(component, true);
+                parent.Items["Kids"] = new PdfArray();
+                if (parentReference is not null) parent.Items["Parent"] = parentReference;
+                objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, parent);
+                owner.Items.Add(matchingReference);
+                matchingDictionary = parent;
+            } else {
+                PdfArray? existingKids = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? existingKidsObject)
+                    ? ResolveArray(objects, existingKidsObject)
+                    : null;
+                bool hasNamedFieldKids = false;
+                bool hasUnnamedWidgetKids = false;
+                if (existingKids is not null) {
+                    for (int kidIndex = 0; kidIndex < existingKids.Items.Count; kidIndex++) {
+                        PdfDictionary? kid = ResolveDictionary(objects, existingKids.Items[kidIndex]);
+                        if (kid is null) continue;
+                        if (!string.IsNullOrEmpty(ReadText(kid, "T"))) {
+                            hasNamedFieldKids = true;
+                            break;
+                        }
+                        if (string.Equals(ReadName(kid, "Subtype"), "Widget", StringComparison.Ordinal)) {
+                            hasUnnamedWidgetKids = true;
+                        }
+                    }
+                }
+                if (string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal) ||
+                    hasUnnamedWidgetKids ||
+                    (ReadInheritedFieldType(objects, matchingDictionary) is not null && !hasNamedFieldKids)) {
+                    throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
+                }
+            }
+
+            PdfArray? kids = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)
+                ? ResolveArray(objects, kidsObject)
+                : null;
+            if (kids is null) {
+                kids = new PdfArray();
+                matchingDictionary.Items["Kids"] = kids;
+            }
+            owner = kids;
+            parentReference = matchingReference;
+        }
+        return (owner, parentReference, components[components.Length - 1]);
+    }
+
+    private static int PreflightCreatedFieldPath(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string fullName,
+        int currentFieldNodeCount,
+        PdfReadLimits limits) {
+        string[] components = fullName.Split('.');
+        if (components.Length > limits.MaxFormFieldDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, components.Length);
+        }
+
+        int missingParents = CountMissingCreatedFieldParents(objects, fields, components);
+        int addedFieldNodes = missingParents + 1;
+        long finalFieldNodeCount = (long)currentFieldNodeCount + addedFieldNodes;
+        if (finalFieldNodeCount > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, finalFieldNodeCount);
+        }
+
+        long minimumFinalObjectCount = (long)objects.Count + addedFieldNodes;
+        if (minimumFinalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, minimumFinalObjectCount);
+        }
+        return addedFieldNodes;
+    }
+
+    private static int CountMissingCreatedFieldParents(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string[] components) {
+        PdfArray owner = fields;
+        for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            PdfDictionary? matchingDictionary = null;
+            for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
+                }
+                PdfDictionary candidate = RequireDictionary(objects, candidateReference.ObjectNumber);
+                if (!string.Equals(ReadText(candidate, "T"), components[componentIndex], StringComparison.Ordinal)) continue;
+                if (matchingDictionary is not null) {
+                    throw new InvalidOperationException("PDF contains duplicate partial form field names: " + components[componentIndex]);
+                }
+                matchingDictionary = candidate;
+            }
+            if (matchingDictionary is null) return components.Length - componentIndex - 1;
+            owner = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) &&
+                    ResolveArray(objects, kidsObject) is PdfArray kids
+                ? kids
+                : new PdfArray();
+        }
+        return 0;
+    }
+
+    private static int CountFormFieldNodes(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        PdfReadLimits limits) {
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var visitedDictionaries = new HashSet<PdfDictionary>();
+        int count = 0;
+        for (int index = 0; index < fields.Items.Count; index++) {
+            CountFormFieldNode(objects, fields.Items[index], depth: 1, limits, visitedReferences, visitedDictionaries, ref count);
+        }
+        return count;
+    }
+
+    private static void CountFormFieldNode(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject fieldObject,
+        int depth,
+        PdfReadLimits limits,
+        HashSet<(int ObjectNumber, int Generation)> visitedReferences,
+        HashSet<PdfDictionary> visitedDictionaries,
+        ref int count) {
+        if (depth > limits.MaxFormFieldDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, depth);
+        }
+        if (fieldObject is PdfReference reference &&
+            !visitedReferences.Add((reference.ObjectNumber, reference.Generation))) return;
+        if (PdfObjectLookup.Resolve(objects, fieldObject) is not PdfDictionary field ||
+            !visitedDictionaries.Add(field)) return;
+        count++;
+        if (count > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, count);
+        }
+        if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
+            ResolveArray(objects, kidsObject) is not PdfArray kids) return;
+        for (int index = 0; index < kids.Items.Count; index++) {
+            PdfDictionary? kid = ResolveDictionary(objects, kids.Items[index]);
+            if (kid != null &&
+                string.Equals(ReadName(kid, "Subtype"), "Widget", StringComparison.Ordinal) &&
+                string.IsNullOrEmpty(ReadText(kid, "T"))) continue;
+            CountFormFieldNode(objects, kids.Items[index], depth + 1, limits, visitedReferences, visitedDictionaries, ref count);
+        }
+    }
+
     private static void RemoveWidgetReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> widgetNumbers) {
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfDictionary page || !string.Equals(ReadName(page, "Type"), "Page", StringComparison.Ordinal) || !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) || ResolveArray(objects, annotsObject) is not PdfArray annots) continue;
@@ -144,10 +346,38 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private static PdfArray CreateRectangle(double x1, double y1, double x2, double y2) { var result = new PdfArray(); result.Items.Add(new PdfNumber(x1)); result.Items.Add(new PdfNumber(y1)); result.Items.Add(new PdfNumber(x2)); result.Items.Add(new PdfNumber(y2)); return result; }
+
+    private static string? ReadInheritedFieldType(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            string? fieldType = ReadName(current, "FT");
+            if (fieldType is not null) return fieldType;
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return null;
+    }
     private static PdfArray CreateStringArray(IReadOnlyList<string> values) { var result = new PdfArray(); for (int i = 0; i < values.Count; i++) result.Items.Add(new PdfStringObj(values[i], true)); return result; }
     private static string? ReadText(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfStringObj text ? text.Value : null;
     private static string? ReadName(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfName name ? name.Name : null;
     private static string? ReadSimpleValue(PdfDictionary dictionary) => dictionary.Items.TryGetValue("V", out PdfObject? value) ? value is PdfStringObj text ? text.Value : value is PdfName name ? name.Name : null : null;
+
+    private static string? ReadInheritedSimpleValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary) {
+        var visited = new HashSet<int>();
+        PdfDictionary? current = dictionary;
+        while (current != null) {
+            string? value = ReadSimpleValue(current);
+            if (value != null || current.Items.ContainsKey("V")) return value;
+            if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject)) return null;
+            if (parentObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) return null;
+            current = PdfObjectLookup.Resolve(objects, parentObject) as PdfDictionary;
+        }
+        return null;
+    }
     private static string? CombineName(string? parent, string? partial) => string.IsNullOrEmpty(partial) ? parent : string.IsNullOrEmpty(parent) ? partial : parent + "." + partial;
     private static string ParentName(string name) { int index = name.LastIndexOf('.'); return index < 0 ? string.Empty : name.Substring(0, index); }
     private static string LeafName(string name) { int index = name.LastIndexOf('.'); return index < 0 ? name : name.Substring(index + 1); }
@@ -171,10 +401,78 @@ internal static partial class PdfAcroFormEditor {
 
     private static void ValidateCreateOptions(PdfFormFieldCreateOptions options, int pageCount) {
         Guard.NotNullOrWhiteSpace(options.Name, nameof(options.Name));
+        if (options.Kind < PdfFormFieldCreationKind.Text || options.Kind > PdfFormFieldCreationKind.PushButton) throw new ArgumentOutOfRangeException(nameof(options), "Field kind is not supported.");
         if (options.PageNumber < 1 || options.PageNumber > pageCount) throw new ArgumentOutOfRangeException(nameof(options), "Page number is outside the document.");
-        if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) || options.Width <= 0D || options.Height <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates and positive dimensions.");
-        if (options.Name[0] == '.' || options.Name[options.Name.Length - 1] == '.') throw new ArgumentException("Field name cannot start or end with a period.", nameof(options));
-        if (options.Kind == PdfFormFieldCreationKind.Choice && options.ChoiceOptions.Any(string.IsNullOrEmpty)) throw new ArgumentException("Choice options cannot be empty.", nameof(options));
+        if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) ||
+            options.Width <= 0D || options.Height <= 0D ||
+            !IsFinite(options.X + options.Width) || !IsFinite(options.Y + options.Height)) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates, positive dimensions, and finite edges.");
+        }
+        string[] nameComponents = options.Name.Split('.');
+        if (nameComponents.Any(static component => component.Length == 0)) throw new ArgumentException("Field names cannot contain empty path components.", nameof(options));
+        if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");
+        if (options.JavaScript is not null && options.Kind == PdfFormFieldCreationKind.Signature) throw new ArgumentException("Signature fields do not support widget JavaScript authoring.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.Signature && options.DefaultValue is not null) throw new ArgumentException("Signature fields do not support default values.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && string.IsNullOrWhiteSpace(options.Caption)) throw new ArgumentException("Push-button caption cannot be empty.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox && (options.FieldFlags & (FieldFlagRadio | FieldFlagPushButton)) != 0) throw new ArgumentException("Check-box fields cannot declare radio or push-button flags.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && (options.FieldFlags & FieldFlagPushButton) != 0) throw new ArgumentException("Radio-button fields cannot declare the push-button flag.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.PushButton && (options.FieldFlags & FieldFlagRadio) != 0) throw new ArgumentException("Push-button fields cannot declare the radio-button flag.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.CheckBox) ValidateButtonStateName(options.CheckedValueName, "Check-box selected value");
+        if (options.Kind == PdfFormFieldCreationKind.Choice || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            ValidateCreateOptionsList(options);
+        }
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            if (!IsFinite(options.RadioButtonSize) || options.RadioButtonSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Radio-button size must be a positive finite number.");
+            if (!IsFinite(options.RadioButtonGap) || options.RadioButtonGap < 0D) throw new ArgumentOutOfRangeException(nameof(options), "Radio-button gap must be a non-negative finite number.");
+            if (options.Width <= options.RadioButtonSize + PdfRadioButtonLayout.GetLabelGap(options.RadioButtonSize)) throw new ArgumentException("Radio-button width must leave space for visible option labels.", nameof(options));
+            double requiredHeight = options.ChoiceOptions.Count * options.RadioButtonSize + Math.Max(0, options.ChoiceOptions.Count - 1) * options.RadioButtonGap;
+            if (requiredHeight > options.Height) throw new ArgumentException("Radio-button widgets do not fit inside the requested field rectangle.", nameof(options));
+            string selected = ResolveInitialValue(options);
+            if (!options.ChoiceOptions.Contains(selected, StringComparer.Ordinal)) throw new ArgumentException("Radio-button value must match one of the provided options.", nameof(options));
+            if (options.DefaultValue is not null && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Radio-button default value must match one of the provided options.", nameof(options));
+        }
+        if (options.Kind == PdfFormFieldCreationKind.Choice) {
+            bool isComboBox = IsChoiceComboBox(options);
+            bool isEditableChoice = IsEditableChoice(options);
+            if (isEditableChoice && !isComboBox) throw new ArgumentException("Editable choice fields must be combo boxes.", nameof(options));
+            if (isComboBox && (options.FieldFlags & FieldFlagMultiSelect) != 0) throw new ArgumentException("Combo-box choice fields cannot also be multi-select fields.", nameof(options));
+            if (!string.IsNullOrEmpty(options.Value) && !isEditableChoice && !options.ChoiceOptions.Contains(options.Value, StringComparer.Ordinal)) throw new ArgumentException("Choice value must match one of the provided options.", nameof(options));
+            if (options.DefaultValue is not null && !isEditableChoice && !options.ChoiceOptions.Contains(options.DefaultValue, StringComparer.Ordinal)) throw new ArgumentException("Choice default value must match one of the provided options.", nameof(options));
+        }
+        int fieldFlags = GetCreateFieldFlags(options);
+        if (options.Kind == PdfFormFieldCreationKind.Text &&
+            (fieldFlags & FieldFlagFileSelect) != 0 &&
+            (fieldFlags & (FieldFlagMultiline | FieldFlagPassword)) != 0) {
+            throw new ArgumentException("PDF file-select text fields cannot also be multiline or password fields.", nameof(options));
+        }
+        bool requestsComb = options.Style?.IsComb == true || (options.FieldFlags & FieldFlagComb) != 0;
+        if (requestsComb &&
+            (options.Kind != PdfFormFieldCreationKind.Text ||
+             options.Style?.MaxLength is null ||
+             (fieldFlags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
+            throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(options));
+        }
+        if (options.Kind == PdfFormFieldCreationKind.Text && options.Style?.MaxLength is int maximumLength &&
+            ((options.Value?.Length ?? 0) > maximumLength || (options.DefaultValue?.Length ?? 0) > maximumLength)) {
+            throw new ArgumentException("Text field values and default values cannot exceed MaxLength.", nameof(options));
+        }
+    }
+
+    private static void ValidateCreateOptionsList(PdfFormFieldCreateOptions options) {
+        if (options.ChoiceOptions is null) throw new ArgumentException("Choice options cannot be null.", nameof(options));
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && options.ChoiceOptions.Count == 0) throw new ArgumentException("Radio fields require at least one option.", nameof(options));
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < options.ChoiceOptions.Count; i++) {
+            string option = options.ChoiceOptions[i];
+            if (string.IsNullOrWhiteSpace(option) || !seen.Add(option)) throw new ArgumentException("Choice and radio options must be non-empty and unique.", nameof(options));
+            if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) ValidateButtonStateName(option, "Radio-button option");
+        }
+    }
+
+    private static void ValidateButtonStateName(string value, string description) {
+        Guard.NotNullOrWhiteSpace(value, nameof(value));
+        if (string.Equals(value, "Off", StringComparison.Ordinal)) throw new ArgumentException(description + " cannot be Off.", nameof(value));
+        for (int i = 0; i < value.Length; i++) if (value[i] < 0x20 || value[i] > 0x7E) throw new ArgumentException(description + " must contain only printable ASCII PDF name characters.", nameof(value));
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

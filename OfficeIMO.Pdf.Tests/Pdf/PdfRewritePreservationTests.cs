@@ -229,6 +229,147 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void Assess_ReportsNonUriActionPayloadDrift() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildViewerActionPreservationProofPdf();
+        byte[] rewritten = ReplaceFirstAscii(source, "(page.exe)", "(evil.exe)");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten);
+
+        Assert.False(report.IsPreserved);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature.EndsWith(".Payload", StringComparison.Ordinal) &&
+            issue.Expected != issue.Actual);
+    }
+
+    [Fact]
+    public void ActionPayloadFingerprintSurfacesTraversalLimitAsUnprojectable() {
+        var fields = new PdfArray();
+        for (int index = 0; index < 4097; index++) fields.Items.Add(new PdfNumber(index));
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("SubmitForm");
+        action.Items["Fields"] = fields;
+
+        string? fingerprint = PdfActionPayloadFingerprint.Create(action, new Dictionary<int, PdfIndirectObject>(), new PdfReadLimits());
+
+        Assert.Null(fingerprint);
+    }
+
+    [Fact]
+    public void ActionPayloadFingerprintUsesConfiguredPageTreeDepth() {
+        var objects = new Dictionary<int, PdfIndirectObject>();
+        var catalog = new PdfDictionary();
+        catalog.Items["Type"] = new PdfName("Catalog");
+        catalog.Items["Pages"] = new PdfReference(2, 0);
+        objects[1] = new PdfIndirectObject(1, 0, catalog);
+        for (int objectNumber = 2; objectNumber < 42; objectNumber++) {
+            var pages = new PdfDictionary();
+            pages.Items["Type"] = new PdfName("Pages");
+            var kids = new PdfArray();
+            kids.Items.Add(new PdfReference(objectNumber + 1, 0));
+            pages.Items["Kids"] = kids;
+            objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, pages);
+        }
+        var page = new PdfDictionary();
+        page.Items["Type"] = new PdfName("Page");
+        objects[42] = new PdfIndirectObject(42, 0, page);
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("GoTo");
+        action.Items["D"] = new PdfReference(42, 0);
+
+        Assert.NotNull(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+        Assert.Null(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits { MaxPageTreeDepth = 8 }));
+    }
+
+    [Fact]
+    public void ActionPayloadFingerprintHashesSharedIndirectStringPayloads() {
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, new PdfStringObj(new byte[256 * 1024]))
+        };
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("URI");
+        action.Items["URI"] = new PdfReference(7, 0);
+
+        string fingerprint = Assert.IsType<string>(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+
+        Assert.InRange(fingerprint.Length, 1, 256);
+        Assert.Equal(fingerprint, PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+    }
+
+    [Fact]
+    public void ActionPayloadFingerprintHashesSharedIndirectContainerPayloads() {
+        var shared = new PdfArray();
+        for (int index = 0; index < 4000; index++) shared.Items.Add(new PdfNumber(index));
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, shared)
+        };
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("SubmitForm");
+        action.Items["Fields"] = new PdfReference(7, 0);
+
+        string fingerprint = Assert.IsType<string>(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+
+        Assert.InRange(fingerprint.Length, 1, 256);
+        Assert.Equal(fingerprint, PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+    }
+
+    [Fact]
+    public void Assess_PreservesOnlyPubliclySelectedWidgetActionTypes() {
+        byte[] source = BuildWidgetActionPreservationPdf("alpha");
+        byte[] rewritten = BuildWidgetActionPreservationPdf("bravo");
+        var options = new PdfRewritePreservationOptions { PreserveFormWidgetActions = true };
+        options.PreservedActionTypes.Add("URI");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.True(report.IsPreserved, report.Summary);
+    }
+
+    [Fact]
+    public void Assess_FilteredWidgetActionsPreserveSiblingExecutionOrder() {
+        byte[] source = BuildOrderedWidgetActionPreservationPdf("first", "second");
+        byte[] rewritten = BuildOrderedWidgetActionPreservationPdf("second", "first");
+        var options = new PdfRewritePreservationOptions {
+            PreserveFormWidgetActions = true,
+            FilterActionsByPreservedTypes = true
+        };
+        options.PreservedActionTypes.Add("URI");
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.False(report.IsPreserved);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "FormWidgetActions");
+    }
+
+    [Fact]
+    public void Assess_ReportsLostPageActionsWhenPageCountChanges() {
+        byte[] source = BuildPageActionPreservationPdf(includeSecondPage: true, includeAction: true);
+        byte[] rewritten = BuildPageActionPreservationPdf(includeSecondPage: false, includeAction: false);
+        var options = new PdfRewritePreservationOptions {
+            PreservePageCount = false,
+            PreservePageGeometry = false
+        };
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.Contains(report.Issues, static issue =>
+            issue.Feature == "PageActions.Count" && issue.Expected == "1" && issue.Actual == "0");
+    }
+
+    [Fact]
+    public void Assess_ReportsPageActionRelocationWhenPageCountChanges() {
+        byte[] source = BuildRelocatedPageActionPdf(pageCount: 2, actionPageNumber: 1);
+        byte[] rewritten = BuildRelocatedPageActionPdf(pageCount: 3, actionPageNumber: 2);
+        var options = new PdfRewritePreservationOptions {
+            PreservePageCount = false,
+            PreservePageGeometry = false
+        };
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.Assess(source, rewritten, options);
+
+        Assert.Contains(report.Issues, static issue => issue.Feature.StartsWith("PageActions", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Assess_PreservesSourceStructureForUnchangedPdf() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
@@ -424,6 +565,70 @@ public class PdfRewritePreservationTests {
         byte[] rewritten = (byte[])source.Clone();
         Array.Copy(newBytes, 0, rewritten, index, newBytes.Length);
         return rewritten;
+    }
+
+    private static byte[] BuildWidgetActionPreservationPdf(string script) {
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (Action) /Rect [20 20 120 44] /P 3 0 R /A << /S /URI /URI (https://example.com) >> /AA << /U << /S /JavaScript /JS (" + script + ") >> >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildOrderedWidgetActionPreservationPdf(string first, string second) {
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (Action) /Rect [20 20 120 44] /P 3 0 R /A << /S /JavaScript /JS (removed) /Next [<< /S /URI /URI (https://example.com/" + first + ") >> << /S /URI /URI (https://example.com/" + second + ") >>] >> >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildPageActionPreservationPdf(bool includeSecondPage, bool includeAction) {
+        string kids = includeSecondPage ? "[3 0 R 5 0 R]" : "[3 0 R]";
+        string count = includeSecondPage ? "2" : "1";
+        string pageAction = includeAction ? " /AA << /O << /S /URI /URI (https://example.com) >> >>" : string.Empty;
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count " + count + " /Kids " + kids + " >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R" + pageAction + " >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+        };
+        if (includeSecondPage) {
+            lines.AddRange(new[] {
+                "5 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>", "endobj",
+                "6 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+            });
+        }
+        lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size " + (includeSecondPage ? "7" : "5") + " >>", "%%EOF" });
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", lines));
+    }
+
+    private static byte[] BuildRelocatedPageActionPdf(int pageCount, int actionPageNumber) {
+        string action = " /AA << /O << /S /URI /URI (https://example.com) >> >>";
+        var lines = new List<string> {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count " + pageCount + " /Kids [" + string.Join(" ", Enumerable.Range(0, pageCount).Select(static index => (3 + index * 2) + " 0 R")) + "] >>", "endobj"
+        };
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+            int pageObject = 3 + pageIndex * 2;
+            int contentObject = pageObject + 1;
+            lines.AddRange(new[] {
+                pageObject + " 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents " + contentObject + " 0 R" + (actionPageNumber == pageIndex + 1 ? action : string.Empty) + " >>", "endobj",
+                contentObject + " 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj"
+            });
+        }
+        lines.AddRange(new[] { "trailer", "<< /Root 1 0 R /Size " + (3 + pageCount * 2) + " >>", "%%EOF" });
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", lines));
     }
 
     private static int IndexOf(byte[] source, byte[] value) {

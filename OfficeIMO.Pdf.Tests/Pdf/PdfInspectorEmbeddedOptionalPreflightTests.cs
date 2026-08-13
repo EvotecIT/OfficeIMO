@@ -256,7 +256,7 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
-    public void Preflight_AllowsActiveContentPdfReadButBlocksRewrite() {
+    public void Preflight_AllowsActiveContentReadAndReportsNoFormFieldsSeparatelyFromGeneralRewriteBlocker() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildActiveContentPdf());
 
         Assert.True(report.CanRead);
@@ -271,6 +271,9 @@ public partial class PdfInspectorTests {
         Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.False(report.Can(PdfPreflightCapability.FlattenSimpleFormFields));
         Assert.Contains(
+            "PDF does not contain named text, choice, or button AcroForm fields supported for simple form filling by OfficeIMO.Pdf.",
+            report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
+        Assert.DoesNotContain(
             "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.",
             report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
         Assert.True(report.Probe.HasActiveContent);

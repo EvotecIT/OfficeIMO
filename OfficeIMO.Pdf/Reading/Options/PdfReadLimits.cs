@@ -7,12 +7,15 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
     internal const int DefaultMaxPageContentBytes = 256 * 1024 * 1024;
+    internal const long DefaultMaxRetainedContentBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
+    internal const int DefaultMaxTextSearchMatches = 100_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxJavaScriptBytes = 4_000_000;
     internal const int DefaultMaxJavaScripts = 10_000;
+    internal const int DefaultMaxWidgetActions = 100_000;
     internal const long DefaultMaxTotalJavaScriptBytes = 32L * 1024L * 1024L;
     internal const int DefaultMaxAttachments = 100_000;
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
@@ -36,11 +39,17 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
 
+    /// <summary>Maximum aggregate decoded content-stream bytes retained by one document-wide validation operation. Default: 512 MiB.</summary>
+    public long MaxRetainedContentBytes { get; init; } = DefaultMaxRetainedContentBytes;
+
     /// <summary>Maximum characters emitted from marked-content ActualText replacements on one page, including nested Form XObjects. Default: 1,000,000.</summary>
     public int MaxActualTextCharacters { get; init; } = DefaultMaxActualTextCharacters;
 
     /// <summary>Maximum font-decoded text characters emitted on one page, including nested Form XObjects. Default: 10,000,000.</summary>
     public int MaxDecodedTextCharacters { get; init; } = DefaultMaxDecodedTextCharacters;
+
+    /// <summary>Maximum text-search matches materialized by one Find or ReplaceAll operation. Default: 100,000.</summary>
+    public int MaxTextSearchMatches { get; init; } = DefaultMaxTextSearchMatches;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = 1_000_000;
@@ -78,13 +87,16 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum nested PDF name-tree depth. Default: 128.</summary>
     public int MaxNameTreeDepth { get; init; } = DefaultMaxNameTreeDepth;
 
-    /// <summary>Maximum decoded source bytes retained for one document-level JavaScript action. Default: 4,000,000.</summary>
+    /// <summary>Maximum decoded source bytes retained for one named or widget JavaScript action. Default: 4,000,000.</summary>
     public int MaxJavaScriptBytes { get; init; } = DefaultMaxJavaScriptBytes;
 
-    /// <summary>Maximum named document-level JavaScript entries discovered in one PDF. Default: 10,000.</summary>
+    /// <summary>Maximum JavaScript entries discovered in one PDF action surface. Default: 10,000.</summary>
     public int MaxJavaScripts { get; init; } = DefaultMaxJavaScripts;
 
-    /// <summary>Maximum aggregate decoded source bytes retained for document-level JavaScript. Default: 32 MiB.</summary>
+    /// <summary>Maximum widget action nodes materialized while reading AcroForm action graphs. Default: 100,000.</summary>
+    public int MaxWidgetActions { get; init; } = DefaultMaxWidgetActions;
+
+    /// <summary>Maximum aggregate decoded source bytes retained for one PDF JavaScript action surface. Default: 32 MiB.</summary>
     public long MaxTotalJavaScriptBytes { get; init; } = DefaultMaxTotalJavaScriptBytes;
 
     /// <summary>Maximum attachment records discovered across name trees, associated files, and annotations. Default: 100,000.</summary>
@@ -121,8 +133,10 @@ public sealed class PdfReadLimits {
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = MaxDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
+            MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxTextSearchMatches = MaxTextSearchMatches,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -137,6 +151,7 @@ public sealed class PdfReadLimits {
             MaxNameTreeDepth = MaxNameTreeDepth,
             MaxJavaScriptBytes = MaxJavaScriptBytes,
             MaxJavaScripts = MaxJavaScripts,
+            MaxWidgetActions = MaxWidgetActions,
             MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
             MaxAttachments = MaxAttachments,
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
@@ -168,8 +183,12 @@ public sealed class PdfReadLimits {
         }
 
         ValidatePositive(MaxPageContentBytes, nameof(MaxPageContentBytes), "Maximum aggregate page content bytes must be positive.");
+        if (MaxRetainedContentBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(MaxRetainedContentBytes), MaxRetainedContentBytes, "Maximum retained content bytes must be positive.");
+        }
         ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
         ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
+        ValidatePositive(MaxTextSearchMatches, nameof(MaxTextSearchMatches), "Maximum text-search matches must be positive.");
 
         if (MaxObjectCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");
@@ -197,6 +216,7 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxNameTreeDepth, nameof(MaxNameTreeDepth), "Maximum name-tree depth must be positive.");
         ValidatePositive(MaxJavaScriptBytes, nameof(MaxJavaScriptBytes), "Maximum document JavaScript bytes must be positive.");
         ValidatePositive(MaxJavaScripts, nameof(MaxJavaScripts), "Maximum document JavaScript entries must be positive.");
+        ValidatePositive(MaxWidgetActions, nameof(MaxWidgetActions), "Maximum widget action nodes must be positive.");
         if (MaxTotalJavaScriptBytes <= 0L) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalJavaScriptBytes), MaxTotalJavaScriptBytes, "Maximum aggregate document JavaScript bytes must be positive.");
         }
