@@ -47,6 +47,31 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ConvexClipIntersectionDoesNotRetainSubToleranceOutsideVertices() {
+        OfficePathCommand[] subject = {
+            OfficePathCommand.MoveTo(-0.0001D, 1D),
+            OfficePathCommand.LineTo(5D, 1D),
+            OfficePathCommand.LineTo(5D, 5D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] clip = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(subject, OfficeFillRule.NonZero, out PdfPageClipPath first));
+        Assert.True(PdfPageClipPath.TryCreatePath(clip, OfficeFillRule.NonZero, out PdfPageClipPath second));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(first, second);
+
+        Assert.True(intersection.IsExact);
+        Assert.All(
+            intersection.Commands.Where(command => command.Kind != OfficePathCommandKind.Close),
+            command => Assert.True(command.Point.X >= 0D, $"Unexpected outside x-coordinate {command.Point.X:R}."));
+    }
+
+    [Fact]
     public void VisualParser_RejectsAxialShadingCollapsedByRendererTolerance() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0.05D, 0D,

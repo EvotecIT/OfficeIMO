@@ -372,7 +372,7 @@ internal readonly partial struct PdfPageClipPath {
     private static bool IsInsideClipEdge(OfficePoint point, OfficePoint edgeStart, OfficePoint edgeEnd, bool positiveArea) {
         double cross = ((edgeEnd.X - edgeStart.X) * (point.Y - edgeStart.Y)) -
             ((edgeEnd.Y - edgeStart.Y) * (point.X - edgeStart.X));
-        return positiveArea ? cross >= -0.001D : cross <= 0.001D;
+        return positiveArea ? cross >= 0D : cross <= 0D;
     }
 
     private static OfficePoint IntersectLines(OfficePoint firstStart, OfficePoint firstEnd, OfficePoint secondStart, OfficePoint secondEnd) {

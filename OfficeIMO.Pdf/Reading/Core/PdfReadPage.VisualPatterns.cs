@@ -508,7 +508,8 @@ public sealed partial class PdfReadPage {
             placements,
             activeForms,
             contentNestingDepth: contentNestingDepth,
-            pageContentBudget: pageContentBudget);
+            pageContentBudget: pageContentBudget,
+            contentOrderPrefix: PdfContentOrderKey.Root);
         if (placements.Count > 0) {
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true);

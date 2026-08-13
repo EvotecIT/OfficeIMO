@@ -878,6 +878,10 @@ internal static class PdfPageContentVisualParser {
                     (_state.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter) != OfficeStrokeLineJoin.Round) {
                     _unsupportedOperatorVisitor?.Invoke("j");
                 }
+                if (stroke && PathContainsOpenJoin() &&
+                    (_state.StrokeLineCap ?? OfficeStrokeLineCap.Butt) != OfficeStrokeLineCap.Round) {
+                    _unsupportedOperatorVisitor?.Invoke("J");
+                }
             }
 
             if (isAxisAlignedRectangle) {
@@ -1514,6 +1518,24 @@ internal static class PdfPageContentVisualParser {
                 }
             }
             return false;
+        }
+
+        private bool PathContainsOpenJoin() {
+            int subpathSegmentCount = 0;
+            for (int i = 0; i < _pathCommands.Count; i++) {
+                OfficePathCommandKind kind = _pathCommands[i].Kind;
+                if (kind == OfficePathCommandKind.MoveTo) {
+                    if (subpathSegmentCount >= 2) return true;
+                    subpathSegmentCount = 0;
+                } else if (kind == OfficePathCommandKind.LineTo ||
+                    kind == OfficePathCommandKind.CubicBezierTo ||
+                    kind == OfficePathCommandKind.QuadraticBezierTo) {
+                    subpathSegmentCount++;
+                } else if (kind == OfficePathCommandKind.Close) {
+                    subpathSegmentCount = 0;
+                }
+            }
+            return subpathSegmentCount >= 2;
         }
 
         private void AddLine((double X, double Y) start, (double X, double Y) end, double paintOrder) {
