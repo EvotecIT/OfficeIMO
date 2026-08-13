@@ -120,6 +120,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldBackgroundImageStaticFallback = "HtmlRenderFormFieldBackgroundImageStaticFallback";
     /// <summary>A form control with an unsupported interactive border style used truthful static rendering.</summary>
     public const string FormFieldBorderStyleStaticFallback = "HtmlRenderFormFieldBorderStyleStaticFallback";
+    /// <summary>A text or choice control with typography unavailable to generated PDF widgets used truthful static rendering.</summary>
+    public const string FormFieldTypographyStaticFallback = "HtmlRenderFormFieldTypographyStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
     /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
@@ -244,6 +246,7 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldColorTransparencyStaticFallback,
         FormFieldBackgroundImageStaticFallback,
         FormFieldBorderStyleStaticFallback,
+        FormFieldTypographyStaticFallback,
         OpacityValueUnsupported,
         InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,

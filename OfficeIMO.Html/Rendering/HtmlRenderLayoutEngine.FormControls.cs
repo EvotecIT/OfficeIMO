@@ -677,6 +677,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ReportBackgroundImageFormFieldFallback(source, null);
             return false;
         }
+        if ((fieldKind == HtmlRenderFormFieldKind.Text || fieldKind == HtmlRenderFormFieldKind.Choice)
+            && !CanPreserveInteractiveFieldTypography(style.Font)) {
+            ReportFormFieldTypographyFallback(source, style.Font);
+            return false;
+        }
         HtmlResolvedBorderRadii resolvedRadii = ResolveBoxRadii(style, width, height, element, source);
         if (!resolvedRadii.IsZero && !resolvedRadii.IsUniformCircular) {
             ReportNonUniformFormFieldRadiusFallback(source);
@@ -731,6 +736,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "border-style=" + borderStyle,
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private static bool CanPreserveInteractiveFieldTypography(OfficeFontInfo font) {
+        if (font.Style != OfficeFontStyle.Regular) return false;
+        string familyList = font.FamilyName.Trim();
+        IReadOnlyList<string> families = HtmlRenderCssValues.SplitTopLevelCommas(familyList);
+        string family = (families.Count == 0 ? familyList : families[0]).Trim().Trim('\'', '"');
+        return string.Equals(family, "Arial", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(family, "Helvetica", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(family, "sans-serif", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void ReportFormFieldTypographyFallback(string source, OfficeFontInfo font) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldTypographyStaticFallback,
+            "An HTML text or choice control used faithful static rendering because a PDF widget cannot preserve its authored typography.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "font=" + font,
             OfficeConversionLossKind.Approximation);
     }
 

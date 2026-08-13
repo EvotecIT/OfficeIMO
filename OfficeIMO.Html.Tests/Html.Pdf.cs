@@ -296,6 +296,26 @@ public sealed class HtmlPdfTests {
         Assert.Contains("Static border", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlToPdf_UnrepresentableControlTypographyUsesTruthfulStaticFallback() {
+        const string html = "<input name='bold' value='Bold value' style='font-weight:bold'>"
+            + "<textarea name='italic' style='font-style:italic'>Italic value</textarea>"
+            + "<select name='family' style='font-family:Courier New'><option selected>Courier value</option></select>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+        string text = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTypographyStaticFallback));
+        Assert.Contains(HtmlRenderDiagnosticCodes.FormFieldTypographyStaticFallback, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.FormFieldTypographyStaticFallback, out _));
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("Boldvalue", text, StringComparison.Ordinal);
+        Assert.Contains("Italicvalue", text, StringComparison.Ordinal);
+        Assert.Contains("Couriervalue", text, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("background:rgba(0,0,255,.2)")]
     [InlineData("border:2px solid rgba(255,0,0,.4)")]

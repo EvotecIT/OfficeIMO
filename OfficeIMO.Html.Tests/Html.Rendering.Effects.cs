@@ -55,6 +55,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTransform_UsesTheActiveQueryContainerForLengthsAndOrigin() {
+        const string html = "<section style='width:200px;height:100px;margin:0;container-type:size'>"
+            + "<div id='translated' style='width:20px;height:20px;margin:0;background:red;transform-origin:0 0;transform:translate(10cqw,10cqh)'></div>"
+            + "<div id='scaled' style='width:20px;height:20px;margin:0;background:blue;transform-origin:10cqw 10cqh;transform:scale(2)'></div>"
+            + "</section>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 500D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        });
+
+        HtmlRenderEffectGroup translated = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#translated");
+        HtmlRenderEffectGroup scaled = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#scaled");
+
+        Assert.Equal(20D, translated.Transform.OffsetX, 3);
+        Assert.Equal(10D, translated.Transform.OffsetY, 3);
+        Assert.Equal(-20D, scaled.Transform.OffsetX, 3);
+        Assert.Equal(-30D, scaled.Transform.OffsetY, 3);
+    }
+
+    [Fact]
     public void HtmlOpacity_CompositesDescendantsAsOneIsolatedGroup() {
         const string html = "<div id='opacity-group' style='position:relative;width:20px;height:20px;margin:0;opacity:.5'>"
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div>"

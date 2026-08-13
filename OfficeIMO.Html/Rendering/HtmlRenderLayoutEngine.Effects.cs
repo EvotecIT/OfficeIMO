@@ -39,6 +39,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     _options.DefaultFontSize,
                     _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
                     _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+                    style.ContainerUnitWidth ?? double.NaN,
+                    style.ContainerUnitHeight ?? double.NaN,
                     out transform,
                     out string detail)) {
                 _diagnostics.Add(
