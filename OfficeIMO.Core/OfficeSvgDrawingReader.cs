@@ -267,18 +267,31 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool ExceedsSvgRenderedExpansionLimits(XElement root, int maximumElements) {
+        if (HasPotentialStylesheetPatternReference(root)) return true;
         int commandCount = 0;
         int elementCount = 0;
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
+        string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
         foreach (XElement child in root.Elements()) {
             if (!TryAddRenderedSvgExpansion(
                     child,
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)) return true;
+                    ref commandCount,
+                    fill,
+                    stroke)) return true;
         }
         return false;
+    }
+
+    private static bool HasPotentialStylesheetPatternReference(XElement root) {
+        bool containsPattern = root.Descendants().Any(element =>
+            element.Name.LocalName.Equals("pattern", StringComparison.OrdinalIgnoreCase));
+        return containsPattern && root.Descendants().Any(element =>
+            element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+            && element.Value.IndexOf("url", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     private static bool TryAddRenderedSvgExpansion(
@@ -286,12 +299,31 @@ public static partial class OfficeSvgDrawingReader {
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
-        ref int commandCount) {
+        ref int commandCount,
+        string? inheritedFill = null,
+        string? inheritedStroke = null) {
         elementCount++;
         if (elementCount > maximumElements) return false;
 
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
+
+        string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
+        string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
+        if (IsRenderedSvgPaintConsumer(name)) {
+            if (!TryAddRenderedSvgPatternReference(
+                    fill,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)
+                || !TryAddRenderedSvgPatternReference(
+                    stroke,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)) return false;
+        }
 
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
@@ -315,9 +347,32 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount);
+                    ref commandCount,
+                    fill,
+                    stroke);
             } finally {
                 references.Exit(referenceId);
+            }
+        }
+
+        if (name == "pattern") {
+            SvgElementReferenceEntryResult inheritedPatternResult = references.TryEnterDetailed(
+                element,
+                "pattern",
+                out string inheritedPatternId,
+                out XElement? inheritedPattern);
+            if (inheritedPatternResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
+            if (inheritedPatternResult == SvgElementReferenceEntryResult.Entered) {
+                try {
+                    if (!TryAddRenderedSvgExpansion(
+                            inheritedPattern!,
+                            references,
+                            maximumElements,
+                            ref elementCount,
+                            ref commandCount)) return false;
+                } finally {
+                    references.Exit(inheritedPatternId);
+                }
             }
         }
 
@@ -328,7 +383,9 @@ public static partial class OfficeSvgDrawingReader {
                     references,
                     maximumElements,
                     ref elementCount,
-                    ref commandCount)) return false;
+                    ref commandCount,
+                    fill,
+                    stroke)) return false;
         }
         return true;
     }
@@ -365,6 +422,41 @@ public static partial class OfficeSvgDrawingReader {
             references.Exit(referenceId);
         }
     }
+
+    private static bool TryAddRenderedSvgPatternReference(
+        string? value,
+        SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
+        ref int commandCount) {
+        SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
+            value,
+            "pattern",
+            out string referenceId,
+            out XElement? target);
+        if (result == SvgElementReferenceEntryResult.DepthExceeded) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return true;
+        try {
+            return TryAddRenderedSvgExpansion(
+                target!,
+                references,
+                maximumElements,
+                ref elementCount,
+                ref commandCount);
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static string? ResolveInheritedSvgPaint(XElement element, string propertyName, string? inherited) {
+        string? value = ReadPresentationProperty(element, propertyName);
+        if (string.IsNullOrWhiteSpace(value)) return inherited;
+        return value!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase) ? inherited : value;
+    }
+
+    private static bool IsRenderedSvgPaintConsumer(string name) => name is not (
+        "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or "clippath" or
+        "filter" or "marker" or "style");
 
     private static bool TryAddSvgGeometryCommands(XElement element, ref int commandCount) {
         string name = element.Name.LocalName;

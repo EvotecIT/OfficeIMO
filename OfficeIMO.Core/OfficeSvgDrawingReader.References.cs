@@ -85,12 +85,24 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal SvgElementReferenceEntryResult TryEnterDetailed(XElement use, out string id, out XElement? target) {
+            return TryEnterDetailed(use, expectedTargetName: null, out id, out target);
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterDetailed(
+            XElement use,
+            string? expectedTargetName,
+            out string id,
+            out XElement? target) {
             id = string.Empty;
             target = null;
             XAttribute? href = use.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
             if (href == null
                 || !TryReadLocalElementReference(href.Value, out id)
-                || !_definitions.TryGetUnique(id, out target)) return SvgElementReferenceEntryResult.Invalid;
+                || !_definitions.TryGetUnique(id, out target)
+                || (expectedTargetName != null
+                    && !target!.Name.LocalName.Equals(expectedTargetName, StringComparison.OrdinalIgnoreCase))) {
+                return SvgElementReferenceEntryResult.Invalid;
+            }
             if (_activeIds.Contains(id)) return SvgElementReferenceEntryResult.Cycle;
             if (_activeIds.Count >= MaximumElementReferenceDepth) return SvgElementReferenceEntryResult.DepthExceeded;
             _activeIds.Add(id);
@@ -106,10 +118,22 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal SvgElementReferenceEntryResult TryEnterLocalDetailed(string? value, out string id, out XElement? target) {
+            return TryEnterLocalDetailed(value, expectedTargetName: null, out id, out target);
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterLocalDetailed(
+            string? value,
+            string? expectedTargetName,
+            out string id,
+            out XElement? target) {
             id = string.Empty;
             target = null;
             if (!TryReadLocalUrlReference(value, out id)
-                || !_definitions.TryGetUnique(id, out target)) return SvgElementReferenceEntryResult.Invalid;
+                || !_definitions.TryGetUnique(id, out target)
+                || (expectedTargetName != null
+                    && !target!.Name.LocalName.Equals(expectedTargetName, StringComparison.OrdinalIgnoreCase))) {
+                return SvgElementReferenceEntryResult.Invalid;
+            }
             if (_activeIds.Contains(id)) return SvgElementReferenceEntryResult.Cycle;
             if (_activeIds.Count >= MaximumElementReferenceDepth) return SvgElementReferenceEntryResult.DepthExceeded;
             _activeIds.Add(id);
