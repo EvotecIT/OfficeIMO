@@ -726,6 +726,26 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void VisualParser_RejectsOverflowedRadialShadingPlacement() {
+        var shading = new PdfPageShadingResource(
+            1e308D, 1D, 1D,
+            1e308D, 1D, 2D,
+            OfficeColor.Red,
+            OfficeColor.Blue);
+
+        bool supported = PdfPageContentVisualParser.IsSupportedExactShadingPlacement(
+            shading,
+            new Matrix2D(2D, 0D, 0D, 2D, 0D, 0D),
+            0D,
+            0D,
+            100D,
+            100D,
+            100D);
+
+        Assert.False(supported);
+    }
+
+    [Fact]
     public void PatternStrokeBoundsIncludeDefaultMiterExtent() {
         OfficePathCommand[] path = {
             OfficePathCommand.MoveTo(10D, 90D),

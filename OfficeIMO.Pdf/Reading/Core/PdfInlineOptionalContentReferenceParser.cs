@@ -1,7 +1,10 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfInlineOptionalContentReferences {
-    public PdfInlineOptionalContentReferences(IReadOnlyList<int> objectNumbers, bool isMembershipDictionary = false, string? policy = null, string? visibilityExpression = null) {
+    public PdfInlineOptionalContentReferences(IReadOnlyList<PdfReference> objectReferences, bool isMembershipDictionary = false, string? policy = null, string? visibilityExpression = null) {
+        ObjectReferences = objectReferences;
+        var objectNumbers = new int[objectReferences.Count];
+        for (int index = 0; index < objectReferences.Count; index++) objectNumbers[index] = objectReferences[index].ObjectNumber;
         ObjectNumbers = objectNumbers;
         IsMembershipDictionary = isMembershipDictionary;
         Policy = string.IsNullOrWhiteSpace(policy) ? null : policy;
@@ -9,6 +12,8 @@ internal sealed class PdfInlineOptionalContentReferences {
     }
 
     public IReadOnlyList<int> ObjectNumbers { get; }
+
+    public IReadOnlyList<PdfReference> ObjectReferences { get; }
 
     public bool IsMembershipDictionary { get; }
 
@@ -27,28 +32,39 @@ internal static class PdfInlineOptionalContentReferenceParser {
     public static PdfInlineOptionalContentReferences Parse(string content, int start, int length) {
         bool isMembershipDictionary = TryReadNameValue(content, start, length, "Type", out string? type) &&
             string.Equals(type, "OCMD", StringComparison.Ordinal);
-        IReadOnlyList<int> objectNumbers = isMembershipDictionary &&
+        IReadOnlyList<PdfReference> objectReferences = isMembershipDictionary &&
             TryReadObjectValue(content, start, length, "OCGs", out string? groupsValue)
-                ? ExtractObjectNumbers(groupsValue!)
-                : Array.Empty<int>();
+                ? ExtractReferences(groupsValue!)
+                : Array.Empty<PdfReference>();
         string? policy = isMembershipDictionary && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
             ? parsedPolicy
             : null;
         string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression)
             ? parsedExpression
             : null;
-        return new PdfInlineOptionalContentReferences(objectNumbers, isMembershipDictionary, policy, visibilityExpression);
+        return new PdfInlineOptionalContentReferences(objectReferences, isMembershipDictionary, policy, visibilityExpression);
     }
 
     public static IReadOnlyList<int> ExtractObjectNumbers(string content, int start, int length) {
+        IReadOnlyList<PdfReference> references = ExtractReferences(content, start, length);
+        if (references.Count == 0) return Array.Empty<int>();
+        var objectNumbers = new int[references.Count];
+        for (int index = 0; index < references.Count; index++) objectNumbers[index] = references[index].ObjectNumber;
+        return objectNumbers;
+    }
+
+    private static IReadOnlyList<PdfReference> ExtractReferences(string content) =>
+        ExtractReferences(content, 0, content.Length);
+
+    private static IReadOnlyList<PdfReference> ExtractReferences(string content, int start, int length) {
         if (string.IsNullOrEmpty(content) || length <= 0 || start < 0 || start >= content.Length) {
-            return Array.Empty<int>();
+            return Array.Empty<PdfReference>();
         }
 
         int end = Math.Min(content.Length, start + length);
         int index = start;
         MoveInsideOuterDictionary(content, ref index, end);
-        var objectNumbers = new List<int>();
+        var references = new List<PdfReference>();
         while (index < end) {
             SkipWhitespace(content, ref index, end);
             if (index >= end) {
@@ -62,19 +78,19 @@ internal static class PdfInlineOptionalContentReferenceParser {
 
             int afterObjectNumber = index;
             SkipWhitespace(content, ref index, end);
-            if (!TryReadInteger(content, ref index, end, out _)) {
+            if (!TryReadInteger(content, ref index, end, out int generation)) {
                 index = afterObjectNumber;
                 continue;
             }
 
             SkipWhitespace(content, ref index, end);
             if (index < end && content[index] == 'R' && IsTokenBoundary(content, index + 1, end)) {
-                objectNumbers.Add(objectNumber);
+                if (objectNumber > 0 && generation >= 0) references.Add(new PdfReference(objectNumber, generation));
                 index++;
             }
         }
 
-        return objectNumbers.Count == 0 ? Array.Empty<int>() : objectNumbers.AsReadOnly();
+        return references.Count == 0 ? Array.Empty<PdfReference>() : references.AsReadOnly();
     }
 
     public static IReadOnlyList<int> ExtractObjectNumbers(string content) =>

@@ -126,12 +126,25 @@ internal static class PdfPageContentVisualParser {
         double width,
         double height,
         double pageHeight) {
-        if (shading.IsRadial) return true;
         if (width <= 0D || height <= 0D) return false;
         (double X, double Y) start = transform.Transform(shading.X0, shading.Y0);
         (double X, double Y) end = transform.Transform(shading.X1, shading.Y1);
         if (!IsFiniteNumber(start.X) || !IsFiniteNumber(start.Y) ||
             !IsFiniteNumber(end.X) || !IsFiniteNumber(end.Y)) return false;
+        if (shading.IsRadial) {
+            double startRadiusX = TransformExactRadius(shading.R0, transform.A, transform.B) / width;
+            double startRadiusY = TransformExactRadius(shading.R0, transform.C, transform.D) / height;
+            double endRadiusX = TransformExactRadius(shading.R1, transform.A, transform.B) / width;
+            double endRadiusY = TransformExactRadius(shading.R1, transform.C, transform.D) / height;
+            double startX = (start.X - x) / width;
+            double startY = ((pageHeight - start.Y) - y) / height;
+            double endX = (end.X - x) / width;
+            double endY = ((pageHeight - end.Y) - y) / height;
+            return IsFiniteNumber(startX) && IsFiniteNumber(startY) &&
+                   IsFiniteNumber(endX) && IsFiniteNumber(endY) &&
+                   IsFiniteNumber(startRadiusX) && IsFiniteNumber(startRadiusY) &&
+                   IsFiniteNumber(endRadiusX) && IsFiniteNumber(endRadiusY);
+        }
         double x0 = (start.X - x) / width;
         double y0 = ((pageHeight - start.Y) - y) / height;
         double x1 = (end.X - x) / width;
@@ -151,6 +164,9 @@ internal static class PdfPageContentVisualParser {
     }
 
     private static bool IsFiniteNumber(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static double TransformExactRadius(double radius, double firstComponent, double secondComponent) =>
+        radius <= 0D ? 0D : radius * Math.Sqrt((firstComponent * firstComponent) + (secondComponent * secondComponent));
 
     private static bool ClipExactLineParameter(double p, double q, ref double t0, ref double t1) {
         if (Math.Abs(p) <= 0.000000001D) return q >= 0D;
@@ -410,6 +426,10 @@ internal static class PdfPageContentVisualParser {
                 _unsupportedOperatorVisitor?.Invoke(op);
             }
             if (string.Equals(op, "Q", StringComparison.Ordinal) && _stack.Count == 0) {
+                _unsupportedOperatorVisitor?.Invoke(op);
+            }
+            if (string.Equals(op, "Do", StringComparison.Ordinal) &&
+                (_args.Count != 1 || _args[0] is not string)) {
                 _unsupportedOperatorVisitor?.Invoke(op);
             }
             switch (op) {

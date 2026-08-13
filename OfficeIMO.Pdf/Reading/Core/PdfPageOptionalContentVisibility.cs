@@ -86,7 +86,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 }
             }
 
-            return IsMembershipHidden(references.ObjectNumbers, references.Policy);
+            return IsMembershipHidden(references.ObjectReferences, references.Policy);
         }
 
         return IsHiddenAny(references.ObjectNumbers);
@@ -308,18 +308,23 @@ internal sealed class PdfPageOptionalContentVisibility {
         return true;
     }
 
-    private bool IsMembershipHidden(IReadOnlyList<int> objectNumbers, string? policy) {
-        if (objectNumbers.Count == 0) {
+    private bool IsMembershipHidden(IReadOnlyList<PdfReference> objectReferences, string? policy) {
+        if (objectReferences.Count == 0) {
             return false;
         }
 
         bool anyVisible = false;
         bool anyHidden = false;
-        for (int i = 0; i < objectNumbers.Count; i++) {
-            bool visible = !_hiddenObjectNumbers.Contains(objectNumbers[i]);
+        bool hasResolvedGroup = false;
+        for (int i = 0; i < objectReferences.Count; i++) {
+            PdfReference reference = objectReferences[i];
+            if (!PdfObjectLookup.TryGet(_objects, reference, out _)) continue;
+            hasResolvedGroup = true;
+            bool visible = !_hiddenObjectNumbers.Contains(reference.ObjectNumber);
             anyVisible |= visible;
             anyHidden |= !visible;
         }
+        if (!hasResolvedGroup) return false;
 
         bool visibleByPolicy = policy switch {
             "AllOn" => !anyHidden,
@@ -415,12 +420,14 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
         if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+                return false;
+            }
             if (groupVisibility.TryGetValue(reference.ObjectNumber, out bool groupVisible)) {
                 return !groupVisible;
             }
 
-            if (!visited.Add(reference.ObjectNumber) ||
-                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) {
+            if (!visited.Add(reference.ObjectNumber)) {
                 return false;
             }
             try {
@@ -486,10 +493,13 @@ internal sealed class PdfPageOptionalContentVisibility {
         Dictionary<int, bool> groupVisibility,
         Dictionary<int, PdfIndirectObject> objects,
         List<bool> visibilities) {
-        if (value is PdfReference reference &&
-            groupVisibility.TryGetValue(reference.ObjectNumber, out bool visible)) {
-            visibilities.Add(visible);
-            return;
+        if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return;
+            if (groupVisibility.TryGetValue(reference.ObjectNumber, out bool visible)) {
+                visibilities.Add(visible);
+                return;
+            }
+            value = indirect.Value;
         }
 
         if (ResolveObject(value, objects) is PdfArray nested) {

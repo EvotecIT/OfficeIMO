@@ -140,6 +140,17 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForMismatchedMembershipGroupGeneration() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 1 R] /P /AnyOn >>");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_EvaluatesChainedIndirectVisibilityExpressionBeforeMembershipPolicy() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
