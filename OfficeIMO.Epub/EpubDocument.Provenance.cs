@@ -22,10 +22,10 @@ public sealed partial class EpubDocument {
         OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
 
     private static bool HasPackageSignatures(byte[] data) => OfficeProvenanceZip.HasEntry(data, path =>
-        path.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
+        path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
         return OfficeProvenanceZip.RemoveEntries(data, path =>
-            path.Equals("META-INF/signatures.xml", StringComparison.OrdinalIgnoreCase));
+            path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));
     }
 }

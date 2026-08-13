@@ -140,6 +140,26 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlFileRemovalEscapesMultipleCharactersOutsideTheLegacyEncoding() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string html = "<!doctype html><html><head><meta charset=\"windows-1252\"><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head><body>&#x2603;middle&#x1F600;tail</body></html>";
+        string inputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        string outputPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.html");
+        try {
+            File.WriteAllBytes(inputPath, windows1252.GetBytes(html));
+
+            HtmlProvenance.RemoveFile(inputPath, outputPath);
+            string output = windows1252.GetString(File.ReadAllBytes(outputPath));
+
+            Assert.Contains("&#x2603;middle&#x1F600;tail", output, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (File.Exists(inputPath)) File.Delete(inputPath);
+            if (File.Exists(outputPath)) File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
     public void HtmlFileInspectionUsesTheBoundedSourceEncodingSize() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);
@@ -541,15 +561,17 @@ public sealed class ProvenanceDocumentContracts {
         Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void EpubIgnoresNonstandardSignatureLikeResourceNames() {
-        byte[] package = CreateZipPackage("epub", "META-INF/customsignatures.xml", CreatePngWithManifest(CreateManifestStore()));
+    [Theory]
+    [InlineData("META-INF/customsignatures.xml")]
+    [InlineData("META-INF/SIGNATURES.XML")]
+    public void EpubIgnoresNonstandardSignatureLikeResourceNames(string resourcePath) {
+        byte[] package = CreateZipPackage("epub", resourcePath, CreatePngWithManifest(CreateManifestStore()));
 
         OfficeProvenanceRemovalResult result = EpubDocument.RemoveProvenance(package, "publication.epub");
 
         using var archive = new ZipArchive(new MemoryStream(result.ToArray()), ZipArchiveMode.Read);
         Assert.False(result.WereInvalidatedSignaturesRemoved);
-        Assert.Contains(archive.Entries, entry => entry.FullName.Equals("META-INF/customsignatures.xml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(archive.Entries, entry => entry.FullName.Equals(resourcePath, StringComparison.Ordinal));
         Assert.Empty(result.After.Evidence);
     }
 

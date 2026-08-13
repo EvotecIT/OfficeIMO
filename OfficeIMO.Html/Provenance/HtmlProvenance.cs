@@ -560,7 +560,7 @@ public static class HtmlProvenance {
                 builder.Append(characters, cursor, characters.Length - cursor);
                 break;
             } catch (EncoderFallbackException exception) {
-                int invalidIndex = exception.Index;
+                int invalidIndex = cursor + exception.Index;
                 if (invalidIndex < cursor || invalidIndex >= characters.Length) invalidIndex = cursor;
                 if (invalidIndex > cursor) builder.Append(characters, cursor, invalidIndex - cursor);
                 int characterCount = char.IsHighSurrogate(characters[invalidIndex]) && invalidIndex + 1 < characters.Length &&
