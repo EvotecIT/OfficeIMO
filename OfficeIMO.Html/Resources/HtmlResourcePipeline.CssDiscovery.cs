@@ -74,7 +74,7 @@ public static partial class HtmlResourcePipeline {
             ? element
             : null;
         Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = includeLocalDefinitions
-            ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase, isInline: string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase), inlineOwner: inlineUseElement))
+            ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase, isInline: string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase), sourceOwner: inlineUseElement))
             : CloneCustomPropertyDefinitions(ambientCustomPropertyDefinitions);
         var importRanges = new List<SourceRange>();
         if (scanImports) {

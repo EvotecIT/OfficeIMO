@@ -246,13 +246,13 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static int GetInlineOwnerDistance(CssCustomPropertyDefinition source, IElement? useElement) {
-        if (!source.IsInline || source.InlineOwner == null || useElement == null) {
+        if (!source.IsInline || source.SourceOwner == null || useElement == null) {
             return int.MaxValue;
         }
 
         int distance = 0;
         for (IElement? current = useElement; current != null; current = current.ParentElement, distance++) {
-            if (ReferenceEquals(current, source.InlineOwner)) {
+            if (ReferenceEquals(current, source.SourceOwner)) {
                 return distance;
             }
         }

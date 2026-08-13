@@ -16,7 +16,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             css = StripCssCommentsOutsideStrings(css);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: false, inlineOwner: null));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: false, sourceOwner: styleElement));
             sourceOrderBase += css.Length + 1;
         }
 
@@ -52,13 +52,13 @@ public static partial class HtmlResourcePipeline {
             }
 
             string css = StripCssCommentsOutsideStrings(style);
-            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: true, inlineOwner: current));
+            MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: true, sourceOwner: current));
         }
 
         return definitions;
     }
 
-    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css, IReadOnlyList<SourceRange> inactiveMediaRanges, int sourceOrderBase, bool isInline, IElement? inlineOwner) {
+    private static Dictionary<string, List<CssCustomPropertyDefinition>> ExtractCustomPropertyDefinitions(string css, IReadOnlyList<SourceRange> inactiveMediaRanges, int sourceOrderBase, bool isInline, IElement? sourceOwner) {
         var definitions = new Dictionary<string, List<CssCustomPropertyDefinition>>(StringComparer.Ordinal);
         foreach (Match match in CssCustomPropertyDeclarationExpression.Matches(css)) {
             string propertyName = DecodeCssEscapes(match.Groups["name"].Value);
@@ -83,7 +83,7 @@ public static partial class HtmlResourcePipeline {
                 }
 
                 string? fallbackAlias = TryGetVarFallbackAlias(css, valueStart + 1, valueEnd, urlMatch.Index);
-                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(urlMatch.Groups["url"].Value.Trim().Trim('\'', '"')), selector, sourceOrderBase + declarationStart, isImportant, aliases, isInline, inlineOwner, valueText, fallbackAlias);
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(urlMatch.Groups["url"].Value.Trim().Trim('\'', '"')), selector, sourceOrderBase + declarationStart, declarationStart, isImportant, aliases, isInline, sourceOwner, valueText, fallbackAlias);
                 addedUrl = true;
             }
 
@@ -93,12 +93,12 @@ public static partial class HtmlResourcePipeline {
                 }
 
                 string? fallbackAlias = TryGetVarFallbackAlias(css, valueStart + 1, valueEnd, reference.Start);
-                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(reference.Source), selector, sourceOrderBase + declarationStart, isImportant, aliases, isInline, inlineOwner, valueText, fallbackAlias);
+                AddCustomPropertyDefinition(definitions, propertyName, DecodeCssEscapes(reference.Source), selector, sourceOrderBase + declarationStart, declarationStart, isImportant, aliases, isInline, sourceOwner, valueText, fallbackAlias);
                 addedUrl = true;
             }
 
             if (!addedUrl) {
-                AddCustomPropertyDefinition(definitions, propertyName, string.Empty, selector, sourceOrderBase + declarationStart, isImportant, aliases, isInline, inlineOwner, valueText, fallbackAlias: null);
+                AddCustomPropertyDefinition(definitions, propertyName, string.Empty, selector, sourceOrderBase + declarationStart, declarationStart, isImportant, aliases, isInline, sourceOwner, valueText, fallbackAlias: null);
             }
         }
 
@@ -370,13 +370,13 @@ public static partial class HtmlResourcePipeline {
         return -1;
     }
 
-    private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart, bool isImportant, IReadOnlyList<string> aliases, bool isInline, IElement? inlineOwner, string valueText, string? fallbackAlias) {
+    private static void AddCustomPropertyDefinition(IDictionary<string, List<CssCustomPropertyDefinition>> definitions, string propertyName, string source, string selector, int declarationStart, int localDeclarationStart, bool isImportant, IReadOnlyList<string> aliases, bool isInline, IElement? sourceOwner, string valueText, string? fallbackAlias) {
         if (!definitions.TryGetValue(propertyName, out List<CssCustomPropertyDefinition>? values)) {
             values = new List<CssCustomPropertyDefinition>();
             definitions[propertyName] = values;
         }
 
-        values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, !string.IsNullOrWhiteSpace(source), isImportant, aliases, isInline, inlineOwner, valueText, fallbackAlias));
+        values.Add(new CssCustomPropertyDefinition(source, selector, declarationStart, localDeclarationStart, !string.IsNullOrWhiteSpace(source), isImportant, aliases, isInline, sourceOwner, valueText, fallbackAlias));
     }
 
     private static void AddUsedCustomPropertyUrls(

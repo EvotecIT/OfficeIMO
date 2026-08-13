@@ -42,15 +42,16 @@ public static partial class HtmlResourcePipeline {
     }
 
     private sealed class CssCustomPropertyDefinition {
-        internal CssCustomPropertyDefinition(string source, string selector, int declarationStart, bool hasUrl, bool isImportant, IReadOnlyList<string> aliases, bool isInline, IElement? inlineOwner, string valueText, string? fallbackAlias) {
+        internal CssCustomPropertyDefinition(string source, string selector, int declarationStart, int localDeclarationStart, bool hasUrl, bool isImportant, IReadOnlyList<string> aliases, bool isInline, IElement? sourceOwner, string valueText, string? fallbackAlias) {
             Source = source;
             Selector = selector;
             DeclarationStart = declarationStart;
+            LocalDeclarationStart = localDeclarationStart;
             HasUrl = hasUrl;
             IsImportant = isImportant;
             Aliases = aliases;
             IsInline = isInline;
-            InlineOwner = inlineOwner;
+            SourceOwner = sourceOwner;
             ValueText = valueText;
             FallbackAlias = fallbackAlias;
         }
@@ -58,11 +59,12 @@ public static partial class HtmlResourcePipeline {
         internal string Source { get; }
         internal string Selector { get; }
         internal int DeclarationStart { get; }
+        internal int LocalDeclarationStart { get; }
         internal bool HasUrl { get; }
         internal bool IsImportant { get; }
         internal IReadOnlyList<string> Aliases { get; }
         internal bool IsInline { get; }
-        internal IElement? InlineOwner { get; }
+        internal IElement? SourceOwner { get; }
         internal string ValueText { get; }
         internal string? FallbackAlias { get; }
         internal bool IsInheritedKeyword => string.Equals(ValueText, "inherit", StringComparison.OrdinalIgnoreCase)

@@ -1,4 +1,6 @@
 using OfficeIMO.Provenance;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace OfficeIMO.OpenDocument;
 
@@ -24,7 +26,31 @@ public abstract partial class OdfDocument {
     private static bool HasPackageSignatures(byte[] data) =>
         OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
-        return OfficeProvenanceZip.RemoveEntries(data, OdfPackage.IsSignaturePath);
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
+        return OfficeProvenanceZip.RemoveEntries(
+            data,
+            OdfPackage.IsSignaturePath,
+            path => path == "META-INF/manifest.xml",
+            (_, manifest) => RemoveSignatureManifestEntries(manifest),
+            limits.MaxAssetBytes);
+    }
+
+    private static byte[] RemoveSignatureManifestEntries(byte[] data) {
+        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+        XDocument document;
+        using (var stream = new MemoryStream(data, writable: false))
+        using (XmlReader reader = XmlReader.Create(stream, settings)) document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XNamespace manifestNamespace = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
+        foreach (XElement entry in document.Descendants(manifestNamespace + "file-entry").ToArray()) {
+            string? path = (string?)entry.Attribute(manifestNamespace + "full-path");
+            if (path != null && OdfPackage.IsSignaturePath(path)) entry.Remove();
+        }
+        using var output = new MemoryStream();
+        using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
+            Encoding = new System.Text.UTF8Encoding(false),
+            Indent = false,
+            OmitXmlDeclaration = document.Declaration == null
+        })) document.Save(writer);
+        return output.ToArray();
     }
 }

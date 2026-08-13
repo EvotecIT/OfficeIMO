@@ -2,6 +2,7 @@ using AngleSharp;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
@@ -117,6 +118,7 @@ public static partial class HtmlProvenance {
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
         }
 
+        if (enforceUtf8Size) NormalizeDeclaredEncodingToUtf8(document);
         string outputHtml = document.ToHtml();
         byte[] output = Encoding.UTF8.GetBytes(outputHtml);
         if (enforceUtf8Size && output.LongLength > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
@@ -198,9 +200,10 @@ public static partial class HtmlProvenance {
         ref long expandedBytes,
         int srcDocDepth) {
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
-        HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
+        Dictionary<IElement, HashSet<int>> usedImageProperties = HtmlResourcePipeline.CollectProvenanceCssImageCustomPropertyDeclarations(document);
         foreach (IElement element in elements) {
-            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedImageProperties)) {
+            usedImageProperties.TryGetValue(element, out HashSet<int>? usedDeclarations);
+            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedDeclarations)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
                 string location = $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]";
@@ -250,9 +253,10 @@ public static partial class HtmlProvenance {
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
-        HashSet<string> usedImageProperties = GetUsedCssImageCustomProperties(elements);
+        Dictionary<IElement, HashSet<int>> usedImageProperties = HtmlResourcePipeline.CollectProvenanceCssImageCustomPropertyDeclarations(document);
         foreach (IElement element in elements) {
-            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedImageProperties).ToArray();
+            usedImageProperties.TryGetValue(element, out HashSet<int>? usedDeclarations);
+            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedDeclarations).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -302,7 +306,7 @@ public static partial class HtmlProvenance {
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(
         IElement element,
-        ISet<string> usedImageProperties) {
+        ISet<int>? usedImageProperties) {
         string localName = element.LocalName.ToLowerInvariant();
         if (localName == "style") {
             if (!HtmlResourcePipeline.IsCssStyleElement(element)) yield break;
@@ -375,15 +379,14 @@ public static partial class HtmlProvenance {
                 HtmlResourcePipeline.IsCssStyleElement(element))
             .Distinct();
 
-    private static HashSet<string> GetUsedCssImageCustomProperties(IEnumerable<IElement> elements) =>
-        HtmlResourcePipeline.CollectProvenanceCssImageCustomProperties(elements.SelectMany(element => {
-            var styles = new List<string>(2);
-            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase) &&
-                HtmlResourcePipeline.IsCssStyleElement(element)) styles.Add(element.TextContent);
-            string? inlineStyle = element.GetAttribute("style");
-            if (inlineStyle != null) styles.Add(inlineStyle);
-            return styles;
-        }));
+    private static void NormalizeDeclaredEncodingToUtf8(IHtmlDocument document) {
+        foreach (IElement meta in document.QuerySelectorAll("meta[charset]")) meta.SetAttribute("charset", "utf-8");
+        foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv][content]")) {
+            if (!string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "content-type", StringComparison.OrdinalIgnoreCase)) continue;
+            string content = meta.GetAttribute("content") ?? string.Empty;
+            meta.SetAttribute("content", Regex.Replace(content, "(?i)(charset\\s*=\\s*)[^;\\s]+", "$1utf-8"));
+        }
+    }
 
     private static EmbeddedImageReference CreateDirectUrlReference(string attributeName, string value) {
         int start = 0;
