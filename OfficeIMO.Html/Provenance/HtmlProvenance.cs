@@ -436,8 +436,7 @@ public static partial class HtmlProvenance {
 
     private static bool IsSupportedPictureSource(IElement element) {
         string? parentName = element.ParentElement?.LocalName;
-        if (parentName is "audio" or "video") return false;
-        return !string.Equals(parentName, "picture", StringComparison.OrdinalIgnoreCase) ||
+        return string.Equals(parentName, "picture", StringComparison.OrdinalIgnoreCase) &&
             HtmlResourcePipeline.IsActivePictureImageSource(element);
     }
 
@@ -712,6 +711,12 @@ public static partial class HtmlProvenance {
         "image/jpeg" or "image/jpg" or "image/png" or "image/gif" or "image/tiff" or "image/webp" or "image/svg+xml";
 
     private static HtmlPreflightNamespace ChildNamespace(List<HtmlPreflightElement> elements, string? tagName = null) {
+        if (elements.Count > 0 && elements[elements.Count - 1].Namespace == HtmlPreflightNamespace.MathMl &&
+            elements[elements.Count - 1].ChildrenUseHtml && tagName != null &&
+            (tagName.Equals("mglyph", StringComparison.OrdinalIgnoreCase) ||
+             tagName.Equals("malignmark", StringComparison.OrdinalIgnoreCase))) {
+            return HtmlPreflightNamespace.MathMl;
+        }
         if (elements.Count == 0 || elements[elements.Count - 1].ChildrenUseHtml) {
             if (tagName?.Equals("svg", StringComparison.OrdinalIgnoreCase) == true) return HtmlPreflightNamespace.Svg;
             if (tagName?.Equals("math", StringComparison.OrdinalIgnoreCase) == true) return HtmlPreflightNamespace.MathMl;
@@ -797,6 +802,7 @@ public static partial class HtmlProvenance {
         value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';
 
     private static int FindRawTextClosingTag(string html, int offset, string tagName) {
+        if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase)) return FindScriptClosingTag(html, offset);
         string closingPrefix = "</" + tagName;
         int candidate = offset;
         while (candidate < html.Length) {
@@ -808,6 +814,53 @@ public static partial class HtmlProvenance {
         }
         return -1;
     }
+
+    private static int FindScriptClosingTag(string html, int offset) {
+        HtmlScriptTextState state = HtmlScriptTextState.Normal;
+        for (int index = offset; index < html.Length; index++) {
+            if (state != HtmlScriptTextState.DoubleEscaped && MatchesScriptEndTag(html, index)) return index;
+            if (state == HtmlScriptTextState.Normal && StartsWithOrdinal(html, index, "<!--")) {
+                state = HtmlScriptTextState.Escaped;
+                index += 3;
+                continue;
+            }
+            if (state != HtmlScriptTextState.Normal && StartsWithOrdinal(html, index, "-->")) {
+                state = HtmlScriptTextState.Normal;
+                index += 2;
+                continue;
+            }
+            if (state == HtmlScriptTextState.Escaped && MatchesScriptStartTag(html, index)) {
+                state = HtmlScriptTextState.DoubleEscaped;
+                index += 6;
+                continue;
+            }
+            if (state == HtmlScriptTextState.DoubleEscaped && MatchesScriptEndTag(html, index)) {
+                state = HtmlScriptTextState.Escaped;
+                index += 7;
+            }
+        }
+        return -1;
+    }
+
+    private static bool MatchesScriptStartTag(string html, int offset) =>
+        MatchesScriptTag(html, offset, "<script");
+
+    private static bool MatchesScriptEndTag(string html, int offset) =>
+        MatchesScriptTag(html, offset, "</script");
+
+    private static bool MatchesScriptTag(string html, int offset, string prefix) {
+        if (!StartsWithOrdinalIgnoreCase(html, offset, prefix)) return false;
+        int delimiter = offset + prefix.Length;
+        return delimiter >= html.Length || char.IsWhiteSpace(html[delimiter]) || html[delimiter] is '>' or '/';
+    }
+
+    private static bool StartsWithOrdinal(string value, int offset, string prefix) =>
+        offset <= value.Length - prefix.Length && string.CompareOrdinal(value, offset, prefix, 0, prefix.Length) == 0;
+
+    private static bool StartsWithOrdinalIgnoreCase(string value, int offset, string prefix) =>
+        offset <= value.Length - prefix.Length && string.Compare(value, offset, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) == 0;
+
+    private enum HtmlScriptTextState { Normal, Escaped, DoubleEscaped }
 
     private static int FindTagEnd(string html, int offset) {
         char quote = '\0';

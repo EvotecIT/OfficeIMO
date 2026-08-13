@@ -225,7 +225,7 @@ public sealed partial class ProvenanceDocumentContracts {
             Convert.ToBase64String(CreateManifestStore()) +
             "</c2pa:manifest></metadata></svg>";
         string dataUri = "data:image/svg+xml," + Uri.EscapeDataString(svg).Replace("%2C", ",").Replace("%2c", ",");
-        string html = $"<html><head></head><body><source srcset=\"{dataUri} 1x\"></body></html>";
+        string html = $"<html><head></head><body><picture><source srcset=\"{dataUri} 1x\"></picture></body></html>";
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
@@ -239,7 +239,7 @@ public sealed partial class ProvenanceDocumentContracts {
         byte[] image = CreatePngWithManifest(CreateManifestStore());
         string first = "data:image/png;base64," + Convert.ToBase64String(image);
         string second = "data:image/png;base64," + Convert.ToBase64String(image);
-        string html = $"<html><head></head><body><source srcset=\"{first}, {second} 2x\"></body></html>";
+        string html = $"<html><head></head><body><picture><source srcset=\"{first}, {second} 2x\"></picture></body></html>";
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
