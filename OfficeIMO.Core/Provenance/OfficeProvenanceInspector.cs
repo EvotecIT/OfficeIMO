@@ -42,7 +42,7 @@ public static class OfficeProvenanceInspector {
     }
 
     internal static OfficeProvenanceReport InspectCore(byte[] data, string? fileName, OfficeProvenanceOptions options) {
-        OfficeProvenanceAssetFormat format = DetectFormat(data, fileName);
+        OfficeProvenanceAssetFormat format = DetectFormat(data, fileName, options);
         var context = new OfficeProvenanceContext(format, options);
         switch (format) {
             case OfficeProvenanceAssetFormat.Jpeg:
@@ -74,7 +74,10 @@ public static class OfficeProvenanceInspector {
         return context.ToReport();
     }
 
-    internal static OfficeProvenanceAssetFormat DetectFormat(byte[] data, string? fileName) {
+    internal static OfficeProvenanceAssetFormat DetectFormat(
+        byte[] data,
+        string? fileName,
+        OfficeProvenanceOptions options) {
         if (OfficeProvenanceBinary.HasPrefix(data, 0xFF, 0xD8)) return OfficeProvenanceAssetFormat.Jpeg;
         if (OfficeProvenanceBinary.HasPrefix(data, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return OfficeProvenanceAssetFormat.Png;
         if (data.Length >= 12 && OfficeProvenanceBinary.MatchesAscii(data, 0, "RIFF") && OfficeProvenanceBinary.MatchesAscii(data, 8, "WEBP")) {
@@ -92,7 +95,7 @@ public static class OfficeProvenanceInspector {
             Path.GetExtension(fileName ?? string.Empty).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) {
             return OfficeProvenanceAssetFormat.Pdf;
         }
-        if (LooksLikeSvg(data, fileName)) return OfficeProvenanceAssetFormat.Svg;
+        if (LooksLikeSvg(data, fileName, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
         if (LooksLikeHtml(data, fileName)) return OfficeProvenanceAssetFormat.Html;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;
         if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
@@ -135,7 +138,7 @@ public static class OfficeProvenanceInspector {
         return true;
     }
 
-    private static bool LooksLikeSvg(byte[] data, string? fileName) {
+    private static bool LooksLikeSvg(byte[] data, string? fileName, int maximumContainerEntries) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return true;
         if (data.Length == 0) return false;
@@ -148,7 +151,19 @@ public static class OfficeProvenanceInspector {
             };
             using var stream = new MemoryStream(data, writable: false);
             using XmlReader reader = XmlReader.Create(stream, settings);
+            int nodeCount = 0;
             while (reader.Read()) {
+                int currentCount = reader.NodeType switch {
+                    XmlNodeType.Element => 1 + reader.AttributeCount,
+                    XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.ProcessingInstruction or
+                        XmlNodeType.Comment or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace => 1,
+                    _ => 0
+                };
+                if (currentCount > 0 && nodeCount > maximumContainerEntries - currentCount) {
+                    throw new InvalidDataException("SVG format detection exceeds the configured XML node limit.");
+                }
+                nodeCount += currentCount;
+                if (reader.Depth > 256) throw new InvalidDataException("SVG format detection exceeds the supported XML depth limit.");
                 if (reader.NodeType != XmlNodeType.Element) continue;
                 return reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase) &&
                     reader.NamespaceURI.Equals("http://www.w3.org/2000/svg", StringComparison.Ordinal);

@@ -100,9 +100,13 @@ internal static class OfficeProvenanceText {
         int maximumContainerEntries) {
         int search = 0;
         int pendingEnd = -1;
+        int delimiterCount = 0;
         while (search < data.Length) {
             int begin = IndexOf(data, BeginDelimiter, search);
             if (begin < 0) yield break;
+            if (++delimiterCount > maximumContainerEntries) {
+                throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
+            }
             if (!IsStandaloneDelimiter(data, begin, BeginDelimiter.Length)) {
                 search = begin + BeginDelimiter.Length;
                 continue;

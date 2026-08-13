@@ -277,10 +277,13 @@ internal static class OfficeProvenanceTiff {
         int nextFieldSize = bigTiff ? 8 : 4;
         var visited = new HashSet<ulong>();
         var result = new List<TiffIfd>();
-        int totalEntryCount = 0;
+        int totalStructuralEntries = 0;
         while (nextOffset != 0) {
             if (!visited.Add(nextOffset)) throw new InvalidDataException("TIFF main IFD chain contains a cycle.");
-            if (visited.Count > 1024) throw new InvalidDataException("TIFF main IFD chain exceeds the supported count.");
+            if (totalStructuralEntries >= options.MaxContainerEntries) {
+                throw new InvalidDataException("TIFF IFDs exceed the configured container-entry limit.");
+            }
+            totalStructuralEntries++;
             if (nextOffset > int.MaxValue || nextOffset > (ulong)(data.Length - countFieldSize)) throw new InvalidDataException("TIFF IFD offset exceeds the asset bounds.");
             int ifdOffset = (int)nextOffset;
             ulong countValue = bigTiff
@@ -288,10 +291,10 @@ internal static class OfficeProvenanceTiff {
                 : OfficeProvenanceBinary.ReadUInt16(data, ifdOffset, littleEndian);
             if (countValue > int.MaxValue) throw new InvalidDataException("TIFF IFD entry count exceeds the supported limit.");
             int count = (int)countValue;
-            if (count > options.MaxContainerEntries - totalEntryCount) {
+            if (count > options.MaxContainerEntries - totalStructuralEntries) {
                 throw new InvalidDataException("TIFF IFD entries exceed the configured container-entry limit.");
             }
-            totalEntryCount += count;
+            totalStructuralEntries += count;
             long tableEndValue = (long)ifdOffset + countFieldSize + (long)count * entrySize + nextFieldSize;
             if (tableEndValue > data.Length) throw new InvalidDataException("TIFF IFD table exceeds the asset bounds.");
             int entriesOffset = ifdOffset + countFieldSize;
@@ -321,6 +324,7 @@ internal static class OfficeProvenanceTiff {
         offset = length = 0;
         if (entry.Count == 0 || entry.Count > (ulong)maximumBytes || entry.Count > int.MaxValue) return false;
         length = (int)entry.Count;
+        if (length > data.Length) return false;
         if (length <= entry.InlineSize) {
             offset = entry.Offset + (entry.InlineSize == 8 ? 12 : 8);
             return offset <= data.Length - length;

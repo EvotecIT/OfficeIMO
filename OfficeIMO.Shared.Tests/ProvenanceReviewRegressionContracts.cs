@@ -227,6 +227,27 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void StructuredTextDelimiterCandidatesShareTheContainerEntryLimit() {
+        byte[] text = Encoding.ASCII.GetBytes(
+            "-----BEGIN C2PA MANIFEST-----\n" +
+            "-----BEGIN C2PA MANIFEST-----\n" +
+            "-----BEGIN C2PA MANIFEST-----\n" +
+            "https://example.test/manifest.c2pa\n" +
+            "-----END C2PA MANIFEST-----\n");
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 2;
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            text,
+            "fixture.md",
+            new OfficeProvenanceOptions { MaxContainerEntries = 2 }));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(
+            text,
+            "fixture.md",
+            removalOptions));
+    }
+
+    [Fact]
     public void XmpDigitalSourceTypeRequiresAnRdfDescriptionContext() {
         byte[] packet = Encoding.UTF8.GetBytes(
             "<root xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/>");
@@ -548,7 +569,7 @@ public sealed class ProvenanceReviewRegressionContracts {
 
     [Fact]
     public void BigTiffHonorsTheConfiguredMaximumEntryBoundary() {
-        byte[] tiff = CreateBigTiff(65536);
+        byte[] tiff = CreateBigTiff(65535);
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
             tiff,
@@ -685,6 +706,31 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void TiffMainIfdCountUsesTheConfiguredContainerEntryLimit() {
+        byte[] tiff = CreateTiffWithEmptyIfdChain(1025);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            tiff,
+            "fixture.tiff",
+            new OfficeProvenanceOptions { MaxContainerEntries = 1025 });
+
+        Assert.Empty(report.Evidence);
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            tiff,
+            "fixture.tiff",
+            new OfficeProvenanceOptions { MaxContainerEntries = 1024 }));
+    }
+
+    [Fact]
+    public void TiffRejectsOutOfLinePayloadCountsLargerThanTheAsset() {
+        byte[] tiff = CreateTiffWithDeclaredXmpPayloadLength(1024 * 1024);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(tiff, "fixture.tiff");
+
+        Assert.Empty(report.Evidence);
+    }
+
+    [Fact]
     public void TiffDeduplicatesRepeatedXmpPayloadRanges() {
         byte[] xmp = Encoding.UTF8.GetBytes(
             "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
@@ -734,6 +780,26 @@ public sealed class ProvenanceReviewRegressionContracts {
             svg,
             "fixture.svg",
             new OfficeProvenanceOptions { MaxContainerEntries = 16 }).Evidence);
+    }
+
+    [Fact]
+    public void ExtensionlessSvgSniffingUsesTheConfiguredXmlNodeLimit() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<!--first--><!--second--><svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(
+                svg,
+                "fixture.bin",
+                new OfficeProvenanceOptions { MaxContainerEntries = 3 }));
+
+        Assert.Contains("XML node limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            OfficeProvenanceAssetFormat.Svg,
+            OfficeProvenanceInspector.Inspect(
+                svg,
+                "fixture.bin",
+                new OfficeProvenanceOptions { MaxContainerEntries = 4 }).Format);
     }
 
     [Fact]
@@ -1058,6 +1124,32 @@ public sealed class ProvenanceReviewRegressionContracts {
         WriteLittleEndian16(data, 8, (ushort)entriesPerIfd);
         WriteLittleEndian(data, 8 + 2 + entriesPerIfd * 12, (uint)(8 + ifdSize));
         WriteLittleEndian16(data, 8 + ifdSize, (ushort)entriesPerIfd);
+        return data;
+    }
+
+    private static byte[] CreateTiffWithEmptyIfdChain(int ifdCount) {
+        byte[] data = new byte[8 + ifdCount * 6];
+        data[0] = data[1] = (byte)'I';
+        data[2] = 42;
+        WriteLittleEndian(data, 4, 8U);
+        for (int index = 0; index < ifdCount; index++) {
+            int ifdOffset = 8 + index * 6;
+            uint nextOffset = index + 1 < ifdCount ? (uint)(ifdOffset + 6) : 0U;
+            WriteLittleEndian(data, ifdOffset + 2, nextOffset);
+        }
+        return data;
+    }
+
+    private static byte[] CreateTiffWithDeclaredXmpPayloadLength(int payloadLength) {
+        byte[] data = new byte[26];
+        data[0] = data[1] = (byte)'I';
+        data[2] = 42;
+        WriteLittleEndian(data, 4, 8U);
+        WriteLittleEndian16(data, 8, 1);
+        WriteLittleEndian16(data, 10, 700);
+        WriteLittleEndian16(data, 12, 1);
+        WriteLittleEndian(data, 14, checked((uint)payloadLength));
+        WriteLittleEndian(data, 18, 26U);
         return data;
     }
 

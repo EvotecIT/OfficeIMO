@@ -401,7 +401,7 @@ internal static class OfficeProvenanceZip {
 
     private static bool IsNonOpcSignatureEntry(ZipArchiveEntry entry) =>
         !entry.FullName.EndsWith("/", StringComparison.Ordinal) &&
-        entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
+        entry.FullName.StartsWith("META-INF/", StringComparison.Ordinal) &&
         entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
     internal static bool HasPackageSignature(byte[] data, OfficeProvenanceRemovalOptions options) {
@@ -480,7 +480,7 @@ internal static class OfficeProvenanceZip {
             read += current;
         }
         if (read != prefix.Length) Array.Resize(ref prefix, read);
-        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(prefix, entry.FullName);
+        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(prefix, entry.FullName, options);
         bool supported = format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
             OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
