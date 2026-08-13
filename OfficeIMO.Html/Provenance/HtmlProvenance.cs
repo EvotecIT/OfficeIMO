@@ -379,7 +379,7 @@ public static partial class HtmlProvenance {
             yield return CreateDirectUrlReference("background", background);
         }
 
-        if (localName == "source" && !HtmlResourcePipeline.IsActivePictureImageSource(element)) yield break;
+        if (localName == "source" && !IsSupportedPictureSource(element)) yield break;
         if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
         if (localName is "img" or "source") {
             foreach (string attributeName in EmbeddedImageSourceAttributes) {
@@ -429,10 +429,15 @@ public static partial class HtmlProvenance {
             .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
                 HtmlResourcePipeline.IsActiveProvenanceStyleElement(element))
             .Where(element => !element.LocalName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
-                HtmlResourcePipeline.IsActivePictureImageSource(element))
-            .Where(element => !element.LocalName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
-                HtmlResourcePipeline.IsActivePictureFallbackImage(element))
+                IsSupportedPictureSource(element))
             .Distinct();
+
+    private static bool IsSupportedPictureSource(IElement element) {
+        string? parentName = element.ParentElement?.LocalName;
+        if (parentName is "audio" or "video") return false;
+        return !string.Equals(parentName, "picture", StringComparison.OrdinalIgnoreCase) ||
+            HtmlResourcePipeline.IsActivePictureImageSource(element);
+    }
 
     private static void NormalizeDeclaredEncodingToUtf8(IHtmlDocument document) {
         foreach (IElement meta in document.QuerySelectorAll("meta[charset]")) meta.SetAttribute("charset", "utf-8");
@@ -504,17 +509,19 @@ public static partial class HtmlProvenance {
             image = Array.Empty<byte>();
             return false;
         }
-        int declarationEnd = text.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase)
-            ? text.IndexOf("?>", StringComparison.Ordinal)
-            : -1;
+        int declarationStart = text.Length > 0 && text[0] == '\uFEFF' ? 1 : 0;
+        int declarationEnd = text.IndexOf("?>", declarationStart, StringComparison.Ordinal);
+        if (declarationEnd < 0 || text.IndexOf("<?xml", declarationStart, StringComparison.OrdinalIgnoreCase) != declarationStart) {
+            declarationEnd = -1;
+        }
         if (declarationEnd >= 0) {
-            string declaration = text.Substring(0, declarationEnd + 2);
+            string declaration = text.Substring(declarationStart, declarationEnd + 2 - declarationStart);
             string normalized = System.Text.RegularExpressions.Regex.Replace(
                 declaration,
                 "(\\bencoding\\s*=\\s*[\"'])[^\"']*([\"'])",
                 "$1utf-8$2",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            text = normalized + text.Substring(declarationEnd + 2);
+            text = text.Substring(0, declarationStart) + normalized + text.Substring(declarationEnd + 2);
         }
         int byteCount = Encoding.UTF8.GetByteCount(text);
         if (byteCount > maximumBytes) throw new InvalidDataException("An embedded HTML image exceeds the configured asset limit.");
@@ -622,6 +629,7 @@ public static partial class HtmlProvenance {
     private static void ValidatePotentialElementCount(string html, int maximumEntries) {
         int count = 0;
         int index = 0;
+        int foreignDepth = 0;
         while (index < html.Length - 1) {
             int markup = html.IndexOf('<', index);
             if (markup < 0 || markup == html.Length - 1) break;
@@ -631,8 +639,33 @@ public static partial class HtmlProvenance {
                 continue;
             }
             char next = html[markup + 1];
-            if (next is '/' or '!' or '?') {
-                int declarationEnd = FindTagEnd(html, markup + 2);
+            if (next == '?') {
+                int declarationEnd = html.IndexOf('>', markup + 2);
+                index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
+                continue;
+            }
+            if (next == '!') {
+                if (foreignDepth > 0 && markup <= html.Length - 9 &&
+                    string.CompareOrdinal(html, markup, "<![CDATA[", 0, 9) == 0) {
+                    int cdataEnd = html.IndexOf("]]>", markup + 9, StringComparison.Ordinal);
+                    index = cdataEnd < 0 ? html.Length : cdataEnd + 3;
+                } else if (markup <= html.Length - 9 &&
+                    string.Compare(html, markup, "<!DOCTYPE", 0, 9, StringComparison.OrdinalIgnoreCase) == 0) {
+                    int declarationEnd = FindTagEnd(html, markup + 9);
+                    index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
+                } else {
+                    int declarationEnd = html.IndexOf('>', markup + 2);
+                    index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
+                }
+                continue;
+            }
+            if (next == '/') {
+                int nameStart = markup + 2;
+                int closingNameEnd = nameStart;
+                while (closingNameEnd < html.Length && (char.IsLetterOrDigit(html[closingNameEnd]) || html[closingNameEnd] is '-' or ':')) closingNameEnd++;
+                string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
+                if (foreignDepth > 0 && (closingName.Equals("svg", StringComparison.OrdinalIgnoreCase) || closingName.Equals("math", StringComparison.OrdinalIgnoreCase))) foreignDepth--;
+                int declarationEnd = FindTagEnd(html, closingNameEnd);
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
             }
@@ -648,6 +681,8 @@ public static partial class HtmlProvenance {
             string tagName = html.Substring(markup + 1, nameEnd - markup - 1);
             int tagEnd = FindTagEnd(html, nameEnd);
             if (tagEnd < 0) break;
+            bool selfClosing = tagEnd > markup && html[tagEnd - 1] == '/';
+            if (!selfClosing && (tagName.Equals("svg", StringComparison.OrdinalIgnoreCase) || tagName.Equals("math", StringComparison.OrdinalIgnoreCase))) foreignDepth++;
             index = tagEnd + 1;
             if (tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
             if (IsRawTextOrRcDataElement(tagName)) {
