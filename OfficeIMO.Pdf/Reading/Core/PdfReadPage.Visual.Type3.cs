@@ -323,15 +323,8 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool IsValidType3ImageFile(PdfExtractedImage image) {
-        if (!image.IsImageFile) return false;
-        return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
-            OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
-            validated.Format == OfficeImageFormat.Jpeg;
-    }
-
     private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image, PdfDictionary? fallbackResources = null) {
-        if (!IsValidType3ImageFile(image)) return false;
+        if (!image.IsImageFile) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
         PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         if (imageDictionary == null && resources != null) {
@@ -348,6 +341,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageMaskDeclaration(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
+        if (imageDictionary != null && !HasMatchingType3DctDimensions(image, imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
         if (image.TransparencyMaskKind != null && !image.TransparencyMaskResolved) return false;
         if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources)) return false;
@@ -359,6 +353,16 @@ public sealed partial class PdfReadPage {
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary) {
+        if (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) return true;
+        return OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
+            validated.Format == OfficeImageFormat.Jpeg &&
+            TryReadExactPositiveInteger(imageDictionary, "Width", out int width) &&
+            TryReadExactPositiveInteger(imageDictionary, "Height", out int height) &&
+            validated.Width == width &&
+            validated.Height == height;
     }
 
     private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {

@@ -806,6 +806,12 @@ internal static class PdfPageContentVisualParser {
                         _hiddenContentStack.Push(false);
                         break;
                     }
+                    if (_requireExactType3ShadingProjection &&
+                        _args[0] is string tagName &&
+                        string.Equals(tagName, "OC", StringComparison.Ordinal) &&
+                        _optionalContentVisibility?.HasUnsupportedViewUsageApplications == true) {
+                        _unsupportedOperatorVisitor?.Invoke("BDC");
+                    }
                     _hiddenContentStack.Push(
                         IsHiddenOptionalContent(_args[0], _args[1]));
                     break;
@@ -878,6 +884,9 @@ internal static class PdfPageContentVisualParser {
             if (_requireExactType3ShadingProjection) {
                 if (PathContainsCurve()) {
                     _unsupportedOperatorVisitor?.Invoke("c");
+                }
+                if (stroke && _state.StrokePattern.HasValue) {
+                    _unsupportedOperatorVisitor?.Invoke("SCN");
                 }
                 if (stroke && !isSingleLine && PathContainsJoin() &&
                     (_state.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter) != OfficeStrokeLineJoin.Round) {
