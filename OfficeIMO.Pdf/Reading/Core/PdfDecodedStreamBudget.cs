@@ -11,6 +11,8 @@ internal sealed class PdfDecodedStreamBudget {
         _maximumTotal = limits.MaxTotalDecodedStreamBytes;
     }
 
+    internal long UsedBytes => _used;
+
     internal byte[] Decode(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
         if (_decoded.TryGetValue(stream, out byte[]? cached)) return cached;
         long remaining = _maximumTotal - _used;

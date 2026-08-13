@@ -9,10 +9,10 @@ public sealed partial class PdfReadDocument {
             pdf,
             effectiveOptions,
             includeParsedDetails: false);
-        var (map, trailer) = PdfSyntax.ParseObjects(pdf, effectiveOptions, out PdfRepairReport repairReport);
+        var (map, trailer) = PdfSyntax.ParseObjects(pdf, effectiveOptions, out PdfRepairReport repairReport, out long decodedStreamBytes);
         security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, effectiveOptions);
 
-        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions);
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes);
     }
 
     /// <summary>Opens a PDF from a bounded file snapshot.</summary>
@@ -42,7 +42,7 @@ public sealed partial class PdfReadDocument {
     /// <summary>Extracts embedded file attachments from the document catalog.</summary>
     public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() {
         DemandContentExtraction("attachment");
-        return PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits);
+        return PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits, _decodedStreamBytes);
     }
 
     internal void DemandTextExtraction() => PdfPermissionAuthorization.DemandTextExtraction(Security, _options.PermissionPolicy);

@@ -316,7 +316,18 @@ public static class PdfProvenance {
                 result,
                 maximumContainerEntries,
                 pageTreeObjectNumbers);
+            AddStructuralGraphDictionaries(
+                objects,
+                structureTree.Items.TryGetValue("RoleMap", out PdfObject? roleMap) ? roleMap : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers);
         }
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("Extensions", out PdfObject? extensions) ? extensions : null,
+            result,
+            maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) ? optionalContent : null,
@@ -371,6 +382,12 @@ public static class PdfProvenance {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue("PieceInfo", out PdfObject? pieceInfo) ? pieceInfo : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("Group", out PdfObject? group) ? group : null,
                     result,
                     maximumContainerEntries,
                     pageTreeObjectNumbers);
@@ -550,7 +567,17 @@ public static class PdfProvenance {
         if (annotations.Items.Count > maximumContainerEntries) {
             throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
         }
-        foreach (PdfObject annotation in annotations.Items) AddResolvedDictionary(objects, annotation, result);
+        foreach (PdfObject annotation in annotations.Items) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, annotation);
+            PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
+            if (dictionary == null) continue;
+            result.Add(dictionary);
+            AddStructuralGraphDictionaries(
+                objects,
+                dictionary.Items.TryGetValue("AP", out PdfObject? appearance) ? appearance : null,
+                result,
+                maximumContainerEntries);
+        }
     }
 
     private static void AddFileSpecificationDescendantGraphs(

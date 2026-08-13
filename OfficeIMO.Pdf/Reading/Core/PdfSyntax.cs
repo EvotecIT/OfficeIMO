@@ -12,17 +12,26 @@ internal static partial class PdfSyntax {
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
-        return ParseObjects(pdf, null, out _);
+        return ParseObjects(pdf, null, out _, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
-        return ParseObjects(pdf, options, out _);
+        return ParseObjects(pdf, options, out _, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
         PdfReadOptions? options,
         out PdfRepairReport repairReport) {
+        return ParseObjects(pdf, options, out repairReport, out _);
+    }
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
+        byte[] pdf,
+        PdfReadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes) {
+        decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
         PdfParsingMode parsingMode = options?.ParsingMode ?? PdfParsingMode.Lenient;
@@ -241,6 +250,7 @@ internal static partial class PdfSyntax {
         ThrowIfParsingTimeExceeded(parseTimer, limits);
 
         repairReport = new PdfRepairReport(repairDiagnostics.AsReadOnly());
+        decodedStreamBytes = decodedStreamBudget.UsedBytes;
         return (map, trailerRaw);
     }
 

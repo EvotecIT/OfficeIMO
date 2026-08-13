@@ -8,6 +8,7 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly string _trailerRaw;
     private readonly PdfReadOptions _options;
+    private readonly long _decodedStreamBytes;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
     private readonly PdfFontResourceCache _fontResourceCache = new();
@@ -38,14 +39,16 @@ public sealed partial class PdfReadDocument {
     internal PdfReadOptions ReadOptions => _options;
     internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
     internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
+    internal long DecodedStreamBytes => _decodedStreamBytes;
 
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo security,
         PdfRepairReport repairReport,
-        PdfReadOptions? options) {
-        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        PdfReadOptions? options,
+        long decodedStreamBytes) {
+        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions(); _decodedStreamBytes = decodedStreamBytes;
         Security = security;
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
