@@ -13,6 +13,8 @@ OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIM
 
 Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and object-backed Excel and PowerPoint tables now default to at most 16,384 projected columns. Object tables additionally default to at most 1,000,000 cells, including the header row. Set `ObjectFlattenerOptions.MaxColumns` or `MaxCells` explicitly when a trusted workflow needs a different application-level limit. Excel output remains constrained by worksheet dimensions. The object and explicit-binding `PowerPointSlide.AddTable` overloads apply stricter format-safety ceilings of 1,024 columns and 100,000 cells; split larger trusted datasets into multiple tables.
 
+`SheetComposer.TableFrom(DataTable)` previously allowed a fixed-schema table to proceed up to Excel's worksheet dimensions without applying `MaxRows` or `MaxCells`. It now defaults to at most 2,000,000 cells, including the header row, and validates both limits before writing worksheet content. Existing trusted reports above that size must set an explicit bounded override, for example `configure: options => options.MaxCells = requiredCellCount`. The separate Excel worksheet row and column limits cannot be raised.
+
 The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes`. Applications can lower or raise that limit by passing `new ReaderOptions { MaxInputBytes = ... }` to the read operation after registering `AddMhtmlHandler()`; use a larger value only for trusted archives with an application-owned resource policy.
 
 ## OfficeIMO 3.2: bounded Visio shape-data projection
