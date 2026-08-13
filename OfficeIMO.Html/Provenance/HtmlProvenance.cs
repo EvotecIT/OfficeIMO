@@ -688,6 +688,12 @@ public static partial class HtmlProvenance {
             int tagEnd = FindTagEnd(html, nameEnd);
             if (tagEnd < 0) break;
             bool selfClosing = tagEnd > markup && html[tagEnd - 1] == '/';
+            if (ChildNamespace(openElements) != HtmlPreflightNamespace.Html &&
+                IsForeignContentHtmlBreakout(html, tagName, nameEnd, tagEnd)) {
+                while (openElements.Count > 0 && ChildNamespace(openElements) != HtmlPreflightNamespace.Html) {
+                    openElements.RemoveAt(openElements.Count - 1);
+                }
+            }
             HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
             bool childrenUseHtml = elementNamespace == HtmlPreflightNamespace.Html ||
                 IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
@@ -741,6 +747,27 @@ public static partial class HtmlProvenance {
         string value = encoding.Success ? encoding.Groups["value"].Value : string.Empty;
         return value.Equals("text/html", StringComparison.OrdinalIgnoreCase) ||
             value.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsForeignContentHtmlBreakout(string html, string tagName, int attributesStart, int tagEnd) {
+        switch (tagName.ToLowerInvariant()) {
+            case "b": case "big": case "blockquote": case "body": case "br": case "center": case "code":
+            case "dd": case "div": case "dl": case "dt": case "em": case "embed": case "h1": case "h2":
+            case "h3": case "h4": case "h5": case "h6": case "head": case "hr": case "i": case "img":
+            case "li": case "listing": case "menu": case "meta": case "nobr": case "ol": case "p":
+            case "pre": case "ruby": case "s": case "small": case "span": case "strong": case "strike":
+            case "sub": case "sup": case "table": case "tt": case "u": case "ul": case "var":
+                return true;
+            case "font":
+                string attributes = html.Substring(attributesStart, tagEnd - attributesStart);
+                return Regex.IsMatch(
+                    attributes,
+                    "(?:^|\\s)(?:color|face|size)(?:\\s|=|/|$)",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+                    TimeSpan.FromMilliseconds(100));
+            default:
+                return false;
+        }
     }
 
     private enum HtmlPreflightNamespace { Html, Svg, MathMl }

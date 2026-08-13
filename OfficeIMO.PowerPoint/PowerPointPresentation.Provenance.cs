@@ -29,6 +29,7 @@ public sealed partial class PowerPointPresentation {
         if (document.PresentationPart == null || document.PresentationPart.ContentType is not (
             "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml" or
             "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml" or
+            "application/vnd.ms-powerpoint.addin.macroEnabled.main+xml" or
             "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml" or
             "application/vnd.ms-powerpoint.template.macroEnabled.main+xml" or
             "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml" or
