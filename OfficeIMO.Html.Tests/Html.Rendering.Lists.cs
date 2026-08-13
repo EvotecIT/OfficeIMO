@@ -192,6 +192,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_InvalidLaterCounterDescriptorRetainsEarlierValidValue() {
+        const string html = "<style>@counter-style marks{system:cyclic;symbols:'A';symbols:'';suffix:') ';suffix:bogus two}</style><ol style='list-style-type:marks'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "A) ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
     public void HtmlRendering_CounterStylePaddingIncludesNegativeAffixes() {
         const string html = "<style>@counter-style signed{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';negative:'-';pad:3 '0';suffix:' '}</style><ol start='-1' style='list-style-type:signed'><li>Item</li></ol>";
 

@@ -338,9 +338,33 @@ internal sealed class HtmlCounterStyleRegistry {
                 if (colon <= 0) continue;
                 string property = declaration.Substring(0, colon).Trim();
                 string value = declaration.Substring(colon + 1).Trim();
-                if (property.Length > 0 && value.Length > 0) parsed[property] = value;
+                if (property.Length > 0 && value.Length > 0 && IsValidDescriptor(property, value)) parsed[property] = value;
             }
             return parsed;
+        }
+
+        private static bool IsValidDescriptor(string property, string value) {
+            switch (property.ToLowerInvariant()) {
+                case "system":
+                    return TryParseSystemDescriptor(HtmlRenderCssValues.SplitWhitespace(value), out _, out _);
+                case "symbols":
+                    return TryParseSymbols(value, out IReadOnlyList<string> symbols) && symbols.Count > 0;
+                case "additive-symbols":
+                    return TryParseAdditiveSymbols(value, out IReadOnlyList<AdditiveSymbol> additive) && additive.Count > 0;
+                case "range":
+                    return TryParseRanges(value, out _);
+                case "negative":
+                    return TryParseStringPair(value, "-", string.Empty, out _, out _);
+                case "pad":
+                    return TryParsePad(value, out _, out _);
+                case "prefix":
+                case "suffix":
+                    return TryParseSingleString(value, string.Empty, out _);
+                case "fallback":
+                    return HtmlCssEscapeDecoder.Decode(value.Trim()).Length > 0;
+                default:
+                    return false;
+            }
         }
 
         private static int FindTopLevelColon(string value) {

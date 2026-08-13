@@ -28,9 +28,18 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
+        string shorthandValue = value;
         if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
-            && IsSupportedDeclarationValue(name, value)
-            && TryExpandContainerShorthand(value, out string containerName, out string containerType)) {
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            HtmlCssCustomPropertyResolver.TryResolve(
+                value,
+                customName => TryGetCascadedValue(properties, customName)
+                    ?? (parentProperties != null && parentProperties.TryGetValue(customName, out string? inherited) ? inherited : null),
+                out shorthandValue);
+        }
+        if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
+            && IsSupportedDeclarationValue(name, shorthandValue)
+            && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
             ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder);
             ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder);
         }
@@ -70,6 +79,11 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue);
+    }
+
+    private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {
+        if (!properties.TryGetValue(name, out CascadedProperty? property)) return null;
+        return ResolveLayerRevert(property)?.HasValue == true ? ResolveLayerRevert(property)!.Value : null;
     }
 
     private static bool TryExpandContainerShorthand(string value, out string containerName, out string containerType) {

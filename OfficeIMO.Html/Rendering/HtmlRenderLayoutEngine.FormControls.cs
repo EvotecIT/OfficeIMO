@@ -550,6 +550,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (tag == "input" && type == "radio") fieldKind = HtmlRenderFormFieldKind.RadioButton;
         else if (tag == "input" && IsInteractiveTextInputType(type)) fieldKind = HtmlRenderFormFieldKind.Text;
         else return false;
+        if (tag == "textarea" && string.Equals(element.GetAttribute("wrap")?.Trim(), "off", StringComparison.OrdinalIgnoreCase)) {
+            ReportNoWrapFormFieldFallback(source);
+            return false;
+        }
         if (tag == "input" && type == "file" && element.HasAttribute("multiple")) {
             ReportMultipleFileSelectionFallback(source);
             return false;
@@ -761,6 +765,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "font=" + font,
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportNoWrapFormFieldFallback(string source) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback,
+            "An HTML textarea with wrap=off used faithful static rendering because a PDF multiline widget appearance cannot preserve no-wrap semantics.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "textarea[wrap=off]",
             OfficeConversionLossKind.Approximation);
     }
 

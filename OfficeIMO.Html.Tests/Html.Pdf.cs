@@ -297,6 +297,22 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_NoWrapTextareaUsesTruthfulStaticFallback() {
+        const string html = "<textarea name='notes' wrap='off' style='width:70px;height:60px;font:12px Arial'>Alpha beta gamma delta</textarea>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback);
+        Assert.Contains(HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback, out _));
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string text = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("Alphabetagammadelta", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_UnrepresentableControlTypographyUsesTruthfulStaticFallback() {
         const string html = "<input name='bold' value='Bold value' style='font-weight:bold'>"
             + "<textarea name='italic' style='font-style:italic'>Italic value</textarea>"

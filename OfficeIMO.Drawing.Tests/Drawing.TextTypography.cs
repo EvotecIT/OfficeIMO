@@ -33,6 +33,9 @@ public class DrawingTextTypographyTests {
         const string supplementary = "漢\U00020000字";
         Assert.False(OfficeTextLineBreaks.IsValidBreakPosition(supplementary, 2));
         Assert.DoesNotContain(2, OfficeTextLineBreaks.GetBreakPositions(supplementary));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時々"));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時ゃ"));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時ー"));
     }
 
     [Fact]

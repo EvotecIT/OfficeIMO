@@ -106,6 +106,18 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_VariableBackedContainerShorthandOverridesAndResetsLonghands() {
+        var document = HtmlDocumentParser.ParseDocument("<style>#rule{container-type:size;--c:card / inline-size;container:var(--c)}</style><section id='rule'></section><section id='inline' style='container-type:size;--c:card / inline-size;container:var(--c)'></section>");
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+
+        foreach (string id in new[] { "rule", "inline" }) {
+            HtmlComputedStyle style = computed[document.QuerySelector("#" + id)!];
+            Assert.Equal("card", style.GetValue("container-name"));
+            Assert.Equal("inline-size", style.GetValue("container-type"));
+        }
+    }
+
+    [Fact]
     public void HtmlRendering_ContainerRangeQueriesAcceptCompactComparisonOperators() {
         const string html = "<style>@container (width>=300px){#minimum{background:red}}@container (300px<=width<400px){#range{background:red}}@container (width<300px){#outside{background:red}}</style><section style='width:360px;container-type:inline-size'><div id='minimum' style='width:20px;height:20px;background:blue'></div><div id='range' style='width:20px;height:20px;background:blue'></div><div id='outside' style='width:20px;height:20px;background:blue'></div></section>";
 
