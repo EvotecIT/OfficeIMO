@@ -440,6 +440,18 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlDomPreflightIgnoresTagLikeRawTextAndComments() {
+        const string html = "<html><head><script>const sample = '<div><span><img>';</script>" +
+            "<style>/* <section><aside><main> */</style></head><body><!-- <article><header><footer> --></body></html>";
+        var inspectionOptions = new OfficeProvenanceOptions { MaxContainerEntries = 5 };
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 5;
+
+        Assert.Empty(HtmlProvenance.Inspect(html, inspectionOptions).Evidence);
+        Assert.False(HtmlProvenance.Remove(html, removalOptions).WasChanged);
+    }
+
+    [Fact]
     public void HtmlEmbeddedSvgRewriteDeclaresTheUtf8OutputEncoding() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252);

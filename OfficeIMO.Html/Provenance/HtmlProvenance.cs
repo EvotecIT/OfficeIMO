@@ -504,14 +504,57 @@ public static class HtmlProvenance {
 
     private static void ValidatePotentialElementCount(string html, int maximumEntries) {
         int count = 0;
-        for (int index = 0; index < html.Length - 1; index++) {
-            if (html[index] != '<') continue;
-            char next = html[index + 1];
-            if (!char.IsLetter(next)) continue;
+        int index = 0;
+        while (index < html.Length - 1) {
+            int markup = html.IndexOf('<', index);
+            if (markup < 0 || markup == html.Length - 1) break;
+            if (markup <= html.Length - 4 && string.CompareOrdinal(html, markup, "<!--", 0, 4) == 0) {
+                int commentEnd = html.IndexOf("-->", markup + 4, StringComparison.Ordinal);
+                index = commentEnd < 0 ? html.Length : commentEnd + 3;
+                continue;
+            }
+            char next = html[markup + 1];
+            if (next is '/' or '!' or '?') {
+                int declarationEnd = FindTagEnd(html, markup + 2);
+                index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
+                continue;
+            }
+            if (!char.IsLetter(next)) {
+                index = markup + 1;
+                continue;
+            }
             if (++count > maximumEntries) {
                 throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
             }
+            int nameEnd = markup + 2;
+            while (nameEnd < html.Length && (char.IsLetterOrDigit(html[nameEnd]) || html[nameEnd] is '-' or ':')) nameEnd++;
+            string tagName = html.Substring(markup + 1, nameEnd - markup - 1);
+            int tagEnd = FindTagEnd(html, nameEnd);
+            if (tagEnd < 0) break;
+            index = tagEnd + 1;
+            if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("title", StringComparison.OrdinalIgnoreCase)) {
+                int rawTextEnd = html.IndexOf("</" + tagName, index, StringComparison.OrdinalIgnoreCase);
+                if (rawTextEnd < 0) break;
+                index = rawTextEnd;
+            }
         }
+    }
+
+    private static int FindTagEnd(string html, int offset) {
+        char quote = '\0';
+        for (int index = offset; index < html.Length; index++) {
+            char current = html[index];
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') quote = current;
+            else if (current == '>') return index;
+        }
+        return -1;
     }
 
     private static void AddEvidence(List<OfficeProvenanceEvidence> evidence, OfficeProvenanceOptions options, OfficeProvenanceEvidence item) {
