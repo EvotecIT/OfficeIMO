@@ -703,6 +703,45 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPageSharesTextClipBudgetAcrossType3GlyphPrograms() {
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", 3000));
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
+        string form = BuildStreamObject(
+            7,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>",
+            "BT /F1 12 Tf 4 Tr " + textShows + "ET");
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /FType3 18 Tf 20 100 Td (A) Tj (A) Tj ET",
+            "<< /Font << /FType3 5 0 R >> >>",
+            type3Font,
+            glyph,
+            form);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPageDoesNotChargeSkippedOverlappingContourIntersections() {
+        string activeClip = "0 -20 m " + string.Concat(Enumerable.Range(1, 300)
+            .Select(index => index + " " + (index % 2 == 0 ? -20 : 100) + " l ")) + "h W n ";
+        string coincidentShows = string.Concat(Enumerable.Repeat("(A) Tj 1 0 0 1 0 0 Tm ", 1000));
+        byte[] pdf = BuildSingleStreamPdf(
+            activeClip + "BT /F1 12 Tf 4 Tr " + coincidentShows + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+
+        Assert.NotNull(drawing);
+    }
+
+    [Fact]
     public void RenderPage_BoundsType3GlyphProgramInvocations() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");

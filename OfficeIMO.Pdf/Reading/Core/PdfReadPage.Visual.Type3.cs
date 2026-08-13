@@ -16,6 +16,8 @@ public sealed partial class PdfReadPage {
         bool retainPrimitiveData,
         Dictionary<(PdfStream Stream, PdfDictionary Resources), PdfPageTilingPatternResource?>? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget,
         PageContentBudget pageContentBudget,
         int contentNestingDepth) {
         if (invocation.Glyphs.Count == 0) return false;
@@ -79,6 +81,8 @@ public sealed partial class PdfReadPage {
                         requireVectorOnly: true,
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
+                        invocationTextClippingBudget: invocationTextClippingBudget,
+                        patternTextClippingBudget: patternTextClippingBudget,
                         pageContentBudget: pageContentBudget);
                 } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
                     return false;

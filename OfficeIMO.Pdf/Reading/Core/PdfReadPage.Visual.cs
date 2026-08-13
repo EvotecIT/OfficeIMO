@@ -528,6 +528,8 @@ public sealed partial class PdfReadPage {
                               retainPrimitiveData,
                               tilingPatternResourceCache,
                               textOutputBudget,
+                              invocationTextClippingBudget,
+                              patternTextClippingBudget,
                               pageContentBudget,
                               contentNestingDepth);
                           if (!rendered) type3GlyphBudget.RecordFailure();

@@ -19,7 +19,7 @@ public static partial class OfficeSvgDrawingReader {
         int selectedPriority = -1;
         foreach (string declaration in SplitRasterStyleDeclarations(StripCssComments(style!))) {
             int colon = declaration.IndexOf(':');
-            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.Ordinal)) continue;
+            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
             string candidate = NormalizeInlineStyleValue(declaration.Substring(colon + 1), out int priority);
             if (priority < selectedPriority) continue;
             value = candidate;

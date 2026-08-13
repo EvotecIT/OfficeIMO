@@ -131,16 +131,18 @@ internal readonly struct PdfPageClipPath {
             return Rectangle(intersection.X, intersection.Y, 0D, 0D);
         }
 
-        textClippingBudget?.ChargeIntersectionWork(subjectContours, clipContours);
-
         var intersectedContours = new List<List<OfficePoint>>();
-        bool canClipPerContour = clipContours.All(IsConvexContour) && !HasOverlappingContourBounds(clipContours);
+        textClippingBudget?.ChargeFlattenedPathWork(subjectContours, clipContours);
+        bool canClipPerContour = AreAllConvexContours(clipContours, textClippingBudget)
+            && !HasOverlappingContourBounds(clipContours, textClippingBudget);
         if (!canClipPerContour) {
             // Exact arbitrary path intersection needs a general polygon boolean engine.
             // Preserve a conservative superset so unsupported clip complexity cannot
             // suppress visible-content reporting or discard the rendered element.
             return intersection;
         }
+
+        textClippingBudget?.ChargePolygonIntersectionWork(subjectContours, clipContours);
 
         for (int i = 0; i < subjectContours.Count; i++) {
             for (int clipIndex = 0; clipIndex < clipContours.Count; clipIndex++) {
@@ -157,13 +159,26 @@ internal readonly struct PdfPageClipPath {
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
     }
 
-    private static bool IsConvexContour(List<OfficePoint> contour) {
+    private static bool AreAllConvexContours(
+        List<List<OfficePoint>> contours,
+        PdfTextClippingBudget? textClippingBudget) {
+        for (int index = 0; index < contours.Count; index++) {
+            bool isConvex = IsConvexContour(contours[index], out int inspectedEdges);
+            textClippingBudget?.ChargeLinearIntersectionWork(inspectedEdges);
+            if (!isConvex) return false;
+        }
+        return true;
+    }
+
+    private static bool IsConvexContour(List<OfficePoint> contour, out int inspectedEdges) {
+        inspectedEdges = 0;
         if (contour.Count < 3) {
             return false;
         }
 
         double sign = 0D;
         for (int i = 0; i < contour.Count; i++) {
+            inspectedEdges++;
             OfficePoint a = contour[i];
             OfficePoint b = contour[(i + 1) % contour.Count];
             OfficePoint c = contour[(i + 2) % contour.Count];
@@ -183,16 +198,33 @@ internal readonly struct PdfPageClipPath {
         return true;
     }
 
-    private static bool HasOverlappingContourBounds(List<List<OfficePoint>> contours) {
+    private static bool HasOverlappingContourBounds(
+        List<List<OfficePoint>> contours,
+        PdfTextClippingBudget? textClippingBudget) {
+        var bounds = new (double Left, double Top, double Right, double Bottom)[contours.Count];
         for (int i = 0; i < contours.Count; i++) {
             GetContourBounds(contours[i], out double left, out double top, out double right, out double bottom);
+            bounds[i] = (left, top, right, bottom);
+        }
+        textClippingBudget?.ChargeContourBoundsWork(contours);
+
+        long pendingChecks = 0L;
+        for (int i = 0; i < bounds.Length; i++) {
+            (double left, double top, double right, double bottom) = bounds[i];
             for (int j = i + 1; j < contours.Count; j++) {
-                GetContourBounds(contours[j], out double otherLeft, out double otherTop, out double otherRight, out double otherBottom);
+                (double otherLeft, double otherTop, double otherRight, double otherBottom) = bounds[j];
+                pendingChecks++;
                 if (left < otherRight && right > otherLeft && top < otherBottom && bottom > otherTop) {
+                    textClippingBudget?.ChargeLinearIntersectionWork(pendingChecks);
                     return true;
+                }
+                if (pendingChecks == 1024L) {
+                    textClippingBudget?.ChargeLinearIntersectionWork(pendingChecks);
+                    pendingChecks = 0L;
                 }
             }
         }
+        textClippingBudget?.ChargeLinearIntersectionWork(pendingChecks);
 
         return false;
     }

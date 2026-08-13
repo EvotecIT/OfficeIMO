@@ -15,20 +15,30 @@ internal sealed class PdfTextClippingBudget {
         return PdfPageClipPath.ResolveActiveClip(activeClipPath, clipPath, this);
     }
 
-    internal void ChargeIntersectionWork(
+    internal void ChargeFlattenedPathWork(
         IReadOnlyList<List<OfficePoint>> subjectContours,
         IReadOnlyList<List<OfficePoint>> clipContours) {
         long subjectVertices = CountVertices(subjectContours);
         long clipVertices = CountVertices(clipContours);
-        long overlapChecks = SaturatingMultiply(clipContours.Count, Math.Max(0, clipContours.Count - 1)) / 2L;
-        long intersectionChecks = SaturatingMultiply(subjectVertices, clipVertices);
-        long flatteningWork = SaturatingAdd(subjectVertices, clipVertices);
-        long addedWork = SaturatingAdd(flatteningWork, SaturatingAdd(overlapChecks, intersectionChecks));
-        ChargeIntersectionWork(addedWork);
+        ChargeIntersectionWork(SaturatingAdd(subjectVertices, clipVertices));
+    }
+
+    internal void ChargeContourBoundsWork(IReadOnlyList<List<OfficePoint>> contours) {
+        ChargeIntersectionWork(CountVertices(contours));
+    }
+
+    internal void ChargePolygonIntersectionWork(
+        IReadOnlyList<List<OfficePoint>> subjectContours,
+        IReadOnlyList<List<OfficePoint>> clipContours) {
+        ChargeIntersectionWork(SaturatingMultiply(CountVertices(subjectContours), CountVertices(clipContours)));
     }
 
     internal void ChargeLinearIntersectionWork(int pathCommandCount) {
         ChargeIntersectionWork(pathCommandCount);
+    }
+
+    internal void ChargeLinearIntersectionWork(long work) {
+        ChargeIntersectionWork(work);
     }
 
     private void ChargeIntersectionWork(long addedWork) {

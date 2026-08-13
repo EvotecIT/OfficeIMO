@@ -336,6 +336,17 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateMatchesInlinePropertyNamesCaseInsensitively() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' style='CLIP-PATH:url(#c)'/>"
+            + "<rect x='5' width='4' height='4' style='CLIP-PATH:url(#c)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 7 };
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
+    }
+
+    [Fact]
     public void SvgSafetyPredicateRejectsEscapedPriorityOnUrlBearingLocalReference() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
             + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
