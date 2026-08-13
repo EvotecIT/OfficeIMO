@@ -409,6 +409,28 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void HtmlEmbeddedSvgHonorsItsXmlDeclarationWhenTheDataUriHasNoCharset() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Encoding windows1252 = Encoding.GetEncoding(1252);
+        string svg = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><title>café</title><metadata><x:xmpmeta><rdf:RDF><rdf:Description " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></metadata></svg>";
+        string dataUri = "data:image/svg+xml;base64," + Convert.ToBase64String(windows1252.GetBytes(svg));
+        string html = $"<html><head></head><body><img src=\"{dataUri}\"></body></html>";
+
+        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
+        string output = Encoding.UTF8.GetString(result.ToArray());
+        int start = output.IndexOf("data:image/svg+xml", StringComparison.Ordinal);
+        int end = output.IndexOf('"', start);
+        Assert.True(HtmlDataUri.TryParse(output.Substring(start, end - start), out HtmlDataUri rewritten));
+
+        Assert.True(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.Empty(result.After.Evidence);
+        Assert.Contains("charset=utf-8", rewritten.Metadata, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("café", rewritten.DecodeText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownUsesTheSharedStructuredTextContract() {
         string markdown = "# Before\n\n-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
@@ -465,7 +487,15 @@ public sealed class ProvenanceDocumentContracts {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.docx");
         try {
             CreateOpenXmlPackage(path, "docx");
-            AddZipEntry(path, "_xmlsignatures/orphan.xml", Encoding.UTF8.GetBytes("<signature/>"));
+            using (Package packageHandle = Package.Open(path, FileMode.Open, FileAccess.ReadWrite)) {
+                PackagePart signature = packageHandle.CreatePart(
+                    PackUriHelper.CreatePartUri(new Uri("/_xmlsignatures/orphan.xml", UriKind.Relative)),
+                    "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml",
+                    CompressionOption.Normal);
+                using Stream target = signature.GetStream();
+                byte[] payload = Encoding.UTF8.GetBytes("<signature/>");
+                target.Write(payload, 0, payload.Length);
+            }
             AddZipEntry(path, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()));
             byte[] package = File.ReadAllBytes(path);
 

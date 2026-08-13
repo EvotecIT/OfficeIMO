@@ -376,15 +376,18 @@ public static class HtmlProvenance {
         string[] parts = dataUri.Metadata.Split(';');
         var metadata = new List<string>(parts.Length + 1);
         bool svg = string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
+        bool hasCharset = false;
         foreach (string part in parts) {
             string trimmed = part.Trim();
             if (trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase)) continue;
             if (svg && trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) {
                 metadata.Add("charset=utf-8");
+                hasCharset = true;
             } else {
                 metadata.Add(trimmed);
             }
         }
+        if (svg && !hasCharset) metadata.Add("charset=utf-8");
         metadata.Add("base64");
         return string.Join(";", metadata);
     }
@@ -393,6 +396,9 @@ public static class HtmlProvenance {
         if (!string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
             return dataUri.TryDecodeBytes(out image);
         }
+        bool hasDeclaredCharset = dataUri.Metadata.Split(';')
+            .Any(part => part.Trim().StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+        if (!hasDeclaredCharset) return dataUri.TryDecodeBytes(out image);
         if (!dataUri.TryDecodeText(out string text)) {
             image = Array.Empty<byte>();
             return false;
