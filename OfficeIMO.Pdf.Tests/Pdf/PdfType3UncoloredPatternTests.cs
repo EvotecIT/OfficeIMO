@@ -406,6 +406,35 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("/Perceptual ri")]
+    [InlineData("0.5 i")]
+    public void RenderPage_FailsClosedForUnimplementedStrictPatternOperators(string operation) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
+            patternContent: operation + " 1 0 0 rg 0 0 5 5 re f");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForNearlyLinearType2ShadingExponent() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1.0000000005 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForOuterAxialShadingPatternOnType3Stroke() {
         byte[] pdf = BuildUncoloredType3PatternPdf(

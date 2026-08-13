@@ -1244,7 +1244,7 @@ public sealed partial class PdfReadPage {
             !IsCanonicalUnitIntervals(domain, 1) ||
             !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
             ResolveObject(exponentObject) is not PdfNumber exponent ||
-            !IsFinite(exponent.Value) || Math.Abs(exponent.Value - 1D) > 0.000000001D) return false;
+            !IsFinite(exponent.Value) || exponent.Value != 1D) return false;
         double[] c0;
         if (function.Items.TryGetValue("C0", out PdfObject? c0Object) && ResolveObject(c0Object) is not PdfNull) {
             if (!TryReadExactFiniteNumberArray(c0Object, colorSpace.ComponentCount, out double[] c0Values)) return false;
