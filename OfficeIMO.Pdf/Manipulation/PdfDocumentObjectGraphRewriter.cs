@@ -31,6 +31,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         if (reachableObjectNumbers.Any(objectNumber =>
                 objects[objectNumber].Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") &&
+            fileVersion < PdfFileVersion.Pdf16 &&
             !CatalogDeclaresAtLeastPdf16(root.Value as PdfDictionary, objects)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {

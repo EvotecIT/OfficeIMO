@@ -13,6 +13,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<Matrix2D> parentTransforms,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
         bool changed = false;
         string rewrittenContent = content;
@@ -48,6 +49,7 @@ internal static partial class PdfRedactionApplier {
                     parentTransforms,
                     referenceCounts,
                     activeForms,
+                    limits,
                     ref nextObjectNumber);
                 if (!result.HasChanges) {
                     if (!SameReference(reference, sourceReference)) {
@@ -86,6 +88,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<Matrix2D> parentTransforms,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
         PdfDictionary formResources = ResolveTextFormResources(objects, inheritedResources, formStream, isolateResources);
         PdfDictionary formXObjects = isolateResources
@@ -96,7 +99,7 @@ internal static partial class PdfRedactionApplier {
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects));
-        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, effectiveTransforms);
+        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, effectiveTransforms, limits);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
             objects,
@@ -108,6 +111,7 @@ internal static partial class PdfRedactionApplier {
             effectiveTransforms,
             referenceCounts,
             activeForms,
+            limits,
             ref nextObjectNumber);
         string rewrittenContent = nestedResult.Content;
         if (!string.Equals(formContent, rewrittenContent, StringComparison.Ordinal)) {

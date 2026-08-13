@@ -13,6 +13,7 @@ internal static class PdfActionPayloadFingerprint {
     private const int MaximumNodes = 4096;
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookupCache> PageNumberLookups = new();
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, StreamHashCache> StreamHashes = new();
+    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, StringHashCache> StringHashes = new();
 
     internal static string? Create(
         PdfDictionary action,
@@ -61,7 +62,7 @@ internal static class PdfActionPayloadFingerprint {
                 AppendText(builder, 'N', name.Name);
                 return;
             case PdfStringObj text:
-                AppendText(builder, 'S', Convert.ToBase64String(text.RawBytes));
+                AppendText(builder, 'S', StringHashes.GetValue(objects, static _ => new StringHashCache()).Get(text));
                 return;
             case PdfReference reference:
                 AppendReference(builder, reference, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete);
@@ -230,6 +231,25 @@ internal static class PdfActionPayloadFingerprint {
                 }
 #endif
                 _values.Add(stream, value);
+                return value;
+            }
+        }
+    }
+
+    private sealed class StringHashCache {
+        private readonly Dictionary<PdfStringObj, string> _values = new();
+
+        internal string Get(PdfStringObj text) {
+            lock (_values) {
+                if (_values.TryGetValue(text, out string? value)) return value;
+#if NET8_0_OR_GREATER
+                value = Convert.ToBase64String(SHA256.HashData(text.RawBytes));
+#else
+                using (SHA256 sha256 = SHA256.Create()) {
+                    value = Convert.ToBase64String(sha256.ComputeHash(text.RawBytes));
+                }
+#endif
+                _values.Add(text, value);
                 return value;
             }
         }

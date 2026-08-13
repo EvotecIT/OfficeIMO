@@ -118,7 +118,7 @@ internal static partial class PdfRedactionApplier {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
         if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
-            mutationScope == RedactionMutationScope.Text &&
+            (mutationScope == RedactionMutationScope.Text || mutationScope == RedactionMutationScope.Images) &&
             !paintMarks) {
             PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
         } else {
@@ -261,6 +261,7 @@ internal static partial class PdfRedactionApplier {
                     pageDictionary,
                     currentMatches,
                     pageAreas ?? Array.Empty<PdfRedactionArea>(),
+                    limits,
                     ref nextObjectNumber) || pageChanged;
             }
             if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits.MaxDecodedStreamBytes, ref nextObjectNumber) || pageChanged;

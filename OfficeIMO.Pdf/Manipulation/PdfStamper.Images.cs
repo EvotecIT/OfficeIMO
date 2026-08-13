@@ -60,7 +60,7 @@ internal static partial class PdfStamper {
     private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
+        PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(imageBytes));
         }
@@ -79,7 +79,7 @@ internal static partial class PdfStamper {
             throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         var document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) {
             throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
@@ -88,40 +88,54 @@ internal static partial class PdfStamper {
         var selectedPages = NormalizePageNumbers(effectiveOptions.PageNumbers, document.Pages.Count);
         var selectedSet = new HashSet<int>(selectedPages);
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
-        int? softMaskPseudoObjectNumber = imageStream.SoftMask is null ? null : ImageSoftMaskPseudoObjectNumber;
-        var additionalObjects = new List<PdfPageExtractor.AdditionalObject>();
-        if (imageStream.SoftMask != null) {
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(ImageSoftMaskPseudoObjectNumber, PdfWriter.BuildImageXObject(imageStream.SoftMask)));
-        }
-
-        additionalObjects.Add(new PdfPageExtractor.AdditionalObject(ImagePseudoObjectNumber, PdfWriter.BuildImageXObject(imageStream, softMaskPseudoObjectNumber)));
-        var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string imageResourceName = GetAvailableXObjectResourceName(objects, pageObjectNumbers);
+        return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (rewrittenObjects, security) => {
+            int nextObjectNumber = rewrittenObjects.Count == 0 ? 1 : rewrittenObjects.Keys.Max() + 1;
+            int? softMaskObjectNumber = null;
+            if (imageStream.SoftMask != null) {
+                softMaskObjectNumber = nextObjectNumber++;
+                rewrittenObjects[softMaskObjectNumber.Value] = new PdfIndirectObject(
+                    softMaskObjectNumber.Value,
+                    0,
+                    PdfWriter.BuildImageXObject(imageStream.SoftMask));
+            }
+            int imageObjectNumber = nextObjectNumber++;
+            rewrittenObjects[imageObjectNumber] = new PdfIndirectObject(
+                imageObjectNumber,
+                0,
+                PdfWriter.BuildImageXObject(imageStream, softMaskObjectNumber));
 
-        for (int i = 0; i < document.Pages.Count; i++) {
-            int pageNumber = i + 1;
-            if (!selectedSet.Contains(pageNumber)) {
-                continue;
+            for (int i = 0; i < document.Pages.Count; i++) {
+                int pageNumber = i + 1;
+                if (!selectedSet.Contains(pageNumber)) continue;
+                var size = document.Pages[i].GetPageSize();
+                int stampObjectNumber = nextObjectNumber++;
+                rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
+                    stampObjectNumber,
+                    0,
+                    BuildImageStampStream(
+                        imageResourceName,
+                        size.Width,
+                        size.Height,
+                        imageStream.PixelWidth,
+                        imageStream.PixelHeight,
+                        effectiveOptions,
+                        watermarkDefaults));
+                Dictionary<string, PdfObject> pageOverrides = BuildImagePageOverrides(
+                    rewrittenObjects,
+                    pageObjectNumbers[i],
+                    imageResourceName,
+                    stampObjectNumber,
+                    effectiveOptions.BehindContent,
+                    imageObjectNumber);
+                PdfDictionary pageDictionary = (PdfDictionary)rewrittenObjects[pageObjectNumbers[i]].Value;
+                foreach (KeyValuePair<string, PdfObject> item in pageOverrides) pageDictionary.Items[item.Key] = item.Value;
             }
 
-            var page = document.Pages[i];
-            var size = page.GetPageSize();
-            int stampPseudoId = -2000 - pageNumber;
-            var stampStream = BuildImageStampStream(
-                imageResourceName,
-                size.Width,
-                size.Height,
-                imageStream.PixelWidth,
-                imageStream.PixelHeight,
-                effectiveOptions,
-                watermarkDefaults);
-
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoId, stampStream));
-            overrides[page.ObjectNumber] = BuildImagePageOverrides(objects, pageObjectNumbers[i], imageResourceName, stampPseudoId, effectiveOptions.BehindContent);
-        }
-
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
+            return security.InfoObjectNumber.HasValue && rewrittenObjects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
     }
 
     /// <summary>

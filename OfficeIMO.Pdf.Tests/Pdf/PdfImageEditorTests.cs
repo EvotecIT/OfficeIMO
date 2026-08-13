@@ -615,6 +615,34 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void ImageMutationsPreserveAnExistingAcroFormCatalogGraph() {
+        byte[] form = PdfDocument.Open(CreateTextPdf()).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "customer.notes",
+            Kind = PdfFormFieldCreationKind.Text,
+            X = 72D,
+            Y = 600D,
+            Width = 180D,
+            Height = 24D,
+            Value = "kept"
+        })).ToBytes();
+
+        PdfDocument added = PdfDocument.Open(form).Images.Add(
+            new PdfPageRegion(1, 40D, 80D, 30D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
+        PdfDocument replaced = added.Images.Replace(
+            Assert.Single(added.Images.Placements()),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document;
+        PdfDocument moved = replaced.Images.Move(Assert.Single(replaced.Images.Placements()), 20D, 0D).Document;
+        PdfDocument removed = moved.Images.Remove(Assert.Single(moved.Images.Placements())).Document;
+
+        foreach (PdfDocument document in new[] { added, replaced, moved, removed }) {
+            PdfFormField field = Assert.Single(document.Inspect().FormFields);
+            Assert.Equal("customer.notes", field.Name);
+            Assert.Equal("kept", field.Value);
+        }
+    }
+
+    [Fact]
     public void ReplaceCarriesExactInputBudgetAcrossRemovalAndStamping() {
         PdfDocument prepared = PdfDocument.Open(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 40D, 80D, 30D, 20D),

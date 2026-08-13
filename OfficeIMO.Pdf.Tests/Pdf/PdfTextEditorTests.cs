@@ -851,6 +851,23 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceCarriesConfiguredContentNestingLimitThroughTextRemoval() {
+        string nestedOperand = new string('[', 129) + "0" + new string(']', 129) + " n\n";
+        byte[] source = BuildRawTextPdf(nestedOperand + "BT /F1 12 Tf 50 700 Td (replace me) Tj ET\n");
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentNestingDepth = 130 }
+        };
+        PdfDocument document = PdfDocument.Open(source, readOptions);
+        PdfTextMatch match = Assert.Single(document.Text.Find("replace me", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult result = document.Text.Replace(
+            new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
+            "replaced");
+
+        Assert.Single(result.Document.Text.Find("replaced", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
     public void TextAddRejectsTaggedCatalogWithoutOwnedStructureAssociation() {
         byte[] raw = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (tagged source) Tj ET\n",

@@ -284,6 +284,23 @@ public class PdfAcroFormReviewRegressionTests {
         Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Create_PreservesLowerCatalogVersionWhenHeaderAlreadySupportsOpenType() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (fontPath is null) return;
+
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.7", "1.4")).Forms.Edit(
+            edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "run",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                Caption = "Office"
+            }),
+            new PdfFormFillerOptions().UseAppearanceFontFile("OfficeIMO CFF", fontPath));
+
+        Assert.Equal("1.4", PdfInspector.Inspect(result.ToBytes()).CatalogVersion);
+        Assert.Contains("/Subtype /OpenType", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
     private static byte[] BuildInheritedTerminalFieldPdf() {
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",

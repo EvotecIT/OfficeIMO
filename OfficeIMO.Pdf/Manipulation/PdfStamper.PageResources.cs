@@ -27,13 +27,14 @@ internal static partial class PdfStamper {
         int pageObjectNumber,
         string imageResourceName,
         int stampPseudoObjectNumber,
-        bool behindContent) {
+        bool behindContent,
+        int imageObjectNumber = ImagePseudoObjectNumber) {
         if (!objects.TryGetValue(pageObjectNumber, out var indirect) || indirect.Value is not PdfDictionary pageDictionary) {
             throw new InvalidOperationException("PDF page object " + pageObjectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
         }
 
         var contents = BuildContentsArray(objects, pageDictionary.Items.TryGetValue("Contents", out var contentsObj) ? contentsObj : null, stampPseudoObjectNumber, behindContent);
-        var resources = BuildImageResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), imageResourceName);
+        var resources = BuildImageResourcesDictionary(objects, GetInheritedPageValue(objects, pageDictionary, "Resources"), imageResourceName, imageObjectNumber);
 
         return new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
             ["Contents"] = contents,
@@ -98,10 +99,11 @@ internal static partial class PdfStamper {
     private static PdfDictionary BuildImageResourcesDictionary(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject? existingResources,
-        string imageResourceName) {
+        string imageResourceName,
+        int imageObjectNumber) {
         var resources = CloneDictionary(ResolveDictionary(objects, existingResources));
         var xObjects = CloneDictionary(ResolveDictionary(objects, resources.Items.TryGetValue("XObject", out var xObjectObj) ? xObjectObj : null));
-        xObjects.Items[imageResourceName] = new PdfReference(ImagePseudoObjectNumber, 0);
+        xObjects.Items[imageResourceName] = new PdfReference(imageObjectNumber, 0);
         resources.Items["XObject"] = xObjects;
         return resources;
     }
