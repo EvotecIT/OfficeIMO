@@ -511,6 +511,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         switch (operatorName.Name) {
             case "And":
+                if (expression.Items.Count < 2) return false;
                 visible = true;
                 for (int i = 1; i < expression.Items.Count; i++) {
                     if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
@@ -522,6 +523,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
                 return true;
             case "Or":
+                if (expression.Items.Count < 2) return false;
                 visible = false;
                 for (int i = 1; i < expression.Items.Count; i++) {
                     if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
@@ -533,7 +535,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
                 return true;
             case "Not":
-                if (expression.Items.Count < 2 ||
+                if (expression.Items.Count != 2 ||
                     !TryEvaluateVisibilityExpression(expression.Items[1], groupVisibility, objects, visited, out bool nestedVisible)) {
                     return false;
                 }

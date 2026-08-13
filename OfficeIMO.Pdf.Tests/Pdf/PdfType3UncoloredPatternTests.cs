@@ -778,6 +778,32 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ConcaveClipIntersectionValidatesWholeSyntheticEdges() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(10D, 10D),
+            OfficePathCommand.LineTo(8D, 10D),
+            OfficePathCommand.LineTo(8D, 2D),
+            OfficePathCommand.LineTo(6D, 2D),
+            OfficePathCommand.LineTo(6D, 10D),
+            OfficePathCommand.LineTo(4D, 10D),
+            OfficePathCommand.LineTo(4D, 2D),
+            OfficePathCommand.LineTo(2D, 2D),
+            OfficePathCommand.LineTo(2D, 10D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath source));
+
+        PdfPageClipPath clipped = PdfPageClipPath.ResolveActiveClip(
+            source,
+            PdfPageClipPath.Rectangle(0D, 5D, 10D, 5D));
+
+        Assert.False(clipped.IsExact);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForShearedOuterRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

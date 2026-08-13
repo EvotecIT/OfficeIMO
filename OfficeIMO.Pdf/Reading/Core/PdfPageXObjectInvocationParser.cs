@@ -104,8 +104,8 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<GraphicsEffectState> _graphicsEffectStack = new Stack<GraphicsEffectState>();
         private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
-        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern)> _softMaskStack =
-            new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool)>();
+        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> _softMaskStack =
+            new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool, PdfPageGraphicsStateResource?)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
@@ -161,6 +161,7 @@ internal static class PdfPageXObjectInvocationParser {
         private OfficeColor _softMaskStrokeColor = OfficeColor.Black;
         private bool _softMaskHasFillPattern;
         private bool _softMaskHasStrokePattern;
+        private PdfPageGraphicsStateResource? _softMaskInheritedGraphicsState;
         private bool _hasInexactDash;
 
         public Parser(
@@ -611,7 +612,8 @@ internal static class PdfPageXObjectInvocationParser {
                         _softMaskFillColor,
                         _softMaskStrokeColor,
                         _softMaskHasFillPattern,
-                        _softMaskHasStrokePattern));
+                        _softMaskHasStrokePattern,
+                        _softMaskInheritedGraphicsState));
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
@@ -619,15 +621,16 @@ internal static class PdfPageXObjectInvocationParser {
                     _graphicsEffectState = _graphicsEffectStack.Count > 0 ? _graphicsEffectStack.Pop() : default;
                     _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
-                    (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern) restoredSoftMask = _softMaskStack.Count > 0
+                    (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState) restoredSoftMask = _softMaskStack.Count > 0
                         ? _softMaskStack.Pop()
-                        : (null, null, OfficeColor.Black, OfficeColor.Black, false, false);
+                        : (null, null, OfficeColor.Black, OfficeColor.Black, false, false, null);
                     _softMask = restoredSoftMask.SoftMask;
                     _softMaskTransform = restoredSoftMask.Transform;
                     _softMaskFillColor = restoredSoftMask.FillColor;
                     _softMaskStrokeColor = restoredSoftMask.StrokeColor;
                     _softMaskHasFillPattern = restoredSoftMask.HasFillPattern;
                     _softMaskHasStrokePattern = restoredSoftMask.HasStrokePattern;
+                    _softMaskInheritedGraphicsState = restoredSoftMask.InheritedGraphicsState;
                     break;
                 case "cm":
                     if (HasExactFiniteNumbers(6)) {
@@ -1338,20 +1341,30 @@ internal static class PdfPageXObjectInvocationParser {
                 _softMaskStrokeColor = _state.StrokeColor;
                 _softMaskHasFillPattern = _patternState.Fill.HasValue;
                 _softMaskHasStrokePattern = _patternState.Stroke.HasValue;
+                _softMaskInheritedGraphicsState = CaptureCurrentGraphicsState();
             }
             _graphicsEffectState = _graphicsEffectState.Apply(resource, _state.Transform);
         }
 
+        private PdfPageGraphicsStateResource CaptureCurrentGraphicsState() => new PdfPageGraphicsStateResource(
+            _state.FillOpacity,
+            _state.StrokeOpacity,
+            _state.StrokeWidth,
+            _state.StrokeDashStyle,
+            _state.StrokeLineCap,
+            _state.StrokeLineJoin);
+
         private void PublishActiveGraphicsEffectUse() {
             if (!_graphicsEffectState.HasEffect) return;
             PdfPageGraphicsStateResource effect = _graphicsEffectState.ToResource();
+            PdfPageGraphicsStateResource? softMaskState = effect.HasSoftMask ? _softMaskInheritedGraphicsState : null;
             var resource = new PdfPageGraphicsStateResource(
-                _state.FillOpacity,
-                _state.StrokeOpacity,
-                _state.StrokeWidth,
-                _state.StrokeDashStyle,
-                _state.StrokeLineCap,
-                _state.StrokeLineJoin,
+                softMaskState.HasValue ? softMaskState.Value.FillOpacity : _state.FillOpacity,
+                softMaskState.HasValue ? softMaskState.Value.StrokeOpacity : _state.StrokeOpacity,
+                softMaskState.HasValue ? softMaskState.Value.StrokeWidth : _state.StrokeWidth,
+                softMaskState.HasValue ? softMaskState.Value.StrokeDashStyle : _state.StrokeDashStyle,
+                softMaskState.HasValue ? softMaskState.Value.StrokeLineCap : _state.StrokeLineCap,
+                softMaskState.HasValue ? softMaskState.Value.StrokeLineJoin : _state.StrokeLineJoin,
                 effect.BlendMode,
                 effect.HasSoftMask,
                 effect.SoftMask,

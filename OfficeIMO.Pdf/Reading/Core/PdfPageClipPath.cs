@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal readonly struct PdfPageClipPath {
+internal readonly partial struct PdfPageClipPath {
     private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands, bool isExact = true) {
         X = x;
         Y = y;
@@ -155,7 +155,7 @@ internal readonly struct PdfPageClipPath {
     }
 
     private static bool HasRepresentableClippedContours(PdfPageClipPath source, PdfPageClipPath clipped) {
-        if (clipped.IsRectangle && clipped.Width <= 0D || clipped.Height <= 0D) return true;
+        if ((clipped.IsRectangle && clipped.Width <= 0D) || clipped.Height <= 0D) return true;
         List<List<OfficePoint>> sourceContours = FlattenPathContours(source.Commands);
         List<List<OfficePoint>> clippedContours = clipped.IsRectangle
             ? new List<List<OfficePoint>> {
@@ -173,8 +173,7 @@ internal readonly struct PdfPageClipPath {
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
                 OfficePoint start = contour[pointIndex];
                 OfficePoint end = contour[(pointIndex + 1) % contour.Count];
-                var midpoint = new OfficePoint((start.X + end.X) / 2D, (start.Y + end.Y) / 2D);
-                if (!ContainsFilledPoint(sourceContours, source.FillRule, midpoint)) return false;
+                if (!IsSegmentWithinFilledArea(sourceContours, source.FillRule, start, end)) return false;
             }
         }
         return true;

@@ -21,6 +21,21 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_CapturesType3SoftMaskStrokeStateAtInstallation() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 2 w /GS1 gs 1 w 0 0 m 500 700 l S");
+        string state = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string mask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true >> /Resources << >>", "0 0 m 500 700 l S");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, state, mask);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingShape);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotReuseLuminosityMaskValidationAcrossInheritedColors() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q /GS1 gs 0 0 100 700 re f Q 1 0 0 rg /GS1 gs 200 0 100 700 re f");
