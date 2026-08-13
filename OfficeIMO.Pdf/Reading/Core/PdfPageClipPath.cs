@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 internal readonly struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
     internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
+    private const int CurveFlatteningPointCount = 24;
 
     private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands) {
         X = x;
@@ -114,7 +115,11 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath intersection,
         PdfTextClippingBudget? textClippingBudget) {
         textClippingBudget?.ChargeLinearIntersectionWork(pathClip.Commands.Count);
-        List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(pathClip.Commands, rectangleClip);
+        textClippingBudget?.ChargeLinearIntersectionWork(CountFlattenedPathVertices(pathClip.Commands));
+        List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(
+            pathClip.Commands,
+            rectangleClip,
+            textClippingBudget);
         return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
@@ -263,13 +268,13 @@ internal readonly struct PdfPageClipPath {
                     break;
                 case OfficePathCommandKind.QuadraticBezierTo:
                     EnsureContour(ref current, currentPoint, hasCurrentPoint);
-                    current!.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, 24));
+                    current!.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, CurveFlatteningPointCount));
                     currentPoint = command.Point;
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.CubicBezierTo:
                     EnsureContour(ref current, currentPoint, hasCurrentPoint);
-                    current!.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, 24));
+                    current!.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, CurveFlatteningPointCount));
                     currentPoint = command.Point;
                     hasCurrentPoint = true;
                     break;
@@ -398,7 +403,10 @@ internal readonly struct PdfPageClipPath {
         return commands;
     }
 
-    private static List<OfficePathCommand> ClipPathCommandsToRectangle(IReadOnlyList<OfficePathCommand> commands, PdfPageClipPath rectangle) {
+    private static List<OfficePathCommand> ClipPathCommandsToRectangle(
+        IReadOnlyList<OfficePathCommand> commands,
+        PdfPageClipPath rectangle,
+        PdfTextClippingBudget? textClippingBudget = null) {
         var clippedCommands = new List<OfficePathCommand>();
         List<OfficePoint>? current = null;
         OfficePoint currentPoint = default;
@@ -407,7 +415,7 @@ internal readonly struct PdfPageClipPath {
             OfficePathCommand command = commands[i];
             switch (command.Kind) {
                 case OfficePathCommandKind.MoveTo:
-                    AddClippedContour(clippedCommands, current, rectangle);
+                    AddClippedContour(clippedCommands, current, rectangle, textClippingBudget);
                     currentPoint = command.Point;
                     current = new List<OfficePoint> { currentPoint };
                     hasCurrentPoint = true;
@@ -420,13 +428,13 @@ internal readonly struct PdfPageClipPath {
                     break;
                 case OfficePathCommandKind.QuadraticBezierTo:
                     EnsureContour(ref current, currentPoint, hasCurrentPoint);
-                    current!.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, 24));
+                    current!.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, CurveFlatteningPointCount));
                     currentPoint = command.Point;
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.CubicBezierTo:
                     EnsureContour(ref current, currentPoint, hasCurrentPoint);
-                    current!.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, 24));
+                    current!.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, CurveFlatteningPointCount));
                     currentPoint = command.Point;
                     hasCurrentPoint = true;
                     break;
@@ -435,7 +443,7 @@ internal readonly struct PdfPageClipPath {
                         currentPoint = current[0];
                         hasCurrentPoint = true;
                     }
-                    AddClippedContour(clippedCommands, current, rectangle);
+                    AddClippedContour(clippedCommands, current, rectangle, textClippingBudget);
                     current = hasCurrentPoint
                         ? new List<OfficePoint> { currentPoint }
                         : null;
@@ -443,8 +451,20 @@ internal readonly struct PdfPageClipPath {
             }
         }
 
-        AddClippedContour(clippedCommands, current, rectangle);
+        AddClippedContour(clippedCommands, current, rectangle, textClippingBudget);
         return clippedCommands;
+    }
+
+    private static long CountFlattenedPathVertices(IReadOnlyList<OfficePathCommand> commands) {
+        long vertices = 0L;
+        for (int index = 0; index < commands.Count; index++) {
+            vertices += commands[index].Kind switch {
+                OfficePathCommandKind.QuadraticBezierTo or OfficePathCommandKind.CubicBezierTo => CurveFlatteningPointCount,
+                OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo => 1L,
+                _ => 0L
+            };
+        }
+        return vertices;
     }
 
     private static void EnsureContour(ref List<OfficePoint>? current, OfficePoint currentPoint, bool hasCurrentPoint) {
@@ -453,12 +473,16 @@ internal readonly struct PdfPageClipPath {
         }
     }
 
-    private static void AddClippedContour(List<OfficePathCommand> commands, List<OfficePoint>? contour, PdfPageClipPath rectangle) {
+    private static void AddClippedContour(
+        List<OfficePathCommand> commands,
+        List<OfficePoint>? contour,
+        PdfPageClipPath rectangle,
+        PdfTextClippingBudget? textClippingBudget) {
         if (contour == null || contour.Count < 3) {
             return;
         }
 
-        List<OfficePoint> clipped = ClipPolygonToRectangle(contour, rectangle);
+        List<OfficePoint> clipped = ClipPolygonToRectangle(contour, rectangle, textClippingBudget);
         if (clipped.Count < 3) {
             return;
         }
@@ -473,20 +497,29 @@ internal readonly struct PdfPageClipPath {
         commands.Add(OfficePathCommand.Close());
     }
 
-    private static List<OfficePoint> ClipPolygonToRectangle(IReadOnlyList<OfficePoint> polygon, PdfPageClipPath rectangle) {
+    private static List<OfficePoint> ClipPolygonToRectangle(
+        IReadOnlyList<OfficePoint> polygon,
+        PdfPageClipPath rectangle,
+        PdfTextClippingBudget? textClippingBudget) {
         List<OfficePoint> points = new(polygon);
-        points = ClipPolygon(points, point => point.X >= rectangle.X, (from, to) => IntersectVertical(from, to, rectangle.X));
-        points = ClipPolygon(points, point => point.X <= rectangle.X + rectangle.Width, (from, to) => IntersectVertical(from, to, rectangle.X + rectangle.Width));
-        points = ClipPolygon(points, point => point.Y >= rectangle.Y, (from, to) => IntersectHorizontal(from, to, rectangle.Y));
-        points = ClipPolygon(points, point => point.Y <= rectangle.Y + rectangle.Height, (from, to) => IntersectHorizontal(from, to, rectangle.Y + rectangle.Height));
+        points = ClipPolygon(points, point => point.X >= rectangle.X, (from, to) => IntersectVertical(from, to, rectangle.X), textClippingBudget);
+        points = ClipPolygon(points, point => point.X <= rectangle.X + rectangle.Width, (from, to) => IntersectVertical(from, to, rectangle.X + rectangle.Width), textClippingBudget);
+        points = ClipPolygon(points, point => point.Y >= rectangle.Y, (from, to) => IntersectHorizontal(from, to, rectangle.Y), textClippingBudget);
+        points = ClipPolygon(points, point => point.Y <= rectangle.Y + rectangle.Height, (from, to) => IntersectHorizontal(from, to, rectangle.Y + rectangle.Height), textClippingBudget);
         return points;
     }
 
-    private static List<OfficePoint> ClipPolygon(List<OfficePoint> input, Func<OfficePoint, bool> inside, Func<OfficePoint, OfficePoint, OfficePoint> intersect) {
+    private static List<OfficePoint> ClipPolygon(
+        List<OfficePoint> input,
+        Func<OfficePoint, bool> inside,
+        Func<OfficePoint, OfficePoint, OfficePoint> intersect,
+        PdfTextClippingBudget? textClippingBudget) {
         var output = new List<OfficePoint>();
         if (input.Count == 0) {
             return output;
         }
+
+        textClippingBudget?.ChargeLinearIntersectionWork(input.Count);
 
         OfficePoint previous = input[input.Count - 1];
         bool previousInside = inside(previous);

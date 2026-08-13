@@ -713,6 +713,31 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ChargesFlattenedWorkDuringRectangleTextClipIntersections() {
+        var commands = new List<OfficePathCommand> {
+            OfficePathCommand.MoveTo(new OfficePoint(0D, 0D))
+        };
+        for (int index = 0; index < 11000; index++) {
+            double x = index % 100;
+            commands.Add(OfficePathCommand.CubicBezierTo(
+                new OfficePoint(x + 0.25D, 25D),
+                new OfficePoint(x + 0.75D, 75D),
+                new OfficePoint(x + 1D, 100D)));
+        }
+        commands.Add(OfficePathCommand.Close());
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
+        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, 0D, 100D, 100D);
+        var budget = new PdfTextClippingBudget();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            budget.ResolveActiveClip(path, rectangle));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotChargeDisjointTextClipIntersections() {
         const int runsPerObject = 1416;
         string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
