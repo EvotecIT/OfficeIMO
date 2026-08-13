@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint;
 public sealed partial class PowerPointPresentation {
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML presentation and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
-        OfficeProvenanceInspector.InspectFile(filePath, options);
+        OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes an Open XML presentation.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(

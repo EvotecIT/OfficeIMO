@@ -14,7 +14,7 @@ public partial class VisioDocument {
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved VSDX package and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
-        OfficeProvenanceInspector.InspectFile(filePath, options);
+        OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes a VSDX package.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
