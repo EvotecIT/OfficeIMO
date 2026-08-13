@@ -36,6 +36,8 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
     public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
 
+    internal long MaxTotalDecodedStreamBytes { get; init; } = long.MaxValue;
+
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
 
@@ -132,6 +134,7 @@ public sealed class PdfReadLimits {
             MaxIndirectObjects = MaxIndirectObjects,
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxTotalDecodedStreamBytes = MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
@@ -180,6 +183,9 @@ public sealed class PdfReadLimits {
             MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
+            MaxTotalDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
+                ? Math.Min(MaxTotalDecodedStreamBytes, maximumDecodedStreamBytes.Value)
+                : MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,

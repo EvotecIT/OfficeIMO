@@ -308,6 +308,15 @@ public static class PdfProvenance {
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
+        if (PdfObjectLookup.Resolve(objects,
+                catalog.Items.TryGetValue("StructTreeRoot", out PdfObject? structureTreeValue) ? structureTreeValue : null) is PdfDictionary structureTree) {
+            AddStructuralGraphDictionaries(
+                objects,
+                structureTree.Items.TryGetValue("ParentTree", out PdfObject? parentTree) ? parentTree : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers);
+        }
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContent) ? optionalContent : null,
@@ -365,11 +374,23 @@ public static class PdfProvenance {
                     result,
                     maximumContainerEntries,
                     pageTreeObjectNumbers);
+                AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries);
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
             if (dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile") {
                 AddResolvedDictionary(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null, result);
+            }
+        }
+        AddFileSpecificationDescendantGraphs(objects, reachableObjectNumbers, result, maximumContainerEntries);
+        foreach (PdfDictionary owner in result.ToArray()) {
+            foreach (string key in new[] { "A", "AA", "OpenAction" }) {
+                AddStructuralGraphDictionaries(
+                    objects,
+                    owner.Items.TryGetValue(key, out PdfObject? action) ? action : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers);
             }
         }
         return result;
@@ -483,14 +504,22 @@ public static class PdfProvenance {
         int maximumContainerEntries) {
         if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary names) return;
         result.Add(names);
-        AddNameTreeDictionaries(objects, names.Items.Values, result, maximumContainerEntries);
+        foreach (KeyValuePair<string, PdfObject> item in names.Items) {
+            AddNameTreeDictionaries(
+                objects,
+                new[] { item.Value },
+                result,
+                maximumContainerEntries,
+                addLeafValues: string.Equals(item.Key, "Dests", StringComparison.Ordinal));
+        }
     }
 
     private static void AddNameTreeDictionaries(
         Dictionary<int, PdfIndirectObject> objects,
         IEnumerable<PdfObject?> values,
         HashSet<PdfObject> result,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        bool addLeafValues = false) {
         var visited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>(values.Where(static value => value != null).Cast<PdfObject>());
         while (pending.Count > 0) {
@@ -500,8 +529,40 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(dictionary);
+            if (addLeafValues && PdfObjectLookup.Resolve(objects,
+                    dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray leafNames) {
+                for (int index = 1; index < leafNames.Items.Count; index += 2) {
+                    AddResolvedDictionary(objects, leafNames.Items[index], result);
+                }
+            }
             if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
             foreach (PdfObject child in kids.Items) pending.Push(child);
+        }
+    }
+
+    private static void AddPageAnnotationDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries) {
+        if (PdfObjectLookup.Resolve(objects,
+                page.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) return;
+        if (annotations.Items.Count > maximumContainerEntries) {
+            throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+        }
+        foreach (PdfObject annotation in annotations.Items) AddResolvedDictionary(objects, annotation, result);
+    }
+
+    private static void AddFileSpecificationDescendantGraphs(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> reachableObjectNumbers,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries) {
+        foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
+            if (!IsFileSpecificationValue(objects, item.Value) || item.Value is not PdfDictionary fileSpecification) continue;
+            foreach (PdfObject child in fileSpecification.Items.Values) {
+                AddStructuralGraphDictionaries(objects, child, result, maximumContainerEntries);
+            }
         }
     }
 

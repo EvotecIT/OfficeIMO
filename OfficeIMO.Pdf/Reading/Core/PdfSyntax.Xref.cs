@@ -64,6 +64,7 @@ internal static partial class PdfSyntax {
         HashSet<int> activeObjectNumbers,
         PdfReadLimits limits,
         XrefObjectScanBudget scanBudget,
+        PdfDecodedStreamBudget decodedStreamBudget,
         out bool appliedClassicEntries) {
         appliedClassicEntries = false;
         if (!TryGetLatestStartXrefOffset(text, out int activeXrefOffset)) {
@@ -86,7 +87,7 @@ internal static partial class PdfSyntax {
         foreach (var table in tables) {
             ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, scanBudget, activeObjectNumbers, parsedObjectsByOffset);
             if (table.XrefStreamOffset.HasValue) {
-                appliedXrefStream = ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget) || appliedXrefStream;
+                appliedXrefStream = ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget, decodedStreamBudget) || appliedXrefStream;
             }
         }
 
@@ -247,7 +248,7 @@ internal static partial class PdfSyntax {
         return value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
     }
 
-    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget) {
+    private static bool ApplyXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, XrefObjectScanBudget scanBudget, PdfDecodedStreamBudget decodedStreamBudget) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
             if (entry.Value is PdfStream stream &&
@@ -277,19 +278,19 @@ internal static partial class PdfSyntax {
         foreach (var table in classicPredecessors) {
             ApplyClassicXrefTableEntries(map, pdf, parsedOffsets, text, table.Entries, scanBudget, parsedObjectsByOffset: parsedObjectsByOffset);
             if (table.XrefStreamOffset.HasValue) {
-                ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget);
+                ApplyXrefStreamAtOffset(map, pdf, parsedOffsets, text, table.XrefStreamOffset.Value, limits, scanBudget, decodedStreamBudget);
             }
         }
 
         foreach (int chainOffset in activeChainOffsets) {
             var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
-            ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, xrefStream.Stream, limits, scanBudget);
+            ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, xrefStream.Stream, limits, scanBudget, decodedStreamBudget);
         }
 
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits) {
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
             if (entry.Value is PdfStream stream &&
@@ -321,7 +322,7 @@ internal static partial class PdfSyntax {
                 if (table.XrefStreamOffset.HasValue) {
                     var xrefStream = xrefStreams.FirstOrDefault(item => item.Offset == table.XrefStreamOffset.Value);
                     if (xrefStream.Stream is not null) {
-                        UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, limits);
+                        UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget);
                     }
                 }
 
@@ -332,7 +333,7 @@ internal static partial class PdfSyntax {
         } else {
             foreach (int chainOffset in activeChainOffsets) {
                 var xrefStream = xrefStreams.First(item => item.Offset == chainOffset);
-                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, limits);
+                UpdateActiveCompressedEntries(activeEntries, xrefStream.Stream, map, decodedStreamBudget);
             }
         }
 
@@ -347,7 +348,7 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, out PdfIndirectObject parsed, out int objectStreamOffset)) {
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset)) {
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
                 applied = true;
@@ -361,8 +362,8 @@ internal static partial class PdfSyntax {
         Dictionary<int, XrefStreamEntry> activeEntries,
         PdfStream xrefStream,
         Dictionary<int, PdfIndirectObject> map,
-        PdfReadLimits limits) {
-        byte[] data = Filters.StreamDecoder.Decode(xrefStream.Dictionary, xrefStream.Data, map, limits.MaxDecodedStreamBytes);
+        PdfDecodedStreamBudget decodedStreamBudget) {
+        byte[] data = decodedStreamBudget.Decode(xrefStream, map);
         foreach (XrefStreamEntry entry in ReadXrefStreamEntries(xrefStream.Dictionary, data)) {
             if (entry.Type == 2) {
                 activeEntries[entry.ObjectNumber] = entry;
@@ -379,7 +380,8 @@ internal static partial class PdfSyntax {
         string text,
         int xrefStreamOffset,
         PdfReadLimits limits,
-        XrefObjectScanBudget scanBudget) {
+        XrefObjectScanBudget scanBudget,
+        PdfDecodedStreamBudget decodedStreamBudget) {
         PdfStream? targetStream = null;
         foreach (var entry in map.Values) {
             if (!parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset) ||
@@ -397,7 +399,7 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, targetStream, limits, scanBudget);
+        ApplyXrefStreamObjectEntries(map, pdf, parsedOffsets, text, targetStream, limits, scanBudget, decodedStreamBudget);
         return true;
     }
 
@@ -408,8 +410,9 @@ internal static partial class PdfSyntax {
         string text,
         PdfStream xrefStream,
         PdfReadLimits limits,
-        XrefObjectScanBudget scanBudget) {
-        byte[] data = Filters.StreamDecoder.Decode(xrefStream.Dictionary, xrefStream.Data, map, limits.MaxDecodedStreamBytes);
+        XrefObjectScanBudget scanBudget,
+        PdfDecodedStreamBudget decodedStreamBudget) {
+        byte[] data = decodedStreamBudget.Decode(xrefStream, map);
         var entries = ReadXrefStreamEntries(xrefStream.Dictionary, data).ToList();
         var parsedObjectsByOffset = new Dictionary<int, PdfIndirectObject?>();
         foreach (var entry in entries) {
@@ -457,7 +460,7 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, out var parsed, out int objectStreamOffset)) {
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out var parsed, out int objectStreamOffset)) {
                 map[entry.ObjectNumber] = parsed;
                 parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
             }
@@ -731,6 +734,7 @@ internal static partial class PdfSyntax {
         int objectStreamIndex,
         int expectedObjectNumber,
         PdfReadLimits limits,
+        PdfDecodedStreamBudget decodedStreamBudget,
         out PdfIndirectObject parsed,
         out int objectStreamOffset) {
         parsed = null!;
@@ -741,7 +745,7 @@ internal static partial class PdfSyntax {
             return false;
         }
 
-        byte[] data = Filters.StreamDecoder.Decode(objectStream.Dictionary, objectStream.Data, map, limits.MaxDecodedStreamBytes);
+        byte[] data = decodedStreamBudget.Decode(objectStream, map);
         if (!TryReadObjectStreamLayout(objectStream.Dictionary, data.Length, limits, out int n, out int first)
             || objectStreamIndex < 0 || objectStreamIndex >= n) {
             return false;

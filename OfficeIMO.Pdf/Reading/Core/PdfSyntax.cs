@@ -202,8 +202,9 @@ internal static partial class PdfSyntax {
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
         var xrefScanBudget = new XrefObjectScanBudget(limits);
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, out bool appliedClassicEntries);
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget) || appliedXrefStreamEntries;
+        var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, out bool appliedClassicEntries);
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
@@ -219,14 +220,14 @@ internal static partial class PdfSyntax {
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
                 if (appliedXrefStreamEntries) {
-                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits);
+                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget);
                 }
             }
         }
 
         if (!appliedXrefStreamEntries) {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget);
         }
 
         if (decryptor is null) {
