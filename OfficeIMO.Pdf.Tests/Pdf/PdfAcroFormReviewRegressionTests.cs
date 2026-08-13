@@ -103,6 +103,32 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Create_PreflightsHierarchicalFieldDepthBeforeMaterializingParents() {
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxFormFieldDepth = 2 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit =>
+                edit.Create(new PdfFormFieldCreateOptions { Name = "grand.parent.child" })));
+
+        Assert.Equal(PdfReadLimitKind.FormFieldDepth, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
+    public void Create_RejectsDestinationRectangleWhoseFarEdgeOverflows() {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
+                edit.Create(new PdfFormFieldCreateOptions {
+                    Name = "overflow",
+                    X = double.MaxValue,
+                    Width = double.MaxValue
+                })));
+    }
+
+    [Fact]
     public void MoveThenRenamePreservesQueuedInheritedFieldValue() {
         byte[] source = BuildInheritedTerminalFieldPdf();
 
@@ -137,6 +163,18 @@ public class PdfAcroFormReviewRegressionTests {
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
             edit.SetDefaultValue("code", "ABCDE")));
+    }
+
+    [Fact]
+    public void SetDefaultValue_NullOverridesAnInheritedDefault() {
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedDefaultValuePdf()).Forms.Edit(edit =>
+            edit.SetDefaultValue("section.name", null));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Null(field.DefaultValue);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary child = RequireNamedField(objects, "name");
+        Assert.IsType<PdfNull>(child.Items["DV"]);
     }
 
     [Fact]
@@ -504,6 +542,20 @@ public class PdfAcroFormReviewRegressionTests {
             "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
             "6 0 obj", "<< /FT /Tx /T (section) /Kids [7 0 R] >>", "endobj",
             "7 0 obj", "<< /Parent 6 0 R /T (existing) /V (before) /Kids [8 0 R] >>", "endobj",
+            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 160 48] /P 3 0 R >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildInheritedDefaultValuePdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [8 0 R] >>", "endobj",
+            "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+            "6 0 obj", "<< /FT /Tx /T (section) /DV (inherited) /Kids [7 0 R] >>", "endobj",
+            "7 0 obj", "<< /Parent 6 0 R /T (name) /V (Ada) /Kids [8 0 R] >>", "endobj",
             "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 160 48] /P 3 0 R >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
         }));

@@ -227,6 +227,101 @@ internal static partial class PdfAcroFormEditor {
         return (owner, parentReference, components[components.Length - 1]);
     }
 
+    private static int PreflightCreatedFieldPath(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string fullName,
+        int currentFieldNodeCount,
+        PdfReadLimits limits) {
+        string[] components = fullName.Split('.');
+        if (components.Length > limits.MaxFormFieldDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, components.Length);
+        }
+
+        int missingParents = CountMissingCreatedFieldParents(objects, fields, components);
+        int addedFieldNodes = missingParents + 1;
+        long finalFieldNodeCount = (long)currentFieldNodeCount + addedFieldNodes;
+        if (finalFieldNodeCount > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, finalFieldNodeCount);
+        }
+
+        long minimumFinalObjectCount = (long)objects.Count + addedFieldNodes;
+        if (minimumFinalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, minimumFinalObjectCount);
+        }
+        return addedFieldNodes;
+    }
+
+    private static int CountMissingCreatedFieldParents(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        string[] components) {
+        PdfArray owner = fields;
+        for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            PdfDictionary? matchingDictionary = null;
+            for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
+                    throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
+                }
+                PdfDictionary candidate = RequireDictionary(objects, candidateReference.ObjectNumber);
+                if (!string.Equals(ReadText(candidate, "T"), components[componentIndex], StringComparison.Ordinal)) continue;
+                if (matchingDictionary is not null) {
+                    throw new InvalidOperationException("PDF contains duplicate partial form field names: " + components[componentIndex]);
+                }
+                matchingDictionary = candidate;
+            }
+            if (matchingDictionary is null) return components.Length - componentIndex - 1;
+            owner = matchingDictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) &&
+                    ResolveArray(objects, kidsObject) is PdfArray kids
+                ? kids
+                : new PdfArray();
+        }
+        return 0;
+    }
+
+    private static int CountFormFieldNodes(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray fields,
+        PdfReadLimits limits) {
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var visitedDictionaries = new HashSet<PdfDictionary>();
+        int count = 0;
+        for (int index = 0; index < fields.Items.Count; index++) {
+            CountFormFieldNode(objects, fields.Items[index], depth: 1, limits, visitedReferences, visitedDictionaries, ref count);
+        }
+        return count;
+    }
+
+    private static void CountFormFieldNode(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject fieldObject,
+        int depth,
+        PdfReadLimits limits,
+        HashSet<(int ObjectNumber, int Generation)> visitedReferences,
+        HashSet<PdfDictionary> visitedDictionaries,
+        ref int count) {
+        if (depth > limits.MaxFormFieldDepth) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, depth);
+        }
+        if (fieldObject is PdfReference reference &&
+            !visitedReferences.Add((reference.ObjectNumber, reference.Generation))) return;
+        if (PdfObjectLookup.Resolve(objects, fieldObject) is not PdfDictionary field ||
+            !visitedDictionaries.Add(field)) return;
+        count++;
+        if (count > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, count);
+        }
+        if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
+            ResolveArray(objects, kidsObject) is not PdfArray kids) return;
+        for (int index = 0; index < kids.Items.Count; index++) {
+            PdfDictionary? kid = ResolveDictionary(objects, kids.Items[index]);
+            if (kid != null &&
+                string.Equals(ReadName(kid, "Subtype"), "Widget", StringComparison.Ordinal) &&
+                string.IsNullOrEmpty(ReadText(kid, "T"))) continue;
+            CountFormFieldNode(objects, kids.Items[index], depth + 1, limits, visitedReferences, visitedDictionaries, ref count);
+        }
+    }
+
     private static void RemoveWidgetReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> widgetNumbers) {
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfDictionary page || !string.Equals(ReadName(page, "Type"), "Page", StringComparison.Ordinal) || !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) || ResolveArray(objects, annotsObject) is not PdfArray annots) continue;
@@ -308,7 +403,11 @@ internal static partial class PdfAcroFormEditor {
         Guard.NotNullOrWhiteSpace(options.Name, nameof(options.Name));
         if (options.Kind < PdfFormFieldCreationKind.Text || options.Kind > PdfFormFieldCreationKind.PushButton) throw new ArgumentOutOfRangeException(nameof(options), "Field kind is not supported.");
         if (options.PageNumber < 1 || options.PageNumber > pageCount) throw new ArgumentOutOfRangeException(nameof(options), "Page number is outside the document.");
-        if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) || options.Width <= 0D || options.Height <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates and positive dimensions.");
+        if (!IsFinite(options.X) || !IsFinite(options.Y) || !IsFinite(options.Width) || !IsFinite(options.Height) ||
+            options.Width <= 0D || options.Height <= 0D ||
+            !IsFinite(options.X + options.Width) || !IsFinite(options.Y + options.Height)) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Field rectangle must contain finite coordinates, positive dimensions, and finite edges.");
+        }
         string[] nameComponents = options.Name.Split('.');
         if (nameComponents.Any(static component => component.Length == 0)) throw new ArgumentException("Field names cannot contain empty path components.", nameof(options));
         if (!IsFinite(options.FontSize) || options.FontSize <= 0D) throw new ArgumentOutOfRangeException(nameof(options), "Field font size must be a positive finite number.");

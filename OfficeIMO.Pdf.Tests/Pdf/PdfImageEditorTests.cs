@@ -359,6 +359,17 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void PortableImageEditsRejectImagesInsideTransparencyGroups() {
+        PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf(
+            "/Group << /S /Transparency /I true /CS /DeviceRGB >>"));
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
+
+        Assert.Contains("transparency group", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void MarkedContentCheckUsesTheSelectedResourceScope() {
         PdfDocument document = PdfDocument.Open(BuildCollidingFormImagePdf(markSecondImage: true));
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.ObjectNumber == 8);
@@ -374,6 +385,25 @@ public class PdfImageEditorTests {
         PdfDocument document = PdfDocument.Open(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Images.Move(placement, 10D, 0D, readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+    }
+
+    [Fact]
+    public void MovableImageExtractionHonorsConfiguredDecodedStreamLimit() {
+        byte[] encodedImage = Encoding.ASCII.GetBytes(new string('0', 200) + ">");
+        byte[] source = BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageBytes: encodedImage,
+            imageEntries: "/ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /ASCIIHexDecode");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
+        };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             document.Images.Move(placement, 10D, 0D, readOptions: options));

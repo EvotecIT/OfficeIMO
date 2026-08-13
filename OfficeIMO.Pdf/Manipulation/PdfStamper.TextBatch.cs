@@ -12,6 +12,7 @@ internal static partial class PdfStamper {
         if (requests.Count == 0) return pdf;
 
         PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
+        PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (document.Pages.Count == 0) throw new ArgumentException("PDF does not contain any pages.", nameof(pdf));
@@ -40,6 +41,8 @@ internal static partial class PdfStamper {
             }
 
             foreach (IGrouping<int, TextStampRequest> pageRequests in requests.GroupBy(static request => request.PageNumber)) {
+                TextStampRequest[] orderedPageRequests = pageRequests.OrderBy(static request => request.PaintOrder).ToArray();
+                EnsureBatchTextStampStreamWithinLimit(orderedPageRequests, fontResources, limits.MaxDecodedStreamBytes);
                 int pageObjectNumber = pageObjectNumbers[pageRequests.Key - 1];
                 int saveStateObjectNumber = nextObjectNumber++;
                 int restoreStateObjectNumber = nextObjectNumber++;
@@ -49,7 +52,7 @@ internal static partial class PdfStamper {
                 rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
                     stampObjectNumber,
                     0,
-                    BuildBatchTextStampStream(pageRequests.OrderBy(static request => request.PaintOrder), fontResources));
+                    BuildBatchTextStampStream(orderedPageRequests, fontResources));
                 Dictionary<string, PdfObject> overrides = BuildBatchTextPageOverrides(
                     rewrittenObjects,
                     pageObjectNumber,
@@ -71,22 +74,57 @@ internal static partial class PdfStamper {
         IEnumerable<TextStampRequest> requests,
         IReadOnlyDictionary<PdfStandardFont, BatchFontResource> fontResources) {
         var builder = new StringBuilder();
+        var encodedText = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (TextStampRequest request in requests) {
             BatchFontResource font = fontResources[request.Font];
-            double radians = request.RotationDegrees * Math.PI / 180D;
-            double cos = Math.Cos(radians);
-            double sin = Math.Sin(radians);
-            new ContentStreamBuilder(builder)
-                .SaveState()
-                .FillColor(request.Color)
-                .BeginText()
-                .Font(font.Name, request.FontSize)
-                .TextMatrix(cos, sin, -sin, cos, request.X, request.Y)
-                .ShowHexText(EncodeWinAnsiHex(request.Text))
-                .EndText()
-                .RestoreState();
+            if (!encodedText.TryGetValue(request.Text, out string? hexText)) {
+                hexText = EncodeWinAnsiHex(request.Text);
+                encodedText.Add(request.Text, hexText);
+            }
+            AppendBatchTextStampRequest(builder, request, font, hexText);
         }
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(builder.ToString()));
+    }
+
+    private static void EnsureBatchTextStampStreamWithinLimit(
+        TextStampRequest[] requests,
+        IReadOnlyDictionary<PdfStandardFont, BatchFontResource> fontResources,
+        int maximumDecodedStreamBytes) {
+        var encodedLengths = new Dictionary<string, int>(StringComparer.Ordinal);
+        long totalBytes = 0L;
+        for (int index = 0; index < requests.Length; index++) {
+            TextStampRequest request = requests[index];
+            if (!encodedLengths.TryGetValue(request.Text, out int encodedByteLength)) {
+                encodedByteLength = PdfWinAnsiEncoding.Encode(request.Text).Length;
+                encodedLengths.Add(request.Text, encodedByteLength);
+            }
+
+            var fixedContent = new StringBuilder();
+            AppendBatchTextStampRequest(fixedContent, request, fontResources[request.Font], string.Empty);
+            totalBytes += fixedContent.Length + (encodedByteLength * 2L);
+            if (totalBytes > maximumDecodedStreamBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumDecodedStreamBytes, totalBytes);
+            }
+        }
+    }
+
+    private static void AppendBatchTextStampRequest(
+        StringBuilder builder,
+        TextStampRequest request,
+        BatchFontResource font,
+        string hexText) {
+        double radians = request.RotationDegrees * Math.PI / 180D;
+        double cos = Math.Cos(radians);
+        double sin = Math.Sin(radians);
+        new ContentStreamBuilder(builder)
+            .SaveState()
+            .FillColor(request.Color)
+            .BeginText()
+            .Font(font.Name, request.FontSize)
+            .TextMatrix(cos, sin, -sin, cos, request.X, request.Y)
+            .ShowHexText(hexText)
+            .EndText()
+            .RestoreState();
     }
 
     private static Dictionary<string, PdfObject> BuildBatchTextPageOverrides(

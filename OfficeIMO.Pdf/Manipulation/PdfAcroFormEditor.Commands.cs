@@ -14,11 +14,12 @@ internal static partial class PdfAcroFormEditor {
         PdfDictionary catalog = RequireCatalog(objects, security);
         PdfDictionary acroForm = EnsureAcroForm(objects, catalog, out PdfArray fields);
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        int formFieldNodeCount = CountFormFieldNodes(objects, fields, limits);
 
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref nextObjectNumber);
+                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, command.EncodedJavaScript, refillValues, appearanceOptions, limits, ref formFieldNodeCount, ref nextObjectNumber);
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
@@ -27,6 +28,7 @@ internal static partial class PdfAcroFormEditor {
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
                     ApplyRemove(objects, acroForm, fields, command.Name!);
+                    formFieldNodeCount = CountFormFieldNodes(objects, fields, limits);
                     RemoveQueuedSubtreeWork(refillValues, flattenNames, command.Name!);
                     operations.Add("Remove " + command.Name);
                     break;
@@ -62,13 +64,15 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, byte[]? encodedJavaScript, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int nextObjectNumber) {
+    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, byte[]? encodedJavaScript, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int formFieldNodeCount, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FieldPathExists(objects, fields, options.Name)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
+        int addedFieldNodes = PreflightCreatedFieldPath(objects, fields, options.Name, formFieldNodeCount, limits);
         (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
             ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, encodedJavaScript, appearanceFontName, refillValues, appearanceOptions, limits, ref nextObjectNumber);
+            formFieldNodeCount += addedFieldNodes;
             if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
             return;
         }
@@ -107,6 +111,7 @@ internal static partial class PdfAcroFormEditor {
             QueueRefillValue(refillValues, options.Name, GetFieldType(options.Kind), ReadSimpleValue(field), includeEmptyChoice: normalizeEmptyMultiSelect);
         }
         if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
+        formFieldNodeCount += addedFieldNodes;
     }
 
     private static void ApplyRename(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, string newName, Dictionary<string, string> refillValues, List<string> flattenNames) {
@@ -397,7 +402,11 @@ internal static partial class PdfAcroFormEditor {
             value.Length > maximumLength) {
             throw new ArgumentException("PDF text field default values cannot exceed the inherited MaxLen.", nameof(value));
         }
-        SetDefaultValue(field.Dictionary, field.FieldType, value, "Yes", normalizeButtonValue: false);
+        if (value is null) {
+            field.Dictionary.Items["DV"] = PdfNull.Instance;
+        } else {
+            SetDefaultValue(field.Dictionary, field.FieldType, value, "Yes", normalizeButtonValue: false);
+        }
     }
 
     private static HashSet<string> CollectChoiceExportValues(

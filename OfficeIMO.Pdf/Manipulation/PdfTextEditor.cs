@@ -306,19 +306,32 @@ internal static partial class PdfTextEditor {
     private static void IncludeTrailingFlowSpans(
         Dictionary<PageSpanKey, List<SpanTextEdit>> rewrites,
         IReadOnlyList<TextSearchHit> hits) {
-        for (int hitIndex = 0; hitIndex < hits.Count; hitIndex++) {
-            TextSearchHit hit = hits[hitIndex];
-            int lastMatchedIndex = -1;
-            for (int lineIndex = 0; lineIndex < hit.LineSpans.Length; lineIndex++) {
-                PdfTextSpan lineSpan = hit.LineSpans[lineIndex];
-                if (hit.Segments.Any(segment => ReferenceEquals(segment.Span, lineSpan))) {
-                    lastMatchedIndex = lineIndex;
+        foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
+            foreach (IGrouping<PdfTextSpan[], TextSearchHit> lineHits in pageHits.GroupBy(
+                         static hit => hit.LineSpans,
+                         TextSpanArrayReferenceComparer.Instance)) {
+                PdfTextSpan[] lineSpans = lineHits.Key;
+                var ordinals = new Dictionary<PdfTextSpan, int>();
+                for (int lineIndex = 0; lineIndex < lineSpans.Length; lineIndex++) {
+                    ordinals[lineSpans[lineIndex]] = lineIndex;
                 }
-            }
-            for (int lineIndex = lastMatchedIndex + 1; lineIndex < hit.LineSpans.Length; lineIndex++) {
-                var key = new PageSpanKey(hit.PageNumber, hit.LineSpans[lineIndex]);
-                if (!rewrites.ContainsKey(key)) {
-                    rewrites.Add(key, new List<SpanTextEdit>());
+
+                int firstTrailingIndex = lineSpans.Length;
+                foreach (TextSearchHit hit in lineHits) {
+                    int lastMatchedIndex = -1;
+                    for (int segmentIndex = 0; segmentIndex < hit.Segments.Length; segmentIndex++) {
+                        if (ordinals.TryGetValue(hit.Segments[segmentIndex].Span, out int ordinal)) {
+                            lastMatchedIndex = Math.Max(lastMatchedIndex, ordinal);
+                        }
+                    }
+                    if (lastMatchedIndex >= 0) firstTrailingIndex = Math.Min(firstTrailingIndex, lastMatchedIndex + 1);
+                }
+
+                for (int lineIndex = firstTrailingIndex; lineIndex < lineSpans.Length; lineIndex++) {
+                    var key = new PageSpanKey(pageHits.Key, lineSpans[lineIndex]);
+                    if (!rewrites.ContainsKey(key)) {
+                        rewrites.Add(key, new List<SpanTextEdit>());
+                    }
                 }
             }
         }
@@ -752,5 +765,13 @@ internal static partial class PdfTextEditor {
         public bool Equals(PageSpanKey other) => PageNumber == other.PageNumber && ReferenceEquals(Span, other.Span);
         public override bool Equals(object? obj) => obj is PageSpanKey other && Equals(other);
         public override int GetHashCode() { unchecked { return (PageNumber * 397) ^ System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Span); } }
+    }
+
+    private sealed class TextSpanArrayReferenceComparer : IEqualityComparer<PdfTextSpan[]> {
+        internal static TextSpanArrayReferenceComparer Instance { get; } = new TextSpanArrayReferenceComparer();
+
+        public bool Equals(PdfTextSpan[]? x, PdfTextSpan[]? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(PdfTextSpan[] value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);
     }
 }

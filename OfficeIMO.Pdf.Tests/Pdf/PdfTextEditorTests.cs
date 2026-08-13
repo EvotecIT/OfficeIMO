@@ -329,6 +329,41 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceAllPreflightsTheCompleteBatchStreamAgainstDecodedByteLimits() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat cat) Tj ET\n");
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = 256 }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source).Text.ReplaceAll(
+                "cat",
+                new string('x', 300),
+                new PdfTextSearchOptions { MatchCase = true },
+                readOptions: readOptions));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void ReplaceAllReflowsDenseSharedLineSpansWithoutPerMatchRescans() {
+        const int spanCount = 256;
+        var content = new System.Text.StringBuilder("BT /F1 12 Tf 20 700 Td ");
+        for (int index = 0; index < spanCount; index++) content.Append("(a) Tj 6 0 Td ");
+        content.Append("ET\n");
+        byte[] source = BuildRawTextPdf(content.ToString());
+
+        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+            "a",
+            "b",
+            new PdfTextSearchOptions { MatchCase = true });
+
+        Assert.Equal(spanCount, result.AffectedCount);
+        Assert.Equal(spanCount, result.Document.Text.Find("b", new PdfTextSearchOptions { MatchCase = true }).Count);
+    }
+
+    [Fact]
     public void ReplaceAllReflowsAnUnmatchedTrailingSpanInTheSameTextFlow() {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (cat) Tj ET\n" +

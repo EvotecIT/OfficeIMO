@@ -66,6 +66,9 @@ internal static partial class PdfImageEditor {
         if (requirePortableSourceSemantics && HasAlternatePresentations(objects, placement)) {
             throw new NotSupportedException("Replacing or moving an image XObject with alternate presentations is not supported because restamping cannot preserve the alternate-selection contract.");
         }
+        if (requirePortableSourceSemantics && HasContainingTransparencyGroup(objects, containingForms, limits)) {
+            throw new NotSupportedException("Replacing or moving an image from a transparency-group Form is not supported because restamping cannot preserve its compositing context.");
+        }
 
         if (InvokesSelectedTargetInsideMarkedContentAcrossPageStreams(objects, decodedStreams, placement, containingForms, limits)) {
             throw new NotSupportedException("Editing an image inside tagged, artifact, or optional marked content is not supported because its structural context cannot be preserved safely.");
@@ -371,6 +374,36 @@ internal static partial class PdfImageEditor {
             }
         } while (changed);
         return containingForms;
+    }
+
+    private static bool HasContainingTransparencyGroup(
+        Dictionary<int, PdfIndirectObject> objects,
+        IEnumerable<int> containingForms,
+        PdfReadLimits limits) {
+        foreach (int objectNumber in containingForms) {
+            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfStream form ||
+                !form.Dictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ||
+                ResolveImageValidationObjectChain(objects, groupObject, limits) is not PdfDictionary group ||
+                !group.Items.TryGetValue("S", out PdfObject? subtypeObject)) continue;
+            if (ResolveImageValidationObjectChain(objects, subtypeObject, limits) is PdfName { Name: "Transparency" }) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static PdfObject? ResolveImageValidationObjectChain(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        PdfReadLimits limits) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        for (int depth = 0; depth < limits.MaxObjectNestingDepth && value is PdfReference reference; depth++) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return null;
+            value = indirect.Value;
+        }
+        return value is PdfReference ? null : value;
     }
 
     private static bool AddEffectiveResourceOwner(Dictionary<int, HashSet<PdfDictionary>> owners, int objectNumber, PdfDictionary owner) {
