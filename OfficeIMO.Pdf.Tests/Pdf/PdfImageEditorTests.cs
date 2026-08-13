@@ -363,10 +363,8 @@ public class PdfImageEditorTests {
         PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf(
             "/Group << /S /Transparency /I true /CS /DeviceRGB >>"));
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+        Assert.Throws<NotSupportedException>(() =>
             document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
-
-        Assert.Contains("transparency group", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

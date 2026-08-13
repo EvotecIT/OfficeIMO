@@ -16,6 +16,24 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        out byte[] pngBytes) =>
+        TryBuildPngFile(
+            colorSpaceObj,
+            width,
+            height,
+            bitsPerComponent,
+            stream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out pngBytes);
+
+    internal static bool TryBuildPngFile(
+        PdfObject? colorSpaceObj,
+        int width,
+        int height,
+        int bitsPerComponent,
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
         int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();

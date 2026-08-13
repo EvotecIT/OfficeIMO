@@ -8,6 +8,14 @@ internal static class PdfImageMaskNormalizer {
         int height,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        out byte[] pngBytes) =>
+        TryBuildPngFile(width, height, stream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out pngBytes);
+
+    internal static bool TryBuildPngFile(
+        int width,
+        int height,
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
         int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
