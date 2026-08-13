@@ -976,6 +976,26 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void ActiveTrailerInfoDictionaryCannotMasqueradeAsAnUntypedFileSpecification() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] infoFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            return candidate.ObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(infoFileSpecification);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(infoFileSpecification);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+        Assert.Equal(infoFileSpecification, result.ToArray());
+    }
+
+    [Fact]
     public void ResourceDictionaryDiscoveryHandlesDeepIndirectChainsIteratively() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] deeplyLinked = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {

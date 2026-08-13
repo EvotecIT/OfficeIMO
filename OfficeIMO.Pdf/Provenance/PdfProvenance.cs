@@ -159,7 +159,11 @@ public static class PdfProvenance {
             new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation),
             maximumContainerEntries);
         HashSet<PdfObject> structuralAssociationSites = CollectStructuralAssociationSites(
-            document.Objects, catalog, reachableObjectNumbers, maximumContainerEntries);
+            document.Objects,
+            catalog,
+            PdfSyntax.TryReadFirstReference(document.TrailerRaw, "Info"),
+            reachableObjectNumbers,
+            maximumContainerEntries);
         var structuralObjectNumbers = new HashSet<int>(document.Objects.Values
             .Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))
             .Where(item => {
@@ -266,9 +270,11 @@ public static class PdfProvenance {
     private static HashSet<PdfObject> CollectStructuralAssociationSites(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary catalog,
+        PdfReference? activeInfoReference,
         HashSet<int> reachableObjectNumbers,
         int maximumContainerEntries) {
         var result = new HashSet<PdfObject>();
+        AddResolvedDictionary(objects, activeInfoReference, result);
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
