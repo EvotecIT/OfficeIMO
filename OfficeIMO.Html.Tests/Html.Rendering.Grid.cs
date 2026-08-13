@@ -210,6 +210,22 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_MaxContentSumsAdjacentInlineReplacedElementsAndText() {
+        const string pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=";
+        string html = "<div style='display:grid;width:300px;grid-template-columns:max-content 1fr'>"
+            + "<div id='wrapper' style='background:red'><img src='data:image/png;base64," + pixel + "' style='width:80px;height:10px'>"
+            + "<img src='data:image/png;base64," + pixel + "' style='width:60px;height:10px'><span style='font-size:10px'>XX</span></div>"
+            + "<span id='after' style='background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 320D);
+        HtmlRenderShape wrapper = FindGridShape(rendered, "div#wrapper");
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+
+        Assert.True(wrapper.Width > 150D);
+        Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
     public void HtmlGrid_IntrinsicTracksIgnoreHiddenAndOutOfFlowDescendantText() {
         const string html = """
             <div style="display:grid;width:240px;grid-template-columns:max-content 20px;justify-content:start">

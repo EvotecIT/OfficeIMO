@@ -352,6 +352,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 current = 0D;
                 continue;
             }
+            if (run.IsReplaced) {
+                current += run.ReplacedWidth;
+                maximum = Math.Max(maximum, current);
+                if (!run.Style.PreventTextWrapping) current = 0D;
+                continue;
+            }
             if (run.Style.PreventTextWrapping) {
                 current += MeasureInlineText(run.Text, run.Style);
                 maximum = Math.Max(maximum, current);
@@ -414,7 +420,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 current = 0D;
                 continue;
             }
-            current += MeasureInlineText(run.Text, run.Style);
+            current += run.IsReplaced ? run.ReplacedWidth : MeasureInlineText(run.Text, run.Style);
         }
         return Math.Max(maximum, current);
     }
@@ -435,6 +441,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (normalized.Count > 0 && !normalized[normalized.Count - 1].IsForcedBreak) {
                     normalized.Add(run);
                 }
+                continue;
+            }
+            if (run.IsReplaced) {
+                if (pendingWhitespace) {
+                    AppendNormalizedGridIntrinsicText(normalized, " ", run.Style);
+                    pendingWhitespace = false;
+                }
+                normalized.Add(run);
                 continue;
             }
             string transformed = ApplyTextTransform(run.Text, run.Style.TextTransform);
@@ -513,7 +527,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
-            AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
+            if (string.Equals(child.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+                double width = ResolveReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
+                result.Add(GridIntrinsicTextRun.Replaced(width, childStyle));
+            } else {
+                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
+            }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
         }
         AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.After, parentStyle, availableSize, result);
@@ -592,17 +611,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class GridIntrinsicTextRun {
-        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false) {
+        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
+            IsReplaced = isReplaced;
+            ReplacedWidth = replacedWidth;
         }
 
         internal static GridIntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
+        internal static GridIntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
+        internal bool IsReplaced { get; }
+        internal double ReplacedWidth { get; }
     }
 
     private static void DistributeGridFractions(IReadOnlyList<GridTrack> tracks, IList<double> sizes, double trackSpace) {

@@ -721,7 +721,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || normalizedStyle.StartsWith("'", StringComparison.Ordinal)
             || normalizedStyle.StartsWith("\"", StringComparison.Ordinal)
             || normalizedStyle.StartsWith("symbols(", StringComparison.Ordinal);
-        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, ordered || !usesBulletSuffix);
+        return marker + HtmlCounterStyleFormatter.MarkerSuffix(listStyle, markerLimited || !usesBulletSuffix);
     }
 
     private void ReportCounterRepresentationLimit(IElement element, string style) {

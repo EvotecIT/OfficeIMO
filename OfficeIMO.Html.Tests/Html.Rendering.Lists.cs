@@ -85,6 +85,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
     }
 
+    [Theory]
+    [InlineData("disc", "• ")]
+    [InlineData("'→'", "→ ")]
+    public void HtmlRendering_OrderedListsUseTheSuffixOfAnExplicitBulletLikeStyle(string style, string marker) {
+        string html = "<ol style=\"list-style-type:" + style + "\"><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
     [Fact]
     public void HtmlRendering_IncrementsNumericMarkersOnUnorderedLists() {
         const string html = "<ul style='list-style-type:decimal'><li>First</li><li>Second</li></ul>";
