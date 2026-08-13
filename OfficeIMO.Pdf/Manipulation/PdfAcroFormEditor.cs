@@ -73,7 +73,7 @@ internal static partial class PdfAcroFormEditor {
         bool hasPdf15FieldFlag = objects.Values.Any(indirect =>
             indirect.Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
-            ((int)flags.Value & (FieldFlagComb | FieldFlagCommitOnSelectionChange)) != 0);
+            ((int)flags.Value & (FieldFlagComb | FieldFlagRichTextOrRadiosInUnison | FieldFlagCommitOnSelectionChange)) != 0);
         string[] tabOrders = objects.Values
             .Where(indirect => indirect.Value is PdfDictionary dictionary &&
                 string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal))

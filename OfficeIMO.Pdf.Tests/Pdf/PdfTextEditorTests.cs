@@ -27,6 +27,19 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void InspectTreatsGenericSansSerifFontsAsHelvetica() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (sans source) Tj ET\n",
+            firstBaseFont: "GenericSansSerif");
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "sans source",
+            new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Equal(PdfStandardFont.Helvetica, match.SuggestedFont);
+    }
+
+    [Fact]
     public void FindAndReplaceAllBoundMaterializedMatches() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (aaaa) Tj ET\n");
         var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxTextSearchMatches = 2 } };
@@ -941,7 +954,7 @@ public class PdfTextEditorTests {
         return new PdfPageRegion(1, left - 0.5D, bottom, right - left + 1D, top - bottom);
     }
 
-    private static byte[] BuildRawTextPdf(string content, string additionalResources = "", string additionalObjects = "", string pageEntries = "") {
+    private static byte[] BuildRawTextPdf(string content, string additionalResources = "", string additionalObjects = "", string pageEntries = "", string firstBaseFont = "Helvetica") {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
@@ -951,7 +964,7 @@ public class PdfTextEditorTests {
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "endstream\nendobj\n");
-        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /" + firstBaseFont + " >>\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n");
         WriteAscii(output, additionalObjects);
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");

@@ -389,7 +389,8 @@ internal static partial class PdfTextEditor {
         string name = StripSubsetPrefix(baseFont).ToLowerInvariant();
         bool bold = name.Contains("bold") || name.Contains("black") || name.Contains("heavy") || name.Contains("semibold");
         bool italic = name.Contains("italic") || name.Contains("oblique");
-        if (name.Contains("times") || name.Contains("serif") || name.Contains("roman") || name.Contains("georgia")) {
+        bool sansSerif = name.Contains("sansserif") || name.Contains("sans-serif") || name.Contains("sans serif");
+        if (name.Contains("times") || (!sansSerif && name.Contains("serif")) || name.Contains("roman") || name.Contains("georgia")) {
             return bold && italic ? PdfStandardFont.TimesBoldItalic : bold ? PdfStandardFont.TimesBold : italic ? PdfStandardFont.TimesItalic : PdfStandardFont.TimesRoman;
         }
         if (name.Contains("courier") || name.Contains("mono") || name.Contains("consol")) {

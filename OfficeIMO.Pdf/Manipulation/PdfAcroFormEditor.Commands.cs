@@ -159,7 +159,7 @@ internal static partial class PdfAcroFormEditor {
         bool movesAcrossPages = sourcePageObjectNumber.HasValue
             ? sourcePageObjectNumber.Value != pages[pageNumber - 1]
             : !ReferencesObject(widget.Items.TryGetValue("P", out PdfObject? sourcePageObject) ? sourcePageObject : null, pages[pageNumber - 1]);
-        if (movesAcrossPages && HasResourceLessNormalAppearance(objects, widget)) {
+        if (movesAcrossPages && HasResourceLessRetainedAppearance(objects, widget)) {
             throw new NotSupportedException("Moving a field with an appearance that inherits page resources to another page is not supported because its appearance resources cannot be preserved safely.");
         }
         bool pushButtonSizeChanged = IsPushButton(objects, field) && !HasSameRectangleSize(objects, widget, rectangle);
@@ -220,13 +220,19 @@ internal static partial class PdfAcroFormEditor {
              appearances.Items.TryGetValue("D", out PdfObject? down) && PdfObjectLookup.Resolve(objects, down) is not PdfNull);
     }
 
-    private static bool HasResourceLessNormalAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+    private static bool HasResourceLessRetainedAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
         PdfDictionary? appearances = ResolveDictionary(
             objects,
             widget.Items.TryGetValue("AP", out PdfObject? appearanceObject) ? appearanceObject : null);
-        return appearances != null &&
-            appearances.Items.TryGetValue("N", out PdfObject? normalObject) &&
-            HasResourceLessAppearance(objects, normalObject, new HashSet<(int ObjectNumber, int Generation)>());
+        if (appearances == null) return false;
+        foreach (string key in new[] { "N", "R", "D" }) {
+            if (appearances.Items.TryGetValue(key, out PdfObject? appearance) &&
+                PdfObjectLookup.Resolve(objects, appearance) is not PdfNull &&
+                HasResourceLessAppearance(objects, appearance, new HashSet<(int ObjectNumber, int Generation)>())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static bool HasResourceLessAppearance(
@@ -385,6 +391,12 @@ internal static partial class PdfAcroFormEditor {
             !CollectChoiceExportValues(objects, field.Dictionary).Contains(value)) {
             throw new ArgumentException($"PDF choice field cannot use default value '{value}' because it is not one of the available option values.", nameof(value));
         }
+        if (value is not null &&
+            string.Equals(field.FieldType, "Tx", StringComparison.Ordinal) &&
+            TryReadInheritedPositiveInteger(objects, field.Dictionary, "MaxLen", out int maximumLength) &&
+            value.Length > maximumLength) {
+            throw new ArgumentException("PDF text field default values cannot exceed the inherited MaxLen.", nameof(value));
+        }
         SetDefaultValue(field.Dictionary, field.FieldType, value, "Yes", normalizeButtonValue: false);
     }
 
@@ -504,13 +516,25 @@ internal static partial class PdfAcroFormEditor {
     private static bool HasInheritedPositiveInteger(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary field,
-        string key) {
+        string key) =>
+        TryReadInheritedPositiveInteger(objects, field, key, out _);
+
+    private static bool TryReadInheritedPositiveInteger(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        string key,
+        out int result) {
+        result = 0;
         var visited = new HashSet<PdfDictionary>();
         PdfDictionary? current = field;
         while (current is not null && visited.Add(current)) {
             if (current.Items.TryGetValue(key, out PdfObject? value) &&
                 PdfObjectLookup.Resolve(objects, value) is PdfNumber number) {
-                return number.Value > 0D && number.Value <= int.MaxValue && Math.Truncate(number.Value) == number.Value;
+                if (number.Value > 0D && number.Value <= int.MaxValue && Math.Truncate(number.Value) == number.Value) {
+                    result = (int)number.Value;
+                    return true;
+                }
+                return false;
             }
             current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
                 ? ResolveDictionary(objects, parentObject)

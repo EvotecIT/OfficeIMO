@@ -38,7 +38,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         bool requiresPdf15 = reachableObjectNumbers.Any(objectNumber =>
             objects[objectNumber].Value is PdfDictionary dictionary &&
             dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
-            ((int)flags.Value & (16777216 | 67108864)) != 0) ||
+            ((int)flags.Value & (16777216 | 33554432 | 67108864)) != 0) ||
             reachableObjectNumbers.Any(objectNumber =>
                 objects[objectNumber].Value is PdfDictionary dictionary &&
                 string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&

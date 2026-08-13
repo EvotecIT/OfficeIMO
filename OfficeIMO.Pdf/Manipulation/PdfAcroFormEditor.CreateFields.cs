@@ -17,6 +17,7 @@ internal static partial class PdfAcroFormEditor {
     private const int FieldFlagDoNotSpellCheck = 4194304;
     private const int FieldFlagDoNotScroll = 8388608;
     private const int FieldFlagComb = 16777216;
+    private const int FieldFlagRichTextOrRadiosInUnison = 33554432;
     private const int FieldFlagCommitOnSelectionChange = 67108864;
 
     private static string EnsureAcroFormAppearanceDefaults(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm) {

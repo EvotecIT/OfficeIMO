@@ -127,6 +127,19 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void SetDefaultValue_RejectsTextBeyondInheritedMaxLength() {
+        byte[] source = PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
+            edit.Create(new PdfFormFieldCreateOptions {
+                Name = "code",
+                Kind = PdfFormFieldCreationKind.Text,
+                Style = new PdfFormFieldStyle { MaxLength = 4 }
+            })).ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.SetDefaultValue("code", "ABCDE")));
+    }
+
+    [Fact]
     public void Move_PreservesNonzeroWidgetGenerationInPageAnnotations() {
         byte[] source = BuildNonzeroGenerationWidgetPdf();
         Assert.Equal(2, PdfSyntax.ParseObjects(source, null).Map[6].Generation);
@@ -312,6 +325,27 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void SetFlags_RaisesPdf14HeaderForBit26FieldFeatures() {
+        byte[] source = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "rich",
+                Kind = PdfFormFieldCreationKind.Text
+            })
+            .Create(new PdfFormFieldCreateOptions {
+                Name = "radio",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                ChoiceOptions = new[] { "One", "Two" },
+                Height = 40
+            })).ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetFlags("rich", 33554432)
+            .SetFlags("radio", 32768 | 33554432));
+
+        Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SetTabOrder_RaisesPdf17HeaderForAnnotationArrayOrdering() {
         PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(
             edit => edit.SetTabOrder(1, PdfPageTabOrder.Annotations));
@@ -390,6 +424,15 @@ public class PdfAcroFormReviewRegressionTests {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Open(BuildTwoPageStateAppearancePdf()).Forms.Edit(edit =>
                 edit.Move("choice", pageNumber: 2, x: 40, y: 80, width: 100, height: 20)));
+
+        Assert.Contains("inherits page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MoveAcrossPages_RejectsResourceLessInteractiveAppearances() {
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(BuildTwoPageInteractiveAppearancePdf()).Forms.Edit(edit =>
+                edit.Move("run", pageNumber: 2, x: 40, y: 80, width: 100, height: 20)));
 
         Assert.Contains("inherits page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -616,6 +659,22 @@ public class PdfAcroFormReviewRegressionTests {
             "5 0 obj", "<< /Fields [7 0 R] >>", "endobj",
             "7 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /T (choice) /Rect [20 20 120 40] /P 3 0 R /AP << /N << /Off 8 0 R /Yes 9 0 R >> >> >>", "endobj",
             "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
+            "9 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildTwoPageInteractiveAppearancePdf() {
+        const string appearance = "0 0 10 10 re f";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Annots [7 0 R] >>", "endobj",
+            "4 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>", "endobj",
+            "5 0 obj", "<< /Fields [7 0 R] >>", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /Widget /FT /Btn /Ff 65536 /T (run) /Rect [20 20 120 40] /P 3 0 R /AP << /N 8 0 R /R 9 0 R >> >>", "endobj",
+            "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Resources << >> /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
             "9 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
         }));
