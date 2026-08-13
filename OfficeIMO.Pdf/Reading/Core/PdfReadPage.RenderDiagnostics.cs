@@ -310,7 +310,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream>? activeSoftMaskGroups = null,
         HashSet<PdfStream>? activeSoftMaskForms = null,
         double? projectionPageWidth = null,
-        double? projectionPageHeight = null) {
+        double? projectionPageHeight = null,
+        bool requireIsolatedGroupSemantics = false) {
         EnsureContentNestingBudget(depth);
         if (softMaskNestingDepth != null) {
             softMaskNestingDepth.Maximum = Math.Max(softMaskNestingDepth.Maximum, depth);
@@ -354,6 +355,8 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands);
+            if (requireIsolatedGroupSemantics &&
+                drawingEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
             var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
             var type3PaintChannelCache = new Type3PaintChannelCache();
             var activeType3PaintChannelStreams = new HashSet<PdfStream>();
@@ -797,7 +800,8 @@ public sealed partial class PdfReadPage {
                         activeSoftMaskGroups,
                         activeSoftMaskForms,
                         formSurfaceWidth,
-                        formSurfaceHeight)) supported = false;
+                        formSurfaceHeight,
+                        requireIsolatedGroupSemantics: isTransparencyGroup)) supported = false;
             }
             return supported;
         } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
@@ -809,11 +813,16 @@ public sealed partial class PdfReadPage {
 
     private static bool HasUsableInheritedPattern(PdfPagePatternSelection? selection) {
         if (!selection.HasValue) return false;
-        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
+        if (selection.Value.ShadingPattern.HasValue) {
+            return selection.Value.ShadingPattern.Value.SupportsExactType3Projection &&
+                !selection.Value.BaseColorSpace.HasValue &&
+                !selection.Value.Tint.HasValue &&
+                selection.Value.ComponentCount == 0;
+        }
         if (selection.Value.TilingPattern is not PdfPageTilingPatternResource pattern) return false;
         return !pattern.ConsumesInheritedLineState &&
             !pattern.HasMalformedStrictInvocation &&
-            (!pattern.Uncolored || selection.Value.Tint.HasValue);
+            IsValidInheritedPatternSelection(selection.Value, pattern);
     }
 
     private bool CanProjectType3ImageInvocation(

@@ -618,7 +618,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
         if (resource.ConsumesInheritedLineState || resource.HasMalformedStrictInvocation) return false;
-        if (resource.Uncolored && !selection.Value.Tint.HasValue) return false;
+        if (!IsValidInheritedPatternSelection(selection.Value, resource)) return false;
 
         var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
         Matrix2D combined = Matrix2D.Multiply(
@@ -634,12 +634,30 @@ public sealed partial class PdfReadPage {
 
     private static bool IsUsableInheritedPattern(PdfPagePatternSelection? selection) {
         if (!selection.HasValue) return true;
-        if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
+        if (selection.Value.ShadingPattern.HasValue) {
+            return selection.Value.ShadingPattern.Value.SupportsExactType3Projection &&
+                !selection.Value.BaseColorSpace.HasValue &&
+                !selection.Value.Tint.HasValue &&
+                selection.Value.ComponentCount == 0;
+        }
         PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
         return pattern != null &&
             !pattern.ConsumesInheritedLineState &&
             !pattern.HasMalformedStrictInvocation &&
-            (!pattern.Uncolored || selection.Value.Tint.HasValue);
+            IsValidInheritedPatternSelection(selection.Value, pattern);
+    }
+
+    private static bool IsValidInheritedPatternSelection(
+        PdfPagePatternSelection selection,
+        PdfPageTilingPatternResource pattern) {
+        if (pattern.Uncolored) {
+            return selection.BaseColorSpace.HasValue &&
+                selection.Tint.HasValue &&
+                selection.ComponentCount == selection.BaseColorSpace.Value.ComponentCount;
+        }
+        return !selection.BaseColorSpace.HasValue &&
+            !selection.Tint.HasValue &&
+            selection.ComponentCount == 0;
     }
 
     private static bool TryApplyInheritedType3PatternPaint(

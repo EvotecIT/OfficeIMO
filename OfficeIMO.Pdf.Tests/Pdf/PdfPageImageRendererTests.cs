@@ -438,20 +438,31 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_IsolatesType3TransparencyGroupBlendFromPageBackdrop() {
+    public void RenderPage_FailsClosedForType3TransparencyGroupWithNestedBlendMode() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
         string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /Blend 8 0 R >> >>", "/Blend gs 0 0 1 rg 0 0 500 700 re f");
         string graphicsState = "8 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("1 0 0 rg 0 80 100 40 re f BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, form, graphicsState);
 
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeDrawingEffectGroup isolated = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
-        OfficeDrawingEffectGroup blend = Assert.Single(isolated.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
-        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(24, 94);
 
-        Assert.Equal(OfficeBlendMode.Multiply, blend.BlendMode);
-        Assert.True(pixel.R < 20 && pixel.G < 20 && pixel.B > 235);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+    }
+
+    [Fact]
+    public void RenderPage_ClipsType3TransparencyGroupContentToFormBounds() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
+        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 200 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 0 0 rg 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, form);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 94));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(28, 94));
     }
 
     [Fact]
@@ -1718,6 +1729,17 @@ public partial class PdfPageImageRendererTests {
             glyphA,
             pattern,
             baseFont);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_RejectsMalformedPathOperandsFromPermissivePatternCache() {
+        string resources = "5 0 obj\n<< /Font << /FType3 6 0 R >> /Pattern << /P1 8 0 R >> >>\nendobj";
+        string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources 5 0 R >>\nendobj";
+        string glyphA = BuildStreamObject(7, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
+        string pattern = BuildStreamObject(8, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "99 0 0 10 10 re f");
+        byte[] pdf = BuildSingleStreamPdf("/Pattern cs /P1 scn 0 0 10 10 re f BT /FType3 18 Tf 20 100 Td (A) Tj ET", "5 0 R", resources, type3Font, glyphA, pattern);
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }

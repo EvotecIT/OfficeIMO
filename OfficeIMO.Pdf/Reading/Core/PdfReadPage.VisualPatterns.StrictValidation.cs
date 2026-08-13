@@ -13,6 +13,25 @@ public sealed partial class PdfReadPage {
         string? fontName = null;
         var fontStack = new Stack<string?>();
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        _ = PdfPageContentVisualParser.Parse(
+            content,
+            1D,
+            1D,
+            GetGraphicsStateResources(resources),
+            GetColorSpaceResources(resources),
+            null,
+            null,
+            null,
+            maxOperations: _limits.MaxContentOperations,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands,
+            retainPrimitiveData: false,
+            unsupportedOperatorVisitor: operationName => {
+                if (operationName != "cs" && operationName != "CS" && operationName != "sh" && operationName != "Do") {
+                    malformed = true;
+                }
+            });
+        if (malformed) return true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
             _limits.MaxContentOperations,

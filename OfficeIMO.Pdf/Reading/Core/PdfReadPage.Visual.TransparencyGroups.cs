@@ -280,6 +280,10 @@ public sealed partial class PdfReadPage {
         }
 
         OverlayDrawingEffects(elements, effects);
+        if (elements.Any(static element => element.Effect.BlendMode != OfficeBlendMode.Normal)) {
+            groupDrawing = null!;
+            return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
         SortDrawingElements(elements);
 
         var contentDrawing = new OfficeDrawing(localPageWidth, localPageHeight);
@@ -315,9 +319,7 @@ public sealed partial class PdfReadPage {
                 -fittedBounds.X,
                 localPageHeight - pageHeight + fittedBounds.Y),
             transform);
-        localClipPath = fittedBounds.IsRectangle
-            ? null
-            : fittedBounds.Translate(fittedBounds.X, fittedBounds.Y);
+        localClipPath = fittedBounds.Translate(fittedBounds.X, fittedBounds.Y);
         localFillPattern = fillPattern?.Translate(
             fittedBounds.X,
             fittedBounds.Y,
