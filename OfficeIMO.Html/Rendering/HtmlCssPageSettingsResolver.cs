@@ -194,13 +194,14 @@ internal static class HtmlCssPageSettingsResolver {
             return;
         }
 
-        bool IsValidSize(string value) => TryResolvePageSize(
-            value,
-            options.PageWidth,
-            options.PageHeight,
-            options.DefaultFontSize,
-            out _,
-            out _);
+        bool IsValidSize(string value) => string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)
+            || TryResolvePageSize(
+                value,
+                options.PageWidth,
+                options.PageHeight,
+                options.DefaultFontSize,
+                out _,
+                out _);
         HtmlCssPageDeclaration authoredSize = FindTopLevelDeclarationWithPriority(body, "size");
         HtmlCssPageDeclaration sizeDeclaration = FindTopLevelDeclarationWithPriority(body, "size", IsValidSize);
         if (authoredSize.Value.Length > 0 && !IsValidSize(authoredSize.Value)) {

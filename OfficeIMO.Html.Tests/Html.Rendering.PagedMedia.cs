@@ -174,6 +174,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_RevertLayerSizeRevealsThePreviousPageLayer() {
+        const string html = """
+            <style>
+              @layer base { @page { size:A4; margin:0; } }
+              @layer theme { @page { size:letter; size:revert-layer; } }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal(OfficePageSizes.A4.WidthInches * HtmlRenderOptions.CssPixelsPerInch, page.Width, 3);
+        Assert.Equal(OfficePageSizes.A4.HeightInches * HtmlRenderOptions.CssPixelsPerInch, page.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
         const string html = """
             <style>
