@@ -362,20 +362,7 @@ internal static class OfficeProvenanceZip {
         }
         int encodedLength = Encoding.UTF8.GetByteCount(decoded);
         if (encodedLength <= ushort.MaxValue) return Encoding.UTF8.GetBytes(decoded);
-        byte[] bounded = new byte[ushort.MaxValue];
-        Encoding.UTF8.GetEncoder().Convert(
-            decoded,
-            0,
-            decoded.Length,
-            bounded,
-            0,
-            bounded.Length,
-            flush: true,
-            out _,
-            out int bytesUsed,
-            out _);
-        if (bytesUsed != bounded.Length) Array.Resize(ref bounded, bytesUsed);
-        return bounded;
+        throw new InvalidDataException("A legacy ZIP entry comment cannot be represented completely as UTF-8 within the ZIP length limit.");
     }
 
     private static uint ResolveZip64LocalHeaderOffset(byte[] data, int centralHeaderOffset, byte[] extraField) {

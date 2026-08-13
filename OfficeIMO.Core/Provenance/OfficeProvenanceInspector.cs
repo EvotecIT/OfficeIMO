@@ -215,7 +215,7 @@ public static class OfficeProvenanceRemover {
                 output = OfficeProvenanceRiff.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.Gif:
-                output = OfficeProvenanceGif.Remove(data, options, changes);
+                output = OfficeProvenanceGif.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.Tiff:
                 output = OfficeProvenanceTiff.Remove(data, options, changes, out reserialized);

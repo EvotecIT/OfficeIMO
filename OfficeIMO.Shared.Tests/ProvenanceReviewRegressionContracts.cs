@@ -578,12 +578,10 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         WriteLittleEndian16(package, sourceCentralHeader + 8,
             (ushort)(BitConverter.ToUInt16(package, sourceCentralHeader + 8) & ~0x0800));
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
-        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "keep.txt");
-        byte[] comment = ReadCentralDirectoryComment(result.ToArray(), centralHeader);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceRemover.Remove(package, "fixture.zip"));
 
-        Assert.True(comment.Length <= ushort.MaxValue);
-        Assert.All(Encoding.UTF8.GetString(comment), character => Assert.Equal('é', character));
+        Assert.Contains("cannot be represented completely", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -881,6 +879,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
 
         Assert.Single(result.Before.Evidence);
         Assert.True(result.WasChanged);
+        Assert.True(result.WasReserialized);
         Assert.Empty(result.After.Evidence);
         Assert.Equal((byte)0x3B, result.ToArray()[result.ToArray().Length - 1]);
     }
