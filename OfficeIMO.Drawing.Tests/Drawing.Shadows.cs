@@ -87,4 +87,20 @@ public partial class DrawingTests {
             Assert.False(layer.HasStroke);
         });
     }
+
+    [Fact]
+    public void OfficeShadowLayerPlanner_NonExpandableFillPreservesRequestedInteriorOpacity() {
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            opacity: 0.5D,
+            blurRadius: 12D,
+            baseStrokeWidth: 0D,
+            hasFill: true,
+            hasStroke: false,
+            canExpand: false);
+
+        OfficeShadowLayer core = Assert.Single(layers, layer => layer.HasFill);
+        Assert.False(core.HasStroke);
+        Assert.Equal(0.5D, core.Opacity, 6);
+        Assert.All(layers.Where(layer => !layer.HasFill), layer => Assert.True(layer.HasStroke));
+    }
 }

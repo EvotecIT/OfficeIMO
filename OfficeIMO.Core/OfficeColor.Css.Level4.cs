@@ -207,7 +207,11 @@ public readonly partial struct OfficeColor {
 
     private static bool TryParseHighPrecisionColorFunction(string candidate, out CssMixColor color) {
         color = default;
-        if (!TryReadFunction(candidate, out string name, out string arguments) || name != "color"
+        if (!TryReadFunction(candidate, out string name, out string arguments)) return false;
+        if (name == "lab" || name == "lch" || name == "oklab" || name == "oklch") {
+            return TryParseHighPrecisionLabFunction(name, arguments, out color);
+        }
+        if (name != "color"
             || !TrySplitSlash(arguments, out string componentText, out string? alpha)
             || !TryAlphaChannel(alpha, out byte opacity)) return false;
         string[] tokens = SplitWhitespace(componentText);
@@ -251,6 +255,39 @@ public readonly partial struct OfficeColor {
                 break;
             default:
                 return false;
+        }
+        color = new CssMixColor(red, green, blue, opacity / 255D);
+        return true;
+    }
+
+    private static bool TryParseHighPrecisionLabFunction(string name, string arguments, out CssMixColor color) {
+        color = default;
+        bool cylindrical = name == "lch" || name == "oklch";
+        bool perceptual = name == "oklab" || name == "oklch";
+        if (!TrySplitModernArguments(arguments, 3, out string[] channels, out string? alpha)
+            || !TryLightness(channels[0], perceptual, out double lightness)
+            || !TryAlphaChannel(alpha, out byte opacity)) return false;
+
+        double first;
+        double second;
+        if (cylindrical) {
+            if (!TryChroma(channels[1], perceptual, out double chroma)
+                || !TryHue(channels[2], out double hue)) return false;
+            double radians = hue * Math.PI / 180D;
+            first = chroma * Math.Cos(radians);
+            second = chroma * Math.Sin(radians);
+        } else if (!TryLabAxis(channels[1], perceptual, out first)
+                   || !TryLabAxis(channels[2], perceptual, out second)) {
+            return false;
+        }
+
+        double red;
+        double green;
+        double blue;
+        if (perceptual) {
+            OfficeColorSpaceConverter.ToLinearSrgbFromOklab(lightness, first, second, out red, out green, out blue);
+        } else {
+            OfficeColorSpaceConverter.ToLinearSrgbFromCssLab(lightness, first, second, out red, out green, out blue);
         }
         color = new CssMixColor(red, green, blue, opacity / 255D);
         return true;

@@ -57,6 +57,28 @@ public sealed class DrawingCssColorTests {
         Assert.Equal(OfficeColor.FromRgb(188, 188, 0), OfficeColor.ParseCss("color-mix(in srgb-linear, red, lime)"));
     }
 
+    [Theory]
+    [InlineData("lab(50% 100 100)", 50D, 100D, 100D, false)]
+    [InlineData("lch(50 141.421356 45deg)", 50D, 100D, 100D, false)]
+    [InlineData("oklab(.6 .3 .2)", .6D, .3D, .2D, true)]
+    [InlineData("oklch(.6 .3605551275 33.6900675deg)", .6D, .3D, .2D, true)]
+    public void OfficeColor_MixesLabFamilyStopsBeforeFinalSrgbClipping(string stop, double lightness, double a, double b, bool perceptual) {
+        OfficeColor expected;
+        if (perceptual) {
+            OfficeColorSpaceConverter.ToLinearSrgbFromOklab(lightness, a, b, out double red, out double green, out double blue);
+            expected = OfficeColorSpaceConverter.FromLinearSrgb(red * .5D, green * .5D, blue * .5D);
+        } else {
+            OfficeColorSpaceConverter.ToLinearSrgbFromCssLab(lightness, a, b, out double red, out double green, out double blue);
+            expected = OfficeColorSpaceConverter.FromLinearSrgb(red * .5D, green * .5D, blue * .5D);
+        }
+        Assert.Equal(expected, OfficeColor.ParseCss("color-mix(in srgb-linear," + stop + ",black)"));
+
+        OfficeColor clippedStop = OfficeColor.ParseCss(stop);
+        OfficeColor clippedMix = OfficeColor.ParseCss(
+            "color-mix(in srgb,rgb(" + clippedStop.R + " " + clippedStop.G + " " + clippedStop.B + "),black)");
+        Assert.NotEqual(clippedMix, OfficeColor.ParseCss("color-mix(in srgb," + stop + ",black)"));
+    }
+
     [Fact]
     public void OfficeColor_PreservesHighChromaLchCoordinatesUntilSrgbGamutClipping() {
         Assert.True(OfficeColor.TryParseCss("lch(30 150 0)", out OfficeColor color));

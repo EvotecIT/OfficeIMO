@@ -78,7 +78,7 @@ internal static class OfficeShadowLayerPlanner {
                 hasFill: false,
                 hasStroke: true));
         }
-        if (paintsFill) layers.Add(new OfficeShadowLayer(0D, 0D, ringOpacity, hasFill: true, hasStroke: false));
+        if (paintsFill) layers.Add(new OfficeShadowLayer(0D, 0D, clampedOpacity, hasFill: true, hasStroke: false));
         return layers;
     }
 

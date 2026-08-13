@@ -595,11 +595,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : ResolveUniqueFormFieldName(element, fieldName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
-        string placeholder = value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)
-            ? tag == "textarea"
-                ? NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty)
-                : NormalizeControlText(element.GetAttribute("placeholder"))
-            : string.Empty;
+        bool emptyFileSelect = value.Length == 0 && tag == "input" && type == "file";
+        string placeholder = emptyFileSelect
+            ? "Choose file"
+            : value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)
+                ? tag == "textarea"
+                    ? NormalizeControlMultilineText(element.GetAttribute("placeholder") ?? string.Empty)
+                    : NormalizeControlText(element.GetAttribute("placeholder"))
+                : string.Empty;
         IReadOnlyList<string> values = Array.Empty<string>();
         IReadOnlyList<string> options = Array.Empty<string>();
         IReadOnlyList<string> optionValues = Array.Empty<string>();

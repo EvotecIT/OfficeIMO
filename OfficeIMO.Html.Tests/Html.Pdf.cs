@@ -662,6 +662,25 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_EmptyFileInputRetainsItsVisiblePromptInTheInteractiveAppearance() {
+        const string html = "<input type='file' name='attachment'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderFormField renderedField = Assert.Single(
+            rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).OfType<HtmlRenderFormField>());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.True(renderedField.IsFileSelect);
+        Assert.Empty(renderedField.Value);
+        Assert.Equal("Choose file", renderedField.Placeholder);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.True(pdfField.IsFileSelect);
+        byte[] flattened = PdfCore.PdfFormFiller.FlattenFields(pdf);
+        Assert.False(PdfCore.PdfInspector.Inspect(flattened).HasReadableFormFields);
+        Assert.Contains("Choose file", PdfCore.PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_RepeatedNonRadioNamesUseTruthfulStaticFallback() {
         const string html = """
             <form><input type="checkbox" name="tag" value="One"><input type="checkbox" name="tag" value="Two"></form>
