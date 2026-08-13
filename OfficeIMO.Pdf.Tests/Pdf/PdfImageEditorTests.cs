@@ -383,6 +383,23 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void PortableImageEditsRejectAuthoredRenderingIntent() {
+        byte[] source = BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Intent /Perceptual");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+
+        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(placement, 10D, 0D));
+        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Replace(placement, PdfPngTestImages.CreateRgbPng(0, 0, 255)));
+
+        Assert.Contains("rendering intent", moveException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rendering intent", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void DestructiveEditsRejectStructParentOnSelectedImage() {
         PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",

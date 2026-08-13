@@ -315,6 +315,23 @@ public class PdfAcroFormEditorTests {
         Assert.Contains("radio-button", radioException.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData(1 << 24)]
+    [InlineData((1 << 24) | (1 << 12))]
+    [InlineData((1 << 24) | (1 << 13))]
+    [InlineData((1 << 24) | (1 << 20))]
+    public void Edit_SetFlagsRejectsInvalidCombTextFieldSemantics(int flags) {
+        PdfFormFieldStyle? style = flags == (1 << 24)
+            ? null
+            : new PdfFormFieldStyle { MaxLength = 4 };
+        byte[] source = PdfDocument.Create().TextField("Name", value: "Ada", style: style).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Name", flags)));
+
+        Assert.Contains("comb", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void Edit_MoveOnTheSamePagePreservesAnnotationOrder() {
         byte[] source = PdfDocument.Create()

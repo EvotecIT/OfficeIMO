@@ -324,12 +324,36 @@ internal static partial class PdfAcroFormEditor {
             ((previousFlags ^ flags) & FieldFlagRadio) != 0) {
             throw new NotSupportedException("Changing between check-box and radio-button semantics is not supported because it requires rebuilding the complete button state.");
         }
+        if (string.Equals(field.FieldType, "Tx", StringComparison.Ordinal) &&
+            (flags & FieldFlagComb) != 0 &&
+            (!HasInheritedPositiveInteger(objects, field.Dictionary, "MaxLen") ||
+             (flags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
+            throw new NotSupportedException("PDF comb text fields require MaxLen and cannot also be multiline, password, or file-select fields.");
+        }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {
             refillValues.Remove(name);
             return;
         }
         QueueRefillValue(refillValues, name, field.FieldType, ReadInheritedSimpleValue(objects, field.Dictionary), includeEmptyChoice: true);
+    }
+
+    private static bool HasInheritedPositiveInteger(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        string key) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            if (current.Items.TryGetValue(key, out PdfObject? value) &&
+                PdfObjectLookup.Resolve(objects, value) is PdfNumber number) {
+                return number.Value > 0D && number.Value <= int.MaxValue && Math.Truncate(number.Value) == number.Value;
+            }
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return false;
     }
 
     private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value, bool includeEmptyChoice = false) {

@@ -352,7 +352,7 @@ public class PdfTextEditorTests {
             "1 1 1 rg 45 685 100 30 re f\n");
         var region = new PdfPageRegion(1, 45D, 680D, 110D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "visible-now"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "changed"));
     }
 
     [Fact]

@@ -234,6 +234,22 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Apply_HonorsConfiguredContentNestingLimitDuringImageCleanup() {
+        string nestedOperand = new string('[', 129) + "0" + new string(']', 129);
+        string pageContent = nestedOperand + " n\nq\n1 0 0 1 100 200 cm\n/Fx Do\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImNested Do\nQ\n";
+        byte[] source = BuildNestedImagePdf(pageContent, "<< /Fx 6 0 R >>", formContent, "ImNested");
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentNestingDepth = 256 }
+        };
+        PdfImagePlacement placement = Assert.Single(
+            PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(source, readOptions)));
+        byte[] redacted = PdfRedactionApplier.RemoveImagePlacements(source, new[] { placement }, readOptions);
+
+        Assert.Empty(PdfImageExtractor.ExtractImages(PdfReadDocument.Open(redacted, readOptions)));
+    }
+
+    [Fact]
     public void Apply_ClonesRepeatedFormInvocationBeforeRemovingNestedImagePlacement() {
         byte[] source = BuildRepeatedFormImageRedactionSource();
         PdfLogicalImage image = GetSingleImage(source);

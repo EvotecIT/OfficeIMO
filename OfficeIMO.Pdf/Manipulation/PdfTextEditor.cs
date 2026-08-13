@@ -620,26 +620,11 @@ internal static partial class PdfTextEditor {
 
     private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfReadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
         if (spans.Count == 0) return;
-        if (appendedRequests != null && AppendedTextStaysWithinSourceBounds(spans, appendedRequests)) return;
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         IReadOnlyList<PdfReadPage.PdfAppendedTextBounds>? appendedBounds = appendedRequests?.Select(ToAppendedTextBounds).ToArray();
         if (document.Pages[pageNumber - 1].WouldAppendingTextChangeVisibleStacking(spans, appendedBounds)) {
             throw new NotSupportedException("The text edit would change the visible stacking order of overlapping page content.");
         }
-    }
-
-    private static bool AppendedTextStaysWithinSourceBounds(IReadOnlyList<PdfTextSpan> spans, IReadOnlyList<PdfStamper.TextStampRequest> requests) {
-        SpanBounds[] sourceBounds = spans.Select(GetBounds).ToArray();
-        for (int index = 0; index < requests.Count; index++) {
-            PdfReadPage.PdfAppendedTextBounds bounds = ToAppendedTextBounds(requests[index]);
-            bool contained = sourceBounds.Any(source =>
-                bounds.Left >= source.X - 0.01D &&
-                bounds.Right <= source.X + source.Width + 0.01D &&
-                bounds.Bottom >= source.Y - 0.01D &&
-                bounds.Top <= source.Y + source.Height + 0.01D);
-            if (!contained) return false;
-        }
-        return true;
     }
 
     private static PdfReadPage.PdfAppendedTextBounds ToAppendedTextBounds(PdfStamper.TextStampRequest request) {

@@ -16,8 +16,9 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions options,
         IReadOnlyDictionary<int, int> referenceCounts,
         List<PdfRedactionMatch> removedMatches,
-        int maximumDecodedStreamBytes,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
+        int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         if (targets.Length == 0) {
             return false;
         }
@@ -40,7 +41,7 @@ internal static partial class PdfRedactionApplier {
             }
 
             string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
-            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, contentState, referenceCounts, new HashSet<int>(), removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber);
+            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, contentState, referenceCounts, new HashSet<int>(), removedMatches, limits, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
                 if (IsSharedReference(referenceCounts, reference)) {
@@ -71,8 +72,9 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         List<PdfRedactionMatch> removedMatches,
-        int maximumDecodedStreamBytes,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
+        int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         bool changed = false;
         string rewrittenContent = content;
         ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, graphicsState);
@@ -85,7 +87,7 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
 
-                bool repeatedInvocation = CountResourceInvocations(content, invocation.Name) != 1;
+                bool repeatedInvocation = CountResourceInvocations(content, invocation.Name, limits) != 1;
                 if (repeatedInvocation &&
                     PdfObjectLookup.TryGet(objects, imageReference, out PdfIndirectObject? repeatedSourceIndirect)) {
                     string resourceName = CreateUniqueResourceName(xObjects, invocation.Name);
@@ -118,7 +120,7 @@ internal static partial class PdfRedactionApplier {
 
             int activeObjectNumber = formReference.ObjectNumber;
             try {
-                bool repeatedInvocation = CountResourceInvocations(content, invocation.Name) != 1;
+                bool repeatedInvocation = CountResourceInvocations(content, invocation.Name, limits) != 1;
                 if (repeatedInvocation &&
                     PdfObjectLookup.TryGet(objects, formReference, out PdfIndirectObject? repeatedSourceIndirect)) {
                     string resourceName = CreateUniqueResourceName(xObjects, invocation.Name);
@@ -126,7 +128,7 @@ internal static partial class PdfRedactionApplier {
                     xObjects.Items[resourceName] = formReference;
                     formStream = (PdfStream)objects[formReference.ObjectNumber].Value;
 
-                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber);
+                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber);
                     if (repeatedResult.HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
                         changed = true;
@@ -143,7 +145,7 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber).HasChanges || changed;
+                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber).HasChanges || changed;
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
@@ -163,15 +165,16 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         List<PdfRedactionMatch> removedMatches,
-        int maximumDecodedStreamBytes,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
+        int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         PdfDictionary formResources = formStream.Dictionary.Items.ContainsKey("Resources")
             ? EnsureFormResources(objects, formStream)
             : inheritedResources;
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));
-        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, new ImageContentGraphicsState(formTransform), referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber);
+        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, new ImageContentGraphicsState(formTransform), referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber);
         if (!string.Equals(result.Content, formContent, StringComparison.Ordinal)) {
             objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
         }

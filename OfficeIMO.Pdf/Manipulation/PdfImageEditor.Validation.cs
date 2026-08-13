@@ -70,6 +70,9 @@ internal static partial class PdfImageEditor {
         if (requirePortableSourceSemantics && HasOptionalContentMembership(objects, placement, containingForms)) {
             throw new NotSupportedException("Replacing or moving an image XObject with optional-content membership is not supported because restamping cannot preserve that membership.");
         }
+        if (requirePortableSourceSemantics && HasAuthoredRenderingIntent(objects, placement)) {
+            throw new NotSupportedException("Replacing or moving an image XObject with an authored rendering intent is not supported because restamping cannot preserve its color-conversion semantics.");
+        }
 
         if (InvokesSelectedTargetInsideMarkedContentAcrossPageStreams(objects, decodedStreams, placement, containingForms, limits)) {
             throw new NotSupportedException("Editing an image inside tagged, artifact, or optional marked content is not supported because its structural context cannot be preserved safely.");
@@ -87,6 +90,15 @@ internal static partial class PdfImageEditor {
 
         EnsureFormInvocationIsIsolated(objects, decodedStreams, effectiveResourceOwners, placement, containingForms, limits);
     }
+
+    private static bool HasAuthoredRenderingIntent(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfImagePlacement placement) =>
+        placement.ObjectNumber > 0 &&
+        objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect) &&
+        indirect.Value is PdfStream image &&
+        image.Dictionary.Items.TryGetValue("Intent", out PdfObject? intent) &&
+        PdfObjectLookup.Resolve(objects, intent) is not PdfNull;
 
     private static bool InvokesSelectedTargetInsideMarkedContent(
         string content,
