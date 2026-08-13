@@ -377,8 +377,8 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceBinary.ReadUInt32(data, locatorOffset, littleEndian: true) == locatorSignature;
     }
 
-    private static bool IsSignatureEntry(ZipArchiveEntry entry) =>
-        entry.FullName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase) ||
+    private static bool IsNonOpcSignatureEntry(ZipArchiveEntry entry) =>
+        !entry.FullName.EndsWith("/", StringComparison.Ordinal) &&
         entry.FullName.StartsWith("META-INF/", StringComparison.OrdinalIgnoreCase) &&
         entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
@@ -418,8 +418,7 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         ZipArchive archive,
         OfficeProvenanceRemovalOptions options) {
-        if (archive.Entries.Any(IsSignatureEntry)) return true;
-        if (archive.GetEntry("[Content_Types].xml") == null) return false;
+        if (archive.GetEntry("[Content_Types].xml") == null) return archive.Entries.Any(IsNonOpcSignatureEntry);
 
         var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
             MaxPackageBytes = options.Limits.MaxAssetBytes,

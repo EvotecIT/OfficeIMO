@@ -106,8 +106,21 @@ public static class OfficeProvenanceInspector {
             extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return true;
         int offset = 0;
         if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) offset = 3;
-        while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0C or 0x0D or 0x20) offset++;
+        while (true) {
+            while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0C or 0x0D or 0x20) offset++;
+            if (!MatchesAsciiIgnoreCase(data, offset, "<!--")) break;
+            int commentEnd = FindAscii(data, offset + 4, "-->");
+            if (commentEnd < 0) return false;
+            offset = commentEnd + 3;
+        }
         return MatchesAsciiIgnoreCase(data, offset, "<!doctype html") || MatchesAsciiIgnoreCase(data, offset, "<html");
+    }
+
+    private static int FindAscii(byte[] data, int offset, string expected) {
+        for (int index = Math.Max(0, offset); index <= data.Length - expected.Length; index++) {
+            if (MatchesAsciiIgnoreCase(data, index, expected)) return index;
+        }
+        return -1;
     }
 
     private static bool MatchesAsciiIgnoreCase(byte[] data, int offset, string expected) {

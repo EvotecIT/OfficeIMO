@@ -21,6 +21,7 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort Utf8FileNameFlag = 0x0800;
     private const ushort StoredMethod = 0;
     private const ushort DeflateMethod = 8;
+    private const ushort UnicodePathExtraFieldId = 0x7075;
     private static readonly uint[] CrcTable = CreateCrcTable();
 
     internal static byte[] Write(IReadOnlyList<OfficeProvenanceZipWriteEntry> entries, long maximumExpandedBytes, byte[]? archiveComment = null) {
@@ -37,12 +38,14 @@ internal static class OfficeProvenanceZipWriter {
         foreach (OfficeProvenanceZipWriteEntry entry in entries) {
             byte[] name = Encoding.UTF8.GetBytes(entry.Name);
             if (name.Length > ushort.MaxValue) throw new InvalidDataException("ZIP entry name exceeds the supported length.");
+            byte[] localExtraField = RemoveExtraField(entry.LocalExtraField, UnicodePathExtraFieldId);
+            byte[] centralExtraField = RemoveExtraField(entry.CentralExtraField, UnicodePathExtraFieldId);
             ushort method = entry.Compress ? DeflateMethod : StoredMethod;
             GetDosTimestamp(entry.LastWriteTime, out ushort dosDate, out ushort dosTime);
             uint localOffset = ToUInt32(output.Position, "local entry offset");
-            WriteLocalHeader(writer, method, dosTime, dosDate, name, entry.LocalExtraField);
+            WriteLocalHeader(writer, method, dosTime, dosDate, name, localExtraField);
             writer.Write(name);
-            writer.Write(entry.LocalExtraField);
+            writer.Write(localExtraField);
             writer.Flush();
             long payloadStart = output.Position;
             uint crc = uint.MaxValue;
@@ -76,7 +79,7 @@ internal static class OfficeProvenanceZipWriter {
                 localOffset,
                 entry.InternalAttributes,
                 entry.ExternalAttributes,
-                entry.CentralExtraField,
+                centralExtraField,
                 entry.Comment));
         }
 
@@ -208,6 +211,21 @@ internal static class OfficeProvenanceZipWriter {
             table[index] = value;
         }
         return table;
+    }
+
+    private static byte[] RemoveExtraField(byte[] extraField, ushort fieldId) {
+        int cursor = 0;
+        using var output = new MemoryStream(extraField.Length);
+        while (cursor <= extraField.Length - 4) {
+            ushort currentId = (ushort)(extraField[cursor] | extraField[cursor + 1] << 8);
+            int dataLength = extraField[cursor + 2] | extraField[cursor + 3] << 8;
+            int fieldLength = 4 + dataLength;
+            if (fieldLength > extraField.Length - cursor) break;
+            if (currentId != fieldId) output.Write(extraField, cursor, fieldLength);
+            cursor += fieldLength;
+        }
+        if (cursor < extraField.Length) output.Write(extraField, cursor, extraField.Length - cursor);
+        return output.ToArray();
     }
 
     private sealed class OfficeProvenanceZipRecord {

@@ -305,6 +305,35 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void LeadingHtmlCommentsDoNotExposeStructuredTextCarriers() {
+        string text = "<!-- legal notice -->\n<!doctype html><html><body><pre>-----BEGIN C2PA MANIFEST-----\n" +
+            "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) +
+            "\n-----END C2PA MANIFEST-----</pre></body></html>";
+        byte[] data = Encoding.UTF8.GetBytes(text);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(data, "fixture.txt");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(data, "fixture.txt");
+
+        Assert.Equal(OfficeProvenanceAssetFormat.Html, report.Format);
+        Assert.False(result.WasChanged);
+        Assert.Equal(data, result.ToArray());
+    }
+
+    [Fact]
+    public void SvgIgnoresXmpMarkupOutsideSvgMetadata() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\">" +
+            "<foreignObject><x:xmpmeta><rdf:RDF><rdf:Description iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></rdf:RDF></x:xmpmeta></foreignObject></svg>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(svg, "fixture.svg");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
+
+        Assert.Empty(report.Evidence);
+        Assert.False(result.WasChanged);
+        Assert.Equal(svg, result.ToArray());
+    }
+
+    [Fact]
     public void Zip64EntryCountIsRejectedBeforeDirectoryMaterialization() {
         byte[] package = CreateZip64CountOnlyPackage(5000);
 
@@ -358,6 +387,48 @@ public sealed class ProvenanceReviewRegressionContracts {
         Assert.Equal("keep-comment", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
         Assert.Equal("keep-archive-comment", Encoding.UTF8.GetString(ReadArchiveComment(result.ToArray())));
         Assert.Equal(1, BitConverter.ToUInt16(result.ToArray(), centralHeader + 36));
+    }
+
+    [Fact]
+    public void ZipRewriteDropsFilenameDependentUnicodePathExtras() {
+        byte[] retainedExtraField = { 0xFE, 0xCA, 0x01, 0x00, 0x42 };
+        byte[] unicodeName = Encoding.UTF8.GetBytes("renamed.txt");
+        byte[] unicodePathExtraField = new byte[9 + unicodeName.Length];
+        WriteLittleEndian16(unicodePathExtraField, 0, 0x7075);
+        WriteLittleEndian16(unicodePathExtraField, 2, checked((ushort)(5 + unicodeName.Length)));
+        unicodePathExtraField[4] = 1;
+        WriteLittleEndian(unicodePathExtraField, 5, 0xDEADBEEFu);
+        Buffer.BlockCopy(unicodeName, 0, unicodePathExtraField, 9, unicodeName.Length);
+        byte[] sourceExtraField = Join(retainedExtraField, unicodePathExtraField);
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream manifest = archive.CreateEntry("META-INF/content_credential.c2pa").Open()) WriteAll(manifest, CreateManifestStore());
+                using (Stream keep = archive.CreateEntry("keep.txt").Open()) WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = AddEntryExtraFields(stream.ToArray(), "keep.txt", sourceExtraField, sourceExtraField);
+        }
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "keep.txt");
+
+        Assert.Equal(retainedExtraField, ReadLocalExtraField(result.ToArray(), centralHeader));
+        Assert.Equal(retainedExtraField, ReadCentralExtraField(result.ToArray(), centralHeader));
+    }
+
+    [Fact]
+    public void OpcSignatureDetectionIgnoresDirectoryAndUnrelatedXmlSignatureEntries() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                WriteZipEntry(archive, "[Content_Types].xml", "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"/>");
+                WriteZipEntry(archive, "_xmlsignatures/", string.Empty);
+                WriteZipEntry(archive, "_xmlsignatures/readme.txt", "not a signature");
+            }
+            package = stream.ToArray();
+        }
+
+        Assert.False(OfficeProvenanceZip.HasPackageSignature(package, new OfficeProvenanceRemovalOptions()));
     }
 
     [Fact]

@@ -100,6 +100,15 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
+    public void CrossVolumeTrustPathsRemainAbsoluteOnWindows() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+
+        string path = C2paToolProvenanceVerifier.GetRelativePath(@"C:\work\verification", @"D:\trust\anchors.pem");
+
+        Assert.Equal(@"D:\trust\anchors.pem", path, ignoreCase: true);
+    }
+
+    [Fact]
     public void VerifyRejectsRemoteTrustMaterialUnlessNetworkWasExplicitlyEnabled() {
         string assetPath = CreateAsset();
         try {

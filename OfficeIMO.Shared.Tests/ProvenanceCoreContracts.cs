@@ -433,6 +433,10 @@ public sealed class ProvenanceCoreContracts {
     [Fact]
     public void ZipBlocksSignedPackageMutationByDefault() {
         byte[] package = CreateZip(
+            ("[Content_Types].xml", Encoding.UTF8.GetBytes(
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
+                "</Types>")),
             ("_xmlsignatures/sig1.xml", Encoding.UTF8.GetBytes("<signature/>")),
             ("META-INF/content_credential.c2pa", CreateManifestStore()));
 

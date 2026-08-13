@@ -220,12 +220,14 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         arguments.Add(argumentValue);
     }
 
-    private static string GetRelativePath(string directoryPath, string filePath) {
+    internal static string GetRelativePath(string directoryPath, string filePath) {
         string directory = Path.GetFullPath(directoryPath);
         if (!directory.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)) directory += Path.DirectorySeparatorChar;
         var directoryUri = new Uri(directory);
         var fileUri = new Uri(Path.GetFullPath(filePath));
-        return Uri.UnescapeDataString(directoryUri.MakeRelativeUri(fileUri).ToString())
+        Uri relativeUri = directoryUri.MakeRelativeUri(fileUri);
+        if (relativeUri.IsAbsoluteUri) return fileUri.LocalPath;
+        return Uri.UnescapeDataString(relativeUri.ToString())
             .Replace('/', Path.DirectorySeparatorChar);
     }
 
