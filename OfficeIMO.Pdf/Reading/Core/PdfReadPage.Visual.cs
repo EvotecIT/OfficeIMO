@@ -1151,7 +1151,9 @@ public sealed partial class PdfReadPage {
             return c0.Length == componentCount &&
                    c1.Length == componentCount &&
                    c0.All(IsUnitComponent) &&
-                   c1.All(IsUnitComponent);
+                   c1.All(IsUnitComponent) &&
+                   c0.All(IsByteRepresentableComponent) &&
+                   c1.All(IsByteRepresentableComponent);
         }
 
         if (functionType != 3 ||
@@ -1177,6 +1179,9 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool IsUnitComponent(double value) => IsFinite(value) && value >= 0D && value <= 1D;
+
+    private static bool IsByteRepresentableComponent(double value) =>
+        IsUnitComponent(value) && (value * 255D) == Math.Round(value * 255D);
 
     private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
@@ -2249,8 +2254,11 @@ public sealed partial class PdfReadPage {
         double drawingHeight,
         out OfficeImageProjection projection,
         bool allowAxisAlignedFallback = true) {
-        if (!IsPlainAxisAlignedImagePlacement(placement)) {
-            if (TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
+        bool isPlainAxisAligned = allowAxisAlignedFallback
+            ? IsPlainAxisAlignedImagePlacement(placement)
+            : IsExactlyPlainAxisAlignedImagePlacement(placement);
+        if (!isPlainAxisAligned) {
+            if (TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection, requireExactOrthogonality: !allowAxisAlignedFallback)) {
                 return true;
             }
             if (!allowAxisAlignedFallback) return false;
@@ -2333,7 +2341,13 @@ public sealed partial class PdfReadPage {
         placement.A >= 0D &&
         placement.D >= 0D;
 
-    private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
+    private static bool IsExactlyPlainAxisAlignedImagePlacement(PdfImagePlacement placement) =>
+        placement.B == 0D &&
+        placement.C == 0D &&
+        placement.A >= 0D &&
+        placement.D >= 0D;
+
+    private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection, bool requireExactOrthogonality = false) {
         projection = default;
         double m11 = placement.A;
         double m12 = -placement.B;
@@ -2348,7 +2362,7 @@ public sealed partial class PdfReadPage {
         }
 
         double dot = (m11 * m21) + (m12 * m22);
-        if (!NearlyEqual(dot, 0D)) {
+        if (requireExactOrthogonality ? dot != 0D : !NearlyEqual(dot, 0D)) {
             return false;
         }
 

@@ -345,7 +345,7 @@ internal static class PdfPageXObjectInvocationParser {
             bool ordinaryTextAffectsOutput =
                 isVisible &&
                 !usesType3GlyphProgram &&
-                TextAffectsOutput(_textRenderingMode) &&
+                (TextAffectsOutput(_textRenderingMode) || AddsTextToClippingPath(_textRenderingMode)) &&
                 IsOrdinaryTextFrameVisible(advance.X);
             if (ordinaryTextAffectsOutput) _visibleFontVisitor?.Invoke(_textFont);
             PdfType3PaintChannels type3PaintChannels = isVisible && usesType3GlyphProgram
@@ -476,7 +476,7 @@ internal static class PdfPageXObjectInvocationParser {
                     ordinaryTextAffectsOutput |=
                         isVisible &&
                         !usesType3GlyphProgram &&
-                        TextAffectsOutput(_textRenderingMode) &&
+                        (TextAffectsOutput(_textRenderingMode) || AddsTextToClippingPath(_textRenderingMode)) &&
                         IsOrdinaryTextFrameVisible(advance.X);
                     if (isVisible && !usesType3GlyphProgram) ApplyTextClippingPath(advance.X);
                     _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance.X, advance.Y));

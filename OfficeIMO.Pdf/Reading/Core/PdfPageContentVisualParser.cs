@@ -556,10 +556,13 @@ internal static class PdfPageContentVisualParser {
                             _fillPatternPaintTransform = _state.Transform;
                             _state = _state.WithFillPattern(fillPattern);
                         }
-                    } else if (TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
+                    } else if (_args.Count == _state.FillColorSpace.ComponentCount &&
+                               TryReadColor(_state.FillColorSpace, out OfficeColor fillColor)) {
                         _fillTilingPattern = null;
                         _fillTilingTint = null;
                         _state = _state.WithFillColor(fillColor);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke(op);
                     }
 
                     break;
@@ -580,10 +583,13 @@ internal static class PdfPageContentVisualParser {
                             _strokePatternPaintTransform = _state.Transform;
                             _state = _state.WithStrokePattern(strokePattern);
                         }
-                    } else if (TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
+                    } else if (_args.Count == _state.StrokeColorSpace.ComponentCount &&
+                               TryReadColor(_state.StrokeColorSpace, out OfficeColor strokeColor)) {
                         _strokeTilingPattern = null;
                         _strokeTilingTint = null;
                         _state = _state.WithStrokeColor(strokeColor);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke(op);
                     }
 
                     break;
@@ -1448,7 +1454,11 @@ internal static class PdfPageContentVisualParser {
             double y1 = ToTop(start.Y);
             double x2 = end.X;
             double y2 = ToTop(end.Y);
-            if (NearlyEqual(x1, x2) && NearlyEqual(y1, y2)) {
+            if (x1 == x2 && y1 == y2) {
+                return;
+            }
+            if (_requireExactType3ShadingProjection && NearlyEqual(x1, x2) && NearlyEqual(y1, y2)) {
+                _unsupportedOperatorVisitor?.Invoke("l");
                 return;
             }
 
@@ -1870,20 +1880,7 @@ internal static class PdfPageContentVisualParser {
         style = OfficeStrokeDashStyle.Solid;
         if (double.IsNaN(phase) || double.IsInfinity(phase) || phase != 0D ||
             dashArray.Any(static value => double.IsNaN(value) || double.IsInfinity(value) || value < 0D)) return false;
-        if (dashArray.Length == 0) return true;
-        if (MatchesDash(dashArray, 1D, 1D)) { style = OfficeStrokeDashStyle.Dot; return true; }
-        if (MatchesDash(dashArray, 3D, 1D)) { style = OfficeStrokeDashStyle.Dash; return true; }
-        if (MatchesDash(dashArray, 3D, 1D, 1D, 1D)) { style = OfficeStrokeDashStyle.DashDot; return true; }
-        if (MatchesDash(dashArray, 3D, 1D, 1D, 1D, 1D, 1D)) { style = OfficeStrokeDashStyle.DashDotDot; return true; }
-        return false;
-    }
-
-    private static bool MatchesDash(double[] actual, params double[] expected) {
-        if (actual.Length != expected.Length) return false;
-        for (int i = 0; i < expected.Length; i++) {
-            if (Math.Abs(actual[i] - expected[i]) > 0.000000001D) return false;
-        }
-        return true;
+        return dashArray.Length == 0;
     }
 
     private readonly struct GraphicsState {
