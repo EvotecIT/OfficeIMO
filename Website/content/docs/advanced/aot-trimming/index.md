@@ -4,7 +4,7 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **97 of 98 production projects publish and execute in NativeAOT validation**; the WPF/WebView2 renderer is deliberately tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **97 of 99 production projects publish and execute in NativeAOT validation**. The optional Chromium browser-PDF bridge uses managed cross-platform deployment through HtmlTinkerX and Playwright. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
 The 97 native-validated projects are not all proved in the same way:
 
@@ -12,7 +12,7 @@ The 97 native-validated projects are not all proved in the same way:
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 98 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 99 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
 
 ## Publish your application
 
@@ -43,6 +43,7 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 | Fully rooted libraries | 95 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 94 libraries in the main host and `OfficeIMO.Security` in its dedicated host. Both executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
 | Bounded Google APIs adapter | 1 | `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` constructs its data-store adapter and round-trips a value in the native executable. | The validated adapter path is native. Treat live OAuth/provider flows as application-specific until your chosen Google dependency graph publishes cleanly. |
 | Native command-line tools | 1 | `OfficeIMO.Tool` publishes and starts as a native executable on Windows and Linux with namespaced HTML, Reader, and Markup commands. | Native CLI deployment is supported; validate the concrete commands and formats used by your job. |
+| Managed cross-platform browser integration | 1 | `OfficeIMO.Html.Pdf.Browser` builds and executes through the managed HtmlTinkerX and Playwright runtime. | Use managed .NET deployment and install Chromium through the HtmlTinkerX/Playwright path; do not advertise this optional package as NativeAOT-compatible. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |
 
 CI fails if a production project is added, removed, or renamed without being classified in this matrix.
@@ -74,6 +75,7 @@ These eight document workflows complement the project-level compile matrix with 
 | Format and conversion adapters | The complete production library assemblies are rooted in the native compile graph. Test the exact conversion direction and fidelity your application accepts. |
 | Google Workspace, Confluence, and other network clients | The dependency-light OfficeIMO client libraries are fully rooted in the native matrix. The optional `Google.Apis` credential adapter has a bounded native token-store test; publish and test the live authentication and HTTP provider selected by your application. |
 | OCR process and Tesseract adapters | The OfficeIMO host adapter can be native; OCR still runs in the configured external executable and must be deployed separately. |
+| Chromium browser-PDF bridge | Use managed cross-platform deployment. `OfficeIMO.Html.Pdf.Browser` delegates browser capture to HtmlTinkerX and Playwright, then opens the result through `OfficeIMO.Pdf`. |
 | WPF/WebView2 renderer | Use managed Windows deployment. The .NET SDK currently rejects trimmed WPF executables with `NETSDK1168`, so OfficeIMO does not market this package as NativeAOT-compatible. |
 
 ## Prefer typed data paths

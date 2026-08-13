@@ -2,6 +2,12 @@
 
 `OfficeIMO.Html.Pdf.Browser` is the optional Chromium-backed route for pages that need browser layout, JavaScript, or live website navigation. `OfficeIMO.Html.Pdf` remains the managed, dependency-light default for static HTML.
 
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Html.Pdf.Browser
+```
+
 HtmlTinkerX owns browser lifecycle, navigation, readiness, credentials, network policy, and PDF capture. This package opens the resulting bytes through `OfficeIMO.Pdf`, so extraction, inspection, preflight, and mutation use the same APIs as any other PDF source.
 
 ```csharp
