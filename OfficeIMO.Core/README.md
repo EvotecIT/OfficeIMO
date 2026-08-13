@@ -97,9 +97,9 @@ if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(svg, limits)) {
 }
 ```
 
-A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, and rendered-payload ceilings enforced by the safety predicate. It does not mean every SVG feature can be projected into an `OfficeDrawing`. `TryRead(...)` performs that projection and reports unsupported features; use it when the drawing result is required.
+A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, rendered-payload, projected raster-paint, and filter-work ceilings enforced by the safety predicate. It does not mean every SVG feature can be projected into an `OfficeDrawing`. `TryRead(...)` performs that projection and reports unsupported features; use it when the drawing result is required.
 
-`MaximumElements`, `MaximumViewportDimension`, and `MaximumViewportPixels` can be lowered for an application policy or raised for trusted input up to their documented hard maxima. They do not relax the fixed 8 MiB input, nesting, path-command, transform, reference-depth, or conservative stylesheet/reference checks.
+`MaximumElements`, `MaximumViewportDimension`, and `MaximumViewportPixels` can be lowered for an application policy or raised for trusted input up to their documented hard maxima. They do not relax the fixed 8 MiB input, nesting, path-command, transform, reference-depth, conservative stylesheet/reference, or 256-viewport raster-work checks. Raster work includes projected paint bounds and the estimated cost of blur, morphology, convolution, and turbulence filter parameters.
 
 ### Encode common raster formats
 

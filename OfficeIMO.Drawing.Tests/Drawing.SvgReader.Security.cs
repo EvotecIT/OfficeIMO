@@ -470,6 +470,71 @@ public class DrawingSvgReaderSecurityTests {
         Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(unusedDefinition)));
     }
 
+    [Theory]
+    [InlineData("cl\\69p-path")]
+    [InlineData("\\63 lip-path")]
+    [InlineData("clip-\\70 ath")]
+    [InlineData("CL\\49P-PATH")]
+    public void SvgSafetyPredicateDecodesEscapedInlinePropertyNames(string propertyName) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' style='" + propertyName + ":url(#c)'/>"
+            + "<rect x='5' width='4' height='4' style='" + propertyName + ":url(#c)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 7 };
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateBoundsAggregateRasterOverdraw() {
+        Assert.True(IsSafe(256));
+        Assert.False(IsSafe(257));
+
+        static bool IsSafe(int repaints) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>");
+            for (int index = 0; index < repaints; index++) {
+                svg.Append("<rect width='4096' height='4096' fill='rgba(0,0,0,.5)'/>");
+            }
+            svg.Append("</svg>");
+            return OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString()));
+        }
+    }
+
+    [Theory]
+    [InlineData("1", true)]
+    [InlineData("1000000", false)]
+    public void SvgSafetyPredicateBoundsRasterFilterWork(string standardDeviation, bool expected) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>"
+            + "<defs><filter id='f'><feGaussianBlur stdDeviation='" + standardDeviation + "'/></filter></defs>"
+            + "<rect width='256' height='256' filter='url(#f)'/></svg>";
+
+        Assert.Equal(expected, OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Theory]
+    [InlineData("<feMorphology radius='1000000'/>")]
+    [InlineData("<feConvolveMatrix order='1000000'/>")]
+    [InlineData("<feTurbulence numOctaves='1000000'/>")]
+    public void SvgSafetyPredicateBoundsSiblingFilterParameters(string primitive) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>"
+            + "<defs><filter id='f'>" + primitive + "</filter></defs>"
+            + "<rect width='256' height='256' filter='url(#f)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateSharesFilterWorkAcrossConsumers() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'>")
+            .Append("<defs><filter id='f'><feGaussianBlur stdDeviation='1'/></filter></defs>");
+        for (int index = 0; index < 20; index++) {
+            svg.Append("<rect width='256' height='256' filter='url(#f)'/>");
+        }
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
     private static string CreateEmbeddedImageSvg(byte[] png) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
         + Convert.ToBase64String(png)

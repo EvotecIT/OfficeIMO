@@ -116,6 +116,20 @@ public static partial class OfficeSvgDrawingReader {
         return true;
     }
 
+    private static bool TryDecodeCssIdentifier(string value, out string decoded) {
+        var result = new StringBuilder(value.Length);
+        int index = 0;
+        while (index < value.Length) {
+            if (!TryReadCssCharacter(value, ref index, out char character)) {
+                decoded = string.Empty;
+                return false;
+            }
+            result.Append(character);
+        }
+        decoded = result.ToString();
+        return decoded.Length > 0;
+    }
+
     private static bool TryReadCssCharacter(string value, ref int index, out char character) {
         character = default;
         if (index >= value.Length) return false;

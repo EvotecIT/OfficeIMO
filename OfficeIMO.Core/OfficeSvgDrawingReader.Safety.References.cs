@@ -14,7 +14,8 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount,
         OfficeTransform transform,
         double viewX,
-        double viewY) {
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
         SvgElementReferenceEntryResult result = references.TryEnterDetailed(
             element,
             expectedTargetName,
@@ -31,7 +32,8 @@ public static partial class OfficeSvgDrawingReader {
                 ref commandCount,
                 transform,
                 viewX,
-                viewY);
+                viewY,
+                rasterWork);
         } finally {
             references.Exit(referenceId);
         }

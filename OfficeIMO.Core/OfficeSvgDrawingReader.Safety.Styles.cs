@@ -19,7 +19,13 @@ public static partial class OfficeSvgDrawingReader {
         int selectedPriority = -1;
         foreach (string declaration in SplitRasterStyleDeclarations(StripCssComments(style!))) {
             int colon = declaration.IndexOf(':');
-            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (colon <= 0) continue;
+            string rawName = declaration.Substring(0, colon).Trim();
+            if (!TryDecodeCssIdentifier(rawName, out string decodedName)) {
+                if (HasPotentialSvgUrlFunction(declaration.Substring(colon + 1))) return "url(#)";
+                continue;
+            }
+            if (!decodedName.Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
             string candidate = NormalizeInlineStyleValue(declaration.Substring(colon + 1), out int priority);
             if (priority < selectedPriority) continue;
             value = candidate;
@@ -66,7 +72,9 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount,
         OfficeTransform transform,
         double viewX,
-        double viewY) {
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
+        if (!rasterWork.TryChargeFilterDefinition(target)) return false;
         ResolveRenderedSvgAncestorPaint(
             target,
             out string? fill,
@@ -83,6 +91,7 @@ public static partial class OfficeSvgDrawingReader {
             transform,
             viewX,
             viewY,
+            rasterWork,
             fill,
             stroke,
             markerStart,

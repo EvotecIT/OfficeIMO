@@ -15,7 +15,8 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount,
         OfficeTransform transform,
         double viewX,
-        double viewY) {
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
         if (applications <= 0) return true;
         for (int application = 0; application < applications; application++) {
             SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
@@ -34,7 +35,8 @@ public static partial class OfficeSvgDrawingReader {
                         ref commandCount,
                         transform,
                         viewX,
-                        viewY)) return false;
+                        viewY,
+                        rasterWork)) return false;
             } finally {
                 references.Exit(referenceId);
             }

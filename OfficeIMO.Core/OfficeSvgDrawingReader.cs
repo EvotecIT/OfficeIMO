@@ -116,17 +116,18 @@ public static partial class OfficeSvgDrawingReader {
                 out XElement root,
                 out int maximumElements,
                 out _,
-                out _,
+                out double maximumViewportPixels,
                 out double viewX,
                 out double viewY,
-                out _,
-                out _,
-                out _,
-                out _)) return false;
+                out double viewWidth,
+                out double viewHeight,
+                out double viewportWidth,
+                out double viewportHeight)) return false;
 
         return !ExceedsSvgElementNestingLimit(root) &&
                !ExceedsSvgDocumentPathCommandLimit(root) &&
-               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, viewX, viewY);
+               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, maximumViewportPixels,
+                   viewX, viewY, viewWidth, viewHeight, viewportWidth, viewportHeight);
     }
 
     private static bool TryReadBoundedDocument(
@@ -282,8 +283,13 @@ public static partial class OfficeSvgDrawingReader {
     private static bool ExceedsSvgRenderedExpansionLimits(
         XElement root,
         int maximumElements,
+        double maximumViewportPixels,
         double viewX,
-        double viewY) {
+        double viewY,
+        double viewWidth,
+        double viewHeight,
+        double viewportWidth,
+        double viewportHeight) {
         if (HasPotentialStylesheetRenderedDefinitionReference(root)) return true;
         if (!TryResolveSupportedRasterTransform(
                 root,
@@ -293,6 +299,8 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeTransform rootTransform)) return true;
         int commandCount = 0;
         int elementCount = 0;
+        var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
+            viewWidth, viewHeight, viewportWidth, viewportHeight);
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
@@ -310,6 +318,7 @@ public static partial class OfficeSvgDrawingReader {
                     rootTransform,
                     viewX,
                     viewY,
+                    rasterWork,
                     fill,
                     stroke,
                     markerStart,
@@ -356,6 +365,7 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
+        SvgRasterWorkBudget rasterWork,
         string? inheritedFill = null,
         string? inheritedStroke = null,
         string? inheritedMarkerStart = null,
@@ -374,6 +384,7 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeTransform transform)) return false;
 
         if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
+        if (!rasterWork.TryChargeRenderedElement(element, transform)) return false;
         if (name == "textpath"
             && !TryAddRenderedSvgElementReference(
                 element,
@@ -384,7 +395,8 @@ public static partial class OfficeSvgDrawingReader {
                 ref commandCount,
                 transform,
                 viewX,
-                viewY)) return false;
+                viewY,
+                rasterWork)) return false;
 
         string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
         string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
@@ -401,7 +413,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY)
+                    viewY,
+                    rasterWork)
                 || !TryAddRenderedSvgPatternReference(
                     stroke,
                     references,
@@ -410,7 +423,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY)) return false;
+                    viewY,
+                    rasterWork)) return false;
         }
 
         SvgMarkerPlacementCounts markerPlacements = CountSvgMarkerPlacements(element);
@@ -425,7 +439,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY)
+                    viewY,
+                    rasterWork)
                 || !TryAddRenderedSvgLocalReferenceApplications(
                     markerMid,
                     "marker",
@@ -436,7 +451,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY)
+                    viewY,
+                    rasterWork)
                 || !TryAddRenderedSvgLocalReferenceApplications(
                     markerEnd,
                     "marker",
@@ -447,7 +463,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY))) return false;
+                    viewY,
+                    rasterWork))) return false;
 
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
@@ -458,7 +475,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY)) return false;
+                    viewY,
+                    rasterWork)) return false;
         }
 
         if (name == "use") {
@@ -478,6 +496,7 @@ public static partial class OfficeSvgDrawingReader {
                     transform,
                     viewX,
                     viewY,
+                    rasterWork,
                     fill,
                     stroke,
                     markerStart,
@@ -507,7 +526,8 @@ public static partial class OfficeSvgDrawingReader {
                             ref commandCount,
                             transform,
                             viewX,
-                            viewY)) return false;
+                            viewY,
+                            rasterWork)) return false;
                 } finally {
                     references.Exit(inheritedPatternId);
                 }
@@ -525,6 +545,7 @@ public static partial class OfficeSvgDrawingReader {
                     transform,
                     viewX,
                     viewY,
+                    rasterWork,
                     fill,
                     stroke,
                     markerStart,
@@ -548,7 +569,8 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount,
         OfficeTransform transform,
         double viewX,
-        double viewY) {
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
         SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
             value,
             out string referenceId,
@@ -564,7 +586,8 @@ public static partial class OfficeSvgDrawingReader {
                 ref commandCount,
                 transform,
                 viewX,
-                viewY);
+                viewY,
+                rasterWork);
         } finally {
             references.Exit(referenceId);
         }
@@ -578,7 +601,8 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount,
         OfficeTransform transform,
         double viewX,
-        double viewY) {
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
         SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
             value,
             out string referenceId,
@@ -600,7 +624,8 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount,
                     transform,
                     viewX,
-                    viewY);
+                    viewY,
+                    rasterWork);
         } finally {
             references.Exit(referenceId);
         }
