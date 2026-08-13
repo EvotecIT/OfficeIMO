@@ -38,6 +38,7 @@ internal static class OfficeProvenanceRiff {
         if (declaredEndValue < 12 || declaredEndValue > data.Length) throw new InvalidDataException("RIFF size exceeds the asset bounds.");
         int declaredEnd = (int)declaredEndValue;
         int c2paChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "C2PA");
+        int xmpChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "XMP ");
         int offset = 12;
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
@@ -86,7 +87,8 @@ internal static class OfficeProvenanceRiff {
                 byte[] packet = new byte[payloadLength];
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
-                bool carrierValid = hasValidExtendedHeader && extendedHeaderAdvertisesXmp && foundImagePayload && !foundXmp;
+                bool carrierValid = xmpChunkCount == 1 && hasValidExtendedHeader && extendedHeaderAdvertisesXmp && foundImagePayload && !foundXmp;
+                if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");
                 if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                 if (output != null && removalOptions != null && changes != null &&
                     (carrierValid || !removalOptions.RequireStructurallyValidCarrier) &&

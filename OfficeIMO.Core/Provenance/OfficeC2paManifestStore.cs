@@ -218,6 +218,7 @@ internal static class OfficeC2paManifestStore {
             if (contentAvailable < 8 || !TryReserveBox(ref visitedBoxes, maximumEntries) ||
                 !TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength, out ulong contentLength, out string contentType) ||
                 !IsAssertionContentType(contentType) ||
+                contentType == "uuid" && contentLength <= (ulong)(contentHeaderLength + 16) ||
                 contentLength <= (ulong)contentHeaderLength || contentLength != (ulong)contentAvailable) return false;
             hasAssertion = true;
             cursor += (int)childLength;

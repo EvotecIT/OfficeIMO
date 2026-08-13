@@ -316,7 +316,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void TiffCombinedRemovalRetainsTheCleanedXmpEntryCount() {
         byte[] originalXmp = CreateXmpPacket();
-        byte[] tiff = CreateLittleEndianTiffWithC2paBeforeXmp(CreateManifestStore(), originalXmp);
+        byte[] tiff = CreateLittleEndianTiffWithXmpBeforeC2pa(CreateManifestStore(), originalXmp);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
         byte[] output = result.ToArray();
@@ -948,15 +948,15 @@ public sealed partial class ProvenanceCoreContracts {
         return result;
     }
 
-    private static byte[] CreateLittleEndianTiffWithC2paBeforeXmp(byte[] manifest, byte[] xmp) {
+    private static byte[] CreateLittleEndianTiffWithXmpBeforeC2pa(byte[] manifest, byte[] xmp) {
         const int payloadOffset = 38;
         byte[] result = new byte[payloadOffset + manifest.Length + xmp.Length];
         result[0] = result[1] = (byte)'I';
         result[2] = 42;
         result[4] = 8;
         result[8] = 2;
-        WriteLittleEndianEntry(result, 10, 0xCD41, 7, manifest.Length, payloadOffset);
-        WriteLittleEndianEntry(result, 22, 700, 1, xmp.Length, payloadOffset + manifest.Length);
+        WriteLittleEndianEntry(result, 10, 700, 1, xmp.Length, payloadOffset + manifest.Length);
+        WriteLittleEndianEntry(result, 22, 0xCD41, 7, manifest.Length, payloadOffset);
         Buffer.BlockCopy(manifest, 0, result, payloadOffset, manifest.Length);
         Buffer.BlockCopy(xmp, 0, result, payloadOffset + manifest.Length, xmp.Length);
         return result;

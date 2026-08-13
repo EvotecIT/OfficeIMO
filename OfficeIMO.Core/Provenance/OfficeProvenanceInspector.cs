@@ -43,6 +43,16 @@ public static class OfficeProvenanceInspector {
 
     internal static OfficeProvenanceReport InspectCore(byte[] data, string? fileName, OfficeProvenanceOptions options) {
         OfficeProvenanceAssetFormat format = DetectFormat(data, fileName, options);
+        return InspectCore(data, options, format);
+    }
+
+    internal static OfficeProvenanceReport InspectStructuredText(byte[] data, OfficeProvenanceOptions options) =>
+        InspectCore(data, options, OfficeProvenanceAssetFormat.StructuredText);
+
+    private static OfficeProvenanceReport InspectCore(
+        byte[] data,
+        OfficeProvenanceOptions options,
+        OfficeProvenanceAssetFormat format) {
         var context = new OfficeProvenanceContext(format, options);
         switch (format) {
             case OfficeProvenanceAssetFormat.Jpeg:
@@ -200,7 +210,26 @@ public static class OfficeProvenanceRemover {
         }
 
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
-        OfficeProvenanceReport before = OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);
+        return RemoveCore(data, fileName, options, inspectionOptions, forcedFormat: null);
+    }
+
+    internal static OfficeProvenanceRemovalResult RemoveStructuredText(
+        byte[] data,
+        string? fileName,
+        OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
+        return RemoveCore(data, fileName, options, inspectionOptions, OfficeProvenanceAssetFormat.StructuredText);
+    }
+
+    private static OfficeProvenanceRemovalResult RemoveCore(
+        byte[] data,
+        string? fileName,
+        OfficeProvenanceRemovalOptions options,
+        OfficeProvenanceOptions inspectionOptions,
+        OfficeProvenanceAssetFormat? forcedFormat) {
+        OfficeProvenanceReport before = forcedFormat.HasValue
+            ? OfficeProvenanceInspector.InspectStructuredText(data, inspectionOptions)
+            : OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);
         var changes = new List<OfficeProvenanceChange>();
         byte[] output;
         bool reserialized = false;
@@ -235,7 +264,9 @@ public static class OfficeProvenanceRemover {
                 break;
         }
 
-        OfficeProvenanceReport after = OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
+        OfficeProvenanceReport after = forcedFormat.HasValue
+            ? OfficeProvenanceInspector.InspectStructuredText(output, inspectionOptions)
+            : OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), reserialized);
     }
 

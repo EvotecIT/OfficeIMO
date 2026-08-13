@@ -35,12 +35,13 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
-                bool valid = ifdIndex == 0 && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}";
                 context.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, entry.Count > long.MaxValue ? long.MaxValue : (long)entry.Count));
                 if (ifdIndex != 0) context.Diagnostics.Add($"The C2PA TIFF tag at IFD {ifdIndex} is not in the primary IFD.");
+                if (!ifd.TagsAreSorted) context.Diagnostics.Add($"The TIFF tags at IFD {ifdIndex} are not sorted in ascending order.");
             }
         }
     }
@@ -102,7 +103,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
-                bool valid = ifdIndex == 0 && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
@@ -312,9 +313,13 @@ internal static class OfficeProvenanceTiff {
             if (tableEndValue > data.Length) throw new InvalidDataException("TIFF IFD table exceeds the asset bounds.");
             int entriesOffset = ifdOffset + countFieldSize;
             var entries = new List<TiffEntry>(count);
+            bool tagsAreSorted = true;
+            ushort previousTag = 0;
             for (int index = 0; index < count; index++) {
                 int entryOffset = entriesOffset + index * entrySize;
                 ushort tag = OfficeProvenanceBinary.ReadUInt16(data, entryOffset, littleEndian);
+                if (index != 0 && tag < previousTag) tagsAreSorted = false;
+                previousTag = tag;
                 ushort type = OfficeProvenanceBinary.ReadUInt16(data, entryOffset + 2, littleEndian);
                 ulong valueCount = bigTiff
                     ? OfficeProvenanceBinary.ReadUInt64(data, entryOffset + 4, littleEndian)
@@ -328,7 +333,7 @@ internal static class OfficeProvenanceTiff {
             nextOffset = bigTiff
                 ? OfficeProvenanceBinary.ReadUInt64(data, nextFieldOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt32(data, nextFieldOffset, littleEndian);
-            result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, entries));
+            result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
         }
         return result;
     }
@@ -376,9 +381,9 @@ internal static class OfficeProvenanceTiff {
 
     private sealed class TiffIfd {
         internal TiffIfd(int offset, int entriesOffset, int nextFieldOffset, int countFieldSize, int entrySize, int nextFieldSize,
-            bool littleEndian, bool bigTiff, List<TiffEntry> entries) {
+            bool littleEndian, bool bigTiff, bool tagsAreSorted, List<TiffEntry> entries) {
             Offset = offset; EntriesOffset = entriesOffset; NextFieldOffset = nextFieldOffset; CountFieldSize = countFieldSize;
-            EntrySize = entrySize; NextFieldSize = nextFieldSize; LittleEndian = littleEndian; BigTiff = bigTiff; Entries = entries;
+            EntrySize = entrySize; NextFieldSize = nextFieldSize; LittleEndian = littleEndian; BigTiff = bigTiff; TagsAreSorted = tagsAreSorted; Entries = entries;
         }
         internal int Offset { get; }
         internal int EntriesOffset { get; }
@@ -388,6 +393,7 @@ internal static class OfficeProvenanceTiff {
         internal int NextFieldSize { get; }
         internal bool LittleEndian { get; }
         internal bool BigTiff { get; }
+        internal bool TagsAreSorted { get; }
         internal List<TiffEntry> Entries { get; }
     }
 }

@@ -481,7 +481,11 @@ internal static class OfficeProvenanceZip {
             }
             byte[] comment = new byte[commentLength];
             if (commentLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength + extraLength, comment, 0, commentLength);
-            if ((flags & 0x0800) == 0) comment = TranscodeLegacyZipComment(comment);
+            if ((flags & 0x0800) == 0) {
+                comment = TryReadUnicodeComment(centralExtraField, comment, out byte[]? unicodeComment)
+                    ? unicodeComment!
+                    : TranscodeLegacyZipComment(comment);
+            }
             int localOffset = (int)localHeaderOffset;
             if (localOffset > data.Length - 30 || OfficeProvenanceBinary.ReadUInt32(data, localOffset, littleEndian: true) != 0x04034B50U) {
                 throw new InvalidDataException("ZIP local-file header is outside the package bounds.");
@@ -530,6 +534,28 @@ internal static class OfficeProvenanceZip {
                 OfficeProvenanceBinary.ReadUInt32(extraField, cursor + 1, littleEndian: true) == ComputeCrc32(rawName)) {
                 try {
                     name = new UTF8Encoding(false, true).GetString(extraField, cursor + 5, dataLength - 5);
+                    return true;
+                } catch (DecoderFallbackException) { return false; }
+            }
+            cursor += dataLength;
+        }
+        return false;
+    }
+
+    private static bool TryReadUnicodeComment(byte[] extraField, byte[] rawComment, out byte[]? comment) {
+        comment = null;
+        int cursor = 0;
+        while (cursor <= extraField.Length - 4) {
+            ushort fieldId = OfficeProvenanceBinary.ReadUInt16(extraField, cursor, littleEndian: true);
+            int dataLength = OfficeProvenanceBinary.ReadUInt16(extraField, cursor + 2, littleEndian: true);
+            cursor += 4;
+            if (dataLength > extraField.Length - cursor) return false;
+            if (fieldId == 0x6375 && dataLength >= 5 && extraField[cursor] == 1 &&
+                OfficeProvenanceBinary.ReadUInt32(extraField, cursor + 1, littleEndian: true) == ComputeCrc32(rawComment)) {
+                try {
+                    new UTF8Encoding(false, true).GetCharCount(extraField, cursor + 5, dataLength - 5);
+                    comment = new byte[dataLength - 5];
+                    Buffer.BlockCopy(extraField, cursor + 5, comment, 0, comment.Length);
                     return true;
                 } catch (DecoderFallbackException) { return false; }
             }
@@ -681,23 +707,46 @@ internal static class OfficeProvenanceZip {
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         long expandedBytes = 0;
         byte[] buffer = new byte[81920];
+        byte[]? rootRelationships = null;
+        byte[]? contentTypes = null;
         foreach (ZipArchiveEntry entry in archive.Entries) {
             if (entry.Length > options.MaxAssetBytes) {
                 throw new InvalidDataException("A package part exceeds the configured asset limit.");
             }
             using Stream source = entry.Open();
+            MemoryStream? metadata = entry.FullName.Equals("_rels/.rels", StringComparison.Ordinal) ||
+                entry.FullName.Equals("[Content_Types].xml", StringComparison.Ordinal)
+                ? new MemoryStream(entry.Length > int.MaxValue ? 0 : (int)entry.Length)
+                : null;
             long entryBytes = 0;
-            while (true) {
-                int read = source.Read(buffer, 0, buffer.Length);
-                if (read <= 0) break;
-                if (entryBytes > options.MaxAssetBytes - read) {
-                    throw new InvalidDataException("A package part exceeds the configured asset limit.");
+            try {
+                while (true) {
+                    int read = source.Read(buffer, 0, buffer.Length);
+                    if (read <= 0) break;
+                    if (entryBytes > options.MaxAssetBytes - read) {
+                        throw new InvalidDataException("A package part exceeds the configured asset limit.");
+                    }
+                    entryBytes += read;
+                    ReserveExpandedBytes(ref expandedBytes, read, options.MaxExpandedContainerBytes);
+                    metadata?.Write(buffer, 0, read);
                 }
-                entryBytes += read;
-                ReserveExpandedBytes(ref expandedBytes, read, options.MaxExpandedContainerBytes);
+                if (entryBytes != entry.Length) throw new InvalidDataException("A ZIP entry expanded to an unexpected length.");
+                if (metadata != null) {
+                    byte[] xml = metadata.ToArray();
+                    if (entry.FullName.Equals("_rels/.rels", StringComparison.Ordinal)) {
+                        if (rootRelationships != null) throw new InvalidDataException("The OPC package contains duplicate root relationships parts.");
+                        rootRelationships = xml;
+                    } else {
+                        if (contentTypes != null) throw new InvalidDataException("The OPC package contains duplicate content-types parts.");
+                        contentTypes = xml;
+                    }
+                }
+            } finally {
+                metadata?.Dispose();
             }
-            if (entryBytes != entry.Length) throw new InvalidDataException("A ZIP entry expanded to an unexpected length.");
         }
+        if (rootRelationships != null) OfficeProvenanceXml.ValidateMaterializedNodeBudget(rootRelationships, options, "OPC root relationships");
+        if (contentTypes != null) OfficeProvenanceXml.ValidateMaterializedNodeBudget(contentTypes, options, "OPC content types");
     }
 
     private static bool HasPackageSignature(

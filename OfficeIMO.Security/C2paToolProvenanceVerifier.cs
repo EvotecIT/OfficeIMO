@@ -162,16 +162,15 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         if (validationStatus.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement status in validationStatus.EnumerateArray()) {
             if (status.ValueKind != JsonValueKind.Object) return false;
-            string? code = status.TryGetProperty("code", out JsonElement codeElement) && codeElement.ValueKind == JsonValueKind.String
-                ? codeElement.GetString()
-                : null;
-            string? explanation = status.TryGetProperty("explanation", out JsonElement explanationElement) && explanationElement.ValueKind == JsonValueKind.String
-                ? explanationElement.GetString()
-                : null;
-            bool? explicitSuccess = status.TryGetProperty("success", out JsonElement successElement) &&
-                (successElement.ValueKind == JsonValueKind.True || successElement.ValueKind == JsonValueKind.False)
-                ? successElement.GetBoolean()
-                : null;
+            bool hasCode = status.TryGetProperty("code", out JsonElement codeElement);
+            bool hasExplanation = status.TryGetProperty("explanation", out JsonElement explanationElement);
+            bool hasSuccess = status.TryGetProperty("success", out JsonElement successElement);
+            if (hasCode && codeElement.ValueKind != JsonValueKind.String ||
+                hasExplanation && explanationElement.ValueKind != JsonValueKind.String ||
+                hasSuccess && successElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False) return false;
+            string? code = hasCode ? codeElement.GetString() : null;
+            string? explanation = hasExplanation ? explanationElement.GetString() : null;
+            bool? explicitSuccess = hasSuccess ? successElement.GetBoolean() : null;
             if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
             string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
             if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
