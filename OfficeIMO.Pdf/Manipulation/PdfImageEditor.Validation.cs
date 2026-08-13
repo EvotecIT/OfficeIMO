@@ -48,21 +48,11 @@ internal static partial class PdfImageEditor {
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
 
-        var decodedStreams = new List<(int ObjectNumber, PdfStream Stream, string Content)>();
-        foreach (PdfIndirectObject indirect in objects.Values) {
-            if (indirect.Value is not PdfStream stream ||
-                string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal) ||
-                stream.DecodingFailed) continue;
-            string content;
-            try {
-                content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
-            } catch (NotSupportedException) {
-                throw new NotSupportedException("Editing this image is not supported because a potentially related content stream cannot be decoded safely.");
-            }
-            decodedStreams.Add((indirect.ObjectNumber, stream, content));
-        }
-
-        Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+        List<(int ObjectNumber, PdfStream Stream, string Content)> decodedStreams = DecodeReachableContentStreams(
+            objects,
+            limits,
+            maximumDecodedStreamBytes,
+            out Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners);
         HashSet<int> containingForms = CollectContainingForms(objects, decodedStreams, effectiveResourceOwners, placement, limits);
         if (HasStructureTreeAssociation(objects, placement, containingForms)) {
             throw new NotSupportedException("Editing an image associated with the structure tree is not supported because its tagged-content relationship cannot be preserved safely.");
@@ -70,7 +60,7 @@ internal static partial class PdfImageEditor {
         if (requirePortableSourceSemantics && HasOptionalContentMembership(objects, placement, containingForms)) {
             throw new NotSupportedException("Replacing or moving an image XObject with optional-content membership is not supported because restamping cannot preserve that membership.");
         }
-        if (requirePortableSourceSemantics && HasAuthoredRenderingIntent(objects, placement)) {
+        if (requirePortableSourceSemantics && (placement.HasAuthoredRenderingIntent || HasAuthoredRenderingIntent(objects, placement))) {
             throw new NotSupportedException("Replacing or moving an image XObject with an authored rendering intent is not supported because restamping cannot preserve its color-conversion semantics.");
         }
 
@@ -89,6 +79,52 @@ internal static partial class PdfImageEditor {
         }
 
         EnsureFormInvocationIsIsolated(objects, decodedStreams, effectiveResourceOwners, placement, containingForms, limits);
+    }
+
+    private static List<(int ObjectNumber, PdfStream Stream, string Content)> DecodeReachableContentStreams(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits,
+        int maximumDecodedStreamBytes,
+        out Dictionary<int, HashSet<PdfDictionary>> effectiveResourceOwners) {
+        var decodedStreams = new List<(int ObjectNumber, PdfStream Stream, string Content)>();
+        var decodedObjectNumbers = new HashSet<int>();
+        var pending = new Queue<int>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is not PdfDictionary page ||
+                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            foreach (PdfReference reference in EnumeratePageContentReferences(contents, objects)) {
+                if (!decodedObjectNumbers.Contains(reference.ObjectNumber)) pending.Enqueue(reference.ObjectNumber);
+            }
+        }
+
+        effectiveResourceOwners = new Dictionary<int, HashSet<PdfDictionary>>();
+        while (pending.Count > 0) {
+            int objectNumber = pending.Dequeue();
+            if (!decodedObjectNumbers.Add(objectNumber) ||
+                !objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfStream stream ||
+                stream.DecodingFailed) continue;
+            try {
+                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
+                decodedStreams.Add((objectNumber, stream, content));
+            } catch (NotSupportedException) {
+                throw new NotSupportedException("Editing this image is not supported because a reachable content stream cannot be decoded safely.");
+            }
+
+            effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+            foreach (int reachableObjectNumber in effectiveResourceOwners.Keys) {
+                if (!decodedObjectNumbers.Contains(reachableObjectNumber) &&
+                    objects.TryGetValue(reachableObjectNumber, out PdfIndirectObject? reachable) &&
+                    reachable.Value is PdfStream reachableStream &&
+                    string.Equals(reachableStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+                    pending.Enqueue(reachableObjectNumber);
+                }
+            }
+        }
+
+        effectiveResourceOwners = BuildEffectiveResourceOwners(objects, decodedStreams, limits);
+        return decodedStreams;
     }
 
     private static bool HasAuthoredRenderingIntent(

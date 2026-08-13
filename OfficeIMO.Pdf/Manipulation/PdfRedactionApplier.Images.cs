@@ -244,7 +244,13 @@ internal static partial class PdfRedactionApplier {
         PdfReadLimits limits,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
-        PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? inheritedResources;
+        PdfDictionary formResources;
+        if (formStream.Dictionary.Items.ContainsKey("Resources")) {
+            formResources = EnsureFormResources(objects, formStream);
+        } else {
+            formResources = CloneDictionary(inheritedResources);
+            formStream.Dictionary.Items["Resources"] = formResources;
+        }
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));
@@ -588,8 +594,20 @@ internal static partial class PdfRedactionApplier {
 
     private static bool RemoveUnusedImageObjectReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> targetObjectNumbers, PdfReadLimits limits) {
         var invokedNames = new HashSet<string>(StringComparer.Ordinal);
+        var pageContentStreamNumbers = new HashSet<int>();
+        foreach (PdfIndirectObject candidate in objects.Values) {
+            if (candidate.Value is not PdfDictionary page ||
+                !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
+                !page.Items.TryGetValue("Contents", out PdfObject? contents)) continue;
+            foreach (PdfReference reference in EnumerateContentStreamReferences(objects, contents)) {
+                pageContentStreamNumbers.Add(reference.ObjectNumber);
+            }
+        }
         foreach (PdfIndirectObject indirect in objects.Values) {
-            if (indirect.Value is not PdfStream stream || string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal) || stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
+            if (indirect.Value is not PdfStream stream ||
+                (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) &&
+                 !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) ||
+                stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
             string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
             foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(
                 content,
@@ -602,6 +620,24 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
         return changed;
+    }
+
+    private static IEnumerable<PdfReference> EnumerateContentStreamReferences(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject contents) {
+        if (contents is PdfReference reference) {
+            if (PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) && indirect.Value is PdfArray array) {
+                for (int i = 0; i < array.Items.Count; i++) {
+                    foreach (PdfReference item in EnumerateContentStreamReferences(objects, array.Items[i])) yield return item;
+                }
+            } else {
+                yield return reference;
+            }
+        } else if (contents is PdfArray directArray) {
+            for (int i = 0; i < directArray.Items.Count; i++) {
+                foreach (PdfReference item in EnumerateContentStreamReferences(objects, directArray.Items[i])) yield return item;
+            }
+        }
     }
 
     private static bool RemoveUnusedImageEntries(PdfObject value, Dictionary<int, PdfIndirectObject> objects, HashSet<int> targets, HashSet<string> invokedNames) {

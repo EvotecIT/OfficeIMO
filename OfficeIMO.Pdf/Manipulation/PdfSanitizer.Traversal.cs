@@ -305,7 +305,7 @@ internal static partial class PdfSanitizer {
         internal void Consume() {
             _count++;
             if (_count > _limit) {
-                throw PdfReadLimitException.Create(PdfReadLimitKind.WidgetActions, _limit, _count);
+                throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, _limit, _count);
             }
         }
 

@@ -29,7 +29,8 @@ public sealed class PdfImagePlacement {
         double paintOrder = 0D,
         OfficeBlendMode? blendMode = null,
         bool hasUnsupportedBlendMode = false,
-        bool hasSoftMask = false) {
+        bool hasSoftMask = false,
+        bool hasAuthoredRenderingIntent = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -53,6 +54,7 @@ public sealed class PdfImagePlacement {
         BlendMode = blendMode;
         HasUnsupportedBlendMode = hasUnsupportedBlendMode;
         HasSoftMask = hasSoftMask;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -114,6 +116,8 @@ public sealed class PdfImagePlacement {
     internal bool HasUnsupportedBlendMode { get; }
 
     internal bool HasSoftMask { get; }
+
+    internal bool HasAuthoredRenderingIntent { get; }
 
     internal string? SourceDocumentIdentity { get; set; }
 

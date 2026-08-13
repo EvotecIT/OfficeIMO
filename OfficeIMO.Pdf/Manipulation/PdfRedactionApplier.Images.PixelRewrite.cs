@@ -168,9 +168,13 @@ internal static partial class PdfRedactionApplier {
         PdfReadLimits limits,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
-        PdfDictionary formResources = formStream.Dictionary.Items.ContainsKey("Resources")
-            ? EnsureFormResources(objects, formStream)
-            : inheritedResources;
+        PdfDictionary formResources;
+        if (formStream.Dictionary.Items.ContainsKey("Resources")) {
+            formResources = EnsureFormResources(objects, formStream);
+        } else {
+            formResources = CloneDictionary(inheritedResources);
+            formStream.Dictionary.Items["Resources"] = formResources;
+        }
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));

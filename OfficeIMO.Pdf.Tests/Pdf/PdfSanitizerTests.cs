@@ -236,12 +236,12 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_BoundsSharedRetainedActionDagExpansion() {
         byte[] source = BuildSharedRetainedActionDagPdf(depth: 8);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 16 } };
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 16 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfDocument.Open(source, readOptions).Sanitize());
 
-        Assert.Equal(PdfReadLimitKind.WidgetActions, exception.Kind);
+        Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
         Assert.Equal(16, exception.Limit);
         Assert.Equal(17, exception.Actual);
     }
@@ -249,7 +249,7 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_CountsEachRetainedNextActionOnce() {
         byte[] source = BuildLinearRetainedActionChainPdf(actionCount: 5);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 5 } };
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 5 } };
 
         PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
 
@@ -273,7 +273,7 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_CountsPromotedRetainedActionSiblingsOnce() {
         byte[] source = BuildForbiddenActionWithRetainedSiblingsPdf(actionCount: 5);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 6 } };
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 6 } };
 
         PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
 

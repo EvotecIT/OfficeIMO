@@ -383,10 +383,45 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void ImageValidationDoesNotDecodeUnreachableStreams() {
+        string unusedStream = "6 0 obj\n<< /Length 129 /Filter /ASCIIHexDecode >>\nstream\n" +
+            new string('4', 128) + ">\nendstream\nendobj\n";
+        byte[] source = BuildRawImagePdf(
+            "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
+            additionalObjects: unusedStream);
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 48 } };
+        PdfDocument document = PdfDocument.Open(source, options);
+
+        PdfImageEditResult result = document.Images.Move(
+            Assert.Single(document.Images.Placements()),
+            10D,
+            0D,
+            readOptions: options);
+
+        Assert.Single(result.Document.Images.Placements());
+    }
+
+    [Fact]
     public void PortableImageEditsRejectAuthoredRenderingIntent() {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Intent /Perceptual");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+
+        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Move(placement, 10D, 0D));
+        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
+            document.Images.Replace(placement, PdfPngTestImages.CreateRgbPng(0, 0, 255)));
+
+        Assert.Contains("rendering intent", moveException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rendering intent", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PortableImageEditsRejectContentRenderingIntent() {
+        byte[] source = BuildRawImagePdf(
+            "q /Perceptual ri 40 0 0 20 20 30 cm /Im0 Do Q\n");
         PdfDocument document = PdfDocument.Open(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
 
@@ -472,6 +507,17 @@ public class PdfImageEditorTests {
 
         PdfImagePlacement remaining = Assert.Single(result.Document.Images.Placements());
         Assert.InRange(remaining.X, 99.99D, 100.01D);
+    }
+
+    [Fact]
+    public void RemoveFromResourceLessFormPreservesDirectPageImageResource() {
+        PdfDocument document = PdfDocument.Open(BuildDirectAndInheritedFormImagePdf());
+        PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.X > 50D);
+
+        PdfImageEditResult result = document.Images.Remove(selected);
+
+        PdfImagePlacement remaining = Assert.Single(result.Document.Images.Placements());
+        Assert.InRange(remaining.X, 19.99D, 20.01D);
     }
 
     [Fact]

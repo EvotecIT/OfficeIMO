@@ -32,7 +32,7 @@ internal static partial class PdfSanitizer {
 
         PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumActionDepth = readLimits.MaxObjectNestingDepth;
-        int maximumActionNodes = readLimits.MaxWidgetActions;
+        int maximumActionNodes = readLimits.MaxIndirectObjects;
         byte[] sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
             pdf,
             sourceReadOptions: readOptions,
