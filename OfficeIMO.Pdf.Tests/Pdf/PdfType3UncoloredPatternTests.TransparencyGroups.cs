@@ -196,6 +196,21 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForSurplusStrictGraphicsStateOperands() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Extra /Half gs 0 0 500 700 re f",
+            glyphResources: "<< /ExtGState << /Half << /ca 0.5 >> >> >>");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForInexactTransparencyGroupPrimitiveClip() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -633,6 +648,25 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(28, 90));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(28, 98));
+    }
+
+    [Fact]
+    public void RenderPage_RetainsFreeformClipForSlightlyRotatedTransparencyGroup() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Group Do",
+            glyphResources: "<< /XObject << /Group 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Matrix [1 0.00005 -0.00005 1 0 0] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "-500 -500 1500 1700 re f")
+            });
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+
+        Assert.Contains(group.Drawing.Elements.OfType<OfficeDrawingGroup>(), clipped => clipped.ClipPath.Kind == OfficeClipPathKind.Path);
     }
 
     [Fact]

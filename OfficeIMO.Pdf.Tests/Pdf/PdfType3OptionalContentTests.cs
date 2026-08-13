@@ -127,6 +127,19 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_FallsBackToMembershipPolicyForMismatchedNestedVisibilityGeneration() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
+            indirectVisibilityExpression: "[/Not 10 1 R]");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_EvaluatesChainedIndirectVisibilityExpressionBeforeMembershipPolicy() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,

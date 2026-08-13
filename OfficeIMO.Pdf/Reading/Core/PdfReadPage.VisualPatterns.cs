@@ -311,7 +311,8 @@ public sealed partial class PdfReadPage {
             requireSupportedType3Content,
             rejectImageContent,
             allowNestedPatterns,
-            contentNestingDepth);
+            contentNestingDepth,
+            out bool consumesInheritedLineState);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
         Matrix2D matrix;
         if (stream.Dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
@@ -325,7 +326,7 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         bool uncolored = paintType == 2;
-        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored);
+        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState);
         return true;
     }
 
@@ -357,11 +358,23 @@ public sealed partial class PdfReadPage {
         bool requireSupportedType3Content,
         bool rejectImageContent,
         bool allowNestedPatterns,
-        int contentNestingDepth) {
+        int contentNestingDepth,
+        out bool consumesInheritedLineState) {
         var drawing = new OfficeDrawing(width, height);
+        consumesInheritedLineState = false;
         RegisterEmbeddedFonts(drawing, resources, new HashSet<PdfStream>(), 0);
         string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
         if (content.Length == 0) return drawing;
+        consumesInheritedLineState = ConsumesInheritedPatternLineState(
+            content,
+            resources,
+            pageContentBudget,
+            new HashSet<PdfStream>(),
+            contentNestingDepth);
+        if (requireSupportedType3Content && consumesInheritedLineState) {
+            type3GlyphBudget.RecordFailure();
+            return drawing;
+        }
         Matrix2D transform = Matrix2D.Translation(-box.X1, -box.Y1);
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
@@ -502,6 +515,95 @@ public sealed partial class PdfReadPage {
             AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
         }
         return drawing;
+    }
+
+    private bool ConsumesInheritedPatternLineState(
+        string content,
+        PdfDictionary? resources,
+        PageContentBudget pageContentBudget,
+        HashSet<PdfStream> activeForms,
+        int contentNestingDepth,
+        PatternLineState authoredState = default) {
+        var stateStack = new Stack<PatternLineState>();
+        bool consumesInheritedState = false;
+        Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
+        PdfContentStreamInterpreter.Interpret(
+            content,
+            _limits.MaxContentOperations,
+            operation => {
+                if (consumesInheritedState) return;
+                switch (operation.Name) {
+                    case "q":
+                        stateStack.Push(authoredState);
+                        break;
+                    case "Q":
+                        authoredState = stateStack.Count > 0 ? stateStack.Pop() : default;
+                        break;
+                    case "w" when operation.Operands.Count == 1:
+                        authoredState.Width = true;
+                        break;
+                    case "d" when operation.Operands.Count == 2:
+                        authoredState.Dash = true;
+                        break;
+                    case "J" when operation.Operands.Count == 1:
+                        authoredState.Cap = true;
+                        break;
+                    case "j" when operation.Operands.Count == 1:
+                        authoredState.Join = true;
+                        break;
+                    case "gs" when operation.Operands.Count == 1 && operation.Operands[0] is string name && graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource graphicsState):
+                        authoredState.Width |= graphicsState.StrokeWidth.HasValue;
+                        authoredState.Dash |= graphicsState.StrokeDashStyle.HasValue;
+                        authoredState.Cap |= graphicsState.StrokeLineCap.HasValue;
+                        authoredState.Join |= graphicsState.StrokeLineJoin.HasValue;
+                        break;
+                    case "S": case "s": case "B": case "B*": case "b": case "b*":
+                        consumesInheritedState = !authoredState.IsComplete;
+                        break;
+                    case "Do" when operation.Operands.Count == 1 && operation.Operands[0] is string xObjectName:
+                        if (TryResolvePatternForm(resources, xObjectName, out PdfStream form) && activeForms.Add(form)) {
+                            try {
+                                EnsureContentNestingBudget(contentNestingDepth + 1);
+                                PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourcesObject) ? formResourcesObject : null) ?? resources;
+                                string formContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(form));
+                                consumesInheritedState = ConsumesInheritedPatternLineState(
+                                    formContent,
+                                    formResources,
+                                    pageContentBudget,
+                                    activeForms,
+                                    contentNestingDepth + 1,
+                                    authoredState);
+                            } finally {
+                                activeForms.Remove(form);
+                            }
+                        }
+                        break;
+                }
+            },
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands);
+        return consumesInheritedState;
+    }
+
+    private bool TryResolvePatternForm(PdfDictionary? resources, string name, out PdfStream form) {
+        form = null!;
+        if (resources == null ||
+            ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) ? xObjectsObject : null) is not PdfDictionary xObjects ||
+            !xObjects.Items.TryGetValue(name, out PdfObject? formObject) ||
+            ResolveObject(formObject) is not PdfStream candidate ||
+            !string.Equals(candidate.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+            return false;
+        }
+        form = candidate;
+        return true;
+    }
+
+    private struct PatternLineState {
+        internal bool Width;
+        internal bool Dash;
+        internal bool Cap;
+        internal bool Join;
+        internal bool IsComplete => Width && Dash && Cap && Join;
     }
 
     private sealed class TilingPatternResourceCache {

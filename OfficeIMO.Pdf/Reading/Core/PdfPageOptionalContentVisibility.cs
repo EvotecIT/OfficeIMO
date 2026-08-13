@@ -512,6 +512,9 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
         if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
+                return false;
+            }
             if (groupVisibility.TryGetValue(reference.ObjectNumber, out visible)) {
                 return true;
             }
@@ -520,8 +523,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 return false;
             }
             try {
-                return objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) &&
-                    TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out visible);
+                return TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1, out visible);
             } finally {
                 visited.Remove(reference.ObjectNumber);
             }

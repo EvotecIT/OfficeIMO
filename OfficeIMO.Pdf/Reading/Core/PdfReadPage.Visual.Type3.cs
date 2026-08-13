@@ -617,6 +617,7 @@ public sealed partial class PdfReadPage {
         if (resource == null) {
             return false;
         }
+        if (resource.ConsumesInheritedLineState) return false;
         if (resource.Uncolored && !selection.Value.Tint.HasValue) return false;
 
         var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
@@ -635,7 +636,9 @@ public sealed partial class PdfReadPage {
         if (!selection.HasValue) return true;
         if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
         PdfPageTilingPatternResource? pattern = selection.Value.TilingPattern;
-        return pattern != null && (!pattern.Uncolored || selection.Value.Tint.HasValue);
+        return pattern != null &&
+            !pattern.ConsumesInheritedLineState &&
+            (!pattern.Uncolored || selection.Value.Tint.HasValue);
     }
 
     private static bool TryApplyInheritedType3PatternPaint(

@@ -496,8 +496,10 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "gs":
-                    if (_args.Count >= 1 && _args[_args.Count - 1] is string graphicsStateName) {
+                    if (_args.Count == 1 && _args[0] is string graphicsStateName) {
                         ApplyGraphicsStateResource(graphicsStateName);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("gs");
                     }
 
                     break;

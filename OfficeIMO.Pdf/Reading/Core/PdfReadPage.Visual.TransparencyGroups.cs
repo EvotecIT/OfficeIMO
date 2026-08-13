@@ -370,10 +370,10 @@ public sealed partial class PdfReadPage {
             return Type3TransparencyGroupDrawingResult.Unsupported;
         }
         PdfPageClipPath projectedBounds;
-        bool firstEdgeHorizontal = NearlyEqual(topLeft.Y, topRight.Y);
-        bool firstEdgeVertical = NearlyEqual(topLeft.X, topRight.X);
-        bool secondEdgeHorizontal = NearlyEqual(topRight.Y, bottomRight.Y);
-        bool secondEdgeVertical = NearlyEqual(topRight.X, bottomRight.X);
+        bool firstEdgeHorizontal = topLeft.Y == topRight.Y;
+        bool firstEdgeVertical = topLeft.X == topRight.X;
+        bool secondEdgeHorizontal = topRight.Y == bottomRight.Y;
+        bool secondEdgeVertical = topRight.X == bottomRight.X;
         if ((firstEdgeHorizontal && secondEdgeVertical) || (firstEdgeVertical && secondEdgeHorizontal)) {
             projectedBounds = PdfPageClipPath.Rectangle(left, top, right - left, bottom - top);
         } else {

@@ -811,7 +811,8 @@ public sealed partial class PdfReadPage {
         if (!selection.HasValue) return false;
         if (selection.Value.ShadingPattern.HasValue) return selection.Value.ShadingPattern.Value.SupportsExactType3Projection;
         if (selection.Value.TilingPattern is not PdfPageTilingPatternResource pattern) return false;
-        return !pattern.Uncolored || selection.Value.Tint.HasValue;
+        return !pattern.ConsumesInheritedLineState &&
+            (!pattern.Uncolored || selection.Value.Tint.HasValue);
     }
 
     private bool CanProjectType3ImageInvocation(
