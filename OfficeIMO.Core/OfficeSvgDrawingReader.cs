@@ -324,6 +324,14 @@ public static partial class OfficeSvgDrawingReader {
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
         if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
+        if (name == "textpath"
+            && !TryAddRenderedSvgElementReference(
+                element,
+                "path",
+                references,
+                maximumElements,
+                ref elementCount,
+                ref commandCount)) return false;
 
         string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
         string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);

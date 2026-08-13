@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -178,6 +179,19 @@ public class DrawingSvgReaderSecurityTests {
 
         Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesTextPathGeometryPerConsumer() {
+        string geometry = "M0 0" + string.Concat(Enumerable.Repeat(" L1 1", 10000));
+        string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><path id='p' d='"
+            + geometry + "'/></defs><text><textPath href='#p'>a</textPath></text></svg>";
+        string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><path id='p' d='"
+            + geometry + "'/></defs><text><textPath href='#p'>a</textPath>"
+            + "<textPath href='#p'>b</textPath></text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse)));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses)));
     }
 
     [Fact]

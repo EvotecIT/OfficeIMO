@@ -17,6 +17,12 @@ Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and objec
 
 The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes`. Applications can lower or raise that limit by passing `new ReaderOptions { MaxInputBytes = ... }` to the read operation after registering `AddMhtmlHandler()`; use a larger value only for trusted archives with an application-owned resource policy.
 
+## OfficeIMO 3.2: bounded SVG raster fallback
+
+`OfficeVisualSvgPolicy.RasterizeWhenNeeded` now validates the complete rendered SVG expansion before calling the ChartForgeX rasterizer. Valid SVG can therefore throw `InvalidOperationException` when local clip, mask, filter, marker, or pattern references come from a stylesheet that the safety traversal cannot account for precisely. Raising `MaximumSvgElements` does not bypass this conservative rejection.
+
+For trusted generated SVG, replace stylesheet-backed local references with equivalent presentation attributes or inline declarations so each rendered reference can be charged directly. Applications accepting external SVG should handle the exception as an unsupported or over-complex input. Use `PreserveVector` when retaining the partial Office drawing is acceptable, or `RequireVector` when unsupported vector content must fail without raster fallback.
+
 ## OfficeIMO 3.2: bounded Visio shape-data projection
 
 Visio document projection now retains at most 200 Shape Data rows per page by default. The limit applies to projected tables, Markdown, and block text, preventing untrusted diagrams from causing unbounded row materialization.
