@@ -827,6 +827,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
+    [Theory]
+    [InlineData("repeating-linear-gradient(to right,red 0,blue 1e-20px)")]
+    [InlineData("repeating-radial-gradient(circle,red 0,blue 1e-20px)")]
+    [InlineData("repeating-conic-gradient(red 0,blue 1e-20turn)")]
+    public void HtmlRender_BoundsRepeatingGradientCyclesBeforeIntegerConversion(string background) {
+        string html = "<div style='width:40px;height:20px;background:" + background + "'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D),
+            MaxGradientStops = 8
+        });
+
+        Assert.DoesNotContain(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null || shape.Shape.FillRadialGradient != null);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GradientStopLimitExceeded);
+    }
+
     [Fact]
     public void CssLengthAndGradientParsingRejectNonFiniteResults() {
         Assert.False(HtmlRenderCssValues.TryLength(

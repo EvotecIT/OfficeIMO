@@ -308,20 +308,22 @@ internal static class HtmlCssPageSettingsResolver {
             HtmlCssPageDeclaration content = FindTopLevelDeclarationWithPriority(
                 marginBody,
                 "content",
-                value => HtmlCssGeneratedContentTemplate.TryParse(value, out _));
-            if (authoredContent.Value.Length > 0 && !HtmlCssGeneratedContentTemplate.TryParse(authoredContent.Value, out _)) {
+                value => IsRevertLayer(value) || HtmlCssGeneratedContentTemplate.TryParse(value, out _));
+            if (authoredContent.Value.Length > 0
+                && !IsRevertLayer(authoredContent.Value)
+                && !HtmlCssGeneratedContentTemplate.TryParse(authoredContent.Value, out _)) {
                 diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageMarginContentUnsupported, "A page-margin content expression could not be represented.", HtmlDiagnosticSeverity.Warning, "@page " + pageSelector + " @" + name, authoredContent.Value);
             }
 
             ICssStyleDeclaration? style = new CssParser().ParseDeclaration(marginBody);
             var marginRule = new HtmlCssPageMarginRule(
                 content,
-                ReadStyleDeclaration(style, "font-family", cursor),
-                ReadStyleDeclaration(style, "font-size", cursor),
-                ReadStyleDeclaration(style, "font-weight", cursor),
-                ReadStyleDeclaration(style, "font-style", cursor),
-                ReadStyleDeclaration(style, "color", cursor),
-                ReadStyleDeclaration(style, "text-align", cursor));
+                ReadStyleDeclaration(style, marginBody, "font-family", cursor),
+                ReadStyleDeclaration(style, marginBody, "font-size", cursor),
+                ReadStyleDeclaration(style, marginBody, "font-weight", cursor),
+                ReadStyleDeclaration(style, marginBody, "font-style", cursor),
+                ReadStyleDeclaration(style, marginBody, "color", cursor),
+                ReadStyleDeclaration(style, marginBody, "text-align", cursor));
             if (!marginRule.IsEmpty) {
                 boxes[position] = boxes.TryGetValue(position, out HtmlCssPageMarginRule? earlier)
                     ? HtmlCssPageMarginRule.Merge(earlier, marginRule)
@@ -333,7 +335,12 @@ internal static class HtmlCssPageSettingsResolver {
         return boxes;
     }
 
-    private static HtmlCssPageDeclaration ReadStyleDeclaration(ICssStyleDeclaration? style, string propertyName, int order) {
+    private static bool IsRevertLayer(string value) =>
+        string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase);
+
+    private static HtmlCssPageDeclaration ReadStyleDeclaration(ICssStyleDeclaration? style, string body, string propertyName, int order) {
+        HtmlCssPageDeclaration authored = FindTopLevelDeclarationWithPriority(body, propertyName);
+        if (IsRevertLayer(authored.Value)) return authored;
         if (style == null) return new HtmlCssPageDeclaration(string.Empty, false, order);
         string value = style.GetPropertyValue(propertyName);
         bool important = string.Equals(style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase);

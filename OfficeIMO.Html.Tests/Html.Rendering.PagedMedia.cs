@@ -204,6 +204,36 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPagedMedia_RevertLayerMarginBoxPropertiesRevealThePreviousPageLayer() {
+        const string html = """
+            <style>
+              @layer base,theme;
+              @layer base {
+                @page { size:200px 100px; margin:20px; @top-center { content:"Base"; font:italic bold 8px Arial; color:blue; text-align:right; } }
+              }
+              @layer theme {
+                @page { @top-center { content:"Theme"; content:revert-layer; font-family:serif; font-family:revert-layer; font-size:20px; font-size:revert-layer; font-weight:normal; font-weight:revert-layer; font-style:normal; font-style:revert-layer; color:red; color:revert-layer; text-align:left; text-align:revert-layer; } }
+              }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText margin = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.SemanticRole == "page-margin");
+        Assert.Equal("Base", margin.Text);
+        Assert.Equal("Arial", margin.Font.FamilyName);
+        Assert.Equal(8D, margin.Font.Size, 3);
+        Assert.True(margin.Font.IsBold);
+        Assert.True(margin.Font.IsItalic);
+        Assert.Equal(OfficeColor.Blue, margin.Color);
+        Assert.Equal(OfficeTextAlignment.Right, margin.Alignment);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported);
+    }
+
+    [Fact]
     public void HtmlPagedMedia_PreservesImportantGeometryAcrossMatchingPageRules() {
         const string html = """
             <style>

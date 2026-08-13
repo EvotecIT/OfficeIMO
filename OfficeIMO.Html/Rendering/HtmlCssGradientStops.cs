@@ -298,14 +298,31 @@ internal sealed class HtmlCssGradientStops {
             return new List<ResolvedStop> { new ResolvedStop(0D, solid), new ResolvedStop(1D, solid) };
         }
 
-        long firstCycle = (long)Math.Floor((0D - first) / period) - 1L;
-        long lastCycle = (long)Math.Ceiling((1D - first) / period) + 1L;
-        if (lastCycle - firstCycle > maximumStops + 2L) {
+        double firstCycleValue = Math.Floor((0D - first) / period) - 1D;
+        double lastCycleValue = Math.Ceiling((1D - first) / period) + 1D;
+        double cycleCount = lastCycleValue - firstCycleValue + 1D;
+        const double LongMinimum = -9223372036854775808D;
+        const double LongMaximumExclusive = 9223372036854775808D;
+        if (double.IsNaN(firstCycleValue)
+            || double.IsInfinity(firstCycleValue)
+            || double.IsNaN(lastCycleValue)
+            || double.IsInfinity(lastCycleValue)
+            || double.IsNaN(cycleCount)
+            || double.IsInfinity(cycleCount)
+            || firstCycleValue < LongMinimum
+            || firstCycleValue >= LongMaximumExclusive
+            || lastCycleValue < LongMinimum
+            || lastCycleValue >= LongMaximumExclusive
+            || cycleCount <= 0D
+            || cycleCount > maximumStops + 3D) {
             stopLimitExceeded = true;
             return new List<ResolvedStop>();
         }
+
+        long firstCycle = (long)firstCycleValue;
+        long lastCycle = (long)lastCycleValue;
         var expanded = new List<ResolvedStop>();
-        for (long cycle = firstCycle; cycle <= lastCycle; cycle++) {
+        for (long cycle = firstCycle; ; cycle++) {
             double shift = cycle * period;
             foreach (ResolvedStop stop in source) {
                 double offset = stop.Offset + shift;
@@ -315,6 +332,7 @@ internal sealed class HtmlCssGradientStops {
                     return new List<ResolvedStop>();
                 }
             }
+            if (cycle == lastCycle) break;
         }
         expanded = expanded.OrderBy(stop => stop.Offset).ToList();
         OfficeColor start = SampleRepeating(source, period, 0D);

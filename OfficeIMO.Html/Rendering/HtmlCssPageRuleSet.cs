@@ -276,10 +276,17 @@ internal sealed class HtmlCssPageRuleSet {
 
         internal bool TryBuild(HtmlCssPageMarginPosition position, HtmlCssPageGeometry geometry, HtmlRenderOptions options, out HtmlCssPageMarginTemplate? template) {
             template = null;
-            if (!_content.HasValue || !HtmlCssGeneratedContentTemplate.TryParse(_content.Value, out HtmlCssGeneratedContentTemplate content)) return false;
+            HtmlCssPageCascadeValue contentValue = ResolveLayerRevert(_content);
+            HtmlCssPageCascadeValue fontFamilyValue = ResolveLayerRevert(_fontFamily);
+            HtmlCssPageCascadeValue fontSizeCascadeValue = ResolveLayerRevert(_fontSize);
+            HtmlCssPageCascadeValue fontWeightValue = ResolveLayerRevert(_fontWeight);
+            HtmlCssPageCascadeValue fontStyleValue = ResolveLayerRevert(_fontStyle);
+            HtmlCssPageCascadeValue colorValue = ResolveLayerRevert(_color);
+            HtmlCssPageCascadeValue textAlignValue = ResolveLayerRevert(_textAlign);
+            if (!contentValue.HasValue || !HtmlCssGeneratedContentTemplate.TryParse(contentValue.Value, out HtmlCssGeneratedContentTemplate content)) return false;
 
-            string family = HtmlRenderCssValues.FontFamilyList(_fontFamily.HasValue ? _fontFamily.Value : string.Empty, options.DefaultFontFamily);
-            string fontSizeValue = _fontSize.HasValue ? _fontSize.Value : string.Empty;
+            string family = HtmlRenderCssValues.FontFamilyList(fontFamilyValue.HasValue ? fontFamilyValue.Value : string.Empty, options.DefaultFontFamily);
+            string fontSizeValue = fontSizeCascadeValue.HasValue ? fontSizeCascadeValue.Value : string.Empty;
             double fontSize = options.DefaultFontSize;
             if (!HtmlRenderCssValues.TryLength(fontSizeValue, options.DefaultFontSize, options.DefaultFontSize, options.DefaultFontSize, geometry.Width, geometry.Height, out fontSize)
                 || fontSize <= 0D) {
@@ -287,23 +294,23 @@ internal sealed class HtmlCssPageRuleSet {
             }
 
             OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-            string weight = _fontWeight.HasValue ? _fontWeight.Value : string.Empty;
+            string weight = fontWeightValue.HasValue ? fontWeightValue.Value : string.Empty;
             if (string.Equals(weight, "bold", StringComparison.OrdinalIgnoreCase)
                 || int.TryParse(weight, out int numericWeight) && numericWeight >= 600) {
                 fontStyle |= OfficeFontStyle.Bold;
             }
-            string style = _fontStyle.HasValue ? _fontStyle.Value : string.Empty;
+            string style = fontStyleValue.HasValue ? fontStyleValue.Value : string.Empty;
             if (style.StartsWith("italic", StringComparison.OrdinalIgnoreCase)
                 || style.StartsWith("oblique", StringComparison.OrdinalIgnoreCase)) {
                 fontStyle |= OfficeFontStyle.Italic;
             }
 
-            OfficeColor color = _color.HasValue && HtmlRenderCssValues.TryColor(_color.Value, out OfficeColor parsedColor)
+            OfficeColor color = colorValue.HasValue && HtmlRenderCssValues.TryColor(colorValue.Value, out OfficeColor parsedColor)
                 ? parsedColor
                 : OfficeColor.Black;
             OfficeTextAlignment alignment = HtmlCssPageSettingsResolver.ResolveMarginAlignment(
                 position,
-                _textAlign.HasValue ? _textAlign.Value : string.Empty);
+                textAlignValue.HasValue ? textAlignValue.Value : string.Empty);
             template = new HtmlCssPageMarginTemplate(
                 position,
                 content,
