@@ -1,6 +1,8 @@
 name: Deploy Website
 
 on:
+  schedule:
+    - cron: "17 4 * * 1"
   push:
     branches: [master]
     paths:
