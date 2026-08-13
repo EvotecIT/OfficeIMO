@@ -106,4 +106,67 @@ public class DrawingSvgReaderSecurityTests {
 
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg), options));
     }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesImportantInlineReferencesPerConsumer() {
+        const string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' style='clip-path:url(#c) !important;clip-path:none'/></svg>";
+        const string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' style='clip-path:url(#c) !important;clip-path:none'/>"
+            + "<rect x='5' width='4' height='4' style='clip-path:url(#c) !important;clip-path:none'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 7 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateRejectsEscapedPriorityOnUrlBearingLocalReference() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' style='clip-path:url(#c)!imp\\ortant;clip-path:none'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesTextCharactersPerExpansion() {
+        string text = new string('x', 201);
+        string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><text id='t'>"
+            + text + "</text></defs><use href='#t'/></svg>";
+        string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><text id='t'>"
+            + text + "</text></defs><use href='#t'/><use href='#t' x='1'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesNestedTextCharactersPerExpansion() {
+        string text = new string('x', 201);
+        string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><text id='t'><a>"
+            + text + "</a></text></defs><use href='#t'/></svg>";
+        string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><text id='t'><a>"
+            + text + "</a></text></defs><use href='#t'/><use href='#t' x='1'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 7 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesAttributePayloadPerExpansion() {
+        string href = "data:image/png;base64," + new string('A', 200);
+        string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><image id='i' href='"
+            + href + "' width='1' height='1'/></defs><use href='#i'/></svg>";
+        string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><image id='i' href='"
+            + href + "' width='1' height='1'/></defs><use href='#i'/><use href='#i' x='1'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 5 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
 }

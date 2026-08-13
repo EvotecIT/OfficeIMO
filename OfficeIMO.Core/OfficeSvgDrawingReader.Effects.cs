@@ -238,12 +238,56 @@ public static partial class OfficeSvgDrawingReader {
         string? value = element.Attribute(propertyName)?.Value;
         string? style = element.Attribute("style")?.Value;
         if (string.IsNullOrWhiteSpace(style)) return value;
+        int selectedPriority = -1;
         foreach (string declaration in style!.Split(';')) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
-            value = declaration.Substring(colon + 1).Trim();
+            string candidate = NormalizeInlineStyleValue(declaration.Substring(colon + 1), out int priority);
+            if (priority < selectedPriority) continue;
+            value = candidate;
+            selectedPriority = priority;
         }
         return value;
+    }
+
+    private static string NormalizeInlineStyleValue(string value, out int priority) {
+        string normalized = value.Trim();
+        priority = 0;
+        int priorityStart = normalized.LastIndexOf('!');
+        if (priorityStart < 0) return normalized;
+        if (!IsCssImportantPriority(normalized, priorityStart + 1)) {
+            if (HasPotentialSvgUrlFunction(normalized)) priority = 2;
+            return normalized;
+        }
+        priority = 1;
+        return normalized.Substring(0, priorityStart).TrimEnd();
+    }
+
+    private static bool IsCssImportantPriority(string value, int start) {
+        int index = start;
+        SkipCssWhitespaceAndComments(value, ref index);
+        const string important = "important";
+        if (index + important.Length > value.Length
+            || !value.Substring(index, important.Length).Equals(important, StringComparison.OrdinalIgnoreCase)) return false;
+        index += important.Length;
+        SkipCssWhitespaceAndComments(value, ref index);
+        return index == value.Length;
+    }
+
+    private static void SkipCssWhitespaceAndComments(string value, ref int index) {
+        while (index < value.Length) {
+            if (char.IsWhiteSpace(value[index])) {
+                index++;
+                continue;
+            }
+            if (index + 1 >= value.Length || value[index] != '/' || value[index + 1] != '*') return;
+            int commentEnd = value.IndexOf("*/", index + 2, StringComparison.Ordinal);
+            if (commentEnd < 0) {
+                index = value.Length;
+                return;
+            }
+            index = commentEnd + 2;
+        }
     }
 
     private static bool TryParseBlendMode(string value, out OfficeBlendMode mode) {

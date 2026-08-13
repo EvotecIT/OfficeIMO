@@ -20,8 +20,8 @@ public static partial class OfficeSvgDrawingReader {
                 expectedTargetName,
                 out string referenceId,
                 out XElement? target);
-            if (result == SvgElementReferenceEntryResult.DepthExceeded) return false;
-            if (result != SvgElementReferenceEntryResult.Entered) return true;
+            if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
             try {
                 if (!TryAddRenderedSvgExpansion(
                         target!,

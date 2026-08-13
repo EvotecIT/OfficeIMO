@@ -323,6 +323,7 @@ public static partial class OfficeSvgDrawingReader {
 
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
+        if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
 
         string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
         string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
@@ -459,8 +460,8 @@ public static partial class OfficeSvgDrawingReader {
             value,
             out string referenceId,
             out XElement? target);
-        if (result == SvgElementReferenceEntryResult.DepthExceeded) return false;
-        if (result != SvgElementReferenceEntryResult.Entered) return true;
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
         try {
             return TryAddRenderedSvgExpansion(
                 target!,
@@ -481,22 +482,29 @@ public static partial class OfficeSvgDrawingReader {
         ref int commandCount) {
         SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
             value,
-            "pattern",
             out string referenceId,
             out XElement? target);
-        if (result == SvgElementReferenceEntryResult.DepthExceeded) return false;
-        if (result != SvgElementReferenceEntryResult.Entered) return true;
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
         try {
-            return TryAddRenderedSvgExpansion(
-                target!,
-                references,
-                maximumElements,
-                ref elementCount,
-                ref commandCount);
+            string targetName = target!.Name.LocalName;
+            if (targetName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
+                || targetName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) return true;
+            return targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)
+                && TryAddRenderedSvgExpansion(
+                    target,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount);
         } finally {
             references.Exit(referenceId);
         }
     }
+
+    private static bool HasPotentialSvgUrlFunction(string? value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value!.IndexOf("url(", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static string? ResolveInheritedSvgPaint(XElement element, string propertyName, string? inherited) {
         string? value = ReadPresentationProperty(element, propertyName);
