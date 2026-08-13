@@ -36,7 +36,7 @@ public sealed partial class PdfReadPage {
         PdfPageXObjectInvocation invocation,
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream> activeType3Glyphs,
-        HashSet<double> renderedType3PaintOrders,
+        RenderedType3TextTracker renderedType3PaintOrders,
         Type3GlyphBudget type3GlyphBudget,
         double paintOrderScale,
         bool includeTilingPatterns,

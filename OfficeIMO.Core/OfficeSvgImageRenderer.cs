@@ -101,6 +101,16 @@ public static class OfficeSvgImageRenderer {
         OfficeImageProjection projection,
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
+        string? preserveAspectRatio = null) =>
+        AppendImageWithSampling(builder, href, projection, true, clipPathId, clipRectangle, preserveAspectRatio);
+
+    internal static StringBuilder AppendImageWithSampling(
+        StringBuilder builder,
+        string href,
+        OfficeImageProjection projection,
+        bool interpolate,
+        string? clipPathId = null,
+        OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
@@ -133,6 +143,9 @@ public static class OfficeSvgImageRenderer {
             .AppendNumberAttribute("y", layout.ImagePlacement.Y)
             .AppendNumberAttribute("width", layout.ImagePlacement.Width)
             .AppendNumberAttribute("height", layout.ImagePlacement.Height);
+        if (!interpolate) {
+            builder.AppendAttribute("style", "image-rendering:pixelated");
+        }
         if (!layout.TransformCroppedImage) {
             if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
                 builder.AppendClipPathReference(clipPathId!);

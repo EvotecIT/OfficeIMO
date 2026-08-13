@@ -296,6 +296,7 @@ public sealed partial class PdfReadPage {
         if (width <= 0D || height <= 0D) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
+        bool uncolored = paintType == 2;
         bool allowNestedPatterns = (allowNestedPatternContent || requireSupportedType3Content) && paintType == 1;
         bool rejectImageContent = requireSupportedType3Content && paintType == 2;
         OfficeDrawing tile = CreatePatternTileDrawing(
@@ -311,6 +312,7 @@ public sealed partial class PdfReadPage {
             requireSupportedType3Content,
             rejectImageContent,
             allowNestedPatterns,
+            uncolored,
             contentNestingDepth,
             out bool consumesInheritedLineState,
             out bool hasMalformedStrictInvocation);
@@ -326,7 +328,6 @@ public sealed partial class PdfReadPage {
             matrix = Matrix2D.Identity;
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
-        bool uncolored = paintType == 2;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation);
         return true;
     }
@@ -359,6 +360,7 @@ public sealed partial class PdfReadPage {
         bool requireSupportedType3Content,
         bool rejectImageContent,
         bool allowNestedPatterns,
+        bool rejectColorOperators,
         int contentNestingDepth,
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
@@ -373,7 +375,8 @@ public sealed partial class PdfReadPage {
             resources,
             pageContentBudget,
             new HashSet<PdfStream>(),
-            contentNestingDepth);
+            contentNestingDepth,
+            rejectColorOperators);
         consumesInheritedLineState = ConsumesInheritedPatternLineState(
             content,
             resources,
@@ -388,7 +391,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        var renderedType3PaintOrders = new HashSet<double>();
+        var renderedType3PaintOrders = new RenderedType3TextTracker();
         Type3SoftMaskValidationContext? softMaskValidation = requireSupportedType3Content
             ? type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this)
             : null;
@@ -476,7 +479,7 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset);
         for (int i = 0; i < spans.Count; i++) {
-            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 

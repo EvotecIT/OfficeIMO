@@ -60,7 +60,7 @@ public sealed partial class PdfReadPage {
                 }
 
                 Matrix2D glyphTransform = Matrix2D.Multiply(glyph.Transform, type3.FontMatrix);
-                var localRenderedType3PaintOrders = new HashSet<double>();
+                var localRenderedType3PaintOrders = new RenderedType3TextTracker();
                 try {
                     CollectVisualPrimitivesAndForms(
                         glyphContent,
@@ -498,6 +498,7 @@ public sealed partial class PdfReadPage {
                 image.Bytes,
                 image.MimeType,
                 localProjection,
+                image.Interpolate,
                 opacity: placement.ImageOpacity ?? 1D);
         } else {
             OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
@@ -506,6 +507,7 @@ public sealed partial class PdfReadPage {
                 image.Bytes,
                 image.MimeType,
                 localProjection,
+                image.Interpolate,
                 0D,
                 0D,
                 localClip,

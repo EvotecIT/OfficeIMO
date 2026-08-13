@@ -49,7 +49,7 @@ internal static class PdfPageXObjectInvocationParser {
         IReadOnlyDictionary<string, PdfFontResource>? fonts = null,
         IReadOnlyDictionary<string, Func<byte[], double>>? fontWidthProviders = null,
         Func<PdfPageType3TextInvocation, bool>? type3TextVisitor = null,
-        ISet<double>? renderedType3PaintOrders = null,
+        RenderedType3TextTracker? renderedType3PaintOrders = null,
         Action<int>? type3GlyphBudgetConsumer = null,
         Action? unsupportedTextVisitor = null,
         Action? unsupportedGraphicsEffectVisitor = null,
@@ -74,12 +74,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action? invalidPatternSelectionVisitor = null,
         Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor = null,
         Action<PdfPagePatternSelection>? patternSelectionVisitor = null,
-        double? pageWidth = null) {
+        double? pageWidth = null,
+        PdfContentOrderKey? contentOrderPrefix = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix);
         return parser.Parse();
     }
 
@@ -134,7 +135,8 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly IReadOnlyDictionary<string, PdfFontResource>? _fonts;
         private readonly IReadOnlyDictionary<string, Func<byte[], double>>? _fontWidthProviders;
         private readonly Func<PdfPageType3TextInvocation, bool>? _type3TextVisitor;
-        private readonly ISet<double>? _renderedType3PaintOrders;
+        private readonly RenderedType3TextTracker? _renderedType3PaintOrders;
+        private readonly PdfContentOrderKey? _contentOrderPrefix;
         private readonly Action<int>? _type3GlyphBudgetConsumer;
         private readonly Action? _unsupportedTextVisitor;
         private readonly Action? _unsupportedGraphicsEffectVisitor;
@@ -192,7 +194,7 @@ internal static class PdfPageXObjectInvocationParser {
             IReadOnlyDictionary<string, PdfFontResource>? fonts,
             IReadOnlyDictionary<string, Func<byte[], double>>? fontWidthProviders,
             Func<PdfPageType3TextInvocation, bool>? type3TextVisitor,
-            ISet<double>? renderedType3PaintOrders,
+            RenderedType3TextTracker? renderedType3PaintOrders,
             Action<int>? type3GlyphBudgetConsumer,
             Action? unsupportedTextVisitor,
             Action? unsupportedGraphicsEffectVisitor,
@@ -216,7 +218,8 @@ internal static class PdfPageXObjectInvocationParser {
             Action<string>? visibleShadingVisitor,
             Action? invalidPatternSelectionVisitor,
             Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor,
-            Action<PdfPagePatternSelection>? patternSelectionVisitor) {
+            Action<PdfPagePatternSelection>? patternSelectionVisitor,
+            PdfContentOrderKey? contentOrderPrefix) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -245,6 +248,7 @@ internal static class PdfPageXObjectInvocationParser {
             _fontWidthProviders = fontWidthProviders;
             _type3TextVisitor = type3TextVisitor;
             _renderedType3PaintOrders = renderedType3PaintOrders;
+            _contentOrderPrefix = contentOrderPrefix;
             _type3GlyphBudgetConsumer = type3GlyphBudgetConsumer;
             _unsupportedTextVisitor = unsupportedTextVisitor;
             _unsupportedGraphicsEffectVisitor = unsupportedGraphicsEffectVisitor;
@@ -385,7 +389,7 @@ internal static class PdfPageXObjectInvocationParser {
         private void PublishType3GlyphBatch(List<PdfPageType3GlyphInvocation>? glyphs) {
             if (_type3TextVisitor != null && glyphs != null && glyphs.Count > 0 &&
                 _type3TextVisitor!(new PdfPageType3TextInvocation(glyphs, _currentPaintOrder, _currentOperatorIndex))) {
-                _renderedType3PaintOrders?.Add(_currentPaintOrder);
+                _renderedType3PaintOrders?.Add(_currentPaintOrder, _contentOrderPrefix?.Append(_currentOperatorIndex));
             }
         }
 

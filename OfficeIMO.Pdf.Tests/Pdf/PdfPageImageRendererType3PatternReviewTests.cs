@@ -7,6 +7,33 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderPage_PreservesType3ImageInterpolationSelection() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /ImDefault 7 0 R /ImSmooth 8 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 250 0 0 700 0 0 cm /ImDefault Do Q q 250 0 0 700 250 0 cm /ImSmooth Do Q");
+        string imageDefault = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "rgb");
+        string imageSmooth = BuildStreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true", "rgb");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, imageDefault, imageSmooth);
+
+        OfficeDrawingImage[] images = EnumerateImages(PdfPageImageRenderer.RenderPage(pdf)).ToArray();
+
+        Assert.Equal(2, images.Length);
+        Assert.False(images[0].Interpolate);
+        Assert.True(images[1].Interpolate);
+    }
+
+    [Fact]
+    public void RenderedType3TextTracker_DistinguishesCollapsedPaintOrdersByContentPath() {
+        var tracker = new RenderedType3TextTracker();
+        PdfContentOrderKey rendered = PdfContentOrderKey.Root.Append(2).Append(4).Append(6);
+        PdfContentOrderKey ordinary = PdfContentOrderKey.Root.Append(2).Append(4).Append(7);
+
+        tracker.Add(1D, rendered);
+
+        Assert.True(tracker.Contains(1D, rendered));
+        Assert.False(tracker.Contains(1D, ordinary));
+    }
+
+    [Fact]
     public void RenderPages_ReportsIccApproximationForType3PatternBaseColorSpace() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ColorSpace << /PatternIcc [/Pattern [/ICCBased 8 0 R]] >> /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /PatternIcc cs 0.2 0.4 0.6 /P1 scn 0 0 500 700 re f");

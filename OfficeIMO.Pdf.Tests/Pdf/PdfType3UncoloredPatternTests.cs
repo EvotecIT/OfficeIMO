@@ -28,7 +28,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageContent: "/PatternRgb cs 0 1 0 /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
-            patternContent: "0 g 0 0 5 5 re f");
+            patternContent: "0 0 5 5 re f");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
@@ -44,7 +44,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageContent: "/PatternRgb cs 99 0 1 0 /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
-            patternContent: "0 g 0 0 5 5 re f");
+            patternContent: "0 0 5 5 re f");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
@@ -93,7 +93,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageContent: selectColorSpace + " /Fm1 Do",
             pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
-            patternContent: "0 g 0 0 5 5 re f",
+            patternContent: "0 0 5 5 re f",
             invokeThroughForm: true,
             glyphContent: glyphContent,
             formContent: selectPattern + " BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -1166,7 +1166,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 20 20] /XStep 20 /YStep 20 /Resources << /Font << /FBase 9 0 R >> >>",
-            patternContent: "0 g BT /FBase 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET",
+            patternContent: "BT /FBase 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET",
             glyphContent: "500 0 d0 /Shade sh",
             glyphResources: "<< /Shading << /Shade << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >> >>",
             type3PaintType: 1,
@@ -1557,7 +1557,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageContent: "/PatternRgb cs 0 1 0 /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 20 20] /XStep 20 /YStep 20 /Resources << /Font << /FBase 9 0 R >> >>",
-            patternContent: "0 g BT /FBase 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET",
+            patternContent: "BT /FBase 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET",
             extraObjects: new[] { "9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj" });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));

@@ -569,6 +569,11 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="image">Image to draw.</param>
     /// <param name="projection">Shared image projection.</param>
     public void DrawImage(OfficeRasterImage image, OfficeImageProjection projection) {
+        DrawImage(image, projection, interpolate: true);
+    }
+
+    /// <summary>Draws an image using a shared projection and the requested sampling behavior.</summary>
+    public void DrawImage(OfficeRasterImage image, OfficeImageProjection projection, bool interpolate) {
         DrawImage(
             image,
             projection.X,
@@ -583,7 +588,8 @@ public sealed partial class OfficeRasterCanvas {
             projection.RotationCenterX,
             projection.RotationCenterY,
             projection.FlipHorizontal,
-            projection.FlipVertical);
+            projection.FlipVertical,
+            interpolate);
     }
 
     /// <summary>
@@ -646,6 +652,27 @@ public sealed partial class OfficeRasterCanvas {
         double rotationCenterY,
         bool flipHorizontal,
         bool flipVertical) {
+        DrawImage(image, x, y, width, height, sourceLeft, sourceTop, sourceWidth, sourceHeight,
+            rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical, interpolate: true);
+    }
+
+    /// <summary>Draws a transformed image with explicit scaling interpolation behavior.</summary>
+    public void DrawImage(
+        OfficeRasterImage image,
+        double x,
+        double y,
+        double width,
+        double height,
+        double sourceLeft,
+        double sourceTop,
+        double sourceWidth,
+        double sourceHeight,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical,
+        bool interpolate) {
         if (image == null || width <= 0D || height <= 0D) {
             return;
         }
@@ -700,7 +727,11 @@ public sealed partial class OfficeRasterCanvas {
                     sourceY = (v * image.Height) - 0.5D;
                 }
 
-                BlendPixel(px, py, SampleBilinear(image, sourceX, sourceY));
+                BlendPixel(px, py, interpolate
+                    ? SampleBilinear(image, sourceX, sourceY)
+                    : image.GetPixel(
+                        Clamp((int)Math.Floor(sourceX + 0.5D), 0, image.Width - 1),
+                        Clamp((int)Math.Floor(sourceY + 0.5D), 0, image.Height - 1)));
             }
         }
     }

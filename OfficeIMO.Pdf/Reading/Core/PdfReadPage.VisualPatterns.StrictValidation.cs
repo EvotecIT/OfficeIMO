@@ -7,6 +7,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         HashSet<PdfStream> activeStreams,
         int contentNestingDepth,
+        bool rejectColorOperators = false,
         Dictionary<(PdfStream Stream, PdfDictionary? Resources), bool>? resultCache = null) {
         resultCache ??= new Dictionary<(PdfStream Stream, PdfDictionary? Resources), bool>();
         bool malformed = false;
@@ -46,10 +47,20 @@ public sealed partial class PdfReadPage {
                     case "Tf" when operation.Operands.Count == 2 && operation.Operands[0] is string selectedFont:
                         fontName = selectedFont;
                         break;
-                    case "cs": case "CS": case "sh":
+                    case "cs": case "CS":
+                        malformed = rejectColorOperators ||
+                            operation.HasInvalidOperands ||
+                            operation.Operands.Count != 1 ||
+                            operation.Operands[0] is not string;
+                        break;
+                    case "sh":
                         malformed = operation.HasInvalidOperands ||
                             operation.Operands.Count != 1 ||
                             operation.Operands[0] is not string;
+                        break;
+                    case "SC": case "SCN": case "sc": case "scn":
+                    case "G": case "g": case "RG": case "rg": case "K": case "k":
+                        if (rejectColorOperators) malformed = true;
                         break;
                     case "Do":
                         if (operation.HasInvalidOperands || operation.Operands.Count != 1 || operation.Operands[0] is not string xObjectName) {
@@ -67,6 +78,7 @@ public sealed partial class PdfReadPage {
                                 pageContentBudget,
                                 activeStreams,
                                 contentNestingDepth,
+                                rejectColorOperators,
                                 resultCache);
                         }
                         break;
@@ -83,6 +95,7 @@ public sealed partial class PdfReadPage {
                                         pageContentBudget,
                                         activeStreams,
                                         contentNestingDepth,
+                                        rejectColorOperators,
                                         resultCache);
                                 }
                                 if (malformed) break;
@@ -104,10 +117,11 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         HashSet<PdfStream> activeStreams,
         int contentNestingDepth,
+        bool rejectColorOperators,
         Dictionary<(PdfStream Stream, PdfDictionary? Resources), bool> resultCache) {
         var cacheKey = (stream, resources);
         if (resultCache.TryGetValue(cacheKey, out bool cached)) return cached;
-        if (!activeStreams.Add(stream)) return false;
+        if (!activeStreams.Add(stream)) return true;
         try {
             EnsureContentNestingBudget(contentNestingDepth + 1);
             string nestedContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
@@ -117,6 +131,7 @@ public sealed partial class PdfReadPage {
                 pageContentBudget,
                 activeStreams,
                 contentNestingDepth + 1,
+                rejectColorOperators,
                 resultCache);
             resultCache[cacheKey] = malformed;
             return malformed;

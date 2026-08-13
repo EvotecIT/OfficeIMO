@@ -335,6 +335,29 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("99 (A) Tj")]
+    [InlineData("[(A) true] TJ")]
+    [InlineData("99 (A) '")]
+    [InlineData("1 2 3 (A) \"")]
+    public void RenderPage_FailsClosedForMalformedType3TextShowOperands(string textShowOperator) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 BT /Inner 500 Tf " + textShowOperator + " ET",
+            glyphResources: "<< /Font << /Inner 8 0 R >> >>",
+            extraObjects: new[] {
+                "8 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 9 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj",
+                StreamObject(9, "<<", "500 0 d0 0 0 500 700 re f")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private const string NonConvexSuccessiveClipContent =
         "0 0 m 500 0 l 250 300 l 500 700 l 0 700 l h W n " +
         "0 0 m 500 0 l 250 300 l 500 700 l 0 700 l h W n";

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfContentOrderKey : IComparable<PdfContentOrderKey> {
+internal sealed class PdfContentOrderKey : IComparable<PdfContentOrderKey>, IEquatable<PdfContentOrderKey> {
     private readonly int[] _segments;
 
     private PdfContentOrderKey(int[] segments) {
@@ -24,5 +24,19 @@ internal sealed class PdfContentOrderKey : IComparable<PdfContentOrderKey> {
             if (comparison != 0) return comparison;
         }
         return _segments.Length.CompareTo(other._segments.Length);
+    }
+
+    public bool Equals(PdfContentOrderKey? other) => other != null && CompareTo(other) == 0;
+
+    public override bool Equals(object? obj) => obj is PdfContentOrderKey other && Equals(other);
+
+    public override int GetHashCode() {
+        unchecked {
+            int hash = 17;
+            for (int i = 0; i < _segments.Length; i++) {
+                hash = (hash * 31) + _segments[i];
+            }
+            return hash;
+        }
     }
 }

@@ -943,7 +943,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var elements = new List<PdfPageDrawingElement>();
         var primitives = new List<PdfPageVisualPrimitive>();
-        var renderedType3PaintOrders = new HashSet<double>();
+        var renderedType3PaintOrders = new RenderedType3TextTracker();
         CollectVisualPrimitivesAndForms(
             content,
             resources,
@@ -989,7 +989,7 @@ public sealed partial class PdfReadPage {
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset);
         for (int i = 0; i < spans.Count; i++) {
-            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 

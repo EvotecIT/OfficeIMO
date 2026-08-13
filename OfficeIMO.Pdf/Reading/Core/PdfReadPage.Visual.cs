@@ -67,7 +67,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget) {
         var elements = new List<PdfPageDrawingElement>();
-        var renderedType3PaintOrders = new HashSet<double>();
+        var renderedType3PaintOrders = new RenderedType3TextTracker();
         IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(
             pageWidth,
             pageHeight,
@@ -86,7 +86,7 @@ public sealed partial class PdfReadPage {
 
         IReadOnlyList<PdfTextSpan> spans = GetVisualTextSpans(pageHeight, pageTransform, textOutputBudget, pageContentBudget);
         for (int i = 0; i < spans.Count; i++) {
-            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 
@@ -418,7 +418,7 @@ public sealed partial class PdfReadPage {
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
-        HashSet<double>? renderedType3PaintOrders = null,
+        RenderedType3TextTracker? renderedType3PaintOrders = null,
         Type3GlyphBudget? type3GlyphBudget = null,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
@@ -429,7 +429,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var activeType3Glyphs = new HashSet<PdfStream>();
-        renderedType3PaintOrders ??= new HashSet<double>();
+        renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var tilingPatternResourceCache = new TilingPatternResourceCache();
         string content = GetContentStreamContent(pageContentBudget);
@@ -466,7 +466,7 @@ public sealed partial class PdfReadPage {
         Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
         HashSet<PdfStream>? activeType3Glyphs = null,
-        HashSet<double>? renderedType3PaintOrders = null,
+        RenderedType3TextTracker? renderedType3PaintOrders = null,
         Type3GlyphBudget? type3GlyphBudget = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
@@ -505,7 +505,7 @@ public sealed partial class PdfReadPage {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         activeType3Glyphs ??= new HashSet<PdfStream>();
-        renderedType3PaintOrders ??= new HashSet<double>();
+        renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
@@ -771,7 +771,8 @@ public sealed partial class PdfReadPage {
                       invalidPatternSelectionVisitor: requireSupportedType3Content
                           ? type3GlyphBudget.RecordFailure
                           : null,
-                      pageWidth: pageWidth)) {
+                      pageWidth: pageWidth,
+                      contentOrderPrefix: contentOrderPrefix)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -1646,7 +1647,7 @@ public sealed partial class PdfReadPage {
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
-            var renderedType3PaintOrders = new HashSet<double>();
+            var renderedType3PaintOrders = new RenderedType3TextTracker();
             CollectVisualPrimitivesAndForms(
                 appearanceContent,
                 appearanceResources,
@@ -1691,7 +1692,7 @@ public sealed partial class PdfReadPage {
                 contentOrderPrefix: PdfContentOrderKey.Root,
                 contentOrderOffset: -transformedAppearanceContentOffset);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
-                if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder)) continue;
+                if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder, textSpans[textIndex].ContentOrderKey)) continue;
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }
 
@@ -2164,7 +2165,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        drawing.AddImage(image.Bytes, image.MimeType, projection, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddImage(image.Bytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
@@ -2202,7 +2203,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        drawing.AddClippedImage(image.Bytes, image.MimeType, projection, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddClippedImage(image.Bytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
         return true;
     }
 

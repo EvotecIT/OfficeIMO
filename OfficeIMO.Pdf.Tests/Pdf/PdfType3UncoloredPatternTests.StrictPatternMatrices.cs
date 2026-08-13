@@ -90,6 +90,39 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("/DeviceRGB cs")]
+    [InlineData("/DeviceRGB CS")]
+    [InlineData("1 0 0 rg")]
+    [InlineData("1 G")]
+    public void RenderPage_FailsClosedForColorOperatorsInsideUncoloredPatternCell(string colorOperator) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/PatternRgb cs 0 1 0 /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: colorOperator + " 0 0 5 5 re f");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForRecursivePatternFormValidationCycle() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << /XObject << /Loop 8 0 R >> >>",
+            patternContent: "/Loop Do",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 5 5] /Resources << /XObject << /Loop 8 0 R >> >>", "/Loop Do")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForMalformedXObjectInvocationInsidePatternForm() {
         byte[] pdf = BuildUncoloredType3PatternPdf(

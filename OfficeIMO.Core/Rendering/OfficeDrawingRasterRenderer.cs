@@ -434,7 +434,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
 
-            canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
+            canvas.DrawImage(image, drawingImage.Projection.Scale(scale), drawingImage.Interpolate);
         }
     }
 

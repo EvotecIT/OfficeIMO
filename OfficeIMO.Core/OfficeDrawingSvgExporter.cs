@@ -376,10 +376,11 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append('>');
         }
 
-        OfficeSvgImageRenderer.AppendImage(
+        OfficeSvgImageRenderer.AppendImageWithSampling(
             sb,
             dataUri,
             drawingImage.Projection,
+            drawingImage.Interpolate,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
             "none");

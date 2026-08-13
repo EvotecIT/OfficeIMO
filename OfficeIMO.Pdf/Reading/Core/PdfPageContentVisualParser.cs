@@ -1039,6 +1039,17 @@ internal static class PdfPageContentVisualParser {
                     return HasExactFiniteNumbers(2);
                 case "Tm": case "d1":
                     return HasExactFiniteNumbers(6);
+                case "Tj": case "'":
+                    return _args.Count == 1 && _args[0] is byte[];
+                case "TJ":
+                    return _args.Count == 1 && _args[0] is List<object> items &&
+                           items.All(static item => item is byte[] ||
+                               item is double number && !double.IsNaN(number) && !double.IsInfinity(number));
+                case "\"":
+                    return _args.Count == 3 &&
+                           _args[0] is double wordSpacing && !double.IsNaN(wordSpacing) && !double.IsInfinity(wordSpacing) &&
+                           _args[1] is double characterSpacing && !double.IsNaN(characterSpacing) && !double.IsInfinity(characterSpacing) &&
+                           _args[2] is byte[];
                 case "T*":
                     return _args.Count == 0;
                 default:

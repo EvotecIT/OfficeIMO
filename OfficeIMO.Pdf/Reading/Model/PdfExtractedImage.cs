@@ -25,7 +25,8 @@ public sealed class PdfExtractedImage {
         bool transparencyMaskResolved = false,
         int directStreamIdentity = 0,
         bool isImageMask = false,
-        OfficeColor? imageMaskColor = null) {
+        OfficeColor? imageMaskColor = null,
+        bool interpolate = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -43,6 +44,7 @@ public sealed class PdfExtractedImage {
         DirectStreamIdentity = directStreamIdentity;
         IsImageMask = isImageMask;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
+        Interpolate = interpolate;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -65,6 +67,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>Bits per color component.</summary>
     public int BitsPerComponent { get; }
+
+    /// <summary>Whether the PDF requests interpolation while scaling the image.</summary>
+    public bool Interpolate { get; }
 
     /// <summary>PDF color space name when available.</summary>
     public string ColorSpace { get; }
