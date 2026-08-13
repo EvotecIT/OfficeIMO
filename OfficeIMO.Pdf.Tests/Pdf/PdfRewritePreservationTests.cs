@@ -249,9 +249,35 @@ public class PdfRewritePreservationTests {
         action.Items["S"] = new PdfName("SubmitForm");
         action.Items["Fields"] = fields;
 
-        string? fingerprint = PdfActionPayloadFingerprint.Create(action, new Dictionary<int, PdfIndirectObject>());
+        string? fingerprint = PdfActionPayloadFingerprint.Create(action, new Dictionary<int, PdfIndirectObject>(), new PdfReadLimits());
 
         Assert.Null(fingerprint);
+    }
+
+    [Fact]
+    public void ActionPayloadFingerprintUsesConfiguredPageTreeDepth() {
+        var objects = new Dictionary<int, PdfIndirectObject>();
+        var catalog = new PdfDictionary();
+        catalog.Items["Type"] = new PdfName("Catalog");
+        catalog.Items["Pages"] = new PdfReference(2, 0);
+        objects[1] = new PdfIndirectObject(1, 0, catalog);
+        for (int objectNumber = 2; objectNumber < 42; objectNumber++) {
+            var pages = new PdfDictionary();
+            pages.Items["Type"] = new PdfName("Pages");
+            var kids = new PdfArray();
+            kids.Items.Add(new PdfReference(objectNumber + 1, 0));
+            pages.Items["Kids"] = kids;
+            objects[objectNumber] = new PdfIndirectObject(objectNumber, 0, pages);
+        }
+        var page = new PdfDictionary();
+        page.Items["Type"] = new PdfName("Page");
+        objects[42] = new PdfIndirectObject(42, 0, page);
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("GoTo");
+        action.Items["D"] = new PdfReference(42, 0);
+
+        Assert.NotNull(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+        Assert.Null(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits { MaxPageTreeDepth = 8 }));
     }
 
     [Fact]

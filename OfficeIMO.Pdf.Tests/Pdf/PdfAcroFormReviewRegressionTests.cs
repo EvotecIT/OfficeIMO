@@ -72,7 +72,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Move_RebuildsPushButtonAppearanceWhenFlagIsInherited() {
-        byte[] source = BuildInheritedPushButtonPdf();
+        byte[] source = BuildInheritedPushButtonPdf(includeInteractiveAppearances: false);
 
         PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
             edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
@@ -129,16 +129,12 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
-    public void Move_PreservesPushButtonRolloverAndDownAppearances() {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
-            edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
-        PdfFormWidget widget = Assert.Single(Assert.Single(result.Fields).Widgets);
-        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
-        PdfDictionary widgetDictionary = Assert.IsType<PdfDictionary>(objects[widget.ObjectNumber!.Value].Value);
-        PdfDictionary appearances = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, widgetDictionary.Items["AP"]));
+    public void Move_RejectsResizingPushButtonWithRolloverAndDownAppearances() {
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
+                edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40)));
 
-        Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, appearances.Items["R"]));
-        Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, appearances.Items["D"]));
+        Assert.Contains("rollover or down", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -306,7 +302,7 @@ public class PdfAcroFormReviewRegressionTests {
         }));
     }
 
-    private static byte[] BuildInheritedPushButtonPdf() {
+    private static byte[] BuildInheritedPushButtonPdf(bool includeInteractiveAppearances = true) {
         const string appearance = "BT /F1 10 Tf (Run) Tj ET";
         const string rollover = "BT /F1 10 Tf (Rollover) Tj ET";
         const string down = "BT /F1 10 Tf (Down) Tj ET";
@@ -318,7 +314,7 @@ public class PdfAcroFormReviewRegressionTests {
             "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
             "6 0 obj", "<< /FT /Btn /Ff 65536 /T (group) /Kids [7 0 R] >>", "endobj",
             "7 0 obj", "<< /Parent 6 0 R /T (run) /Kids [8 0 R] >>", "endobj",
-            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 120 40] /P 3 0 R /MK << /CA (Run) >> /AP << /N 9 0 R /R 10 0 R /D 11 0 R >> >>", "endobj",
+            "8 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 120 40] /P 3 0 R /MK << /CA (Run) >> /AP << /N 9 0 R " + (includeInteractiveAppearances ? "/R 10 0 R /D 11 0 R " : string.Empty) + ">> >>", "endobj",
             "9 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + appearance.Length + " >>", "stream", appearance, "endstream", "endobj",
             "10 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + rollover.Length + " >>", "stream", rollover, "endstream", "endobj",
             "11 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 100 20] /Length " + down.Length + " >>", "stream", down, "endstream", "endobj",

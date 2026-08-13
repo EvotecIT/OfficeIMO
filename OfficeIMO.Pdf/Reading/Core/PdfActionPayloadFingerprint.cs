@@ -11,16 +11,19 @@ namespace OfficeIMO.Pdf;
 internal static class PdfActionPayloadFingerprint {
     private const int MaximumDepth = 32;
     private const int MaximumNodes = 4096;
-    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookup> PageNumberLookups = new();
+    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookupCache> PageNumberLookups = new();
 
     internal static string? Create(
         PdfDictionary action,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfReadLimits limits) {
         var builder = new StringBuilder();
         var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        IReadOnlyDictionary<int, int> pageNumbers = PageNumberLookups.GetValue(
+        PageNumberLookup pageNumberLookup = PageNumberLookups.GetValue(
             objects,
-            static source => new PageNumberLookup(BuildPageNumberLookup(source))).Value;
+            static source => new PageNumberLookupCache(source)).Get(limits);
+        if (!pageNumberLookup.IsComplete) return null;
+        IReadOnlyDictionary<int, int> pageNumbers = pageNumberLookup.Value;
         int nodes = 0;
         bool complete = true;
         AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true);
@@ -146,13 +149,14 @@ internal static class PdfActionPayloadFingerprint {
         builder.Append('}');
     }
 
-    private static Dictionary<int, int> BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects) {
+    private static PageNumberLookup BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits) {
         var result = new Dictionary<int, int>();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects);
-        if (catalog == null || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return result;
+        if (catalog == null || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return new PageNumberLookup(result, isComplete: true);
         var visited = new HashSet<int>();
-        AddPageTreeNode(pages, objects, visited, result, depth: 0);
-        return result;
+        bool complete = true;
+        AddPageTreeNode(pages, objects, visited, result, depth: 0, limits, ref complete);
+        return new PageNumberLookup(result, complete);
     }
 
     private static void AddPageTreeNode(
@@ -160,13 +164,22 @@ internal static class PdfActionPayloadFingerprint {
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<int> visited,
         Dictionary<int, int> pageNumbers,
-        int depth) {
-        if (depth > MaximumDepth) return;
+        int depth,
+        PdfReadLimits limits,
+        ref bool complete) {
+        if (depth > limits.MaxPageTreeDepth) {
+            complete = false;
+            return;
+        }
         int objectNumber = 0;
         if (node is PdfReference reference) {
             objectNumber = reference.ObjectNumber;
             if (!visited.Add(objectNumber) ||
                 !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return;
+            if (visited.Count > limits.MaxPageTreeNodes) {
+                complete = false;
+                return;
+            }
             node = indirect.Value;
         }
         if (node is not PdfDictionary dictionary) return;
@@ -177,7 +190,7 @@ internal static class PdfActionPayloadFingerprint {
         if (!dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
             PdfObjectLookup.Resolve(objects, kidsObject) is not PdfArray kids) return;
         for (int index = 0; index < kids.Items.Count; index++) {
-            AddPageTreeNode(kids.Items[index], objects, visited, pageNumbers, depth + 1);
+            AddPageTreeNode(kids.Items[index], objects, visited, pageNumbers, depth + 1, limits, ref complete);
         }
     }
 
@@ -185,7 +198,26 @@ internal static class PdfActionPayloadFingerprint {
         builder.Append(prefix).Append(value.Length).Append(':').Append(value);
 
     private sealed class PageNumberLookup {
-        internal PageNumberLookup(IReadOnlyDictionary<int, int> value) { Value = value; }
+        internal PageNumberLookup(IReadOnlyDictionary<int, int> value, bool isComplete) { Value = value; IsComplete = isComplete; }
         internal IReadOnlyDictionary<int, int> Value { get; }
+        internal bool IsComplete { get; }
+    }
+
+    private sealed class PageNumberLookupCache {
+        private readonly Dictionary<int, PdfIndirectObject> _objects;
+        private readonly Dictionary<(int Depth, int Nodes), PageNumberLookup> _values = new();
+
+        internal PageNumberLookupCache(Dictionary<int, PdfIndirectObject> objects) { _objects = objects; }
+
+        internal PageNumberLookup Get(PdfReadLimits limits) {
+            var key = (limits.MaxPageTreeDepth, limits.MaxPageTreeNodes);
+            lock (_values) {
+                if (!_values.TryGetValue(key, out PageNumberLookup? value)) {
+                    value = BuildPageNumberLookup(_objects, limits);
+                    _values.Add(key, value);
+                }
+                return value;
+            }
+        }
     }
 }

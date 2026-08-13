@@ -441,7 +441,7 @@ public sealed partial class PdfReadDocument {
         string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal)
             ? TryReadText(action, "URI")
             : null;
-        actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript, uri, PdfActionPayloadFingerprint.Create(action, _objects)));
+        actions.Add(new PdfFormWidgetAction(triggerName, actionType, javaScript, uri, PdfActionPayloadFingerprint.Create(action, _objects, _options.Limits)));
         if (action.Items.TryGetValue("Next", out PdfObject? nextAction)) {
             AddWidgetNextActions(triggerName + ".Next", nextAction, actions, budget, pathReferences, depth + 1);
         }

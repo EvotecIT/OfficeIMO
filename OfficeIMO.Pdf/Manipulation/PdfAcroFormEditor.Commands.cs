@@ -157,6 +157,9 @@ internal static partial class PdfAcroFormEditor {
         if (pushButtonSizeChanged && HasPushButtonIcon(objects, widget)) {
             throw new NotSupportedException("Resizing a push button with an icon is not supported because its icon and layout semantics cannot be preserved safely.");
         }
+        if (pushButtonSizeChanged && HasPushButtonInteractiveAppearances(objects, widget)) {
+            throw new NotSupportedException("Resizing a push button with rollover or down appearances is not supported because every interactive appearance state must preserve the authored bounds.");
+        }
         PdfDictionary page = RequirePage(objects, pages, pageNumber);
         PdfArray destinationAnnotations = EnsureAnnotationArray(objects, page);
         int destinationIndex = FindReferenceIndex(destinationAnnotations, field.WidgetObjectNumbers[0]);
@@ -198,6 +201,15 @@ internal static partial class PdfAcroFormEditor {
             (characteristics.Items.ContainsKey("I") ||
              characteristics.Items.ContainsKey("RI") ||
              characteristics.Items.ContainsKey("IX"));
+    }
+
+    private static bool HasPushButtonInteractiveAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+        PdfDictionary? appearances = ResolveDictionary(
+            objects,
+            widget.Items.TryGetValue("AP", out PdfObject? appearanceObject) ? appearanceObject : null);
+        return appearances != null &&
+            (appearances.Items.TryGetValue("R", out PdfObject? rollover) && PdfObjectLookup.Resolve(objects, rollover) is not PdfNull ||
+             appearances.Items.TryGetValue("D", out PdfObject? down) && PdfObjectLookup.Resolve(objects, down) is not PdfNull);
     }
 
     private static bool HasSameRectangleSize(

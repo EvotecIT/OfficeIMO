@@ -188,7 +188,7 @@ public sealed partial class PdfReadDocument {
 
         if (TryReadCatalogActionType(dictionary, out string? actionType)) {
             string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal) ? TryReadText(dictionary, "URI") : null;
-            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects)));
+            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _options.Limits)));
         }
 
         if (dictionary.Items.TryGetValue("Next", out var nextAction)) {

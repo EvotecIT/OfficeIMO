@@ -126,7 +126,7 @@ internal static partial class PdfRedactionApplier {
                     xObjects.Items[resourceName] = formReference;
                     formStream = (PdfStream)objects[formReference.ObjectNumber].Value;
 
-                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber);
+                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber);
                     if (repeatedResult.HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
                         changed = true;
@@ -143,7 +143,7 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = RewriteImagePixelsInForm(objects, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber).HasChanges || changed;
+                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, maximumDecodedStreamBytes, ref nextObjectNumber).HasChanges || changed;
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
@@ -154,6 +154,7 @@ internal static partial class PdfRedactionApplier {
 
     private static ImagePixelRewriteContentResult RewriteImagePixelsInForm(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary inheritedResources,
         PdfReference formReference,
         PdfStream formStream,
         ImageRedactionTarget[] targets,
@@ -164,7 +165,9 @@ internal static partial class PdfRedactionApplier {
         List<PdfRedactionMatch> removedMatches,
         int maximumDecodedStreamBytes,
         ref int nextObjectNumber) {
-        PdfDictionary formResources = EnsureFormResources(objects, formStream);
+        PdfDictionary formResources = formStream.Dictionary.Items.ContainsKey("Resources")
+            ? EnsureFormResources(objects, formStream)
+            : inheritedResources;
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));

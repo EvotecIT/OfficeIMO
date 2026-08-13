@@ -250,7 +250,7 @@ internal static partial class PdfRedactionApplier {
         if (!string.Equals(formContent, scrubbed, StringComparison.Ordinal)) {
             formContent = scrubbed;
             AddRemovedImageTargets(removedTargets, removedMatches, null);
-            RemoveUnusedImageResourcesFromXObjects(objects, formXObjects, formContent, removedTargets);
+            RemoveUnusedImageResourcesFromXObjects(objects, formXObjects, formContent, removedTargets, maximumDecodedStreamBytes);
             changed = true;
         }
 
@@ -467,10 +467,10 @@ internal static partial class PdfRedactionApplier {
         }
     }
 
-    private static void RemoveUnusedImageResourcesFromXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary xObjects, string content, IReadOnlyList<ImageRedactionTarget> removedTargets) {
+    private static void RemoveUnusedImageResourcesFromXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary xObjects, string content, IReadOnlyList<ImageRedactionTarget> removedTargets, int maximumDecodedStreamBytes) {
         for (int i = 0; i < removedTargets.Count; i++) {
             string resourceName = removedTargets[i].ResourceName;
-            if (ContentInvokesResource(content, resourceName) ||
+            if (ContentOrInheritedFormsInvokeResource(objects, xObjects, content, resourceName, maximumDecodedStreamBytes, new HashSet<int>()) ||
                 !xObjects.Items.TryGetValue(resourceName, out PdfObject? resourceObject) ||
                 PdfObjectLookup.Resolve(objects, resourceObject) is not PdfStream stream ||
                 !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)) {
@@ -485,7 +485,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary xObjects = PdfPageResourceHelper.EnsurePageXObjects(objects, pageDictionary, "redaction image cleanup");
         string remainingContent = GetPageContent(objects, pageDictionary, maximumDecodedStreamBytes);
         foreach (string resourceName in resourceNames) {
-            if (ContentInvokesResource(remainingContent, resourceName) ||
+            if (ContentOrInheritedFormsInvokeResource(objects, xObjects, remainingContent, resourceName, maximumDecodedStreamBytes, new HashSet<int>()) ||
                 !xObjects.Items.TryGetValue(resourceName, out PdfObject? resourceObject) ||
                 PdfObjectLookup.Resolve(objects, resourceObject) is not PdfStream stream ||
                 !string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)) {
@@ -518,6 +518,46 @@ internal static partial class PdfRedactionApplier {
         foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) {
             if (string.Equals(invocation.Name, resourceName, StringComparison.Ordinal)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContentOrInheritedFormsInvokeResource(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary xObjects,
+        string content,
+        string resourceName,
+        int maximumDecodedStreamBytes,
+        HashSet<int> activeForms) {
+        if (ContentInvokesResource(content, resourceName)) return true;
+
+        foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) {
+            if (!xObjects.Items.TryGetValue(invocation.Name, out PdfObject? formObject) ||
+                formObject is not PdfReference formReference ||
+                !PdfObjectLookup.TryGet(objects, formReference, out PdfIndirectObject? indirect) ||
+                indirect.Value is not PdfStream form ||
+                !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
+                form.Dictionary.Items.ContainsKey("Resources") ||
+                !activeForms.Add(formReference.ObjectNumber)) {
+                continue;
+            }
+
+            try {
+                string formContent = PdfEncoding.Latin1GetString(
+                    StreamDecoder.DecodeRequired(form.Dictionary, form.Data, objects, maximumDecodedStreamBytes));
+                if (ContentOrInheritedFormsInvokeResource(
+                        objects,
+                        xObjects,
+                        formContent,
+                        resourceName,
+                        maximumDecodedStreamBytes,
+                        activeForms)) {
+                    return true;
+                }
+            } finally {
+                activeForms.Remove(formReference.ObjectNumber);
             }
         }
 
