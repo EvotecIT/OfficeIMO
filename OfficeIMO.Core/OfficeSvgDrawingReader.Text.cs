@@ -280,13 +280,16 @@ public static partial class OfficeSvgDrawingReader {
         double y = run.Baseline - run.FontSize;
         double width = run.Width;
         double height = run.FontSize * 1.25D;
-        if (x < 0D || y < 0D || x >= drawing.Width || y >= drawing.Height) {
+        if (x + width <= 0D || y + height <= 0D || x >= drawing.Width || y >= drawing.Height) {
             unsupported++;
             return;
         }
-        width = Math.Min(width, drawing.Width - x);
-        height = Math.Min(height, drawing.Height - y);
-        if (width <= 0D || height <= 0D) return;
+        bool requiresViewportClip = x < 0D || y < 0D;
+        if (!requiresViewportClip) {
+            width = Math.Min(width, drawing.Width - x);
+            height = Math.Min(height, drawing.Height - y);
+            if (width <= 0D || height <= 0D) return;
+        }
 
         OfficeColor baseColor = run.Style.Fill.Value;
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
@@ -296,7 +299,23 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         try {
             double naturalWidth = width / run.GlyphScale;
-            target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+            if (requiresViewportClip) {
+                target.AddClippedText(
+                    run.Text,
+                    x,
+                    y,
+                    naturalWidth,
+                    height,
+                    0D,
+                    0D,
+                    OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
+                    font,
+                    color,
+                    OfficeTextAlignment.Left,
+                    height);
+            } else {
+                target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+            }
             if (!ReferenceEquals(target, drawing)) {
                 OfficeTransform effect = run.GlyphScale.Equals(1D)
                     ? run.Transform

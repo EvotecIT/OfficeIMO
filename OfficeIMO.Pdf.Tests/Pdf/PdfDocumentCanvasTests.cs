@@ -129,6 +129,23 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasEditableComboFieldsAllowCustomScalarValues() {
+        var style = new PdfFormFieldStyle { IsEditableChoice = true };
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .ChoiceField("Strings", new[] { "A", "B" }, new[] { "Custom" }, 20D, 20D, 120D, 24D, style: style)
+                .ChoiceField("Options", new[] {
+                    new PdfFormFieldOption("A", "First"),
+                    new PdfFormFieldOption("B", "Second")
+                }, new[] { "Other" }, 20D, 60D, 120D, 24D, style: style))
+            .ToBytes();
+
+        PdfFormField[] fields = PdfInspector.Inspect(bytes).FormFields.ToArray();
+        Assert.Equal(new[] { "Custom", "Other" }, fields.Select(field => field.Value));
+        Assert.All(fields, field => Assert.True(field.IsEditableChoice));
+    }
+
+    [Fact]
     public void CanvasFormFields_RejectPeriodsInPartialFieldNames() {
         var canvas = new PdfPageCanvas();
 

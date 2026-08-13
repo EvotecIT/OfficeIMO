@@ -680,6 +680,21 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_InitialValueExceedingMaximumLengthUsesTruthfulStaticAppearance() {
+        const string html = "<input name='code' value='abcd' maxlength='2'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback);
+        Assert.Contains(HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback, out _));
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        Assert.Contains("abcd", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_MultipleFileInputUsesTruthfulStaticAppearance() {
         const string html = "<input type='file' name='attachment'><input type='file' name='attachments' multiple>";
 

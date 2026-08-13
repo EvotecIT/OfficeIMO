@@ -341,7 +341,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImages_SvgUnsupportedFeaturesAreDiagnosedWhilePrimitivesRemain() {
+    public void HtmlImages_SvgPartiallyVisibleTextIsClippedWithoutAnUnsupportedDiagnostic() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><text x='1' y='10'>Pending</text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img id='partial-svg' src='data:image/svg+xml;base64," + data + "'>";
@@ -353,9 +353,7 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.Equal("img#partial-svg", diagnostic.Source);
-        Assert.Contains("features=1", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.Contains(HtmlRenderDiagnosticCodes.SvgContentUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.SvgContentUnsupported, out _));
     }

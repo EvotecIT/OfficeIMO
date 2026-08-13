@@ -46,7 +46,8 @@ public sealed partial class PdfPageCanvas {
         if (indexSnapshot.Any(index => index < 0 || index >= optionSnapshot.Count) || indexSnapshot.Distinct().Count() != indexSnapshot.Count) {
             throw new ArgumentException("Canvas choice field selected indices must be unique and refer to provided options.", nameof(selectedIndices));
         }
-        if (valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
+        bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style?.IsEditableChoice == true && indexSnapshot.Count == 0;
+        if (!allowsCustomScalarValue && valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
             throw new ArgumentException("Canvas choice field values must match provided export values.", nameof(values));
         }
         if (indexSnapshot.Count > 0 && (indexSnapshot.Count != valueSnapshot.Count || indexSnapshot.Where((index, valueIndex) => !string.Equals(optionSnapshot[index].ExportValue, valueSnapshot[valueIndex], StringComparison.Ordinal)).Any())) {
@@ -90,7 +91,8 @@ public sealed partial class PdfPageCanvas {
         if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
             throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
         }
-        if (valueSnapshot.Any(value => !optionSnapshot.Contains(value, StringComparer.Ordinal))) {
+        bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style?.IsEditableChoice == true;
+        if (!allowsCustomScalarValue && valueSnapshot.Any(value => !optionSnapshot.Contains(value, StringComparer.Ordinal))) {
             throw new ArgumentException("Canvas choice field values must match provided options.", nameof(values));
         }
         _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));
@@ -114,7 +116,8 @@ public sealed partial class PdfPageCanvas {
         if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
             throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
         }
-        if (valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
+        bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style?.IsEditableChoice == true;
+        if (!allowsCustomScalarValue && valueSnapshot.Any(value => !optionSnapshot.Any(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal)))) {
             throw new ArgumentException("Canvas choice field values must match provided export values.", nameof(values));
         }
         _items.Add(PdfCanvasFormFieldItem.Choice(name, optionSnapshot, valueSnapshot, x, y, width, height, fontSize, isComboBox, allowsMultipleSelection, style));

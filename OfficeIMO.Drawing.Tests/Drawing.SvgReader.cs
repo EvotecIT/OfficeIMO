@@ -81,14 +81,16 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderRetainsSupportedPrimitivesAndCountsUnsupportedContent() {
+    public void SvgReaderRetainsSupportedPrimitivesAndClipsPartiallyVisibleText() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<rect width='20' height='20' fill='#00ff00'/><text x='1' y='10'>Pending</text></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
         Assert.Single(drawing!.Shapes);
-        Assert.Equal(1, unsupported);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal("Pending", Assert.Single(group.InnerDrawing.Elements.OfType<OfficeDrawingText>()).Text);
     }
 
     [Fact]
@@ -261,6 +263,23 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0D, runs[3].Y, 6);
         Assert.All(runs, run => Assert.Equal(OfficeColor.Navy, run.Color));
         Assert.Contains(">Sup</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderClipsPartiallyVisibleBaselineShiftedTextAtTheViewport() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 30' fill='navy'>"
+            + "<text x='2' y='16' font-size='16' baseline-shift='8px'>Visible</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingGroup group = Assert.Single(drawing!.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingText text = Assert.Single(group.InnerDrawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Visible", text.Text);
+        Assert.Equal(-8D, text.Y, 6);
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("<clipPath", exported, StringComparison.Ordinal);
+        Assert.Contains(">Visible</text>", exported, StringComparison.Ordinal);
     }
 
     [Fact]

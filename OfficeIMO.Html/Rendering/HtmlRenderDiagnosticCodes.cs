@@ -92,6 +92,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
     public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";
+    /// <summary>A text control whose authored value exceeds maxlength used static rendering because PDF /MaxLen cannot preserve that initial state.</summary>
+    public const string FormFieldInitialValueExceedsMaximumLengthStaticFallback = "HtmlRenderFormFieldInitialValueExceedsMaximumLengthStaticFallback";
     /// <summary>A multiple-file input used static rendering because PDF file-select fields cannot preserve multiple-file selection.</summary>
     public const string FileMultipleSelectionStaticFallback = "HtmlRenderFileMultipleSelectionStaticFallback";
     /// <summary>A form control with a whitespace-only name used static rendering because PDF field names must contain a non-whitespace character.</summary>
@@ -234,6 +236,7 @@ public static class HtmlRenderDiagnosticCodes {
         TransformValueUnsupported,
         FormFieldTransformStaticFallback,
         FormFieldZeroMaximumLengthStaticFallback,
+        FormFieldInitialValueExceedsMaximumLengthStaticFallback,
         FileMultipleSelectionStaticFallback,
         FormFieldBlankNameStaticFallback,
         FormFieldBlankButtonValueStaticFallback,

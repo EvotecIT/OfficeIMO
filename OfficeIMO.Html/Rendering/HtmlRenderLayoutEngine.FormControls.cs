@@ -663,6 +663,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ReportZeroMaximumLengthFallback(source);
                 return false;
             }
+            if (value.Length > parsedMaximumLength) {
+                ReportInitialValueExceedsMaximumLengthFallback(source, parsedMaximumLength, value.Length);
+                return false;
+            }
             maximumLength = parsedMaximumLength;
         }
 
@@ -824,6 +828,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             source,
             "maxlength=0",
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void ReportInitialValueExceedsMaximumLengthFallback(string source, int maximumLength, int valueLength) {
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback,
+            "An HTML text control whose initial value exceeds maxlength was rendered as static content because PDF /MaxLen cannot preserve that authored state consistently.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            "maxlength=" + maximumLength.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + ";value-length=" + valueLength.ToString(System.Globalization.CultureInfo.InvariantCulture),
             OfficeConversionLossKind.Approximation);
     }
 
