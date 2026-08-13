@@ -109,23 +109,24 @@ internal static class OfficeC2paManifestStore {
 
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
-        int assertionStoreCount = 0;
-        int claimCount = 0;
-        int claimSignatureCount = 0;
+        int requiredChild = 0;
         while (cursor < manifestEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = manifestEnd - cursor;
             if (!TryReadBox(data, cursor, remaining, out _, out ulong childLength, out string childType) ||
                 childLength > int.MaxValue) return false;
             if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, AssertionStoreUuid)) {
-                assertionStoreCount++;
+                if (requiredChild != 0) return false;
                 if (!IsAssertionStoreSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+                requiredChild = 1;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
-                claimCount++;
+                if (requiredChild != 1) return false;
                 if (!IsClaimSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+                requiredChild = 2;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimSignatureUuid)) {
-                claimSignatureCount++;
+                if (requiredChild != 2) return false;
                 if (!IsClaimSignatureSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+                requiredChild = 3;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, DataBoxStoreUuid)) {
                 if (!IsExtensionSuperbox(
                     data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, "c2pa.databoxes", "cbor")) return false;
@@ -137,7 +138,7 @@ internal static class OfficeC2paManifestStore {
             }
             cursor += (int)childLength;
         }
-        return cursor == manifestEnd && assertionStoreCount == 1 && claimCount == 1 && claimSignatureCount == 1;
+        return cursor == manifestEnd && requiredChild == 3;
     }
 
     private static bool IsExtensionSuperbox(

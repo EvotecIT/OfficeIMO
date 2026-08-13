@@ -272,13 +272,14 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
 
     public C2paToolProcessResult Run(C2paToolProcessRequest request) {
-        string executable = request.ExecutablePath;
+        string targetExecutable = ResolveUnixExecutable(request.ExecutablePath, request.WorkingDirectory);
+        string executable = targetExecutable;
         string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
         string? sessionLauncher = FindUnixSessionLauncher();
         bool ownsUnixProcessGroup = sessionLauncher != null;
         if (sessionLauncher != null) {
             executable = sessionLauncher;
-            arguments = QuoteArgument(request.ExecutablePath) + (arguments.Length == 0 ? string.Empty : " " + arguments);
+            arguments = QuoteArgument(targetExecutable) + (arguments.Length == 0 ? string.Empty : " " + arguments);
         }
         var startInfo = new ProcessStartInfo {
             FileName = executable,
@@ -442,6 +443,35 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         }
         return null;
     }
+
+    private static string ResolveUnixExecutable(string configuredPath, string workingDirectory) {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT) return configuredPath;
+        bool containsSeparator = configuredPath.Contains(Path.DirectorySeparatorChar.ToString()) ||
+            configuredPath.Contains(Path.AltDirectorySeparatorChar.ToString());
+        if (containsSeparator || Path.IsPathRooted(configuredPath)) {
+            string candidate = Path.IsPathRooted(configuredPath)
+                ? Path.GetFullPath(configuredPath)
+                : Path.GetFullPath(Path.Combine(workingDirectory, configuredPath));
+            if (File.Exists(candidate) && IsUnixExecutable(candidate)) return candidate;
+            throw new Win32Exception(2, $"The configured c2patool executable '{configuredPath}' was not found or is not executable.");
+        }
+
+        string path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        foreach (string directory in path.Split(Path.PathSeparator)) {
+            if (string.IsNullOrWhiteSpace(directory)) continue;
+            string candidate;
+            try { candidate = Path.GetFullPath(Path.Combine(directory.Trim(), configuredPath)); }
+            catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException) { continue; }
+            if (File.Exists(candidate) && IsUnixExecutable(candidate)) return candidate;
+        }
+        throw new Win32Exception(2, $"The configured c2patool executable '{configuredPath}' was not found or is not executable.");
+    }
+
+    private static bool IsUnixExecutable(string path) => UnixAccess(path, 1) == 0;
+
+    [DllImport("libc", EntryPoint = "access", SetLastError = true, CharSet = CharSet.Ansi,
+        BestFitMapping = false, ThrowOnUnmappableChar = true)]
+    private static extern int UnixAccess([MarshalAs(UnmanagedType.LPStr)] string path, int mode);
 
     private static bool TryKillEntireProcessTree(Process process) {
         System.Reflection.MethodInfo? method = typeof(Process).GetMethod("Kill", new[] { typeof(bool) });

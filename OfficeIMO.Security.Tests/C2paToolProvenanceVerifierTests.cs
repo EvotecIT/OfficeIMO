@@ -158,6 +158,22 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
+    public void DefaultRunnerReportsAnUnavailableExplicitExecutable() {
+        string assetPath = CreateAsset();
+        string executablePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "c2patool");
+        try {
+            var verifier = new C2paToolProvenanceVerifier(executablePath);
+
+            OfficeProvenanceVerificationResult result = verifier.Verify(assetPath);
+
+            Assert.Equal(OfficeProvenanceVerificationStatus.ProviderUnavailable, result.Status);
+            Assert.Single(result.Findings);
+        } finally {
+            File.Delete(assetPath);
+        }
+    }
+
+    [Fact]
     public void ProcessRunnerBoundsInheritedOutputHandlesAfterTheParentExits() {
         string executable;
         IReadOnlyList<string> arguments;

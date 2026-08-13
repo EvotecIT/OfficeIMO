@@ -144,6 +144,8 @@ internal static class OfficeProvenanceTiff {
         int maximumContainerEntries) {
         long xmpEnd = (long)xmpOffset + xmpLength;
         foreach (TiffIfd ifd in ifds) {
+            long ifdEnd = (long)ifd.NextFieldOffset + ifd.NextFieldSize;
+            if (ifd.Offset < xmpEnd && xmpOffset < ifdEnd) return true;
             foreach (TiffEntry entry in ifd.Entries) {
                 if (!TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&

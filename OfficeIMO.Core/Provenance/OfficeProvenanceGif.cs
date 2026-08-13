@@ -33,6 +33,7 @@ internal static class OfficeProvenanceGif {
         out bool reserialized) {
         reserialized = false;
         int offset = GetBodyOffset(data);
+        int c2paApplicationCount = CountC2paApplications(data, offset, options);
         bool foundTrailer = false;
         int entryCount = 0;
         while (offset < data.Length) {
@@ -94,7 +95,7 @@ internal static class OfficeProvenanceGif {
                     ref entryCount, options.MaxContainerEntries, out int payloadLength);
                 if (isC2paApplication) {
                     byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
-                    bool valid = isGif89a && OfficeC2paManifestStore.IsValid(
+                    bool valid = c2paApplicationCount == 1 && isGif89a && OfficeC2paManifestStore.IsValid(
                         manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
                     context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
@@ -113,6 +114,54 @@ internal static class OfficeProvenanceGif {
         }
         if (!foundTrailer) throw new InvalidDataException("GIF does not contain a trailer.");
         if (offset < data.Length) output?.Write(data, offset, data.Length - offset);
+    }
+
+    private static int CountC2paApplications(byte[] data, int offset, OfficeProvenanceOptions options) {
+        int count = 0;
+        int entryCount = 0;
+        while (offset < data.Length) {
+            ReserveEntry(ref entryCount, options.MaxContainerEntries);
+            byte introducer = data[offset++];
+            if (introducer == 0x3B) return count;
+            if (introducer == 0x2C) {
+                if (data.Length - offset < 9) throw new InvalidDataException("GIF image descriptor is truncated.");
+                byte packed = data[offset + 8];
+                offset += 9;
+                if ((packed & 0x80) != 0) {
+                    int tableBytes = 3 << ((packed & 0x07) + 1);
+                    if (tableBytes > data.Length - offset) throw new InvalidDataException("GIF local color table is truncated.");
+                    offset += tableBytes;
+                }
+                if (offset >= data.Length) throw new InvalidDataException("GIF image data is truncated.");
+                offset++;
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                continue;
+            }
+            if (introducer != 0x21 || offset >= data.Length) throw new InvalidDataException("GIF contains an unsupported or truncated block.");
+            byte label = data[offset++];
+            if (label == 0xFF) {
+                if (offset >= data.Length) throw new InvalidDataException("GIF application extension is truncated.");
+                int headerLength = data[offset++];
+                if (headerLength > data.Length - offset) throw new InvalidDataException("GIF application extension header is truncated.");
+                bool isC2paApplication = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, offset, "C2PA_GIF") &&
+                    data[offset + 8] == 0x01 && data[offset + 9] == 0x00 && data[offset + 10] == 0x00;
+                bool isXmp = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, 0, "GIF89a") &&
+                    OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP DataXMP");
+                if (isC2paApplication) count++;
+                offset += headerLength;
+                if (isXmp && TryReadXmpApplicationData(
+                    data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
+                    out _, out int extensionEnd, out _, out _)) {
+                    offset = extensionEnd;
+                    continue;
+                }
+                offset = SkipSubBlocks(data, offset, isC2paApplication ? options.MaxManifestBytes : options.MaxAssetBytes,
+                    ref entryCount, options.MaxContainerEntries, out _);
+            } else {
+                offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+            }
+        }
+        throw new InvalidDataException("GIF does not contain a trailer.");
     }
 
     private static int GetBodyOffset(byte[] data) {
