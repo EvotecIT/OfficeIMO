@@ -127,6 +127,7 @@ public partial class PdfType3UncoloredPatternTests {
     [Theory]
     [InlineData("[3 1] 2 d")]
     [InlineData("[8 3] 0 d")]
+    [InlineData("99 [3 1] 0 d")]
     public void RenderPage_FailsClosedForInexactDirectType3DashStyle(string dashOperator) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern CS /P1 SCN BT /FType3 18 Tf 20 100 Td (A) Tj ET",
@@ -166,6 +167,7 @@ public partial class PdfType3UncoloredPatternTests {
     [InlineData("0 0 /Bad RG")]
     [InlineData("0 0 0 /Bad k")]
     [InlineData("0 0 0 /Bad K")]
+    [InlineData("1e999 0 0 rg")]
     public void RenderPage_FailsClosedForMalformedDeviceColorOperands(string colorOperator) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

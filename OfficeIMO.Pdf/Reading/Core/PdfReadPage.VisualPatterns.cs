@@ -329,10 +329,20 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool IsUsableTilingPatternMatrix(Matrix2D matrix) =>
-        IsFinite(matrix.A) && IsFinite(matrix.B) && IsFinite(matrix.C) &&
-        IsFinite(matrix.D) && IsFinite(matrix.E) && IsFinite(matrix.F) &&
-        Math.Abs((matrix.A * matrix.D) - (matrix.B * matrix.C)) > 0.000000000001D;
+    private static bool IsUsableTilingPatternMatrix(Matrix2D matrix) {
+        if (!IsFinite(matrix.A) || !IsFinite(matrix.B) || !IsFinite(matrix.C) ||
+            !IsFinite(matrix.D) || !IsFinite(matrix.E) || !IsFinite(matrix.F)) return false;
+        double determinant = (matrix.A * matrix.D) - (matrix.B * matrix.C);
+        if (!IsFinite(determinant) || Math.Abs(determinant) <= 0.000000000001D) return false;
+        double inverseA = matrix.D / determinant;
+        double inverseB = -matrix.B / determinant;
+        double inverseC = -matrix.C / determinant;
+        double inverseD = matrix.A / determinant;
+        double inverseE = -((inverseA * matrix.E) + (inverseC * matrix.F));
+        double inverseF = -((inverseB * matrix.E) + (inverseD * matrix.F));
+        return IsFinite(inverseA) && IsFinite(inverseB) && IsFinite(inverseC) &&
+            IsFinite(inverseD) && IsFinite(inverseE) && IsFinite(inverseF);
+    }
 
     private OfficeDrawing CreatePatternTileDrawing(
         PdfStream stream,

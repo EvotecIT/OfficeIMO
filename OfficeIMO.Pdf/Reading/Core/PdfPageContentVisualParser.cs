@@ -482,7 +482,7 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "d":
-                    if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray && _args[_args.Count - 1] is double dashPhase) {
+                    if (_args.Count == 2 && _args[0] is double[] dashArray && _args[1] is double dashPhase) {
                         if (TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
                             _state = _state.WithStrokeDashStyle(exactStyle);
                             _hasInexactDash = false;
@@ -572,50 +572,62 @@ internal static class PdfPageContentVisualParser {
 
                     break;
                 case "rg":
-                    if (_args.Count >= 3) {
+                    if (HasExactFiniteNumbers(3)) {
                         _fillTilingPattern = null;
                         _fillTilingTint = null;
-                        _state = _state.WithFillColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        _state = _state.WithFillColor(ReadRgb(0), PdfPageColorSpaceKind.DeviceRgb);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("rg");
                     }
 
                     break;
                 case "RG":
-                    if (_args.Count >= 3) {
+                    if (HasExactFiniteNumbers(3)) {
                         _strokeTilingPattern = null;
                         _strokeTilingTint = null;
-                        _state = _state.WithStrokeColor(ReadRgb(_args.Count - 3), PdfPageColorSpaceKind.DeviceRgb);
+                        _state = _state.WithStrokeColor(ReadRgb(0), PdfPageColorSpaceKind.DeviceRgb);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("RG");
                     }
 
                     break;
                 case "g":
-                    if (_args.Count >= 1) {
+                    if (HasExactFiniteNumbers(1)) {
                         _fillTilingPattern = null;
                         _fillTilingTint = null;
-                        _state = _state.WithFillColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        _state = _state.WithFillColor(ReadGray(0), PdfPageColorSpaceKind.DeviceGray);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("g");
                     }
 
                     break;
                 case "G":
-                    if (_args.Count >= 1) {
+                    if (HasExactFiniteNumbers(1)) {
                         _strokeTilingPattern = null;
                         _strokeTilingTint = null;
-                        _state = _state.WithStrokeColor(ReadGray(_args.Count - 1), PdfPageColorSpaceKind.DeviceGray);
+                        _state = _state.WithStrokeColor(ReadGray(0), PdfPageColorSpaceKind.DeviceGray);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("G");
                     }
 
                     break;
                 case "k":
-                    if (_args.Count >= 4) {
+                    if (HasExactFiniteNumbers(4)) {
                         _fillTilingPattern = null;
                         _fillTilingTint = null;
-                        _state = _state.WithFillColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        _state = _state.WithFillColor(ReadCmyk(0), PdfPageColorSpaceKind.DeviceCmyk);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("k");
                     }
 
                     break;
                 case "K":
-                    if (_args.Count >= 4) {
+                    if (HasExactFiniteNumbers(4)) {
                         _strokeTilingPattern = null;
                         _strokeTilingTint = null;
-                        _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                        _state = _state.WithStrokeColor(ReadCmyk(0), PdfPageColorSpaceKind.DeviceCmyk);
+                    } else {
+                        _unsupportedOperatorVisitor?.Invoke("K");
                     }
 
                     break;

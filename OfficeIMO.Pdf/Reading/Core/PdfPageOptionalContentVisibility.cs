@@ -76,10 +76,10 @@ internal sealed class PdfPageOptionalContentVisibility {
                 if (TryEvaluateInlineVisibilityExpression(expression, out bool expressionVisible)) return !expressionVisible;
                 int index = 0;
                 SkipInlineWhitespace(expression, ref index);
-                if (TryReadInlineReference(expression, ref index, out int objectNumber)) {
+                if (TryReadInlineReference(expression, ref index, out PdfReference reference)) {
                     SkipInlineWhitespace(expression, ref index);
                     if (index == expression.Length &&
-                        _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
+                        PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect) &&
                         TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), _maxExpressionDepth, depth: 0, out expressionVisible)) {
                         return !expressionVisible;
                     }
@@ -122,17 +122,19 @@ internal sealed class PdfPageOptionalContentVisibility {
             return TryEvaluateInlineVisibilityArray(expression, ref index, depth, out visible);
         }
 
-        if (TryReadInlineReference(expression, ref index, out int objectNumber)) {
-            if (_groupVisibility.TryGetValue(objectNumber, out visible)) {
+        if (TryReadInlineReference(expression, ref index, out PdfReference reference)) {
+            if (!PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) {
+                return false;
+            }
+            if (_groupVisibility.TryGetValue(reference.ObjectNumber, out visible)) {
                 return true;
             }
 
-            return _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
-                TryEvaluateVisibilityExpression(
+            return TryEvaluateVisibilityExpression(
                     indirect.Value,
                     _groupVisibility,
                     _objects,
-                    new HashSet<int> { objectNumber },
+                    new HashSet<int> { reference.ObjectNumber },
                     _maxExpressionDepth,
                     depth + 1,
                     out visible);
@@ -247,16 +249,16 @@ internal sealed class PdfPageOptionalContentVisibility {
         return true;
     }
 
-    private static bool TryReadInlineReference(string text, ref int index, out int objectNumber) {
-        objectNumber = 0;
+    private static bool TryReadInlineReference(string text, ref int index, out PdfReference reference) {
+        reference = null!;
         SkipInlineWhitespace(text, ref index);
         int start = index;
-        if (!TryReadInlineInteger(text, ref index, out objectNumber)) {
+        if (!TryReadInlineInteger(text, ref index, out int objectNumber)) {
             return false;
         }
 
         SkipInlineWhitespace(text, ref index);
-        if (!TryReadInlineInteger(text, ref index, out _)) {
+        if (!TryReadInlineInteger(text, ref index, out int generation)) {
             index = start;
             return false;
         }
@@ -268,6 +270,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         index++;
+        reference = new PdfReference(objectNumber, generation);
         return true;
     }
 
