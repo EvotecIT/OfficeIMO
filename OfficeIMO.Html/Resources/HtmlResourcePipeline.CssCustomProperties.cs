@@ -15,7 +15,7 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            css = StripCssCommentsOutsideStrings(css);
+            css = MaskCssComments(css);
             MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: false, sourceOwner: styleElement));
             sourceOrderBase += css.Length + 1;
         }
@@ -51,7 +51,7 @@ public static partial class HtmlResourcePipeline {
                 continue;
             }
 
-            string css = StripCssCommentsOutsideStrings(style);
+            string css = MaskCssComments(style);
             MergeCustomPropertyDefinitionsInto(definitions, ExtractCustomPropertyDefinitions(css, GetInactiveCssRuleRanges(css, options), sourceOrderBase, isInline: true, sourceOwner: current));
         }
 

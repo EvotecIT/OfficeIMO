@@ -32,10 +32,10 @@ public static partial class HtmlProvenance {
         IHtmlDocument document = ParseBoundedDocument(html, options.MaxContainerEntries, ref structuralEntries);
         var evidence = new List<OfficeProvenanceEvidence>();
         var diagnostics = new List<string>();
-        InspectManifestCarriers(document, options, evidence, diagnostics, "HTML");
+        long expandedBytes = 0;
+        InspectManifestCarriers(document, options, evidence, diagnostics, "HTML", ref expandedBytes);
         if (options.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            long expandedBytes = 0;
             InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
         }
         return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
@@ -46,7 +46,8 @@ public static partial class HtmlProvenance {
         OfficeProvenanceOptions options,
         List<OfficeProvenanceEvidence> evidence,
         List<string> diagnostics,
-        string documentLocation) {
+        string documentLocation,
+        ref long expandedBytes) {
         IElement? head = document.Head;
         if (head == null) return;
         IElement[] manifestElements = head.QuerySelectorAll("script[type],link[rel][href]")
@@ -56,7 +57,12 @@ public static partial class HtmlProvenance {
         int carrierIndex = 0;
         foreach (IElement script in head.QuerySelectorAll("script[type]")) {
             if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
-            TryDecodeManifest(script.TextContent, options.MaxManifestBytes, out byte[] manifest);
+            TryDecodeManifest(
+                script.TextContent,
+                options.MaxManifestBytes,
+                options.MaxExpandedContainerBytes,
+                ref expandedBytes,
+                out byte[] manifest);
             bool valid = manifestElements.Length == 1 && manifest.Length != 0 &&
                 OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
@@ -106,10 +112,10 @@ public static partial class HtmlProvenance {
         int structuralEntries = 0;
         IHtmlDocument document = ParseBoundedDocument(html, options.Limits.MaxContainerEntries, ref structuralEntries);
         var changes = new List<OfficeProvenanceChange>();
-        RemoveManifestCarriers(document, options, changes, "HTML");
+        long expandedBytes = 0;
+        RemoveManifestCarriers(document, options, changes, "HTML", ref expandedBytes);
         if (inspectionOptions.ProcessEmbeddedAssets) {
             int embeddedAssetCount = 0;
-            long expandedBytes = 0;
             RemoveEmbeddedImages(document, options, changes, ref embeddedAssetCount, ref structuralEntries, ref expandedBytes, srcDocDepth: 0);
         }
 
@@ -130,7 +136,8 @@ public static partial class HtmlProvenance {
         IHtmlDocument document,
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes,
-        string documentLocation) {
+        string documentLocation,
+        ref long expandedBytes) {
         IElement? head = document.Head;
         IEnumerable<IElement> scripts = head == null
             ? Enumerable.Empty<IElement>()
@@ -143,7 +150,12 @@ public static partial class HtmlProvenance {
         int carrierIndex = 0;
         foreach (IElement script in scripts.ToArray()) {
             if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
-            TryDecodeManifest(script.TextContent, options.Limits.MaxManifestBytes, out byte[] manifest);
+            TryDecodeManifest(
+                script.TextContent,
+                options.Limits.MaxManifestBytes,
+                options.Limits.MaxExpandedContainerBytes,
+                ref expandedBytes,
+                out byte[] manifest);
             bool valid = manifestElementCount == 1 && manifest.Length != 0 &&
                 OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
@@ -238,7 +250,7 @@ public static partial class HtmlProvenance {
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
-            InspectManifestCarriers(nested, options, evidence, diagnostics, location);
+            InspectManifestCarriers(nested, options, evidence, diagnostics, location, ref expandedBytes);
             InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
         }
     }
@@ -298,7 +310,7 @@ public static partial class HtmlProvenance {
             string location = $"HTML/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries);
             int priorChanges = changes.Count;
-            RemoveManifestCarriers(nested, options, changes, location);
+            RemoveManifestCarriers(nested, options, changes, location, ref expandedBytes);
             RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries, ref expandedBytes, srcDocDepth + 1);
             if (changes.Count != priorChanges) iframe.SetAttribute("srcdoc", nested.ToHtml());
         }
@@ -477,19 +489,50 @@ public static partial class HtmlProvenance {
         }
     }
 
-    private static bool TryDecodeManifest(string? value, long maximumBytes, out byte[] manifest) {
+    private static bool TryDecodeManifest(
+        string? value,
+        long maximumBytes,
+        long maximumExpandedBytes,
+        ref long expandedBytes,
+        out byte[] manifest) {
         manifest = Array.Empty<byte>();
         string encoded = (value ?? string.Empty).Trim();
         const string prefix = "data:application/c2pa;base64,";
         if (encoded.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) encoded = encoded.Substring(prefix.Length);
         if (encoded.Length == 0 || encoded.Length > maximumBytes * 2L || encoded.Length > int.MaxValue) return false;
+        if (!TryEstimateBase64DecodedByteCount(encoded, out long estimatedBytes) || estimatedBytes > maximumBytes) return false;
+        ReserveExpandedBytes(ref expandedBytes, estimatedBytes, maximumExpandedBytes);
         try {
             manifest = Convert.FromBase64String(encoded);
+            if (manifest.LongLength > estimatedBytes) {
+                ReserveExpandedBytes(ref expandedBytes, manifest.LongLength - estimatedBytes, maximumExpandedBytes);
+            }
             return manifest.LongLength <= maximumBytes;
         } catch (FormatException) {
             manifest = Array.Empty<byte>();
             return false;
         }
+    }
+
+    private static bool TryEstimateBase64DecodedByteCount(string encoded, out long decodedBytes) {
+        decodedBytes = 0;
+        int characterCount = 0;
+        int padding = 0;
+        bool sawPadding = false;
+        foreach (char character in encoded) {
+            if (char.IsWhiteSpace(character)) continue;
+            characterCount++;
+            if (character == '=') {
+                sawPadding = true;
+                padding++;
+                if (padding > 2) return false;
+            } else if (sawPadding) {
+                return false;
+            }
+        }
+        if (characterCount == 0 || (characterCount & 3) != 0) return false;
+        decodedBytes = (long)(characterCount / 4) * 3 - padding;
+        return decodedBytes >= 0;
     }
 
     private static bool HasRelationship(string? value, string relationship) =>
@@ -605,7 +648,7 @@ public static partial class HtmlProvenance {
 
     private static void ReserveExpandedBytes(ref long expandedBytes, long additionalBytes, long maximumBytes) {
         if (additionalBytes < 0 || expandedBytes > maximumBytes - additionalBytes) {
-            throw new InvalidDataException("Embedded HTML images exceed the configured expanded-container limit.");
+            throw new InvalidDataException("HTML provenance payloads exceed the configured expanded-container limit.");
         }
         expandedBytes += additionalBytes;
     }

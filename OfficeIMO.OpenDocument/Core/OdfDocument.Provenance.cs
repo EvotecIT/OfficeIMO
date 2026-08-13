@@ -31,15 +31,17 @@ public abstract partial class OdfDocument {
             data,
             OdfPackage.IsSignaturePath,
             path => path == "META-INF/manifest.xml",
-            (_, manifest) => RemoveSignatureManifestEntries(manifest),
+            (_, manifest) => RemoveSignatureManifestEntries(manifest, limits),
             limits.MaxAssetBytes);
     }
 
-    private static byte[] RemoveSignatureManifestEntries(byte[] data) {
-        var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
+    private static byte[] RemoveSignatureManifestEntries(byte[] data, OfficeProvenanceOptions limits) {
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(data, limits, "ODF manifest");
         XDocument document;
         using (var stream = new MemoryStream(data, writable: false))
-        using (XmlReader reader = XmlReader.Create(stream, settings)) document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        using (XmlReader reader = XmlReader.Create(stream, OfficeProvenanceXml.CreateReaderSettings(limits))) {
+            document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        }
         XNamespace manifestNamespace = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
         foreach (XElement entry in document.Descendants(manifestNamespace + "file-entry").ToArray()) {
             string? path = (string?)entry.Attribute(manifestNamespace + "full-path");

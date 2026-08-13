@@ -14,7 +14,7 @@ public static partial class HtmlResourcePipeline {
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, result);
+            CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, options, result);
         }
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
             string css = element.GetAttribute("style") ?? string.Empty;
@@ -27,7 +27,7 @@ public static partial class HtmlResourcePipeline {
                 ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
             definitions = MergeCustomPropertyDefinitions(definitions,
                 ExtractCustomPropertyDefinitions(css, inactiveRanges, sourceOrderBase, isInline: true, sourceOwner: element));
-            CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, result);
+            CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, options, result);
         }
         return result;
     }
@@ -38,11 +38,14 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument document,
         IElement? inlineUseElement,
+        HtmlResourcePipelineOptions options,
         IDictionary<IElement, HashSet<int>> result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
         string masked = MaskCssComments(css);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options);
         foreach (Match variable in CssVarExpression.Matches(masked)) {
-            if (!IsCssFunctionNameAt(masked, variable.Index, "var") || IsInsideCssString(masked, variable.Index) ||
+            if (IsInRanges(variable.Index, inactiveRanges) ||
+                !IsCssFunctionNameAt(masked, variable.Index, "var") || IsInsideCssString(masked, variable.Index) ||
                 ClassifyCssUrl(masked, variable.Index) != HtmlResourceKind.Image) continue;
             string propertyName = DecodeCssEscapes(variable.Groups["name"].Value);
             string useSelector = GetDeclarationSelector(masked, variable.Index);
@@ -53,7 +56,7 @@ public static partial class HtmlResourcePipeline {
                 IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> effectiveDefinitions = definitions;
                 if (inlineUseElement == null && useElement != null) {
                     Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions =
-                        ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, new HtmlResourcePipelineOptions(), includeSelf: true);
+                        ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options, includeSelf: true);
                     if (inlineDefinitions.Count != 0) effectiveDefinitions = MergeCustomPropertyDefinitions(definitions, inlineDefinitions);
                 }
                 foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(
