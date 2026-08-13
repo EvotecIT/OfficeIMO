@@ -6,18 +6,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlResourcePipeline {
     private static void AddElementResources(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options, int srcDocDepth) {
         string name = element.TagName.ToLowerInvariant();
-        switch (name) {
-            case "body":
-            case "table":
-            case "thead":
-            case "tbody":
-            case "tfoot":
-            case "tr":
-            case "td":
-            case "th":
-                AddLegacyBackground(manifest, element, baseUri, options);
-                break;
-        }
+        if (SupportsLegacyBackground(name)) AddLegacyBackground(manifest, element, baseUri, options);
 
         AddAttribute(manifest, HtmlResourceKind.Hyperlink, element, "cite", baseUri, options);
 
@@ -101,6 +90,9 @@ public static partial class HtmlResourcePipeline {
                 break;
         }
     }
+
+    internal static bool SupportsLegacyBackground(string localName) =>
+        localName is "body" or "table" or "thead" or "tbody" or "tfoot" or "tr" or "td" or "th";
 
     private static void AddLegacyBackground(HtmlResourceManifest manifest, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
         AddAttribute(manifest, HtmlResourceKind.Image, element, "background", baseUri, options);

@@ -73,9 +73,9 @@ public partial class VisioDocument {
                 using (Stream input = appProperties.GetStream(FileMode.Open, FileAccess.Read)) {
                     byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
                     if (xml.Length != 0) {
-                        ValidateXmlNodeBudget(xml, limits);
+                        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio app metadata");
                         using var xmlInput = new MemoryStream(xml, writable: false);
-                        using XmlReader reader = XmlReader.Create(xmlInput, CreateXmlReaderSettings(limits));
+                        using XmlReader reader = XmlReader.Create(xmlInput, OfficeProvenanceXml.CreateReaderSettings(limits));
                         document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
                     }
                 }
@@ -108,32 +108,4 @@ public partial class VisioDocument {
         return output.ToArray();
     }
 
-    private static void ValidateXmlNodeBudget(byte[] xml, OfficeProvenanceOptions limits) {
-        using var input = new MemoryStream(xml, writable: false);
-        using XmlReader reader = XmlReader.Create(input, CreateXmlReaderSettings(limits));
-        int materializedNodes = 0;
-        while (reader.Read()) {
-            if (reader.Depth > 256) throw new InvalidDataException("Visio app metadata exceeds the configured XML depth limit.");
-            int nodes = reader.NodeType == XmlNodeType.Element
-                ? 1 + reader.AttributeCount
-                : IsMaterializedXmlNode(reader.NodeType) ? 1 : 0;
-            if (nodes > 0 && materializedNodes > limits.MaxContainerEntries - nodes) {
-                throw new InvalidDataException("Visio app metadata exceeds the configured XML node limit.");
-            }
-            materializedNodes += nodes;
-        }
-    }
-
-    private static XmlReaderSettings CreateXmlReaderSettings(OfficeProvenanceOptions limits) =>
-        new XmlReaderSettings {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersInDocument = limits.MaxAssetBytes,
-            MaxCharactersFromEntities = 0,
-            IgnoreWhitespace = false
-        };
-
-    private static bool IsMaterializedXmlNode(XmlNodeType type) =>
-        type is XmlNodeType.Text or XmlNodeType.CDATA or XmlNodeType.ProcessingInstruction or
-            XmlNodeType.Comment or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace;
 }

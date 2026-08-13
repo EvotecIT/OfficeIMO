@@ -229,10 +229,11 @@ public static partial class HtmlProvenance {
         ref long expandedBytes,
         int srcDocDepth) {
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
-        Dictionary<IElement, HashSet<int>> usedImageProperties = HtmlResourcePipeline.CollectProvenanceCssImageCustomPropertyDeclarations(document);
+        HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
         foreach (IElement element in elements) {
-            usedImageProperties.TryGetValue(element, out HashSet<int>? usedDeclarations);
-            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedDeclarations)) {
+            cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
+            cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
+            foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(element, usedDeclarations, resolvedFallbacks)) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                 int index = count++;
                 string location = $"HTML/{element.LocalName}[{reference.AttributeName}][{index}]";
@@ -282,10 +283,11 @@ public static partial class HtmlProvenance {
         int srcDocDepth) {
         int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
         IElement[] elements = GetEmbeddedImageElements(document).ToArray();
-        Dictionary<IElement, HashSet<int>> usedImageProperties = HtmlResourcePipeline.CollectProvenanceCssImageCustomPropertyDeclarations(document);
+        HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
         foreach (IElement element in elements) {
-            usedImageProperties.TryGetValue(element, out HashSet<int>? usedDeclarations);
-            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedDeclarations).ToArray();
+            cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
+            cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
+            EmbeddedImageReference[] references = GetEmbeddedImageReferences(element, usedDeclarations, resolvedFallbacks).ToArray();
             var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
             foreach (EmbeddedImageReference reference in references) {
                 if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -335,13 +337,15 @@ public static partial class HtmlProvenance {
 
     private static IEnumerable<EmbeddedImageReference> GetEmbeddedImageReferences(
         IElement element,
-        ISet<int>? usedImageProperties) {
+        ISet<int>? usedImageProperties,
+        ISet<int>? resolvedVarFallbacks) {
         string localName = element.LocalName.ToLowerInvariant();
         if (localName == "style") {
             if (!HtmlResourcePipeline.IsCssStyleElement(element)) yield break;
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
                 element.TextContent,
-                usedImageProperties)) {
+                usedImageProperties,
+                resolvedVarFallbacks)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;
@@ -351,13 +355,16 @@ public static partial class HtmlProvenance {
         if (inlineStyle != null) {
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
                 inlineStyle,
-                usedImageProperties)) {
+                usedImageProperties,
+                resolvedVarFallbacks)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
         }
 
         string? background = element.GetAttribute("background");
-        if (background != null) yield return CreateDirectUrlReference("background", background);
+        if (background != null && HtmlResourcePipeline.SupportsLegacyBackground(localName)) {
+            yield return CreateDirectUrlReference("background", background);
+        }
 
         if (localName is "img" or "source") {
             foreach (string attributeName in EmbeddedImageSourceAttributes) {
@@ -622,6 +629,7 @@ public static partial class HtmlProvenance {
             int tagEnd = FindTagEnd(html, nameEnd);
             if (tagEnd < 0) break;
             index = tagEnd + 1;
+            if (tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
             if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase) ||

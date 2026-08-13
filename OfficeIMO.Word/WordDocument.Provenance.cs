@@ -22,14 +22,16 @@ public partial class WordDocument {
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
         bool hadSignatures;
         using (WordprocessingDocument document = WordprocessingDocument.Open(stream, true)) {
             DigitalSignatureOriginPart? origin = document.DigitalSignatureOriginPart;
-            bool hasApplicationMetadata = document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
+            ExtendedFilePropertiesPart? applicationProperties = document.ExtendedFilePropertiesPart;
+            ValidateApplicationProperties(applicationProperties, limits);
+            bool hasApplicationMetadata = applicationProperties?.Properties?.DigitalSignature != null;
             hadSignatures = origin != null || hasApplicationMetadata;
             if (origin != null) document.DeletePart(origin);
             if (hasApplicationMetadata) {
@@ -38,5 +40,11 @@ public partial class WordDocument {
             }
         }
         return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
+    }
+
+    private static void ValidateApplicationProperties(ExtendedFilePropertiesPart? part, OfficeProvenanceOptions limits) {
+        if (part == null) return;
+        using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(input, limits, "Open XML application metadata");
     }
 }
