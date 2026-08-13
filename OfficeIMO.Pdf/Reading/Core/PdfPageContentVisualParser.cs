@@ -159,20 +159,28 @@ internal static class PdfPageContentVisualParser {
             !IsFiniteNumber(dx) || !IsFiniteNumber(dy)) return false;
         double t0 = 0D;
         double t1 = 1D;
-        return ClipExactLineParameter(-dx, x0, ref t0, ref t1) &&
-               ClipExactLineParameter(dx, 1D - x0, ref t0, ref t1) &&
-               ClipExactLineParameter(-dy, y0, ref t0, ref t1) &&
-               ClipExactLineParameter(dy, 1D - y0, ref t0, ref t1) &&
-               t1 > t0;
+        if (!ClipRenderedLineParameter(-dx, x0, ref t0, ref t1) ||
+            !ClipRenderedLineParameter(dx, 1D - x0, ref t0, ref t1) ||
+            !ClipRenderedLineParameter(-dy, y0, ref t0, ref t1) ||
+            !ClipRenderedLineParameter(dy, 1D - y0, ref t0, ref t1) ||
+            t1 <= t0) return false;
+        double clippedStartX = ClampExactUnit(x0 + dx * t0);
+        double clippedStartY = ClampExactUnit(y0 + dy * t0);
+        double clippedEndX = ClampExactUnit(x0 + dx * t1);
+        double clippedEndY = ClampExactUnit(y0 + dy * t1);
+        return Math.Abs(clippedStartX - clippedEndX) > 0.001D ||
+               Math.Abs(clippedStartY - clippedEndY) > 0.001D;
     }
 
     private static bool IsFiniteNumber(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
+    private static double ClampExactUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+
     private static double TransformExactRadius(double radius, double firstComponent, double secondComponent) =>
         radius <= 0D ? 0D : radius * Math.Sqrt((firstComponent * firstComponent) + (secondComponent * secondComponent));
 
-    private static bool ClipExactLineParameter(double p, double q, ref double t0, ref double t1) {
-        if (Math.Abs(p) <= 0.000000001D) return q >= 0D;
+    private static bool ClipRenderedLineParameter(double p, double q, ref double t0, ref double t1) {
+        if (Math.Abs(p) <= 0.001D) return q >= 0D;
         double ratio = q / p;
         if (p < 0D) {
             if (ratio > t1) return false;

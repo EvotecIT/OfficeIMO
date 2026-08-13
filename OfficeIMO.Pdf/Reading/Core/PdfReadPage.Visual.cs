@@ -2162,7 +2162,13 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        if (!TryCreateImageProjection(placement, pageHeight, drawing.Width, drawing.Height, out OfficeImageProjection projection)) {
+        if (!TryCreateImageProjection(
+                placement,
+                pageHeight,
+                drawing.Width,
+                drawing.Height,
+                out OfficeImageProjection projection,
+                allowAxisAlignedFallback: !placement.RequireExactProjection)) {
             return;
         }
 
@@ -2287,10 +2293,16 @@ public sealed partial class PdfReadPage {
                 return false;
             }
 
-            if (NearlyEqual(visibleLeft, imageX) &&
-                NearlyEqual(visibleTop, imageY) &&
-                NearlyEqual(pageVisibleWidth, placement.Width) &&
-                NearlyEqual(pageVisibleHeight, placement.Height)) {
+            bool isEffectivelyUncropped = allowAxisAlignedFallback
+                ? NearlyEqual(visibleLeft, imageX) &&
+                  NearlyEqual(visibleTop, imageY) &&
+                  NearlyEqual(pageVisibleWidth, placement.Width) &&
+                  NearlyEqual(pageVisibleHeight, placement.Height)
+                : visibleLeft == imageX &&
+                  visibleTop == imageY &&
+                  pageVisibleWidth == placement.Width &&
+                  pageVisibleHeight == placement.Height;
+            if (isEffectivelyUncropped) {
                 // Normalize sub-point producer rounding at the page boundary. Keeping
                 // the original near-equal coordinates can place a valid full-page
                 // image microscopically outside the Drawing contract.

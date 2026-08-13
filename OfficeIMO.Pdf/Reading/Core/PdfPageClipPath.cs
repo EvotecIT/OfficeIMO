@@ -110,10 +110,13 @@ internal readonly partial struct PdfPageClipPath {
     }
 
     private static PdfPageClipPath IntersectPathWithPath(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
+        bool isExact = active.IsExact && next.IsExact &&
+            !ContainsCurve(active.Commands) &&
+            !ContainsCurve(next.Commands);
         List<List<OfficePoint>> subjectContours = FlattenPathContours(active.Commands);
         List<List<OfficePoint>> clipContours = FlattenPathContours(next.Commands);
         if (subjectContours.Count == 0 || clipContours.Count == 0) {
-            return Rectangle(intersection.X, intersection.Y, 0D, 0D);
+            return Rectangle(intersection.X, intersection.Y, 0D, 0D).WithExactness(isExact);
         }
 
         var intersectedContours = new List<List<OfficePoint>>();
@@ -135,13 +138,15 @@ internal readonly partial struct PdfPageClipPath {
         }
 
         List<OfficePathCommand> commands = BuildClosedContourCommands(intersectedContours);
-        return commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
+        PdfPageClipPath result = commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+        return result.WithExactness(isExact);
     }
 
     private static bool CanServeAsExactPathClip(PdfPageClipPath path) {
         if (path.IsRectangle) return true;
+        if (!path.IsExact || ContainsCurve(path.Commands)) return false;
         List<List<OfficePoint>> contours = FlattenPathContours(path.Commands);
         return contours.Count > 0 && contours.All(IsConvexContour) && !HasOverlappingContourBounds(contours);
     }

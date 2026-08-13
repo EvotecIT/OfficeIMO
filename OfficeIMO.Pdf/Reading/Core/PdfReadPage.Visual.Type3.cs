@@ -271,7 +271,7 @@ public sealed partial class PdfReadPage {
                                 out _,
                                 allowAxisAlignedFallback: false)) return false;
                         PdfPageDrawingEffect effect = ResolveDrawingEffect(localEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey);
-                        localImages.Add((placement, image, effect));
+                        localImages.Add((placement.WithExactProjection(), image, effect));
                     }
                 }
 
@@ -349,6 +349,7 @@ public sealed partial class PdfReadPage {
         if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
+            ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
     }

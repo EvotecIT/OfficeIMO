@@ -579,9 +579,9 @@ public sealed partial class PdfReadPage {
     private static bool HasUnsupportedInheritedSoftMaskState(PdfPageGraphicsStateResource? state) {
         if (!state.HasValue) return false;
         PdfPageGraphicsStateResource value = state.Value;
-        return value.FillOpacity.HasValue && Math.Abs(value.FillOpacity.Value - 1D) > 0.000001D ||
-            value.StrokeOpacity.HasValue && Math.Abs(value.StrokeOpacity.Value - 1D) > 0.000001D ||
-            value.StrokeWidth.HasValue && Math.Abs(value.StrokeWidth.Value - 1D) > 0.000001D ||
+        return value.FillOpacity.HasValue && value.FillOpacity.Value != 1D ||
+            value.StrokeOpacity.HasValue && value.StrokeOpacity.Value != 1D ||
+            value.StrokeWidth.HasValue && value.StrokeWidth.Value != 1D ||
             value.StrokeDashStyle.HasValue && value.StrokeDashStyle.Value != OfficeStrokeDashStyle.Solid ||
             value.StrokeLineCap.HasValue ||
             value.StrokeLineJoin.HasValue;

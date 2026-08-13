@@ -29,7 +29,8 @@ public sealed class PdfImagePlacement {
         double paintOrder = 0D,
         PdfContentOrderKey? contentOrderKey = null,
         PdfPagePatternSelection? fillPattern = null,
-        PdfDictionary? effectiveResources = null) {
+        PdfDictionary? effectiveResources = null,
+        bool requireExactProjection = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -53,6 +54,7 @@ public sealed class PdfImagePlacement {
         ContentOrderKey = contentOrderKey;
         FillPattern = fillPattern;
         EffectiveResources = effectiveResources;
+        RequireExactProjection = requireExactProjection;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -115,6 +117,8 @@ public sealed class PdfImagePlacement {
 
     internal PdfDictionary? EffectiveResources { get; }
 
+    internal bool RequireExactProjection { get; }
+
     internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
         Copy(ImageMaskColor, paintOrder);
 
@@ -126,7 +130,14 @@ public sealed class PdfImagePlacement {
             PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
             A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
             ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
-            PaintOrder, contentOrderKey, FillPattern, EffectiveResources);
+            PaintOrder, contentOrderKey, FillPattern, EffectiveResources, RequireExactProjection);
+
+    internal PdfImagePlacement WithExactProjection() =>
+        new PdfImagePlacement(
+            PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
+            A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
+            ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
+            PaintOrder, ContentOrderKey, FillPattern, EffectiveResources, requireExactProjection: true);
 
     private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
         new PdfImagePlacement(
@@ -152,7 +163,8 @@ public sealed class PdfImagePlacement {
             paintOrder,
             ContentOrderKey,
             FillPattern,
-            EffectiveResources);
+            EffectiveResources,
+            RequireExactProjection);
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

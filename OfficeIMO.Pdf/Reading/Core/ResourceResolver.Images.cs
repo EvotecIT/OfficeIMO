@@ -30,6 +30,48 @@ internal static partial class ResourceResolver {
             out _);
     }
 
+    /// <summary>Determines whether an authored image decode array has the exact shape required by its color space.</summary>
+    internal static bool HasValidImageDecode(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
+            ResolveObject(decodeObject, objects) is null or PdfNull) {
+            return true;
+        }
+
+        if (ResolveObject(decodeObject, objects) is not PdfArray decode) return false;
+        PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int componentCount;
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
+            componentCount = 1;
+        } else {
+            string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+            if (!PdfImageColorSpaceNormalization.TryResolve(
+                    effectiveColorSpace,
+                    colorSpaceName,
+                    objects,
+                    out PdfImageColorSpaceNormalization normalization)) {
+                return false;
+            }
+            componentCount = normalization.SourceColorCount;
+        }
+
+        if (decode.Items.Count != componentCount * 2) return false;
+        for (int i = 0; i < decode.Items.Count; i++) {
+            if (ResolveObject(decode.Items[i], objects) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /// <summary>Determines whether a DCT image can be passed through without losing authored decode semantics.</summary>
     internal static bool CanPassThroughDctDecode(
         PdfDictionary image,
