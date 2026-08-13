@@ -5,6 +5,42 @@ using System.Text;
 namespace OfficeIMO.Pdf;
 
 internal static class TextContentParser {
+    [Flags]
+    private enum PersistentGraphicsStateFlags {
+        None = 0,
+        FillColor = 1,
+        StrokeColor = 2,
+        Transform = 4,
+        LineWidth = 8,
+        LineCap = 16,
+        LineJoin = 32,
+        MiterLimit = 64,
+        Dash = 128,
+        RenderingIntent = 256,
+        Flatness = 512,
+        ExtendedState = 1024,
+        TextFont = 2048,
+        TextCharacterSpacing = 4096,
+        TextWordSpacing = 8192,
+        TextHorizontalScale = 16384,
+        TextLeading = 32768,
+        TextRenderingMode = 65536,
+        TextRise = 131072
+    }
+
+    private sealed class PendingPersistentTextState {
+        internal PendingPersistentTextState(int firstSpanIndex, int spanCount, int graphicsDepth, PersistentGraphicsStateFlags flags) {
+            FirstSpanIndex = firstSpanIndex;
+            SpanCount = spanCount;
+            GraphicsDepth = graphicsDepth;
+            Flags = flags;
+        }
+        internal int FirstSpanIndex { get; }
+        internal int SpanCount { get; }
+        internal int GraphicsDepth { get; }
+        internal PersistentGraphicsStateFlags Flags { get; set; }
+    }
+
     private readonly struct TextGraphicsState {
         public Matrix2D Ctm { get; }
         public string Font { get; }
@@ -22,8 +58,12 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public OfficeBlendMode BlendMode { get; }
+        public bool HasSoftMask { get; }
+        public bool HasUnsupportedEffect { get; }
+        public bool FillColorResolved { get; }
 
-        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath) {
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath, OfficeBlendMode blendMode = OfficeBlendMode.Normal, bool hasSoftMask = false, bool hasUnsupportedEffect = false, bool fillColorResolved = true) {
             Ctm = ctm;
             Font = font;
             Size = size;
@@ -40,6 +80,10 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            BlendMode = blendMode;
+            HasSoftMask = hasSoftMask;
+            HasUnsupportedEffect = hasUnsupportedEffect;
+            FillColorResolved = fillColorResolved;
         }
     }
 
@@ -74,13 +118,17 @@ internal static class TextContentParser {
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
         public bool IsHidden { get; }
+        public bool HasMcid { get; }
+        public bool IsOptionalContent { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden) {
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, bool hasMcid = false, bool isOptionalContent = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
+            HasMcid = hasMcid;
+            IsOptionalContent = isOptionalContent;
         }
 
         public string DecodeActualText(TextOutputBudget budget) =>
@@ -157,6 +205,8 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public bool HasUnsupportedEffect { get; }
+        public bool FillColorResolved { get; }
 
         public FormInvocation(
             string name,
@@ -169,7 +219,9 @@ internal static class TextContentParser {
             double? fillOpacity = null,
             double? strokeOpacity = null,
             int textRenderingMode = 0,
-            PdfPageClipPath? clipPath = null) {
+            PdfPageClipPath? clipPath = null,
+            bool hasUnsupportedEffect = false,
+            bool fillColorResolved = true) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -181,6 +233,8 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            HasUnsupportedEffect = hasUnsupportedEffect;
+            FillColorResolved = fillColorResolved;
         }
     }
 
@@ -190,6 +244,7 @@ internal static class TextContentParser {
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
         System.Func<string, byte[]?>? actualTextForProperty = null,
+        System.Func<string, bool>? hasMcidForProperty = null,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
@@ -215,7 +270,8 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
-        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null) {
+        System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
+        bool initialUnsupportedEffect = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -242,6 +298,10 @@ internal static class TextContentParser {
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal;
+        bool hasSoftMask = false;
+        bool hasUnsupportedEffect = initialUnsupportedEffect;
+        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         var pendingTextClipPaths = new List<PdfPageClipPath>();
         Matrix2D textMatrix = Matrix2D.Identity;
@@ -254,6 +314,10 @@ internal static class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
+        int textObjectFirstSpanIndex = 0;
+        PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
+        bool textObjectHasCollateralVisual = false;
+        var pendingPersistentTextStates = new List<PendingPersistentTextState>();
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
@@ -261,9 +325,25 @@ internal static class TextContentParser {
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
+            if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
+            if (string.Equals(op, "BT", StringComparison.Ordinal)) {
+                textObjectFirstSpanIndex = spans.Count;
+                textObjectPersistentState = PersistentGraphicsStateFlags.None;
+                textObjectHasCollateralVisual = false;
+            } else {
+                PersistentGraphicsStateFlags changedState = GetPersistentGraphicsStateFlag(op);
+                if (changedState != PersistentGraphicsStateFlags.None) {
+                    OverridePendingPersistentState(changedState);
+                    if (inText) textObjectPersistentState |= changedState;
+                }
+                if (string.Equals(op, "Q", StringComparison.Ordinal)) DiscardRestoredPendingState();
+                if (IsTextShowOperator(op)) MarkPendingPersistentStateAsUnsafe();
+                if (inText && IsNonTextVisualConsumer(op)) textObjectHasCollateralVisual = true;
+                else if (!inText && IsNonTextVisualConsumer(op)) MarkPendingPersistentStateAsUnsafe();
+            }
             switch (op) {
                 case "BT": ApplyPendingTextClippingPath(); inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
-                case "ET": ApplyPendingTextClippingPath(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
+                case "ET": ApplyPendingTextClippingPath(); QueueCurrentTextObjectPersistentState(); inText = false; pendingGapPt = 0; pendingLineBreaks = 0; emittedTextInTextObject = false; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
                 case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
                 case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
@@ -276,7 +356,7 @@ internal static class TextContentParser {
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1])); args.Clear(); } break;
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved));
                     args.Clear();
                     break;
                 case "Q":
@@ -298,6 +378,10 @@ internal static class TextContentParser {
                         strokeOpacity = state.StrokeOpacity;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
+                        blendMode = state.BlendMode;
+                        hasSoftMask = state.HasSoftMask;
+                        hasUnsupportedEffect = state.HasUnsupportedEffect;
+                        fillColorResolved = state.FillColorResolved;
                     } else {
                         ctm = Matrix2D.Identity;
                         fillColor = OfficeColor.Black;
@@ -308,6 +392,10 @@ internal static class TextContentParser {
                         strokeOpacity = null;
                         textRenderingMode = 0;
                         clipPath = null;
+                        blendMode = OfficeBlendMode.Normal;
+                        hasSoftMask = false;
+                        hasUnsupportedEffect = initialUnsupportedEffect;
+                        fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                     }
                     args.Clear();
                     break;
@@ -418,6 +506,10 @@ internal static class TextContentParser {
                 case "cs":
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
+                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();
@@ -433,6 +525,7 @@ internal static class TextContentParser {
                     if (args.Count >= 3) {
                         fillColor = ReadRgb(args.Count - 3);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -449,6 +542,7 @@ internal static class TextContentParser {
                     if (args.Count >= 1) {
                         fillColor = ReadGray(args.Count - 1);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -465,6 +559,7 @@ internal static class TextContentParser {
                     if (args.Count >= 4) {
                         fillColor = ReadCmyk(args.Count - 4);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -479,7 +574,8 @@ internal static class TextContentParser {
                     break;
                 case "sc":
                 case "scn":
-                    if (TryReadColor(fillColorSpace, out OfficeColor parsedFillColor)) {
+                    fillColorResolved = TryReadColor(fillColorSpace, out OfficeColor parsedFillColor);
+                    if (fillColorResolved) {
                         fillColor = parsedFillColor;
                     }
 
@@ -497,21 +593,23 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; }
                     args.Clear();
                     break;
-                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; args.Clear(); } break;
+                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder, forceCannotRestamp: false); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
                 case "BDC":
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
                         IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null),
                         operation.HasInvalidOperands ||
-                        IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null)));
+                        IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
+                        HasMcid(args.Count > 0 ? args[args.Count - 1] : null),
+                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null)));
                     args.Clear();
                     break;
                 case "BMC":
@@ -535,6 +633,78 @@ internal static class TextContentParser {
         return spans;
 
         // Helpers
+        void QueueCurrentTextObjectPersistentState() {
+            int spanCount = spans.Count - textObjectFirstSpanIndex;
+            if (spanCount <= 0) return;
+            if (textObjectHasCollateralVisual) {
+                MarkSpansCannotRestamp(textObjectFirstSpanIndex, spanCount);
+                return;
+            }
+            if (textObjectPersistentState != PersistentGraphicsStateFlags.None) {
+                pendingPersistentTextStates.Add(new PendingPersistentTextState(textObjectFirstSpanIndex, spanCount, gstack.Count, textObjectPersistentState));
+            }
+        }
+
+        void OverridePendingPersistentState(PersistentGraphicsStateFlags changedState) {
+            PersistentGraphicsStateFlags overrideable = changedState & ~PersistentGraphicsStateFlags.Transform & ~PersistentGraphicsStateFlags.ExtendedState;
+            if (overrideable == PersistentGraphicsStateFlags.None) return;
+            for (int index = pendingPersistentTextStates.Count - 1; index >= 0; index--) {
+                PendingPersistentTextState pending = pendingPersistentTextStates[index];
+                pending.Flags &= ~overrideable;
+                if (pending.Flags == PersistentGraphicsStateFlags.None) pendingPersistentTextStates.RemoveAt(index);
+            }
+        }
+
+        void DiscardRestoredPendingState() {
+            int restoredDepth = gstack.Count;
+            for (int index = pendingPersistentTextStates.Count - 1; index >= 0; index--) {
+                if (pendingPersistentTextStates[index].GraphicsDepth >= restoredDepth) pendingPersistentTextStates.RemoveAt(index);
+            }
+        }
+
+        void MarkPendingPersistentStateAsUnsafe() {
+            for (int index = 0; index < pendingPersistentTextStates.Count; index++) {
+                PendingPersistentTextState pending = pendingPersistentTextStates[index];
+                MarkSpansCannotRestamp(pending.FirstSpanIndex, pending.SpanCount);
+            }
+            pendingPersistentTextStates.Clear();
+        }
+
+        void MarkSpansCannotRestamp(int firstSpanIndex, int spanCount) {
+            int end = Math.Min(spans.Count, firstSpanIndex + spanCount);
+            for (int index = firstSpanIndex; index < end; index++) spans[index] = spans[index].WithCanRestamp(false);
+        }
+
+        static PersistentGraphicsStateFlags GetPersistentGraphicsStateFlag(string name) => name switch {
+            "g" or "rg" or "k" or "cs" or "sc" or "scn" => PersistentGraphicsStateFlags.FillColor,
+            "G" or "RG" or "K" or "CS" or "SC" or "SCN" => PersistentGraphicsStateFlags.StrokeColor,
+            "cm" => PersistentGraphicsStateFlags.Transform,
+            "w" => PersistentGraphicsStateFlags.LineWidth,
+            "J" => PersistentGraphicsStateFlags.LineCap,
+            "j" => PersistentGraphicsStateFlags.LineJoin,
+            "M" => PersistentGraphicsStateFlags.MiterLimit,
+            "d" => PersistentGraphicsStateFlags.Dash,
+            "ri" => PersistentGraphicsStateFlags.RenderingIntent,
+            "i" => PersistentGraphicsStateFlags.Flatness,
+            "gs" => PersistentGraphicsStateFlags.ExtendedState,
+            "Tf" => PersistentGraphicsStateFlags.TextFont,
+            "Tc" => PersistentGraphicsStateFlags.TextCharacterSpacing,
+            "Tw" => PersistentGraphicsStateFlags.TextWordSpacing,
+            "Tz" => PersistentGraphicsStateFlags.TextHorizontalScale,
+            "TL" or "TD" => PersistentGraphicsStateFlags.TextLeading,
+            "Tr" => PersistentGraphicsStateFlags.TextRenderingMode,
+            "Ts" => PersistentGraphicsStateFlags.TextRise,
+            "\"" => PersistentGraphicsStateFlags.TextCharacterSpacing | PersistentGraphicsStateFlags.TextWordSpacing,
+            _ => PersistentGraphicsStateFlags.None
+        };
+
+        static bool IsTextShowOperator(string name) => name is "Tj" or "TJ" or "'" or "\"";
+
+        static bool IsNonTextVisualConsumer(string name) => name switch {
+            "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "Do" or "sh" or "BI" => true,
+            _ => false
+        };
+
         void SetTextMatrix(List<object> operands) {
             lineMatrix = new Matrix2D(
                 ToDouble(operands[operands.Count - 6]),
@@ -581,7 +751,7 @@ internal static class TextContentParser {
             if (pendingGapPt >= threshold) sbOutGlobal.Append(' ');
             pendingGapPt = 0;
         }
-        void ShowTextRun(byte[] bytes, double paintOrder) {
+        void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
             string DecodeRun(byte[] value, int? maximumCharacters = null) {
@@ -605,6 +775,7 @@ internal static class TextContentParser {
                     (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
+            var decodedAdvances = new List<double>();
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
@@ -625,6 +796,8 @@ internal static class TextContentParser {
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
                 if (ch != '\0') {
                     sbOut.Append(t);
+                    double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
+                    for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
                 }
                 advTotal += advGlyph;
                 idx += step;
@@ -633,9 +806,11 @@ internal static class TextContentParser {
             if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
+                decodedAdvances.Clear();
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
-            bool isArtifact = useLogicalTextFilters && !includeArtifactText && HasActiveArtifact();
+            bool hasActiveArtifact = HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
@@ -646,6 +821,34 @@ internal static class TextContentParser {
             var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
             double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
             double rotationDegrees = CalculateRotationDegrees(endX - dx, endY - dy);
+            var textUnitX = textMatrix.Transform(1D, textRise);
+            var textUnitY = textMatrix.Transform(0D, textRise + 1D);
+            var (unitXPageX, unitXPageY) = ctm.Transform(textUnitX.X, textUnitX.Y);
+            var (unitYPageX, unitYPageY) = ctm.Transform(textUnitY.X, textUnitY.Y);
+            double unitXLength = Math.Sqrt(((unitXPageX - dx) * (unitXPageX - dx)) + ((unitXPageY - dy) * (unitXPageY - dy)));
+            double unitYLength = Math.Sqrt(((unitYPageX - dx) * (unitYPageX - dx)) + ((unitYPageY - dy) * (unitYPageY - dy)));
+            double unitDot = ((unitXPageX - dx) * (unitYPageX - dx)) + ((unitXPageY - dy) * (unitYPageY - dy));
+            double unitDeterminant = ((unitXPageX - dx) * (unitYPageY - dy)) - ((unitXPageY - dy) * (unitYPageX - dx));
+            bool canRestamp = unitXLength > 0.000001D &&
+                unitYLength > 0.000001D &&
+                unitDeterminant > 0D &&
+                Math.Abs(unitXLength - unitYLength) <= Math.Max(unitXLength, unitYLength) * 0.0001D &&
+                Math.Abs(unitDot) <= unitXLength * unitYLength * 0.0001D &&
+                Math.Abs(hScale - 1D) <= 0.0001D &&
+                Math.Abs(charSpacing) <= 0.000001D &&
+                Math.Abs(wordSpacing) <= 0.000001D &&
+                blendMode == OfficeBlendMode.Normal &&
+                !hasSoftMask &&
+                !hasUnsupportedEffect &&
+                fillColorResolved &&
+                !HasActiveMcid() &&
+                !HasActiveOptionalContent() &&
+                !hasActiveArtifact &&
+                !forceCannotRestamp;
+            double restampFontSize = size * unitYLength;
+            IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
+                ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
+                : null;
             OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
             PdfPageClipPath? spanClipPath = clipPath;
@@ -677,6 +880,11 @@ internal static class TextContentParser {
                 if (normalizedText.Length == 0) {
                     return;
                 }
+                string paintedText = sbOut.ToString();
+                bool visibleGlyphsMatchLogicalText = string.Equals(
+                    NormalizeShatteredSpan(paintedText),
+                    normalizedText,
+                    StringComparison.Ordinal);
 
                 spans.Add(new PdfTextSpan(
                     normalizedText,
@@ -694,7 +902,12 @@ internal static class TextContentParser {
                     drawingFontFamilyForResource?.Invoke(font),
                     pendingLineBreaks,
                     logicalLeadingSpace,
-                    logicalTrailingSpace));
+                    logicalTrailingSpace,
+                    string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) ? transformedCharacterAdvances : null,
+                    textRenderingMode,
+                    canRestamp && visibleGlyphsMatchLogicalText,
+                    restampFontSize,
+                    paintedText));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -755,6 +968,24 @@ internal static class TextContentParser {
             return false;
         }
 
+        bool HasActiveMcid() {
+            foreach (var state in markedContentStack) if (state.HasMcid) return true;
+            return false;
+        }
+
+        bool HasActiveOptionalContent() {
+            foreach (var state in markedContentStack) if (state.IsOptionalContent) return true;
+            return false;
+        }
+
+        bool HasMcid(object? propertyObject) {
+            if (propertyObject is string propertyName) return hasMcidForProperty?.Invoke(propertyName) == true;
+            return propertyObject is PdfContentDictionary dictionary && dictionary.Items.ContainsKey("MCID");
+        }
+
+        static bool IsOptionalContentTag(object? tag) =>
+            tag is string name && string.Equals(name, "OC", StringComparison.Ordinal);
+
         ActualTextValue? GetActualText(object? propertyObject) {
             if (propertyObject is string propertyName) {
                 byte[]? propertyBytes = actualTextForProperty?.Invoke(propertyName);
@@ -786,9 +1017,11 @@ internal static class TextContentParser {
             if (!inText || arrObj == null) return;
             var list = arrObj as List<object>;
             if (list == null) return;
+            bool hasPositioningAdjustment = list.Any(static item => item is double value && Math.Abs(value) > 0.000001D);
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b, paintOrder); } else if (adjustKerningFromTJ && it is double num) {
+                if (it is byte[] b) { ShowTextRun(b, paintOrder, hasPositioningAdjustment); }
+                else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space
@@ -805,6 +1038,14 @@ internal static class TextContentParser {
             if (graphicsStates != null && graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
                 fillOpacity = resource.FillOpacity ?? fillOpacity;
                 strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+                blendMode = resource.BlendMode ?? blendMode;
+                if (resource.SoftMaskEnabled.HasValue) {
+                    hasSoftMask = resource.SoftMaskEnabled == true && resource.SoftMask != null;
+                }
+                hasUnsupportedEffect = hasUnsupportedEffect ||
+                    resource.HasUnsupportedBlendMode ||
+                    resource.HasUnsupportedSoftMask ||
+                    resource.HasUnsupportedTextRestampEffect;
             }
         }
         OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
@@ -964,6 +1205,8 @@ internal static class TextContentParser {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
+        bool initialUnsupportedEffect = false,
+        System.Func<string, bool>? hasMcidForProperty = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
@@ -977,9 +1220,12 @@ internal static class TextContentParser {
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
+        bool hasUnsupportedEffect = initialUnsupportedEffect;
+        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         var gstack = new Stack<TextGraphicsState>();
         var hiddenContentStack = new Stack<bool>();
+        var unsupportedRestampContentStack = new Stack<bool>();
         var args = new List<object>(8);
 
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
@@ -987,9 +1233,10 @@ internal static class TextContentParser {
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
             string op = operation.Name;
+            if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             switch (op) {
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved));
                     args.Clear();
                     break;
                 case "Q":
@@ -1004,6 +1251,8 @@ internal static class TextContentParser {
                         strokeOpacity = state.StrokeOpacity;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
+                        hasUnsupportedEffect = state.HasUnsupportedEffect;
+                        fillColorResolved = state.FillColorResolved;
                     } else {
                         ctm = Matrix2D.Identity;
                         fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1014,6 +1263,8 @@ internal static class TextContentParser {
                         strokeOpacity = initialStrokeOpacity;
                         textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
                         clipPath = initialClipPath;
+                        hasUnsupportedEffect = initialUnsupportedEffect;
+                        fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                     }
 
                     args.Clear();
@@ -1137,6 +1388,10 @@ internal static class TextContentParser {
                 case "cs":
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
+                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();
@@ -1152,6 +1407,7 @@ internal static class TextContentParser {
                     if (args.Count >= 3) {
                         fillColor = ReadRgb(args.Count - 3);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1168,6 +1424,7 @@ internal static class TextContentParser {
                     if (args.Count >= 1) {
                         fillColor = ReadGray(args.Count - 1);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1184,6 +1441,7 @@ internal static class TextContentParser {
                     if (args.Count >= 4) {
                         fillColor = ReadCmyk(args.Count - 4);
                         fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1198,7 +1456,8 @@ internal static class TextContentParser {
                     break;
                 case "sc":
                 case "scn":
-                    if (TryReadColor(fillColorSpace, out OfficeColor parsedFillColor)) {
+                    fillColorResolved = TryReadColor(fillColorSpace, out OfficeColor parsedFillColor);
+                    if (fillColorResolved) {
                         fillColor = parsedFillColor;
                     }
 
@@ -1223,7 +1482,7 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
+                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect || HasUnsupportedRestampContent(), fillColorResolved));
                         }
                     }
                     args.Clear();
@@ -1234,16 +1493,22 @@ internal static class TextContentParser {
                         IsHiddenOptionalContent(
                             args.Count > 1 ? args[args.Count - 2] : null,
                             args.Count > 0 ? args[args.Count - 1] : null));
+                    unsupportedRestampContentStack.Push(
+                        operation.HasInvalidOperands ||
+                        IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null) ||
+                        HasMcid(args.Count > 0 ? args[args.Count - 1] : null));
                     args.Clear();
                     break;
                 case "BMC":
                     hiddenContentStack.Push(operation.HasInvalidOperands);
+                    unsupportedRestampContentStack.Push(operation.HasInvalidOperands);
                     args.Clear();
                     break;
                 case "EMC":
                     if (hiddenContentStack.Count > 0) {
                         hiddenContentStack.Pop();
                     }
+                    if (unsupportedRestampContentStack.Count > 0) unsupportedRestampContentStack.Pop();
 
                     args.Clear();
                     break;
@@ -1267,6 +1532,19 @@ internal static class TextContentParser {
             return false;
         }
 
+        bool HasUnsupportedRestampContent() {
+            foreach (bool unsupported in unsupportedRestampContentStack) if (unsupported) return true;
+            return false;
+        }
+
+        bool HasMcid(object? propertyObject) {
+            if (propertyObject is string propertyName) return hasMcidForProperty?.Invoke(propertyName) == true;
+            return propertyObject is PdfContentDictionary dictionary && dictionary.Items.ContainsKey("MCID");
+        }
+
+        static bool IsOptionalContentTag(object? tag) =>
+            tag is string name && string.Equals(name, "OC", StringComparison.Ordinal);
+
         bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&
             string.Equals(tagName, "OC", StringComparison.Ordinal) &&
@@ -1286,6 +1564,12 @@ internal static class TextContentParser {
 
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+            hasUnsupportedEffect = hasUnsupportedEffect ||
+                resource.HasUnsupportedBlendMode ||
+                resource.HasUnsupportedSoftMask ||
+                resource.HasUnsupportedTextRestampEffect ||
+                resource.BlendMode is OfficeBlendMode mode && mode != OfficeBlendMode.Normal ||
+                resource.SoftMask != null;
         }
 
         OfficeColor ReadRgb(int startIndex) =>

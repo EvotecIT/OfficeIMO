@@ -268,6 +268,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ContainerStyleQueriesPreserveWhitespaceInsideStringTokens() {
+        const string html = """
+            <style>
+              @container theme style(--label:"a  b") { #different { background:red; } }
+              @container theme style(--label:"a b") { #same { background:lime; } }
+            </style>
+            <section style='container-name:theme;--label:"a b"'>
+              <div id="different" style="width:20px;height:20px;background:blue"></div>
+              <div id="same" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#different").Shape.FillColor);
+        Assert.Equal(OfficeColor.Lime, FindShape(rendered, "div#same").Shape.FillColor);
+    }
+
+    [Fact]
     public void HtmlRendering_CustomPropertyNamesRemainCaseSensitiveInStyleQueriesAndVarResolution() {
         const string html = """
             <style>

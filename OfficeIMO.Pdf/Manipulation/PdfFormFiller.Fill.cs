@@ -53,6 +53,9 @@ internal static partial class PdfFormFiller {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
+            if ((fieldFlags & PushButtonFlag) != 0) {
+                throw new ArgumentException("PDF Push-button fields do not have fillable values.", nameof(value));
+            }
             bool isRadioButtonGroup = (fieldFlags & RadioButtonFlag) != 0;
             if (values.Count > 1) {
                 throw new ArgumentException("PDF button field cannot be filled with multiple values.", nameof(value));
@@ -72,7 +75,20 @@ internal static partial class PdfFormFiller {
                 throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
             }
 
-            IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
+            ChoiceFillValue explicitEmptyChoice = default;
+            bool selectsExplicitEmptyOption = values.Count == 1 &&
+                values[0].Length == 0 &&
+                TryResolveChoiceOption(objects, choiceOptions, values[0], out explicitEmptyChoice);
+            if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
+                field.Items["V"] = isMultiSelectChoice ? new PdfArray() : new PdfStringObj(string.Empty, useTextStringEncoding: true);
+                field.Items.Remove("I");
+                SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber);
+                return;
+            }
+
+            IReadOnlyList<ChoiceFillValue> choiceValues = selectsExplicitEmptyOption
+                ? new[] { explicitEmptyChoice }
+                : ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
             if (isMultiSelectChoice && choiceValues.All(item => item.OptionIndex.HasValue)) {
                 choiceValues = choiceValues
                     .GroupBy(item => item.OptionIndex!.Value)

@@ -180,6 +180,19 @@ internal static partial class PdfFormFiller {
         return resolved;
     }
 
+    private static bool TryResolveChoiceOption(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray? options,
+        string value,
+        out ChoiceFillValue fillValue) {
+        if (options is not null && options.Items.Count > 0) {
+            return ChoiceOptionLookup.Create(objects, options).TryResolveFillValue(value, out fillValue);
+        }
+
+        fillValue = default;
+        return false;
+    }
+
     private static ChoiceFillValue ResolveChoiceFillValue(ChoiceOptionLookup optionLookup, bool isEditableChoice, string value) {
         if (optionLookup.TryResolveFillValue(value, out ChoiceFillValue fillValue)) {
             return fillValue;

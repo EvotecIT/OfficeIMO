@@ -321,8 +321,8 @@ public static partial class HtmlComputedStyleEngine {
                 return false;
             }
             return string.Equals(
-                string.Join(" ", HtmlRenderCssValues.SplitWhitespace(resolvedActual)),
-                string.Join(" ", HtmlRenderCssValues.SplitWhitespace(resolvedExpected)),
+                HtmlRenderCssValues.NormalizeComponentValueWhitespace(resolvedActual),
+                HtmlRenderCssValues.NormalizeComponentValueWhitespace(resolvedExpected),
                 StringComparison.Ordinal);
         }
         if (HtmlRenderCssValues.TryColor(actual, out OfficeIMO.Drawing.OfficeColor actualColor)

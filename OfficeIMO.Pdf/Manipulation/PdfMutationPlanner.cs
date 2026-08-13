@@ -25,6 +25,28 @@ internal static class PdfMutationPlanner {
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
+    /// <summary>Allows the canonical catalog-rooted page-content rewriter to preserve an existing AcroForm graph.</summary>
+    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfReadOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+        bool supported = preflight.CanRead;
+        for (int index = 0; supported && index < preflight.RewriteBlockers.Count; index++) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[index].Kind;
+            if (blocker == PdfRewriteBlockerKind.Forms) continue;
+            if (blocker == PdfRewriteBlockerKind.Encryption &&
+                CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.ModifyPageContent)) continue;
+            supported = false;
+        }
+        if (!supported) {
+            throw new PdfMutationBlockedException(Plan(
+                preflight,
+                pdf,
+                PdfMutationOperation.ModifyPageContent,
+                executionPreference: PdfMutationExecutionPreference.RequireFullRewrite,
+                options: options));
+        }
+    }
+
     /// <summary>
     /// Requires a full rewrite while sharing the canonical parse used by preflight with the mutation implementation.
     /// </summary>
@@ -821,9 +843,16 @@ internal static class PdfMutationPlanner {
         if (!preflight.CanRead) return false;
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.Signatures && HasOnlyUnsignedSignatureFields(preflight.Probe.Security)) continue;
+            if (preflight.RewriteBlockers[i].Kind == PdfRewriteBlockerKind.ActiveContent && HasOnlyFormWidgetActiveContent(preflight.UncheckedDocumentInfo)) continue;
             if (IsFullRewriteBlockerForOperation(preflight.RewriteBlockers[i].Kind, PdfMutationOperation.ModifyAcroForm)) return false;
         }
         return true;
+    }
+
+    private static bool HasOnlyFormWidgetActiveContent(PdfDocumentInfo? info) {
+        return info is not null &&
+            info.AcroFormXfa is null &&
+            info.HasOnlyWidgetOwnedActiveContent;
     }
 
     private static bool CanOptimize(PdfDocumentPreflight preflight) {
@@ -935,7 +964,7 @@ internal static class PdfMutationPlanner {
         return true;
     }
 
-    private static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
+    internal static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
         if (operation == PdfMutationOperation.SynchronizeMetadata) {
             return blocker != PdfRewriteBlockerKind.XmpMetadata;
         }
@@ -944,7 +973,9 @@ internal static class PdfMutationPlanner {
             return blocker != PdfRewriteBlockerKind.ActiveContent &&
                 blocker != PdfRewriteBlockerKind.EmbeddedFiles &&
                 blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
-                blocker != PdfRewriteBlockerKind.CatalogUri;
+                blocker != PdfRewriteBlockerKind.CatalogUri &&
+                blocker != PdfRewriteBlockerKind.OpenActions &&
+                blocker != PdfRewriteBlockerKind.Forms;
         }
 
         if (operation == PdfMutationOperation.ModifyAttachments) {
@@ -968,7 +999,11 @@ internal static class PdfMutationPlanner {
         if (operation == PdfMutationOperation.FillFormFields ||
             operation == PdfMutationOperation.FlattenFormFields ||
             operation == PdfMutationOperation.FillAndFlattenFormFields) {
-            return blocker != PdfRewriteBlockerKind.Forms;
+            return blocker != PdfRewriteBlockerKind.Forms &&
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
+                !((operation == PdfMutationOperation.FlattenFormFields ||
+                    operation == PdfMutationOperation.FillAndFlattenFormFields) &&
+                    blocker == PdfRewriteBlockerKind.TaggedContent);
         }
 
         return true;
@@ -981,6 +1016,10 @@ internal static class PdfMutationPlanner {
 
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
             PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (blocker == PdfRewriteBlockerKind.Forms &&
+                preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) {
+                return false;
+            }
             if (blocker == PdfRewriteBlockerKind.Encryption &&
                 CanUseAuthenticatedEncryptedRewrite(preflight, PdfMutationOperation.Sanitize)) {
                 continue;

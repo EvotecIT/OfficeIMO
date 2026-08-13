@@ -600,6 +600,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : ResolveUniqueFormFieldName(element, partialFieldName, nodeId);
 
         string value = HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty;
+        if (tag == "textarea") value = NormalizeControlMultilineText(value);
         bool emptyFileSelect = value.Length == 0 && tag == "input" && type == "file";
         string placeholder = emptyFileSelect
             ? "Choose file"
@@ -1180,7 +1181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     private static string NormalizeControlMultilineText(string value) =>
-        value.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
+        value.Replace("\r\n", "\n").Replace('\r', '\n');
 
     private static int ParsePositiveInteger(string? value, int fallback, int minimum, int maximum) =>
         HtmlIntegerSemantics.TryParsePositiveInteger(value, out int parsed)

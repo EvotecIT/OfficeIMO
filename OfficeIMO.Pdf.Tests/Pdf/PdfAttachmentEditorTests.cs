@@ -15,8 +15,9 @@ public class PdfAttachmentEditorTests {
             .ToBytes();
         var created = new DateTimeOffset(2026, 7, 11, 12, 30, 45, TimeSpan.FromHours(2));
         var modified = created.AddHours(1);
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
 
-        PdfAttachmentEditResult result = PdfDocument.Open(source).Attachments.Edit(attachments => attachments
+        PdfAttachmentEditResult result = PdfDocument.Open(source, readOptions).Attachments.Edit(attachments => attachments
             .Rename("alpha.txt", "renamed.txt")
             .Replace("beta.txt", new PdfEmbeddedFile("beta.txt", Encoding.UTF8.GetBytes("new beta"), "text/plain", description: "replacement"))
             .Remove("obsolete.bin")
@@ -26,6 +27,7 @@ public class PdfAttachmentEditorTests {
         Assert.Contains(PdfMutationProof.AttachmentReadback, result.MutationPlan.RequiredProofs);
         Assert.True(result.PreservationReport.IsPreserved, string.Join(" ", result.PreservationReport.Issues.Select(static issue => issue.Message)));
         Assert.True(result.IsValid);
+        Assert.Equal(PdfReadLimits.DefaultMaxJavaScripts + 17, result.ToDocument().ReadOptions.Limits.MaxJavaScripts);
         Assert.Equal(3, result.Validations.Count);
         Assert.All(result.Validations, validation => { Assert.True(validation.IsValid); Assert.Equal(32, validation.Checksum.Length); });
 

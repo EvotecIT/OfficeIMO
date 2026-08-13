@@ -105,5 +105,14 @@ public enum PdfReadLimitKind {
     JavaScriptBytes = 33,
 
     /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
-    Type3GlyphInvocations = 34
+    Type3GlyphInvocations = 34,
+
+    /// <summary>Widget action nodes materialized while reading AcroForm action graphs.</summary>
+    WidgetActions = 35,
+
+    /// <summary>Aggregate decoded content-stream bytes retained by one document-wide validation operation.</summary>
+    RetainedContentBytes = 36,
+
+    /// <summary>Text-search matches materialized by one Find or ReplaceAll operation.</summary>
+    TextSearchMatches = 37
 }

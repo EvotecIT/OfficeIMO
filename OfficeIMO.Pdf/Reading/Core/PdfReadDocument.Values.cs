@@ -26,7 +26,9 @@ public sealed partial class PdfReadDocument {
     }
 
     private string? TryReadSimpleFieldValue(PdfDictionary dictionary, string key) {
-        if (!dictionary.Items.TryGetValue(key, out var value) || !TryFormatSimpleValue(value, out string? text)) {
+        if (!dictionary.Items.TryGetValue(key, out var value) ||
+            ResolveObject(value) is null or PdfNull ||
+            !TryFormatSimpleValue(value, out string? text)) {
             return null;
         }
 
@@ -39,6 +41,7 @@ public sealed partial class PdfReadDocument {
         }
 
         PdfObject? resolved = ResolveObject(value);
+        if (resolved is null or PdfNull) return Array.Empty<string>();
         if (resolved is PdfArray array) {
             var values = new List<string>();
             for (int i = 0; i < array.Items.Count; i++) {

@@ -73,6 +73,7 @@ public class PdfPermissionPolicyTests {
         Assert.Throws<PdfPermissionDeniedException>(() => document.Pages[0].ToDrawing());
         Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImages(document));
         Assert.Throws<PdfPermissionDeniedException>(() => PdfImageExtractor.ExtractImagePlacements(document));
+        Assert.Throws<PdfPermissionDeniedException>(() => PdfDocument.Open(pdf, enforced).Images.Find(new PdfPageRegion(1, 0D, 0D, 100D, 100D)));
 
         var ignored = new PdfReadOptions {
             Password = "visual-open",

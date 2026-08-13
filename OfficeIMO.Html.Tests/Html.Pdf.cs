@@ -66,6 +66,25 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_TextAreaPreservesAuthoredEdgeWhitespaceAcrossFieldAndStaticAppearance() {
+        const string content = "  Alpha  \n";
+        const string html = "<textarea id='edges' name='edges' style='width:160px;height:40px;font:12px Arial'>  Alpha  &#10;</textarea>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderVisual[] scene = rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).ToArray();
+        HtmlRenderFormField renderedField = Assert.Single(scene.OfType<HtmlRenderFormField>());
+        string appearance = string.Concat(scene
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Source == "textarea#edges")
+            .Select(text => text.Text));
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.Equal(content, renderedField.Value);
+        Assert.Equal("  Alpha  ", appearance);
+        Assert.Equal(content, pdfField.Value);
+    }
+
+    [Fact]
     public void HtmlToPdf_ZeroSelectSizeUsesAComboBoxAndTheFirstEnabledOption() {
         const string html = "<select name='choice' size='0'><option value='first'>First</option><option value='second'>Second</option></select>";
 

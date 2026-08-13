@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfIncrementalUpdater {
     private const string IncrementalDefaultAppearanceFontName = "Helv";
     private const int IncrementalRadioButtonFlag = 1 << 15;
+    private const int IncrementalPushButtonFlag = 1 << 16;
     private const int IncrementalMultilineFlag = 1 << 12;
     private const int IncrementalPasswordFlag = 1 << 13;
     private const int IncrementalComboChoiceFlag = 1 << 17;
@@ -315,9 +316,11 @@ internal static partial class PdfIncrementalUpdater {
             ? kidsReference.ObjectNumber
             : objectNumber ?? containingObjectNumber;
         for (int i = 0; i < kids.Items.Count; i++) {
+
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited, ref nextObjectNumber, ref helveticaFontObjectNumber);
         }
     }
+
 
     private static void SetIncrementalTextWidgetAppearances(
         Dictionary<int, PdfIndirectObject> objects,

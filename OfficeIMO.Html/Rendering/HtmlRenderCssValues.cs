@@ -306,6 +306,46 @@ internal static class HtmlRenderCssValues {
         return parts;
     }
 
+    internal static string NormalizeComponentValueWhitespace(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        string text = value!;
+        var normalized = new System.Text.StringBuilder(text.Length);
+        char quote = '\0';
+        bool escaped = false;
+        bool pendingWhitespace = false;
+        for (int index = 0; index < text.Length; index++) {
+            char current = text[index];
+            if (quote != '\0') {
+                normalized.Append(current);
+                if (escaped) {
+                    escaped = false;
+                } else if (current == '\\') {
+                    escaped = true;
+                } else if (current == quote) {
+                    quote = '\0';
+                }
+                continue;
+            }
+
+            if (current == '\'' || current == '"') {
+                if (pendingWhitespace && normalized.Length > 0) normalized.Append(' ');
+                pendingWhitespace = false;
+                quote = current;
+                normalized.Append(current);
+                continue;
+            }
+            if (char.IsWhiteSpace(current)) {
+                pendingWhitespace = normalized.Length > 0;
+                continue;
+            }
+            if (pendingWhitespace) normalized.Append(' ');
+            pendingWhitespace = false;
+            normalized.Append(current);
+        }
+
+        return normalized.ToString();
+    }
+
     internal static IReadOnlyList<string> SplitTopLevelCommas(string? value) => SplitTopLevel(value, ',');
 
     internal static int FindMatchingParenthesis(string text, int openIndex) {

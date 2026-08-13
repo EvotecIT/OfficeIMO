@@ -145,6 +145,11 @@ public sealed partial class PdfPageCanvas {
 
     private void ValidateFormFieldBox(string name, double x, double y, double width, double height) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
+        for (int index = 0; index < name.Length; index++) {
+            if (name[index] == '.') {
+                throw new ArgumentException("Canvas form field names are PDF partial names and cannot contain periods.", nameof(name));
+            }
+        }
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));

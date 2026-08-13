@@ -33,30 +33,30 @@ public class PdfDocumentCanvasTests {
         };
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas
-                .TextField("Contact.Name", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
-                .CheckBox("Contact.Accept", true, 20D, 70D, 16D, 16D)
-                .ChoiceField("Contact.Country", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
-                .RadioButton("Contact.Method", "Email", false, 20D, 145D, 16D, 16D)
-                .RadioButton("Contact.Method", "Phone", true, 80D, 145D, 16D, 16D))
+                .TextField("ContactName", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
+                .CheckBox("ContactAccept", true, 20D, 70D, 16D, 16D)
+                .ChoiceField("ContactCountry", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
+                .RadioButton("ContactMethod", "Email", false, 20D, 145D, 16D, 16D)
+                .RadioButton("ContactMethod", "Phone", true, 80D, 145D, 16D, 16D))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Equal(4, info.FormFields.Count);
-        PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "Contact.Name");
+        PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "ContactName");
         Assert.Equal("Ada", text.Value);
         Assert.True(text.IsRequired);
         Assert.Equal("Contact name", text.AlternateName);
         Assert.InRange(Assert.Single(text.Widgets).Width, 159.9D, 160.1D);
 
-        PdfFormField checkBox = Assert.Single(info.FormFields, field => field.Name == "Contact.Accept");
+        PdfFormField checkBox = Assert.Single(info.FormFields, field => field.Name == "ContactAccept");
         Assert.True(checkBox.IsCheckBox);
         Assert.Equal("Yes", checkBox.Value);
 
-        PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "Contact.Country");
+        PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "ContactCountry");
         Assert.Equal(new[] { "Poland", "Germany" }, choice.Options.Select(option => option.DisplayText).ToArray());
         Assert.Equal("Poland", choice.Value);
 
-        PdfFormField radio = Assert.Single(info.FormFields, field => field.Name == "Contact.Method");
+        PdfFormField radio = Assert.Single(info.FormFields, field => field.Name == "ContactMethod");
         Assert.True(radio.IsRadioButton);
         Assert.Equal("Phone", radio.Value);
         Assert.Equal(2, radio.Widgets.Count);
@@ -126,6 +126,16 @@ public class PdfDocumentCanvasTests {
             36D,
             isComboBox: true,
             allowsMultipleSelection: true));
+    }
+
+    [Fact]
+    public void CanvasFormFields_RejectPeriodsInPartialFieldNames() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", 20D, 20D, 120D, 24D));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("user.accepted", true, 20D, 20D, 14D, 14D));
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField("user.country", new[] { "Poland" }, new[] { "Poland" }, 20D, 20D, 120D, 24D));
+        Assert.Throws<ArgumentException>(() => canvas.RadioButton("user.method", "Email", true, 20D, 20D, 14D, 14D));
     }
 
     [Fact]
@@ -293,7 +303,7 @@ public class PdfDocumentCanvasTests {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
-                .TextField("Contact.Name", "Ada", 10D, 10D, 100D, 20D)))
+                .TextField("ContactName", "Ada", 10D, 10D, 100D, 20D)))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);

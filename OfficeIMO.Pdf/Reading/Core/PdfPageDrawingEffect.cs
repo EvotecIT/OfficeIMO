@@ -18,7 +18,9 @@ internal readonly struct PdfPageDrawingEffect {
 
     public PdfPageDrawingEffect Apply(PdfPageGraphicsStateResource resource) => new PdfPageDrawingEffect(
         resource.BlendMode ?? BlendMode,
-        resource.HasSoftMask ? resource.SoftMask : SoftMask);
+        resource.SoftMaskEnabled.HasValue
+            ? resource.SoftMaskEnabled.Value ? resource.SoftMask : null
+            : SoftMask);
 }
 
 internal readonly struct PdfPageDrawingEffectTransition {
