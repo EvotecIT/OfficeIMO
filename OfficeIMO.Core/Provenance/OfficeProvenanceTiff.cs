@@ -19,11 +19,15 @@ internal static class OfficeProvenanceTiff {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         List<TiffIfd> ifds = ReadIfds(data, options);
+        var processedXmpRanges = new HashSet<long>();
+        long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
             TiffIfd ifd = ifds[ifdIndex];
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
                     TryGetPayload(data, entry, options.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
+                    if (!ReserveXmpPayloadRange(processedXmpRanges, ref processedXmpBytes, xmpOffset, xmpLength,
+                        options.MaxExpandedContainerBytes)) continue;
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     OfficeProvenanceXmp.Inspect(packet, options, context, $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}");
@@ -45,12 +49,19 @@ internal static class OfficeProvenanceTiff {
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         List<TiffIfd> ifds = ReadIfds(data, options.Limits);
         byte[] output = (byte[])data.Clone();
+        var processedXmpRanges = new HashSet<long>();
+        long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
             TiffIfd ifd = ifds[ifdIndex];
             var retained = new List<TiffEntry>(ifd.Entries.Count);
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
                     TryGetPayload(data, entry, options.Limits.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
+                    if (!ReserveXmpPayloadRange(processedXmpRanges, ref processedXmpBytes, xmpOffset, xmpLength,
+                        options.Limits.MaxExpandedContainerBytes)) {
+                        retained.Add(entry);
+                        continue;
+                    }
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     var pendingChanges = new List<OfficeProvenanceChange>();
@@ -98,6 +109,21 @@ internal static class OfficeProvenanceTiff {
             reserialized = true;
         }
         return output;
+    }
+
+    private static bool ReserveXmpPayloadRange(
+        HashSet<long> processedRanges,
+        ref long processedBytes,
+        int offset,
+        int length,
+        long maximumBytes) {
+        long key = ((long)offset << 32) | (uint)length;
+        if (!processedRanges.Add(key)) return false;
+        if (length < 0 || processedBytes > maximumBytes - length) {
+            throw new InvalidDataException("TIFF XMP payload processing exceeds the configured expanded-container limit.");
+        }
+        processedBytes += length;
+        return true;
     }
 
     private static bool HasOverlappingValueStorage(

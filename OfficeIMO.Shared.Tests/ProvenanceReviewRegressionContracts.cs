@@ -117,6 +117,25 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ConcatenatedJpegImagesShareTheContainerEntryLimit() {
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 },
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 },
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 });
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 2;
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            jpeg,
+            "fixture.jpg",
+            new OfficeProvenanceOptions { MaxContainerEntries = 2 }));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(
+            jpeg,
+            "fixture.jpg",
+            removalOptions));
+    }
+
+    [Fact]
     public void FragmentedJpegAcceptsAnExtendedSizeStoreDescriptionBox() {
         byte[] storeUuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
@@ -125,7 +144,10 @@ public sealed class ProvenanceReviewRegressionContracts {
         byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
         byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim))));
+        byte[] signatureUuid = { 0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] signatureDescription = CreateBox("jumd", Join(signatureUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim, signature))));
         byte[] jpeg = Join(
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, 46, instance: 11, sequence: 1),
@@ -145,14 +167,25 @@ public sealed class ProvenanceReviewRegressionContracts {
         OfficeProvenanceReport bounded = OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
-            new OfficeProvenanceOptions { MaxContainerEntries = 6 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 9 });
         OfficeProvenanceReport accepted = OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
-            new OfficeProvenanceOptions { MaxContainerEntries = 7 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 10 });
 
         Assert.False(Assert.Single(bounded.Evidence).IsStructurallyValid);
         Assert.True(Assert.Single(accepted.Evidence).IsStructurallyValid);
+    }
+
+    [Fact]
+    public void ManifestWithoutClaimSignatureIsStructurallyInvalid() {
+        byte[] png = CreatePngWithManifest(CreateManifestStore(includeSignature: false));
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "fixture.png");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
     }
 
     [Fact]
@@ -403,6 +436,30 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ZipRewriteTranscodesLegacyEntryCommentsToUtf8() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream manifest = archive.CreateEntry("META-INF/content_credential.c2pa").Open()) WriteAll(manifest, CreateManifestStore());
+                using (Stream keep = archive.CreateEntry("keep.txt").Open()) WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = AddCentralDirectoryComment(stream.ToArray(), "keep.txt", new byte[] { 0x82 });
+        }
+        int sourceCentralHeader = FindSignature(package, 0x02014B50u, "keep.txt");
+        WriteLittleEndian16(package, sourceCentralHeader + 8,
+            (ushort)(BitConverter.ToUInt16(package, sourceCentralHeader + 8) & ~0x0800));
+        uint localHeaderOffset = BitConverter.ToUInt32(package, sourceCentralHeader + 42);
+        WriteLittleEndian16(package, checked((int)localHeaderOffset) + 6,
+            (ushort)(BitConverter.ToUInt16(package, checked((int)localHeaderOffset) + 6) & ~0x0800));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "keep.txt");
+
+        Assert.NotEqual(0, BitConverter.ToUInt16(result.ToArray(), centralHeader + 8) & 0x0800);
+        Assert.Equal("é", Encoding.UTF8.GetString(ReadCentralDirectoryComment(result.ToArray(), centralHeader)));
+    }
+
+    [Fact]
     public void ZipRewriteDropsFilenameDependentUnicodePathExtras() {
         byte[] retainedExtraField = { 0xFE, 0xCA, 0x01, 0x00, 0x42 };
         byte[] unicodeName = Encoding.UTF8.GetBytes("renamed.txt");
@@ -628,6 +685,23 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void TiffDeduplicatesRepeatedXmpPayloadRanges() {
+        byte[] xmp = Encoding.UTF8.GetBytes(
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+            "<rdf:Description xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
+            "</rdf:RDF></x:xmpmeta>");
+        byte[] tiff = CreateTiffWithRepeatedXmpRange(xmp, 3);
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            tiff,
+            "fixture.tiff",
+            new OfficeProvenanceOptions { MaxExpandedContainerBytes = xmp.Length });
+
+        Assert.Single(report.Evidence);
+    }
+
+    [Fact]
     public void SvgProcessesRdfXmpAndPreservesDirectNonXmpIptc() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" " +
@@ -686,7 +760,7 @@ public sealed class ProvenanceReviewRegressionContracts {
         WriteAll(stream, Encoding.UTF8.GetBytes(content));
     }
 
-    private static byte[] CreateManifestStore() {
+    private static byte[] CreateManifestStore(bool includeSignature = true) {
         byte[] uuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] descriptionPayload = Join(uuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0"));
         byte[] description = CreateBox("jumd", descriptionPayload);
@@ -695,7 +769,13 @@ public sealed class ProvenanceReviewRegressionContracts {
         byte[] claimUuid = { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        return CreateBox("jumb", Join(description, CreateBox("jumb", Join(manifestDescription, claim))));
+        byte[] signatureUuid = { 0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] signatureDescription = CreateBox("jumd", Join(signatureUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        byte[] manifest = includeSignature
+            ? CreateBox("jumb", Join(manifestDescription, claim, signature))
+            : CreateBox("jumb", Join(manifestDescription, claim));
+        return CreateBox("jumb", Join(description, manifest));
     }
 
     private static byte[] CreateBox(string type, byte[] payload) {
@@ -979,6 +1059,25 @@ public sealed class ProvenanceReviewRegressionContracts {
         WriteLittleEndian(data, 8 + 2 + entriesPerIfd * 12, (uint)(8 + ifdSize));
         WriteLittleEndian16(data, 8 + ifdSize, (ushort)entriesPerIfd);
         return data;
+    }
+
+    private static byte[] CreateTiffWithRepeatedXmpRange(byte[] xmp, int entryCount) {
+        const int ifdOffset = 8;
+        int payloadOffset = ifdOffset + 2 + entryCount * 12 + 4;
+        byte[] result = new byte[payloadOffset + xmp.Length];
+        result[0] = result[1] = (byte)'I';
+        result[2] = 42;
+        BitConverter.GetBytes(ifdOffset).CopyTo(result, 4);
+        BitConverter.GetBytes((ushort)entryCount).CopyTo(result, ifdOffset);
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            BitConverter.GetBytes((ushort)700).CopyTo(result, entryOffset);
+            BitConverter.GetBytes((ushort)1).CopyTo(result, entryOffset + 2);
+            BitConverter.GetBytes(xmp.Length).CopyTo(result, entryOffset + 4);
+            BitConverter.GetBytes(payloadOffset).CopyTo(result, entryOffset + 8);
+        }
+        Buffer.BlockCopy(xmp, 0, result, payloadOffset, xmp.Length);
+        return result;
     }
 
     private static byte[] CreateBigTiff(int entryCount) {

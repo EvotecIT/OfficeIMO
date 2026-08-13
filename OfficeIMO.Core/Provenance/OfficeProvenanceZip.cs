@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Xml;
 
 namespace OfficeIMO.Provenance;
@@ -315,6 +316,7 @@ internal static class OfficeProvenanceZip {
             int extraLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 30, littleEndian: true);
             int commentLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 32, littleEndian: true);
             ushort internalAttributes = OfficeProvenanceBinary.ReadUInt16(data, cursor + 36, littleEndian: true);
+            ushort flags = OfficeProvenanceBinary.ReadUInt16(data, cursor + 8, littleEndian: true);
             uint localHeaderOffset = OfficeProvenanceBinary.ReadUInt32(data, cursor + 42, littleEndian: true);
             long recordEnd = (long)cursor + 46 + nameLength + extraLength + commentLength;
             if (recordEnd > data.Length) throw new InvalidDataException("ZIP central-directory entry exceeds the package bounds.");
@@ -328,6 +330,7 @@ internal static class OfficeProvenanceZip {
             }
             byte[] comment = new byte[commentLength];
             if (commentLength != 0) Buffer.BlockCopy(data, cursor + 46 + nameLength + extraLength, comment, 0, commentLength);
+            if ((flags & 0x0800) == 0) comment = TranscodeLegacyZipComment(comment);
             int localOffset = (int)localHeaderOffset;
             if (localOffset > data.Length - 30 || OfficeProvenanceBinary.ReadUInt32(data, localOffset, littleEndian: true) != 0x04034B50U) {
                 throw new InvalidDataException("ZIP local-file header is outside the package bounds.");
@@ -342,6 +345,20 @@ internal static class OfficeProvenanceZip {
             cursor = (int)recordEnd;
         }
         return metadata;
+    }
+
+    private static byte[] TranscodeLegacyZipComment(byte[] comment) {
+        if (comment.Length == 0) return comment;
+        const string highCharacters =
+            "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»" +
+            "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌" +
+            "█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+        var decoded = new char[comment.Length];
+        for (int index = 0; index < comment.Length; index++) {
+            byte value = comment[index];
+            decoded[index] = value < 0x80 ? (char)value : highCharacters[value - 0x80];
+        }
+        return Encoding.UTF8.GetBytes(decoded);
     }
 
     private static uint ResolveZip64LocalHeaderOffset(byte[] data, int centralHeaderOffset, byte[] extraField) {

@@ -28,20 +28,21 @@ internal static class OfficeProvenanceJpeg {
         bool reserialized = false;
         int searchOffset = 0;
         int imageIndex = 0;
+        int markerCount = 0;
         while (searchOffset < data.Length) {
             int imageStart = imageIndex == 0
                 ? FindNextStart(data, searchOffset)
-                : FindNextCompleteStart(data, searchOffset, options.MaxContainerEntries);
+                : FindNextCompleteStart(data, searchOffset, ref markerCount, options.MaxContainerEntries);
             if (imageStart < 0) {
                 if (output != null && searchOffset < data.Length) output.Write(data, searchOffset, data.Length - searchOffset);
                 return reserialized;
             }
             if (output != null && searchOffset < imageStart) output.Write(data, searchOffset, imageStart - searchOffset);
             output?.Write(data, imageStart, 2);
+            ReserveMarker(ref markerCount, options.MaxContainerEntries);
             int offset = imageStart + 2;
             OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
                 data, offset, imageIndex, options, context, removalOptions, changes);
-            int markerCount = 1; // SOI
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
@@ -246,8 +247,7 @@ internal static class OfficeProvenanceJpeg {
         return -1;
     }
 
-    private static int FindNextCompleteStart(byte[] data, int offset, int maximumEntries) {
-        int markerCount = 0;
+    private static int FindNextCompleteStart(byte[] data, int offset, ref int markerCount, int maximumEntries) {
         int candidate = FindNextStart(data, offset);
         while (candidate >= 0) {
             ReserveMarker(ref markerCount, maximumEntries);

@@ -19,6 +19,10 @@ internal static class OfficeC2paManifestStore {
         0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
+    private static readonly byte[] ClaimSignatureUuid = {
+        0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
 
     internal static bool IsValid(
         byte[] data,
@@ -104,6 +108,7 @@ internal static class OfficeC2paManifestStore {
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
         int claimCount = 0;
+        int claimSignatureCount = 0;
         while (cursor < manifestEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = manifestEnd - cursor;
@@ -112,10 +117,13 @@ internal static class OfficeC2paManifestStore {
             if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
                 claimCount++;
                 if (!IsClaimSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+            } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimSignatureUuid)) {
+                claimSignatureCount++;
+                if (!IsClaimSignatureSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
             }
             cursor += (int)childLength;
         }
-        return cursor == manifestEnd && claimCount == 1;
+        return cursor == manifestEnd && claimCount == 1 && claimSignatureCount == 1;
     }
 
     private static bool HasDescriptionUuid(byte[] data, int offset, int availableLength, byte[] uuid) {
@@ -151,6 +159,37 @@ internal static class OfficeC2paManifestStore {
         if (terminator < 0) return false;
         string label = System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset);
         if (label != "c2pa.claim" && label != "c2pa.claim.v2") return false;
+        int contentOffset = descriptionEnd;
+        int contentAvailable = offset + availableLength - contentOffset;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
+        return TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength,
+            out ulong contentLength, out string contentType) && contentType == "cbor" &&
+            contentLength > (ulong)contentHeaderLength && contentLength == (ulong)contentAvailable;
+    }
+
+    private static bool IsClaimSignatureSuperbox(
+        byte[] data,
+        int offset,
+        int availableLength,
+        ref int visitedBoxes,
+        int maximumEntries) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
+        if (!TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+            out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + ClaimSignatureUuid.Length + 2)) return false;
+        int payloadOffset = descriptionOffset + descriptionHeaderLength;
+        if (!Matches(data, payloadOffset, ClaimSignatureUuid)) return false;
+        int togglesOffset = payloadOffset + ClaimSignatureUuid.Length;
+        if ((data[togglesOffset] & 0x02) == 0) return false;
+        int labelOffset = togglesOffset + 1;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
+        if (terminator < 0 || System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset) != "c2pa.signature") {
+            return false;
+        }
         int contentOffset = descriptionEnd;
         int contentAvailable = offset + availableLength - contentOffset;
         if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
