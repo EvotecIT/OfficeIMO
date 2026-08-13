@@ -867,7 +867,12 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (stroke && _hasInexactDash) _unsupportedOperatorVisitor?.Invoke("d");
-            bool isAxisAlignedRectangle = TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height);
+            bool isAxisAlignedRectangle = TryCreateAxisAlignedRectangle(
+                requireExactCoordinates: _requireExactType3ShadingProjection,
+                out double x,
+                out double y,
+                out double width,
+                out double height);
             bool isSingleLine = IsSingleLinePath();
 
             if (_requireExactType3ShadingProjection) {
@@ -1432,7 +1437,7 @@ internal static class PdfPageContentVisualParser {
             return true;
         }
 
-        private bool TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height) {
+        private bool TryCreateAxisAlignedRectangle(bool requireExactCoordinates, out double x, out double y, out double width, out double height) {
             x = 0D;
             y = 0D;
             width = 0D;
@@ -1448,8 +1453,8 @@ internal static class PdfPageContentVisualParser {
                 _pathCommands[2].Kind != OfficePathCommandKind.LineTo ||
                 _pathCommands[3].Kind != OfficePathCommandKind.LineTo ||
                 _pathCommands[4].Kind != OfficePathCommandKind.Close ||
-                !NearlyEqual(_path[0].X, _path[4].X) ||
-                !NearlyEqual(ToTop(_path[0].Y), ToTop(_path[4].Y))) {
+                !CoordinatesEqual(_path[0].X, _path[4].X, requireExactCoordinates) ||
+                !CoordinatesEqual(ToTop(_path[0].Y), ToTop(_path[4].Y), requireExactCoordinates)) {
                 return false;
             }
 
@@ -1464,8 +1469,8 @@ internal static class PdfPageContentVisualParser {
             }
 
             for (int i = 0; i < _path.Count; i++) {
-                bool onVertical = NearlyEqual(_path[i].X, left) || NearlyEqual(_path[i].X, right);
-                bool onHorizontal = NearlyEqual(ToTop(_path[i].Y), top) || NearlyEqual(ToTop(_path[i].Y), bottom);
+                bool onVertical = CoordinatesEqual(_path[i].X, left, requireExactCoordinates) || CoordinatesEqual(_path[i].X, right, requireExactCoordinates);
+                bool onHorizontal = CoordinatesEqual(ToTop(_path[i].Y), top, requireExactCoordinates) || CoordinatesEqual(ToTop(_path[i].Y), bottom, requireExactCoordinates);
                 if (!onVertical || !onHorizontal) {
                     return false;
                 }
@@ -1476,8 +1481,8 @@ internal static class PdfPageContentVisualParser {
                 double y1 = ToTop(_path[i].Y);
                 double x2 = _path[i + 1].X;
                 double y2 = ToTop(_path[i + 1].Y);
-                bool horizontal = NearlyEqual(y1, y2) && !NearlyEqual(x1, x2);
-                bool vertical = NearlyEqual(x1, x2) && !NearlyEqual(y1, y2);
+                bool horizontal = CoordinatesEqual(y1, y2, requireExactCoordinates) && !CoordinatesEqual(x1, x2, requireExactCoordinates);
+                bool vertical = CoordinatesEqual(x1, x2, requireExactCoordinates) && !CoordinatesEqual(y1, y2, requireExactCoordinates);
                 if (!horizontal && !vertical) {
                     return false;
                 }
@@ -1487,6 +1492,9 @@ internal static class PdfPageContentVisualParser {
             y = top;
             return true;
         }
+
+        private static bool CoordinatesEqual(double left, double right, bool requireExactCoordinates) =>
+            requireExactCoordinates ? left == right : NearlyEqual(left, right);
 
         private bool IsSingleLinePath() =>
             _path.Count == 2 &&
@@ -1696,7 +1704,12 @@ internal static class PdfPageContentVisualParser {
                 return;
             }
 
-            if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
+            if (TryCreateAxisAlignedRectangle(
+                    requireExactCoordinates: _requireExactType3ShadingProjection,
+                    out double x,
+                    out double y,
+                    out double width,
+                    out double height)) {
                 _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }

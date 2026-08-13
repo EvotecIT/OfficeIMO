@@ -369,7 +369,51 @@ internal sealed class PdfPageOptionalContentVisibility {
             result[reference.ObjectNumber] = isVisible;
         }
 
+        ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
+
         return result;
+    }
+
+    private static void ApplyViewUsageApplications(
+        PdfDictionary? defaultConfiguration,
+        PdfArray groups,
+        Dictionary<int, bool> visibility,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (defaultConfiguration == null ||
+            ResolveObject(defaultConfiguration.Items.TryGetValue("AS", out PdfObject? applicationsObject) ? applicationsObject : null, objects) is not PdfArray applications) {
+            return;
+        }
+
+        for (int applicationIndex = 0; applicationIndex < applications.Items.Count; applicationIndex++) {
+            if (ResolveObject(applications.Items[applicationIndex], objects) is not PdfDictionary application ||
+                !string.Equals(ReadName(application, "Event", objects), "View", StringComparison.Ordinal) ||
+                !ContainsName(application, "Category", "View", objects)) {
+                continue;
+            }
+
+            PdfArray targets = ResolveObject(application.Items.TryGetValue("OCGs", out PdfObject? targetObject) ? targetObject : null, objects) as PdfArray ?? groups;
+            for (int targetIndex = 0; targetIndex < targets.Items.Count; targetIndex++) {
+                if (targets.Items[targetIndex] is not PdfReference reference ||
+                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
+                    ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||
+                    ResolveObject(group.Items.TryGetValue("Usage", out PdfObject? usageObject) ? usageObject : null, objects) is not PdfDictionary usage ||
+                    ResolveObject(usage.Items.TryGetValue("View", out PdfObject? viewObject) ? viewObject : null, objects) is not PdfDictionary view) {
+                    continue;
+                }
+
+                string? viewState = ReadName(view, "ViewState", objects);
+                if (string.Equals(viewState, "ON", StringComparison.Ordinal)) visibility[reference.ObjectNumber] = true;
+                else if (string.Equals(viewState, "OFF", StringComparison.Ordinal)) visibility[reference.ObjectNumber] = false;
+            }
+        }
+    }
+
+    private static bool ContainsName(PdfDictionary dictionary, string key, string expected, Dictionary<int, PdfIndirectObject> objects) {
+        if (ResolveObject(dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null, objects) is not PdfArray names) return false;
+        for (int index = 0; index < names.Items.Count; index++) {
+            if (ResolveObject(names.Items[index], objects) is PdfName name && string.Equals(name.Name, expected, StringComparison.Ordinal)) return true;
+        }
+        return false;
     }
 
     private static HashSet<int> ReadReferenceSet(PdfDictionary? dictionary, string key, Dictionary<int, PdfIndirectObject> objects) {

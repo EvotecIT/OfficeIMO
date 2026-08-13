@@ -346,11 +346,14 @@ public sealed partial class PdfReadPage {
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
+        if (imageDictionary != null && !HasValidType3ImageMaskDeclaration(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
         if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
+        if (imageDictionary != null && !HasCompatibleType3MaskInterpolation(imageDictionary)) return false;
         if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
-        return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
+        return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
+            ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
@@ -359,6 +362,42 @@ public sealed partial class PdfReadPage {
     private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {
         return !imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) ||
             ResolveEffectObject(interpolateObject) is PdfBoolean;
+    }
+
+    private bool HasValidType3ImageMaskDeclaration(PdfDictionary imageDictionary) {
+        return !imageDictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) ||
+            ResolveEffectObject(imageMaskObject) is PdfBoolean;
+    }
+
+    private bool HasCompatibleType3MaskInterpolation(PdfDictionary imageDictionary) {
+        bool parentInterpolate = ResolveType3ImageInterpolation(imageDictionary);
+        return HasCompatibleType3MaskInterpolation(imageDictionary, "SMask", parentInterpolate) &&
+            HasCompatibleType3MaskInterpolation(imageDictionary, "Mask", parentInterpolate);
+    }
+
+    private bool HasCompatibleType3MaskInterpolation(PdfDictionary imageDictionary, string key, bool parentInterpolate) {
+        if (!imageDictionary.Items.TryGetValue(key, out PdfObject? maskObject)) return true;
+        PdfObject? resolved = ResolveEffectObject(maskObject);
+        if (resolved is PdfNull || resolved is PdfName { Name: "None" } || resolved is PdfArray) return true;
+        if (resolved is not PdfStream maskStream || !HasValidType3ImageInterpolation(maskStream.Dictionary)) return false;
+        return ResolveType3ImageInterpolation(maskStream.Dictionary) == parentInterpolate;
+    }
+
+    private bool ResolveType3ImageInterpolation(PdfDictionary imageDictionary) =>
+        imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
+        ResolveEffectObject(interpolateObject) is PdfBoolean { Value: true };
+
+    private bool HasType3IccBasedColorSpace(PdfDictionary imageDictionary, PdfDictionary? resources) {
+        PdfObject? colorSpace = imageDictionary.Items.TryGetValue("ColorSpace", out PdfObject? authored) ? ResolveEffectObject(authored) : null;
+        if (colorSpace is PdfName resourceName && resources != null &&
+            ResolveEffectObject(resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ? colorSpacesObject : null) is PdfDictionary colorSpaces &&
+            colorSpaces.Items.TryGetValue(resourceName.Name, out PdfObject? resourceColorSpace)) {
+            colorSpace = ResolveEffectObject(resourceColorSpace);
+        }
+        return colorSpace is PdfArray array &&
+            array.Items.Count > 0 &&
+            ResolveEffectObject(array.Items[0]) is PdfName kind &&
+            (string.Equals(kind.Name, "ICCBased", StringComparison.Ordinal) || string.Equals(kind.Name, "ICC", StringComparison.Ordinal));
     }
 
     private bool HasValidType3ImageDimensions(PdfDictionary imageDictionary, bool isImageMask) {

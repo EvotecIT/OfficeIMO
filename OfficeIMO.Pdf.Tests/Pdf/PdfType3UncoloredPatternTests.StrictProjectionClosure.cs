@@ -125,6 +125,32 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ExactClipIntersectionPreservesSkinnyClosingVertex() {
+        OfficePathCommand[] subjectCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(0.0005D, 0.0005D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] clipCommands = {
+            OfficePathCommand.MoveTo(-1D, -1D),
+            OfficePathCommand.LineTo(20D, -1D),
+            OfficePathCommand.LineTo(20D, 20D),
+            OfficePathCommand.LineTo(-1D, 20D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(subjectCommands, OfficeFillRule.NonZero, out PdfPageClipPath subject));
+        Assert.True(PdfPageClipPath.TryCreatePath(clipCommands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(subject, clip);
+
+        Assert.True(intersection.IsExact);
+        Assert.True(intersection.Width > 0D);
+        Assert.True(intersection.Height > 0D);
+        Assert.Contains(intersection.Commands, command => command.Kind == OfficePathCommandKind.LineTo && command.Point.X == 0.0005D);
+    }
+
+    [Fact]
     public void VisualParser_RejectsAxialShadingCollapsedByRendererTolerance() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0.05D, 0D,

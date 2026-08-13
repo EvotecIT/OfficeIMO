@@ -323,8 +323,8 @@ internal readonly partial struct PdfPageClipPath {
             return;
         }
 
-        if (NearlyEqual(contour[0].X, contour[contour.Count - 1].X) &&
-            NearlyEqual(contour[0].Y, contour[contour.Count - 1].Y)) {
+        if (contour[0].X == contour[contour.Count - 1].X &&
+            contour[0].Y == contour[contour.Count - 1].Y) {
             contour.RemoveAt(contour.Count - 1);
         }
 
