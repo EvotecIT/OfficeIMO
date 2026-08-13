@@ -208,6 +208,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlCascadeLayers_TreatCommentsAsWhitespaceAroundRevertLayer() {
+        const string normalHtml = """
+            <style>
+              @layer base, theme;
+              @layer base { #target { color:red; } }
+              @layer theme { #target { color:blue; } }
+              @layer theme { #target { color:/**/revert-layer/**/; } }
+            </style>
+            <p id="target">Normal</p>
+            """;
+        const string importantHtml = """
+            <style>
+              @layer base, theme;
+              @layer base { #target { color:red !important; } }
+              @layer theme { #target { color:blue !important; } }
+              @layer base { #target { color:/**/revert-layer/**/!important; } }
+            </style>
+            <p id="target">Important</p>
+            """;
+        var normalDocument = HtmlDocumentParser.ParseDocument(normalHtml);
+        var importantDocument = HtmlDocumentParser.ParseDocument(importantHtml);
+
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(normalDocument)[normalDocument.QuerySelector("#target")!].GetValue("color"));
+        Assert.Equal("rgba(0, 0, 255, 1)", HtmlComputedStyleEngine.Compute(importantDocument)[importantDocument.QuerySelector("#target")!].GetValue("color"));
+    }
+
+    [Fact]
     public void HtmlCascadeLayersAndNesting_FlowThroughTheManagedSceneAndExporters() {
         const string html = """
             <style>

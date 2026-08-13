@@ -263,9 +263,16 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static string RestoreRevertLayerKeyword(string value) =>
-        string.Equals(value.Trim(), RevertLayerSentinel, StringComparison.OrdinalIgnoreCase)
-            ? "revert-layer"
-            : value;
+        IsProtectedRevertLayerValue(value) ? "revert-layer" : value;
+
+    private static bool IsProtectedRevertLayerValue(string value) {
+        int start = SkipCssWhitespaceAndCommentsForward(value, 0);
+        if (start + RevertLayerSentinel.Length > value.Length
+            || string.Compare(value, start, RevertLayerSentinel, 0, RevertLayerSentinel.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+            return false;
+        }
+        return SkipCssWhitespaceAndCommentsForward(value, start + RevertLayerSentinel.Length) == value.Length;
+    }
 
     private static string RestoreProtectedDeclarationValue(string value) =>
         RestoreManagedGradientFunctions(RestoreRevertLayerKeyword(value));
@@ -309,18 +316,47 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool IsStandaloneDeclarationValue(string css, int start, int length) {
-        int before = start - 1;
-        while (before >= 0 && char.IsWhiteSpace(css[before])) before--;
+        int before = SkipCssWhitespaceAndCommentsBackward(css, start - 1);
         if (before < 0 || css[before] != ':') return false;
-        int after = start + length;
-        while (after < css.Length && char.IsWhiteSpace(css[after])) after++;
-        const string important = "!important";
-        if (after + important.Length <= css.Length
-            && string.Compare(css, after, important, 0, important.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-            after += important.Length;
-            while (after < css.Length && char.IsWhiteSpace(css[after])) after++;
+        int after = SkipCssWhitespaceAndCommentsForward(css, start + length);
+        if (after < css.Length && css[after] == '!') {
+            after = SkipCssWhitespaceAndCommentsForward(css, after + 1);
+            const string important = "important";
+            if (after + important.Length > css.Length
+                || string.Compare(css, after, important, 0, important.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+                return false;
+            }
+            after = SkipCssWhitespaceAndCommentsForward(css, after + important.Length);
         }
         return after < css.Length && (css[after] == ';' || css[after] == '}');
+    }
+
+    private static int SkipCssWhitespaceAndCommentsForward(string css, int index) {
+        while (index < css.Length) {
+            if (char.IsWhiteSpace(css[index])) {
+                index++;
+                continue;
+            }
+            if (css[index] != '/' || index + 1 >= css.Length || css[index + 1] != '*') return index;
+            int close = css.IndexOf("*/", index + 2, StringComparison.Ordinal);
+            if (close < 0) return css.Length;
+            index = close + 2;
+        }
+        return index;
+    }
+
+    private static int SkipCssWhitespaceAndCommentsBackward(string css, int index) {
+        while (index >= 0) {
+            if (char.IsWhiteSpace(css[index])) {
+                index--;
+                continue;
+            }
+            if (css[index] != '/' || index == 0 || css[index - 1] != '*') return index;
+            int open = css.LastIndexOf("/*", index - 1, StringComparison.Ordinal);
+            if (open < 0) return index;
+            index = open - 1;
+        }
+        return index;
     }
 
     private static string ExpandNestedConditionalRules(string css) {

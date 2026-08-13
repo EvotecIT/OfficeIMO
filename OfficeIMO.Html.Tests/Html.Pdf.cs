@@ -85,6 +85,39 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlToPdf_TextInputPreservesAuthoredWhitespaceAcrossFieldAndStaticAppearance() {
+        const string content = "  A  B  ";
+        const string html = "<input id='spaces' name='spaces' value='  A  B  ' style='width:180px;font:12px Arial'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        HtmlRenderVisual[] scene = rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).ToArray();
+        HtmlRenderFormField renderedField = Assert.Single(scene.OfType<HtmlRenderFormField>());
+        HtmlRenderText appearance = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Source == "input#spaces");
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdf()).FormFields);
+
+        Assert.Equal(content, renderedField.Value);
+        Assert.Equal(content, appearance.Text);
+        Assert.Equal(content, pdfField.Value);
+    }
+
+    [Fact]
+    public void HtmlToPdf_LongPasswordUsesOneMaskGlyphPerValueCodeUnit() {
+        string password = new string('s', 40);
+        string html = "<input id='secret' name='secret' type='password' value='" + password + "' style='width:400px'>";
+        var options = new HtmlPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.True(field.IsPassword);
+        Assert.Equal(password, field.Value);
+        Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToPdf_ZeroSelectSizeUsesAComboBoxAndTheFirstEnabledOption() {
         const string html = "<select name='choice' size='0'><option value='first'>First</option><option value='second'>Second</option></select>";
 

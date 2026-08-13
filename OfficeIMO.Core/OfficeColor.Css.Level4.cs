@@ -392,6 +392,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryLightness(string value, bool perceptual, out double lightness) {
         lightness = 0D;
+        if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
@@ -403,6 +404,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryLabAxis(string value, bool perceptual, out double axis) {
         axis = 0D;
+        if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
@@ -413,6 +415,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryChroma(string value, bool perceptual, out double chroma) {
         chroma = 0D;
+        if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
@@ -423,6 +426,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryColorSpaceChannel(string value, out double channel) {
         channel = 0D;
+        if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;

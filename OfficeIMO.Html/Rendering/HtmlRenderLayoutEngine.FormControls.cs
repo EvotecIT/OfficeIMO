@@ -124,6 +124,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return Math.Max(108D, MeasureInlineText(longest, style) + 24D);
         }
         if (tag == "input" && type == "file") return 220D;
+        if (tag == "input" && IsInputSizeApplicable(type)) {
+            int size = ParsePositiveInteger(element.GetAttribute("size"), 20, 1, int.MaxValue);
+            return Math.Max(1D, MeasureInlineText("0", style) * size);
+        }
         return 168D;
     }
 
@@ -239,9 +243,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             value = "Choose file";
         } else {
             value = tag == "input"
-                ? NormalizeControlText(HtmlFormControlSemantics.GetValues(element).FirstOrDefault())
+                ? HtmlFormControlSemantics.GetValues(element).FirstOrDefault() ?? string.Empty
                 : NormalizeControlText(element.GetAttribute("value"));
-            if (type == "password" && value.Length > 0) value = new string('*', Math.Min(32, value.Length));
+            if (type == "password" && value.Length > 0) value = new string('*', value.Length);
             if (value.Length == 0 && HtmlFormControlSemantics.IsPlaceholderApplicable(tag, type)) {
                 value = NormalizeControlText(element.GetAttribute("placeholder"));
                 isPlaceholder = value.Length > 0;
@@ -1183,6 +1187,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string type = NormalizeInputType(element);
         return type == "checkbox" || type == "radio";
     }
+
+    private static bool IsInputSizeApplicable(string type) =>
+        type == "text"
+        || type == "search"
+        || type == "tel"
+        || type == "url"
+        || type == "email"
+        || type == "password";
 
     private static bool IsInputType(IElement element, string type) =>
         string.Equals(element.TagName, "input", StringComparison.OrdinalIgnoreCase)

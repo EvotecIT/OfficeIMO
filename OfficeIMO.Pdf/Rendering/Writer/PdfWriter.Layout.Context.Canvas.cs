@@ -529,7 +529,7 @@ internal static partial class PdfWriter {
             ClipCanvasFreeTextAnnotations(currentPage.FreeTextAnnotations, freeTextAnnotationStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasHighlightAnnotations(currentPage.HighlightAnnotations, highlightAnnotationStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
-            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.ClipPath.Kind == OfficeIMO.Drawing.OfficeClipPathKind.Rectangle);
             new ContentStreamBuilder(sb)
                 .RestoreState();
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
@@ -748,40 +748,45 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, bool rectangularClip) {
+            if (formFields.Count <= startIndex) return;
+            if (!rectangularClip) {
+                throw new ArgumentException("Canvas form fields cannot be placed inside nonrectangular clips because PDF widget annotations do not obey page-content clipping.");
+            }
             double clipRight = clipX + clipWidth;
             double clipTop = clipBottomY + clipHeight;
             for (int i = formFields.Count - 1; i >= startIndex; i--) {
                 FormFieldAnnotation formField = formFields[i];
-                double x1 = System.Math.Max(formField.X1, clipX);
-                double y1 = System.Math.Max(formField.Y1, clipBottomY);
-                double x2 = System.Math.Min(formField.X2, clipRight);
-                double y2 = System.Math.Min(formField.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1) {
+                if (!RectanglesIntersect(formField.X1, formField.Y1, formField.X2, formField.Y2, clipX, clipBottomY, clipRight, clipTop)) {
                     formFields.RemoveAt(i);
                     continue;
                 }
-
-                formField.X1 = x1;
-                formField.Y1 = y1;
-                formField.X2 = x2;
-                formField.Y2 = y2;
+                if (!RectangleContains(clipX, clipBottomY, clipRight, clipTop, formField.X1, formField.Y1, formField.X2, formField.Y2)) {
+                    throw new ArgumentException("Canvas form fields must be fully contained by rectangular clips because PDF widget annotations cannot preserve partial clipping.");
+                }
                 for (int widgetIndex = formField.RadioWidgets.Count - 1; widgetIndex >= 0; widgetIndex--) {
                     RadioButtonWidgetAnnotation widget = formField.RadioWidgets[widgetIndex];
-                    double widgetX1 = System.Math.Max(widget.X1, clipX);
-                    double widgetY1 = System.Math.Max(widget.Y1, clipBottomY);
-                    double widgetX2 = System.Math.Min(widget.X2, clipRight);
-                    double widgetY2 = System.Math.Min(widget.Y2, clipTop);
-                    if (widgetX2 <= widgetX1 || widgetY2 <= widgetY1) {
+                    if (!RectanglesIntersect(widget.X1, widget.Y1, widget.X2, widget.Y2, clipX, clipBottomY, clipRight, clipTop)) {
                         formField.RadioWidgets.RemoveAt(widgetIndex);
                         continue;
                     }
-                    widget.X1 = widgetX1;
-                    widget.Y1 = widgetY1;
-                    widget.X2 = widgetX2;
-                    widget.Y2 = widgetY2;
+                    if (!RectangleContains(clipX, clipBottomY, clipRight, clipTop, widget.X1, widget.Y1, widget.X2, widget.Y2)) {
+                        throw new ArgumentException("Canvas radio widgets must be fully contained by rectangular clips because PDF widget annotations cannot preserve partial clipping.");
+                    }
                 }
             }
+        }
+
+        private static bool RectanglesIntersect(double x1, double y1, double x2, double y2, double clipX1, double clipY1, double clipX2, double clipY2) =>
+            System.Math.Min(x2, clipX2) > System.Math.Max(x1, clipX1)
+            && System.Math.Min(y2, clipY2) > System.Math.Max(y1, clipY1);
+
+        private static bool RectangleContains(double x1, double y1, double x2, double y2, double innerX1, double innerY1, double innerX2, double innerY2) {
+            const double tolerance = 0.000001D;
+            return innerX1 >= x1 - tolerance
+                && innerY1 >= y1 - tolerance
+                && innerX2 <= x2 + tolerance
+                && innerY2 <= y2 + tolerance;
         }
 
         private void BeginRotatedCanvasFrame(double x, double bottomY, double width, double height, double rotationAngle) {

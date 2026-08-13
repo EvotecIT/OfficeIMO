@@ -91,6 +91,35 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_TextInputsPreserveAuthoredWhitespaceAndHonorIntrinsicSize() {
+        const string html = "<input id='small' name='small' size='5' value='  A  B  '>"
+            + "<input id='large' name='large' size='50' value='Large'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            html,
+            new HtmlRenderOptions { ViewportWidth = 900D, Margins = HtmlRenderMargins.All(8D) });
+        HtmlRenderFormField[] fields = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderFormField>().ToArray();
+        HtmlRenderFormField small = Assert.Single(fields, field => field.Name == "small");
+        HtmlRenderFormField large = Assert.Single(fields, field => field.Name == "large");
+
+        Assert.Equal("  A  B  ", small.Value);
+        Assert.Equal("  A  B  ", Assert.Single(small.Visuals.OfType<HtmlRenderText>()).Text);
+        Assert.True(large.Width > small.Width * 5D, $"Expected size=50 to be materially wider than size=5, but widths were {large.Width:F1} and {small.Width:F1}.");
+    }
+
+    [Fact]
+    public void HtmlRendering_LongPasswordUsesTheSameMaskLengthAsItsInteractiveValue() {
+        string password = new string('s', 40);
+        string html = "<input id='secret' name='secret' type='password' value='" + password + "' style='width:400px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+        HtmlRenderFormField field = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderFormField>());
+
+        Assert.Equal(password, field.Value);
+        Assert.Equal(new string('*', password.Length), Assert.Single(field.Visuals.OfType<HtmlRenderText>()).Text);
+    }
+
+    [Fact]
     public void HtmlRendering_TextAreaSoftWrapsStaticPaintUnlessWrapIsOff() {
         const string content = "Alpha beta gamma delta epsilon";
         string html = "<textarea id='soft' style='width:90px;height:100px;font:12px Arial'>" + content + "</textarea>"

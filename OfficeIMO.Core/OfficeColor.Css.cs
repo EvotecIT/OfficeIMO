@@ -152,6 +152,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryRgbChannel(string value, out byte channel) {
         channel = 0;
+        if (IsMissingColorComponent(value)) return true;
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
@@ -162,6 +163,10 @@ public readonly partial struct OfficeColor {
     private static bool TryAlphaChannel(string? value, out byte alpha) {
         alpha = 255;
         if (value == null) return true;
+        if (IsMissingColorComponent(value)) {
+            alpha = 0;
+            return true;
+        }
         bool percentage = value.EndsWith("%", StringComparison.Ordinal);
         string numberText = percentage ? value.Substring(0, value.Length - 1).Trim() : value.Trim();
         if (!TryFiniteDouble(numberText, out double number)) return false;
@@ -171,6 +176,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryHue(string value, out double degrees) {
         degrees = 0D;
+        if (IsMissingColorComponent(value)) return true;
         string normalized = value.Trim().ToLowerInvariant();
         double multiplier = 1D;
         if (normalized.EndsWith("grad", StringComparison.Ordinal)) {
@@ -193,6 +199,7 @@ public readonly partial struct OfficeColor {
 
     private static bool TryPercentage(string value, out double fraction) {
         fraction = 0D;
+        if (IsMissingColorComponent(value)) return true;
         string normalized = value.Trim();
         if (!normalized.EndsWith("%", StringComparison.Ordinal)
             || !TryFiniteDouble(normalized.Substring(0, normalized.Length - 1).Trim(), out double number)) {
@@ -206,6 +213,9 @@ public readonly partial struct OfficeColor {
         double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)
         && !double.IsNaN(number)
         && !double.IsInfinity(number);
+
+    private static bool IsMissingColorComponent(string value) =>
+        string.Equals(value.Trim(), "none", StringComparison.OrdinalIgnoreCase);
 
     private static byte ToByte(double value) =>
         (byte)Math.Round(Clamp(value, 0D, 255D));

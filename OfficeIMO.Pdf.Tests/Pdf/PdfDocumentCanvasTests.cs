@@ -1270,13 +1270,12 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
-    public void CanvasClip_ClipsInlineTableImagesAndFormControls() {
+    public void CanvasClip_ClipsInlineTableImages() {
         var rows = new[] {
             new[] {
                 PdfTableCell.WithImages(
                     string.Empty,
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.ClippedOwner", "Ada", width: 44, height: 40, fontSize: 8) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) })
             }
         };
 
@@ -1299,13 +1298,36 @@ public class PdfDocumentCanvasTests {
         Assert.True(imageDraw > clip, "Expected the table-cell image to render inside the canvas clip state.");
         Assert.DoesNotContain("50 90 20 40 re W", raw, StringComparison.Ordinal);
 
-        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "Canvas.ClippedOwner");
-        PdfFormWidget widget = Assert.Single(field.Widgets);
-        AssertClose(50D, widget.X1);
-        AssertClose(50D, widget.Y1);
-        AssertClose(74D, widget.X2);
-        AssertClose(88D, widget.Y2);
+        Assert.Empty(PdfInspector.Inspect(bytes).FormFields);
+    }
+
+    [Fact]
+    public void CanvasClip_RequiresWidgetsToBeFullyContainedByRectangularClips() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            50D,
+            30D,
+            clipped => clipped.TextField("Partial", "Ada", 50D, 10D, 40D, 20D))).ToBytes());
+
+        byte[] contained = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            80D,
+            40D,
+            clipped => clipped.TextField("Contained", "Ada", 30D, 30D, 40D, 20D))).ToBytes();
+        Assert.Single(PdfInspector.Inspect(contained).FormFields);
+
+        OfficeClipPath triangle = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(80D, 0D),
+            OfficePathCommand.LineTo(40D, 40D),
+            OfficePathCommand.Close());
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            triangle,
+            clipped => clipped.CheckBox("NonRectangular", true, 50D, 25D, 12D, 12D))).ToBytes());
     }
 
     [Fact]

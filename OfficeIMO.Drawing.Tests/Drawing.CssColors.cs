@@ -37,6 +37,25 @@ public sealed class DrawingCssColorTests {
         Assert.Equal(OfficeColor.FromRgba(red, green, blue, alpha), color);
     }
 
+    [Theory]
+    [InlineData("rgb(none 10 20)", "rgb(0 10 20)")]
+    [InlineData("hsl(none none none)", "hsl(0 0% 0%)")]
+    [InlineData("hwb(none 20% 30%)", "hwb(0 20% 30%)")]
+    [InlineData("lab(60% none none)", "lab(60% 0 0)")]
+    [InlineData("lch(60% none none)", "lch(60% 0 0)")]
+    [InlineData("oklab(60% none none)", "oklab(60% 0 0)")]
+    [InlineData("oklch(60% none none)", "oklch(60% 0 0)")]
+    [InlineData("color(display-p3 none .2 .3)", "color(display-p3 0 .2 .3)")]
+    public void OfficeColor_TreatsMissingCssColorComponentsAsZeroAtRenderTime(string value, string zeroValue) {
+        Assert.True(OfficeColor.TryParseCss(value, out OfficeColor color));
+        Assert.Equal(OfficeColor.ParseCss(zeroValue), color);
+    }
+
+    [Fact]
+    public void OfficeColor_TreatsAMissingAlphaComponentAsTransparent() {
+        Assert.Equal(OfficeColor.FromRgba(255, 0, 0, 0), OfficeColor.ParseCss("rgb(255 0 0 / none)"));
+    }
+
     [Fact]
     public void OfficeColor_DecodesNegativeDisplayP3ChannelsWithExtendedTransferFunction() {
         Assert.True(OfficeColor.TryParseCss("color(display-p3 -0.8 0 0)", out OfficeColor color));
