@@ -151,6 +151,34 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ExactClipIntersectionPreservesSkinnyConsecutiveVertex() {
+        OfficePathCommand[] subjectCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(0.0005D, 0.0005D),
+            OfficePathCommand.LineTo(0D, 1D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] clipCommands = {
+            OfficePathCommand.MoveTo(-1D, -1D),
+            OfficePathCommand.LineTo(2D, -1D),
+            OfficePathCommand.LineTo(2D, 2D),
+            OfficePathCommand.LineTo(-1D, 2D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(subjectCommands, OfficeFillRule.NonZero, out PdfPageClipPath subject));
+        Assert.True(PdfPageClipPath.TryCreatePath(clipCommands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(subject, clip);
+
+        Assert.True(intersection.IsExact);
+        Assert.Equal(3, intersection.Commands.Count(command => command.Kind != OfficePathCommandKind.Close));
+        Assert.Contains(intersection.Commands, command =>
+            command.Kind == OfficePathCommandKind.LineTo &&
+            command.Point.X == 0.0005D &&
+            command.Point.Y == 0.0005D);
+    }
+
+    [Fact]
     public void ExactRectangleClipIntersectionDoesNotUseNearParallelEndpointFallback() {
         OfficePathCommand[] subjectCommands = {
             OfficePathCommand.MoveTo(-0.0000005D, 0D),

@@ -803,7 +803,7 @@ internal static class PdfPageXObjectInvocationParser {
                         OperatorStrokesPath(op) &&
                         _state.StrokeWidth > 0D &&
                         !double.IsPositiveInfinity(_state.StrokeWidth) &&
-                        !IsConformalStrokeTransform(_state.Transform)) {
+                        !_state.Transform.IsConformalStrokeTransform()) {
                         _unsupportedGraphicsEffectVisitor?.Invoke();
                     }
                     ClearPath();
@@ -1907,17 +1907,6 @@ internal static class PdfPageXObjectInvocationParser {
             _authoredPatternInvocationVisitor?.Invoke(name);
             _unsupportedPatternVisitor?.Invoke();
             _patternInvocationVisitor?.Invoke(name);
-        }
-
-        private static bool IsConformalStrokeTransform(Matrix2D transform) {
-            double firstLengthSquared = (transform.A * transform.A) + (transform.B * transform.B);
-            double secondLengthSquared = (transform.C * transform.C) + (transform.D * transform.D);
-            if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
-                double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
-                double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
-
-            double dot = (transform.A * transform.C) + (transform.B * transform.D);
-            return firstLengthSquared == secondLengthSquared && dot == 0D;
         }
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;

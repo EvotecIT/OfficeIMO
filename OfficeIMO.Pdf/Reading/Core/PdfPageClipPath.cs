@@ -415,7 +415,7 @@ internal readonly partial struct PdfPageClipPath {
 
             commands.Add(OfficePathCommand.MoveTo(contour[0].X, contour[0].Y));
             for (int j = 1; j < contour.Count; j++) {
-                if (!NearlyEqual(contour[j].X, contour[j - 1].X) || !NearlyEqual(contour[j].Y, contour[j - 1].Y)) {
+                if (contour[j].X != contour[j - 1].X || contour[j].Y != contour[j - 1].Y) {
                     commands.Add(OfficePathCommand.LineTo(contour[j].X, contour[j].Y));
                 }
             }
@@ -493,7 +493,7 @@ internal readonly partial struct PdfPageClipPath {
 
         commands.Add(OfficePathCommand.MoveTo(clipped[0].X, clipped[0].Y));
         for (int i = 1; i < clipped.Count; i++) {
-            if (!NearlyEqual(clipped[i].X, clipped[i - 1].X) || !NearlyEqual(clipped[i].Y, clipped[i - 1].Y)) {
+            if (clipped[i].X != clipped[i - 1].X || clipped[i].Y != clipped[i - 1].Y) {
                 commands.Add(OfficePathCommand.LineTo(clipped[i].X, clipped[i].Y));
             }
         }

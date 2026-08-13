@@ -155,6 +155,17 @@ public sealed partial class PdfReadPage {
             }
         }
 
+        if (!localTransform.IsConformalStrokeTransform()) {
+            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+                PdfPageDrawingElement element = elements[elementIndex];
+                if (element.Kind == PdfPageDrawingElementKind.Primitive &&
+                    (ResolveVisibleType3PrimitivePaintChannels(element.Primitive, localPageWidth, localPageHeight) & PdfType3PaintChannels.Stroke) != 0) {
+                    groupDrawing = null!;
+                    return Type3TransparencyGroupDrawingResult.Unsupported;
+                }
+            }
+        }
+
         var effects = new List<PdfPageDrawingEffectTransition>();
         CollectGraphicsEffectTransitions(
             content,
