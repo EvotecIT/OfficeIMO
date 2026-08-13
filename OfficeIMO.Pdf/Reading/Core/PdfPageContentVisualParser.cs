@@ -879,7 +879,7 @@ internal static class PdfPageContentVisualParser {
                 if (PathContainsCurve()) {
                     _unsupportedOperatorVisitor?.Invoke("c");
                 }
-                if (stroke && !isAxisAlignedRectangle && !isSingleLine && PathContainsJoin() &&
+                if (stroke && !isSingleLine && PathContainsJoin() &&
                     (_state.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter) != OfficeStrokeLineJoin.Round) {
                     _unsupportedOperatorVisitor?.Invoke("j");
                 }

@@ -354,6 +354,7 @@ public sealed partial class PdfReadPage {
         if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
+            HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources) &&
             ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
@@ -372,6 +373,7 @@ public sealed partial class PdfReadPage {
 
     private bool HasValidType3TransparencyMasks(PdfDictionary imageDictionary, PdfDictionary? resources) {
         bool parentInterpolate = ResolveType3ImageInterpolation(imageDictionary);
+        bool hasActiveSoftMask = false;
         if (imageDictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) {
             PdfObject? softMask = ResolveEffectObject(softMaskObject);
             if (softMask is not PdfNull and not PdfName { Name: "None" } &&
@@ -379,11 +381,13 @@ public sealed partial class PdfReadPage {
                  !HasValidType3SoftMaskStream(imageDictionary, softMaskStream, resources, parentInterpolate))) {
                 return false;
             }
+            hasActiveSoftMask = softMask is PdfStream;
         }
 
         if (!imageDictionary.Items.TryGetValue("Mask", out PdfObject? maskObject)) return true;
         PdfObject? mask = ResolveEffectObject(maskObject);
         if (mask is PdfNull) return true;
+        if (hasActiveSoftMask) return false;
         return mask is PdfArray maskArray && HasValidType3ColorKeyMask(imageDictionary, maskArray, resources);
     }
 
@@ -449,6 +453,21 @@ public sealed partial class PdfReadPage {
             array.Items.Count > 0 &&
             ResolveEffectObject(array.Items[0]) is PdfName kind &&
             (string.Equals(kind.Name, "ICCBased", StringComparison.Ordinal) || string.Equals(kind.Name, "ICC", StringComparison.Ordinal));
+    }
+
+    private bool HasValidType3IndexedColorSpaceDeclaration(PdfDictionary imageDictionary, PdfDictionary? resources) {
+        PdfObject? colorSpace = ResolveType3ImageColorSpace(imageDictionary, resources);
+        if (colorSpace is not PdfArray indexed ||
+            indexed.Items.Count == 0 ||
+            ResolveEffectObject(indexed.Items[0]) is not PdfName { Name: "Indexed" or "I" }) {
+            return true;
+        }
+        return indexed.Items.Count == 4 &&
+            ResolveEffectObject(indexed.Items[2]) is PdfNumber highValue &&
+            IsFinite(highValue.Value) &&
+            highValue.Value == Math.Truncate(highValue.Value) &&
+            highValue.Value >= 0D &&
+            highValue.Value <= 255D;
     }
 
     private PdfObject? ResolveType3ImageColorSpace(PdfDictionary imageDictionary, PdfDictionary? resources) {

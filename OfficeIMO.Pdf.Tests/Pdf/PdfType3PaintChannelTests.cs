@@ -161,7 +161,7 @@ public partial class PdfType3UncoloredPatternTests {
             "6 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Nested 9 0 R >> >> >>\nendobj",
             StreamObject(7, "<<", "500 0 d0 /Nested Do"),
             StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700]", "0 0 500 700 re f"),
-            StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700]", "60 w 30 30 440 640 re S"),
+            StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700]", "1 j 60 w 30 30 440 640 re S"),
             StreamObject(11, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 0 0 rg 0 0 5 5 re f"),
             StreamObject(12, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 0 1 rg 0 0 5 5 re f"),
             "13 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"

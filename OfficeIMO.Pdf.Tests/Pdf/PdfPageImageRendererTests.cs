@@ -307,7 +307,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ScalesType3GlyphStrokeWidthIntoPageSpace() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
-        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 50 w 0 0 500 700 re S");
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 1 j 50 w 0 0 500 700 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -319,7 +319,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ScalesExplicitQuarterUnitType3StrokeInsteadOfTreatingItAsHairline() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
-        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0.25 w 0 0 500 700 re S");
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 1 j 0.25 w 0 0 500 700 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
 
         OfficeDrawingShape shape = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);
@@ -330,7 +330,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_PreservesType3HairlineAsDrawableDeviceWidth() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
-        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 w 0 0 500 700 re S");
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 1 j 0 w 0 0 500 700 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
 
         OfficeDrawingShape shape = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);
@@ -350,7 +350,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsRotatedConformalStrokedType3GlyphProgram() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0 0.001 -0.001 0 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
-        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 50 w 0 0 500 700 re S");
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 1 j 50 w 0 0 500 700 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 120 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -365,7 +365,7 @@ public partial class PdfPageImageRendererTests {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FInner 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 BT /FInner 500 Tf (A) Tj ET");
         string innerFont = "7 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 8 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
-        string innerGlyph = BuildStreamObject(8, "<<", "500 0 d0 50 w 0 0 500 700 re S");
+        string innerGlyph = BuildStreamObject(8, "<<", "500 0 d0 1 j 50 w 0 0 500 700 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, innerFont, innerGlyph);
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -378,7 +378,7 @@ public partial class PdfPageImageRendererTests {
     public void RenderPage_IncludesNestedFormMatrixWhenScalingType3StrokeWidth() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
-        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 250 350] /Matrix [2 0 0 2 0 0] /Resources << >>", "50 w 0 0 250 350 re S");
+        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 250 350] /Matrix [2 0 0 2 0 0] /Resources << >>", "1 j 50 w 0 0 250 350 re S");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, form);
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);

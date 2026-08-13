@@ -88,7 +88,7 @@ public partial class PdfType3UncoloredPatternTests {
     public void RenderPage_PropagatesPatternBaseColorSpaceThroughForm(bool stroke) {
         string selectColorSpace = stroke ? "/PatternRgb CS" : "/PatternRgb cs";
         string selectPattern = stroke ? "0 1 0 /P1 SCN" : "0 1 0 /P1 scn";
-        string glyphContent = stroke ? "500 0 d0 60 w 30 30 440 640 re S" : "500 0 d0 0 0 500 700 re f";
+        string glyphContent = stroke ? "500 0 d0 1 j 60 w 30 30 440 640 re S" : "500 0 d0 0 0 500 700 re f";
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: selectColorSpace + " /Fm1 Do",
             pageColorSpaceResources: "/ColorSpace << /PatternRgb [ /Pattern /DeviceRGB ] >>",
@@ -170,7 +170,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 60 w 30 30 440 640 re S");
+            glyphContent: "500 0 d0 1 j 60 w 30 30 440 640 re S");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
@@ -206,7 +206,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageColorSpaceResources: string.Empty,
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
             patternContent: "1 0 0 rg 0 0 5 5 re f",
-            glyphContent: "500 0 d0 60 w 30 30 440 640 re S");
+            glyphContent: "500 0 d0 1 j 60 w 30 30 440 640 re S");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
@@ -1333,7 +1333,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternDictionary: "<< /Type /Pattern /PatternType 2 /Matrix [1 1 0 1 0 0] /Shading << /ShadingType 3 /ColorSpace /DeviceRGB /Coords [25 106 0 25 106 8] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
             patternContent: string.Empty,
             patternIsStream: false,
-            glyphContent: "500 0 d0 60 w 30 30 440 640 re S q 500 0 0 700 100000 0 cm /Im1 Do Q",
+            glyphContent: "500 0 d0 1 j 60 w 30 30 440 640 re S q 500 0 0 700 100000 0 cm /Im1 Do Q",
             glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
             patternResourceEntries: "/P1 7 0 R /P2 9 0 R",
             extraObjects: new[] {

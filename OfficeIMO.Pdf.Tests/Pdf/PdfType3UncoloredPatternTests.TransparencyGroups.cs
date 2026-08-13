@@ -446,7 +446,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Group Do",
             glyphResources: "<< /XObject << /Group 8 0 R >> >>",
             extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "40 w 20 20 460 660 re S")
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 j 40 w 20 20 460 660 re S")
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1107,7 +1107,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphResources: "<< /XObject << /Group 8 0 R >> >>",
             catalogEntries: "/OCProperties << /OCGs [9 0 R] /D << /OFF [9 0 R] >> >>",
             extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /ZeroStroke << /CA 0 >> >> /Properties << /Hidden 9 0 R >> /Pattern << /P2 10 0 R >> >>", "/OC /Hidden BDC /Pattern CS /P2 SCN EMC /ZeroStroke gs 40 w 0 0 500 700 re B"),
+                StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /ExtGState << /ZeroStroke << /CA 0 >> >> /Properties << /Hidden 9 0 R >> /Pattern << /P2 10 0 R >> >>", "/OC /Hidden BDC /Pattern CS /P2 SCN EMC /ZeroStroke gs 1 j 40 w 0 0 500 700 re B"),
                 "9 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj",
                 StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 1 0 rg 0 0 5 5 re f")
             });
