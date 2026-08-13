@@ -78,9 +78,7 @@ public sealed partial class PdfReadPage {
         if (!activeStreams.Add(form)) return PdfType3PaintChannels.Both;
         try {
             if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
-                !form.Dictionary.Items.ContainsKey("Group") && !TryReadBox(
-                    form.Dictionary.Items.TryGetValue("BBox", out PdfObject? formBoxObject) ? formBoxObject : null,
-                    out _)) return PdfType3PaintChannels.Both;
+                !form.Dictionary.Items.ContainsKey("Group") && !TryReadExactType3FormBox(form.Dictionary, out _)) return PdfType3PaintChannels.Both;
             string content = WrapFormContentWithBoundingBoxClip(
                 PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                 form.Dictionary);

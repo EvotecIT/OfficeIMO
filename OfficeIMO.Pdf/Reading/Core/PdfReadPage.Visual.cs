@@ -903,6 +903,12 @@ public sealed partial class PdfReadPage {
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
+                if (requireSupportedType3Content &&
+                    !formDictionary.Items.ContainsKey("Group") &&
+                    !TryReadExactType3FormBox(formDictionary, out _)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);

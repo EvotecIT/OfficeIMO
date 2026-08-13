@@ -527,9 +527,7 @@ public sealed partial class PdfReadPage {
                     ResolveEffectObject(optionalContentObject) is not PdfNull) return false;
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
                 if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
-                    !form.Dictionary.Items.ContainsKey("Group") && !TryReadBox(
-                        form.Dictionary.Items.TryGetValue("BBox", out PdfObject? formBoxObject) ? formBoxObject : null,
-                        out _)) return false;
+                    !form.Dictionary.Items.ContainsKey("Group") && !TryReadExactType3FormBox(form.Dictionary, out _)) return false;
                 if (form.Dictionary.Items.ContainsKey("Group")) {
                     PdfType3PaintChannels channels = ResolveXObjectPaintChannels(
                         resources,
