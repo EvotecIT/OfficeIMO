@@ -976,6 +976,32 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
+    public void ActiveOutlineItemsCannotMasqueradeAsUntypedFileSpecifications() {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] outlineFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            var outlines = new PdfDictionary();
+            outlines.Items["First"] = candidate;
+            outlines.Items["Last"] = candidate;
+            int outlinesObjectNumber = objects.Keys.Max() + 1;
+            objects[outlinesObjectNumber] = new PdfIndirectObject(outlinesObjectNumber, 0, outlines);
+            fileSpecification.Items["Parent"] = new PdfReference(outlinesObjectNumber, 0);
+            catalog.Items["Outlines"] = new PdfReference(outlinesObjectNumber, 0);
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(outlineFileSpecification);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(outlineFileSpecification);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Fact]
     public void ActiveTrailerInfoDictionaryCannotMasqueradeAsAnUntypedFileSpecification() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] infoFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {

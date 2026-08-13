@@ -283,6 +283,11 @@ public static class PdfProvenance {
             catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null,
             result,
             maximumContainerEntries);
+        AddOutlineDictionaries(
+            objects,
+            catalog.Items.TryGetValue("Outlines", out PdfObject? outlines) ? outlines : null,
+            result,
+            maximumContainerEntries);
         AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result, maximumContainerEntries);
         AddNameTreeDictionaries(objects, new[] { catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null }, result, maximumContainerEntries);
         AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
@@ -319,6 +324,28 @@ public static class PdfProvenance {
             result.Add(field);
             if (PdfObjectLookup.Resolve(objects, field.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
             foreach (PdfObject child in kids.Items) pending.Push(child);
+        }
+    }
+
+    private static void AddOutlineDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries) {
+        if (value == null) return;
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (resolved is not PdfDictionary outline || !visited.Add(outline)) continue;
+            if (visited.Count > maximumContainerEntries) {
+                throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+            }
+            result.Add(outline);
+            foreach (string key in new[] { "First", "Last", "Next", "Prev", "Parent" }) {
+                if (outline.Items.TryGetValue(key, out PdfObject? linked)) pending.Push(linked);
+            }
         }
     }
 
