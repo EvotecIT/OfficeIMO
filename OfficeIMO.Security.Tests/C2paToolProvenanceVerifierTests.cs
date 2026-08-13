@@ -59,6 +59,24 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
+    public void VerifyIgnoresValidationStatusInsideCustomAssertionPayloads() {
+        string assetPath = CreateAsset();
+        try {
+            const string report = "{\"active_manifest\":\"urn:c2pa:test\",\"manifests\":{\"urn:c2pa:test\":{\"assertions\":[{\"data\":{\"validation_status\":[{\"code\":\"signingCredential.untrusted\"}]}}]}}}";
+            var verifier = new C2paToolProvenanceVerifier(
+                "c2patool",
+                new StubRunner(new C2paToolProcessResult(0, report, string.Empty)));
+
+            OfficeProvenanceVerificationResult result = verifier.Verify(assetPath);
+
+            Assert.Equal(OfficeProvenanceVerificationStatus.Valid, result.Status);
+            Assert.Empty(result.Findings);
+        } finally {
+            File.Delete(assetPath);
+        }
+    }
+
+    [Fact]
     public void VerifyDeduplicatesManyFindingsWhilePreservingFirstSeenOrder() {
         string assetPath = CreateAsset();
         try {

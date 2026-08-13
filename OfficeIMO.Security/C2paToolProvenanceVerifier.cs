@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -107,7 +108,10 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                     : null;
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
-            CollectValidationFindings(document.RootElement, findings, findingSet);
+            if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus)) {
+                CollectValidationFindings(validationStatus, findings, findingSet);
+            }
             if (string.IsNullOrWhiteSpace(activeManifest)) {
                 if (findings.Count > 0) {
                     bool onlyNoManifestTrustFailures = findings.All(IsTrustFinding);
@@ -144,33 +148,24 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         }
     }
 
-    private static void CollectValidationFindings(JsonElement element, List<string> findings, HashSet<string> findingSet) {
-        if (element.ValueKind == JsonValueKind.Object) {
-            foreach (JsonProperty property in element.EnumerateObject()) {
-                if (property.NameEquals("validation_status") && property.Value.ValueKind == JsonValueKind.Array) {
-                    foreach (JsonElement status in property.Value.EnumerateArray()) {
-                        if (status.ValueKind != JsonValueKind.Object) continue;
-                        string? code = status.TryGetProperty("code", out JsonElement codeElement) && codeElement.ValueKind == JsonValueKind.String
-                            ? codeElement.GetString()
-                            : null;
-                        string? explanation = status.TryGetProperty("explanation", out JsonElement explanationElement) && explanationElement.ValueKind == JsonValueKind.String
-                            ? explanationElement.GetString()
-                            : null;
-                        bool? explicitSuccess = status.TryGetProperty("success", out JsonElement successElement) &&
-                            (successElement.ValueKind == JsonValueKind.True || successElement.ValueKind == JsonValueKind.False)
-                            ? successElement.GetBoolean()
-                            : null;
-                        if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
-                        string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
-                        if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
-                        if (findingSet.Add(finding)) findings.Add(finding);
-                    }
-                } else {
-                    CollectValidationFindings(property.Value, findings, findingSet);
-                }
-            }
-        } else if (element.ValueKind == JsonValueKind.Array) {
-            foreach (JsonElement item in element.EnumerateArray()) CollectValidationFindings(item, findings, findingSet);
+    private static void CollectValidationFindings(JsonElement validationStatus, List<string> findings, HashSet<string> findingSet) {
+        if (validationStatus.ValueKind != JsonValueKind.Array) return;
+        foreach (JsonElement status in validationStatus.EnumerateArray()) {
+            if (status.ValueKind != JsonValueKind.Object) continue;
+            string? code = status.TryGetProperty("code", out JsonElement codeElement) && codeElement.ValueKind == JsonValueKind.String
+                ? codeElement.GetString()
+                : null;
+            string? explanation = status.TryGetProperty("explanation", out JsonElement explanationElement) && explanationElement.ValueKind == JsonValueKind.String
+                ? explanationElement.GetString()
+                : null;
+            bool? explicitSuccess = status.TryGetProperty("success", out JsonElement successElement) &&
+                (successElement.ValueKind == JsonValueKind.True || successElement.ValueKind == JsonValueKind.False)
+                ? successElement.GetBoolean()
+                : null;
+            if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
+            string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
+            if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
+            if (findingSet.Add(finding)) findings.Add(finding);
         }
     }
 
@@ -277,9 +272,17 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
 
     public C2paToolProcessResult Run(C2paToolProcessRequest request) {
+        string executable = request.ExecutablePath;
+        string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
+        string? sessionLauncher = FindUnixSessionLauncher();
+        bool ownsUnixProcessGroup = sessionLauncher != null;
+        if (sessionLauncher != null) {
+            executable = sessionLauncher;
+            arguments = QuoteArgument(request.ExecutablePath) + (arguments.Length == 0 ? string.Empty : " " + arguments);
+        }
         var startInfo = new ProcessStartInfo {
-            FileName = request.ExecutablePath,
-            Arguments = string.Join(" ", request.Arguments.Select(QuoteArgument)),
+            FileName = executable,
+            Arguments = arguments,
             WorkingDirectory = request.WorkingDirectory,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -290,23 +293,25 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         };
         using var process = new Process { StartInfo = startInfo };
         process.Start();
+        using C2paToolProcessContainment containment = C2paToolProcessContainment.Create(process, ownsUnixProcessGroup);
         Task<string> stdout = ReadBoundedAsync(process.StandardOutput, request.MaximumOutputBytes, "standard output");
         Task<string> stderr = ReadBoundedAsync(process.StandardError, request.MaximumOutputBytes, "standard error");
         Stopwatch timer = Stopwatch.StartNew();
-        while (!process.WaitForExit(50)) {
+        while (true) {
+            if (process.WaitForExit(50)) break;
             if (stdout.IsFaulted || stderr.IsFaulted) {
-                Terminate(process);
+                Terminate(process, containment);
                 throw stdout.Exception?.GetBaseException() ?? stderr.Exception?.GetBaseException() ?? new InvalidDataException("c2patool output failed.");
             }
             if (timer.Elapsed > request.Timeout) {
-                Terminate(process);
+                Terminate(process, containment);
                 throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
             }
         }
         try {
             TimeSpan remaining = request.Timeout - timer.Elapsed;
             if (remaining <= TimeSpan.Zero || !Task.WaitAll(new Task[] { stdout, stderr }, remaining)) {
-                Terminate(process);
+                Terminate(process, containment);
                 throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
             }
         } catch (AggregateException exception) {
@@ -329,10 +334,11 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         return builder.ToString();
     });
 
-    private static void Terminate(Process process) {
+    private static void Terminate(Process process, C2paToolProcessContainment containment) {
         try {
-            if (!process.HasExited) {
-                if (!TryKillEntireProcessTree(process)) process.Kill();
+            containment.Terminate();
+            if (!TryKillEntireProcessTree(process) && !process.HasExited) {
+                process.Kill();
                 process.WaitForExit(1000);
             }
         } catch (InvalidOperationException) { }
@@ -341,6 +347,100 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             try { process.StandardOutput.Dispose(); } catch (InvalidOperationException) { }
             try { process.StandardError.Dispose(); } catch (InvalidOperationException) { }
         }
+    }
+
+    private sealed class C2paToolProcessContainment : IDisposable {
+        private const uint JobObjectLimitKillOnJobClose = 0x00002000;
+        private IntPtr _job;
+        private readonly int _unixProcessGroupId;
+
+        private C2paToolProcessContainment(IntPtr job, int unixProcessGroupId = 0) {
+            _job = job;
+            _unixProcessGroupId = unixProcessGroupId;
+        }
+
+        internal static C2paToolProcessContainment Create(Process process, bool ownsUnixProcessGroup) {
+            if (Environment.OSVersion.Platform != PlatformID.Win32NT) {
+                return new C2paToolProcessContainment(IntPtr.Zero, ownsUnixProcessGroup ? process.Id : 0);
+            }
+            IntPtr job = CreateJobObject(IntPtr.Zero, null);
+            if (job == IntPtr.Zero) return new C2paToolProcessContainment(IntPtr.Zero);
+            var information = new JobObjectExtendedLimitInformation {
+                BasicLimitInformation = new JobObjectBasicLimitInformation { LimitFlags = JobObjectLimitKillOnJobClose }
+            };
+            int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
+            if (!SetInformationJobObject(job, 9, ref information, length) || !AssignProcessToJobObject(job, process.Handle)) {
+                CloseHandle(job);
+                return new C2paToolProcessContainment(IntPtr.Zero);
+            }
+            return new C2paToolProcessContainment(job);
+        }
+
+        internal void Terminate() => Dispose();
+
+        public void Dispose() {
+            if (_unixProcessGroupId > 0) _ = KillUnixProcessGroup(-_unixProcessGroupId, 9);
+            IntPtr job = _job;
+            if (job == IntPtr.Zero) return;
+            _job = IntPtr.Zero;
+            CloseHandle(job);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IoCounters {
+            internal ulong ReadOperationCount;
+            internal ulong WriteOperationCount;
+            internal ulong OtherOperationCount;
+            internal ulong ReadTransferCount;
+            internal ulong WriteTransferCount;
+            internal ulong OtherTransferCount;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct JobObjectBasicLimitInformation {
+            internal long PerProcessUserTimeLimit;
+            internal long PerJobUserTimeLimit;
+            internal uint LimitFlags;
+            internal UIntPtr MinimumWorkingSetSize;
+            internal UIntPtr MaximumWorkingSetSize;
+            internal uint ActiveProcessLimit;
+            internal UIntPtr Affinity;
+            internal uint PriorityClass;
+            internal uint SchedulingClass;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct JobObjectExtendedLimitInformation {
+            internal JobObjectBasicLimitInformation BasicLimitInformation;
+            internal IoCounters IoInfo;
+            internal UIntPtr ProcessMemoryLimit;
+            internal UIntPtr JobMemoryLimit;
+            internal UIntPtr PeakProcessMemoryUsed;
+            internal UIntPtr PeakJobMemoryUsed;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern IntPtr CreateJobObject(IntPtr securityAttributes, string? name);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetInformationJobObject(IntPtr job, int informationClass, ref JobObjectExtendedLimitInformation information, int informationLength);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
+        private static extern int KillUnixProcessGroup(int processId, int signal);
+    }
+
+    private static string? FindUnixSessionLauncher() {
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT) return null;
+        foreach (string path in new[] { "/usr/bin/setsid", "/bin/setsid", "/usr/local/bin/setsid" }) {
+            if (File.Exists(path)) return path;
+        }
+        return null;
     }
 
     private static bool TryKillEntireProcessTree(Process process) {

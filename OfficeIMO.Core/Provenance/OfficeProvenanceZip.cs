@@ -309,7 +309,8 @@ internal static class OfficeProvenanceZip {
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         bool hadMatches = input.Entries.Any(entry => shouldRemove(entryMetadata[entry].Name));
-        if (!hadMatches) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
+        bool hadReplacements = shouldReplace != null && input.Entries.Any(entry => shouldReplace(entryMetadata[entry].Name));
+        if (!hadMatches && !hadReplacements) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
         foreach (ZipArchiveEntry entry in input.Entries
@@ -330,7 +331,7 @@ internal static class OfficeProvenanceZip {
         }
         return new OfficeProvenanceSignatureStripResult(
             OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue, ReadArchiveComment(data)),
-            hadSignatures: true);
+            hadSignatures: hadMatches);
     }
 
     internal static bool HasEntry(byte[] data, Func<string, bool> predicate) {
@@ -641,6 +642,7 @@ internal static class OfficeProvenanceZip {
         if (entries.Length == 0) return false;
         if (entries.Length != 1) throw new InvalidDataException("The OPC package contains duplicate application metadata parts.");
         ZipArchiveEntry entry = entries[0];
+        if (entry.Length == 0) return false;
         if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
             throw new InvalidDataException("Open XML application metadata exceeds the configured asset limit.");
         }

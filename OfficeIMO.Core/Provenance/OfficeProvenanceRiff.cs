@@ -37,6 +37,7 @@ internal static class OfficeProvenanceRiff {
         long declaredEndValue = 8L + riffSize;
         if (declaredEndValue < 12 || declaredEndValue > data.Length) throw new InvalidDataException("RIFF size exceeds the asset bounds.");
         int declaredEnd = (int)declaredEndValue;
+        int c2paChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "C2PA");
         int offset = 12;
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
@@ -66,10 +67,11 @@ internal static class OfficeProvenanceRiff {
             } else if (chunkType == "C2PA") {
                 if (payloadLength > options.MaxManifestBytes) throw new InvalidDataException("RIFF provenance chunk exceeds the configured manifest limit.");
                 bool isLast = offset + total == declaredEnd;
-                bool valid = isLast && OfficeC2paManifestStore.IsValid(
+                bool valid = c2paChunkCount == 1 && isLast && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
+                if (c2paChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple C2PA chunks.");
                 if (!isLast) context?.Diagnostics.Add("The C2PA chunk is not the last chunk in the first RIFF container.");
                 bool remove = output != null && removalOptions != null && changes != null &&
                     removalOptions.RemoveC2paManifests &&
@@ -104,6 +106,25 @@ internal static class OfficeProvenanceRiff {
         if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
         if (declaredEnd < data.Length) output?.Write(data, declaredEnd, data.Length - declaredEnd);
         return reserialized;
+    }
+
+    private static int CountChunks(byte[] data, int declaredEnd, int maximumEntries, string expectedType) {
+        int matches = 0;
+        int entries = 0;
+        int offset = 12;
+        while (offset < declaredEnd) {
+            if (++entries > maximumEntries) throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
+            uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
+            if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");
+            int payloadLength = (int)payloadValue;
+            long totalValue = 8L + payloadLength + (payloadLength & 1);
+            if (totalValue > declaredEnd - offset) throw new InvalidDataException("RIFF chunk exceeds the declared container bounds.");
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset, expectedType)) matches++;
+            offset += (int)totalValue;
+        }
+        if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
+        return matches;
     }
 
     private static bool IsValidExtendedHeader(byte[] data, int payloadOffset, int payloadLength) {
