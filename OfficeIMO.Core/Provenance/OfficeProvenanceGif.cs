@@ -10,7 +10,7 @@ internal static class OfficeProvenanceGif {
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
-        if (!options.RemoveC2paManifests) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         using var output = new MemoryStream(data.Length);
         int bodyOffset = GetBodyOffset(data);
         output.Write(data, 0, bodyOffset);
@@ -60,8 +60,28 @@ internal static class OfficeProvenanceGif {
                 if (headerLength > data.Length - offset) throw new InvalidDataException("GIF application extension header is truncated.");
                 bool isC2pa = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, offset, "C2PA_GIF") &&
                     data[offset + 8] == 0x01 && data[offset + 9] == 0x00 && data[offset + 10] == 0x00;
+                bool isXmp = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, 0, "GIF89a") &&
+                    OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP DataXMP");
                 offset += headerLength;
                 int payloadStart = offset;
+                if (isXmp && TryReadXmpApplicationData(
+                    data, payloadStart, options.MaxAssetBytes, out int packetLength, out int extensionEnd)) {
+                    ReserveEntry(ref entryCount, options.MaxContainerEntries);
+                    byte[] packet = new byte[packetLength];
+                    Buffer.BlockCopy(data, payloadStart, packet, 0, packetLength);
+                    string location = $"GIF/XMP@{blockStart}";
+                    if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+                    if (output != null && removalOptions != null && changes != null && removalOptions.RemoveAiSourceMetadata &&
+                        OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, changes, out byte[] cleaned)) {
+                        output.Write(data, blockStart, payloadStart - blockStart);
+                        output.Write(cleaned, 0, cleaned.Length);
+                        output.Write(data, payloadStart + packetLength, extensionEnd - payloadStart - packetLength);
+                    } else {
+                        output?.Write(data, blockStart, extensionEnd - blockStart);
+                    }
+                    offset = extensionEnd;
+                    continue;
+                }
                 offset = SkipSubBlocks(data, offset, isC2pa ? options.MaxManifestBytes : options.MaxAssetBytes,
                     ref entryCount, options.MaxContainerEntries, out int payloadLength);
                 if (isC2pa) {
@@ -71,6 +91,7 @@ internal static class OfficeProvenanceGif {
                     string location = $"GIF/C2PA_GIF@{blockStart}";
                     context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
                     bool remove = output != null && removalOptions != null && changes != null &&
+                        removalOptions.RemoveC2paManifests &&
                         (valid || !removalOptions.RequireStructurallyValidCarrier);
                     if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, offset - blockStart));
                     else output?.Write(data, blockStart, offset - blockStart);
@@ -139,5 +160,32 @@ internal static class OfficeProvenanceGif {
             target += length;
         }
         return result;
+    }
+
+    private static bool TryReadXmpApplicationData(
+        byte[] data,
+        int payloadOffset,
+        long maximumPacketBytes,
+        out int packetLength,
+        out int extensionEnd) {
+        packetLength = 0;
+        extensionEnd = payloadOffset;
+        const int trailerLength = 258;
+        for (int candidate = payloadOffset; candidate <= data.Length - trailerLength; candidate++) {
+            if (data[candidate] != 0x01 || data[candidate + 1] != 0xFF) continue;
+            bool valid = true;
+            for (int index = 1; index <= 255; index++) {
+                if (data[candidate + index] == 256 - index) continue;
+                valid = false;
+                break;
+            }
+            if (!valid || data[candidate + 256] != 0 || data[candidate + 257] != 0) continue;
+            long length = candidate - (long)payloadOffset;
+            if (length <= 0 || length > maximumPacketBytes || length > int.MaxValue) return false;
+            packetLength = (int)length;
+            extensionEnd = candidate + trailerLength;
+            return true;
+        }
+        return false;
     }
 }

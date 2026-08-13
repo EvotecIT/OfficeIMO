@@ -110,6 +110,7 @@ internal static class OfficeProvenanceSvg {
     private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
         var roots = new List<XElement>();
         roots.AddRange(document.Descendants(XmpNamespace + "xmpmeta")
+            .Where(element => !element.Ancestors(XmpNamespace + "xmpmeta").Any())
             .Where(element => element.Ancestors().Any(IsSvgMetadataElement)));
         XElement[] directIptcScopes = document.Descendants()
             .Where(ContainsDirectIptcDeclaration)

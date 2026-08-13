@@ -32,7 +32,7 @@ internal static class OfficeProvenanceJpeg {
         while (searchOffset < data.Length) {
             int imageStart = imageIndex == 0
                 ? FindNextStart(data, searchOffset)
-                : FindNextCompleteStart(data, searchOffset, ref markerCount, options.MaxContainerEntries);
+                : FindNextCompleteStart(data, searchOffset, options.MaxContainerEntries);
             if (imageStart < 0) {
                 if (output != null && searchOffset < data.Length) output.Write(data, searchOffset, data.Length - searchOffset);
                 return reserialized;
@@ -247,11 +247,12 @@ internal static class OfficeProvenanceJpeg {
         return -1;
     }
 
-    private static int FindNextCompleteStart(byte[] data, int offset, ref int markerCount, int maximumEntries) {
+    private static int FindNextCompleteStart(byte[] data, int offset, int maximumEntries) {
+        int lookaheadMarkers = 0;
         int candidate = FindNextStart(data, offset);
         while (candidate >= 0) {
-            ReserveMarker(ref markerCount, maximumEntries);
-            if (TryFindCompleteImageEnd(data, candidate, ref markerCount, maximumEntries, out _)) return candidate;
+            ReserveMarker(ref lookaheadMarkers, maximumEntries);
+            if (TryFindCompleteImageEnd(data, candidate, ref lookaheadMarkers, maximumEntries, out _)) return candidate;
             candidate = FindNextStart(data, candidate + 2);
         }
         return -1;

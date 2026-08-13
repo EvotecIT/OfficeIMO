@@ -136,6 +136,20 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ConcatenatedJpegLookaheadDoesNotDoubleCountMarkers() {
+        byte[] jpeg = Join(
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 },
+            new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 });
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            jpeg,
+            "fixture.jpg",
+            new OfficeProvenanceOptions { MaxContainerEntries = 4 });
+
+        Assert.Empty(report.Evidence);
+    }
+
+    [Fact]
     public void FragmentedJpegAcceptsAnExtendedSizeStoreDescriptionBox() {
         byte[] storeUuid = { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
@@ -551,6 +565,28 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void ZipRewriteBoundsExpandedLegacyCommentsAtTheFieldLimit() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream manifest = archive.CreateEntry("META-INF/content_credential.c2pa").Open()) WriteAll(manifest, CreateManifestStore());
+                using (Stream keep = archive.CreateEntry("keep.txt").Open()) WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = AddCentralDirectoryComment(stream.ToArray(), "keep.txt", Enumerable.Repeat((byte)0x82, ushort.MaxValue).ToArray());
+        }
+        int sourceCentralHeader = FindSignature(package, 0x02014B50u, "keep.txt");
+        WriteLittleEndian16(package, sourceCentralHeader + 8,
+            (ushort)(BitConverter.ToUInt16(package, sourceCentralHeader + 8) & ~0x0800));
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+        int centralHeader = FindSignature(result.ToArray(), 0x02014B50u, "keep.txt");
+        byte[] comment = ReadCentralDirectoryComment(result.ToArray(), centralHeader);
+
+        Assert.True(comment.Length <= ushort.MaxValue);
+        Assert.All(Encoding.UTF8.GetString(comment), character => Assert.Equal('é', character));
+    }
+
+    [Fact]
     public void OpcSignatureDetectionIgnoresDirectoryAndUnrelatedXmlSignatureEntries() {
         byte[] package;
         using (var stream = new MemoryStream()) {
@@ -817,6 +853,39 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void SvgProcessesOnlyTheOutermostNestedXmpRoot() {
+        byte[] svg = Encoding.UTF8.GetBytes(
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" " +
+            "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><metadata><x:xmpmeta>" +
+            "<x:xmpmeta><rdf:RDF><rdf:Description iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
+            "</rdf:RDF></x:xmpmeta></x:xmpmeta></metadata></svg>");
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
+
+        Assert.Single(result.Before.Evidence);
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void GifProcessesStandardXmpApplicationExtensions() {
+        byte[] xmp = Encoding.UTF8.GetBytes(
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
+            "<rdf:Description xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" " +
+            "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
+            "</rdf:RDF></x:xmpmeta>");
+        byte[] gif = CreateGifWithXmp(xmp);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif");
+
+        Assert.Single(result.Before.Evidence);
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+        Assert.Equal((byte)0x3B, result.ToArray()[result.ToArray().Length - 1]);
+    }
+
+    [Fact]
     public void SvgRejectsAValidDocumentBeforeMaterializingTooManyNodes() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\"><g/><g/><g/><g/><g/></svg>");
@@ -932,6 +1001,20 @@ public sealed class ProvenanceReviewRegressionContracts {
         WriteLittleEndian(result, 4, (uint)(result.Length - 8));
         Encoding.ASCII.GetBytes("WEBP").CopyTo(result, 8);
         return result;
+    }
+
+    private static byte[] CreateGifWithXmp(byte[] packet) {
+        byte[] trailer = new byte[258];
+        trailer[0] = 0x01;
+        for (int index = 1; index <= 255; index++) trailer[index] = checked((byte)(256 - index));
+        return Join(
+            Encoding.ASCII.GetBytes("GIF89a"),
+            new byte[] { 1, 0, 1, 0, 0, 0, 0 },
+            new byte[] { 0x21, 0xFF, 0x0B },
+            Encoding.ASCII.GetBytes("XMP DataXMP"),
+            packet,
+            trailer,
+            new byte[] { 0x3B });
     }
 
     private static byte[] CreateRiffChunk(string type, byte[] payload) {

@@ -358,7 +358,22 @@ internal static class OfficeProvenanceZip {
             byte value = comment[index];
             decoded[index] = value < 0x80 ? (char)value : highCharacters[value - 0x80];
         }
-        return Encoding.UTF8.GetBytes(decoded);
+        int encodedLength = Encoding.UTF8.GetByteCount(decoded);
+        if (encodedLength <= ushort.MaxValue) return Encoding.UTF8.GetBytes(decoded);
+        byte[] bounded = new byte[ushort.MaxValue];
+        Encoding.UTF8.GetEncoder().Convert(
+            decoded,
+            0,
+            decoded.Length,
+            bounded,
+            0,
+            bounded.Length,
+            flush: true,
+            out _,
+            out int bytesUsed,
+            out _);
+        if (bytesUsed != bounded.Length) Array.Resize(ref bounded, bytesUsed);
+        return bounded;
     }
 
     private static uint ResolveZip64LocalHeaderOffset(byte[] data, int centralHeaderOffset, byte[] extraField) {
