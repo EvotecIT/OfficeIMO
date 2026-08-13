@@ -83,6 +83,36 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasChoiceField_StringMultiSelectNormalizesDuplicateValuesBeforeSerialization() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas.ChoiceField(
+                "Choice",
+                new[] { "A", "B" },
+                new[] { "A", "A" },
+                20D,
+                20D,
+                120D,
+                36D,
+                isComboBox: false,
+                allowsMultipleSelection: true))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal(new[] { 0 }, field.SelectedIndices);
+        Assert.Equal(new[] { "A" }, field.SelectedOptions.Select(option => option.ExportValue).ToArray());
+    }
+
+    [Fact]
+    public void CanvasCheckBox_RejectsReservedAndNonAsciiAppearanceStatesWhenAdded() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Off"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Off", "off-export"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Y\u2713"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Y\u2713", "accepted"));
+    }
+
+    [Fact]
     public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas

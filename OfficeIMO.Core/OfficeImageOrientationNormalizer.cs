@@ -117,7 +117,9 @@ public static class OfficeImageOrientationNormalizer {
                 && data[offset + 2] == (byte)'E' && data[offset + 3] == (byte)'x'
                 && data[offset + 4] == (byte)'i' && data[offset + 5] == (byte)'f'
                 && data[offset + 6] == 0 && data[offset + 7] == 0) {
-                return TryWriteTiffOrientation(data, offset + 8, segmentLength - 8);
+                if (TryWriteTiffOrientation(data, offset + 8, segmentLength - 8)) {
+                    return true;
+                }
             }
             offset += segmentLength;
         }

@@ -58,7 +58,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Adds an interactive check box at fixed top-left page coordinates.</summary>
     public PdfPageCanvas CheckBox(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
-        Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
+        ValidateCheckBoxAppearanceStateName(checkedValueName, nameof(checkedValueName));
         _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, checkedValueName, x, y, width, height, style));
         return this;
     }
@@ -66,7 +66,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Adds an interactive check box with separate PDF appearance-state and exported values.</summary>
     public PdfPageCanvas CheckBoxWithExportValue(string name, bool isChecked, double x, double y, double width, double height, string checkedValueName, string exportValue, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
-        Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
+        ValidateCheckBoxAppearanceStateName(checkedValueName, nameof(checkedValueName));
         Guard.NotNullOrWhiteSpace(exportValue, nameof(exportValue));
         _items.Add(PdfCanvasFormFieldItem.CheckBox(name, isChecked, checkedValueName, exportValue, x, y, width, height, style));
         return this;
@@ -84,7 +84,7 @@ public sealed partial class PdfPageCanvas {
         if (optionSnapshot.Distinct(StringComparer.Ordinal).Count() != optionSnapshot.Count) {
             throw new ArgumentException("Canvas choice field options must be unique.", nameof(options));
         }
-        var valueSnapshot = values?.ToList() ?? new List<string>();
+        var valueSnapshot = values?.Distinct(StringComparer.Ordinal).ToList() ?? new List<string>();
         if (!allowsMultipleSelection && valueSnapshot.Count > 1) {
             throw new ArgumentException("A single-select canvas choice field accepts at most one value.", nameof(values));
         }
@@ -146,6 +146,19 @@ public sealed partial class PdfPageCanvas {
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
+    }
+
+    private static void ValidateCheckBoxAppearanceStateName(string value, string paramName) {
+        Guard.NotNullOrWhiteSpace(value, paramName);
+        if (string.Equals(value, "Off", StringComparison.Ordinal)) {
+            throw new ArgumentException("Canvas check box selected value name cannot be Off.", paramName);
+        }
+
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] > 0x7E) {
+                throw new ArgumentException("Canvas check box selected value name must contain only ASCII PDF name characters.", paramName);
+            }
+        }
     }
 }
 
