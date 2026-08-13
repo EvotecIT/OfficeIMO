@@ -402,6 +402,20 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void ImageValidationBoundsAggregateRetainedPageContent() {
+        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfImagePlacement placement = document.Images.Placements().First();
+        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 40 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            document.Images.Move(placement, 10D, 0D, readOptions: options));
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+        Assert.Equal(40, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void PortableImageEditsRejectAuthoredRenderingIntent() {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",

@@ -89,6 +89,7 @@ internal static partial class PdfImageEditor {
         var decodedStreams = new List<(int ObjectNumber, PdfStream Stream, string Content)>();
         var decodedObjectNumbers = new HashSet<int>();
         var pending = new Queue<int>();
+        long retainedContentBytes = 0L;
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfDictionary page ||
                 !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
@@ -106,7 +107,15 @@ internal static partial class PdfImageEditor {
                 indirect.Value is not PdfStream stream ||
                 stream.DecodingFailed) continue;
             try {
-                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
+                byte[] decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes);
+                retainedContentBytes += decoded.LongLength;
+                if (retainedContentBytes > limits.MaxPageContentBytes) {
+                    throw PdfReadLimitException.Create(
+                        PdfReadLimitKind.PageContentBytes,
+                        limits.MaxPageContentBytes,
+                        retainedContentBytes);
+                }
+                string content = PdfEncoding.Latin1GetString(decoded);
                 decodedStreams.Add((objectNumber, stream, content));
             } catch (NotSupportedException) {
                 throw new NotSupportedException("Editing this image is not supported because a reachable content stream cannot be decoded safely.");
