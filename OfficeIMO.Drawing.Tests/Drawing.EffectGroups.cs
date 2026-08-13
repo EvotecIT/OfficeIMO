@@ -151,4 +151,32 @@ public partial class DrawingTests {
         Assert.Equal((byte)255, pixel.R);
         Assert.InRange(pixel.A, (byte)126, (byte)128);
     }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_PreservesPdfDeviceRgbLuminosityAcrossRasterAndSvg() {
+        var source = new OfficeDrawing(4D, 4D);
+        OfficeShape sourceShape = OfficeShape.Rectangle(4D, 4D);
+        sourceShape.FillColor = OfficeColor.Blue;
+        sourceShape.StrokeWidth = 0D;
+        source.AddShape(sourceShape, 0D, 0D);
+
+        var maskDrawing = new OfficeDrawing(4D, 4D);
+        OfficeShape redMask = OfficeShape.Rectangle(4D, 4D);
+        redMask.FillColor = OfficeColor.Red;
+        redMask.StrokeWidth = 0D;
+        maskDrawing.AddShape(redMask, 0D, 0D);
+        var mask = new OfficeDrawingSoftMask(
+            maskDrawing,
+            OfficeSoftMaskMode.Luminosity,
+            luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
+
+        var drawing = new OfficeDrawing(4D, 4D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
+
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(2, 2);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.InRange(pixel.A, (byte)76, (byte)77);
+        Assert.Contains("0.3 0.59 0.11", svg, StringComparison.Ordinal);
+    }
 }

@@ -1239,6 +1239,10 @@ internal static class PdfPageXObjectInvocationParser {
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
                 _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
+            } else {
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                    _state.ClipPath,
+                    PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
             }
         }
 
@@ -1844,10 +1848,8 @@ internal static class PdfPageXObjectInvocationParser {
                 double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
                 double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
 
-            double scale = Math.Max(firstLengthSquared, secondLengthSquared);
             double dot = (transform.A * transform.C) + (transform.B * transform.D);
-            return Math.Abs(firstLengthSquared - secondLengthSquared) <= scale * 0.000000001D &&
-                   Math.Abs(dot) <= Math.Sqrt(firstLengthSquared * secondLengthSquared) * 0.000000001D;
+            return firstLengthSquared == secondLengthSquared && dot == 0D;
         }
 
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;

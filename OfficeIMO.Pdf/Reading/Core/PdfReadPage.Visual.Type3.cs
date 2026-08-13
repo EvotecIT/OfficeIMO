@@ -346,11 +346,22 @@ public sealed partial class PdfReadPage {
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
-        if (image.IsImageMask) return true;
+        if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private bool HasValidType3ImageMaskDecode(PdfDictionary imageDictionary) {
+        if (!imageDictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        if (ResolveEffectObject(decodeObject) is not PdfArray decode || decode.Items.Count != 2 ||
+            ResolveEffectObject(decode.Items[0]) is not PdfNumber first ||
+            ResolveEffectObject(decode.Items[1]) is not PdfNumber second ||
+            double.IsNaN(first.Value) || double.IsInfinity(first.Value) ||
+            double.IsNaN(second.Value) || double.IsInfinity(second.Value)) return false;
+        return first.Value == 0D && second.Value == 1D ||
+               first.Value == 1D && second.Value == 0D;
     }
 
     private bool HasType3SoftMaskMatte(PdfDictionary imageDictionary) {

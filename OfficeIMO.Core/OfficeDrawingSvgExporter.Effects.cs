@@ -21,12 +21,21 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
-        sb.Append("<defs><mask id=\"").Append(id)
+        bool pdfLuminosity = mask.Mode == OfficeSoftMaskMode.Luminosity &&
+            mask.LuminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb;
+        string filterId = id + "-pdf-luminosity";
+        sb.Append("<defs>");
+        if (pdfLuminosity) {
+            sb.Append("<filter id=\"").Append(filterId)
+                .Append("\" color-interpolation-filters=\"sRGB\"><feColorMatrix type=\"matrix\" values=\"0.3 0.59 0.11 0 0 0.3 0.59 0.11 0 0 0.3 0.59 0.11 0 0 0 0 0 1 0\"/></filter>");
+        }
+        sb.Append("<mask id=\"").Append(id)
             .Append("\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"")
             .Append(Format(mask.InnerDrawing.Width)).Append("\" height=\"")
             .Append(Format(mask.InnerDrawing.Height)).Append("\" style=\"mask-type:")
             .Append(mask.Mode == OfficeSoftMaskMode.Alpha ? "alpha" : "luminance")
             .Append("\">");
+        if (pdfLuminosity) sb.Append("<g filter=\"url(#").Append(filterId).Append(")\">");
         if (mask.BackdropColor.A > 0) {
             sb.Append("<rect width=\"100%\" height=\"100%\" fill=\"")
                 .Append(mask.BackdropColor.ToHex())
@@ -34,7 +43,9 @@ public static partial class OfficeDrawingSvgExporter {
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(mask.Transform, 0D, 0D)).Append('>');
         AppendElements(sb, mask.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
-        sb.Append("</g></mask></defs>");
+        sb.Append("</g>");
+        if (pdfLuminosity) sb.Append("</g>");
+        sb.Append("</mask></defs>");
     }
 
     private static string ToCssBlendMode(OfficeBlendMode mode) {

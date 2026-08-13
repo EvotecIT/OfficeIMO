@@ -57,23 +57,26 @@ public static partial class OfficeDrawingRasterRenderer {
             CancellationToken = cancellationToken
         });
         var result = new OfficeRasterImage(source.Width, source.Height);
-        double backdrop = GetMaskFactor(softMask.BackdropColor, softMask.Mode);
+        double backdrop = GetMaskFactor(softMask.BackdropColor, softMask.Mode, softMask.LuminosityStandard);
         for (int y = 0; y < source.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < source.Width; x++) {
                 OfficeColor sourcePixel = source.GetPixel(x, y);
                 OfficeColor maskPixel = mask.GetPixel(x, y);
                 double maskAlpha = maskPixel.A / 255D;
-                double coverage = GetMaskFactor(maskPixel, softMask.Mode) + ((1D - maskAlpha) * backdrop);
+                double coverage = GetMaskFactor(maskPixel, softMask.Mode, softMask.LuminosityStandard) + ((1D - maskAlpha) * backdrop);
                 result.SetPixel(x, y, OfficeColor.FromRgba(sourcePixel.R, sourcePixel.G, sourcePixel.B, (byte)System.Math.Round(sourcePixel.A * coverage)));
             }
         }
         return result;
     }
 
-    private static double GetMaskFactor(OfficeColor color, OfficeSoftMaskMode mode) {
+    private static double GetMaskFactor(OfficeColor color, OfficeSoftMaskMode mode, OfficeSoftMaskLuminosityStandard luminosityStandard) {
         double alpha = color.A / 255D;
         if (mode == OfficeSoftMaskMode.Alpha) return alpha;
-        return alpha * (((0.3D * color.R) + (0.59D * color.G) + (0.11D * color.B)) / 255D);
+        double redWeight = luminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb ? 0.3D : 0.2126D;
+        double greenWeight = luminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb ? 0.59D : 0.7152D;
+        double blueWeight = luminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb ? 0.11D : 0.0722D;
+        return alpha * (((redWeight * color.R) + (greenWeight * color.G) + (blueWeight * color.B)) / 255D);
     }
 }

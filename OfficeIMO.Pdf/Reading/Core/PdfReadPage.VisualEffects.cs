@@ -907,11 +907,19 @@ public sealed partial class PdfReadPage {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
-            return new OfficeDrawingSoftMask(new OfficeDrawing(width, height), resource.Mode, backdropColor: resource.BackdropColor);
+            return new OfficeDrawingSoftMask(
+                new OfficeDrawing(width, height),
+                resource.Mode,
+                backdropColor: resource.BackdropColor,
+                luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
         }
         try {
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget);
-            var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
+            var mask = new OfficeDrawingSoftMask(
+                drawing,
+                resource.Mode,
+                backdropColor: resource.BackdropColor,
+                luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
             cache[cacheKey] = mask;
             return mask;
         } finally {

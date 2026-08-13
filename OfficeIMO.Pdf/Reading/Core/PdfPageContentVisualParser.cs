@@ -1622,6 +1622,9 @@ internal static class PdfPageContentVisualParser {
 
         private void CaptureClipPath(OfficeFillRule fillRule) {
             if (_path.Count < 2) {
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                    _state.ClipPath,
+                    PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
                 return;
             }
 
@@ -1632,6 +1635,10 @@ internal static class PdfPageContentVisualParser {
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
                 _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
+            } else {
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                    _state.ClipPath,
+                    PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
             }
         }
 
