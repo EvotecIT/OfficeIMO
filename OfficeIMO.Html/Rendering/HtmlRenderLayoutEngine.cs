@@ -75,6 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlCssPageGeometry _activePageGeometry;
     private IElement? _activeSubgridOwner;
     private IReadOnlyList<double>? _activeSubgridColumnSizes;
+    private IReadOnlyDictionary<string, int>? _activeSubgridColumnLineNames;
     private double _activeSubgridColumnGap;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
@@ -221,6 +222,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _reportedPositionStaticAnchorFallbacks.Clear();
         _activeSubgridOwner = null;
         _activeSubgridColumnSizes = null;
+        _activeSubgridColumnLineNames = null;
         _activeSubgridColumnGap = 0D;
     }
 

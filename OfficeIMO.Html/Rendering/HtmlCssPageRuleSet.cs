@@ -4,6 +4,17 @@ namespace OfficeIMO.Html;
 
 internal sealed class HtmlCssPageRuleSet {
     private readonly List<HtmlCssPageRule> _rules = new List<HtmlCssPageRule>();
+    private readonly double? _baseWidth;
+    private readonly double? _baseHeight;
+    private readonly HtmlRenderMargins? _baseMargins;
+
+    internal HtmlCssPageRuleSet() { }
+
+    internal HtmlCssPageRuleSet(HtmlRenderOptions options) {
+        _baseWidth = options.PageWidth;
+        _baseHeight = options.PageHeight;
+        _baseMargins = options.Margins;
+    }
 
     internal void Add(HtmlCssPageRule rule) {
         rule.SourceOrder = _rules.Count;
@@ -11,7 +22,21 @@ internal sealed class HtmlCssPageRuleSet {
     }
 
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
-        IReadOnlyList<HtmlCssPageRule> matching = MatchingRules(pageNumber, pageName).ToList();
+        return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
+    }
+
+    internal void ApplyGenericGeometry(HtmlRenderOptions options) {
+        HtmlCssPageGeometry geometry = ResolveGeometry(
+            _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic),
+            options);
+        options.PageSize = new OfficePageSize(
+            geometry.Width / HtmlRenderOptions.CssPixelsPerInch,
+            geometry.Height / HtmlRenderOptions.CssPixelsPerInch);
+        options.Margins = geometry.Margins;
+    }
+
+    private HtmlCssPageGeometry ResolveGeometry(IEnumerable<HtmlCssPageRule> rules, HtmlRenderOptions options) {
+        IReadOnlyList<HtmlCssPageRule> matching = rules.ToList();
         var size = new HtmlCssPageCascadeValue();
         var top = new HtmlCssPageCascadeValue();
         var right = new HtmlCssPageCascadeValue();
@@ -32,16 +57,17 @@ internal sealed class HtmlCssPageRuleSet {
             Consider(ref left, geometry.MarginLeft, rule);
         }
 
-        double width = options.PageWidth;
-        double height = options.PageHeight;
+        double width = _baseWidth ?? options.PageWidth;
+        double height = _baseHeight ?? options.PageHeight;
         if (size.HasValue) {
-            HtmlCssPageSettingsResolver.TryResolvePageSize(size.Value, options.PageWidth, options.PageHeight, options.DefaultFontSize, out width, out height);
+            HtmlCssPageSettingsResolver.TryResolvePageSize(size.Value, width, height, options.DefaultFontSize, out width, out height);
         }
 
-        double resolvedTop = options.Margins.Top;
-        double resolvedRight = options.Margins.Right;
-        double resolvedBottom = options.Margins.Bottom;
-        double resolvedLeft = options.Margins.Left;
+        HtmlRenderMargins baseMargins = _baseMargins ?? options.Margins;
+        double resolvedTop = baseMargins.Top;
+        double resolvedRight = baseMargins.Right;
+        double resolvedBottom = baseMargins.Bottom;
+        double resolvedLeft = baseMargins.Left;
         ApplySide(top, width, height, options.DefaultFontSize, ref resolvedTop);
         ApplySide(right, width, height, options.DefaultFontSize, ref resolvedRight);
         ApplySide(bottom, width, height, options.DefaultFontSize, ref resolvedBottom);

@@ -33,7 +33,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             "grid-template-rows");
         IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
-        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(style.GridTemplateColumns, usesColumnSubgrid ? columnTracks.Count + 1 : (int?)null);
+        IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(
+            style.GridTemplateColumns,
+            usesColumnSubgrid ? columnTracks.Count + 1 : (int?)null,
+            usesColumnSubgrid ? _activeSubgridColumnLineNames : null);
         IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
@@ -51,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             ApplyInitialGridItemWidth(item, style, cellWidth);
-            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
         }
 
         EnsureGridTrackCount(
@@ -85,7 +88,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             double cellHeight = rows.SpanSize(item.Row, item.RowSpan);
             ApplyFinalGridItemSize(item, style, cellWidth, cellHeight);
-            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
             item.OffsetX = ResolveGridHorizontalOffset(item, style, cellWidth);
         }
         ResolveGridVerticalOffsets(items, style, rows);
@@ -173,18 +176,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         HtmlRenderBoxStyle parentStyle,
         int depth,
-        GridAxisLayout columns) {
+        GridAxisLayout columns,
+        IReadOnlyDictionary<string, int> columnLineNames) {
         IElement? previousOwner = _activeSubgridOwner;
         IReadOnlyList<double>? previousSizes = _activeSubgridColumnSizes;
+        IReadOnlyDictionary<string, int>? previousLineNames = _activeSubgridColumnLineNames;
         double previousGap = _activeSubgridColumnGap;
         try {
             _activeSubgridOwner = item.Item.Element;
             _activeSubgridColumnSizes = columns.Sizes.Skip(item.Column).Take(item.ColumnSpan).ToList();
+            _activeSubgridColumnLineNames = columnLineNames
+                .Where(pair => pair.Value >= item.Column && pair.Value <= item.Column + item.ColumnSpan)
+                .ToDictionary(pair => pair.Key, pair => pair.Value - item.Column, StringComparer.Ordinal);
             _activeSubgridColumnGap = columns.Between;
             return LayoutFlexItem(item.Item, containingWidth, parentStyle, depth);
         } finally {
             _activeSubgridOwner = previousOwner;
             _activeSubgridColumnSizes = previousSizes;
+            _activeSubgridColumnLineNames = previousLineNames;
             _activeSubgridColumnGap = previousGap;
         }
     }

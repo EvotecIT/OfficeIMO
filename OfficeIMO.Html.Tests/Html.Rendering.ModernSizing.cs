@@ -243,6 +243,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
 
+    [Theory]
+    [InlineData("2em")]
+    [InlineData("200%")]
+    public void HtmlRendering_ContainerStyleQueriesResolveRelativeFontSizeFromTheParent(string relativeFontSize) {
+        const string html = "<style>@container style(font-size:32px) { #item { background:red; } }</style>"
+            + "<div style='font-size:16px'><section style='font-size:RELATIVE;container-name:theme'>"
+            + "<div id='item' style='width:40px;height:20px;background:blue'></div></section></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.Replace("RELATIVE", relativeFontSize), new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
+    }
+
     [Fact]
     public void HtmlRendering_NameOnlyContainerShorthandParticipatesInStyleQueries() {
         const string html = "<style>@container theme style(--tone:red) { #item { background:red; } }</style><section style='container:theme;--tone:red'><div id='item' style='width:40px;height:20px;background:blue'></div></section>";

@@ -159,6 +159,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
+    [Fact]
+    public void HtmlGrid_ColumnSubgridCarriesParentLineNamesIntoItsLocalSpan() {
+        const string html = """
+            <div style="display:grid;width:260px;grid-template-columns:[outer] 40px [left] 60px [middle] 140px [right];column-gap:10px">
+              <div style="display:grid;grid-column:left / right;grid-template-columns:subgrid">
+                <span id="inherited-subgrid" style="grid-column:middle / right;background:#ff0000">A</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 280D);
+        HtmlRenderShape item = FindGridShape(rendered, "span#inherited-subgrid");
+
+        Assert.Equal(120D, item.X, 3);
+        Assert.Equal(140D, item.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
     [Theory]
     [InlineData("alpha-beta")]
     [InlineData("alpha/beta")]

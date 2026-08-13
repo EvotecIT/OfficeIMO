@@ -3,9 +3,17 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyDictionary<string, int> ParseGridLineNames(string value, int? subgridLineCount = null) {
+    private IReadOnlyDictionary<string, int> ParseGridLineNames(
+        string value,
+        int? subgridLineCount = null,
+        IReadOnlyDictionary<string, int>? inheritedSubgridNames = null) {
         var names = new Dictionary<string, int>(StringComparer.Ordinal);
         if (subgridLineCount.HasValue && IsSubgridTrackList(value)) {
+            if (inheritedSubgridNames != null) {
+                foreach (KeyValuePair<string, int> pair in inheritedSubgridNames) {
+                    if (pair.Value >= 0 && pair.Value < subgridLineCount.Value) names[pair.Key] = pair.Value;
+                }
+            }
             AddSubgridLineNames(value, subgridLineCount.Value, names);
             return names;
         }

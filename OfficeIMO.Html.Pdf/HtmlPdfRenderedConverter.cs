@@ -276,8 +276,10 @@ internal static partial class HtmlPdfRenderedConverter {
             IReadOnlyList<string>? selectedValues = !field.AllowsMultipleSelection && field.Values.Count == 0 ? null : field.Values;
             IReadOnlyList<int> selectedIndices = field.IsComboBox ? Array.Empty<int>() : field.SelectedOptionIndices;
             canvas.ChoiceFieldWithSelectedIndices(field.Name, choiceOptions, selectedValues, selectedIndices, x, y, width, height, fontSize, field.IsComboBox, field.AllowsMultipleSelection, style);
-            string searchableValue = string.Join(" ", field.Values
-                .Select(value => choiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value)
+            IEnumerable<string> searchableLabels = selectedIndices.Count > 0
+                ? selectedIndices.Where(index => index >= 0 && index < choiceOptions.Count).Select(index => choiceOptions[index].DisplayText)
+                : field.Values.Select(value => choiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value);
+            string searchableValue = string.Join(" ", searchableLabels
                 .Where(value => !string.IsNullOrWhiteSpace(value)));
             if (searchableValue.Length > 0) {
                 canvas.SearchableText(searchableValue, x, y + Math.Min(height, fontSize));

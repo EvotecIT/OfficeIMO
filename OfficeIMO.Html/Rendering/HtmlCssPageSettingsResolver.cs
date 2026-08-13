@@ -8,71 +8,15 @@ namespace OfficeIMO.Html;
 
 internal static class HtmlCssPageSettingsResolver {
     internal static HtmlCssPageRuleSet Apply(IHtmlDocument document, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        var pageRules = new HtmlCssPageRuleSet();
+        var pageRules = new HtmlCssPageRuleSet(options);
         if (options.Mode != HtmlRenderMode.Paged || !options.HonorCssPageRules) return pageRules;
-        var parser = new CssParser();
         var layers = new CascadeLayerRegistry();
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicablePrintMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
             ApplyRawPageRules(styleElement.TextContent, options, diagnostics, pageRules, layers);
-            var sheet = parser.ParseStyleSheet(styleElement.TextContent);
-            foreach (ICssRule rule in sheet.Rules) ApplyRule(rule, options, diagnostics);
         }
-
+        pageRules.ApplyGenericGeometry(options);
         return pageRules;
-    }
-
-    private static void ApplyRule(ICssRule rule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        if (rule is ICssMediaRule mediaRule && !IsApplicablePrintMedia(mediaRule.ConditionText, options)) return;
-        if (rule is ICssSupportsRule supportsRule && !HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) return;
-        if (rule is ICssPageRule pageRule) {
-            string selector = (pageRule.SelectorText ?? string.Empty).Trim();
-            if (selector.Length > 0) {
-                return;
-            }
-
-            ApplyPageRule(pageRule, options, diagnostics);
-            return;
-        }
-
-        if (rule is ICssGroupingRule grouping) {
-            foreach (ICssRule child in grouping.Rules) ApplyRule(child, options, diagnostics);
-        }
-    }
-
-    private static void ApplyPageRule(ICssPageRule pageRule, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
-        string size = pageRule.Style.GetPropertyValue("size");
-        if (!string.IsNullOrWhiteSpace(size) && !TryApplyPageSize(size, options)) {
-            diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, "@page", size);
-        }
-
-        double top = options.Margins.Top;
-        double right = options.Margins.Right;
-        double bottom = options.Margins.Bottom;
-        double left = options.Margins.Left;
-        string margin = pageRule.Style.GetPropertyValue("margin");
-        if (!string.IsNullOrWhiteSpace(margin)) HtmlRenderCssValues.ApplyBoxShorthand(
-            margin,
-            options.PageWidth,
-            options.DefaultFontSize,
-            options.DefaultFontSize,
-            options.PageWidth,
-            options.PageHeight,
-            ref top,
-            ref right,
-            ref bottom,
-            ref left);
-        ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-top"), options, ref top);
-        ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-right"), options, ref right);
-        ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-bottom"), options, ref bottom);
-        ApplyMarginSide(pageRule.Style.GetPropertyValue("margin-left"), options, ref left);
-        options.Margins = new HtmlRenderMargins(left, top, right, bottom);
-    }
-
-    private static bool TryApplyPageSize(string value, HtmlRenderOptions options) {
-        if (!TryResolvePageSize(value, options.PageWidth, options.PageHeight, options.DefaultFontSize, out double width, out double height)) return false;
-        options.PageSize = new OfficePageSize(width / HtmlRenderOptions.CssPixelsPerInch, height / HtmlRenderOptions.CssPixelsPerInch);
-        return true;
     }
 
     internal static bool TryResolvePageSize(string value, double currentWidth, double currentHeight, double fontSize, out double width, out double height) {
@@ -149,10 +93,6 @@ internal static class HtmlCssPageSettingsResolver {
             case "executive": return OfficePageSizes.Executive;
             default: return null;
         }
-    }
-
-    private static void ApplyMarginSide(string value, HtmlRenderOptions options, ref double target) {
-        if (HtmlRenderCssValues.TryLength(value, options.PageWidth, options.DefaultFontSize, options.DefaultFontSize, options.PageWidth, options.PageHeight, out double parsed)) target = Math.Max(0D, parsed);
     }
 
     private static bool IsCssStyleElement(IElement element) {
@@ -254,7 +194,6 @@ internal static class HtmlCssPageSettingsResolver {
             return;
         }
 
-        bool appliesToBasePage = pageName == null && selector == HtmlCssPageSelector.Generic;
         bool IsValidSize(string value) => TryResolvePageSize(
             value,
             options.PageWidth,
@@ -268,8 +207,6 @@ internal static class HtmlCssPageSettingsResolver {
             string source = selectorText.Length == 0 ? "@page" : "@page " + selectorText;
             diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.PageSizeUnsupported, "The @page size declaration could not be mapped to a supported physical page size.", HtmlDiagnosticSeverity.Warning, source, authoredSize.Value);
         }
-        if (appliesToBasePage && sizeDeclaration.Value.Length > 0) TryApplyPageSize(sizeDeclaration.Value, options);
-
         var geometry = new HtmlCssPageGeometryDeclaration(
             sizeDeclaration,
             FindTopLevelDeclarationWithPriority(body, "margin", value => HtmlCssPageRuleSet.TryExpandMargin(value, out _)),

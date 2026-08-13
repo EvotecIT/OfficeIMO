@@ -227,6 +227,9 @@ public sealed class HtmlPdfTests {
         Assert.Equal("Second", Assert.Single(field.SelectedOptions).DisplayText);
         Assert.Contains("<4669727374> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
         Assert.Contains("<5365636F6E64> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
+        string searchableText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Second", searchableText, StringComparison.Ordinal);
+        Assert.DoesNotContain("First", searchableText, StringComparison.Ordinal);
     }
 
     [Fact]

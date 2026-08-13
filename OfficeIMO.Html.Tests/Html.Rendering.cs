@@ -1214,6 +1214,20 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_CascadesRelativePageSizeBeforeApplyingItToTheCallerDefault() {
+        const string html = "<style>@page { size:landscape !important } @page { size:A4 }</style><p>Body</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = OfficePageSizes.Letter
+        };
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages);
+
+        Assert.Equal(OfficePageSizes.Letter.HeightInches * HtmlRenderOptions.CssPixelsPerInch, page.Width, 3);
+        Assert.Equal(OfficePageSizes.Letter.WidthInches * HtmlRenderOptions.CssPixelsPerInch, page.Height, 3);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_ReflowsTopLevelBlocksWhenTheNextPageMasterChangesWidth() {
         const string html = """
             <style>

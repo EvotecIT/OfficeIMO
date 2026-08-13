@@ -97,8 +97,15 @@ public static partial class HtmlComputedStyleEngine {
 
         var containerRule = rule as AngleSharp.Css.Dom.ICssContainerRule;
         if (containerRule != null) {
+            string containerName = containerRule.ContainerName?.Trim() ?? string.Empty;
+            string containerQuery = containerRule.ContainerQuery?.Trim() ?? string.Empty;
+            if (string.Equals(containerName, "style", StringComparison.OrdinalIgnoreCase)
+                && containerQuery.StartsWith("(", StringComparison.Ordinal)) {
+                containerName = string.Empty;
+                containerQuery = "style" + containerQuery;
+            }
             var nestedConditions = new List<ContainerRuleCondition>(containerConditions ?? Array.Empty<ContainerRuleCondition>()) {
-                new ContainerRuleCondition(containerRule.ContainerName?.Trim() ?? string.Empty, containerRule.ContainerQuery?.Trim() ?? string.Empty)
+                new ContainerRuleCondition(containerName, containerQuery)
             };
             foreach (var childRule in containerRule.Rules) {
                 AddStyleRules(childRule, rules, parsedRuleMatches, environment, budget, layers, depth + 1, currentLayer, parentSelectors, nestedConditions);

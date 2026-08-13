@@ -68,13 +68,14 @@ public static partial class HtmlComputedStyleEngine {
         double width,
         double? height,
         double fontSize,
+        double inheritedFontSize,
         double rootFontSize,
         IReadOnlyList<ContainerQueryContext> contexts) {
         string type = ResolveContainerType(style);
         IReadOnlyList<string> names = ResolveContainerNames(style);
         var expanded = new List<ContainerQueryContext>(contexts.Count + 1);
         expanded.AddRange(contexts);
-        expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, rootFontSize, style.Properties));
+        expanded.Add(new ContainerQueryContext(names, type, width, height, fontSize, inheritedFontSize, rootFontSize, style.Properties));
         return expanded.AsReadOnly();
     }
 
@@ -325,8 +326,14 @@ public static partial class HtmlComputedStyleEngine {
             && HtmlRenderCssValues.TryColor(expected, out OfficeIMO.Drawing.OfficeColor expectedColor)) {
             return actualColor == expectedColor;
         }
-        if (HtmlRenderCssValues.TryLength(actual, context.Width, context.FontSize, context.RootFontSize, environment.Width, environment.Height, context.Width, context.Height ?? double.NaN, out double actualLength)
-            && HtmlRenderCssValues.TryLength(expected, context.Width, context.FontSize, context.RootFontSize, environment.Width, environment.Height, context.Width, context.Height ?? double.NaN, out double expectedLength)) {
+        double fontReference = string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
+            ? context.InheritedFontSize
+            : context.FontSize;
+        double percentageReference = string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
+            ? context.InheritedFontSize
+            : context.Width;
+        if (HtmlRenderCssValues.TryLength(actual, percentageReference, fontReference, context.RootFontSize, environment.Width, environment.Height, context.Width, context.Height ?? double.NaN, out double actualLength)
+            && HtmlRenderCssValues.TryLength(expected, percentageReference, fontReference, context.RootFontSize, environment.Width, environment.Height, context.Width, context.Height ?? double.NaN, out double expectedLength)) {
             return Math.Abs(actualLength - expectedLength) <= 0.000001D;
         }
         return string.Equals(
