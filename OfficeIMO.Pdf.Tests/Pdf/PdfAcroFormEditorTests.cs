@@ -332,6 +332,32 @@ public class PdfAcroFormEditorTests {
         Assert.Contains("comb", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Theory]
+    [InlineData((1 << 17) | (1 << 21), "multi-select")]
+    [InlineData(1 << 18, "combo")]
+    public void Edit_SetFlagsRejectsInvalidChoiceFieldSemantics(int flags, string expectedMessage) {
+        byte[] source = PdfDocument.Create()
+            .ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland")
+            .ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", flags)));
+
+        Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsClearingMultiSelectWhileChoiceStoresArrayValue() {
+        byte[] source = PdfDocument.Create()
+            .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
+            .ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+
+        Assert.Contains("array value", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void Edit_MoveOnTheSamePagePreservesAnnotationOrder() {
         byte[] source = PdfDocument.Create()

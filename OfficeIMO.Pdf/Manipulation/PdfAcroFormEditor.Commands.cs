@@ -330,6 +330,20 @@ internal static partial class PdfAcroFormEditor {
              (flags & (FieldFlagMultiline | FieldFlagPassword | FieldFlagFileSelect)) != 0)) {
             throw new NotSupportedException("PDF comb text fields require MaxLen and cannot also be multiline, password, or file-select fields.");
         }
+        if (string.Equals(field.FieldType, "Ch", StringComparison.Ordinal)) {
+            bool isComboBox = (flags & FieldFlagCombo) != 0;
+            bool isEditable = (flags & FieldFlagEdit) != 0;
+            bool isMultiSelect = (flags & FieldFlagMultiSelect) != 0;
+            if (isEditable && !isComboBox) {
+                throw new NotSupportedException("Editable choice fields must be combo boxes.");
+            }
+            if (isComboBox && isMultiSelect) {
+                throw new NotSupportedException("Combo-box choice fields cannot also be multi-select fields.");
+            }
+            if (!isMultiSelect && ReadInheritedFieldValue(objects, field.Dictionary) is PdfArray) {
+                throw new NotSupportedException("Clearing multi-select is not supported while the choice field stores an array value.");
+            }
+        }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
         if (string.Equals(field.FieldType, "Btn", StringComparison.Ordinal) && (flags & FieldFlagPushButton) != 0) {
             refillValues.Remove(name);
@@ -354,6 +368,22 @@ internal static partial class PdfAcroFormEditor {
                 : null;
         }
         return false;
+    }
+
+    private static PdfObject? ReadInheritedFieldValue(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field) {
+        var visited = new HashSet<PdfDictionary>();
+        PdfDictionary? current = field;
+        while (current is not null && visited.Add(current)) {
+            if (current.Items.TryGetValue("V", out PdfObject? value)) {
+                return PdfObjectLookup.Resolve(objects, value);
+            }
+            current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
+                ? ResolveDictionary(objects, parentObject)
+                : null;
+        }
+        return null;
     }
 
     private static void QueueRefillValue(Dictionary<string, string> refillValues, string name, string? fieldType, string? value, bool includeEmptyChoice = false) {
