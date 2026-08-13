@@ -13,14 +13,18 @@ public partial class WordDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
 
     /// <summary>Removes selected provenance from encoded Open XML document bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] documentBytes,
         string fileName = "document.docx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(documentBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
+        OfficeProvenanceZip.HasPackageSignature(data, options) ||
+        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);

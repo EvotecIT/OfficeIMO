@@ -13,14 +13,18 @@ public partial class ExcelDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
 
     /// <summary>Removes selected provenance from encoded Open XML workbook bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] workbookBytes,
         string fileName = "workbook.xlsx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(workbookBytes, fileName, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(workbookBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
+        OfficeProvenanceZip.HasPackageSignature(data, options) ||
+        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);

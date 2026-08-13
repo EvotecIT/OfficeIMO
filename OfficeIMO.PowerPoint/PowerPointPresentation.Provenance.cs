@@ -13,14 +13,18 @@ public sealed partial class PowerPointPresentation {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
 
     /// <summary>Removes selected provenance from encoded Open XML presentation bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] presentationBytes,
         string fileName = "presentation.pptx",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(presentationBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
+        OfficeProvenanceZip.HasPackageSignature(data, options) ||
+        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);

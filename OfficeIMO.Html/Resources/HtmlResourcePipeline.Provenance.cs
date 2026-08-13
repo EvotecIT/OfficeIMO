@@ -9,6 +9,9 @@ public static partial class HtmlResourcePipeline {
     internal static bool IsActiveProvenanceStyleElement(IElement element) =>
         IsCssStyleElement(element) && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
 
+    internal static bool IsApplicableProvenanceMedia(IElement element) =>
+        IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
+
     internal static bool IsActivePictureImageSource(IElement element) {
         var options = new HtmlResourcePipelineOptions();
         if (!string.Equals(element.ParentElement?.LocalName, "picture", StringComparison.OrdinalIgnoreCase)) return true;

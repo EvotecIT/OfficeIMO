@@ -460,7 +460,8 @@ public static partial class HtmlProvenance {
 
     private static bool IsPreloadedImage(IElement element) =>
         HasRelationship(element.GetAttribute("rel"), "preload") &&
-        string.Equals(element.GetAttribute("as")?.Trim(), "image", StringComparison.OrdinalIgnoreCase);
+        string.Equals(element.GetAttribute("as")?.Trim(), "image", StringComparison.OrdinalIgnoreCase) &&
+        HtmlResourcePipeline.IsApplicableProvenanceMedia(element);
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
         int searchOffset = 0;
@@ -649,16 +650,23 @@ public static partial class HtmlProvenance {
             if (tagEnd < 0) break;
             index = tagEnd + 1;
             if (tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
-            if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
-                tagName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
-                tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase) ||
-                tagName.Equals("title", StringComparison.OrdinalIgnoreCase)) {
+            if (IsRawTextOrRcDataElement(tagName)) {
                 int rawTextEnd = FindRawTextClosingTag(html, index, tagName);
                 if (rawTextEnd < 0) break;
                 index = rawTextEnd;
             }
         }
     }
+
+    private static bool IsRawTextOrRcDataElement(string tagName) =>
+        tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("xmp", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("iframe", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("noembed", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("noframes", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("title", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsAsciiLetter(char value) =>
         value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';

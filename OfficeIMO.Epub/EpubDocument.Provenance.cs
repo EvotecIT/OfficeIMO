@@ -33,7 +33,7 @@ public sealed partial class EpubDocument {
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) =>
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);
 
-    private static bool HasPackageSignatures(byte[] data) => OfficeProvenanceZip.HasEntry(data, path =>
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) => OfficeProvenanceZip.HasEntry(data, path =>
         path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
