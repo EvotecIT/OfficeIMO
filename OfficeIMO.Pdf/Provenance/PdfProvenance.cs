@@ -274,6 +274,7 @@ public static class PdfProvenance {
         }
         AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result, maximumContainerEntries);
         AddNameTreeDictionaries(objects, new[] { catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null }, result, maximumContainerEntries);
+        AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
         var resourceSites = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
@@ -285,6 +286,25 @@ public static class PdfProvenance {
             }
         }
         return result;
+    }
+
+    private static void AddEmbeddedFileGraphDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> reachableObjectNumbers,
+        HashSet<PdfObject> result) {
+        foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
+            if (!IsFileSpecificationValue(item.Value) || item.Value is not PdfDictionary fileSpecification ||
+                PdfObjectLookup.Resolve(objects, fileSpecification.Items.TryGetValue("EF", out PdfObject? embeddedFilesValue) ? embeddedFilesValue : null) is not PdfDictionary embeddedFiles) continue;
+            result.Add(embeddedFiles);
+            foreach (PdfObject variant in embeddedFiles.Items.Values) {
+                if (PdfObjectLookup.Resolve(objects, variant) is not PdfStream embeddedFile) continue;
+                result.Add(embeddedFile.Dictionary);
+                AddResolvedDictionary(
+                    objects,
+                    embeddedFile.Dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null,
+                    result);
+            }
+        }
     }
 
     private static void AddResolvedDictionary(

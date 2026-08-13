@@ -829,7 +829,7 @@ public sealed class PdfProvenanceTests {
     }
 
     [Fact]
-    public void EmbeddedFileParameterDictionariesAreNotInformationResourceAssociationSites() {
+    public void UntypedEmbeddedFileParameterDictionariesAreNotInformationResourceAssociationSites() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         byte[] parametersAssociation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
             PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
@@ -840,6 +840,7 @@ public sealed class PdfProvenanceTests {
             PdfReference embeddedFileReference = Assert.IsType<PdfReference>(
                 embeddedFiles.Items.TryGetValue("UF", out PdfObject? unicodeFile) ? unicodeFile : embeddedFiles.Items["F"]);
             PdfStream embeddedFile = Assert.IsType<PdfStream>(objects[embeddedFileReference.ObjectNumber].Value);
+            embeddedFile.Dictionary.Items.Remove("Type");
             var parameters = new PdfDictionary();
             var associations = new PdfArray();
             associations.Items.Add(candidate);
@@ -853,6 +854,35 @@ public sealed class PdfProvenanceTests {
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(parametersAssociation);
         OfficeProvenanceRemovalResult result = PdfProvenance.Remove(parametersAssociation);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UntypedEmbeddedFileGraphRolesAreNotInformationResourceAssociationSites(bool useStreamDictionary) {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] graphAssociation = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, fileSpecification.Items["EF"]));
+            PdfReference embeddedFileReference = Assert.IsType<PdfReference>(
+                embeddedFiles.Items.TryGetValue("UF", out PdfObject? unicodeFile) ? unicodeFile : embeddedFiles.Items["F"]);
+            PdfStream embeddedFile = Assert.IsType<PdfStream>(objects[embeddedFileReference.ObjectNumber].Value);
+            embeddedFile.Dictionary.Items.Remove("Type");
+            var associations = new PdfArray();
+            associations.Items.Add(candidate);
+            (useStreamDictionary ? embeddedFile.Dictionary : embeddedFiles).Items["AF"] = associations;
+            catalog.Items.Remove("AF");
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(graphAssociation);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(graphAssociation);
 
         Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
         Assert.False(result.WasChanged);
