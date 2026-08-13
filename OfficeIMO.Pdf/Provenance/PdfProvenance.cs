@@ -124,7 +124,8 @@ public static class PdfProvenance {
             effectiveReadOptions,
             options.Limits.MaxExpandedContainerBytes);
         PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
-        OfficeProvenanceReport after = Inspect(output, options.Limits, outputReadOptions);
+        OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(options.Limits, output.LongLength);
+        OfficeProvenanceReport after = Inspect(output, outputLimits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
 
@@ -236,6 +237,16 @@ public static class PdfProvenance {
     private static long MultiplySaturating(long value, int multiplier) =>
         value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceOptions source, long outputBytes) => new() {
+        MaxAssetBytes = Math.Max(source.MaxAssetBytes, outputBytes),
+        MaxManifestBytes = source.MaxManifestBytes,
+        MaxCarriers = source.MaxCarriers,
+        MaxContainerEntries = source.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = source.MaxEmbeddedAssets
+    };
+
     private static void CollectObjectAssociations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
@@ -289,6 +300,11 @@ public static class PdfProvenance {
         int maximumContainerEntries) {
         var result = new HashSet<PdfObject>();
         AddResolvedDictionary(objects, activeInfoReference, result);
+        foreach (int objectNumber in pageTreeObjectNumbers) {
+            if (objects.TryGetValue(objectNumber, out PdfIndirectObject? pageTreeObject)) {
+                AddResolvedDictionary(objects, pageTreeObject.Value, result);
+            }
+        }
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
