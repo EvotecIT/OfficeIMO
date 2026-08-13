@@ -125,6 +125,10 @@ internal static class OfficeProvenanceZip {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
         }
 
+        if (removable.Count != 0 && input.GetEntry("[Content_Types].xml") != null) {
+            RemoveOpcManifestReferences(input, embeddedRewrites, options.Limits, ref inspectionBytes);
+        }
+
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         occurrence = 0;
@@ -140,6 +144,84 @@ internal static class OfficeProvenanceZip {
         }
         reserialized = true;
         return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes, ReadArchiveComment(data));
+    }
+
+    private static void RemoveOpcManifestReferences(
+        ZipArchive archive,
+        IDictionary<ZipArchiveEntry, byte[]> replacements,
+        OfficeProvenanceOptions limits,
+        ref long expandedBytes) {
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            bool isContentTypes = entry.FullName.Equals("[Content_Types].xml", StringComparison.Ordinal);
+            bool isRelationships = entry.FullName.EndsWith(".rels", StringComparison.Ordinal) &&
+                (entry.FullName.StartsWith("_rels/", StringComparison.Ordinal) || entry.FullName.Contains("/_rels/"));
+            if (!isContentTypes && !isRelationships) continue;
+            if (entry.Length > limits.MaxAssetBytes || entry.Length > int.MaxValue) {
+                throw new InvalidDataException("An OPC relationship metadata part exceeds the configured asset limit.");
+            }
+            ReserveExpandedBytes(ref expandedBytes, entry.Length, limits.MaxExpandedContainerBytes);
+            byte[] original = ReadEntry(entry, (int)entry.Length);
+            var document = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
+            using (var stream = new MemoryStream(original, writable: false))
+            using (XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })) {
+                document.Load(reader);
+            }
+            bool changed = false;
+            if (isContentTypes) {
+                foreach (XmlElement element in document.GetElementsByTagName("Override", "http://schemas.openxmlformats.org/package/2006/content-types").OfType<XmlElement>().ToArray()) {
+                    string partName = element.GetAttribute("PartName");
+                    if (TryNormalizeOpcTarget(string.Empty, partName, out string normalized) && normalized == ManifestPath) {
+                        element.ParentNode?.RemoveChild(element);
+                        changed = true;
+                    }
+                }
+            } else {
+                string ownerDirectory = GetOpcRelationshipOwnerDirectory(entry.FullName);
+                foreach (XmlElement relationship in document.GetElementsByTagName("Relationship", "http://schemas.openxmlformats.org/package/2006/relationships").OfType<XmlElement>().ToArray()) {
+                    if (string.Equals(relationship.GetAttribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (TryNormalizeOpcTarget(ownerDirectory, relationship.GetAttribute("Target"), out string normalized) && normalized == ManifestPath) {
+                        relationship.ParentNode?.RemoveChild(relationship);
+                        changed = true;
+                    }
+                }
+            }
+            if (!changed) continue;
+            using var output = new MemoryStream();
+            using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
+                Encoding = new UTF8Encoding(false),
+                Indent = false,
+                OmitXmlDeclaration = document.FirstChild is not XmlDeclaration
+            })) document.Save(writer);
+            replacements[entry] = output.ToArray();
+        }
+    }
+
+    private static string GetOpcRelationshipOwnerDirectory(string relationshipPart) {
+        int marker = relationshipPart.LastIndexOf("/_rels/", StringComparison.Ordinal);
+        if (marker >= 0) return relationshipPart.Substring(0, marker);
+        return string.Empty;
+    }
+
+    private static bool TryNormalizeOpcTarget(string ownerDirectory, string target, out string normalized) {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(target)) return false;
+        int suffix = target.IndexOfAny(new[] { '?', '#' });
+        if (suffix >= 0) target = target.Substring(0, suffix);
+        try { target = Uri.UnescapeDataString(target); } catch (UriFormatException) { return false; }
+        if (target.IndexOf('\\') >= 0) return false;
+        string combined = target.StartsWith("/", StringComparison.Ordinal)
+            ? target.TrimStart('/')
+            : (ownerDirectory.Length == 0 ? target : ownerDirectory + "/" + target);
+        var segments = new List<string>();
+        foreach (string segment in combined.Split('/')) {
+            if (segment.Length == 0 || segment == ".") continue;
+            if (segment == "..") {
+                if (segments.Count == 0) return false;
+                segments.RemoveAt(segments.Count - 1);
+            } else segments.Add(segment);
+        }
+        normalized = string.Join("/", segments);
+        return true;
     }
 
     private static uint GetExternalAttributes(ZipArchiveEntry source) {
@@ -184,7 +266,10 @@ internal static class OfficeProvenanceZip {
     /// </summary>
     internal static OfficeProvenanceSignatureStripResult RemoveEntries(
         byte[] data,
-        Func<string, bool> shouldRemove) {
+        Func<string, bool> shouldRemove,
+        Func<string, bool>? shouldReplace = null,
+        Func<string, byte[], byte[]>? replace = null,
+        long maximumReplacementBytes = long.MaxValue) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
         using var inputStream = new MemoryStream(data, writable: false);
@@ -193,11 +278,22 @@ internal static class OfficeProvenanceZip {
         if (!hadMatches) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
 
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
-        List<OfficeProvenanceZipWriteEntry> outputEntries = input.Entries
-            .OrderByDescending(entry => entry.FullName.Equals("mimetype", StringComparison.Ordinal))
-            .Where(entry => !shouldRemove(entry.FullName))
-            .Select(entry => CreateWriteEntry(entry, entryMetadata[entry]))
-            .ToList();
+        var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
+        foreach (ZipArchiveEntry entry in input.Entries
+            .OrderByDescending(candidate => candidate.FullName.Equals("mimetype", StringComparison.Ordinal))) {
+            if (shouldRemove(entry.FullName)) continue;
+            byte[]? replacement = null;
+            if (shouldReplace?.Invoke(entry.FullName) == true) {
+                if (replace == null || entry.Length > maximumReplacementBytes || entry.Length > int.MaxValue) {
+                    throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
+                }
+                replacement = replace(entry.FullName, ReadEntry(entry, (int)entry.Length));
+                if (replacement.LongLength > maximumReplacementBytes) {
+                    throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
+                }
+            }
+            outputEntries.Add(CreateWriteEntry(entry, entryMetadata[entry], replacement));
+        }
         return new OfficeProvenanceSignatureStripResult(
             OfficeProvenanceZipWriter.Write(outputEntries, long.MaxValue, ReadArchiveComment(data)),
             hadSignatures: true);
@@ -472,8 +568,8 @@ internal static class OfficeProvenanceZip {
         }
         if (entry.Length <= 0) return false;
 
-        const int maximumSniffBytes = 16 * 1024;
-        int sniffLength = (int)Math.Min(entry.Length, maximumSniffBytes);
+        if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) return false;
+        int sniffLength = (int)entry.Length;
         byte[] prefix = new byte[sniffLength];
         using Stream source = entry.Open();
         int read = 0;

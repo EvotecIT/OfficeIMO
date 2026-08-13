@@ -156,12 +156,18 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         byte[] claimUuid = { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] storeDescription = CreateExtendedBox("jumd", Join(storeUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
         byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] assertionStoreUuid = { 0x63, 0x32, 0x61, 0x73, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] assertionStoreDescription = CreateBox("jumd", Join(assertionStoreUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+        byte[] assertionUuid = { 0x63, 0x32, 0x61, 0x63, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] assertionDescription = CreateBox("jumd", Join(assertionUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+        byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
+            CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] signatureUuid = { 0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] signatureDescription = CreateBox("jumd", Join(signatureUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim, signature))));
+        byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
         byte[] jpeg = Join(
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, 46, instance: 11, sequence: 1),
@@ -181,11 +187,11 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         OfficeProvenanceReport bounded = OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
-            new OfficeProvenanceOptions { MaxContainerEntries = 9 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 14 });
         OfficeProvenanceReport accepted = OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
-            new OfficeProvenanceOptions { MaxContainerEntries = 10 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 15 });
 
         Assert.False(Assert.Single(bounded.Evidence).IsStructurallyValid);
         Assert.True(Assert.Single(accepted.Evidence).IsStructurallyValid);
@@ -950,6 +956,12 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         byte[] description = CreateBox("jumd", descriptionPayload);
         byte[] manifestUuid = { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] manifestDescription = CreateBox("jumd", Join(manifestUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] assertionStoreUuid = { 0x63, 0x32, 0x61, 0x73, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] assertionStoreDescription = CreateBox("jumd", Join(assertionStoreUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+        byte[] assertionUuid = { 0x63, 0x32, 0x61, 0x63, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
+        byte[] assertionDescription = CreateBox("jumd", Join(assertionUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+        byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
+            CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimUuid = { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 };
         byte[] claimDescription = CreateBox("jumd", Join(claimUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
@@ -957,8 +969,8 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         byte[] signatureDescription = CreateBox("jumd", Join(signatureUuid, new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] manifest = includeSignature
-            ? CreateBox("jumb", Join(manifestDescription, claim, signature))
-            : CreateBox("jumb", Join(manifestDescription, claim));
+            ? CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))
+            : CreateBox("jumb", Join(manifestDescription, assertionStore, claim));
         return CreateBox("jumb", Join(description, manifest));
     }
 

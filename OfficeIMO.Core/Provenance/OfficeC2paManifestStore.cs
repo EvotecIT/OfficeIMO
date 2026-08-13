@@ -19,6 +19,10 @@ internal static class OfficeC2paManifestStore {
         0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
     };
+    private static readonly byte[] AssertionStoreUuid = {
+        0x63, 0x32, 0x61, 0x73, 0x00, 0x11, 0x00, 0x10,
+        0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
+    };
     private static readonly byte[] ClaimSignatureUuid = {
         0x63, 0x32, 0x63, 0x73, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71
@@ -105,6 +109,7 @@ internal static class OfficeC2paManifestStore {
 
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
+        int assertionStoreCount = 0;
         int claimCount = 0;
         int claimSignatureCount = 0;
         while (cursor < manifestEnd) {
@@ -112,7 +117,10 @@ internal static class OfficeC2paManifestStore {
             int remaining = manifestEnd - cursor;
             if (!TryReadBox(data, cursor, remaining, out _, out ulong childLength, out string childType) ||
                 childLength > int.MaxValue) return false;
-            if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
+            if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, AssertionStoreUuid)) {
+                assertionStoreCount++;
+                if (!IsAssertionStoreSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
+            } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimUuid)) {
                 claimCount++;
                 if (!IsClaimSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, ClaimSignatureUuid)) {
@@ -121,7 +129,58 @@ internal static class OfficeC2paManifestStore {
             }
             cursor += (int)childLength;
         }
-        return cursor == manifestEnd && claimCount == 1 && claimSignatureCount == 1;
+        return cursor == manifestEnd && assertionStoreCount == 1 && claimCount == 1 && claimSignatureCount == 1;
+    }
+
+    private static bool IsAssertionStoreSuperbox(
+        byte[] data,
+        int offset,
+        int availableLength,
+        ref int visitedBoxes,
+        int maximumEntries) {
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
+        if (!TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+            out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + AssertionStoreUuid.Length + 2)) return false;
+        int payloadOffset = descriptionOffset + descriptionHeaderLength;
+        if (!Matches(data, payloadOffset, AssertionStoreUuid)) return false;
+        int togglesOffset = payloadOffset + AssertionStoreUuid.Length;
+        if ((data[togglesOffset] & 0x02) == 0) return false;
+        int labelOffset = togglesOffset + 1;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
+        if (terminator < 0 || System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset) != "c2pa.assertions") {
+            return false;
+        }
+
+        int storeEnd = offset + availableLength;
+        int cursor = descriptionEnd;
+        bool hasAssertion = false;
+        while (cursor < storeEnd) {
+            if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
+            int remaining = storeEnd - cursor;
+            if (!TryReadBox(data, cursor, remaining, out int childHeaderLength, out ulong childLength, out string childType) ||
+                childType != "jumb" || childLength > int.MaxValue) return false;
+            int childDescriptionOffset = cursor + childHeaderLength;
+            if (!TryReserveBox(ref visitedBoxes, maximumEntries) ||
+                !TryReadBox(data, childDescriptionOffset, (int)childLength - childHeaderLength, out int childDescriptionHeaderLength,
+                    out ulong childDescriptionLength, out string childDescriptionType) || childDescriptionType != "jumd" ||
+                childDescriptionLength < (ulong)(childDescriptionHeaderLength + 18)) return false;
+            int childLabelOffset = childDescriptionOffset + childDescriptionHeaderLength + 17;
+            int childDescriptionEnd = childDescriptionOffset + (int)childDescriptionLength;
+            if ((data[childLabelOffset - 1] & 0x02) == 0 || !HasValidUtf8Label(data, childLabelOffset, childDescriptionEnd)) return false;
+            int contentOffset = childDescriptionEnd;
+            int contentAvailable = cursor + (int)childLength - contentOffset;
+            if (contentAvailable < 8 || !TryReserveBox(ref visitedBoxes, maximumEntries) ||
+                !TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength, out ulong contentLength, out _) ||
+                contentLength <= (ulong)contentHeaderLength || contentLength != (ulong)contentAvailable) return false;
+            hasAssertion = true;
+            cursor += (int)childLength;
+        }
+        return cursor == storeEnd && hasAssertion;
     }
 
     private static bool HasDescriptionUuid(byte[] data, int offset, int availableLength, byte[] uuid) {
