@@ -17,7 +17,10 @@ public static class PdfProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(readOptions, options.MaxContainerEntries);
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
+            readOptions,
+            options.MaxContainerEntries,
+            options.MaxExpandedContainerBytes);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
@@ -69,7 +72,10 @@ public static class PdfProvenance {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(readOptions, options.Limits.MaxContainerEntries);
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
+            readOptions,
+            options.Limits.MaxContainerEntries,
+            options.Limits.MaxExpandedContainerBytes);
         OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
@@ -179,6 +185,7 @@ public static class PdfProvenance {
             document.Objects,
             catalog,
             secondaryDocumentReferences,
+            structuralObjectNumbers,
             document.ReadOptions.Limits.MaxAnnotationsPerPage);
         return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences, structuralObjectNumbers);
     }
@@ -430,6 +437,7 @@ public static class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary catalog,
         HashSet<int> result,
+        HashSet<int> structuralObjectNumbers,
         int maximumAnnotationsPerPage) {
         if (!catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return;
         var pending = new Stack<PdfObject>();
@@ -452,6 +460,10 @@ public static class PdfProvenance {
                 throw new InvalidDataException("PDF page annotations exceed the configured per-page limit.");
             }
             foreach (PdfObject annotationValue in annotations.Items) {
+                if (annotationValue is PdfReference annotationReference &&
+                    PdfObjectLookup.TryGet(objects, annotationReference, out _)) {
+                    structuralObjectNumbers.Add(annotationReference.ObjectNumber);
+                }
                 if (PdfObjectLookup.Resolve(objects, annotationValue) is not PdfDictionary annotation ||
                     !string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) ||
                     !annotation.Items.TryGetValue("FS", out PdfObject? fileSpecification) || fileSpecification is not PdfReference reference ||

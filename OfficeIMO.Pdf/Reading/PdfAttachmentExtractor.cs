@@ -502,11 +502,13 @@ internal static class PdfAttachmentExtractor {
                 PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
                 if (dictionary != null) {
                     ReserveStructuralEntry();
+                    ReserveStructuralEntries(dictionary.Items.Count);
                     foreach (PdfObject child in dictionary.Items.Values) {
                         if (child is not PdfReference) pending.Push(child);
                     }
                 } else if (value is PdfArray array) {
                     ReserveStructuralEntry();
+                    ReserveStructuralEntries(array.Items.Count);
                     foreach (PdfObject child in array.Items) {
                         if (child is not PdfReference) pending.Push(child);
                     }
@@ -515,13 +517,16 @@ internal static class PdfAttachmentExtractor {
         }
 
         internal void ReserveStructuralEntry() {
+            ReserveStructuralEntries(1);
+        }
+
+        private void ReserveStructuralEntries(int count) {
             if (!_maxStructuralEntries.HasValue) return;
-            int nextCount = _structuralEntryCount + 1;
-            if (nextCount > _maxStructuralEntries.Value) {
+            if (count < 0 || _structuralEntryCount > _maxStructuralEntries.Value - count) {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {_maxStructuralEntries.Value}.");
             }
 
-            _structuralEntryCount = nextCount;
+            _structuralEntryCount += count;
         }
 
         internal void ReserveAttachment() {

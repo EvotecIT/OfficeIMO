@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfProvenanceTests {
+public sealed partial class PdfProvenanceTests {
     [Fact]
     public void InspectAndRemoveUseTheExactC2paAssociatedFileProfile() {
         byte[] manifest = CreateManifestStore();
@@ -1077,7 +1077,7 @@ public sealed class PdfProvenanceTests {
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(
             deeplyLinked,
-            new OfficeProvenanceOptions { MaxContainerEntries = 20_000 },
+            new OfficeProvenanceOptions { MaxContainerEntries = 30_000 },
             new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
 
         Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);

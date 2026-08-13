@@ -165,15 +165,21 @@ public sealed class PdfReadLimits {
         };
     }
 
-    internal PdfReadLimits WithMaximumContainerEntries(int maximumContainerEntries) {
+    internal PdfReadLimits WithMaximumContainerEntries(int maximumContainerEntries, long? maximumDecodedStreamBytes = null) {
         if (maximumContainerEntries <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
         }
+        if (maximumDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumDecodedStreamBytes), maximumDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+        int effectiveDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
+            ? (int)Math.Min(MaxDecodedStreamBytes, Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue))
+            : MaxDecodedStreamBytes;
         return new PdfReadLimits {
             MaxInputBytes = MaxInputBytes,
             MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
             MaxRawStreamBytes = MaxRawStreamBytes,
-            MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
