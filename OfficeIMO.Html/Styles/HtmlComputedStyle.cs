@@ -13,10 +13,10 @@ public sealed class HtmlComputedStyle {
         IDictionary<string, string> properties,
         IEnumerable<string>? inheritedProperties = null,
         IEnumerable<string>? resetProperties = null) {
-        _properties = new Dictionary<string, string>(properties ?? throw new ArgumentNullException(nameof(properties)), StringComparer.OrdinalIgnoreCase);
+        _properties = new Dictionary<string, string>(properties ?? throw new ArgumentNullException(nameof(properties)), HtmlCssPropertyNameComparer.Instance);
         _readOnlyProperties = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(_properties);
-        _inheritedProperties = new HashSet<string>(inheritedProperties ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-        _resetProperties = new HashSet<string>(resetProperties ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        _inheritedProperties = new HashSet<string>(inheritedProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
+        _resetProperties = new HashSet<string>(resetProperties ?? Array.Empty<string>(), HtmlCssPropertyNameComparer.Instance);
     }
 
     /// <summary>All computed properties known to the lightweight style engine.</summary>
@@ -36,4 +36,24 @@ public sealed class HtmlComputedStyle {
 
     internal bool IsResetValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _resetProperties.Contains(propertyName.Trim());
+}
+
+internal sealed class HtmlCssPropertyNameComparer : IEqualityComparer<string> {
+    internal static HtmlCssPropertyNameComparer Instance { get; } = new HtmlCssPropertyNameComparer();
+
+    private HtmlCssPropertyNameComparer() {
+    }
+
+    public bool Equals(string? x, string? y) {
+        bool xIsCustom = x?.StartsWith("--", StringComparison.Ordinal) == true;
+        bool yIsCustom = y?.StartsWith("--", StringComparison.Ordinal) == true;
+        return xIsCustom || yIsCustom
+            ? StringComparer.Ordinal.Equals(x, y)
+            : StringComparer.OrdinalIgnoreCase.Equals(x, y);
+    }
+
+    public int GetHashCode(string value) =>
+        value.StartsWith("--", StringComparison.Ordinal)
+            ? StringComparer.Ordinal.GetHashCode(value)
+            : StringComparer.OrdinalIgnoreCase.GetHashCode(value);
 }

@@ -255,6 +255,30 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, FindShape(rendered, "div#item").Shape.FillColor);
     }
 
+    [Fact]
+    public void HtmlRendering_CustomPropertyNamesRemainCaseSensitiveInStyleQueriesAndVarResolution() {
+        const string html = """
+            <style>
+              @container theme style(--Theme:red) { #exact { background:lime; } }
+              @container theme style(--theme:red) { #wrong-case { background:red; } }
+              @container theme style(--resolved:red) { #resolved { background:lime; } }
+            </style>
+            <section style="container-name:theme;--Theme:red">
+              <div id="exact" style="width:20px;height:20px;background:blue"></div>
+              <div id="wrong-case" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            <section style="container-name:theme;--theme:red;--Theme:var(--theme);--resolved:var(--Theme)">
+              <div id="resolved" style="width:20px;height:20px;background:blue"></div>
+            </section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(OfficeColor.Lime, FindShape(rendered, "div#exact").Shape.FillColor);
+        Assert.Equal(OfficeColor.Blue, FindShape(rendered, "div#wrong-case").Shape.FillColor);
+        Assert.Equal(OfficeColor.Lime, FindShape(rendered, "div#resolved").Shape.FillColor);
+    }
+
     [Theory]
     [InlineData("2em")]
     [InlineData("200%")]

@@ -5,7 +5,7 @@ internal static class HtmlCssCustomPropertyResolver {
 
     internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved) {
         if (lookup == null) throw new ArgumentNullException(nameof(lookup));
-        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.OrdinalIgnoreCase), 0, out resolved);
+        return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal), 0, out resolved);
     }
 
     internal static bool ContainsVarFunction(string value) =>

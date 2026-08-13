@@ -28,6 +28,7 @@ public sealed partial class PdfPageCanvas {
 
     internal PdfPageCanvas ChoiceFieldWithSelectedIndices(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, IEnumerable<int>? selectedIndices, double x, double y, double width, double height, double fontSize, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style) {
         ValidateFormFieldBox(name, x, y, width, height);
+        ValidateChoiceFieldMode(isComboBox, allowsMultipleSelection);
         Guard.NotNull(options, nameof(options));
         Guard.Positive(fontSize, nameof(fontSize));
         var optionSnapshot = options.ToList();
@@ -75,6 +76,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Adds an interactive choice field at fixed top-left page coordinates.</summary>
     public PdfPageCanvas ChoiceField(string name, IEnumerable<string> options, IEnumerable<string>? values, double x, double y, double width, double height, double fontSize = 10D, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
+        ValidateChoiceFieldMode(isComboBox, allowsMultipleSelection);
         Guard.NotNull(options, nameof(options));
         Guard.Positive(fontSize, nameof(fontSize));
         var optionSnapshot = options.ToList();
@@ -98,6 +100,7 @@ public sealed partial class PdfPageCanvas {
     /// <summary>Adds an interactive choice field whose export values differ from its displayed labels.</summary>
     public PdfPageCanvas ChoiceField(string name, IEnumerable<PdfFormFieldOption> options, IEnumerable<string>? values, double x, double y, double width, double height, double fontSize = 10D, bool isComboBox = true, bool allowsMultipleSelection = false, PdfFormFieldStyle? style = null) {
         ValidateFormFieldBox(name, x, y, width, height);
+        ValidateChoiceFieldMode(isComboBox, allowsMultipleSelection);
         Guard.NotNull(options, nameof(options));
         Guard.Positive(fontSize, nameof(fontSize));
         var optionSnapshot = options.ToList();
@@ -146,6 +149,12 @@ public sealed partial class PdfPageCanvas {
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
+    }
+
+    private static void ValidateChoiceFieldMode(bool isComboBox, bool allowsMultipleSelection) {
+        if (isComboBox && allowsMultipleSelection) {
+            throw new ArgumentException("PDF multi-select choice fields must be list boxes, not combo boxes.", nameof(isComboBox));
+        }
     }
 
     private static void ValidateCheckBoxAppearanceStateName(string value, string paramName) {

@@ -157,7 +157,7 @@ public static partial class HtmlComputedStyleEngine {
             RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector));
         }
 
-        var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
+        var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         for (int i = 0; i < styleRule.Style.Length; i++) {
             string propertyName = styleRule.Style[i];
             if (!string.IsNullOrWhiteSpace(propertyName)
@@ -563,7 +563,7 @@ public static partial class HtmlComputedStyleEngine {
         ICollection<StyleRule> rules,
         IDictionary<string, int> parsedRuleMatches,
         HtmlCssProcessingBudget budget) {
-        var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.OrdinalIgnoreCase);
+        var declarations = new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
         foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(body))) {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) continue;
@@ -649,7 +649,7 @@ public static partial class HtmlComputedStyleEngine {
         int close = cssText.LastIndexOf('}');
         if (open < 0 || close <= open) return;
         string body = StripCssCommentsOutsideStrings(cssText.Substring(open + 1, close - open - 1));
-        var parsedProperties = new HashSet<string>(declarations.Keys, StringComparer.OrdinalIgnoreCase);
+        var parsedProperties = new HashSet<string>(declarations.Keys, HtmlCssPropertyNameComparer.Instance);
         foreach (string declaration in SplitCssDeclarations(body)) {
             int separator = declaration.IndexOf(':');
             if (separator <= 0) continue;

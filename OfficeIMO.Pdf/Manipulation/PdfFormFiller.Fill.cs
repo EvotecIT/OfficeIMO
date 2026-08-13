@@ -74,7 +74,11 @@ internal static partial class PdfFormFiller {
 
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
             if (isMultiSelectChoice && choiceValues.All(item => item.OptionIndex.HasValue)) {
-                choiceValues = choiceValues.OrderBy(item => item.OptionIndex!.Value).ToArray();
+                choiceValues = choiceValues
+                    .GroupBy(item => item.OptionIndex!.Value)
+                    .OrderBy(group => group.Key)
+                    .Select(group => group.First())
+                    .ToArray();
             }
             SetChoiceSelectionIndices(field, fieldFlags, choiceValues);
             if (isMultiSelectChoice) {

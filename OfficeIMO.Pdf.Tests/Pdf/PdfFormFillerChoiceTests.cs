@@ -164,6 +164,37 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_MultiSelectChoiceDeduplicatesAliasesForTheSameOptionIndex() {
+        byte[] filled = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("United States", "US")
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal(new[] { "US" }, field.Values);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_MultiSelectChoiceDeduplicatesAliasesForTheSameOptionIndex() {
+        byte[] source = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "Poland"
+        });
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(
+            source,
+            new Dictionary<string, PdfFormFieldValue> {
+                ["Country"] = PdfFormFieldValue.FromValues("United States", "US")
+            });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal(new[] { "US" }, field.Values);
+        Assert.Equal(new[] { 2 }, field.SelectedIndices);
+        Assert.Equal("United States", Assert.Single(field.SelectedOptions).DisplayText);
+    }
+
+    [Fact]
     public void IncrementalUpdater_ChoicePrefersExactExportValueOverEarlierDisplayText() {
         byte[] source = PdfDocument.Create()
             .Canvas(canvas => canvas.ChoiceField(

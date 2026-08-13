@@ -264,6 +264,24 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderAppliesFontRelativeBaselineShiftsToSearchableText() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40'>"
+            + "<text x='2' y='30' font-size='10'>"
+            + "<tspan baseline-shift='0.5em'>Em</tspan>"
+            + "<tspan baseline-shift='1ex'>Ex</tspan>"
+            + "<tspan baseline-shift='1ch'>Ch</tspan>"
+            + "</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText[] runs = drawing!.Elements.OfType<OfficeDrawingText>().ToArray();
+
+        Assert.Equal(new[] { "Em", "Ex", "Ch" }, runs.Select(run => run.Text));
+        Assert.Equal(new[] { 15D, 15D, 15D }, runs.Select(run => run.Y));
+    }
+
+    [Fact]
     public void SvgReaderAccumulatesNestedBaselineShiftsAndRestoresTheParentShift() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40'>"
             + "<text x='2' y='25' font-size='10'><tspan baseline-shift='10px'>Outer"

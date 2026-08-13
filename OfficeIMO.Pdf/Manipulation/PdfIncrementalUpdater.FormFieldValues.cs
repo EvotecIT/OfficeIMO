@@ -90,7 +90,11 @@ internal static partial class PdfIncrementalUpdater {
         IReadOnlyList<IncrementalChoiceFillValue> choiceValues = ResolveIncrementalChoiceFillValues(objects, field, inheritedOptions, (fieldFlags & IncrementalEditableChoiceFlag) != 0, values);
         if (isMultiSelectChoice) {
             if (choiceValues.All(item => item.OptionIndex.HasValue)) {
-                choiceValues = choiceValues.OrderBy(item => item.OptionIndex!.Value).ToArray();
+                choiceValues = choiceValues
+                    .GroupBy(item => item.OptionIndex!.Value)
+                    .OrderBy(group => group.Key)
+                    .Select(group => group.First())
+                    .ToArray();
             }
             return IncrementalPreparedFieldValue.Choice(
                 choiceValues.Select(item => item.ExportValue).ToArray(),

@@ -103,6 +103,32 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasChoiceField_RejectsMultiSelectComboBoxesWhenAdded() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField(
+            "Strings",
+            new[] { "A", "B" },
+            new[] { "A" },
+            20D,
+            20D,
+            120D,
+            36D,
+            isComboBox: true,
+            allowsMultipleSelection: true));
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField(
+            "Options",
+            new[] { new PdfFormFieldOption("A", "First"), new PdfFormFieldOption("B", "Second") },
+            new[] { "A" },
+            20D,
+            20D,
+            120D,
+            36D,
+            isComboBox: true,
+            allowsMultipleSelection: true));
+    }
+
+    [Fact]
     public void CanvasCheckBox_RejectsReservedAndNonAsciiAppearanceStatesWhenAdded() {
         var canvas = new PdfPageCanvas();
 

@@ -388,9 +388,9 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         out IReadOnlyCollection<string> inheritedProperties,
         out IReadOnlyCollection<string> resetProperties) {
-        var raw = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var inherited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var reset = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
+        var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
             CascadedProperty? effective = ResolveLayerRevert(pair.Value);
             if (effective?.HasValue == true) {
@@ -407,7 +407,7 @@ public static partial class HtmlComputedStyleEngine {
                 reset.Add(pair.Key);
             }
         }
-        var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
                 resolved[pair.Key] = pair.Value;

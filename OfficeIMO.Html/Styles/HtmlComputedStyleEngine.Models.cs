@@ -116,7 +116,7 @@ public static partial class HtmlComputedStyleEngine {
             Selector = selector;
             Specificity = specificity;
             Order = order;
-            Declarations = new Dictionary<string, StyleDeclaration>(declarations, StringComparer.OrdinalIgnoreCase);
+            Declarations = new Dictionary<string, StyleDeclaration>(declarations, HtmlCssPropertyNameComparer.Instance);
             LayerOrder = layerOrder;
             ContainerConditions = new List<ContainerRuleCondition>(containerConditions ?? Array.Empty<ContainerRuleCondition>()).AsReadOnly();
             CandidateKey = GetSelectorCandidateKey(selector);

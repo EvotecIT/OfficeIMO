@@ -1070,12 +1070,40 @@ public static partial class OfficeSvgDrawingReader {
             shift = new SvgBaselineShift(percentage / 100D, SvgBaselineShiftBasis.LineHeight);
             return true;
         }
+        if (TryParseFontRelativeBaselineShift(normalized, out shift)) {
+            return true;
+        }
         if (TrySvgLength(normalized, out double length)) {
             shift = new SvgBaselineShift(length, SvgBaselineShiftBasis.Absolute);
             return true;
         }
         shift = default;
         return false;
+    }
+
+    private static bool TryParseFontRelativeBaselineShift(string value, out SvgBaselineShift shift) {
+        double scale;
+        string number;
+        if (value.EndsWith("em", StringComparison.Ordinal)) {
+            scale = 1D;
+            number = value.Substring(0, value.Length - 2);
+        } else if (value.EndsWith("ex", StringComparison.Ordinal) || value.EndsWith("ch", StringComparison.Ordinal)) {
+            scale = 0.5D;
+            number = value.Substring(0, value.Length - 2);
+        } else {
+            shift = default;
+            return false;
+        }
+
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
+            || double.IsNaN(multiplier)
+            || double.IsInfinity(multiplier)) {
+            shift = default;
+            return false;
+        }
+
+        shift = new SvgBaselineShift(multiplier * scale, SvgBaselineShiftBasis.FontSize);
+        return true;
     }
 
     private static bool TryParseLineHeight(string value, double fontSize, out SvgLineHeight lineHeight) {

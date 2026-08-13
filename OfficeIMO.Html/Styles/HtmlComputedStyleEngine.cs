@@ -328,7 +328,7 @@ public static partial class HtmlComputedStyleEngine {
         double containingWidth,
         double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
-        var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
+        var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         if (parent != null) {
             foreach (var pair in parent.Properties) {
                 if (IsInheritedProperty(pair.Key)) {
@@ -396,7 +396,7 @@ public static partial class HtmlComputedStyleEngine {
         HtmlCssProcessingBudget budget,
         IReadOnlyList<ContainerQueryContext> containerContexts,
         MediaEnvironment environment) {
-        var properties = new Dictionary<string, CascadedProperty>(StringComparer.OrdinalIgnoreCase);
+        var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in originatingStyle.Properties) {
             if (IsInheritedProperty(pair.Key)) {
                 properties[pair.Key] = new CascadedProperty(pair.Value, false, Specificity.Inherited, -1);
