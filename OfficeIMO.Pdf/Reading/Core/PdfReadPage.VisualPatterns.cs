@@ -81,13 +81,28 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool CanRenderTilingPatterns(PdfPageVisualPrimitive primitive, double drawingWidth, double drawingHeight) {
-        if (primitive.FillTilingPattern != null &&
-            TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
-            (!fillBounds.IsExact || !IsWithinTilingPatternLimit(primitive.FillTilingPattern, fillBounds))) return false;
-        if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D &&
-            TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
-            (!strokeBounds.IsExact || !IsWithinTilingPatternLimit(primitive.StrokeTilingPattern, strokeBounds))) return false;
+        if (primitive.FillTilingPattern is PdfPageTilingPatternPaint fillPaint &&
+            (IsMagnifyingTilingPatternTransform(fillPaint.Transform) ||
+             (TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
+              (!fillBounds.IsExact || !IsWithinTilingPatternLimit(fillPaint, fillBounds))))) return false;
+        if (primitive.StrokeTilingPattern is PdfPageTilingPatternPaint strokePaint && primitive.StrokeWidth > 0D &&
+            (IsMagnifyingTilingPatternTransform(strokePaint.Transform) ||
+             (TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
+              (!strokeBounds.IsExact || !IsWithinTilingPatternLimit(strokePaint, strokeBounds))))) return false;
         return true;
+    }
+
+    private static bool IsMagnifyingTilingPatternTransform(OfficeTransform transform) {
+        // The largest singular value is the maximum scale applied in any direction.
+        double firstLengthSquared = (transform.M11 * transform.M11) + (transform.M12 * transform.M12);
+        double secondLengthSquared = (transform.M21 * transform.M21) + (transform.M22 * transform.M22);
+        double dot = (transform.M11 * transform.M21) + (transform.M12 * transform.M22);
+        double trace = firstLengthSquared + secondLengthSquared;
+        double discriminant = ((firstLengthSquared - secondLengthSquared) * (firstLengthSquared - secondLengthSquared)) +
+            (4D * dot * dot);
+        if (!IsFinite(trace) || !IsFinite(discriminant)) return true;
+        double largestScaleSquared = (trace + Math.Sqrt(Math.Max(0D, discriminant))) / 2D;
+        return !IsFinite(largestScaleSquared) || largestScaleSquared > 1.000000000001D;
     }
 
     private static bool TryGetTilingPatternFillBounds(

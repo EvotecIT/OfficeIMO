@@ -867,8 +867,20 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (stroke && _hasInexactDash) _unsupportedOperatorVisitor?.Invoke("d");
+            bool isAxisAlignedRectangle = TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height);
+            bool isSingleLine = IsSingleLinePath();
 
-            if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
+            if (_requireExactType3ShadingProjection) {
+                if (PathContainsCurve()) {
+                    _unsupportedOperatorVisitor?.Invoke("c");
+                }
+                if (stroke && !isAxisAlignedRectangle && !isSingleLine && PathContainsJoin() &&
+                    (_state.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter) != OfficeStrokeLineJoin.Round) {
+                    _unsupportedOperatorVisitor?.Invoke("j");
+                }
+            }
+
+            if (isAxisAlignedRectangle) {
                 PdfPageTilingPatternPaint? fillTilingPaint = fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null;
                 PdfPageTilingPatternPaint? strokeTilingPaint = stroke && _state.StrokeWidth > 0D
                     ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity)
@@ -907,7 +919,7 @@ internal static class PdfPageContentVisualParser {
                     paintOrder,
                     fillTilingPaint,
                     strokeTilingPaint));
-            } else if (stroke && IsSingleLinePath()) {
+            } else if (stroke && isSingleLine) {
                 AddLine(_path[0], _path[1], paintOrder);
             } else {
                 OfficeLinearGradient? fillGradient = null;
@@ -1477,6 +1489,32 @@ internal static class PdfPageContentVisualParser {
             _pathCommands.Count == 2 &&
             _pathCommands[0].Kind == OfficePathCommandKind.MoveTo &&
             _pathCommands[1].Kind == OfficePathCommandKind.LineTo;
+
+        private bool PathContainsCurve() {
+            for (int i = 0; i < _pathCommands.Count; i++) {
+                OfficePathCommandKind kind = _pathCommands[i].Kind;
+                if (kind == OfficePathCommandKind.CubicBezierTo || kind == OfficePathCommandKind.QuadraticBezierTo) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool PathContainsJoin() {
+            bool subpathHasSegment = false;
+            for (int i = 0; i < _pathCommands.Count; i++) {
+                OfficePathCommandKind kind = _pathCommands[i].Kind;
+                if (kind == OfficePathCommandKind.MoveTo) {
+                    subpathHasSegment = false;
+                } else if (kind == OfficePathCommandKind.LineTo ||
+                    kind == OfficePathCommandKind.CubicBezierTo ||
+                    kind == OfficePathCommandKind.QuadraticBezierTo) {
+                    if (subpathHasSegment) return true;
+                    subpathHasSegment = true;
+                }
+            }
+            return false;
+        }
 
         private void AddLine((double X, double Y) start, (double X, double Y) end, double paintOrder) {
             double x1 = start.X;
