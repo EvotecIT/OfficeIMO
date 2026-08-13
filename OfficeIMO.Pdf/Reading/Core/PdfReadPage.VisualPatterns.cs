@@ -309,6 +309,7 @@ public sealed partial class PdfReadPage {
         double width = box.X2 - box.X1;
         double height = box.Y2 - box.Y1;
         if (width <= 0D || height <= 0D) return false;
+        if (requireSupportedType3Content && !HasExactType3PatternBox(boxObject)) return false;
         PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
         int failureVersion = type3GlyphBudget.FailureVersion;
         bool uncolored = paintType == 2;
@@ -344,6 +345,15 @@ public sealed partial class PdfReadPage {
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
         pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation);
+        return true;
+    }
+
+    private bool HasExactType3PatternBox(PdfObject? value) {
+        PdfArray? array = ResolveArray(value);
+        if (array == null || array.Items.Count != 4) return false;
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (ResolveObject(array.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) return false;
+        }
         return true;
     }
 

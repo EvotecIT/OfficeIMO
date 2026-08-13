@@ -347,12 +347,18 @@ public sealed partial class PdfReadPage {
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
+        if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
         if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {
+        return !imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) ||
+            ResolveEffectObject(interpolateObject) is PdfBoolean;
     }
 
     private bool HasValidType3ImageDimensions(PdfDictionary imageDictionary, bool isImageMask) {

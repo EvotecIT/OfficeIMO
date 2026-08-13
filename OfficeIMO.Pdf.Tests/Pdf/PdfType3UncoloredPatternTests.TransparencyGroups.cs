@@ -669,8 +669,8 @@ public partial class PdfType3UncoloredPatternTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         OfficeDrawingEffectGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
 
-        Assert.InRange(group.Drawing.Width, 8.9D, 9.1D);
-        Assert.InRange(group.Drawing.Height, 12.5D, 12.7D);
+        Assert.Equal(9D, group.Drawing.Width, 10);
+        Assert.Equal(12.6D, group.Drawing.Height, 10);
     }
 
     [Fact]

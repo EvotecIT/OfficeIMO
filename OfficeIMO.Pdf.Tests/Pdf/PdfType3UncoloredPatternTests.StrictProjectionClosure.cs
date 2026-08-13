@@ -98,6 +98,33 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ExactClipIntersectionDoesNotUseNearParallelEndpointFallback() {
+        OfficePathCommand[] subjectCommands = {
+            OfficePathCommand.MoveTo(1D, -0.00000001D),
+            OfficePathCommand.LineTo(2D, 0.00000001D),
+            OfficePathCommand.LineTo(3D, 2D),
+            OfficePathCommand.LineTo(1D, 2D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] clipCommands = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(10D, 10D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(subjectCommands, OfficeFillRule.NonZero, out PdfPageClipPath subject));
+        Assert.True(PdfPageClipPath.TryCreatePath(clipCommands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(subject, clip);
+
+        Assert.True(intersection.IsExact);
+        Assert.Contains(
+            intersection.Commands,
+            command => command.Kind != OfficePathCommandKind.Close && command.Point.Y == 0D);
+    }
+
+    [Fact]
     public void VisualParser_RejectsAxialShadingCollapsedByRendererTolerance() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0.05D, 0D,

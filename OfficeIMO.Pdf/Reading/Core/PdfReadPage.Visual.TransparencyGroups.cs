@@ -60,11 +60,12 @@ public sealed partial class PdfReadPage {
                 out PdfPageClipPath fittedBounds);
         if (boundsResult != Type3TransparencyGroupDrawingResult.Success) return boundsResult;
 
-        double localPageWidth = fittedBounds.Width;
-        double localPageHeight = fittedBounds.Height;
+        PdfPageClipPath renderBounds = ExpandType3TransparencyGroupRenderSurface(fittedBounds, pageWidth, pageHeight);
+        double localPageWidth = renderBounds.Width;
+        double localPageHeight = renderBounds.Height;
         LocalizeType3TransparencyGroupProjection(
             transform,
-            fittedBounds,
+            renderBounds,
             pageHeight,
             invocation.FillPattern,
             invocation.StrokePattern,
@@ -300,7 +301,30 @@ public sealed partial class PdfReadPage {
         } else {
             groupDrawing = contentDrawing;
         }
+        if (renderBounds.X != fittedBounds.X || renderBounds.Y != fittedBounds.Y ||
+            renderBounds.Width != fittedBounds.Width || renderBounds.Height != fittedBounds.Height) {
+            var exactDrawing = new OfficeDrawing(fittedBounds.Width, fittedBounds.Height);
+            exactDrawing.AddDrawingForClippedRendering(
+                groupDrawing,
+                renderBounds.X - fittedBounds.X,
+                renderBounds.Y - fittedBounds.Y,
+                null);
+            groupDrawing = exactDrawing;
+        }
         return Type3TransparencyGroupDrawingResult.Success;
+    }
+
+    private static PdfPageClipPath ExpandType3TransparencyGroupRenderSurface(
+        PdfPageClipPath bounds,
+        double pageWidth,
+        double pageHeight) {
+        if (!bounds.IsRectangle) return bounds;
+        const double localSurfaceTolerance = 0.000000001D;
+        double left = Math.Max(0D, bounds.X - localSurfaceTolerance);
+        double top = Math.Max(0D, bounds.Y - localSurfaceTolerance);
+        double right = Math.Min(pageWidth, bounds.X + bounds.Width + localSurfaceTolerance);
+        double bottom = Math.Min(pageHeight, bounds.Y + bounds.Height + localSurfaceTolerance);
+        return PdfPageClipPath.Rectangle(left, top, right - left, bottom - top);
     }
 
     private static void LocalizeType3TransparencyGroupProjection(
@@ -411,18 +435,6 @@ public sealed partial class PdfReadPage {
             !VisualPath.HasPositiveAreaIntersection(new[] { visibleBounds }, geometryBudget) &&
             !geometryBudget.Exceeded) {
             return Type3TransparencyGroupDrawingResult.Invisible;
-        }
-        if (bounds.IsRectangle) {
-            const double localSurfaceTolerance = 0.000000001D;
-            double leftWithTolerance = Math.Max(0D, bounds.X - localSurfaceTolerance);
-            double topWithTolerance = Math.Max(0D, bounds.Y - localSurfaceTolerance);
-            double rightWithTolerance = Math.Min(pageWidth, bounds.X + bounds.Width + localSurfaceTolerance);
-            double bottomWithTolerance = Math.Min(pageHeight, bounds.Y + bounds.Height + localSurfaceTolerance);
-            bounds = PdfPageClipPath.Rectangle(
-                leftWithTolerance,
-                topWithTolerance,
-                rightWithTolerance - leftWithTolerance,
-                bottomWithTolerance - topWithTolerance);
         }
         return Type3TransparencyGroupDrawingResult.Success;
     }

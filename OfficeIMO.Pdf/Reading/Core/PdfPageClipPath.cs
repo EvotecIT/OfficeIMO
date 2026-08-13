@@ -385,7 +385,7 @@ internal readonly partial struct PdfPageClipPath {
         double x4 = secondEnd.X;
         double y4 = secondEnd.Y;
         double denominator = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
-        if (Math.Abs(denominator) <= 0.000001D) {
+        if (denominator == 0D) {
             return firstEnd;
         }
 
