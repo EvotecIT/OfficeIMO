@@ -269,7 +269,6 @@ internal static class PdfAttachmentExtractor {
 
         if (ResolveObject(objects, tree.Items.TryGetValue("Names", out var namesObject) ? namesObject : null) is PdfArray names) {
             for (int i = 0; i + 1 < names.Items.Count; i += 2) {
-                budget.ReserveStructuralEntry();
                 if (ResolveObject(objects, names.Items[i]) is not PdfStringObj name) {
                     continue;
                 }
@@ -302,7 +301,6 @@ internal static class PdfAttachmentExtractor {
         }
 
         for (int i = 0; i < associatedFiles.Items.Count; i++) {
-            budget.ReserveStructuralEntry();
             PdfObject fileSpecObject = associatedFiles.Items[i];
             int fileSpecObjectNumber = fileSpecObject is PdfReference reference ? reference.ObjectNumber : 0;
             if (fileSpecObjectNumber > 0 && existingFileSpecs.Contains(fileSpecObjectNumber)) {

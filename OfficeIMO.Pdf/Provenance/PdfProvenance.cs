@@ -282,7 +282,7 @@ public static class PdfProvenance {
         int maximumContainerEntries) {
         var result = new HashSet<PdfObject>();
         AddResolvedDictionary(objects, activeInfoReference, result);
-        foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo" }) {
+        foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
         AddAcroFormFieldDictionaries(
