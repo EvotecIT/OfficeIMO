@@ -37,26 +37,22 @@ public sealed partial class PdfReadPage {
             OfficePathCommand.Close()
         };
         if (PdfPageClipPath.TryCreatePath(imageCommands, OfficeFillRule.NonZero, out PdfPageClipPath imageClip)) {
-            PdfPageClipPath exactCandidate = PdfPageClipPath.ResolveActiveClip(
+            PdfPageClipPath pageCandidate = PdfPageClipPath.ResolveActiveClip(
                 imageClip,
                 PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight));
+            if (pageCandidate.IsExact && (pageCandidate.Width <= 0D || pageCandidate.Height <= 0D)) return true;
+            PdfPageClipPath exactCandidate = pageCandidate;
             if (placement.ClipPath.HasValue) {
+                if (imageClip.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value)) return true;
                 exactCandidate = PdfPageClipPath.ResolveActiveClip(exactCandidate, placement.ClipPath.Value);
+                if (pageCandidate.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value)) return true;
             }
             if ((!placement.ClipPath.HasValue || placement.ClipPath.Value.CanProveExactIntersection) &&
                 exactCandidate.IsExact) return exactCandidate.Width <= 0D || exactCandidate.Height <= 0D;
         }
-        VisualPath? placementPath = VisualPath.Rectangle(0D, 0D, 1D, 1D, imageTransform, geometryBudget);
-        VisualPath? drawingPath = VisualPath.FromClip(
-            PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight),
-            geometryBudget);
-        if (placementPath == null || drawingPath == null || geometryBudget.Exceeded) return false;
-        var visiblePaths = new List<VisualPath> { placementPath, drawingPath };
-        if (placement.ClipPath.HasValue) {
-            VisualPath? clipPath = VisualPath.FromClip(placement.ClipPath.Value, geometryBudget);
-            if (clipPath == null || geometryBudget.Exceeded) return false;
-            visiblePaths.Add(clipPath);
-        }
-        return !VisualPath.HasPositiveAreaIntersection(visiblePaths, geometryBudget) && !geometryBudget.Exceeded;
+        // A sampled miss cannot prove that an inexact, curved, or concave clip has no
+        // positive-area overlap. Retain the image so the later strict gate can either
+        // project it exactly or fail closed to native Type 3 substitution.
+        return false;
     }
 }

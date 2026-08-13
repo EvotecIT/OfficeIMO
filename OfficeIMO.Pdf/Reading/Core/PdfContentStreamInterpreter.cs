@@ -108,14 +108,15 @@ internal static class PdfContentStreamInterpreter {
                     ? ReadInlineImage()
                     : null;
                 bool hasInvalidInlineImageOperand = _hasInvalidOperand;
-                bool skipOperation = hasInvalidInlineImageOperand ||
-                    (hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name));
+                bool invalidOperation = hasInvalidOperand || hasInvalidInlineImageOperand;
+                bool skipOperation = hasInvalidInlineImageOperand && !_dispatchInvalidOperations ||
+                    hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name);
                 var operation = new PdfContentOperation(
                     name,
-                    hasInvalidOperand || _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
+                    invalidOperation || _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),
                     operatorOffset,
                     inlineImage,
-                    hasInvalidOperand);
+                    invalidOperation);
                 _operands.Clear();
                 _hasInvalidOperand = false;
                 if (skipOperation) {

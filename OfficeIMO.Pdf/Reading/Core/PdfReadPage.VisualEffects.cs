@@ -123,7 +123,8 @@ public sealed partial class PdfReadPage {
         OfficeColor? inheritedFillColor = null,
         OfficeColor? inheritedStrokeColor = null,
         bool hasInheritedFillPattern = false,
-        bool hasInheritedStrokePattern = false) {
+        bool hasInheritedStrokePattern = false,
+        PdfPageGraphicsStateResource? inheritedGraphicsState = null) {
         nestingDepth ??= new SoftMaskNestingDepth(contentNestingDepth);
         (double Width, double Height) pageSize = GetVisualPageSize();
         return CanDecodeType3SoftMask(
@@ -143,7 +144,8 @@ public sealed partial class PdfReadPage {
             inheritedFillColor ?? OfficeColor.Black,
             inheritedStrokeColor ?? OfficeColor.Black,
             hasInheritedFillPattern,
-            hasInheritedStrokePattern);
+            hasInheritedStrokePattern,
+            inheritedGraphicsState);
     }
 
     private bool CanDecodeType3SoftMask(
@@ -163,13 +165,14 @@ public sealed partial class PdfReadPage {
         OfficeColor inheritedFillColor,
         OfficeColor inheritedStrokeColor,
         bool hasInheritedFillPattern,
-        bool hasInheritedStrokePattern) {
+        bool hasInheritedStrokePattern,
+        PdfPageGraphicsStateResource? inheritedGraphicsState) {
         if (resource == null) return true;
         if (!resource.IsIsolated) return false;
         if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
         if (resource.Group.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) &&
             ResolveEffectObject(optionalContent) is not PdfNull) return false;
-        if (!TryReadBox(
+        if (!TryReadType3TransparencyGroupBox(
                 resource.Group.Dictionary.Items.TryGetValue("BBox", out PdfObject? boundingBox) ? boundingBox : null,
                 out (double X1, double Y1, double X2, double Y2) box) ||
             box.X2 <= box.X1 ||
@@ -179,12 +182,6 @@ public sealed partial class PdfReadPage {
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         Matrix2D effectiveGroupTransform = ApplyFormMatrix(groupTransform, resource.Group.Dictionary);
         var cacheKey = (resource.Group, resource.ParentResources, effectiveGroupTransform, projectionPageWidth, projectionPageHeight);
-        if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
-            int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
-            EnsureContentNestingBudget(cachedMaximumDepth);
-            nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, cachedMaximumDepth);
-            return true;
-        }
         if (!activeGroups.Add(resource.Group)) return false;
         try {
             if (Filters.StreamDecoder.GetUnsupportedFilters(resource.Group.Dictionary, _objects).Count != 0) return false;
@@ -198,6 +195,13 @@ public sealed partial class PdfReadPage {
                     inheritedStrokeColor,
                     hasInheritedFillPattern,
                     hasInheritedStrokePattern)) return false;
+            if (HasUnsupportedInheritedSoftMaskState(inheritedGraphicsState)) return false;
+            if (validatedGroups.TryGetValue(cacheKey, out int cachedNestingSpan)) {
+                int cachedMaximumDepth = contentNestingDepth + cachedNestingSpan;
+                EnsureContentNestingBudget(cachedMaximumDepth);
+                nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, cachedMaximumDepth);
+                return true;
+            }
             PdfDictionary? resources = ResolveDictionary(
                 resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
                     ? resourceObject
@@ -460,7 +464,8 @@ public sealed partial class PdfReadPage {
                         fillColor,
                         strokeColor,
                         hasFillPattern,
-                        hasStrokePattern)) {
+                        hasStrokePattern,
+                        state)) {
                     supported = false;
                 }
             },
@@ -567,6 +572,17 @@ public sealed partial class PdfReadPage {
             }
         }
         return true;
+    }
+
+    private static bool HasUnsupportedInheritedSoftMaskState(PdfPageGraphicsStateResource? state) {
+        if (!state.HasValue) return false;
+        PdfPageGraphicsStateResource value = state.Value;
+        return value.FillOpacity.HasValue && Math.Abs(value.FillOpacity.Value - 1D) > 0.000001D ||
+            value.StrokeOpacity.HasValue && Math.Abs(value.StrokeOpacity.Value - 1D) > 0.000001D ||
+            value.StrokeWidth.HasValue && Math.Abs(value.StrokeWidth.Value - 1D) > 0.000001D ||
+            value.StrokeDashStyle.HasValue && value.StrokeDashStyle.Value != OfficeStrokeDashStyle.Solid ||
+            value.StrokeLineCap.HasValue ||
+            value.StrokeLineJoin.HasValue;
     }
 
     private bool RequiresUnsupportedInheritedLuminosityColor(

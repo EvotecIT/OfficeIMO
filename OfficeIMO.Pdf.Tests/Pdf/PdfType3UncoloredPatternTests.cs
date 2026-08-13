@@ -1079,6 +1079,7 @@ public partial class PdfType3UncoloredPatternTests {
 
     [Theory]
     [InlineData("/BBox [0 0 0 700]", "/S /Alpha")]
+    [InlineData("/BBox [0 0 500 700 900]", "/S /Alpha")]
     [InlineData("/BBox [0 0 500 700] /Matrix [1 0 0 1 0 0 7]", "/S /Alpha")]
     [InlineData("/BBox [0 0 500 700] /OC 10 0 R", "/S /Alpha")]
     [InlineData("/BBox [0 0 500 700]", "/S /Luminosity /BC [0 /Bad 0]")]

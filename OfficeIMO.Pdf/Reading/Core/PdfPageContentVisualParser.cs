@@ -409,6 +409,9 @@ internal static class PdfPageContentVisualParser {
             if ((_args.Count != 0 || hasInvalidOperands) && RequiresZeroOperands(op)) {
                 _unsupportedOperatorVisitor?.Invoke(op);
             }
+            if (string.Equals(op, "Q", StringComparison.Ordinal) && _stack.Count == 0) {
+                _unsupportedOperatorVisitor?.Invoke(op);
+            }
             switch (op) {
                 case "q":
                     _stack.Push(_state);

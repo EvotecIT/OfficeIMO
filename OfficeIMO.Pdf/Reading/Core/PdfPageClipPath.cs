@@ -104,7 +104,9 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath result = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
-        return result.WithExactness(pathClip.IsExact && !ContainsCurve(pathClip.Commands));
+        return result.WithExactness(pathClip.IsExact &&
+            !ContainsCurve(pathClip.Commands) &&
+            HasRepresentableClippedContours(pathClip, result));
     }
 
     private static PdfPageClipPath IntersectPathWithPath(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
@@ -150,6 +152,65 @@ internal readonly struct PdfPageClipPath {
                 commands[i].Kind == OfficePathCommandKind.CubicBezierTo) return true;
         }
         return false;
+    }
+
+    private static bool HasRepresentableClippedContours(PdfPageClipPath source, PdfPageClipPath clipped) {
+        if (clipped.IsRectangle && clipped.Width <= 0D || clipped.Height <= 0D) return true;
+        List<List<OfficePoint>> sourceContours = FlattenPathContours(source.Commands);
+        List<List<OfficePoint>> clippedContours = clipped.IsRectangle
+            ? new List<List<OfficePoint>> {
+                new List<OfficePoint> {
+                    new OfficePoint(clipped.X, clipped.Y),
+                    new OfficePoint(clipped.X + clipped.Width, clipped.Y),
+                    new OfficePoint(clipped.X + clipped.Width, clipped.Y + clipped.Height),
+                    new OfficePoint(clipped.X, clipped.Y + clipped.Height)
+                }
+            }
+            : FlattenPathContours(clipped.Commands);
+        if (sourceContours.Count == 0 || clippedContours.Count == 0) return false;
+        for (int contourIndex = 0; contourIndex < clippedContours.Count; contourIndex++) {
+            List<OfficePoint> contour = clippedContours[contourIndex];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                OfficePoint start = contour[pointIndex];
+                OfficePoint end = contour[(pointIndex + 1) % contour.Count];
+                var midpoint = new OfficePoint((start.X + end.X) / 2D, (start.Y + end.Y) / 2D);
+                if (!ContainsFilledPoint(sourceContours, source.FillRule, midpoint)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool ContainsFilledPoint(List<List<OfficePoint>> contours, OfficeFillRule fillRule, OfficePoint point) {
+        int winding = 0;
+        bool inside = false;
+        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+            List<OfficePoint> contour = contours[contourIndex];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                OfficePoint start = contour[pointIndex];
+                OfficePoint end = contour[(pointIndex + 1) % contour.Count];
+                if (IsPointOnSegment(point, start, end)) return true;
+                bool crosses = start.Y <= point.Y ? end.Y > point.Y : end.Y <= point.Y;
+                if (!crosses) continue;
+                double cross = ((end.X - start.X) * (point.Y - start.Y)) - ((point.X - start.X) * (end.Y - start.Y));
+                if (fillRule == OfficeFillRule.EvenOdd) {
+                    if ((end.Y > start.Y && cross > 0D) || (end.Y < start.Y && cross < 0D)) inside = !inside;
+                } else if (end.Y > start.Y && cross > 0D) {
+                    winding++;
+                } else if (end.Y < start.Y && cross < 0D) {
+                    winding--;
+                }
+            }
+        }
+        return fillRule == OfficeFillRule.EvenOdd ? inside : winding != 0;
+    }
+
+    private static bool IsPointOnSegment(OfficePoint point, OfficePoint start, OfficePoint end) {
+        double cross = ((end.X - start.X) * (point.Y - start.Y)) - ((end.Y - start.Y) * (point.X - start.X));
+        if (Math.Abs(cross) > 0.001D) return false;
+        return point.X >= Math.Min(start.X, end.X) - 0.001D &&
+            point.X <= Math.Max(start.X, end.X) + 0.001D &&
+            point.Y >= Math.Min(start.Y, end.Y) - 0.001D &&
+            point.Y <= Math.Max(start.Y, end.Y) + 0.001D;
     }
 
     private static bool IsConvexContour(List<OfficePoint> contour) {
@@ -586,6 +647,69 @@ internal readonly struct PdfPageClipPath {
 
     internal bool CanProveExactIntersection => CanServeAsExactPathClip(this);
 
+    internal bool CanProveNoPositiveAreaIntersection(PdfPageClipPath other) {
+        if (!IsExact || !other.IsExact || ContainsCurve(Commands) || ContainsCurve(other.Commands)) return false;
+        List<List<OfficePoint>> first = GetContours(this);
+        List<List<OfficePoint>> second = GetContours(other);
+        if (first.Count == 0 || second.Count == 0) return false;
+        for (int firstIndex = 0; firstIndex < first.Count; firstIndex++) {
+            for (int secondIndex = 0; secondIndex < second.Count; secondIndex++) {
+                if (ContoursIntersect(first[firstIndex], second[secondIndex])) return false;
+            }
+        }
+        for (int contourIndex = 0; contourIndex < first.Count; contourIndex++) {
+            for (int pointIndex = 0; pointIndex < first[contourIndex].Count; pointIndex++) {
+                if (ContainsFilledPoint(second, other.FillRule, first[contourIndex][pointIndex])) return false;
+            }
+        }
+        for (int contourIndex = 0; contourIndex < second.Count; contourIndex++) {
+            for (int pointIndex = 0; pointIndex < second[contourIndex].Count; pointIndex++) {
+                if (ContainsFilledPoint(first, FillRule, second[contourIndex][pointIndex])) return false;
+            }
+        }
+        return true;
+    }
+
+    private static List<List<OfficePoint>> GetContours(PdfPageClipPath path) {
+        if (!path.IsRectangle) return FlattenPathContours(path.Commands);
+        return new List<List<OfficePoint>> {
+            new List<OfficePoint> {
+                new OfficePoint(path.X, path.Y),
+                new OfficePoint(path.X + path.Width, path.Y),
+                new OfficePoint(path.X + path.Width, path.Y + path.Height),
+                new OfficePoint(path.X, path.Y + path.Height)
+            }
+        };
+    }
+
+    private static bool ContoursIntersect(List<OfficePoint> first, List<OfficePoint> second) {
+        for (int firstIndex = 0; firstIndex < first.Count; firstIndex++) {
+            OfficePoint firstStart = first[firstIndex];
+            OfficePoint firstEnd = first[(firstIndex + 1) % first.Count];
+            for (int secondIndex = 0; secondIndex < second.Count; secondIndex++) {
+                OfficePoint secondStart = second[secondIndex];
+                OfficePoint secondEnd = second[(secondIndex + 1) % second.Count];
+                if (SegmentsIntersect(firstStart, firstEnd, secondStart, secondEnd)) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool SegmentsIntersect(OfficePoint firstStart, OfficePoint firstEnd, OfficePoint secondStart, OfficePoint secondEnd) {
+        double firstA = Cross(firstStart, firstEnd, secondStart);
+        double firstB = Cross(firstStart, firstEnd, secondEnd);
+        double secondA = Cross(secondStart, secondEnd, firstStart);
+        double secondB = Cross(secondStart, secondEnd, firstEnd);
+        if (Math.Abs(firstA) <= 0.001D && IsPointOnSegment(secondStart, firstStart, firstEnd) ||
+            Math.Abs(firstB) <= 0.001D && IsPointOnSegment(secondEnd, firstStart, firstEnd) ||
+            Math.Abs(secondA) <= 0.001D && IsPointOnSegment(firstStart, secondStart, secondEnd) ||
+            Math.Abs(secondB) <= 0.001D && IsPointOnSegment(firstEnd, secondStart, secondEnd)) return true;
+        return Math.Sign(firstA) != Math.Sign(firstB) && Math.Sign(secondA) != Math.Sign(secondB);
+    }
+
+    private static double Cross(OfficePoint start, OfficePoint end, OfficePoint point) =>
+        ((end.X - start.X) * (point.Y - start.Y)) - ((end.Y - start.Y) * (point.X - start.X));
+
     private PdfPageClipPath WithExactness(bool isExact) =>
         IsExact == isExact
             ? this
@@ -600,7 +724,9 @@ internal readonly struct PdfPageClipPath {
         PdfPageClipPath result = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(bounds.X, bounds.Y, 0D, 0D);
-        return result.WithExactness(IsExact && !ContainsCurve(Commands));
+        return result.WithExactness(IsExact &&
+            !ContainsCurve(Commands) &&
+            HasRepresentableClippedContours(this, result));
     }
 
     internal PdfPageClipPath Translate(double offsetX, double offsetY) {

@@ -1344,7 +1344,20 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void PublishActiveGraphicsEffectUse() {
             if (!_graphicsEffectState.HasEffect) return;
-            PdfPageGraphicsStateResource resource = _graphicsEffectState.ToResource();
+            PdfPageGraphicsStateResource effect = _graphicsEffectState.ToResource();
+            var resource = new PdfPageGraphicsStateResource(
+                _state.FillOpacity,
+                _state.StrokeOpacity,
+                _state.StrokeWidth,
+                _state.StrokeDashStyle,
+                _state.StrokeLineCap,
+                _state.StrokeLineJoin,
+                effect.BlendMode,
+                effect.HasSoftMask,
+                effect.SoftMask,
+                effect.HasUnsupportedSoftMask,
+                effect.HasUnsupportedBlendMode,
+                effect.HasUnsupportedEntries);
             _graphicsStateVisitor?.Invoke(
                 resource,
                 _graphicsEffectState.SoftMaskTransform,

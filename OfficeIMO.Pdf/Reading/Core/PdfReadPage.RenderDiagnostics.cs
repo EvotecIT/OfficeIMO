@@ -601,7 +601,8 @@ public sealed partial class PdfReadPage {
                                      fillColor,
                                      strokeColor,
                                      hasFillPattern,
-                                     hasStrokePattern)) {
+                                     hasStrokePattern,
+                                     resource)) {
                                  supported = false;
                              }
                          },

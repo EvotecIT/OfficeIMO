@@ -115,7 +115,8 @@ public sealed partial class PdfReadPage {
                                     inheritedFillColor: fillColor,
                                     inheritedStrokeColor: strokeColor,
                                     hasInheritedFillPattern: hasFillPattern,
-                                    hasInheritedStrokePattern: hasStrokePattern)) {
+                                    hasInheritedStrokePattern: hasStrokePattern,
+                                    inheritedGraphicsState: state)) {
                                 type3GlyphBudget.RecordFailure();
                             }
                         },

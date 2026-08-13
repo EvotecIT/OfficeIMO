@@ -78,6 +78,37 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void Interpreter_DispatchesMalformedInlineImageToStrictVisitors() {
+        const string content = "BI /W 1e309 /H 1 /BPC 8 /CS /G ID A EI";
+        var operations = new List<PdfContentOperation>();
+
+        PdfContentStreamInterpreter.Interpret(content, 10, operations.Add, dispatchInvalidOperations: true);
+
+        PdfContentOperation operation = Assert.Single(operations);
+        Assert.Equal("BI", operation.Name);
+        Assert.True(operation.HasInvalidOperands);
+        Assert.Empty(operation.Operands);
+    }
+
+    [Fact]
+    public void StrictVisualParserReportsGraphicsStackUnderflow() {
+        var unsupported = new List<string>();
+
+        PdfPageContentVisualParser.Parse(
+            "Q 0 0 10 10 re f",
+            pageWidth: 100D,
+            pageHeight: 100D,
+            graphicsStates: null,
+            colorSpaces: null,
+            shadings: null,
+            shadingPatterns: null,
+            tilingPatterns: null,
+            unsupportedOperatorVisitor: unsupported.Add);
+
+        Assert.Contains("Q", unsupported);
+    }
+
+    [Fact]
     public void Interpreter_PreservesValidInlineImageAfterInvalidSurplusOperand() {
         const string content = "1e309 BI /W 1 /H 1 /BPC 8 /CS /G ID A EI q Q";
         var operations = new List<PdfContentOperation>();

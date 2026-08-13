@@ -389,6 +389,9 @@ public sealed partial class PdfReadPage {
             }
         }
         if (activeClip.HasValue) {
+            if (projectedBounds.CanProveNoPositiveAreaIntersection(activeClip.Value)) {
+                return Type3TransparencyGroupDrawingResult.Invisible;
+            }
             projectedBounds = PdfPageClipPath.ResolveActiveClip(activeClip.Value, projectedBounds);
         }
         if (!projectedBounds.IsExact) {
@@ -427,7 +430,7 @@ public sealed partial class PdfReadPage {
         out (double X1, double Y1, double X2, double Y2) box) {
         box = default;
         PdfArray? array = ResolveArray(value);
-        if (array == null || array.Items.Count < 4 ||
+        if (array == null || array.Items.Count != 4 ||
             ResolveObject(array.Items[0]) is not PdfNumber x1 ||
             ResolveObject(array.Items[1]) is not PdfNumber y1 ||
             ResolveObject(array.Items[2]) is not PdfNumber x2 ||
