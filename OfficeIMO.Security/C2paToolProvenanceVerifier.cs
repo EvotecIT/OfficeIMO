@@ -293,20 +293,18 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         Stopwatch timer = Stopwatch.StartNew();
         while (!process.WaitForExit(50)) {
             if (stdout.IsFaulted || stderr.IsFaulted) {
-                TryKill(process);
+                Terminate(process);
                 throw stdout.Exception?.GetBaseException() ?? stderr.Exception?.GetBaseException() ?? new InvalidDataException("c2patool output failed.");
             }
             if (timer.Elapsed > request.Timeout) {
-                TryKill(process);
+                Terminate(process);
                 throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
             }
         }
         try {
             TimeSpan remaining = request.Timeout - timer.Elapsed;
             if (remaining <= TimeSpan.Zero || !Task.WaitAll(new Task[] { stdout, stderr }, remaining)) {
-                TryKill(process);
-                process.StandardOutput.Dispose();
-                process.StandardError.Dispose();
+                Terminate(process);
                 throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
             }
         } catch (AggregateException exception) {
@@ -329,9 +327,22 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         return builder.ToString();
     });
 
-    private static void TryKill(Process process) {
-        try { if (!process.HasExited) process.Kill(); } catch (InvalidOperationException) { }
+    private static void Terminate(Process process) {
+        try {
+            if (!process.HasExited) {
+#if NET8_0_OR_GREATER
+                process.Kill(entireProcessTree: true);
+#else
+                process.Kill();
+#endif
+                process.WaitForExit(1000);
+            }
+        } catch (InvalidOperationException) { }
         catch (Win32Exception) { }
+        finally {
+            try { process.StandardOutput.Dispose(); } catch (InvalidOperationException) { }
+            try { process.StandardError.Dispose(); } catch (InvalidOperationException) { }
+        }
     }
 
     private static string QuoteArgument(string value) {

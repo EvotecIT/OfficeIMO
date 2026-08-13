@@ -163,6 +163,30 @@ public sealed class C2paToolProvenanceVerifierTests {
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Runner blocked for {timer.Elapsed}.");
     }
 
+    [Fact]
+    public void ProcessRunnerTearsDownInheritedOutputHandlesWhenTheParentTimesOut() {
+        string executable;
+        IReadOnlyList<string> arguments;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            executable = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+            arguments = new[] { "/d", "/c", "start /b ping 127.0.0.1 -n 6 & ping 127.0.0.1 -n 6" };
+        } else {
+            executable = "/bin/sh";
+            arguments = new[] { "-c", "(sleep 5) & sleep 5" };
+        }
+        var request = new C2paToolProcessRequest(
+            executable,
+            arguments,
+            Path.GetTempPath(),
+            TimeSpan.FromMilliseconds(300),
+            1024 * 1024);
+        var timer = Stopwatch.StartNew();
+
+        Assert.Throws<TimeoutException>(() => new C2paToolProcessRunner().Run(request));
+
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Runner blocked for {timer.Elapsed}.");
+    }
+
     private static string CreateAsset() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".jpg");
         File.WriteAllBytes(path, new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 });

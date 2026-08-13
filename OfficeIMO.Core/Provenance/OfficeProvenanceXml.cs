@@ -40,6 +40,13 @@ internal static class OfficeProvenanceXml {
         OfficeProvenanceOptions options,
         string formatName) {
         using var stream = new MemoryStream(data, writable: false);
+        ValidateMaterializedNodeBudget(stream, options, formatName);
+    }
+
+    internal static void ValidateMaterializedNodeBudget(
+        Stream stream,
+        OfficeProvenanceOptions options,
+        string formatName) {
         using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
         int materializedNodes = 0;
         while (reader.Read()) {

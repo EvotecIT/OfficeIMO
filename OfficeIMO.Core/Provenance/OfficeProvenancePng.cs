@@ -31,6 +31,7 @@ internal static class OfficeProvenancePng {
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
+        bool validHeader = false;
         bool foundImageData = false;
         int chunkCount = 0;
         while (offset < data.Length) {
@@ -49,7 +50,7 @@ internal static class OfficeProvenancePng {
             string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
             bool isC2pa = type == "caBX";
             if (isC2pa) {
-                bool valid = foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
+                bool valid = validHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"PNG/caBX@{offset}";
@@ -80,7 +81,12 @@ internal static class OfficeProvenancePng {
             } else {
                 output?.Write(data, offset, total);
             }
-            if (type == "IHDR") foundHeader = true;
+            if (type == "IHDR") {
+                bool isFirstHeader = !foundHeader;
+                foundHeader = true;
+                validHeader = isFirstHeader && offset == SignatureLength && payloadLength == 13 &&
+                    HasValidCrc(data, offset, payloadLength);
+            }
             else if (type == "IDAT") foundImageData = true;
             offset += total;
             if (type == "IEND") { foundEnd = true; break; }

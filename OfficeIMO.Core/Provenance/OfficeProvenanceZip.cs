@@ -505,6 +505,31 @@ internal static class OfficeProvenanceZip {
         entry.FullName.StartsWith("META-INF/", StringComparison.Ordinal) &&
         entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsOpcSignatureEvidenceEntry(ZipArchiveEntry entry) {
+        if (entry.FullName.EndsWith("/", StringComparison.Ordinal) ||
+            !entry.FullName.StartsWith("_xmlsignatures/", StringComparison.Ordinal)) return false;
+        string relativeName = entry.FullName.Substring("_xmlsignatures/".Length);
+        return relativeName.Equals("origin.sigs", StringComparison.Ordinal) ||
+            relativeName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
+            relativeName.StartsWith("_rels/", StringComparison.Ordinal) &&
+                relativeName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasOpcSignatureOriginRelationship(ZipArchive archive, long maximumBytes) {
+        ZipArchiveEntry? relationships = archive.GetEntry("_rels/.rels");
+        if (relationships == null || relationships.Length <= 0 || relationships.Length > maximumBytes) return false;
+        using Stream source = relationships.Open();
+        byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, maximumBytes);
+        byte[] marker = System.Text.Encoding.ASCII.GetBytes(
+            "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
+        for (int offset = 0; offset <= bytes.Length - marker.Length; offset++) {
+            int index = 0;
+            while (index < marker.Length && bytes[offset + index] == marker[index]) index++;
+            if (index == marker.Length) return true;
+        }
+        return false;
+    }
+
     internal static bool HasPackageSignature(byte[] data, OfficeProvenanceRemovalOptions options) {
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
@@ -541,7 +566,10 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         ZipArchive archive,
         OfficeProvenanceRemovalOptions options) {
-        if (archive.GetEntry("[Content_Types].xml") == null) return archive.Entries.Any(IsNonOpcSignatureEntry);
+        bool rawSignatureEvidence = archive.Entries.Any(IsNonOpcSignatureEntry) ||
+            archive.Entries.Any(IsOpcSignatureEvidenceEntry) ||
+            HasOpcSignatureOriginRelationship(archive, options.Limits.MaxAssetBytes);
+        if (archive.GetEntry("[Content_Types].xml") == null) return rawSignatureEvidence;
 
         var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
             MaxPackageBytes = options.Limits.MaxAssetBytes,
@@ -556,7 +584,7 @@ internal static class OfficeProvenanceZip {
         if (!signatureInfo.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The OPC package signature state could not be determined safely.");
         }
-        return signatureInfo.HasSignatures;
+        return signatureInfo.HasSignatures || rawSignatureEvidence;
     }
 
     private static bool IsSupportedEmbeddedAsset(
