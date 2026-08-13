@@ -39,6 +39,7 @@ public abstract partial class OdfDocument {
         string fileName = "document.odt",
         OfficeProvenanceRemovalOptions? options = null) {
         options ??= new OfficeProvenanceRemovalOptions();
+        ValidatePackage(packageBytes, options.Limits);
         bool hadManifest = OfficeProvenanceZip.HasEntry(packageBytes, path => path == ProvenanceManifestPath);
         OfficeProvenanceRemovalResult result = OfficeProvenancePackageMutation.Remove(
             packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);

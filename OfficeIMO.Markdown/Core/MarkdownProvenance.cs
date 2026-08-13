@@ -14,12 +14,20 @@ public static class MarkdownProvenance {
         if (Encoding.UTF8.GetByteCount(markdown) > options.MaxAssetBytes) {
             throw new InvalidDataException("The Markdown document exceeds the configured asset limit.");
         }
-        return OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(markdown), "document.md", options);
+        return OfficeProvenanceInspector.InspectStructuredText(Encoding.UTF8.GetBytes(markdown), options);
     }
 
     /// <summary>Inspects a bounded Markdown file.</summary>
-    public static OfficeProvenanceReport InspectFile(string filePath, OfficeProvenanceOptions? options = null) =>
-        OfficeProvenanceInspector.InspectFile(filePath, options);
+    public static OfficeProvenanceReport InspectFile(string filePath, OfficeProvenanceOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        options ??= new OfficeProvenanceOptions();
+        OfficeProvenanceBinary.ValidateLimits(options);
+        byte[] input;
+        using (var stream = File.OpenRead(Path.GetFullPath(filePath))) {
+            input = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+        }
+        return OfficeProvenanceInspector.InspectStructuredText(input, options);
+    }
 
     /// <summary>Removes selected C2PA text carriers from Markdown content.</summary>
     public static OfficeProvenanceRemovalResult Remove(
@@ -31,7 +39,7 @@ public static class MarkdownProvenance {
         if (Encoding.UTF8.GetByteCount(markdown) > options.Limits.MaxAssetBytes) {
             throw new InvalidDataException("The Markdown document exceeds the configured asset limit.");
         }
-        return OfficeProvenanceRemover.Remove(Encoding.UTF8.GetBytes(markdown), "document.md", options);
+        return OfficeProvenanceRemover.RemoveStructuredText(Encoding.UTF8.GetBytes(markdown), "document.md", options);
     }
 
     /// <summary>Removes selected C2PA text carriers and atomically writes a Markdown file.</summary>
@@ -46,7 +54,7 @@ public static class MarkdownProvenance {
         using (var stream = File.OpenRead(Path.GetFullPath(inputPath))) {
             input = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
         }
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(input, inputPath, options);
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.RemoveStructuredText(input, inputPath, options);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), result.ToArray());
         return result;
     }

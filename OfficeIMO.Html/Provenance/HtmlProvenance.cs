@@ -697,7 +697,7 @@ public static partial class HtmlProvenance {
             int nameEnd = markup + 2;
             while (nameEnd < html.Length && (char.IsLetterOrDigit(html[nameEnd]) || html[nameEnd] is '-' or ':')) nameEnd++;
             string tagName = html.Substring(markup + 1, nameEnd - markup - 1);
-            int tagEnd = FindTagEnd(html, nameEnd);
+            int tagEnd = FindStartTagEnd(html, nameEnd);
             if (tagEnd < 0) break;
             bool selfClosing = tagEnd > markup && html[tagEnd - 1] == '/';
             if (ChildNamespace(openElements) != HtmlPreflightNamespace.Html &&
@@ -885,6 +885,33 @@ public static partial class HtmlProvenance {
             }
             if (current is '\'' or '"') quote = current;
             else if (current == '>') return index;
+        }
+        return -1;
+    }
+
+    private static int FindStartTagEnd(string html, int offset) {
+        char quote = '\0';
+        bool afterEquals = false;
+        bool unquotedValue = false;
+        for (int index = offset; index < html.Length; index++) {
+            char current = html[index];
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current == '>') return index;
+            if (unquotedValue) {
+                if (char.IsWhiteSpace(current)) unquotedValue = false;
+                continue;
+            }
+            if (afterEquals) {
+                if (char.IsWhiteSpace(current)) continue;
+                afterEquals = false;
+                if (current is '\'' or '"') quote = current;
+                else unquotedValue = true;
+                continue;
+            }
+            if (current == '=') afterEquals = true;
         }
         return -1;
     }
