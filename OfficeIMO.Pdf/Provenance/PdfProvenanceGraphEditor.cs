@@ -155,6 +155,7 @@ internal static class PdfProvenanceGraphEditor {
         HashSet<int> targets,
         out HashSet<int> indirectObjectNumbers) {
         var annotations = new HashSet<PdfDictionary>();
+        var activeAnnotations = new List<(PdfObject Value, PdfDictionary Dictionary)>();
         indirectObjectNumbers = new HashSet<int>();
         if (!security.RootObjectNumber.HasValue || !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) ||
             root.Value is not PdfDictionary catalog || !catalog.Items.TryGetValue("Pages", out PdfObject? pages)) return annotations;
@@ -177,14 +178,34 @@ internal static class PdfProvenanceGraphEditor {
                 PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray pageAnnotations) continue;
             foreach (PdfObject annotationValue in pageAnnotations.Items) {
                 PdfObject? annotation = PdfObjectLookup.Resolve(objects, annotationValue);
+                if (annotation is PdfDictionary annotationDictionary) activeAnnotations.Add((annotationValue, annotationDictionary));
                 CollectFileAttachmentAnnotation(objects, annotation, targets, annotations);
                 if (annotationValue is PdfReference reference && annotation is PdfDictionary && annotations.Contains((PdfDictionary)annotation)) {
                     indirectObjectNumbers.Add(reference.ObjectNumber);
                 }
             }
         }
-        CollectLinkedPopupAnnotations(objects, annotations, indirectObjectNumbers);
+        CollectDependentAnnotations(objects, activeAnnotations, annotations, indirectObjectNumbers);
         return annotations;
+    }
+
+    private static void CollectDependentAnnotations(
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyList<(PdfObject Value, PdfDictionary Dictionary)> activeAnnotations,
+        HashSet<PdfDictionary> annotations,
+        HashSet<int> indirectObjectNumbers) {
+        bool changed;
+        do {
+            int priorCount = annotations.Count;
+            CollectLinkedPopupAnnotations(objects, annotations, indirectObjectNumbers);
+            foreach ((PdfObject value, PdfDictionary dictionary) in activeAnnotations) {
+                if (annotations.Contains(dictionary) || !dictionary.Items.TryGetValue("IRT", out PdfObject? replyTo) ||
+                    PdfObjectLookup.Resolve(objects, replyTo) is not PdfDictionary parent || !annotations.Contains(parent)) continue;
+                annotations.Add(dictionary);
+                if (value is PdfReference reference) indirectObjectNumbers.Add(reference.ObjectNumber);
+            }
+            changed = annotations.Count != priorCount;
+        } while (changed);
     }
 
     private static void CollectLinkedPopupAnnotations(
@@ -255,6 +276,12 @@ internal static class PdfProvenanceGraphEditor {
         if (dictionary != null) {
             foreach (string key in dictionary.Items.Keys.ToArray()) {
                 PdfObject child = dictionary.Items[key];
+                if (key == "Names" && PdfObjectLookup.Resolve(objects, child) is PdfArray namePairs) {
+                    RemoveNameTreePairs(objects, namePairs, removedObjectNumbers, removedDirectAnnotations);
+                    ScrubReferences(objects, namePairs, removedObjectNumbers, removedDirectAnnotations, visited);
+                    if (namePairs.Items.Count == 0) dictionary.Items.Remove(key);
+                    continue;
+                }
                 if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) {
                     dictionary.Items.Remove(key);
                     continue;
@@ -271,6 +298,25 @@ internal static class PdfProvenanceGraphEditor {
             PdfObject child = values.Items[index];
             if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) values.Items.RemoveAt(index);
             else if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited);
+        }
+    }
+
+    private static void RemoveNameTreePairs(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray names,
+        HashSet<int> removedObjectNumbers,
+        HashSet<PdfDictionary> removedDirectAnnotations) {
+        int completePairCount = names.Items.Count / 2;
+        for (int pair = completePairCount - 1; pair >= 0; pair--) {
+            int index = pair * 2;
+            if (!IsRemoved(objects, names.Items[index], removedObjectNumbers, removedDirectAnnotations) &&
+                !IsRemoved(objects, names.Items[index + 1], removedObjectNumbers, removedDirectAnnotations)) continue;
+            names.Items.RemoveAt(index + 1);
+            names.Items.RemoveAt(index);
+        }
+        if (names.Items.Count % 2 != 0 &&
+            IsRemoved(objects, names.Items[names.Items.Count - 1], removedObjectNumbers, removedDirectAnnotations)) {
+            names.Items.RemoveAt(names.Items.Count - 1);
         }
     }
 

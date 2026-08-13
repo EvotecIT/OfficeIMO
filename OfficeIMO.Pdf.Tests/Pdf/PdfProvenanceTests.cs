@@ -772,8 +772,8 @@ public sealed partial class PdfProvenanceTests {
             .ToBytes();
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = pdf.Length + 1L,
-            MaxManifestBytes = 256,
-            MaxExpandedContainerBytes = 256
+            MaxManifestBytes = 512,
+            MaxExpandedContainerBytes = 512
         };
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, options);
@@ -809,7 +809,7 @@ public sealed partial class PdfProvenanceTests {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = duplicated.LongLength + 1L,
-            MaxManifestBytes = 256,
+            MaxManifestBytes = 512,
             MaxExpandedContainerBytes = 1024 * 1024,
             MaxCarriers = 1
         };
@@ -824,8 +824,8 @@ public sealed partial class PdfProvenanceTests {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
-        options.Limits.MaxManifestBytes = 256;
-        options.Limits.MaxExpandedContainerBytes = 192;
+        options.Limits.MaxManifestBytes = 512;
+        options.Limits.MaxExpandedContainerBytes = 300;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
 
@@ -1275,11 +1275,15 @@ public sealed partial class PdfProvenanceTests {
     private static byte[] CreateManifestStore() {
         byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
         byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] assertionStoreDescription = CreateBox("jumd", Join(C2paUuid("c2as"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+        byte[] assertionDescription = CreateBox("jumd", Join(C2paUuid("c2ac"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+        byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
+            CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
-        return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim, signature))));
+        return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
     }
 
     private static byte[] C2paUuid(string code) => Join(
