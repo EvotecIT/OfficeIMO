@@ -27,8 +27,9 @@ internal static class OfficeProvenanceZip {
             throw new InvalidDataException("The package does not start with a local mimetype entry.");
         }
         ushort flags = OfficeProvenanceBinary.ReadUInt16(data, 6, littleEndian: true);
+        ushort compressionMethod = OfficeProvenanceBinary.ReadUInt16(data, 8, littleEndian: true);
         int nameLength = OfficeProvenanceBinary.ReadUInt16(data, 26, littleEndian: true);
-        if ((flags & 0x0001) != 0 || nameLength != expectedName.Length || !BytesEqual(data, 30, expectedName) ||
+        if ((flags & 0x0001) != 0 || compressionMethod != 0 || nameLength != expectedName.Length || !BytesEqual(data, 30, expectedName) ||
             !HasExactFirstEntryContent(data, expectedValues)) {
             throw new InvalidDataException("The package does not contain the required leading mimetype entry.");
         }

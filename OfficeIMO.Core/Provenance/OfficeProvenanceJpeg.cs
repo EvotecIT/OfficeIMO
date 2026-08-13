@@ -36,6 +36,8 @@ internal static class OfficeProvenanceJpeg {
                 : FindNextCompleteStart(data, searchOffset, options.MaxContainerEntries);
             if (imageStart < 0) {
                 if (output != null && searchOffset < data.Length) output.Write(data, searchOffset, data.Length - searchOffset);
+                SortBySourceOffset(context?.Evidence);
+                SortBySourceOffset(changes);
                 return reserialized;
             }
             if (output != null && searchOffset < imageStart) output.Write(data, searchOffset, imageStart - searchOffset);

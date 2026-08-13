@@ -215,13 +215,17 @@ internal static class OfficeC2paManifestStore {
             int contentOffset = childDescriptionEnd;
             int contentAvailable = cursor + (int)childLength - contentOffset;
             if (contentAvailable < 8 || !TryReserveBox(ref visitedBoxes, maximumEntries) ||
-                !TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength, out ulong contentLength, out _) ||
+                !TryReadBox(data, contentOffset, contentAvailable, out int contentHeaderLength, out ulong contentLength, out string contentType) ||
+                !IsAssertionContentType(contentType) ||
                 contentLength <= (ulong)contentHeaderLength || contentLength != (ulong)contentAvailable) return false;
             hasAssertion = true;
             cursor += (int)childLength;
         }
         return cursor == storeEnd && hasAssertion;
     }
+
+    private static bool IsAssertionContentType(string contentType) =>
+        contentType is "cbor" or "json" or "bfdb" or "bidb" or "uuid" or "xml ";
 
     private static bool HasDescriptionUuid(byte[] data, int offset, int availableLength, byte[] uuid) {
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||

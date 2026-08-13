@@ -19,6 +19,7 @@ internal static class OfficeProvenanceTiff {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         List<TiffIfd> ifds = ReadIfds(data, options);
+        int primaryC2paCount = ifds.Count == 0 ? 0 : ifds[0].Entries.Count(static entry => entry.Tag == C2paTag);
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
@@ -34,7 +35,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
-                bool valid = ifdIndex == 0 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}";
@@ -48,6 +49,7 @@ internal static class OfficeProvenanceTiff {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         List<TiffIfd> ifds = ReadIfds(data, options.Limits);
+        int primaryC2paCount = ifds.Count == 0 ? 0 : ifds[0].Entries.Count(static entry => entry.Tag == C2paTag);
         byte[] output = (byte[])data.Clone();
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
@@ -100,7 +102,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
-                bool valid = ifdIndex == 0 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {

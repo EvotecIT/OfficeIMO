@@ -737,7 +737,8 @@ public sealed partial class ProvenanceCoreContracts {
     public void PngXmpRemovalRewritesAValidItextChunk() {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         byte[] prefix = Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"), new byte[] { 0, 0, 0, 0, 0 });
-        byte[] png = Join(header, CreatePngChunk("iTXt", Join(prefix, CreateXmpPacket())), CreatePngChunk("IEND", Array.Empty<byte>()));
+        byte[] ihdr = { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 };
+        byte[] png = Join(header, CreatePngChunk("IHDR", ihdr), CreatePngChunk("iTXt", Join(prefix, CreateXmpPacket())), CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
 

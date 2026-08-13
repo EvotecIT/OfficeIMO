@@ -62,7 +62,7 @@ internal static class OfficeProvenancePng {
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength, out bool fieldsValid)) {
-                bool carrierValid = fieldsValid && HasValidCrc(data, offset, payloadLength);
+                bool carrierValid = validHeader && fieldsValid && HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
                 string location = $"PNG/iTXt-XMP@{offset}";

@@ -16,22 +16,28 @@ internal static class OfficeProvenanceSvg {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         XDocument document = Load(data, options);
-        int index = 0;
-        foreach (XElement element in document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement)) {
-            string value = element.Value.Trim();
-            byte[] manifest = Array.Empty<byte>();
-            bool decoded = HasOnlyTextContent(element) && TryDecode(value, options.MaxManifestBytes, out manifest);
-            bool valid = decoded && OfficeC2paManifestStore.IsValid(
-                manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
-            context.Add(new OfficeProvenanceEvidence(
-                OfficeProvenanceCarrierKind.C2paManifest,
-                $"SVG/metadata/c2pa:manifest[{index++}]",
-                valid,
-                decoded ? manifest.Length : 0));
-        }
+        int manifestIndex = 0;
         int xmpIndex = 0;
-        foreach (XElement xmp in FindXmpRoots(document)) {
-            OfficeProvenanceXmp.Inspect(SerializeElement(xmp), options, context, $"SVG/XMP[{xmpIndex++}]");
+        foreach (SvgCarrier carrier in FindCarriers(document)) {
+            if (carrier.Kind == SvgCarrierKind.Manifest) {
+                XElement element = carrier.Element;
+                string value = element.Value.Trim();
+                byte[] manifest = Array.Empty<byte>();
+                bool decoded = HasOnlyTextContent(element) && TryDecode(value, options.MaxManifestBytes, out manifest);
+                bool valid = decoded && OfficeC2paManifestStore.IsValid(
+                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
+                context.Add(new OfficeProvenanceEvidence(
+                    OfficeProvenanceCarrierKind.C2paManifest,
+                    $"SVG/metadata/c2pa:manifest[{manifestIndex++}]",
+                    valid,
+                    decoded ? manifest.Length : 0));
+            } else {
+                OfficeProvenanceXmp.Inspect(
+                    SerializeElement(carrier.Element),
+                    options,
+                    context,
+                    $"SVG/XMP[{xmpIndex++}]");
+            }
         }
     }
 
@@ -43,30 +49,34 @@ internal static class OfficeProvenanceSvg {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         XDocument document = Load(data, options.Limits);
-        XElement[] xmpRoots = FindXmpRoots(document).ToArray();
-        for (int index = 0; index < xmpRoots.Length; index++) {
-            XElement xmp = xmpRoots[index];
-            if (!OfficeProvenanceXmp.TryRemoveAiDeclarations(
-                SerializeElement(xmp),
-                options,
-                $"SVG/XMP[{index}]",
-                changes,
-                out byte[] cleanedXmp)) continue;
-            xmp.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
-            reserialized = true;
-        }
-        XElement[] manifests = document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement).ToArray();
-        for (int index = 0; index < manifests.Length; index++) {
-            XElement element = manifests[index];
+        int manifestIndex = 0;
+        int xmpIndex = 0;
+        foreach (SvgCarrier carrier in FindCarriers(document)) {
+            if (carrier.Kind == SvgCarrierKind.Xmp) {
+                string location = $"SVG/XMP[{xmpIndex++}]";
+                if (!options.RemoveAiSourceMetadata || !OfficeProvenanceXmp.TryRemoveAiDeclarations(
+                    SerializeElement(carrier.Element),
+                    options,
+                    location,
+                    changes,
+                    out byte[] cleanedXmp)) continue;
+                carrier.Element.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
+                reserialized = true;
+                continue;
+            }
+
+            XElement element = carrier.Element;
+            int index = manifestIndex++;
             byte[] manifest = Array.Empty<byte>();
             bool decoded = HasOnlyTextContent(element) && TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out manifest);
             bool valid = decoded && OfficeC2paManifestStore.IsValid(
                 manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
-            if (!options.RemoveC2paManifests) continue;
-            if (!valid && options.RequireStructurallyValidCarrier) continue;
-            string location = $"SVG/metadata/c2pa:manifest[{index}]";
+            if (!options.RemoveC2paManifests || !valid && options.RequireStructurallyValidCarrier) continue;
             element.Remove();
-            changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, 0));
+            changes.Add(new OfficeProvenanceChange(
+                OfficeProvenanceCarrierKind.C2paManifest,
+                $"SVG/metadata/c2pa:manifest[{index}]",
+                0));
         }
         if (changes.Count == 0) return (byte[])data.Clone();
         using var output = new MemoryStream();
@@ -111,6 +121,17 @@ internal static class OfficeProvenanceSvg {
 
     private static bool HasOnlyTextContent(XElement element) => element.Nodes().All(node => node is XText);
 
+    private static IReadOnlyList<SvgCarrier> FindCarriers(XDocument document) {
+        var carriers = new List<SvgCarrier>();
+        carriers.AddRange(document.Descendants(C2paNamespace + "manifest")
+            .Where(IsManifestElement)
+            .Select(static element => new SvgCarrier(element, SvgCarrierKind.Manifest)));
+        carriers.AddRange(FindXmpRoots(document)
+            .Select(static element => new SvgCarrier(element, SvgCarrierKind.Xmp)));
+        carriers.Sort(static (left, right) => XNode.DocumentOrderComparer.Compare(left.Element, right.Element));
+        return carriers;
+    }
+
     private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
         var roots = new List<XElement>();
         roots.AddRange(document.Descendants(XmpNamespace + "xmpmeta")
@@ -127,6 +148,21 @@ internal static class OfficeProvenanceSvg {
         roots.AddRange(directIptcScopes.Where(element =>
             !element.Ancestors().Any(directIptcScopeSet.Contains)));
         return roots;
+    }
+
+    private enum SvgCarrierKind {
+        Manifest,
+        Xmp
+    }
+
+    private readonly struct SvgCarrier {
+        internal SvgCarrier(XElement element, SvgCarrierKind kind) {
+            Element = element;
+            Kind = kind;
+        }
+
+        internal XElement Element { get; }
+        internal SvgCarrierKind Kind { get; }
     }
 
     private static bool ContainsDirectIptcDeclaration(XElement element) =>
