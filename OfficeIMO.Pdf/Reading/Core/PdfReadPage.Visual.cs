@@ -1810,7 +1810,16 @@ public sealed partial class PdfReadPage {
             }
 
             var imagePlacements = new List<PdfImagePlacement>();
-            CollectImagePlacementsAndForms(appearanceContent, appearanceResources, 0, appearanceTransform, pageHeight, imagePlacements, activeForms, pageContentBudget: pageContentBudget);
+            CollectImagePlacementsAndForms(
+                appearanceContent,
+                appearanceResources,
+                0,
+                appearanceTransform,
+                pageHeight,
+                imagePlacements,
+                activeForms,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
             if (imagePlacements.Count > 0) {
                 IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
@@ -2247,7 +2256,8 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 placements,
                 activeForms,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();

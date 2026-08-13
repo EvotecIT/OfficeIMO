@@ -401,6 +401,34 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_PreservesOrdinaryImageOrderAcrossDeepForms() {
+        string outerForm = BuildStreamObject(5, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Fm2 6 0 R >> >>", "/Fm2 Do");
+        string innerForm = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 7 0 R >> >>", "q 100 0 0 100 0 0 cm /Im1 Do Q 0 0 1 rg 0 0 100 100 re f");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
+        byte[] pdf = BuildSingleStreamPdf("q Q /Fm1 Do", "<< /XObject << /Fm1 5 0 R >> >>", outerForm, innerForm, image);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.IsType<OfficeDrawingImage>(drawing.Elements[0]);
+        Assert.IsType<OfficeDrawingShape>(drawing.Elements[1]);
+    }
+
+    [Fact]
+    public void RenderPage_PreservesAnnotationImageOrderAcrossDeepForms() {
+        string annotation = "5 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [50 70 150 170] /F 4 /AP << /N 6 0 R >> >>\nendobj";
+        string appearance = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Fm1 7 0 R >> >>", "q Q /Fm1 Do");
+        string outerForm = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Fm2 8 0 R >> >>", "/Fm2 Do");
+        string innerForm = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 9 0 R >> >>", "q 100 0 0 100 0 0 cm /Im1 Do Q 0 0 1 rg 0 0 100 100 re f");
+        string image = BuildStreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
+        byte[] pdf = BuildSingleStreamPdfWithPageEntries("", "<< >>", "/Annots [5 0 R]", annotation, appearance, outerForm, innerForm, image);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.IsType<OfficeDrawingImage>(drawing.Elements[0]);
+        Assert.IsType<OfficeDrawingShape>(drawing.Elements[1]);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedDctImageInsideType3Pattern() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
