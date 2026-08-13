@@ -13,10 +13,14 @@ internal static class OfficeProvenanceText {
 
     internal static bool HasStructuredDelimiter(byte[] data) => IndexOf(data, BeginDelimiter, 0) >= 0;
 
-    internal static bool HasUnstructuredWrapperPrefix(byte[] data) {
+    internal static bool HasUnstructuredWrapperPrefix(byte[] data, int maximumContainerEntries) {
         int offset = 0;
+        int candidateCount = 0;
         while (offset < data.Length) {
             if (!TryReadCodePoint(data, offset, out int codePoint, out int prefixBytes) || codePoint != 0xFEFF) { offset++; continue; }
+            if (++candidateCount > maximumContainerEntries) {
+                throw new InvalidDataException("Text provenance wrapper detection exceeds the configured container-entry limit.");
+            }
             int cursor = offset + prefixBytes;
             bool matches = true;
             for (int index = 0; index < WrapperMagic.Length; index++) {

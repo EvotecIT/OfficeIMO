@@ -101,8 +101,7 @@ internal static class OfficeC2paManifestStore {
         if ((data[togglesOffset] & 0x02) == 0) return false;
         int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        if (labelOffset >= descriptionEnd || data[labelOffset] == 0 ||
-            Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset) < 0) return false;
+        if (!HasValidUtf8Label(data, labelOffset, descriptionEnd)) return false;
 
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
@@ -201,6 +200,18 @@ internal static class OfficeC2paManifestStore {
         if (visitedBoxes >= maximumEntries) return false;
         visitedBoxes++;
         return true;
+    }
+
+    private static bool HasValidUtf8Label(byte[] data, int labelOffset, int descriptionEnd) {
+        if (labelOffset < 0 || labelOffset >= descriptionEnd || descriptionEnd > data.Length || data[labelOffset] == 0) return false;
+        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
+        if (terminator < 0) return false;
+        try {
+            _ = OfficeProvenanceBinary.DecodeUtf8(data, labelOffset, terminator - labelOffset);
+            return true;
+        } catch (System.Text.DecoderFallbackException) {
+            return false;
+        }
     }
 
     private static bool TryReadBox(

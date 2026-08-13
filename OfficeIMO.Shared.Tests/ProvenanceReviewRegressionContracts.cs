@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
-public sealed class ProvenanceReviewRegressionContracts {
+public sealed partial class ProvenanceReviewRegressionContracts {
     [Fact]
     public void JumbfStoreRejectsMalformedTrailingChildBox() {
         byte[] manifest = CreateManifestStore();

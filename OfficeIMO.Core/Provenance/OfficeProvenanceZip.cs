@@ -46,6 +46,7 @@ internal static class OfficeProvenanceZip {
             }
             ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
+            if (!IsSupportedEmbeddedImage(asset, options)) continue;
             OfficeProvenanceReport nested;
             try {
                 nested = OfficeProvenanceInspector.InspectCore(asset, entry.FullName, CreateNestedOptions(options));
@@ -95,6 +96,7 @@ internal static class OfficeProvenanceZip {
             if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
             ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
             byte[] asset = ReadEntry(entry, (int)entry.Length);
+            if (!IsSupportedEmbeddedImage(asset, options.Limits)) continue;
             OfficeProvenanceRemovalResult nested;
             try {
                 nested = OfficeProvenanceRemover.Remove(asset, entry.FullName, CreateNestedRemovalOptions(options));
@@ -501,6 +503,13 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
         if (supported) expandedBytes -= read; // The complete entry is charged by the caller.
         return supported;
+    }
+
+    private static bool IsSupportedEmbeddedImage(byte[] data, OfficeProvenanceOptions options) {
+        OfficeProvenanceAssetFormat format = OfficeProvenanceInspector.DetectFormat(data, fileName: null, options);
+        return format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
+            OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
+            OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
     }
 
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {

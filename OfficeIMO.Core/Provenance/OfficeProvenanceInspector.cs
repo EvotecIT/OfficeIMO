@@ -96,22 +96,26 @@ public static class OfficeProvenanceInspector {
             return OfficeProvenanceAssetFormat.Pdf;
         }
         if (LooksLikeSvg(data, fileName, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
-        if (LooksLikeHtml(data, fileName)) return OfficeProvenanceAssetFormat.Html;
-        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data)) return OfficeProvenanceAssetFormat.UnstructuredText;
+        if (LooksLikeHtml(data, fileName, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Html;
+        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.UnstructuredText;
         if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
         return OfficeProvenanceAssetFormat.Unknown;
     }
 
-    private static bool LooksLikeHtml(byte[] data, string? fileName) {
+    private static bool LooksLikeHtml(byte[] data, string? fileName, int maximumContainerEntries) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return true;
         int offset = 0;
         if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) offset = 3;
+        int commentCount = 0;
         while (true) {
             while (offset < data.Length && data[offset] is 0x09 or 0x0A or 0x0C or 0x0D or 0x20) offset++;
             if (!MatchesAsciiIgnoreCase(data, offset, "<!--")) break;
+            if (++commentCount > maximumContainerEntries) {
+                throw new InvalidDataException("HTML format detection exceeds the configured container-entry limit.");
+            }
             int commentEnd = FindAscii(data, offset + 4, "-->");
             if (commentEnd < 0) return false;
             offset = commentEnd + 3;
