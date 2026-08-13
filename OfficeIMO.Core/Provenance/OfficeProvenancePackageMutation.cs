@@ -15,6 +15,22 @@ internal readonly struct OfficeProvenanceSignatureStripResult {
 }
 
 internal static class OfficeProvenancePackageMutation {
+    /// <summary>Reads a bounded package, validates ownership, and inspects the same bytes for provenance.</summary>
+    internal static OfficeProvenanceReport InspectFile(
+        string filePath,
+        OfficeProvenanceOptions? options,
+        Action<byte[], OfficeProvenanceOptions> validatePackage) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        if (validatePackage == null) throw new ArgumentNullException(nameof(validatePackage));
+        options ??= new OfficeProvenanceOptions();
+        OfficeProvenanceBinary.ValidateLimits(options);
+        string fullPath = Path.GetFullPath(filePath);
+        byte[] data;
+        using (var stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+        validatePackage(data, options);
+        return OfficeProvenanceInspector.Inspect(data, fullPath, options);
+    }
+
     internal static OfficeProvenanceRemovalResult RemoveFile(
         string inputPath,
         string outputPath,
