@@ -87,4 +87,80 @@ public partial class PdfType3UncoloredPatternTests {
         Assert.True(image.Projection.HasCrop, $"x={image.Projection.X:R}; width={image.Projection.Width:R}; sourceLeft={image.Projection.SourceLeft:R}; sourceWidth={image.Projection.SourceWidth:R}");
         Assert.True(image.Projection.SourceLeft > 0D);
     }
+
+    [Theory]
+    [InlineData("/Width 1.5 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8")]
+    [InlineData("/Width 1 /Height 1.5 /ColorSpace /DeviceGray /BitsPerComponent 8")]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8.5")]
+    public void RenderPage_FailsClosedForFractionalType3ImageDimensions(string imageEntries) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            type3PaintType: 1,
+            extraObjects: new[] { StreamObject(8, "<< /Type /XObject /Subtype /Image " + imageEntries, "x") });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_ClipsSubTolerancePatternedImageMaskExactly() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 0.00001 0 499.99999 700 re W n q 500 0 0 700 0 0 cm /Im1 Do Q",
+            glyphResources: "<< /XObject << /Im1 8 0 R >> >>",
+            extraObjects: new[] {
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x")
+            });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+    }
+
+    [Theory]
+    [InlineData("/Domain [0.0000000005 1]")]
+    [InlineData("/Domain [0 1] /Range [0.0000000005 1 0 1 0 1]")]
+    public void RenderPage_FailsClosedForNearlyCanonicalType3ShadingIntervals(string intervalEntries) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 " + intervalEntries + " /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForDiscontinuousStitchedType3ShadingBoundary() {
+        const string function =
+            "<< /FunctionType 3 /Domain [0 1] " +
+            "/Functions [" +
+            "<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 1 0] /N 1 >> " +
+            "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 1] /C1 [1 1 1] /N 1 >>] " +
+            "/Bounds [0.5] /Encode [0 1 0 1] >>";
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function " + function + " /Extend [true true] >>",
+            patternContent: string.Empty,
+            patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
 }

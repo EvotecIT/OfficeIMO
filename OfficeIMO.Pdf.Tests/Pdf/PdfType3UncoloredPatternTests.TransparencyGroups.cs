@@ -108,6 +108,7 @@ public partial class PdfType3UncoloredPatternTests {
 
     [Theory]
     [InlineData("/LW 1e999")]
+    [InlineData("/D [[3 1] 0]")]
     [InlineData("/D [[8 3] 0]")]
     [InlineData("/D [[3 1] 2]")]
     public void RenderPage_FailsClosedForInexactType3ExtGStateStrokeValues(string graphicsStateEntry) {

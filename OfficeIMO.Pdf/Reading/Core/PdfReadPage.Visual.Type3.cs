@@ -346,12 +346,41 @@ public sealed partial class PdfReadPage {
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
+        if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
         if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+    }
+
+    private bool HasValidType3ImageDimensions(PdfDictionary imageDictionary, bool isImageMask) {
+        if (!TryReadExactPositiveInteger(imageDictionary, "Width", out _) ||
+            !TryReadExactPositiveInteger(imageDictionary, "Height", out _)) return false;
+
+        if (!imageDictionary.Items.TryGetValue("BitsPerComponent", out PdfObject? bitsObject) ||
+            ResolveEffectObject(bitsObject) is PdfNull) {
+            return isImageMask;
+        }
+        if (ResolveEffectObject(bitsObject) is not PdfNumber bits ||
+            !IsFinite(bits.Value) ||
+            bits.Value != Math.Truncate(bits.Value)) return false;
+        return isImageMask
+            ? bits.Value == 1D
+            : bits.Value is 1D or 2D or 4D or 8D or 16D;
+    }
+
+    private bool TryReadExactPositiveInteger(PdfDictionary dictionary, string key, out int value) {
+        value = 0;
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? authored) ||
+            ResolveEffectObject(authored) is not PdfNumber number ||
+            !IsFinite(number.Value) ||
+            number.Value <= 0D ||
+            number.Value > int.MaxValue ||
+            number.Value != Math.Truncate(number.Value)) return false;
+        value = (int)number.Value;
+        return true;
     }
 
     private bool HasValidType3ImageMaskDecode(PdfDictionary imageDictionary) {
@@ -501,10 +530,10 @@ public sealed partial class PdfReadPage {
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
         OfficeImageProjection localProjection = projection.Translate(-fitted.X, -fitted.Y);
         (double localLeft, double localTop, double localRight, double localBottom) = localProjection.GetDestinationBounds();
-        bool projectionFitsDrawing = localLeft >= -0.000001D &&
-            localTop >= -0.000001D &&
-            localRight <= fitted.Width + 0.000001D &&
-            localBottom <= fitted.Height + 0.000001D;
+        bool projectionFitsDrawing = localLeft >= 0D &&
+            localTop >= 0D &&
+            localRight <= fitted.Width &&
+            localBottom <= fitted.Height;
         if (fitted.IsRectangle && projectionFitsDrawing) {
             maskDrawing.AddImage(
                 image.Bytes,

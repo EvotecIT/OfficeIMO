@@ -1230,9 +1230,7 @@ public sealed partial class PdfReadPage {
             result.Add(new OfficeGradientStop(offset, previousEnd));
             PdfDictionary? next = ResolveFunctionDictionary(functions.Items[i + 1]);
             if (!TryReadType2FunctionColors(next, colorSpace, IsFunctionReversed(encode, i + 1), out OfficeColor nextStart, out OfficeColor nextEnd)) return false;
-            if (nextStart != previousEnd) {
-                result.Add(new OfficeGradientStop(offset, nextStart));
-            }
+            if (nextStart != previousEnd) return false;
             previousEnd = nextEnd;
         }
         result.Add(new OfficeGradientStop(1D, previousEnd));
@@ -1289,8 +1287,7 @@ public sealed partial class PdfReadPage {
     private static bool IsCanonicalUnitIntervals(double[] values, int count) {
         if (!HasValidFunctionIntervals(values, count)) return false;
         for (int index = 0; index < count; index++) {
-            if (Math.Abs(values[index * 2]) > 0.000000001D ||
-                Math.Abs(values[(index * 2) + 1] - 1D) > 0.000000001D) return false;
+            if (values[index * 2] != 0D || values[(index * 2) + 1] != 1D) return false;
         }
         return true;
     }
@@ -1300,8 +1297,8 @@ public sealed partial class PdfReadPage {
         for (int index = 0; index < count; index++) {
             double first = values[index * 2];
             double second = values[(index * 2) + 1];
-            bool forward = Math.Abs(first) <= 0.000000001D && Math.Abs(second - 1D) <= 0.000000001D;
-            bool reverse = Math.Abs(first - 1D) <= 0.000000001D && Math.Abs(second) <= 0.000000001D;
+            bool forward = first == 0D && second == 1D;
+            bool reverse = first == 1D && second == 0D;
             if (!forward && !reverse) return false;
         }
         return true;
@@ -1411,19 +1408,7 @@ public sealed partial class PdfReadPage {
 
         IReadOnlyList<double> values = ReadNumberArray(dashArray);
         if (values.Count != dashArray.Items.Count || values.Any(static item => !IsFinite(item) || item < 0D)) return false;
-        return values.Count == 0 ||
-               MatchesDash(values, 1D, 1D) ||
-               MatchesDash(values, 3D, 1D) ||
-               MatchesDash(values, 3D, 1D, 1D, 1D) ||
-               MatchesDash(values, 3D, 1D, 1D, 1D, 1D, 1D);
-    }
-
-    private static bool MatchesDash(IReadOnlyList<double> actual, params double[] expected) {
-        if (actual.Count != expected.Length) return false;
-        for (int index = 0; index < expected.Length; index++) {
-            if (Math.Abs(actual[index] - expected[index]) > 0.000000001D) return false;
-        }
-        return true;
+        return values.Count == 0;
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
