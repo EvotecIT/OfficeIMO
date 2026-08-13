@@ -263,6 +263,27 @@ public class PdfAcroFormReviewRegressionTests {
         Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Create_RaisesAnOverridingCatalogVersionForOpenTypeCffPushButtonAppearance() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (fontPath is null) return;
+        var appearanceOptions = new PdfFormFillerOptions()
+            .UseAppearanceFontFile("OfficeIMO CFF", fontPath);
+
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4", "1.4")).Forms.Edit(
+            edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "run",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                Caption = "Office"
+            }),
+            appearanceOptions);
+
+        string raw = PdfEncoding.Latin1GetString(result.ToBytes());
+        Assert.Equal("1.6", PdfInspector.Inspect(result.ToBytes()).CatalogVersion);
+        Assert.Contains("/Version /1.6", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildInheritedTerminalFieldPdf() {
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -406,10 +427,10 @@ public class PdfAcroFormReviewRegressionTests {
         }));
     }
 
-    private static byte[] BuildSinglePagePdf(string version) {
+    private static byte[] BuildSinglePagePdf(string version, string? catalogVersion = null) {
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-" + version,
-            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "1 0 obj", "<< /Type /Catalog " + (catalogVersion is null ? string.Empty : "/Version /" + catalogVersion + " ") + "/Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 4 >>", "%%EOF"

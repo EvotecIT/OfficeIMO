@@ -393,6 +393,26 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_SetFlagsRejectsClearingMultiSelectWhileChoiceDefaultRemainsAnArray() {
+        byte[] source = PdfDocument.Create()
+            .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
+            .ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary field = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Regions").Value);
+            field.Items["V"] = new PdfStringObj("EU");
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+
+        Assert.Contains("default value", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Edit_MoveOnTheSamePagePreservesAnnotationOrder() {
         byte[] source = PdfDocument.Create()
             .TextField("First", value: "1")

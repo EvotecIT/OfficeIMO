@@ -406,8 +406,10 @@ internal static partial class PdfAcroFormEditor {
             if (isComboBox && isMultiSelect) {
                 throw new NotSupportedException("Combo-box choice fields cannot also be multi-select fields.");
             }
-            if (!isMultiSelect && ReadInheritedFieldValue(objects, field.Dictionary) is PdfArray) {
-                throw new NotSupportedException("Clearing multi-select is not supported while the choice field stores an array value.");
+            if (!isMultiSelect &&
+                (ReadInheritedFieldObject(objects, field.Dictionary, "V") is PdfArray ||
+                 ReadInheritedFieldObject(objects, field.Dictionary, "DV") is PdfArray)) {
+                throw new NotSupportedException("Clearing multi-select is not supported while the choice field stores an array value as its current or default value.");
             }
         }
         field.Dictionary.Items["Ff"] = new PdfNumber(flags);
@@ -438,11 +440,17 @@ internal static partial class PdfAcroFormEditor {
 
     private static PdfObject? ReadInheritedFieldValue(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary field) {
+        PdfDictionary field) =>
+        ReadInheritedFieldObject(objects, field, "V");
+
+    private static PdfObject? ReadInheritedFieldObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary field,
+        string key) {
         var visited = new HashSet<PdfDictionary>();
         PdfDictionary? current = field;
         while (current is not null && visited.Add(current)) {
-            if (current.Items.TryGetValue("V", out PdfObject? value)) {
+            if (current.Items.TryGetValue(key, out PdfObject? value)) {
                 return PdfObjectLookup.Resolve(objects, value);
             }
             current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)

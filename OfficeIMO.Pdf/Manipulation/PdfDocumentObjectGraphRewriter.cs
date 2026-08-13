@@ -27,6 +27,23 @@ internal static class PdfDocumentObjectGraphRewriter {
         }
 
         IReadOnlyList<int> reachableObjectNumbers = collector.ObjectIds;
+        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
+        if (reachableObjectNumbers.Any(objectNumber =>
+                objects[objectNumber].Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") &&
+            !CatalogDeclaresAtLeastPdf16(root.Value as PdfDictionary, objects)) {
+            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
+            if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
+                catalog.Items["Version"] = new PdfName("1.6");
+                collector = new PdfPageExtractor.ObjectCollector(objects);
+                collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
+                if (infoObjectNumber.HasValue) {
+                    PdfIndirectObject info = objects[infoObjectNumber.Value];
+                    collector.CollectObjectGraph(new PdfReference(info.ObjectNumber, info.Generation));
+                }
+                reachableObjectNumbers = collector.ObjectIds;
+            }
+        }
         var numberMap = new Dictionary<int, int>(reachableObjectNumbers.Count);
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             numberMap[reachableObjectNumbers[i]] = i + 1;
@@ -45,13 +62,6 @@ internal static class PdfDocumentObjectGraphRewriter {
             serializedObjects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, body));
         }
 
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        if (reachableObjectNumbers.Any(objectNumber =>
-                objects[objectNumber].Value is PdfStream stream &&
-                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") &&
-            !CatalogDeclaresAtLeastPdf16(root.Value as PdfDictionary, objects)) {
-            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
-        }
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
         return PdfFileAssembler.Assemble(
