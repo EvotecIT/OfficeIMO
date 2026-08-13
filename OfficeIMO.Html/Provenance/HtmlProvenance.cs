@@ -6,7 +6,7 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Html;
 
 /// <summary>Inspects and selectively removes standards-defined provenance from HTML documents.</summary>
-public static class HtmlProvenance {
+public static partial class HtmlProvenance {
     private static readonly string[] EmbeddedImageSourceAttributes = {
         "src", "data-src", "data-original", "data-original-src", "data-lazy-src"
     };
@@ -305,6 +305,7 @@ public static class HtmlProvenance {
         ISet<string> usedImageProperties) {
         string localName = element.LocalName.ToLowerInvariant();
         if (localName == "style") {
+            if (!HtmlResourcePipeline.IsCssStyleElement(element)) yield break;
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
                 element.TextContent,
                 usedImageProperties)) {
@@ -323,12 +324,12 @@ public static class HtmlProvenance {
         }
 
         string? background = element.GetAttribute("background");
-        if (background != null) yield return new EmbeddedImageReference("background", background, 0, background.Length);
+        if (background != null) yield return CreateDirectUrlReference("background", background);
 
         if (localName is "img" or "source") {
             foreach (string attributeName in EmbeddedImageSourceAttributes) {
                 string? source = element.GetAttribute(attributeName);
-                if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
+                if (source != null) yield return CreateDirectUrlReference(attributeName, source);
             }
             foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
                 string? sourceSet = element.GetAttribute(attributeName);
@@ -358,7 +359,7 @@ public static class HtmlProvenance {
 
         foreach (string attributeName in attributeNames) {
             string? source = element.GetAttribute(attributeName);
-            if (source != null) yield return new EmbeddedImageReference(attributeName, source, 0, source.Length);
+            if (source != null) yield return CreateDirectUrlReference(attributeName, source);
         }
         if (localName == "link" && IsPreloadedImage(element)) {
             string? sourceSet = element.GetAttribute("imagesrcset");
@@ -369,16 +370,28 @@ public static class HtmlProvenance {
     }
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
-        document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]").Distinct();
+        document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]")
+            .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
+                HtmlResourcePipeline.IsCssStyleElement(element))
+            .Distinct();
 
     private static HashSet<string> GetUsedCssImageCustomProperties(IEnumerable<IElement> elements) =>
         HtmlResourcePipeline.CollectProvenanceCssImageCustomProperties(elements.SelectMany(element => {
             var styles = new List<string>(2);
-            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase)) styles.Add(element.TextContent);
+            if (string.Equals(element.LocalName, "style", StringComparison.OrdinalIgnoreCase) &&
+                HtmlResourcePipeline.IsCssStyleElement(element)) styles.Add(element.TextContent);
             string? inlineStyle = element.GetAttribute("style");
             if (inlineStyle != null) styles.Add(inlineStyle);
             return styles;
         }));
+
+    private static EmbeddedImageReference CreateDirectUrlReference(string attributeName, string value) {
+        int start = 0;
+        while (start < value.Length && char.IsWhiteSpace(value[start])) start++;
+        int end = value.Length;
+        while (end > start && char.IsWhiteSpace(value[end - 1])) end--;
+        return new EmbeddedImageReference(attributeName, value.Substring(start, end - start), start, end - start);
+    }
 
     private static bool IsImageLink(IElement element) {
         string? rel = element.GetAttribute("rel");
@@ -521,8 +534,8 @@ public static class HtmlProvenance {
             int markup = html.IndexOf('<', index);
             if (markup < 0 || markup == html.Length - 1) break;
             if (markup <= html.Length - 4 && string.CompareOrdinal(html, markup, "<!--", 0, 4) == 0) {
-                int commentEnd = html.IndexOf("-->", markup + 4, StringComparison.Ordinal);
-                index = commentEnd < 0 ? html.Length : commentEnd + 3;
+                int commentEnd = FindHtmlCommentEnd(html, markup + 4);
+                index = commentEnd < 0 ? html.Length : commentEnd;
                 continue;
             }
             char next = html[markup + 1];

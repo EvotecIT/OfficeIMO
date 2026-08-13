@@ -457,7 +457,7 @@ public static partial class HtmlResourcePipeline {
     }
 
 
-    private static bool IsCssStyleElement(IElement styleElement) {
+    internal static bool IsCssStyleElement(IElement styleElement) {
         string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
         if (type.Length == 0) {
             return true;
