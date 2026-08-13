@@ -297,10 +297,18 @@ public static partial class OfficeSvgDrawingReader {
                 viewX,
                 viewY,
                 out OfficeTransform rootTransform)) return true;
+        if (!TryResolveRasterPixelScales(
+                root,
+                viewWidth,
+                viewHeight,
+                viewportWidth,
+                viewportHeight,
+                out double pixelScaleX,
+                out double pixelScaleY)) return true;
         int commandCount = 0;
         int elementCount = 0;
         var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
-            viewWidth, viewHeight, viewportWidth, viewportHeight);
+            viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY);
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
@@ -308,6 +316,18 @@ public static partial class OfficeSvgDrawingReader {
         string? markerStart = ResolveInheritedSvgPaint(root, "marker-start", marker);
         string? markerMid = ResolveInheritedSvgPaint(root, "marker-mid", marker);
         string? markerEnd = ResolveInheritedSvgPaint(root, "marker-end", marker);
+        foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
+            if (!TryAddRenderedSvgLocalReference(
+                    ReadRasterPresentationProperty(root, propertyName),
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    rootTransform,
+                    viewX,
+                    viewY,
+                    rasterWork)) return true;
+        }
         foreach (XElement child in root.Elements()) {
             if (!TryAddRenderedSvgExpansion(
                     child,
@@ -382,6 +402,11 @@ public static partial class OfficeSvgDrawingReader {
                 viewX,
                 viewY,
                 out OfficeTransform transform)) return false;
+        if (name == "use") {
+            if (!TryReadRasterUsePlacement(element, out double useX, out double useY)) return false;
+            transform = OfficeTransform.Translate(useX, useY).Then(transform);
+            if (!IsSupportedSvgTransform(transform)) return false;
+        }
 
         if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
         if (!rasterWork.TryChargeRenderedElement(element, transform)) return false;
@@ -487,13 +512,18 @@ public static partial class OfficeSvgDrawingReader {
             if (useResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
             if (useResult != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(element);
             try {
+                if (!TryResolveRenderedUseTargetTransform(
+                        element,
+                        target!,
+                        transform,
+                        out OfficeTransform targetTransform)) return false;
                 return TryAddRenderedSvgExpansion(
                     target!,
                     references,
                     maximumElements,
                     ref elementCount,
                     ref commandCount,
-                    transform,
+                    targetTransform,
                     viewX,
                     viewY,
                     rasterWork,

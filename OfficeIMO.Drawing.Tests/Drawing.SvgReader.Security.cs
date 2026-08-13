@@ -535,6 +535,48 @@ public class DrawingSvgReaderSecurityTests {
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
     }
 
+    [Theory]
+    [InlineData("clip-path", "clipPath")]
+    [InlineData("mask", "mask")]
+    [InlineData("filter", "filter")]
+    public void SvgSafetyPredicateChargesRootEffectReferences(string propertyName, string definitionName) {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' ")
+            .Append(propertyName).Append("='url(#effect)'><defs><").Append(definitionName).Append(" id='effect'>");
+        for (int index = 0; index < 257; index++) svg.Append("<rect width='64' height='64'/>");
+        svg.Append("</").Append(definitionName).Append("></defs><rect width='64' height='64'/></svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesUsePlacement() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>")
+            .Append("<defs><rect id='tile' x='10000' width='64' height='64'/></defs>");
+        for (int index = 0; index < 257; index++) svg.Append("<use href='#tile' x='-10000'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesSymbolViewportScaling() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'>")
+            .Append("<defs><symbol id='tile' viewBox='0 0 1 1'><rect width='1' height='1'/></symbol></defs>");
+        for (int index = 0; index < 257; index++) svg.Append("<use href='#tile' width='64' height='64'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesSliceViewportScaling() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096' viewBox='0 0 4096 1' preserveAspectRatio='xMidYMid slice'>");
+        for (int index = 0; index < 257; index++) svg.Append("<rect width='1' height='1'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
     private static string CreateEmbeddedImageSvg(byte[] png) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
         + Convert.ToBase64String(png)

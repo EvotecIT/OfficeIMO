@@ -23,13 +23,15 @@ public static partial class OfficeSvgDrawingReader {
             double viewWidth,
             double viewHeight,
             double viewportWidth,
-            double viewportHeight) {
+            double viewportHeight,
+            double pixelScaleX,
+            double pixelScaleY) {
             _viewLeft = viewX;
             _viewTop = viewY;
             _viewRight = viewX + viewWidth;
             _viewBottom = viewY + viewHeight;
-            _pixelScaleX = viewportWidth / viewWidth;
-            _pixelScaleY = viewportHeight / viewHeight;
+            _pixelScaleX = pixelScaleX;
+            _pixelScaleY = pixelScaleY;
             _viewportPixels = Math.Min(maximumViewportPixels, viewportWidth * viewportHeight);
             _remainingWork = _viewportPixels * MaximumViewportRepaints;
         }
