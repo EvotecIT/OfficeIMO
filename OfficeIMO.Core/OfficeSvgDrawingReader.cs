@@ -304,7 +304,7 @@ public static partial class OfficeSvgDrawingReader {
         });
         return containsExpandedDefinition && root.Descendants().Any(element =>
             element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
-            && element.Value.IndexOf("url", StringComparison.OrdinalIgnoreCase) >= 0);
+            && HasPotentialSvgUrlFunction(element.Value));
     }
 
     private static bool TryAddRenderedSvgExpansion(
@@ -503,8 +503,7 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static bool HasPotentialSvgUrlFunction(string? value) =>
-        !string.IsNullOrWhiteSpace(value)
-        && value!.IndexOf("url(", StringComparison.OrdinalIgnoreCase) >= 0;
+        ContainsPotentialCssIdentifier(value, "url");
 
     private static string? ResolveInheritedSvgPaint(XElement element, string propertyName, string? inherited) {
         string? value = ReadPresentationProperty(element, propertyName);
