@@ -272,6 +272,11 @@ public static class PdfProvenance {
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
+        AddAcroFormFieldDictionaries(
+            objects,
+            catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null,
+            result,
+            maximumContainerEntries);
         AddCatalogNameTrees(objects, catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null, result, maximumContainerEntries);
         AddNameTreeDictionaries(objects, new[] { catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null }, result, maximumContainerEntries);
         AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
@@ -286,6 +291,29 @@ public static class PdfProvenance {
             }
         }
         return result;
+    }
+
+    private static void AddAcroFormFieldDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries) {
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary acroForm ||
+            PdfObjectLookup.Resolve(objects, acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsValue) ? fieldsValue : null) is not PdfArray fields) {
+            return;
+        }
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>(fields.Items);
+        while (pending.Count > 0) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (resolved is not PdfDictionary field || !visited.Add(field)) continue;
+            if (visited.Count > maximumContainerEntries) {
+                throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+            }
+            result.Add(field);
+            if (PdfObjectLookup.Resolve(objects, field.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
+            foreach (PdfObject child in kids.Items) pending.Push(child);
+        }
     }
 
     private static void AddEmbeddedFileGraphDictionaries(

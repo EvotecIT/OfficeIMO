@@ -736,8 +736,8 @@ public sealed class PdfProvenanceTests {
             .ToBytes();
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = pdf.Length + 1L,
-            MaxManifestBytes = 160,
-            MaxExpandedContainerBytes = 160
+            MaxManifestBytes = 256,
+            MaxExpandedContainerBytes = 256
         };
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, options);
@@ -773,7 +773,7 @@ public sealed class PdfProvenanceTests {
         byte[] duplicated = DuplicateCandidateAroundRetainedAttachment(CreatePdfWithCandidateAndRetainedAttachment(), copies: 2);
         var options = new OfficeProvenanceOptions {
             MaxAssetBytes = duplicated.LongLength + 1L,
-            MaxManifestBytes = 160,
+            MaxManifestBytes = 256,
             MaxExpandedContainerBytes = 1024 * 1024,
             MaxCarriers = 1
         };
@@ -788,8 +788,8 @@ public sealed class PdfProvenanceTests {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = pdf.LongLength + 1L;
-        options.Limits.MaxManifestBytes = 160;
-        options.Limits.MaxExpandedContainerBytes = 128;
+        options.Limits.MaxManifestBytes = 256;
+        options.Limits.MaxExpandedContainerBytes = 192;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf, options));
 
@@ -934,6 +934,42 @@ public sealed class PdfProvenanceTests {
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(resourceFileSpecification);
         OfficeProvenanceRemovalResult result = PdfProvenance.Remove(resourceFileSpecification);
+
+        Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ActiveAcroFormFieldsCannotMasqueradeAsUntypedFileSpecifications(bool nestedField) {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        byte[] fieldFileSpecification = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfDictionary fileSpecification = Assert.IsType<PdfDictionary>(objects[candidate.ObjectNumber].Value);
+            fileSpecification.Items.Remove("Type");
+            var fields = new PdfArray();
+            if (nestedField) {
+                var parent = new PdfDictionary();
+                var kids = new PdfArray();
+                kids.Items.Add(candidate);
+                parent.Items["Kids"] = kids;
+                int parentObjectNumber = objects.Keys.Max() + 1;
+                objects[parentObjectNumber] = new PdfIndirectObject(parentObjectNumber, 0, parent);
+                fields.Items.Add(new PdfReference(parentObjectNumber, 0));
+            } else {
+                fields.Items.Add(candidate);
+            }
+            var acroForm = new PdfDictionary();
+            acroForm.Items["Fields"] = fields;
+            catalog.Items["AcroForm"] = acroForm;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceReport report = PdfProvenance.Inspect(fieldFileSpecification);
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(fieldFileSpecification);
 
         Assert.False(Assert.Single(report.Evidence).IsStructurallyValid);
         Assert.False(result.WasChanged);
@@ -1155,31 +1191,35 @@ public sealed class PdfProvenanceTests {
         (PdfObjectLookup.Resolve(objects, reference) as PdfDictionary)?.Get<PdfStringObj>("F")?.Value;
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[126];
-        WriteBigEndian(data, 0, data.Length);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
-        WriteBigEndian(data, 8, 30);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 12);
-        new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
-        data[32] = 0x02;
-        Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
-        WriteBigEndian(data, 38, data.Length - 38);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
-        WriteBigEndian(data, 46, 27);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
-        new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
-        data[70] = 0x02;
-        data[71] = (byte)'m';
-        WriteBigEndian(data, 73, 53);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 77);
-        WriteBigEndian(data, 81, 36);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 85);
-        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 89);
-        data[105] = 0x02;
-        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 106);
-        WriteBigEndian(data, 117, 9);
-        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 121);
-        return data;
+        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim, signature))));
+    }
+
+    private static byte[] C2paUuid(string code) => Join(
+        Encoding.ASCII.GetBytes(code),
+        new byte[] { 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 });
+
+    private static byte[] CreateBox(string type, byte[] payload) {
+        byte[] box = new byte[payload.Length + 8];
+        WriteBigEndian(box, 0, box.Length);
+        Encoding.ASCII.GetBytes(type).CopyTo(box, 4);
+        Buffer.BlockCopy(payload, 0, box, 8, payload.Length);
+        return box;
+    }
+
+    private static byte[] Join(params byte[][] arrays) {
+        byte[] output = new byte[arrays.Sum(item => item.Length)];
+        int offset = 0;
+        foreach (byte[] item in arrays) {
+            Buffer.BlockCopy(item, 0, output, offset, item.Length);
+            offset += item.Length;
+        }
+        return output;
     }
 
     private static void WriteBigEndian(byte[] data, int offset, int value) {
