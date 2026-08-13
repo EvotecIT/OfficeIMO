@@ -221,11 +221,13 @@ internal static partial class PdfSanitizer {
         }
 
         if (actionObject is not PdfDictionary action) return new List<PdfDictionary>();
-        actionBudget.MarkNormalized(action);
         actionBudget.Consume();
         List<PdfDictionary> children = action.Items.TryGetValue("Next", out PdfObject? nextObject)
             ? CollectRetainedActions(objects, nextObject, policy, maximumDepth, depth + 1, new HashSet<(int ObjectNumber, int Generation)>(pathReferences), actionBudget)
             : new List<PdfDictionary>();
+        action.Items.Remove("Next");
+        AttachNextActions(action, children);
+        actionBudget.MarkNormalized(action);
         if (TryGetForbiddenAction(objects, action, policy, out _, out _)) return children;
 
         var clone = new PdfDictionary();

@@ -109,6 +109,9 @@ internal static partial class PdfStamper {
                 int pageNumber = i + 1;
                 if (!selectedSet.Contains(pageNumber)) continue;
                 var size = document.Pages[i].GetPageSize();
+                if (!effectiveOptions.BehindContent) {
+                    IsolateExistingContents(rewrittenObjects, pageObjectNumbers[i], ref nextObjectNumber);
+                }
                 int stampObjectNumber = nextObjectNumber++;
                 rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
                     stampObjectNumber,

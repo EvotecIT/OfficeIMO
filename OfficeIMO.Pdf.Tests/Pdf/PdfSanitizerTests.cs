@@ -271,6 +271,15 @@ public class PdfSanitizerTests {
     }
 
     [Fact]
+    public void Sanitize_FiltersSharedAllowedActionBeforeMarkingItsOriginalGraphNormalized() {
+        PdfSanitizationResult result = PdfSanitizer.Sanitize(BuildSharedAllowedActionBeneathForbiddenRootPdf());
+
+        Assert.Empty(result.RemainingFindings);
+        Assert.Empty(PdfSanitizer.Analyze(result.ToBytes()));
+        Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
+    }
+
+    [Fact]
     public void Sanitize_CountsPromotedRetainedActionSiblingsOnce() {
         byte[] source = BuildForbiddenActionWithRetainedSiblingsPdf(actionCount: 5);
         var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 6 } };
@@ -535,6 +544,20 @@ public class PdfSanitizerTests {
             "7 0 obj", "<< /S /JavaScript /JS (remove) /Next 8 0 R >>", "endobj",
             "8 0 obj", "<< /S /GoTo /D [3 0 R /Fit] >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildSharedAllowedActionBeneathForbiddenRootPdf() {
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /OpenAction 8 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O 7 0 R >> >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "7 0 obj", "<< /S /JavaScript /JS (remove-root) /Next 8 0 R >>", "endobj",
+            "8 0 obj", "<< /S /URI /URI (https://example.test/keep) /Next 9 0 R >>", "endobj",
+            "9 0 obj", "<< /S /JavaScript /JS (remove-child) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 10 >>", "%%EOF"
         }));
     }
 

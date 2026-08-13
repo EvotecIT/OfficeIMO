@@ -14,6 +14,7 @@ internal static class PdfActionPayloadFingerprint {
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, PageNumberLookupCache> PageNumberLookups = new();
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, StreamHashCache> StreamHashes = new();
     private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, StringHashCache> StringHashes = new();
+    private static readonly ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, ReferenceHashCache> ReferenceHashes = new();
 
     internal static string? Create(
         PdfDictionary action,
@@ -28,7 +29,7 @@ internal static class PdfActionPayloadFingerprint {
         IReadOnlyDictionary<int, int> pageNumbers = pageNumberLookup.Value;
         int nodes = 0;
         bool complete = true;
-        AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true);
+        AppendDictionary(builder, action, objects, pageNumbers, activeReferences, depth: 0, ref nodes, ref complete, isActionRoot: true, useReferenceHashes: true);
         return complete ? builder.ToString() : null;
     }
 
@@ -40,7 +41,8 @@ internal static class PdfActionPayloadFingerprint {
         HashSet<(int ObjectNumber, int Generation)> activeReferences,
         int depth,
         ref int nodes,
-        ref bool complete) {
+        ref bool complete,
+        bool useReferenceHashes) {
         nodes++;
         if (depth > MaximumDepth || nodes > MaximumNodes) {
             complete = false;
@@ -65,22 +67,22 @@ internal static class PdfActionPayloadFingerprint {
                 AppendText(builder, 'S', StringHashes.GetValue(objects, static _ => new StringHashCache()).Get(text));
                 return;
             case PdfReference reference:
-                AppendReference(builder, reference, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete);
+                AppendReference(builder, reference, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes);
                 return;
             case PdfArray array:
                 builder.Append('[');
                 for (int i = 0; i < array.Items.Count; i++) {
-                    AppendObject(builder, array.Items[i], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete);
+                    AppendObject(builder, array.Items[i], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes);
                     builder.Append(';');
                 }
                 builder.Append(']');
                 return;
             case PdfDictionary dictionary:
-                AppendDictionary(builder, dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false);
+                AppendDictionary(builder, dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes);
                 return;
             case PdfStream stream:
                 builder.Append("stream:");
-                AppendDictionary(builder, stream.Dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false);
+                AppendDictionary(builder, stream.Dictionary, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, isActionRoot: false, useReferenceHashes);
                 AppendText(builder, 'H', StreamHashes.GetValue(objects, static _ => new StreamHashCache()).Get(stream));
                 return;
             default:
@@ -97,7 +99,8 @@ internal static class PdfActionPayloadFingerprint {
         HashSet<(int ObjectNumber, int Generation)> activeReferences,
         int depth,
         ref int nodes,
-        ref bool complete) {
+        ref bool complete,
+        bool useReferenceHashes) {
         var key = (reference.ObjectNumber, reference.Generation);
         if (!activeReferences.Add(key)) {
             builder.Append("cycle:").Append(reference.ObjectNumber).Append(':').Append(reference.Generation);
@@ -117,7 +120,20 @@ internal static class PdfActionPayloadFingerprint {
                 }
                 return;
             }
-            AppendObject(builder, indirect.Value, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete);
+            if (useReferenceHashes) {
+                ReferenceHashResult result = ReferenceHashes.GetValue(objects, static _ => new ReferenceHashCache()).Get(
+                    reference,
+                    depth + 1,
+                    () => CreateReferenceHash(indirect.Value, objects, pageNumbers, key, depth + 1));
+                nodes = checked(nodes + result.Nodes);
+                if (!result.Complete || nodes > MaximumNodes) {
+                    complete = false;
+                    return;
+                }
+                AppendText(builder, 'R', result.Hash);
+                return;
+            }
+            AppendObject(builder, indirect.Value, objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes: false);
         } finally {
             activeReferences.Remove(key);
         }
@@ -132,17 +148,42 @@ internal static class PdfActionPayloadFingerprint {
         int depth,
         ref int nodes,
         ref bool complete,
-        bool isActionRoot) {
+        bool isActionRoot,
+        bool useReferenceHashes) {
         builder.Append('{');
         foreach (string key in dictionary.Items.Keys.OrderBy(static key => key, StringComparer.Ordinal)) {
             if (isActionRoot &&
                 (string.Equals(key, "S", StringComparison.Ordinal) ||
                  string.Equals(key, "Next", StringComparison.Ordinal))) continue;
             AppendText(builder, 'K', key);
-            AppendObject(builder, dictionary.Items[key], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete);
+            AppendObject(builder, dictionary.Items[key], objects, pageNumbers, activeReferences, depth + 1, ref nodes, ref complete, useReferenceHashes);
             builder.Append(';');
         }
         builder.Append('}');
+    }
+
+    private static ReferenceHashResult CreateReferenceHash(
+        PdfObject value,
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyDictionary<int, int> pageNumbers,
+        (int ObjectNumber, int Generation) rootReference,
+        int depth) {
+        var builder = new StringBuilder();
+        var activeReferences = new HashSet<(int ObjectNumber, int Generation)> { rootReference };
+        int nodes = 0;
+        bool complete = true;
+        AppendObject(builder, value, objects, pageNumbers, activeReferences, depth, ref nodes, ref complete, useReferenceHashes: false);
+        if (!complete) return new ReferenceHashResult(string.Empty, nodes, complete: false);
+        byte[] bytes = Encoding.UTF8.GetBytes(builder.ToString());
+#if NET8_0_OR_GREATER
+        string hash = Convert.ToBase64String(SHA256.HashData(bytes));
+#else
+        string hash;
+        using (SHA256 sha256 = SHA256.Create()) {
+            hash = Convert.ToBase64String(sha256.ComputeHash(bytes));
+        }
+#endif
+        return new ReferenceHashResult(hash, nodes, complete: true);
     }
 
     private static PageNumberLookup BuildPageNumberLookup(Dictionary<int, PdfIndirectObject> objects, PdfReadLimits limits) {
@@ -252,6 +293,30 @@ internal static class PdfActionPayloadFingerprint {
                 _values.Add(text, value);
                 return value;
             }
+        }
+    }
+
+    private readonly struct ReferenceHashResult {
+        internal ReferenceHashResult(string hash, int nodes, bool complete) { Hash = hash; Nodes = nodes; Complete = complete; }
+        internal string Hash { get; }
+        internal int Nodes { get; }
+        internal bool Complete { get; }
+    }
+
+    private sealed class ReferenceHashCache {
+        private readonly Dictionary<(int ObjectNumber, int Generation, int Depth), ReferenceHashResult> _values = new();
+
+        internal ReferenceHashResult Get(PdfReference reference, int depth, Func<ReferenceHashResult> create) {
+            var key = (reference.ObjectNumber, reference.Generation, depth);
+            lock (_values) {
+                if (_values.TryGetValue(key, out ReferenceHashResult value)) return value;
+            }
+            ReferenceHashResult created = create();
+            lock (_values) {
+                if (_values.TryGetValue(key, out ReferenceHashResult value)) return value;
+                _values.Add(key, created);
+            }
+            return created;
         }
     }
 }

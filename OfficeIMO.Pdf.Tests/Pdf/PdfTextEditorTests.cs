@@ -868,6 +868,22 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void ReplaceUsesTokenizedTextObjectsAcrossNamesAndInlineImagePayloads() {
+        byte[] source = BuildRawTextPdf(
+            "BI /W 1 /H 1 /BPC 8 /CS /RGB ID BT EI " +
+            "BT /F1 12 Tf 50 700 Td /ET MP (replace me) Tj ET\n");
+        PdfDocument document = PdfDocument.Open(source);
+        PdfTextMatch match = Assert.Single(document.Text.Find("replace me", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult result = document.Text.Replace(
+            new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
+            "replaced");
+
+        Assert.Empty(result.Document.Text.Find("replace me", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(result.Document.Text.Find("replaced", new PdfTextSearchOptions { MatchCase = true }));
+    }
+
+    [Fact]
     public void TextAddRejectsTaggedCatalogWithoutOwnedStructureAssociation() {
         byte[] raw = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (tagged source) Tj ET\n",

@@ -34,6 +34,27 @@ public class PdfImageEditorTests {
     }
 
     [Fact]
+    public void AddInFrontIsolatesTheExistingPageGraphicsState() {
+        byte[] source = BuildRawImagePdf("2 0 0 2 15 10 cm 0 0 5 5 re W n\n");
+
+        byte[] result = PdfDocument.Open(source).Images.Add(
+            new PdfPageRegion(1, 40D, 40D, 20D, 20D),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document.ToBytes();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result).Map;
+        PdfDictionary page = Assert.IsType<PdfDictionary>(objects[3].Value);
+        PdfArray contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
+        string[] streams = contents.Items
+            .Select(item => Assert.IsType<PdfStream>(PdfObjectLookup.Resolve(objects, item)))
+            .Select(stream => PdfEncoding.Latin1GetString(stream.Data))
+            .ToArray();
+
+        Assert.Equal("q\n", streams[0]);
+        Assert.Contains("2 0 0 2 15 10 cm", streams[1], StringComparison.Ordinal);
+        Assert.Equal("\nQ\n", streams[2]);
+        Assert.Contains(" Do", streams[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReplacePreservesPortableGeometryAndUsesReplacementPixels() {
         byte[] source = PdfStamper.StampImage(
             CreateTextPdf(),

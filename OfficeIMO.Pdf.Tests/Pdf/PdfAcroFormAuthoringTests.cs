@@ -565,6 +565,30 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Edit_PreflightsExistingNonJavaScriptActionsAgainstFinalWidgetActionCount() {
+        const string script = "app.alert('count');";
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Action count")).ToBytes();
+        byte[] scripted = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "existing",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            JavaScript = script
+        })).ToBytes();
+        byte[] nonJavaScript = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(scripted)
+            .Replace("/S /JavaScript /JS", "/S /URI /URI", StringComparison.Ordinal));
+        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(nonJavaScript, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "planned",
+                Kind = PdfFormFieldCreationKind.PushButton,
+                JavaScript = script
+            })));
+
+        Assert.Equal(PdfReadLimitKind.WidgetActions, exception.Kind);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
     public void ChoiceCreation_PreservesEmptyOptionsAndHonorsLegacyRawFlags() {
         const int comboFlag = 131072;
         const int editFlag = 262144;

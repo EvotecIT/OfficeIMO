@@ -3,6 +3,25 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
+    private static void IsolateExistingContents(
+        Dictionary<int, PdfIndirectObject> objects,
+        int pageObjectNumber,
+        ref int nextObjectNumber) {
+        if (!objects.TryGetValue(pageObjectNumber, out PdfIndirectObject? indirect) ||
+            indirect.Value is not PdfDictionary pageDictionary ||
+            !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) return;
+
+        var isolated = new PdfArray();
+        int saveStateObjectNumber = nextObjectNumber++;
+        int restoreStateObjectNumber = nextObjectNumber++;
+        objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
+        objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
+        isolated.Items.Add(new PdfReference(saveStateObjectNumber, 0));
+        AppendContentEntries(objects, isolated, contentsObject);
+        isolated.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
+        pageDictionary.Items["Contents"] = isolated;
+    }
+
     private static Dictionary<string, PdfObject> BuildPageOverrides(
         Dictionary<int, PdfIndirectObject> objects,
         int pageObjectNumber,

@@ -296,6 +296,23 @@ public class PdfRewritePreservationTests {
     }
 
     [Fact]
+    public void ActionPayloadFingerprintHashesSharedIndirectContainerPayloads() {
+        var shared = new PdfArray();
+        for (int index = 0; index < 4000; index++) shared.Items.Add(new PdfNumber(index));
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [7] = new PdfIndirectObject(7, 0, shared)
+        };
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("SubmitForm");
+        action.Items["Fields"] = new PdfReference(7, 0);
+
+        string fingerprint = Assert.IsType<string>(PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+
+        Assert.InRange(fingerprint.Length, 1, 256);
+        Assert.Equal(fingerprint, PdfActionPayloadFingerprint.Create(action, objects, new PdfReadLimits()));
+    }
+
+    [Fact]
     public void Assess_PreservesOnlyPubliclySelectedWidgetActionTypes() {
         byte[] source = BuildWidgetActionPreservationPdf("alpha");
         byte[] rewritten = BuildWidgetActionPreservationPdf("bravo");

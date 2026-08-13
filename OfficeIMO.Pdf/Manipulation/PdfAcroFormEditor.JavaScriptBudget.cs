@@ -5,20 +5,34 @@ internal static partial class PdfAcroFormEditor {
         PdfReadDocument source,
         IReadOnlyList<PdfAcroFormEditSession.EditCommand> commands) {
         var contributions = new Dictionary<string, WidgetJavaScriptContribution>(StringComparer.Ordinal);
-        foreach (PdfFormField field in source.UncheckedFormFields) {
-            if (string.IsNullOrEmpty(field.Name)) continue;
+        for (int fieldIndex = 0; fieldIndex < source.UncheckedFormFields.Count; fieldIndex++) {
+            PdfFormField field = source.UncheckedFormFields[fieldIndex];
             int count = 0;
             long bytes = 0L;
+            int totalCount = 0;
             for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
                 IReadOnlyList<PdfFormWidgetAction> actions = field.Widgets[widgetIndex].Actions;
                 for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
                     PdfFormWidgetAction action = actions[actionIndex];
+                    totalCount = checked(totalCount + 1);
                     if (!action.IsJavaScript) continue;
                     count = checked(count + 1);
                     bytes = checked(bytes + action.JavaScriptSourceBytes);
                 }
             }
-            if (count > 0) contributions[field.Name!] = new WidgetJavaScriptContribution(count, bytes);
+            if (totalCount > 0) {
+                string key = string.IsNullOrEmpty(field.Name)
+                    ? "\0" + fieldIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : field.Name!;
+                WidgetJavaScriptContribution contribution = new WidgetJavaScriptContribution(count, bytes, totalCount);
+                if (contributions.TryGetValue(key, out WidgetJavaScriptContribution existing)) {
+                    contribution = new WidgetJavaScriptContribution(
+                        checked(existing.Count + contribution.Count),
+                        checked(existing.Bytes + contribution.Bytes),
+                        checked(existing.TotalCount + contribution.TotalCount));
+                }
+                contributions[key] = contribution;
+            }
         }
 
         ValidateWidgetJavaScriptBudget(contributions, source.ReadOptions.Limits);
@@ -32,7 +46,8 @@ internal static partial class PdfAcroFormEditor {
                             : 1;
                         contributions[command.Options.Name] = new WidgetJavaScriptContribution(
                             count,
-                            checked(command.EncodedJavaScript.LongLength * count));
+                            checked(command.EncodedJavaScript.LongLength * count),
+                            count);
                     }
                     break;
                 case PdfAcroFormEditSession.EditKind.Remove:
@@ -51,15 +66,20 @@ internal static partial class PdfAcroFormEditor {
         PdfReadLimits limits) {
         int count = 0;
         long bytes = 0L;
+        int totalCount = 0;
         foreach (WidgetJavaScriptContribution contribution in contributions.Values) {
             count = checked(count + contribution.Count);
             bytes = checked(bytes + contribution.Bytes);
+            totalCount = checked(totalCount + contribution.TotalCount);
         }
         if (count > limits.MaxJavaScripts) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, limits.MaxJavaScripts, count);
         }
         if (bytes > limits.MaxTotalJavaScriptBytes) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, limits.MaxTotalJavaScriptBytes, bytes);
+        }
+        if (totalCount > limits.MaxWidgetActions) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.WidgetActions, limits.MaxWidgetActions, totalCount);
         }
     }
 
@@ -88,8 +108,9 @@ internal static partial class PdfAcroFormEditor {
     }
 
     private readonly struct WidgetJavaScriptContribution {
-        internal WidgetJavaScriptContribution(int count, long bytes) { Count = count; Bytes = bytes; }
+        internal WidgetJavaScriptContribution(int count, long bytes, int totalCount) { Count = count; Bytes = bytes; TotalCount = totalCount; }
         internal int Count { get; }
         internal long Bytes { get; }
+        internal int TotalCount { get; }
     }
 }

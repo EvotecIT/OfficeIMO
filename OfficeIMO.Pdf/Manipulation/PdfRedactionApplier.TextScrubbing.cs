@@ -286,7 +286,7 @@ internal static partial class PdfRedactionApplier {
             return Array.Empty<TextObjectSpan>();
         }
 
-        return EnumerateTextObjectSpans(content)
+        return EnumerateTextObjectSpans(content, limits)
             .Where(span => removeByIndex.Contains(span.Index))
             .ToArray();
     }
@@ -299,7 +299,7 @@ internal static partial class PdfRedactionApplier {
         PdfReadLimits limits) {
         var textObjects = new List<RedactionTextObject>();
         Dictionary<int, Matrix2D> localTransforms = CollectTextObjectTransforms(content, graphicsState, limits);
-        foreach (TextObjectSpan span in EnumerateTextObjectSpans(content)) {
+        foreach (TextObjectSpan span in EnumerateTextObjectSpans(content, limits)) {
             string shownText = NormalizeText(ExtractTextFromTextObject(span.Value, fontDecoders));
             Matrix2D localTransform = localTransforms.TryGetValue(span.Index, out Matrix2D resolved)
                 ? resolved
@@ -394,30 +394,26 @@ internal static partial class PdfRedactionApplier {
         return builder.ToString();
     }
 
-    private static IEnumerable<TextObjectSpan> EnumerateTextObjectSpans(string content) {
+    private static List<TextObjectSpan> EnumerateTextObjectSpans(string content, PdfReadLimits limits) {
+        var spans = new List<TextObjectSpan>();
         int start = -1;
-        for (int i = 0; i < content.Length;) {
-            if (TrySkipPdfStringOrComment(content, i, out int nextIndex)) {
-                i = nextIndex;
-                continue;
-            }
-
-            if (start < 0 && IsPdfOperatorAt(content, i, "BT")) {
-                start = i;
-                i += 2;
-                continue;
-            }
-
-            if (start >= 0 && IsPdfOperatorAt(content, i, "ET")) {
-                int end = i + 2;
-                yield return new TextObjectSpan(start, end - start, content.Substring(start, end - start));
-                start = -1;
-                i = end;
-                continue;
-            }
-
-            i++;
-        }
+        PdfContentStreamInterpreter.Interpret(
+            content,
+            limits.MaxContentOperations,
+            operation => {
+                if (start < 0 && string.Equals(operation.Name, "BT", StringComparison.Ordinal)) {
+                    start = operation.OperatorOffset;
+                    return;
+                }
+                if (start >= 0 && string.Equals(operation.Name, "ET", StringComparison.Ordinal)) {
+                    int end = operation.OperatorOffset + 2;
+                    spans.Add(new TextObjectSpan(start, end - start, content.Substring(start, end - start)));
+                    start = -1;
+                }
+            },
+            maxNestingDepth: limits.MaxContentNestingDepth,
+            maxOperands: limits.MaxContentOperands);
+        return spans;
     }
 
     private static bool TrySkipPdfStringOrComment(string content, int index, out int nextIndex) {
