@@ -159,6 +159,19 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_ExpandsPreformattedTabsUsingAuthoredTabStops() {
+        const string compact = "<pre style='width:120px;margin:0;font:12px/14px Consolas;tab-size:2'><span style='float:left;width:20px;height:14px'></span>A\tB</pre>";
+        const string wide = "<pre style='width:120px;margin:0;font:12px/14px Consolas;tab-size:8'><span style='float:left;width:20px;height:14px'></span>A\tB</pre>";
+
+        HtmlRenderText[] compactText = HtmlRenderTestDriver.Render(compact).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] wideText = HtmlRenderTestDriver.Render(wide).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.DoesNotContain('\t', string.Concat(compactText.Select(text => text.Text)));
+        Assert.DoesNotContain('\t', string.Concat(wideText.Select(text => text.Text)));
+        Assert.True(Assert.Single(wideText, text => text.Text == "B").X > Assert.Single(compactText, text => text.Text == "B").X);
+    }
+
+    [Fact]
     public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
         var options = new HtmlRenderOptions {
             ViewportWidth = 100D,

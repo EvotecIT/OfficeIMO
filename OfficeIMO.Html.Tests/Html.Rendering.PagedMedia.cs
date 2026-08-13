@@ -164,6 +164,18 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal((12D, 12D, 12D, 12D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
     }
 
+    [Theory]
+    [InlineData("1px initial")]
+    [InlineData("unset 2px")]
+    [InlineData("1px revert-layer")]
+    public void HtmlPagedMedia_RejectsMixedCssWideMarginShorthandsAtomically(string margin) {
+        string html = "<style>@page{size:200px 100px;margin:12px}@page{margin:" + margin + "}</style><p>Body</p>";
+
+        HtmlRenderPage page = Assert.Single(HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged }).Pages);
+
+        Assert.Equal((12D, 12D, 12D, 12D), (page.Margins.Left, page.Margins.Top, page.Margins.Right, page.Margins.Bottom));
+    }
+
     [Fact]
     public void HtmlPagedMedia_RevertLayerMarginsRevealThePreviousPageLayer() {
         const string html = "<style>@layer base,theme;@layer base{@page{size:200px 100px;margin:10px}}@layer theme{@page{margin:20px}@page{margin:revert-layer}}</style><p>Body</p>";

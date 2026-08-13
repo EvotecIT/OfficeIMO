@@ -460,6 +460,24 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal("First", resolved);
     }
 
+    [Theory]
+    [InlineData("0")]
+    [InlineData("false")]
+    [InlineData("off")]
+    public void ButtonValueResolver_PrioritizesExactAppearanceStatesOverOffAliases(string state) {
+        PdfDictionary field = BuildButtonFieldWithStates(state);
+
+        string resolved = PdfButtonFieldValueResolver.Resolve(
+            new Dictionary<int, PdfIndirectObject>(),
+            field,
+            inheritedOptions: null,
+            new[] { state },
+            isRadioButtonGroup: false,
+            state);
+
+        Assert.Equal(state, resolved);
+    }
+
     [Fact]
     public void ButtonValueResolver_RejectsDuplicateExportValues() {
         PdfDictionary field = BuildButtonFieldWithStates("First", "Second");

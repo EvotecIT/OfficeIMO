@@ -169,9 +169,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previousWasCollapsibleSpace = false;
                 }
 
-                HyphenationToken hyphenation = PrepareHyphenationToken(normalizedToken, normalizedToken, run.Style);
+                bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
+                double tabExpandedWidth = 0D;
+                string expandedToken = hasTabs
+                    ? ExpandTabs(normalizedToken, run.Style, line.Width, out tabExpandedWidth)
+                    : normalizedToken;
+                HyphenationToken hyphenation = PrepareHyphenationToken(expandedToken, normalizedToken, run.Style);
                 string paintToken = hyphenation.PaintText;
-                double measured = MeasureInlineText(paintToken, run.Style);
+                double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
                 if (!preventTokenWrapping
                     && !whitespace

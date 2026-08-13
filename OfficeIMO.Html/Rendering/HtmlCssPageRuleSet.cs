@@ -142,6 +142,10 @@ internal sealed class HtmlCssPageRuleSet {
             sides = Array.Empty<string>();
             return false;
         }
+        if (parts.Count > 1 && parts.Any(IsCssWidePageMarginKeyword)) {
+            sides = Array.Empty<string>();
+            return false;
+        }
         for (int index = 0; index < parts.Count; index++) {
             if (!IsValidPageMarginComponent(parts[index])) {
                 sides = Array.Empty<string>();
@@ -155,6 +159,11 @@ internal sealed class HtmlCssPageRuleSet {
         sides = new[] { top, right, bottom, left };
         return true;
     }
+
+    private static bool IsCssWidePageMarginKeyword(string value) =>
+        string.Equals(value, "initial", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "revert-layer", StringComparison.OrdinalIgnoreCase);
 
     private static void ApplySide(HtmlCssPageCascadeValue value, double width, double height, double fontSize, ref double target) {
         value = ResolveLayerRevert(value);

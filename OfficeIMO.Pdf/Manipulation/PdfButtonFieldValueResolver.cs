@@ -12,8 +12,8 @@ internal static class PdfButtonFieldValueResolver {
         if (TryResolveExportAppearanceState(objects, field, inheritedOptions, availableStates, isRadioButtonGroup, value, out string? appearanceState)) {
             return appearanceState!;
         }
-        if (IsOffValue(value)) return "Off";
         if (availableStates.Contains(value, StringComparer.Ordinal)) return value;
+        if (IsOffValue(value)) return "Off";
         if (!isRadioButtonGroup && IsTruthyValue(value)) {
             if (availableStates.Count == 0) return "Yes";
             if (availableStates.Count == 1) return availableStates.Single();
