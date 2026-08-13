@@ -383,7 +383,7 @@ public sealed partial class PdfReadPage {
 
         if (!imageDictionary.Items.TryGetValue("Mask", out PdfObject? maskObject)) return true;
         PdfObject? mask = ResolveEffectObject(maskObject);
-        if (mask is PdfNull or PdfName { Name: "None" }) return true;
+        if (mask is PdfNull) return true;
         return mask is PdfArray maskArray && HasValidType3ColorKeyMask(imageDictionary, maskArray, resources);
     }
 
@@ -393,7 +393,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         bool parentInterpolate) {
         PdfDictionary mask = softMask.Dictionary;
-        if (!HasValidType3ImageInterpolation(mask) ||
+        if (ResolveEffectObject(mask.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Image" } ||
+            !HasValidType3ImageInterpolation(mask) ||
             ResolveType3ImageInterpolation(mask) != parentInterpolate ||
             !HasValidType3ImageDimensions(mask, isImageMask: false) ||
             !TryReadExactPositiveInteger(parent, "Width", out int parentWidth) ||

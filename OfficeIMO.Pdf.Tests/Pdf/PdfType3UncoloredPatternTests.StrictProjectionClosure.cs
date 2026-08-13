@@ -151,6 +151,24 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void ExactRectangleClipIntersectionDoesNotUseNearParallelEndpointFallback() {
+        OfficePathCommand[] subjectCommands = {
+            OfficePathCommand.MoveTo(-0.0000005D, 0D),
+            OfficePathCommand.LineTo(0.0000005D, 10D),
+            OfficePathCommand.LineTo(5D, 5D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(subjectCommands, OfficeFillRule.NonZero, out PdfPageClipPath subject));
+        PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, 0D, 10D, 10D);
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(subject, rectangle);
+
+        Assert.True(intersection.IsExact);
+        Assert.Contains(intersection.Commands, command =>
+            command.Kind != OfficePathCommandKind.Close && command.Point.X == 0D && command.Point.Y == 5D);
+    }
+
+    [Fact]
     public void VisualParser_RejectsAxialShadingCollapsedByRendererTolerance() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0.05D, 0D,

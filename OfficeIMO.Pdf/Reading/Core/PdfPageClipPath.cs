@@ -540,13 +540,13 @@ internal readonly partial struct PdfPageClipPath {
 
     private static OfficePoint IntersectVertical(OfficePoint from, OfficePoint to, double x) {
         double denominator = to.X - from.X;
-        double t = Math.Abs(denominator) <= 0.000001D ? 0D : (x - from.X) / denominator;
+        double t = denominator == 0D ? 0D : (x - from.X) / denominator;
         return new OfficePoint(x, from.Y + ((to.Y - from.Y) * t));
     }
 
     private static OfficePoint IntersectHorizontal(OfficePoint from, OfficePoint to, double y) {
         double denominator = to.Y - from.Y;
-        double t = Math.Abs(denominator) <= 0.000001D ? 0D : (y - from.Y) / denominator;
+        double t = denominator == 0D ? 0D : (y - from.Y) / denominator;
         return new OfficePoint(from.X + ((to.X - from.X) * t), y);
     }
 
