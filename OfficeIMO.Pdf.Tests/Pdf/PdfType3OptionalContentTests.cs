@@ -114,6 +114,22 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_EvaluatesChainedIndirectVisibilityExpressionBeforeMembershipPolicy() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE 12 0 R >>",
+            indirectVisibilityExpression: "13 0 R",
+            secondaryVisibilityExpression: "[/Not 11 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_AllowsRepeatedIndirectVisibilitySubexpressionAcrossSiblings() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,

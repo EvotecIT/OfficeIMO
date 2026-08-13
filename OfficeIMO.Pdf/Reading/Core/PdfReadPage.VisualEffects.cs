@@ -331,6 +331,7 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             retainPrimitiveData: false,
             unsupportedShadingTransformVisitor: () => supported = false,
+            unsupportedOperatorVisitor: _ => supported = false,
             requireExactType3ShadingProjection: true,
             authoredShadingInvocationVisitor: name => {
                 if (!shadings.TryGetValue(name, out PdfPageShadingResource shading) ||

@@ -76,7 +76,6 @@ internal sealed class PdfPageOptionalContentVisibility {
                     SkipInlineWhitespace(expression, ref index);
                     if (index == expression.Length &&
                         _objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) &&
-                        indirect.Value is PdfArray &&
                         TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), out expressionVisible)) {
                         return !expressionVisible;
                     }
