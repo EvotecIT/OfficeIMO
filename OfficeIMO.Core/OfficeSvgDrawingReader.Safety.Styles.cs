@@ -75,13 +75,14 @@ public static partial class OfficeSvgDrawingReader {
         double viewY,
         SvgRasterWorkBudget rasterWork) {
         if (!rasterWork.TryChargeFilterDefinition(target)) return false;
-        ResolveRenderedSvgAncestorPaint(
+        if (!TryResolveRenderedSvgAncestorPaint(
             target,
             out string? fill,
             out string? stroke,
             out string? markerStart,
             out string? markerMid,
-            out string? markerEnd);
+            out string? markerEnd,
+            out SvgRasterStrokeStyle strokeStyle)) return false;
         return TryAddRenderedSvgExpansion(
             target,
             references,
@@ -96,17 +97,20 @@ public static partial class OfficeSvgDrawingReader {
             stroke,
             markerStart,
             markerMid,
-            markerEnd);
+            markerEnd,
+            strokeStyle);
     }
 
-    private static void ResolveRenderedSvgAncestorPaint(
+    private static bool TryResolveRenderedSvgAncestorPaint(
         XElement target,
         out string? fill,
         out string? stroke,
         out string? markerStart,
         out string? markerMid,
-        out string? markerEnd) {
+        out string? markerEnd,
+        out SvgRasterStrokeStyle strokeStyle) {
         fill = stroke = markerStart = markerMid = markerEnd = null;
+        if (!TryResolveRenderedSvgAncestorStrokeStyle(target, out strokeStyle)) return false;
         foreach (XElement ancestor in target.Ancestors().Reverse()) {
             fill = ResolveInheritedSvgPaint(ancestor, "fill", fill);
             stroke = ResolveInheritedSvgPaint(ancestor, "stroke", stroke);
@@ -115,5 +119,17 @@ public static partial class OfficeSvgDrawingReader {
             markerMid = ResolveInheritedSvgPaint(ancestor, "marker-mid", marker ?? markerMid);
             markerEnd = ResolveInheritedSvgPaint(ancestor, "marker-end", marker ?? markerEnd);
         }
+        return true;
+    }
+
+    private static bool TryResolveRenderedSvgAncestorStrokeStyle(
+        XElement target,
+        out SvgRasterStrokeStyle strokeStyle) {
+        strokeStyle = SvgRasterStrokeStyle.Default;
+        foreach (XElement ancestor in target.Ancestors().Reverse()) {
+            if (!TryResolveRasterStrokeStyle(ancestor, strokeStyle, out SvgRasterStrokeStyle resolved)) return false;
+            strokeStyle = resolved;
+        }
+        return true;
     }
 }

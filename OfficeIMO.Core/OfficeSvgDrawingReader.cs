@@ -312,6 +312,7 @@ public static partial class OfficeSvgDrawingReader {
         var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
         string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
         string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
+        if (!TryResolveRasterStrokeStyle(root, SvgRasterStrokeStyle.Default, out SvgRasterStrokeStyle strokeStyle)) return true;
         string? marker = ResolveInheritedSvgPaint(root, "marker", inherited: null);
         string? markerStart = ResolveInheritedSvgPaint(root, "marker-start", marker);
         string? markerMid = ResolveInheritedSvgPaint(root, "marker-mid", marker);
@@ -343,7 +344,8 @@ public static partial class OfficeSvgDrawingReader {
                     stroke,
                     markerStart,
                     markerMid,
-                    markerEnd)) return true;
+                    markerEnd,
+                    strokeStyle)) return true;
         }
         return false;
     }
@@ -390,7 +392,8 @@ public static partial class OfficeSvgDrawingReader {
         string? inheritedStroke = null,
         string? inheritedMarkerStart = null,
         string? inheritedMarkerMid = null,
-        string? inheritedMarkerEnd = null) {
+        string? inheritedMarkerEnd = null,
+        SvgRasterStrokeStyle inheritedStrokeStyle = default) {
         elementCount++;
         if (elementCount > maximumElements) return false;
 
@@ -408,8 +411,14 @@ public static partial class OfficeSvgDrawingReader {
             if (!IsSupportedSvgTransform(transform)) return false;
         }
 
+        if (name == "svg"
+            && !TryResolveNestedRasterViewportTransform(element, transform, out transform)) return false;
+
         if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
-        if (!rasterWork.TryChargeRenderedElement(element, transform)) return false;
+        string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
+        string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
+        if (!TryResolveRasterStrokeStyle(element, inheritedStrokeStyle, out SvgRasterStrokeStyle strokeStyle)
+            || !rasterWork.TryChargeRenderedElement(element, transform, stroke, strokeStyle)) return false;
         if (name == "textpath"
             && !TryAddRenderedSvgElementReference(
                 element,
@@ -423,8 +432,6 @@ public static partial class OfficeSvgDrawingReader {
                 viewY,
                 rasterWork)) return false;
 
-        string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
-        string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
         string? marker = ResolveInheritedSvgPaint(element, "marker", inherited: null);
         string? markerStart = ResolveInheritedSvgPaint(element, "marker-start", marker ?? inheritedMarkerStart);
         string? markerMid = ResolveInheritedSvgPaint(element, "marker-mid", marker ?? inheritedMarkerMid);
@@ -531,7 +538,8 @@ public static partial class OfficeSvgDrawingReader {
                     stroke,
                     markerStart,
                     markerMid,
-                    markerEnd);
+                    markerEnd,
+                    strokeStyle);
             } finally {
                 references.Exit(referenceId);
             }
@@ -580,7 +588,8 @@ public static partial class OfficeSvgDrawingReader {
                     stroke,
                     markerStart,
                     markerMid,
-                    markerEnd)) return false;
+                    markerEnd,
+                    strokeStyle)) return false;
         }
         return true;
     }

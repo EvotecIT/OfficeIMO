@@ -84,6 +84,48 @@ public static partial class OfficeSvgDrawingReader {
         return IsSupportedSvgTransform(targetTransform);
     }
 
+    private static bool TryResolveNestedRasterViewportTransform(
+        XElement element,
+        OfficeTransform inherited,
+        out OfficeTransform transform) {
+        transform = inherited;
+        if (!TryReadRasterLength(element, "x", 0D, out double x)
+            || !TryReadRasterLength(element, "y", 0D, out double y)) return false;
+
+        string? viewBoxText = ReadRasterProjectedAttribute(element, "viewBox");
+        if (string.IsNullOrWhiteSpace(viewBoxText)) {
+            transform = OfficeTransform.Translate(x, y).Then(inherited);
+            return IsSupportedSvgTransform(transform);
+        }
+        if (!TryParseNumberList(viewBoxText, out IReadOnlyList<double> viewBox)
+            || viewBox.Count != 4
+            || viewBox[2] <= 0D
+            || viewBox[3] <= 0D
+            || !TryReadRequiredRasterLength(element, "width", out double width)
+            || !TryReadRequiredRasterLength(element, "height", out double height)
+            || width <= 0D
+            || height <= 0D
+            || !TryParsePreserveAspectRatio(
+                ReadRasterProjectedAttribute(element, "preserveAspectRatio"),
+                out SvgAspectAlignment alignment,
+                out bool slice)) return false;
+
+        transform = OfficeTransform.Translate(-viewBox[0], -viewBox[1])
+            .Then(ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice))
+            .Then(OfficeTransform.Translate(x, y))
+            .Then(inherited);
+        return IsSupportedSvgTransform(transform);
+    }
+
+    private static bool TryReadRequiredRasterLength(XElement element, string name, out double value) {
+        value = 0D;
+        string? text = ReadRasterProjectedAttribute(element, name);
+        return !string.IsNullOrWhiteSpace(text)
+            && OfficeImageReader.TryParseSvgLength(text, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value);
+    }
+
     private static bool TryReadRasterUseOrTargetLength(
         XElement use,
         XElement target,
@@ -106,7 +148,7 @@ public static partial class OfficeSvgDrawingReader {
             value = fallback;
             return true;
         }
-        return OfficeImageReader.TryParseSvgLength(text, out value)
+        return (TrySvgLength(text, out value) || OfficeImageReader.TryParseSvgLength(text, out value))
             && !double.IsNaN(value)
             && !double.IsInfinity(value);
     }

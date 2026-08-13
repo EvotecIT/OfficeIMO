@@ -577,6 +577,40 @@ public class DrawingSvgReaderSecurityTests {
         Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
     }
 
+    [Theory]
+    [InlineData("stroke-width='20000'")]
+    [InlineData("stroke-width='1' stroke-linejoin='miter' stroke-miterlimit='20000'")]
+    public void SvgSafetyPredicateChargesInheritedStrokeExtents(string strokeAttributes) {
+        Assert.True(IsSafe(257, strokeAttributes: null));
+        Assert.False(IsSafe(257, strokeAttributes));
+
+        static bool IsSafe(int strokes, string? strokeAttributes) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'><g");
+            if (strokeAttributes != null) svg.Append(" stroke='black' ").Append(strokeAttributes);
+            svg.Append(">");
+            for (int index = 0; index < strokes; index++) svg.Append("<rect x='10000' width='1' height='1'/>");
+            svg.Append("</g></svg>");
+            return OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString()));
+        }
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesNestedSvgViewportTransforms() {
+        Assert.True(IsSafe(1, "x='0' y='0' width='1024' height='1024' viewBox='100 0 1 1'", "x='100'"));
+        Assert.False(IsSafe(4097, "x='0' y='0' width='1024' height='1024' viewBox='100 0 1 1'", "x='100'"));
+        Assert.False(IsSafe(4097, "x='10000' y='0'", "x='-10000'"));
+
+        static bool IsSafe(int viewports, string viewportAttributes, string rectangleAttributes) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='4096' height='4096'>");
+            for (int index = 0; index < viewports; index++) {
+                svg.Append("<svg ").Append(viewportAttributes).Append("><rect ")
+                    .Append(rectangleAttributes).Append(" width='1' height='1'/></svg>");
+            }
+            svg.Append("</svg>");
+            return OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString()));
+        }
+    }
+
     private static string CreateEmbeddedImageSvg(byte[] png) =>
         "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><image width='1' height='1' href='data:image/png;base64,"
         + Convert.ToBase64String(png)

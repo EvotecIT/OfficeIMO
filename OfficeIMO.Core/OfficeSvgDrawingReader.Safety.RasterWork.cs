@@ -36,7 +36,11 @@ public static partial class OfficeSvgDrawingReader {
             _remainingWork = _viewportPixels * MaximumViewportRepaints;
         }
 
-        internal bool TryChargeRenderedElement(XElement element, OfficeTransform transform) {
+        internal bool TryChargeRenderedElement(
+            XElement element,
+            OfficeTransform transform,
+            string? stroke,
+            SvgRasterStrokeStyle strokeStyle) {
             string name = element.Name.LocalName.ToLowerInvariant();
             if (name is "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or
                 "clippath" or "filter" or "marker" or "style" or "use" or "defs" or "title" or
@@ -46,6 +50,18 @@ public static partial class OfficeSvgDrawingReader {
                 return TryCharge(_viewportPixels);
             }
             if (width < 0D || height < 0D) return false;
+
+            if (!string.IsNullOrWhiteSpace(stroke)
+                && !stroke!.Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                if (strokeStyle.NonScaling) return TryCharge(_viewportPixels);
+                double strokeExtent = strokeStyle.Width * 0.5D;
+                if (strokeStyle.MiterJoin) strokeExtent *= strokeStyle.MiterLimit;
+                if (double.IsNaN(strokeExtent) || double.IsInfinity(strokeExtent) || strokeExtent < 0D) return false;
+                x -= strokeExtent;
+                y -= strokeExtent;
+                width += strokeExtent * 2D;
+                height += strokeExtent * 2D;
+            }
 
             (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x, y, width, height);
             left = Math.Max(left, _viewLeft);
@@ -278,5 +294,98 @@ public static partial class OfficeSvgDrawingReader {
             height = maxY - minY;
             return !(double.IsNaN(width) || double.IsInfinity(width) || double.IsNaN(height) || double.IsInfinity(height));
         }
+    }
+
+    private readonly struct SvgRasterStrokeStyle {
+        internal SvgRasterStrokeStyle(double width, double miterLimit, bool miterJoin, bool nonScaling) {
+            Width = width;
+            MiterLimit = miterLimit;
+            MiterJoin = miterJoin;
+            NonScaling = nonScaling;
+            IsInitialized = true;
+        }
+
+        internal double Width { get; }
+        internal double MiterLimit { get; }
+        internal bool MiterJoin { get; }
+        internal bool NonScaling { get; }
+        internal bool IsInitialized { get; }
+
+        internal static SvgRasterStrokeStyle Default => new SvgRasterStrokeStyle(1D, 4D, miterJoin: true, nonScaling: false);
+    }
+
+    private static bool TryResolveRasterStrokeStyle(
+        XElement element,
+        SvgRasterStrokeStyle inherited,
+        out SvgRasterStrokeStyle style) {
+        if (!inherited.IsInitialized) inherited = SvgRasterStrokeStyle.Default;
+        if (!TryResolveRasterStrokeLength(element, "stroke-width", inherited.Width, minimum: 0D, out double width)
+            || !TryResolveRasterStrokeNumber(element, "stroke-miterlimit", inherited.MiterLimit, minimum: 1D, out double miterLimit)) {
+            style = default;
+            return false;
+        }
+
+        bool miterJoin = inherited.MiterJoin;
+        string? lineJoin = ReadRasterPresentationProperty(element, "stroke-linejoin");
+        if (!string.IsNullOrWhiteSpace(lineJoin) && !lineJoin!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            string normalized = lineJoin.Trim();
+            if (normalized.Equals("miter", StringComparison.OrdinalIgnoreCase)) miterJoin = true;
+            else if (normalized.Equals("round", StringComparison.OrdinalIgnoreCase)
+                     || normalized.Equals("bevel", StringComparison.OrdinalIgnoreCase)) miterJoin = false;
+            else {
+                style = default;
+                return false;
+            }
+        }
+
+        bool nonScaling = false;
+        string? vectorEffect = ReadRasterPresentationProperty(element, "vector-effect");
+        if (!string.IsNullOrWhiteSpace(vectorEffect)) {
+            string normalized = vectorEffect!.Trim();
+            if (normalized.Equals("non-scaling-stroke", StringComparison.OrdinalIgnoreCase)) nonScaling = true;
+            else if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) nonScaling = inherited.NonScaling;
+            else if (!normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) {
+                style = default;
+                return false;
+            }
+        }
+
+        style = new SvgRasterStrokeStyle(width, miterLimit, miterJoin, nonScaling);
+        return true;
+    }
+
+    private static bool TryResolveRasterStrokeLength(
+        XElement element,
+        string propertyName,
+        double inherited,
+        double minimum,
+        out double value) {
+        string? text = ReadRasterPresentationProperty(element, propertyName);
+        if (string.IsNullOrWhiteSpace(text) || text!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            value = inherited;
+            return true;
+        }
+        return (OfficeImageReader.TryParseSvgLength(text, out value) || TrySvgLength(text, out value))
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value)
+            && value >= minimum;
+    }
+
+    private static bool TryResolveRasterStrokeNumber(
+        XElement element,
+        string propertyName,
+        double inherited,
+        double minimum,
+        out double value) {
+        string? text = ReadRasterPresentationProperty(element, propertyName);
+        if (string.IsNullOrWhiteSpace(text) || text!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase)) {
+            value = inherited;
+            return true;
+        }
+        return double.TryParse(text, System.Globalization.NumberStyles.Float,
+                   System.Globalization.CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value)
+            && !double.IsInfinity(value)
+            && value >= minimum;
     }
 }

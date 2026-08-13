@@ -27,7 +27,8 @@ public static partial class OfficeSvgDrawingReader {
             if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
             if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
             try {
-                if (!TryAddRenderedSvgExpansion(
+                if (!TryResolveRenderedSvgAncestorStrokeStyle(target!, out SvgRasterStrokeStyle strokeStyle)
+                    || !TryAddRenderedSvgExpansion(
                         target!,
                         references,
                         maximumElements,
@@ -36,7 +37,8 @@ public static partial class OfficeSvgDrawingReader {
                         transform,
                         viewX,
                         viewY,
-                        rasterWork)) return false;
+                        rasterWork,
+                        inheritedStrokeStyle: strokeStyle)) return false;
             } finally {
                 references.Exit(referenceId);
             }
