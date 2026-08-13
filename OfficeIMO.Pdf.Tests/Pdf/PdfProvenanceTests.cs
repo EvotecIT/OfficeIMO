@@ -662,6 +662,42 @@ public sealed class PdfProvenanceTests {
             PdfObjectLookup.Resolve(parsed.Map, annotationsValue) is PdfArray annotations && annotations.Items.Count != 0);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RemovalPreservesMalformedPopupTargetsThatAreNotLinkedPopups(bool directPopupTarget) {
+        byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
+        int pageNumber = 0;
+        byte[] malformedPopup = PdfDocumentObjectGraphRewriter.Rewrite(pdf, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(objects[security.RootObjectNumber!.Value].Value);
+            PdfArray catalogAssociations = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
+            PdfReference candidate = FindFileSpecReference(objects, catalogAssociations, "content-credential.c2pa");
+            PdfIndirectObject pageObject = objects.Values.First(item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page");
+            pageNumber = pageObject.ObjectNumber;
+            PdfDictionary page = Assert.IsType<PdfDictionary>(pageObject.Value);
+            page.Items["Wave19Sentinel"] = new PdfStringObj("keep");
+            int attachmentNumber = objects.Keys.Max() + 1;
+            var attachment = new PdfDictionary();
+            attachment.Items["Type"] = new PdfName("Annot");
+            attachment.Items["Subtype"] = new PdfName("FileAttachment");
+            attachment.Items["FS"] = candidate;
+            attachment.Items["Popup"] = directPopupTarget ? page : new PdfReference(pageNumber, 0);
+            objects[attachmentNumber] = new PdfIndirectObject(attachmentNumber, 0, attachment);
+            var annotations = new PdfArray();
+            annotations.Items.Add(new PdfReference(attachmentNumber, 0));
+            page.Items["Annots"] = annotations;
+            return security.InfoObjectNumber;
+        });
+
+        OfficeProvenanceRemovalResult result = PdfProvenance.Remove(malformedPopup);
+        var parsed = PdfSyntax.ParseObjects(result.ToArray());
+
+        PdfDictionary retainedPage = Assert.IsType<PdfDictionary>(parsed.Map.Values.Select(item => item.Value)
+            .First(value => value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page"));
+        Assert.Equal("keep", Assert.IsType<PdfStringObj>(retainedPage.Items["Wave19Sentinel"]).Value);
+    }
+
     [Fact]
     public void RemovalDeletesFileAttachmentAnnotationsFromUntypedPageLeaves() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();

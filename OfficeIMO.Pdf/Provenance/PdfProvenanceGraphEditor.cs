@@ -195,10 +195,11 @@ internal static class PdfProvenanceGraphEditor {
             if (!annotation.Items.TryGetValue("Popup", out PdfObject? popup)) continue;
             if (popup is PdfReference reference &&
                 PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
-                indirect.Value is PdfDictionary popupDictionary) {
+                indirect.Value is PdfDictionary popupDictionary &&
+                IsLinkedPopup(objects, popupDictionary, annotation)) {
                 annotations.Add(popupDictionary);
                 indirectObjectNumbers.Add(reference.ObjectNumber);
-            } else if (popup is PdfDictionary directPopup) {
+            } else if (popup is PdfDictionary directPopup && IsLinkedPopup(objects, directPopup, annotation)) {
                 annotations.Add(directPopup);
             }
         }
@@ -215,6 +216,14 @@ internal static class PdfProvenanceGraphEditor {
             indirectObjectNumbers.Add(item.ObjectNumber);
         }
     }
+
+    private static bool IsLinkedPopup(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary popup,
+        PdfDictionary expectedParent) =>
+        string.Equals(popup.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) &&
+        popup.Items.TryGetValue("Parent", out PdfObject? parent) &&
+        ReferenceEquals(PdfObjectLookup.Resolve(objects, parent), expectedParent);
 
     private static void CollectFileAttachmentAnnotation(
         Dictionary<int, PdfIndirectObject> objects,
