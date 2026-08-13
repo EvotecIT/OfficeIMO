@@ -285,6 +285,11 @@ public static class PdfProvenance {
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "OCProperties", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntents) ? outputIntents : null,
+            result,
+            maximumContainerEntries);
         AddAcroFormFieldDictionaries(
             objects,
             catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null,
@@ -309,6 +314,31 @@ public static class PdfProvenance {
             }
         }
         return result;
+    }
+
+    private static void AddStructuralGraphDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries) {
+        if (value == null) return;
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (resolved == null || !visited.Add(resolved)) continue;
+            if (visited.Count > maximumContainerEntries) {
+                throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+            }
+            PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
+            if (dictionary != null) {
+                result.Add(dictionary);
+                foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+            } else if (resolved is PdfArray array) {
+                foreach (PdfObject child in array.Items) pending.Push(child);
+            }
+        }
     }
 
     private static void AddAcroFormFieldDictionaries(
