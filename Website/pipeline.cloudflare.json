@@ -20,6 +20,9 @@
         "/",
         "/api/",
         "/api/word/",
+        "/api/word/index.json",
+        "/agents.json",
+        "/.well-known/api-catalog",
         "/apps/officeimo-converter/",
         "/apps/officeimo-converter/converter.css"
       ],
