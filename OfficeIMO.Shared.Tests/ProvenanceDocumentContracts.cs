@@ -857,31 +857,25 @@ public sealed class ProvenanceDocumentContracts {
     }
 
     private static byte[] CreateManifestStore() {
-        byte[] data = new byte[126];
-        WriteBigEndian(data, 0, data.Length);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 4);
-        WriteBigEndian(data, 8, 30);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 12);
-        new byte[] { 0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 16);
-        data[32] = 0x02;
-        Encoding.ASCII.GetBytes("c2pa").CopyTo(data, 33);
-        WriteBigEndian(data, 38, data.Length - 38);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 42);
-        WriteBigEndian(data, 46, 27);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 50);
-        new byte[] { 0x63, 0x32, 0x6D, 0x61, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 54);
-        data[70] = 0x02;
-        data[71] = (byte)'m';
-        WriteBigEndian(data, 73, 53);
-        Encoding.ASCII.GetBytes("jumb").CopyTo(data, 77);
-        WriteBigEndian(data, 81, 36);
-        Encoding.ASCII.GetBytes("jumd").CopyTo(data, 85);
-        new byte[] { 0x63, 0x32, 0x63, 0x6C, 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 }.CopyTo(data, 89);
-        data[105] = 0x02;
-        Encoding.ASCII.GetBytes("c2pa.claim").CopyTo(data, 106);
-        WriteBigEndian(data, 117, 9);
-        Encoding.ASCII.GetBytes("cbor").CopyTo(data, 121);
-        return data;
+        byte[] storeDescription = CreateBox("jumd", Join(C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+        byte[] manifestDescription = CreateBox("jumd", Join(C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+        byte[] claimDescription = CreateBox("jumd", Join(C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+        byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        byte[] signatureDescription = CreateBox("jumd", Join(C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+        byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
+        return CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, claim, signature))));
+    }
+
+    private static byte[] C2paUuid(string code) => Join(
+        Encoding.ASCII.GetBytes(code),
+        new byte[] { 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 });
+
+    private static byte[] CreateBox(string type, byte[] payload) {
+        byte[] box = new byte[payload.Length + 8];
+        WriteBigEndian(box, 0, box.Length);
+        Encoding.ASCII.GetBytes(type).CopyTo(box, 4);
+        Buffer.BlockCopy(payload, 0, box, 8, payload.Length);
+        return box;
     }
 
     private static byte[] CreatePngChunk(string type, byte[] payload) {
