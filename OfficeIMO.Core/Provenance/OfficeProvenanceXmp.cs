@@ -21,7 +21,7 @@ internal static class OfficeProvenanceXmp {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.IptcDigitalSourceType,
                 $"{location}/DigitalSourceType[{index++}]",
-                isStructurallyValid: carrierIsStructurallyValid && value.Kind != OfficeProvenanceDigitalSourceKind.Unknown,
+                isStructurallyValid: carrierIsStructurallyValid,
                 value: value.Value,
                 digitalSourceKind: value.Kind));
         }

@@ -10,7 +10,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void ManifestRejectsRawDirectChildrenButAcceptsExtensionSuperboxes() {
         byte[] rawChild = CreateBox("cbor", new byte[] { 0xA0 });
         byte[] extensionDescription = CreateBox("jumd", Join(
-            C2paUuid("priv"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("vendor.example\0")));
+            C2paUuid("priv"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("vendor.example\0")));
         byte[] extensionChild = CreateBox("jumb", Join(extensionDescription, CreateBox("cbor", new byte[] { 0xA0 })));
 
         OfficeProvenanceReport raw = OfficeProvenanceInspector.Inspect(
@@ -27,7 +27,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void ManifestAcceptsTheLegacyOptionalDataBoxStore() {
         byte[] description = CreateBox("jumd", Join(
-            C2paUuid("c2db"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.databoxes\0")));
+            C2paUuid("c2db"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.databoxes\0")));
         byte[] dataBoxes = CreateBox("jumb", Join(description, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] png = CreatePngWithC2paManifest(AppendDirectManifestChild(CreateManifestStore(), dataBoxes));
 
@@ -39,7 +39,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void ManifestRejectsMalformedLegacyDataBoxStoreContent() {
         byte[] description = CreateBox("jumd", Join(
-            C2paUuid("c2db"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.databoxes\0")));
+            C2paUuid("c2db"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.databoxes\0")));
         byte[] dataBoxes = CreateBox("jumb", Join(description, CreateBox("free", new byte[] { 0x00 })));
         byte[] png = CreatePngWithC2paManifest(AppendDirectManifestChild(CreateManifestStore(), dataBoxes));
 

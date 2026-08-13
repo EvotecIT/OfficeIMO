@@ -764,7 +764,10 @@ public sealed partial class ProvenanceCoreContracts {
 
     [Fact]
     public void WebpXmpRemovalPreservesNonAiDigitalSourceType() {
-        byte[] webp = CreateWebp(CreateRiffChunk("VP8 ", new byte[] { 1, 2 }), CreateRiffChunk("XMP ", CreateXmpPacket()));
+        byte[] webp = CreateWebp(
+            CreateVp8xChunk(advertiseXmp: true),
+            CreateRiffChunk("VP8 ", new byte[] { 1, 2 }),
+            CreateRiffChunk("XMP ", CreateXmpPacket()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");
 
@@ -780,20 +783,20 @@ public sealed partial class ProvenanceCoreContracts {
         }
         int signaturePayloadLength = length - 283;
         byte[] storeDescription = CreateBox("jumd", Join(
-            C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+            C2paUuid("c2pa"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa\0")));
         byte[] manifestDescription = CreateBox("jumd", Join(
-            C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+            C2paUuid("c2ma"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("m\0")));
         byte[] assertionStoreDescription = CreateBox("jumd", Join(
-            C2paUuid("c2as"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+            C2paUuid("c2as"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
         byte[] assertionDescription = CreateBox("jumd", Join(
-            C2paUuid("c2ac"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+            C2paUuid("c2ac"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
         byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
             CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimDescription = CreateBox("jumd", Join(
-            C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+            C2paUuid("c2cl"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] signatureDescription = CreateBox("jumd", Join(
-            C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+            C2paUuid("c2cs"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(
             signatureDescription,
             CreateBox("cbor", Enumerable.Repeat((byte)0xA0, signaturePayloadLength).ToArray())));
@@ -806,20 +809,20 @@ public sealed partial class ProvenanceCoreContracts {
         }
         int signaturePayloadLength = length - 291;
         byte[] storeDescription = CreateBox("jumd", Join(
-            C2paUuid("c2pa"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa\0")));
+            C2paUuid("c2pa"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa\0")));
         byte[] manifestDescription = CreateBox("jumd", Join(
-            C2paUuid("c2ma"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("m\0")));
+            C2paUuid("c2ma"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("m\0")));
         byte[] assertionStoreDescription = CreateBox("jumd", Join(
-            C2paUuid("c2as"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
+            C2paUuid("c2as"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.assertions\0")));
         byte[] assertionDescription = CreateBox("jumd", Join(
-            C2paUuid("c2ac"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
+            C2paUuid("c2ac"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.test\0")));
         byte[] assertionStore = CreateBox("jumb", Join(assertionStoreDescription,
             CreateBox("jumb", Join(assertionDescription, CreateBox("cbor", new byte[] { 0xA0 })))));
         byte[] claimDescription = CreateBox("jumd", Join(
-            C2paUuid("c2cl"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
+            C2paUuid("c2cl"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.claim\0")));
         byte[] claim = CreateBox("jumb", Join(claimDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] signatureDescription = CreateBox("jumd", Join(
-            C2paUuid("c2cs"), new byte[] { 0x02 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
+            C2paUuid("c2cs"), new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(
             signatureDescription,
             CreateBox("cbor", Enumerable.Repeat((byte)0xA0, signaturePayloadLength).ToArray())));

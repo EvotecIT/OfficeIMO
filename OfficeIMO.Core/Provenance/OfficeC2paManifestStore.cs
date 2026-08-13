@@ -60,11 +60,9 @@ internal static class OfficeC2paManifestStore {
         int payloadOffset = childOffset + childHeaderLength;
         if (!Matches(data, payloadOffset, ManifestStoreUuid)) return false;
         int togglesOffset = payloadOffset + ManifestStoreUuid.Length;
-        byte toggles = data[togglesOffset];
-        if ((toggles & 0x02) == 0) return false;
-        int labelOffset = togglesOffset + 1;
-        if (!OfficeProvenanceBinary.MatchesAscii(data, labelOffset, "c2pa") ||
-            labelOffset + 4 >= childOffset + (int)childLength || data[labelOffset + 4] != 0) {
+        int descriptionEnd = childOffset + (int)childLength;
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out string storeLabel) ||
+            storeLabel != "c2pa") {
             return false;
         }
 
@@ -106,10 +104,8 @@ internal static class OfficeC2paManifestStore {
         int payloadOffset = descriptionOffset + descriptionHeaderLength;
         if (!Matches(data, payloadOffset, StandardManifestUuid) && !Matches(data, payloadOffset, UpdateManifestUuid)) return false;
         int togglesOffset = payloadOffset + StandardManifestUuid.Length;
-        if ((data[togglesOffset] & 0x02) == 0) return false;
-        int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        if (!HasValidUtf8Label(data, labelOffset, descriptionEnd)) return false;
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out _)) return false;
 
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
@@ -160,15 +156,9 @@ internal static class OfficeC2paManifestStore {
                 out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
             descriptionLength < (ulong)(descriptionHeaderLength + 18)) return false;
         int togglesOffset = descriptionOffset + descriptionHeaderLength + 16;
-        int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        if ((data[togglesOffset] & 0x02) == 0 || !HasValidUtf8Label(data, labelOffset, descriptionEnd)) return false;
-        if (expectedLabel != null) {
-            int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
-            if (terminator < 0 || OfficeProvenanceBinary.DecodeUtf8(data, labelOffset, terminator - labelOffset) != expectedLabel) {
-                return false;
-            }
-        }
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out string label) ||
+            expectedLabel != null && label != expectedLabel) return false;
 
         int cursor = descriptionEnd;
         int end = offset + availableLength;
@@ -200,11 +190,9 @@ internal static class OfficeC2paManifestStore {
         int payloadOffset = descriptionOffset + descriptionHeaderLength;
         if (!Matches(data, payloadOffset, AssertionStoreUuid)) return false;
         int togglesOffset = payloadOffset + AssertionStoreUuid.Length;
-        if ((data[togglesOffset] & 0x02) == 0) return false;
-        int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
-        if (terminator < 0 || System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset) != "c2pa.assertions") {
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out string assertionStoreLabel) ||
+            assertionStoreLabel != "c2pa.assertions") {
             return false;
         }
 
@@ -221,9 +209,9 @@ internal static class OfficeC2paManifestStore {
                 !TryReadBox(data, childDescriptionOffset, (int)childLength - childHeaderLength, out int childDescriptionHeaderLength,
                     out ulong childDescriptionLength, out string childDescriptionType) || childDescriptionType != "jumd" ||
                 childDescriptionLength < (ulong)(childDescriptionHeaderLength + 18)) return false;
-            int childLabelOffset = childDescriptionOffset + childDescriptionHeaderLength + 17;
+            int childTogglesOffset = childDescriptionOffset + childDescriptionHeaderLength + 16;
             int childDescriptionEnd = childDescriptionOffset + (int)childDescriptionLength;
-            if ((data[childLabelOffset - 1] & 0x02) == 0 || !HasValidUtf8Label(data, childLabelOffset, childDescriptionEnd)) return false;
+            if (!TryReadDescriptionFields(data, childTogglesOffset, childDescriptionEnd, out _)) return false;
             int contentOffset = childDescriptionEnd;
             int contentAvailable = cursor + (int)childLength - contentOffset;
             if (contentAvailable < 8 || !TryReserveBox(ref visitedBoxes, maximumEntries) ||
@@ -261,12 +249,8 @@ internal static class OfficeC2paManifestStore {
         int payloadOffset = descriptionOffset + descriptionHeaderLength;
         if (!Matches(data, payloadOffset, ClaimUuid)) return false;
         int togglesOffset = payloadOffset + ClaimUuid.Length;
-        if ((data[togglesOffset] & 0x02) == 0) return false;
-        int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
-        if (terminator < 0) return false;
-        string label = System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset);
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out string label)) return false;
         if (label != "c2pa.claim" && label != "c2pa.claim.v2") return false;
         int contentOffset = descriptionEnd;
         int contentAvailable = offset + availableLength - contentOffset;
@@ -292,11 +276,9 @@ internal static class OfficeC2paManifestStore {
         int payloadOffset = descriptionOffset + descriptionHeaderLength;
         if (!Matches(data, payloadOffset, ClaimSignatureUuid)) return false;
         int togglesOffset = payloadOffset + ClaimSignatureUuid.Length;
-        if ((data[togglesOffset] & 0x02) == 0) return false;
-        int labelOffset = togglesOffset + 1;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
-        if (terminator < 0 || System.Text.Encoding.ASCII.GetString(data, labelOffset, terminator - labelOffset) != "c2pa.signature") {
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out string signatureLabel) ||
+            signatureLabel != "c2pa.signature") {
             return false;
         }
         int contentOffset = descriptionEnd;
@@ -313,16 +295,46 @@ internal static class OfficeC2paManifestStore {
         return true;
     }
 
-    private static bool HasValidUtf8Label(byte[] data, int labelOffset, int descriptionEnd) {
-        if (labelOffset < 0 || labelOffset >= descriptionEnd || descriptionEnd > data.Length || data[labelOffset] == 0) return false;
+    private static bool TryReadDescriptionFields(
+        byte[] data,
+        int togglesOffset,
+        int descriptionEnd,
+        out string label) {
+        label = string.Empty;
+        if (togglesOffset < 0 || togglesOffset >= descriptionEnd || descriptionEnd > data.Length) return false;
+        byte toggles = data[togglesOffset];
+        if ((toggles & 0xE0) != 0 || (toggles & 0x03) != 0x03) return false;
+        int labelOffset = togglesOffset + 1;
+        if (labelOffset >= descriptionEnd || data[labelOffset] == 0) return false;
         int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);
         if (terminator < 0) return false;
         try {
-            _ = OfficeProvenanceBinary.DecodeUtf8(data, labelOffset, terminator - labelOffset);
-            return true;
+            label = OfficeProvenanceBinary.DecodeUtf8(data, labelOffset, terminator - labelOffset);
         } catch (System.Text.DecoderFallbackException) {
             return false;
         }
+        if (!IsValidC2paLabel(label)) return false;
+        int cursor = terminator + 1;
+        if ((toggles & 0x04) != 0) cursor += 4;
+        if ((toggles & 0x08) != 0) cursor += 32;
+        return cursor == descriptionEnd;
+    }
+
+    private static bool IsValidC2paLabel(string label) {
+        for (int index = 0; index < label.Length; index++) {
+            int scalar;
+            char current = label[index];
+            if (char.IsHighSurrogate(current)) {
+                if (index + 1 >= label.Length || !char.IsLowSurrogate(label[index + 1])) return false;
+                scalar = char.ConvertToUtf32(current, label[++index]);
+            } else {
+                if (char.IsLowSurrogate(current)) return false;
+                scalar = current;
+            }
+            if (scalar <= 0x1F || scalar is >= 0x7F and <= 0x9F ||
+                scalar is '/' or ';' or '?' or '#' or 0xFEFF or 0xFFFF) return false;
+        }
+        return true;
     }
 
     private static bool TryReadBox(

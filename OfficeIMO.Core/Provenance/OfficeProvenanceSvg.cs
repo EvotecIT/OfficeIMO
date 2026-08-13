@@ -19,7 +19,8 @@ internal static class OfficeProvenanceSvg {
         int index = 0;
         foreach (XElement element in document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement)) {
             string value = element.Value.Trim();
-            bool decoded = TryDecode(value, options.MaxManifestBytes, out byte[] manifest);
+            byte[] manifest = Array.Empty<byte>();
+            bool decoded = HasOnlyTextContent(element) && TryDecode(value, options.MaxManifestBytes, out manifest);
             bool valid = decoded && OfficeC2paManifestStore.IsValid(
                 manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
             context.Add(new OfficeProvenanceEvidence(
@@ -57,7 +58,8 @@ internal static class OfficeProvenanceSvg {
         XElement[] manifests = document.Descendants(C2paNamespace + "manifest").Where(IsManifestElement).ToArray();
         for (int index = 0; index < manifests.Length; index++) {
             XElement element = manifests[index];
-            bool decoded = TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out byte[] manifest);
+            byte[] manifest = Array.Empty<byte>();
+            bool decoded = HasOnlyTextContent(element) && TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out manifest);
             bool valid = decoded && OfficeC2paManifestStore.IsValid(
                 manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
             if (!options.RemoveC2paManifests) continue;
@@ -106,6 +108,8 @@ internal static class OfficeProvenanceSvg {
     private static bool IsManifestElement(XElement element) => element.Parent != null &&
         element.Parent.Name.LocalName == "metadata" &&
         element.Parent.Name.NamespaceName == "http://www.w3.org/2000/svg";
+
+    private static bool HasOnlyTextContent(XElement element) => element.Nodes().All(node => node is XText);
 
     private static IEnumerable<XElement> FindXmpRoots(XDocument document) {
         var roots = new List<XElement>();

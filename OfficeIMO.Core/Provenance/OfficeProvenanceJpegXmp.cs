@@ -74,7 +74,8 @@ internal static class OfficeProvenanceJpegXmp {
                 .Where(item => string.Equals(item.Guid, reference.Key, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(item => item.Offset)
                 .ToArray();
-            string location = $"JPEG[{imageIndex}]/APP1-ExtendedXMP[{reference.Key}]";
+            int firstChunkOffset = chunks.Length == 0 ? int.MaxValue : chunks[0].SegmentStart;
+            string location = $"JPEG[{imageIndex}]/APP1-ExtendedXMP@{firstChunkOffset}[{reference.Key}]";
             if (!TryAssemble(chunks, options.MaxAssetBytes, out byte[] packet)) {
                 if (chunks.Length != 0) context?.Diagnostics.Add($"{location}: extended XMP chunks are incomplete or malformed.");
                 continue;

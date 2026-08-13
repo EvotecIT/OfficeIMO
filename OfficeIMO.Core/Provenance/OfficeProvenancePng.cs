@@ -59,8 +59,8 @@ internal static class OfficeProvenancePng {
                 if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, total));
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
-                TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength)) {
-                bool carrierValid = HasValidCrc(data, offset, payloadLength);
+                TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength, out bool fieldsValid)) {
+                bool carrierValid = fieldsValid && HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
                 string location = $"PNG/iTXt-XMP@{offset}";
@@ -90,23 +90,62 @@ internal static class OfficeProvenancePng {
         return reserialized;
     }
 
-    private static bool TryGetXmpPacket(byte[] data, int payloadOffset, int payloadLength, out int packetOffset, out int packetLength) {
+    private static bool TryGetXmpPacket(
+        byte[] data,
+        int payloadOffset,
+        int payloadLength,
+        out int packetOffset,
+        out int packetLength,
+        out bool fieldsValid) {
         packetOffset = packetLength = 0;
+        fieldsValid = false;
         const string keyword = "XML:com.adobe.xmp";
         if (payloadLength < keyword.Length + 5 || !OfficeProvenanceBinary.MatchesAscii(data, payloadOffset, keyword) ||
             data[payloadOffset + keyword.Length] != 0) return false;
         int cursor = payloadOffset + keyword.Length + 1;
         int end = payloadOffset + payloadLength;
         if (cursor + 2 > end || data[cursor++] != 0 || data[cursor++] != 0) return false;
+        int languageStart = cursor;
         int terminator = Array.IndexOf(data, (byte)0, cursor, end - cursor);
         if (terminator < 0) return false;
+        bool languageValid = IsValidLanguageTag(data, languageStart, terminator);
         cursor = terminator + 1;
+        int translatedKeywordStart = cursor;
         terminator = Array.IndexOf(data, (byte)0, cursor, end - cursor);
         if (terminator < 0) return false;
+        bool translatedKeywordValid = IsValidUtf8(data, translatedKeywordStart, terminator - translatedKeywordStart);
         cursor = terminator + 1;
         packetOffset = cursor;
         packetLength = end - cursor;
+        fieldsValid = languageValid && translatedKeywordValid;
         return packetLength > 0;
+    }
+
+    private static bool IsValidLanguageTag(byte[] data, int start, int end) {
+        if (start == end) return true;
+        int subtagLength = 0;
+        for (int index = start; index < end; index++) {
+            byte value = data[index];
+            if (value == (byte)'-') {
+                if (subtagLength is < 1 or > 8) return false;
+                subtagLength = 0;
+                continue;
+            }
+            if ((value < (byte)'A' || value > (byte)'Z') &&
+                (value < (byte)'a' || value > (byte)'z') &&
+                (value < (byte)'0' || value > (byte)'9')) return false;
+            subtagLength++;
+        }
+        return subtagLength is >= 1 and <= 8;
+    }
+
+    private static bool IsValidUtf8(byte[] data, int offset, int count) {
+        try {
+            _ = OfficeProvenanceBinary.DecodeUtf8(data, offset, count);
+            return true;
+        } catch (System.Text.DecoderFallbackException) {
+            return false;
+        }
     }
 
     private static void WriteChunk(Stream output, string type, byte[] payload) {

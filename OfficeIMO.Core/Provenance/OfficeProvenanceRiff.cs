@@ -39,6 +39,10 @@ internal static class OfficeProvenanceRiff {
         int declaredEnd = (int)declaredEndValue;
         int offset = 12;
         int chunkCount = 0;
+        bool hasValidExtendedHeader = false;
+        bool extendedHeaderAdvertisesXmp = false;
+        bool foundImagePayload = false;
+        bool foundXmp = false;
         while (offset < declaredEnd) {
             if (++chunkCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("WebP exceeds the configured container entry limit.");
@@ -50,8 +54,16 @@ internal static class OfficeProvenanceRiff {
             long totalValue = 8L + payloadLength + (payloadLength & 1);
             if (totalValue > declaredEnd - offset) throw new InvalidDataException("RIFF chunk exceeds the declared container bounds.");
             int total = (int)totalValue;
-            bool isC2pa = OfficeProvenanceBinary.MatchesAscii(data, offset, "C2PA");
-            if (isC2pa) {
+            string chunkType = System.Text.Encoding.ASCII.GetString(data, offset, 4);
+            if (chunkCount == 1 && chunkType == "VP8X") {
+                hasValidExtendedHeader = IsValidExtendedHeader(data, offset + 8, payloadLength);
+                extendedHeaderAdvertisesXmp = hasValidExtendedHeader && (data[offset + 8] & 0x04) != 0;
+                output?.Write(data, offset, total);
+            } else if (chunkType == "VP8X") {
+                hasValidExtendedHeader = false;
+                extendedHeaderAdvertisesXmp = false;
+                output?.Write(data, offset, total);
+            } else if (chunkType == "C2PA") {
                 if (payloadLength > options.MaxManifestBytes) throw new InvalidDataException("RIFF provenance chunk exceeds the configured manifest limit.");
                 bool isLast = offset + total == declaredEnd;
                 bool valid = isLast && OfficeC2paManifestStore.IsValid(
@@ -68,26 +80,37 @@ internal static class OfficeProvenanceRiff {
                 } else {
                     output?.Write(data, offset, total);
                 }
-            } else if (OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP ")) {
+            } else if (chunkType == "XMP ") {
                 byte[] packet = new byte[payloadLength];
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
-                if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+                bool carrierValid = hasValidExtendedHeader && extendedHeaderAdvertisesXmp && foundImagePayload && !foundXmp;
+                if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                 if (output != null && removalOptions != null && changes != null &&
+                    (carrierValid || !removalOptions.RequireStructurallyValidCarrier) &&
                     OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, changes, out byte[] cleaned)) {
                     WriteChunk(output, "XMP ", cleaned);
                     reserialized = true;
                 } else {
                     output?.Write(data, offset, total);
                 }
+                foundXmp = true;
             } else {
                 output?.Write(data, offset, total);
             }
+            if (chunkType is "VP8 " or "VP8L" or "ANMF") foundImagePayload = true;
             offset += total;
         }
         if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
         if (declaredEnd < data.Length) output?.Write(data, declaredEnd, data.Length - declaredEnd);
         return reserialized;
+    }
+
+    private static bool IsValidExtendedHeader(byte[] data, int payloadOffset, int payloadLength) {
+        if (payloadLength != 10) return false;
+        byte flags = data[payloadOffset];
+        return (flags & 0xC1) == 0 &&
+            data[payloadOffset + 1] == 0 && data[payloadOffset + 2] == 0 && data[payloadOffset + 3] == 0;
     }
 
     private static void WriteChunk(Stream output, string type, byte[] payload) {

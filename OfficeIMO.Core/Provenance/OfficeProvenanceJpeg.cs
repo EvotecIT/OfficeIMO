@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Provenance;
 
@@ -49,6 +50,7 @@ internal static class OfficeProvenanceJpeg {
                     throw new InvalidDataException("JPEG contains an invalid marker sequence.");
                 }
                 ReserveMarker(ref markerCount, options.MaxContainerEntries);
+                if (marker == 0xD8) throw new InvalidDataException("JPEG contains a nested start-of-image marker.");
                 if (marker == 0xD9) {
                     output?.Write(data, segmentStart, segmentEnd - segmentStart);
                     searchOffset = segmentEnd;
@@ -95,7 +97,34 @@ internal static class OfficeProvenanceJpeg {
             }
             if (offset >= data.Length && searchOffset <= imageStart) throw new InvalidDataException("JPEG does not contain an end marker.");
         }
+        SortBySourceOffset(context?.Evidence);
+        SortBySourceOffset(changes);
         return reserialized;
+    }
+
+    private static void SortBySourceOffset<T>(List<T>? items) {
+        if (items == null || items.Count < 2) return;
+        IEnumerable<T> ordered = items.OrderBy(item => GetSourceOffset(item switch {
+            OfficeProvenanceEvidence evidence => evidence.Location,
+            OfficeProvenanceChange change => change.Location,
+            _ => string.Empty
+        }));
+        T[] snapshot = ordered.ToArray();
+        items.Clear();
+        items.AddRange(snapshot);
+    }
+
+    private static int GetSourceOffset(string location) {
+        int marker = location.IndexOf('@');
+        if (marker < 0) return int.MaxValue;
+        int value = 0;
+        int index = marker + 1;
+        bool found = false;
+        while (index < location.Length && location[index] >= '0' && location[index] <= '9') {
+            found = true;
+            value = checked(value * 10 + location[index++] - '0');
+        }
+        return found ? value : int.MaxValue;
     }
 
     private static bool TryGetC2paSequence(

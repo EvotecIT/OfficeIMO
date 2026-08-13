@@ -191,6 +191,7 @@ internal static class OfficeProvenanceGif {
                 data, payloadOffset, maximumPacketBytes, ref entryCount, maximumEntries,
                 out packet, out extensionEnd, out trailerStart);
         }
+        int candidateEntryCount = entryCount;
         using (var collected = new MemoryStream()) {
             while (cursor < data.Length) {
                 if (HasXmpMagicTrailer(data, cursor)) {
@@ -199,9 +200,10 @@ internal static class OfficeProvenanceGif {
                     extensionEnd = cursor + 258;
                     trailerStart = cursor;
                     usesSubBlocks = true;
+                    entryCount = candidateEntryCount;
                     return true;
                 }
-                ReserveEntry(ref entryCount, maximumEntries);
+                ReserveEntry(ref candidateEntryCount, maximumEntries);
                 int length = data[cursor++];
                 if (length == 0) return false;
                 if (length > data.Length - cursor || collected.Length > maximumPacketBytes - length) {
