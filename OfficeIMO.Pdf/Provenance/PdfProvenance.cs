@@ -299,6 +299,11 @@ public static class PdfProvenance {
             maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
+            catalog.Items.TryGetValue("Collection", out PdfObject? collection) ? collection : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
             catalog.Items.TryGetValue("Dests", out PdfObject? destinations) ? destinations : null,
             result,
             maximumContainerEntries,
