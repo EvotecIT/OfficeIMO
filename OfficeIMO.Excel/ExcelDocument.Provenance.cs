@@ -29,6 +29,7 @@ public partial class ExcelDocument {
 
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
+        ValidateXlsbDetectionMetadata(data, options);
         if (XlsbPackageDetector.TryFindWorkbookPart(data, out _)) return;
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
@@ -40,6 +41,23 @@ public partial class ExcelDocument {
             "application/vnd.ms-excel.addin.macroEnabled.main+xml")) {
             throw new InvalidDataException("The package is not an Excel workbook.");
         }
+    }
+
+    private static void ValidateXlsbDetectionMetadata(byte[] data, OfficeProvenanceOptions options) {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        ValidateXlsbDetectionPart(archive, "_rels/.rels", options);
+        ValidateXlsbDetectionPart(archive, "[Content_Types].xml", options);
+    }
+
+    private static void ValidateXlsbDetectionPart(ZipArchive archive, string entryName, OfficeProvenanceOptions options) {
+        ZipArchiveEntry[] matches = archive.Entries
+            .Where(entry => NormalizePartName(entry.FullName).Equals(entryName, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (matches.Length == 0) return;
+        if (matches.Length != 1) throw new InvalidDataException("The workbook package contains duplicate detection metadata parts.");
+        byte[] xml = ReadBoundedEntry(matches[0], options.MaxAssetBytes);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "XLSB package detection metadata");
     }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>

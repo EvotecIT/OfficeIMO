@@ -264,7 +264,10 @@ public static partial class HtmlProvenance {
                 }
             }
         }
-        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
+            ThrowIfNestedSrcDocRemains(document);
+            return;
+        }
         int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
@@ -330,7 +333,10 @@ public static partial class HtmlProvenance {
                 ApplyEmbeddedImageReplacements(element, replacements);
             }
         }
-        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) return;
+        if (srcDocDepth >= HtmlConversionInputGuard.MaxSrcDocDepth) {
+            ThrowIfNestedSrcDocRemains(document);
+            return;
+        }
         int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
@@ -423,6 +429,13 @@ public static partial class HtmlProvenance {
             if (sourceSet != null) {
                 foreach (EmbeddedImageReference reference in ParseSrcset("imagesrcset", sourceSet)) yield return reference;
             }
+        }
+    }
+
+    private static void ThrowIfNestedSrcDocRemains(IHtmlDocument document) {
+        if (document.QuerySelectorAll("iframe[srcdoc]").Any(iframe =>
+            !string.IsNullOrWhiteSpace(iframe.GetAttribute("srcdoc")))) {
+            throw new InvalidDataException($"HTML iframe srcdoc nesting exceeds the supported depth of {HtmlConversionInputGuard.MaxSrcDocDepth}.");
         }
     }
 
