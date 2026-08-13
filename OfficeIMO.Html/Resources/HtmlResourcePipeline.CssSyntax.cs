@@ -33,7 +33,7 @@ public static partial class HtmlResourcePipeline {
                 if ((current == '"' || current == '\'') && !IsCssTypeFunctionString(css, valueCursor)) {
                     if (TryReadCssQuotedValue(css, valueCursor, out string source, out int end)) {
                         if (!string.IsNullOrWhiteSpace(source)) {
-                            yield return new CssStringUrlReference(functionStart, end, source);
+                            yield return new CssStringUrlReference(functionStart, end, valueCursor + 1, source);
                         }
 
                         valueCursor = end;

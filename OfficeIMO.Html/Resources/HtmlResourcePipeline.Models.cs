@@ -28,14 +28,16 @@ public static partial class HtmlResourcePipeline {
     }
 
     private sealed class CssStringUrlReference {
-        internal CssStringUrlReference(int start, int end, string source) {
+        internal CssStringUrlReference(int start, int end, int sourceStart, string source) {
             Start = start;
             End = end;
+            SourceStart = sourceStart;
             Source = source;
         }
 
         internal int Start { get; }
         internal int End { get; }
+        internal int SourceStart { get; }
         internal string Source { get; }
     }
 

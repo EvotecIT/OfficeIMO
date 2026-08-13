@@ -9,6 +9,11 @@ public static class MarkdownProvenance {
     /// <summary>Inspects a Markdown string for structured and unstructured C2PA carriers.</summary>
     public static OfficeProvenanceReport Inspect(string markdown, OfficeProvenanceOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new OfficeProvenanceOptions();
+        OfficeProvenanceBinary.ValidateLimits(options);
+        if (Encoding.UTF8.GetByteCount(markdown) > options.MaxAssetBytes) {
+            throw new InvalidDataException("The Markdown document exceeds the configured asset limit.");
+        }
         return OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(markdown), "document.md", options);
     }
 
@@ -21,6 +26,11 @@ public static class MarkdownProvenance {
         string markdown,
         OfficeProvenanceRemovalOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        options ??= new OfficeProvenanceRemovalOptions();
+        OfficeProvenanceBinary.ValidateLimits(options.Limits);
+        if (Encoding.UTF8.GetByteCount(markdown) > options.Limits.MaxAssetBytes) {
+            throw new InvalidDataException("The Markdown document exceeds the configured asset limit.");
+        }
         return OfficeProvenanceRemover.Remove(Encoding.UTF8.GetBytes(markdown), "document.md", options);
     }
 

@@ -397,7 +397,7 @@ internal sealed class OdfPackage {
         return output.ToArray();
     }
 
-    private static bool IsSignaturePath(string path) {
+    internal static bool IsSignaturePath(string path) {
         return path.StartsWith("META-INF/", StringComparison.Ordinal) &&
             path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
     }

@@ -12,18 +12,19 @@ public abstract partial class OdfDocument {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.RemoveFile(inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures);
 
     /// <summary>Removes selected provenance from encoded ODF package bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
         byte[] packageBytes,
         string fileName = "document.odt",
         OfficeProvenanceRemovalOptions? options = null) =>
-        OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures);
+        OfficeProvenancePackageMutation.Remove(packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures);
+
+    private static bool HasPackageSignatures(byte[] data) =>
+        OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions _) {
-        return OfficeProvenanceZip.RemoveEntries(data, path =>
-            path.StartsWith("META-INF/", StringComparison.Ordinal) &&
-            path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase));
+        return OfficeProvenanceZip.RemoveEntries(data, OdfPackage.IsSignaturePath);
     }
 }

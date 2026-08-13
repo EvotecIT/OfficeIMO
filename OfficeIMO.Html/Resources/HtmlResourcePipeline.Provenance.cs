@@ -75,9 +75,8 @@ public static partial class HtmlResourcePipeline {
             if (isCustomProperty
                     ? !usedImageProperties.Contains(DecodeCssEscapes(customPropertyName))
                     : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image) continue;
-            int start = css.IndexOf(reference.Source, reference.Start, Math.Min(css.Length - reference.Start, reference.End - reference.Start), StringComparison.Ordinal);
-            if (start < 0 || !emittedRanges.Add((start, reference.Source.Length))) continue;
-            yield return new HtmlCssImageReference(start, reference.Source.Length, DecodeCssEscapes(reference.Source));
+            if (!emittedRanges.Add((reference.SourceStart, reference.Source.Length))) continue;
+            yield return new HtmlCssImageReference(reference.SourceStart, reference.Source.Length, DecodeCssEscapes(reference.Source));
         }
     }
 

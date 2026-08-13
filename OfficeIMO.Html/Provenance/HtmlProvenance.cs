@@ -148,7 +148,7 @@ public static class HtmlProvenance {
             string location = $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]";
             if (!options.RemoveC2paManifests || (!valid && options.RequireStructurallyValidCarrier)) continue;
             script.Remove();
-            changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, manifest.Length));
+            changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, 0));
         }
 
         foreach (IElement link in links.ToArray()) {
@@ -273,7 +273,7 @@ public static class HtmlProvenance {
                         CreateNestedRemovalOptions(options));
                     if (!nested.WasChanged) continue;
                     string metadata = CreateRewrittenDataUriMetadata(dataUri);
-                    replacements.Add((reference, "data:" + metadata + "," + Convert.ToBase64String(nested.ToArray())));
+                    replacements.Add((reference, "data:" + metadata + "," + Convert.ToBase64String(nested.ToArray()) + dataUri.Fragment));
                     foreach (OfficeProvenanceChange change in nested.Changes) {
                         changes.Add(new OfficeProvenanceChange(
                             change.Carrier,
@@ -548,11 +548,24 @@ public static class HtmlProvenance {
                 tagName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase) ||
                 tagName.Equals("title", StringComparison.OrdinalIgnoreCase)) {
-                int rawTextEnd = html.IndexOf("</" + tagName, index, StringComparison.OrdinalIgnoreCase);
+                int rawTextEnd = FindRawTextClosingTag(html, index, tagName);
                 if (rawTextEnd < 0) break;
                 index = rawTextEnd;
             }
         }
+    }
+
+    private static int FindRawTextClosingTag(string html, int offset, string tagName) {
+        string closingPrefix = "</" + tagName;
+        int candidate = offset;
+        while (candidate < html.Length) {
+            candidate = html.IndexOf(closingPrefix, candidate, StringComparison.OrdinalIgnoreCase);
+            if (candidate < 0) return -1;
+            int delimiter = candidate + closingPrefix.Length;
+            if (delimiter >= html.Length || char.IsWhiteSpace(html[delimiter]) || html[delimiter] is '>' or '/') return candidate;
+            candidate = delimiter;
+        }
+        return -1;
     }
 
     private static int FindTagEnd(string html, int offset) {
