@@ -215,6 +215,7 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -229,6 +230,7 @@ internal static class TextContentParser {
 #endif
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
+        textClippingBudget ??= new PdfTextClippingBudget();
 
         var spans = new List<PdfTextSpan>();
         // Text state
@@ -714,14 +716,14 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
-                PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(pendingTextClipPaths.Count);
+                textClippingBudget.ChargePath();
                 pendingTextClipPaths.Add(textClipPath);
             }
         }
 
         void ApplyPendingTextClippingPath() {
             if (PdfPageClipPath.TryCombineTextClippingPaths(pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
-                clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
+                clipPath = textClippingBudget.ResolveActiveClip(clipPath, textClipPath);
             }
             pendingTextClipPaths.Clear();
         }

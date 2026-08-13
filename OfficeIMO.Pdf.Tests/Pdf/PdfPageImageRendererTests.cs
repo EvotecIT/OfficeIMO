@@ -588,6 +588,39 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_BoundsAggregateTextClippingPathsAcrossTextObjects() {
+        int firstCount = PdfPageClipPath.MaximumPendingTextClippingPaths / 2;
+        string first = string.Concat(Enumerable.Repeat("(A) Tj ", firstCount));
+        string second = string.Concat(Enumerable.Repeat("(A) Tj ", firstCount + 1));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 4 Tr " + first + "ET BT /F1 12 Tf 4 Tr " + second + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
+        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsAggregateTextClipIntersectionWork() {
+        const int runsPerObject = 1001;
+        string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 4 Tr " + runs + "ET BT /F1 12 Tf 4 Tr " + runs + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void RenderPage_BoundsType3GlyphProgramInvocations() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");

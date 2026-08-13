@@ -107,6 +107,9 @@ public enum PdfReadLimitKind {
     /// <summary>Type 3 glyph programs invoked while rendering one page.</summary>
     Type3GlyphInvocations = 34,
 
-    /// <summary>Text clipping paths retained while parsing one text object.</summary>
-    TextClippingPaths = 35
+    /// <summary>Text clipping paths retained while parsing one page content tree.</summary>
+    TextClippingPaths = 35,
+
+    /// <summary>Estimated contour comparisons spent intersecting text clipping paths on one page content tree.</summary>
+    TextClippingIntersectionWork = 36
 }

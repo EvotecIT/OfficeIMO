@@ -6,6 +6,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class DrawingSvgReaderSecurityTests {
+    [Fact]
+    public void SvgSafetyPredicateTokenizesNestedCustomPropertyDeclarations() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><pattern id='p;x'><rect width='1' height='1'/></pattern></defs>"
+            + "<rect width='4' height='4' style='--paint:url(#p;x);fill:var(--paint)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
     [Theory]
     [InlineData("clip-path='none' x:clip-path='url(#c)'", false)]
     [InlineData("x:clip-path='url(#c)' clip-path='none'", true)]

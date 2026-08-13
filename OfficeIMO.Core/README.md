@@ -78,6 +78,29 @@ using Stream input = File.OpenRead("upload.png");
 bool validStream = OfficeImageReader.TryValidateContent(input, "upload.png", out OfficeImageInfo streamInfo);
 ```
 
+### Bounded SVG safety checks
+
+Use `IsWithinSafetyLimits(...)` before sending untrusted SVG to a raster fallback or another renderer that may expand references and styles differently from OfficeIMO's vector importer:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] svg = File.ReadAllBytes("upload.svg");
+var limits = new OfficeSvgDrawingReaderOptions {
+    MaximumElements = 10_000,
+    MaximumViewportDimension = 8_192,
+    MaximumViewportPixels = 16 * 1024 * 1024
+};
+
+if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(svg, limits)) {
+    throw new InvalidDataException("The SVG exceeds the accepted safety profile.");
+}
+```
+
+A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, and rendered-payload ceilings enforced by the safety predicate. It does not mean every SVG feature can be projected into an `OfficeDrawing`. `TryRead(...)` performs that projection and reports unsupported features; use it when the drawing result is required.
+
+`MaximumElements`, `MaximumViewportDimension`, and `MaximumViewportPixels` can be lowered for an application policy or raised for trusted input up to their documented hard maxima. They do not relax the fixed 8 MiB input, nesting, path-command, transform, reference-depth, or conservative stylesheet/reference checks.
+
 ### Encode common raster formats
 
 ```csharp

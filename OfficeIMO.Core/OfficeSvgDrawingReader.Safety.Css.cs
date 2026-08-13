@@ -87,7 +87,7 @@ public static partial class OfficeSvgDrawingReader {
     private static bool ContainsLocalCssCustomPropertyUrlReference(string? value, ISet<string> relevantIds) {
         if (string.IsNullOrWhiteSpace(value) || relevantIds.Count == 0) return false;
         string normalized = StripCssComments(value!);
-        foreach (string declaration in normalized.Split(';')) {
+        foreach (string declaration in SplitRasterStyleDeclarations(normalized)) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0) continue;
             string name = declaration.Substring(0, colon).Trim();

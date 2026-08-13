@@ -84,6 +84,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
+        private readonly PdfTextClippingBudget _textClippingBudget = new PdfTextClippingBudget();
         private readonly GraphicsState _initialState;
         private GraphicsState _state;
         private bool _inText;
@@ -393,14 +394,14 @@ internal static class PdfPageXObjectInvocationParser {
             var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
-                PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(_pendingTextClipPaths.Count);
+                _textClippingBudget.ChargePath();
                 _pendingTextClipPaths.Add(textClipPath);
             }
         }
 
         private void ApplyPendingTextClippingPath() {
             if (PdfPageClipPath.TryCombineTextClippingPaths(_pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textClipPath));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, textClipPath));
             }
             _pendingTextClipPaths.Clear();
         }

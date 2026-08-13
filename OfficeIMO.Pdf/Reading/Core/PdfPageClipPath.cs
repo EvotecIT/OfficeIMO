@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
+    internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
 
     private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands) {
         X = x;
