@@ -14,10 +14,11 @@ internal static class PdfContentStreamInterpreter {
         Action<PdfContentOperation> visit,
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        bool dispatchInvalidOperations = false) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
         reader.InterpretUntil(operation => {
             visit(operation);
             return true;
@@ -30,10 +31,11 @@ internal static class PdfContentStreamInterpreter {
         Func<PdfContentOperation, bool> visit,
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        bool dispatchInvalidOperations = false) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
         return reader.InterpretUntil(visit);
     }
 
@@ -43,6 +45,7 @@ internal static class PdfContentStreamInterpreter {
         private readonly int _maxOperands;
         private readonly int _maxNestingDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
+        private readonly bool _dispatchInvalidOperations;
         private readonly List<object> _operands = new List<object>(8);
         private int _index;
         private int _operationCount;
@@ -54,12 +57,14 @@ internal static class PdfContentStreamInterpreter {
             int maxOperations,
             int maxOperands,
             int maxNestingDepth,
-            Func<string, int>? inlineImageComponentCount) {
+            Func<string, int>? inlineImageComponentCount,
+            bool dispatchInvalidOperations) {
             _content = content;
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
             _maxNestingDepth = maxNestingDepth;
             _inlineImageComponentCount = inlineImageComponentCount;
+            _dispatchInvalidOperations = dispatchInvalidOperations;
         }
 
         internal bool InterpretUntil(Func<PdfContentOperation, bool> visit) {
@@ -104,7 +109,7 @@ internal static class PdfContentStreamInterpreter {
                     : null;
                 bool hasInvalidInlineImageOperand = _hasInvalidOperand;
                 bool skipOperation = hasInvalidInlineImageOperand ||
-                    (hasInvalidOperand && !CanDispatchWithInvalidOperands(name));
+                    (hasInvalidOperand && !_dispatchInvalidOperations && !CanDispatchWithInvalidOperands(name));
                 var operation = new PdfContentOperation(
                     name,
                     hasInvalidOperand || _operands.Count == 0 ? Array.Empty<object>() : _operands.ToArray(),

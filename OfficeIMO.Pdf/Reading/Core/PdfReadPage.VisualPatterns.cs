@@ -38,16 +38,16 @@ public sealed partial class PdfReadPage {
 
     private static void AddTilingPatternStroke(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
         PdfPageTilingPatternPaint paint = primitive.StrokeTilingPattern!;
-        double strokeHalf = primitive.StrokeWidth / 2D;
-        double left = primitive.X - strokeHalf;
-        double top = primitive.Y - strokeHalf;
-        double width = primitive.Width + primitive.StrokeWidth;
-        double height = primitive.Height + primitive.StrokeWidth;
+        double strokePadding = GetTilingPatternStrokePadding(primitive);
+        double left = primitive.X - strokePadding;
+        double top = primitive.Y - strokePadding;
+        double width = primitive.Width + (strokePadding * 2D);
+        double height = primitive.Height + (strokePadding * 2D);
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-            left = Math.Min(primitive.X1, primitive.X2) - strokeHalf;
-            top = Math.Min(primitive.Y1, primitive.Y2) - strokeHalf;
-            width = Math.Abs(primitive.X2 - primitive.X1) + primitive.StrokeWidth;
-            height = Math.Abs(primitive.Y2 - primitive.Y1) + primitive.StrokeWidth;
+            left = Math.Min(primitive.X1, primitive.X2) - strokePadding;
+            top = Math.Min(primitive.Y1, primitive.Y2) - strokePadding;
+            width = Math.Abs(primitive.X2 - primitive.X1) + (strokePadding * 2D);
+            height = Math.Abs(primitive.Y2 - primitive.Y1) + (strokePadding * 2D);
         }
         if (width <= 0D || height <= 0D) return;
 
@@ -107,27 +107,42 @@ public sealed partial class PdfReadPage {
         return TryFitClipToDrawing(shapeClip, drawingWidth, drawingHeight, out fitted);
     }
 
-    private static bool TryGetTilingPatternStrokeBounds(
+    internal static bool TryGetTilingPatternStrokeBounds(
         PdfPageVisualPrimitive primitive,
         double drawingWidth,
         double drawingHeight,
         out PdfPageClipPath fitted) {
         fitted = default;
-        double strokeHalf = primitive.StrokeWidth / 2D;
-        double left = primitive.X - strokeHalf;
-        double top = primitive.Y - strokeHalf;
-        double width = primitive.Width + primitive.StrokeWidth;
-        double height = primitive.Height + primitive.StrokeWidth;
+        double strokePadding = GetTilingPatternStrokePadding(primitive);
+        double left = primitive.X - strokePadding;
+        double top = primitive.Y - strokePadding;
+        double width = primitive.Width + (strokePadding * 2D);
+        double height = primitive.Height + (strokePadding * 2D);
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-            left = Math.Min(primitive.X1, primitive.X2) - strokeHalf;
-            top = Math.Min(primitive.Y1, primitive.Y2) - strokeHalf;
-            width = Math.Abs(primitive.X2 - primitive.X1) + primitive.StrokeWidth;
-            height = Math.Abs(primitive.Y2 - primitive.Y1) + primitive.StrokeWidth;
+            left = Math.Min(primitive.X1, primitive.X2) - strokePadding;
+            top = Math.Min(primitive.Y1, primitive.Y2) - strokePadding;
+            width = Math.Abs(primitive.X2 - primitive.X1) + (strokePadding * 2D);
+            height = Math.Abs(primitive.Y2 - primitive.Y1) + (strokePadding * 2D);
         }
         if (width <= 0D || height <= 0D) return false;
         PdfPageClipPath bounds = PdfPageClipPath.Rectangle(left, top, width, height);
         if (primitive.ClipPath.HasValue) bounds = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, bounds);
         return TryFitClipToDrawing(bounds, drawingWidth, drawingHeight, out fitted);
+    }
+
+    private static double GetTilingPatternStrokePadding(PdfPageVisualPrimitive primitive) {
+        double strokeHalf = primitive.StrokeWidth / 2D;
+        double padding = strokeHalf;
+        OfficeStrokeLineJoin join = primitive.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter;
+        if (join == OfficeStrokeLineJoin.Miter) {
+            padding = strokeHalf * 10D;
+        } else if (join == OfficeStrokeLineJoin.Bevel) {
+            padding = strokeHalf * Math.Sqrt(2D);
+        }
+        if (primitive.StrokeLineCap == OfficeStrokeLineCap.Square) {
+            padding = Math.Max(padding, strokeHalf * Math.Sqrt(2D));
+        }
+        return padding;
     }
 
     private static bool IsWithinTilingPatternLimit(PdfPageTilingPatternPaint paint, PdfPageClipPath fitted) {

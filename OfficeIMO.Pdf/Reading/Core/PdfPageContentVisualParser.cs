@@ -130,12 +130,17 @@ internal static class PdfPageContentVisualParser {
         if (width <= 0D || height <= 0D) return false;
         (double X, double Y) start = transform.Transform(shading.X0, shading.Y0);
         (double X, double Y) end = transform.Transform(shading.X1, shading.Y1);
+        if (!IsFiniteNumber(start.X) || !IsFiniteNumber(start.Y) ||
+            !IsFiniteNumber(end.X) || !IsFiniteNumber(end.Y)) return false;
         double x0 = (start.X - x) / width;
         double y0 = ((pageHeight - start.Y) - y) / height;
         double x1 = (end.X - x) / width;
         double y1 = ((pageHeight - end.Y) - y) / height;
         double dx = x1 - x0;
         double dy = y1 - y0;
+        if (!IsFiniteNumber(x0) || !IsFiniteNumber(y0) ||
+            !IsFiniteNumber(x1) || !IsFiniteNumber(y1) ||
+            !IsFiniteNumber(dx) || !IsFiniteNumber(dy)) return false;
         double t0 = 0D;
         double t1 = 1D;
         return ClipExactLineParameter(-dx, x0, ref t0, ref t1) &&
@@ -144,6 +149,8 @@ internal static class PdfPageContentVisualParser {
                ClipExactLineParameter(dy, 1D - y0, ref t0, ref t1) &&
                t1 > t0;
     }
+
+    private static bool IsFiniteNumber(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool ClipExactLineParameter(double p, double q, ref double t0, ref double t1) {
         if (Math.Abs(p) <= 0.000000001D) return q >= 0D;
@@ -379,7 +386,8 @@ internal static class PdfPageContentVisualParser {
                         operation.HasInvalidOperands);
                 },
                 maxNestingDepth: _maxNestingDepth,
-                maxOperands: _maxOperands);
+                maxOperands: _maxOperands,
+                dispatchInvalidOperations: _unsupportedOperatorVisitor != null);
 
             return _primitives == null || _primitives.Count == 0
                 ? Array.Empty<PdfPageVisualPrimitive>()
@@ -398,7 +406,7 @@ internal static class PdfPageContentVisualParser {
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
         private void ApplyOperator(string op, double paintOrder, bool hasInvalidOperands) {
-            if (_args.Count != 0 && RequiresZeroOperands(op)) {
+            if ((_args.Count != 0 || hasInvalidOperands) && RequiresZeroOperands(op)) {
                 _unsupportedOperatorVisitor?.Invoke(op);
             }
             switch (op) {

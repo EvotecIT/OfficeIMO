@@ -707,6 +707,59 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void VisualParser_RejectsOverflowedAxialShadingPlacement() {
+        var shading = new PdfPageShadingResource(
+            1D, 1D, 2D, 2D,
+            OfficeColor.Red,
+            OfficeColor.Blue);
+
+        bool supported = PdfPageContentVisualParser.IsSupportedExactShadingPlacement(
+            shading,
+            new Matrix2D(1e308D, 0D, 0D, 1e308D, 0D, 0D),
+            0D,
+            0D,
+            100D,
+            100D,
+            100D);
+
+        Assert.False(supported);
+    }
+
+    [Fact]
+    public void PatternStrokeBoundsIncludeDefaultMiterExtent() {
+        OfficePathCommand[] path = {
+            OfficePathCommand.MoveTo(10D, 90D),
+            OfficePathCommand.LineTo(50D, 10D),
+            OfficePathCommand.LineTo(90D, 90D)
+        };
+        Assert.True(PdfPageVisualPrimitive.TryCreatePath(
+            path,
+            fillColor: null,
+            fillGradient: null,
+            fillRadialGradient: null,
+            strokeColor: null,
+            strokeGradient: null,
+            strokeRadialGradient: null,
+            strokeWidth: 10D,
+            strokeDashStyle: OfficeStrokeDashStyle.Solid,
+            strokeLineCap: OfficeStrokeLineCap.Butt,
+            strokeLineJoin: null,
+            fillOpacity: null,
+            strokeOpacity: 1D,
+            fillRule: OfficeFillRule.NonZero,
+            clipPath: null,
+            paintOrder: 0D,
+            fillTilingPattern: null,
+            strokeTilingPattern: null,
+            retainPathCommands: true,
+            out PdfPageVisualPrimitive primitive));
+
+        Assert.True(PdfReadPage.TryGetTilingPatternStrokeBounds(primitive, 200D, 200D, out PdfPageClipPath bounds));
+        Assert.InRange(bounds.X, 0D, 0.001D);
+        Assert.InRange(bounds.Width, 139.999D, 140.001D);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForShearedOuterRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
