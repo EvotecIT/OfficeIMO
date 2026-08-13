@@ -224,6 +224,19 @@ public sealed class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
+    public void VariationSelectorWrappersHonorTheContainerEntryLimit() {
+        byte[] wrapper = CreateTextWrapper(CreateManifestStore());
+        var inspectOptions = new OfficeProvenanceOptions { MaxContainerEntries = 128 };
+        var removalOptions = new OfficeProvenanceRemovalOptions();
+        removalOptions.Limits.MaxContainerEntries = 128;
+
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(wrapper, "fixture.txt", inspectOptions));
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceRemover.Remove(wrapper, "fixture.txt", removalOptions));
+    }
+
+    [Fact]
     public void JpegInspectsAndRemovesAiDeclarationFromAdobeExtendedXmp() {
         byte[] extendedPacket = Encoding.UTF8.GetBytes(
             "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
@@ -452,6 +465,23 @@ public sealed class ProvenanceReviewRegressionContracts {
         package = AddEntryExtraFields(package, "keep.txt", Array.Empty<byte>(), zip64Extra);
         int centralHeader = FindSignature(package, 0x02014B50u, "keep.txt");
         WriteLittleEndian(package, centralHeader + 42, uint.MaxValue);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
+
+        Assert.Equal("keep", Encoding.UTF8.GetString(ReadZipEntry(result.ToArray(), "keep.txt")));
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void ZipRewriteResolvesAForcedZip64CentralDirectoryOffset() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+                using (Stream manifest = archive.CreateEntry("META-INF/content_credential.c2pa").Open()) WriteAll(manifest, CreateManifestStore());
+                using (Stream keep = archive.CreateEntry("keep.txt").Open()) WriteAll(keep, Encoding.UTF8.GetBytes("keep"));
+            }
+            package = PromoteToZip64CentralDirectoryOffset(stream.ToArray());
+        }
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "fixture.zip");
 
@@ -908,6 +938,34 @@ public sealed class ProvenanceReviewRegressionContracts {
         package[88] = 0xFF; package[89] = 0xFF;
         package[90] = 0xFF; package[91] = 0xFF;
         return package;
+    }
+
+    private static byte[] PromoteToZip64CentralDirectoryOffset(byte[] package) {
+        const int zip64RecordLength = 56;
+        const int zip64LocatorLength = 20;
+        int endOffset = FindEndOfCentralDirectory(package);
+        ushort entries = BitConverter.ToUInt16(package, endOffset + 10);
+        uint centralSize = BitConverter.ToUInt32(package, endOffset + 12);
+        uint centralOffset = BitConverter.ToUInt32(package, endOffset + 16);
+        byte[] result = new byte[package.Length + zip64RecordLength + zip64LocatorLength];
+        Buffer.BlockCopy(package, 0, result, 0, endOffset);
+        int zip64Offset = endOffset;
+        WriteLittleEndian(result, zip64Offset, 0x06064B50U);
+        WriteLittleEndian64(result, zip64Offset + 4, 44);
+        WriteLittleEndian16(result, zip64Offset + 12, 45);
+        WriteLittleEndian16(result, zip64Offset + 14, 45);
+        WriteLittleEndian64(result, zip64Offset + 24, entries);
+        WriteLittleEndian64(result, zip64Offset + 32, entries);
+        WriteLittleEndian64(result, zip64Offset + 40, centralSize);
+        WriteLittleEndian64(result, zip64Offset + 48, centralOffset);
+        int locatorOffset = zip64Offset + zip64RecordLength;
+        WriteLittleEndian(result, locatorOffset, 0x07064B50U);
+        WriteLittleEndian64(result, locatorOffset + 8, (ulong)zip64Offset);
+        WriteLittleEndian(result, locatorOffset + 16, 1);
+        int updatedEndOffset = locatorOffset + zip64LocatorLength;
+        Buffer.BlockCopy(package, endOffset, result, updatedEndOffset, package.Length - endOffset);
+        WriteLittleEndian(result, updatedEndOffset + 16, uint.MaxValue);
+        return result;
     }
 
     private static byte[] CreateTiffWithTwoIfds(int entriesPerIfd) {

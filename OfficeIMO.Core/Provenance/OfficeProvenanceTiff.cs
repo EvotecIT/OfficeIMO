@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Provenance;
 
@@ -9,6 +10,12 @@ internal static class OfficeProvenanceTiff {
     private const ushort XmpTag = 700;
     private const ushort ByteType = 1;
     private const ushort UndefinedType = 7;
+    private const ushort StripOffsetsTag = 273;
+    private const ushort StripByteCountsTag = 279;
+    private const ushort TileOffsetsTag = 324;
+    private const ushort TileByteCountsTag = 325;
+    private const ushort JpegInterchangeFormatTag = 513;
+    private const ushort JpegInterchangeFormatLengthTag = 514;
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         List<TiffIfd> ifds = ReadIfds(data, options);
@@ -53,7 +60,13 @@ internal static class OfficeProvenanceTiff {
                         $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",
                         pendingChanges,
                         out byte[] cleaned)) {
-                        if (HasOverlappingValueStorage(data, ifds, entry, xmpOffset, xmpLength)) {
+                        if (HasOverlappingValueStorage(
+                            data,
+                            ifds,
+                            entry,
+                            xmpOffset,
+                            xmpLength,
+                            options.Limits.MaxContainerEntries)) {
                             retained.Add(entry);
                             continue;
                         }
@@ -92,7 +105,8 @@ internal static class OfficeProvenanceTiff {
         List<TiffIfd> ifds,
         TiffEntry xmpEntry,
         int xmpOffset,
-        int xmpLength) {
+        int xmpLength,
+        int maximumContainerEntries) {
         long xmpEnd = (long)xmpOffset + xmpLength;
         foreach (TiffIfd ifd in ifds) {
             foreach (TiffEntry entry in ifd.Entries) {
@@ -100,19 +114,94 @@ internal static class OfficeProvenanceTiff {
                 long end = (long)offset + length;
                 if (offset < xmpEnd && xmpOffset < end) return true;
             }
+            if (HasOverlappingReferencedData(
+                data,
+                ifd,
+                StripOffsetsTag,
+                StripByteCountsTag,
+                xmpOffset,
+                xmpEnd,
+                maximumContainerEntries) ||
+                HasOverlappingReferencedData(
+                    data,
+                    ifd,
+                    TileOffsetsTag,
+                    TileByteCountsTag,
+                    xmpOffset,
+                    xmpEnd,
+                    maximumContainerEntries) ||
+                HasOverlappingReferencedData(
+                    data,
+                    ifd,
+                    JpegInterchangeFormatTag,
+                    JpegInterchangeFormatLengthTag,
+                    xmpOffset,
+                    xmpEnd,
+                    maximumContainerEntries)) return true;
         }
         return false;
     }
 
+    private static bool HasOverlappingReferencedData(
+        byte[] data,
+        TiffIfd ifd,
+        ushort offsetsTag,
+        ushort byteCountsTag,
+        int xmpOffset,
+        long xmpEnd,
+        int maximumContainerEntries) {
+        TiffEntry[] offsetsEntries = ifd.Entries.Where(entry => entry.Tag == offsetsTag).ToArray();
+        TiffEntry[] byteCountEntries = ifd.Entries.Where(entry => entry.Tag == byteCountsTag).ToArray();
+        if (offsetsEntries.Length == 0 && byteCountEntries.Length == 0) return false;
+        if (offsetsEntries.Length != 1 || byteCountEntries.Length != 1) return true;
+        TiffEntry offsets = offsetsEntries[0];
+        TiffEntry byteCounts = byteCountEntries[0];
+        if (offsets.Count != byteCounts.Count ||
+            offsets.Count == 0 || offsets.Count > (ulong)maximumContainerEntries || offsets.Count > int.MaxValue ||
+            !TryGetValueStorageRange(data, offsets, out int offsetsStorage, out _) ||
+            !TryGetValueStorageRange(data, byteCounts, out int byteCountsStorage, out _)) return true;
+
+        for (int index = 0; index < (int)offsets.Count; index++) {
+            if (!TryReadUnsignedValue(data, offsets, offsetsStorage, index, out ulong referencedOffset) ||
+                !TryReadUnsignedValue(data, byteCounts, byteCountsStorage, index, out ulong referencedLength) ||
+                referencedOffset > (ulong)data.Length || referencedLength > (ulong)data.Length - referencedOffset) return true;
+            ulong referencedEnd = referencedOffset + referencedLength;
+            if (referencedOffset < (ulong)xmpEnd && (ulong)xmpOffset < referencedEnd) return true;
+        }
+        return false;
+    }
+
+    private static bool TryReadUnsignedValue(
+        byte[] data,
+        TiffEntry entry,
+        int storageOffset,
+        int index,
+        out ulong value) {
+        value = 0;
+        int elementSize = GetElementSize(entry.Type);
+        if (elementSize == 0 || entry.Count > int.MaxValue || index < 0 || index >= (int)entry.Count) return false;
+        int offset = checked(storageOffset + index * elementSize);
+        if (offset > data.Length - elementSize) return false;
+        switch (entry.Type) {
+            case 3:
+                value = OfficeProvenanceBinary.ReadUInt16(data, offset, entry.LittleEndian);
+                return true;
+            case 4:
+            case 13:
+                value = OfficeProvenanceBinary.ReadUInt32(data, offset, entry.LittleEndian);
+                return true;
+            case 16:
+            case 18:
+                value = OfficeProvenanceBinary.ReadUInt64(data, offset, entry.LittleEndian);
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private static bool TryGetValueStorageRange(byte[] data, TiffEntry entry, out int offset, out int length) {
         offset = length = 0;
-        int elementSize = entry.Type switch {
-            1 or 2 or 6 or 7 => 1,
-            3 or 8 => 2,
-            4 or 9 or 11 or 13 => 4,
-            5 or 10 or 12 or 16 or 17 or 18 => 8,
-            _ => 0
-        };
+        int elementSize = GetElementSize(entry.Type);
         if (elementSize == 0 || entry.Count == 0 || entry.Count > (ulong)(int.MaxValue / elementSize)) return false;
         length = (int)entry.Count * elementSize;
         if (length <= entry.InlineSize) {
@@ -123,6 +212,14 @@ internal static class OfficeProvenanceTiff {
         offset = (int)entry.ValueOrOffset;
         return true;
     }
+
+    private static int GetElementSize(ushort type) => type switch {
+        1 or 2 or 6 or 7 => 1,
+        3 or 8 => 2,
+        4 or 9 or 11 or 13 => 4,
+        5 or 10 or 12 or 16 or 17 or 18 => 8,
+        _ => 0
+    };
 
     private static void WriteEntryCount(byte[] output, TiffEntry entry, ulong count) {
         if (entry.InlineSize == 8) OfficeProvenanceBinary.WriteUInt64(output, entry.Offset + 4, count, entry.LittleEndian);

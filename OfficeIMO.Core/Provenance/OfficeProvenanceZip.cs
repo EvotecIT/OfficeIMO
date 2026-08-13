@@ -232,7 +232,10 @@ internal static class OfficeProvenanceZip {
         }
 
         ulong entryCount = totalEntries;
-        if (totalEntries == ushort.MaxValue && HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
+        uint centralDirectorySize = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 12, littleEndian: true);
+        uint centralDirectoryOffset = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 16, littleEndian: true);
+        if ((totalEntries == ushort.MaxValue || centralDirectorySize == uint.MaxValue || centralDirectoryOffset == uint.MaxValue) &&
+            HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
             int locatorOffset = endOffset - 20;
             if (OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 4, littleEndian: true) != 0 ||
                 OfficeProvenanceBinary.ReadUInt32(data, locatorOffset + 16, littleEndian: true) != 1) {
@@ -286,9 +289,11 @@ internal static class OfficeProvenanceZip {
         const uint zip64EndSignature = 0x06064B50;
         const uint centralHeaderSignature = 0x02014B50;
         int endOffset = FindEndOfCentralDirectory(data);
+        uint centralSize = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 12, littleEndian: true);
         ulong centralOffset = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 16, littleEndian: true);
         ushort totalEntries = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 10, littleEndian: true);
-        if (totalEntries == ushort.MaxValue && HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
+        if ((totalEntries == ushort.MaxValue || centralSize == uint.MaxValue || centralOffset == uint.MaxValue) &&
+            HasZip64Locator(data, endOffset, zip64LocatorSignature)) {
             int locatorOffset = endOffset - 20;
             ulong recordOffset = OfficeProvenanceBinary.ReadUInt64(data, locatorOffset + 8, littleEndian: true);
             if (recordOffset > (ulong)(data.Length - 56) ||

@@ -62,8 +62,12 @@ internal static class OfficeProvenanceRiff {
                 bool remove = output != null && removalOptions != null && changes != null &&
                     removalOptions.RemoveC2paManifests &&
                     (valid || !removalOptions.RequireStructurallyValidCarrier);
-                if (remove) changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, total));
-                else output?.Write(data, offset, total);
+                if (remove) {
+                    changes!.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, total));
+                    reserialized = true;
+                } else {
+                    output?.Write(data, offset, total);
+                }
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP ")) {
                 byte[] packet = new byte[payloadLength];
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);

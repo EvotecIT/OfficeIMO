@@ -185,6 +185,7 @@ public sealed class ProvenanceCoreContracts {
 
         Assert.Equal(expected, result.ToArray());
         Assert.Equal(expected.Length - 8, BitConverter.ToInt32(expected, 4));
+        Assert.True(result.WasReserialized);
     }
 
     [Fact]
@@ -335,6 +336,21 @@ public sealed class ProvenanceCoreContracts {
     public void TiffPreservesXmpThatSharesStorageWithAnotherEntry() {
         byte[] xmp = CreateXmpPacket();
         byte[] tiff = CreateLittleEndianTiffWithSharedXmpStorage(xmp);
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
+
+        Assert.False(result.WasChanged);
+        Assert.Equal(tiff, result.ToArray());
+        Assert.True(result.After.HasGenerativeAiDeclaration);
+    }
+
+    [Theory]
+    [InlineData(273, 279)]
+    [InlineData(324, 325)]
+    [InlineData(513, 514)]
+    public void TiffPreservesXmpThatOverlapsReferencedImageData(int offsetsTag, int byteCountsTag) {
+        byte[] xmp = CreateXmpPacket();
+        byte[] tiff = CreateLittleEndianTiffWithReferencedXmpStorage(xmp, (ushort)offsetsTag, (ushort)byteCountsTag);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
 
@@ -935,6 +951,20 @@ public sealed class ProvenanceCoreContracts {
         result[8] = 2;
         WriteLittleEndianEntry(result, 10, 700, 1, xmp.Length, payloadOffset);
         WriteLittleEndianEntry(result, 22, 65000, 1, xmp.Length, payloadOffset);
+        Buffer.BlockCopy(xmp, 0, result, payloadOffset, xmp.Length);
+        return result;
+    }
+
+    private static byte[] CreateLittleEndianTiffWithReferencedXmpStorage(byte[] xmp, ushort offsetsTag, ushort byteCountsTag) {
+        const int payloadOffset = 50;
+        byte[] result = new byte[payloadOffset + xmp.Length];
+        result[0] = result[1] = (byte)'I';
+        result[2] = 42;
+        result[4] = 8;
+        result[8] = 3;
+        WriteLittleEndianEntry(result, 10, 700, 1, xmp.Length, payloadOffset);
+        WriteLittleEndianEntry(result, 22, offsetsTag, 4, 1, payloadOffset);
+        WriteLittleEndianEntry(result, 34, byteCountsTag, 4, 1, xmp.Length);
         Buffer.BlockCopy(xmp, 0, result, payloadOffset, xmp.Length);
         return result;
     }

@@ -170,6 +170,7 @@ internal static class OfficeProvenanceText {
         int maximumContainerEntries,
         bool includeInvalid) {
         int offset = 0;
+        int selectorCount = 0;
         while (offset < data.Length) {
             if (!TryReadCodePoint(data, offset, out int codePoint, out int prefixBytes) || codePoint != 0xFEFF) { offset++; continue; }
             int selectorOffset = offset + prefixBytes;
@@ -180,6 +181,9 @@ internal static class OfficeProvenanceText {
                 : maximumManifestBytes + 13L;
             bool exceededLimit = false;
             while (TryReadCodePoint(data, cursor, out int selector, out int selectorBytes) && TrySelectorToByte(selector, out byte value)) {
+                if (++selectorCount > maximumContainerEntries) {
+                    throw new InvalidDataException("Text provenance wrappers exceed the configured container entry limit.");
+                }
                 if (decoded.Count < maximumBufferedBytes && decoded.Count < int.MaxValue) decoded.Add(value);
                 else exceededLimit = true;
                 cursor += selectorBytes;

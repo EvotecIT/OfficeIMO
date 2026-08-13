@@ -28,7 +28,6 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         "assertion.boxesHash.match",
         "assertion.collectionHash.match",
         "ingredient.manifest.validated",
-        "ingredient.manifest.missing",
         "ingredient.claimSignature.validated"
     };
     private readonly IC2paToolProcessRunner _runner;
