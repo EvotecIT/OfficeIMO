@@ -28,14 +28,18 @@ internal static class PdfDocumentObjectGraphRewriter {
 
         IReadOnlyList<int> reachableObjectNumbers = collector.ObjectIds;
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        if (reachableObjectNumbers.Any(objectNumber =>
+        bool requiresPdf16 = reachableObjectNumbers.Any(objectNumber =>
                 objects[objectNumber].Value is PdfStream stream &&
-                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") &&
-            fileVersion < PdfFileVersion.Pdf16 &&
-            !CatalogDeclaresAtLeastPdf16(root.Value as PdfDictionary, objects)) {
-            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");
+        bool requiresPdf15 = reachableObjectNumbers.Any(objectNumber =>
+            objects[objectNumber].Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
+            ((int)flags.Value & 16777216) != 0);
+        PdfFileVersion minimumVersion = requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
+        if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
+            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
             if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
-                catalog.Items["Version"] = new PdfName("1.6");
+                catalog.Items["Version"] = new PdfName(PdfFileAssembler.GetHeaderVersion(minimumVersion));
                 collector = new PdfPageExtractor.ObjectCollector(objects);
                 collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
                 if (infoObjectNumber.HasValue) {
@@ -73,16 +77,17 @@ internal static class PdfDocumentObjectGraphRewriter {
             outputEncryption);
     }
 
-    private static bool CatalogDeclaresAtLeastPdf16(
+    private static bool CatalogDeclaresAtLeast(
         PdfDictionary? catalog,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfFileVersion minimumVersion) {
         string? version = catalog != null &&
             catalog.Items.TryGetValue("Version", out PdfObject? versionObject) &&
             TryResolveReferenceChain(objects, versionObject, out PdfObject? resolvedVersion) &&
             resolvedVersion is PdfName versionName
                 ? versionName.Name
                 : null;
-        return version == "1.6" || version == "1.7" || version == "2.0";
+        return version != null && PdfFileAssembler.ParseHeaderVersionOrDefault(version) >= minimumVersion;
     }
 
     private static bool TryResolveReferenceChain(

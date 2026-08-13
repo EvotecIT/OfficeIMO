@@ -360,6 +360,35 @@ public class PdfAcroFormEditorTests {
     }
 
     [Fact]
+    public void Edit_MoveRejectsCrossPageUnsignedSignatureWithResourceLessAppearance() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("First page"))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page"))
+            .ToBytes();
+        source = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Approval").Value);
+            var normalAppearance = new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q Q"));
+            int appearanceObjectNumber = objects.Keys.Max() + 1;
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, normalAppearance);
+            var appearances = new PdfDictionary();
+            appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+            widget.Items["AP"] = appearances;
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        Assert.NotEmpty(PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 1, 80, 450, 180, 40)).ToBytes());
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 2, 80, 450, 180, 40)));
+
+        Assert.Contains("appearance resources", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Edit_RejectsXfaWithoutChangingItsPackets() {
         byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4",

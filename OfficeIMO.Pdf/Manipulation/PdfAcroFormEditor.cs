@@ -20,7 +20,7 @@ internal static partial class PdfAcroFormEditor {
         var operations = new List<string>(session.Commands.Count);
         int[] pageObjectNumbers = source.Pages.Select(static page => page.ObjectNumber).ToArray();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
-            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations, appearanceOptions);
+            ApplyCommands(objects, security, pageObjectNumbers, session.Commands, refillValues, flattenNames, operations, appearanceOptions, source.ReadOptions.Limits);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
 
@@ -46,13 +46,13 @@ internal static partial class PdfAcroFormEditor {
         PdfDocumentInfo saved = PdfInspector.Inspect(output, savedReadOptions);
         IReadOnlyList<string> calculationOrder = ReadCalculationOrder(output, savedReadOptions);
         ValidateReadback(saved, calculationOrder, session.Commands);
-        bool requiresOpenTypeVersionUpgrade = RequiresOpenTypeVersionUpgrade(pdf, output, savedReadOptions);
+        bool requiresDocumentVersionUpgrade = RequiresDocumentVersionUpgrade(pdf, output, savedReadOptions);
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = source.ReadOptions,
             RewrittenReadOptions = savedReadOptions,
             PreserveForms = false,
             PreserveAnnotations = false,
-            PreserveDocumentVersionState = !requiresOpenTypeVersionUpgrade,
+            PreserveDocumentVersionState = !requiresDocumentVersionUpgrade,
             PreserveRevisionStructure = false,
             PreserveSecurityState = !session.Commands.Any(static command => command.Options?.Kind == PdfFormFieldCreationKind.Signature)
         };
@@ -60,16 +60,21 @@ internal static partial class PdfAcroFormEditor {
         return new PdfAcroFormEditResult(output, plan, preservation, saved.FormFields, calculationOrder, operations.AsReadOnly(), savedReadOptions);
     }
 
-    private static bool RequiresOpenTypeVersionUpgrade(
+    private static bool RequiresDocumentVersionUpgrade(
         byte[] sourcePdf,
         byte[] outputPdf,
         PdfReadOptions outputReadOptions) {
         PdfFileVersion sourceVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        if (sourceVersion >= PdfFileVersion.Pdf16) return false;
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(outputPdf, outputReadOptions).Map;
-        return objects.Values.Any(indirect =>
+        bool hasOpenType = objects.Values.Any(indirect =>
             indirect.Value is PdfStream stream &&
             stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");
+        bool hasComb = objects.Values.Any(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
+            ((int)flags.Value & FieldFlagComb) != 0);
+        return sourceVersion < PdfFileVersion.Pdf16 && hasOpenType ||
+            sourceVersion < PdfFileVersion.Pdf15 && hasComb;
     }
 
     private static IEnumerable<string> GetCommandFieldNames(PdfAcroFormEditSession.EditCommand command) {

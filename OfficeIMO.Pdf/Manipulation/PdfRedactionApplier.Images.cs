@@ -597,6 +597,7 @@ internal static partial class PdfRedactionApplier {
         var pageContentStreamNumbers = new HashSet<int>();
         var type3CharProcStreams = new HashSet<PdfStream>();
         var scannedStreams = new HashSet<PdfStream>();
+        bool hasUnscannableContentOwner = false;
         foreach (PdfIndirectObject candidate in objects.Values) {
             if (candidate.Value is not PdfDictionary page ||
                 !string.Equals(page.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) ||
@@ -623,20 +624,29 @@ internal static partial class PdfRedactionApplier {
             if (indirect.Value is not PdfStream stream ||
                 (!pageContentStreamNumbers.Contains(indirect.ObjectNumber) &&
                  !type3CharProcStreams.Contains(stream) &&
-                 !CanOwnContentInvocations(stream.Dictionary)) ||
-                stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) continue;
+                 !CanOwnContentInvocations(stream.Dictionary))) continue;
             ScanContentInvocations(stream);
         }
         foreach (PdfStream charProc in type3CharProcStreams) ScanContentInvocations(charProc);
+        if (hasUnscannableContentOwner) return false;
         bool changed = false;
         foreach (PdfIndirectObject indirect in objects.Values) changed = RemoveUnusedImageEntries(indirect.Value, objects, targetObjectNumbers, invokedNames) || changed;
         return changed;
 
         void ScanContentInvocations(PdfStream stream) {
-            if (!scannedStreams.Add(stream) ||
-                stream.DecodingFailed ||
-                StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) return;
-            string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
+            if (!scannedStreams.Add(stream)) return;
+            if (stream.DecodingFailed || StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
+                hasUnscannableContentOwner = true;
+                return;
+            }
+            byte[] decoded;
+            try {
+                decoded = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes);
+            } catch (InvalidDataException) {
+                hasUnscannableContentOwner = true;
+                return;
+            }
+            string content = PdfEncoding.Latin1GetString(decoded);
             foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(
                 content,
                 maxOperations: limits.MaxContentOperations,

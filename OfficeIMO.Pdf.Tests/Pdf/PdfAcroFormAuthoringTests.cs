@@ -515,6 +515,29 @@ public class PdfAcroFormAuthoringTests {
     }
 
     [Fact]
+    public void Create_PreflightsRepeatedRadioWidgetJavaScriptAgainstAggregateLimits() {
+        const string script = "app.alert('radio');";
+        long scriptBytes = PdfJavaScriptStringEncoding.EncodeUnicode(script, nameof(script)).LongLength;
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Radio action budget")).ToBytes();
+        var readOptions = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxJavaScripts = 3, MaxTotalJavaScriptBytes = scriptBytes * 3L - 1L }
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "choice",
+                Kind = PdfFormFieldCreationKind.RadioButtonGroup,
+                ChoiceOptions = new[] { "One", "Two", "Three" },
+                Value = "One",
+                Height = 100D,
+                JavaScript = script
+            })));
+
+        Assert.Equal(PdfReadLimitKind.JavaScriptBytes, exception.Kind);
+        Assert.Equal(scriptBytes * 3L, exception.Actual);
+    }
+
+    [Fact]
     public void Edit_AppliesJavaScriptBudgetsToTheFinalCommandAdjustedFieldGraph() {
         const string script = "app.alert('replacement');";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Script replacement budget")).ToBytes();

@@ -366,6 +366,34 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Apply_PreservesSharedImageAliasesWhenAContentOwnerCannotBeDecoded() {
+        const string pageContent = "q 20 0 0 20 20 30 cm /ImShared Do Q";
+        const string undecodableFormContent = "/ImShared Do";
+        const string imageBytes = "abc";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /ImShared 6 0 R /Fx 7 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + pageContent.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent, "endstream", "endobj",
+            "6 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length " + imageBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", imageBytes, "endstream", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /Resources << /XObject << /ImShared 6 0 R >> >> /Filter /RunLengthDecode /Length " + undecodableFormContent.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", undecodableFormContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfRedactionArea area = CreateImageCoveringArea(image, Assert.Single(image.Placements));
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(redacted).Map;
+        PdfStream form = Assert.IsType<PdfStream>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfStream stream && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form").Value);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(form.Dictionary.Items["Resources"]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
+
+        Assert.True(xObjects.Items.ContainsKey("ImShared"));
+    }
+
+    [Fact]
     public void Apply_AllowsExplicitImageOverlayWhenWeakerOutcomeIsAccepted() {
         byte[] source = BuildImageRedactionPlanningSource();
         PdfLogicalImage image = GetSingleImage(source);

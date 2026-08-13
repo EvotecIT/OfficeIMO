@@ -9,7 +9,8 @@ internal static partial class PdfAcroFormEditor {
         Dictionary<string, string> refillValues,
         List<string> flattenNames,
         List<string> operations,
-        PdfFormFillerOptions? appearanceOptions) {
+        PdfFormFillerOptions? appearanceOptions,
+        PdfReadLimits limits) {
         PdfDictionary catalog = RequireCatalog(objects, security);
         PdfDictionary acroForm = EnsureAcroForm(objects, catalog, out PdfArray fields);
         int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
@@ -17,7 +18,7 @@ internal static partial class PdfAcroFormEditor {
         foreach (PdfAcroFormEditSession.EditCommand command in commands) {
             switch (command.Kind) {
                 case PdfAcroFormEditSession.EditKind.Create:
-                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, refillValues, appearanceOptions, ref nextObjectNumber);
+                    ApplyCreate(objects, acroForm, fields, pageObjectNumbers, command.Options!, refillValues, appearanceOptions, limits, ref nextObjectNumber);
                     operations.Add("Create " + command.Options!.Name);
                     break;
                 case PdfAcroFormEditSession.EditKind.Rename:
@@ -61,13 +62,13 @@ internal static partial class PdfAcroFormEditor {
         }
     }
 
-    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, ref int nextObjectNumber) {
+    private static void ApplyCreate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm, PdfArray fields, int[] pages, PdfFormFieldCreateOptions options, Dictionary<string, string> refillValues, PdfFormFillerOptions? appearanceOptions, PdfReadLimits limits, ref int nextObjectNumber) {
         ValidateCreateOptions(options, pages.Length);
         if (FieldPathExists(objects, fields, options.Name)) throw new ArgumentException("PDF form field already exists: " + options.Name, nameof(options));
         (PdfArray fieldOwner, PdfReference? parentReference, string partialName) = EnsureCreatedFieldOwner(objects, fields, options.Name, ref nextObjectNumber);
         string appearanceFontName = EnsureAcroFormAppearanceDefaults(objects, acroForm);
         if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
-            ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, appearanceFontName, refillValues, appearanceOptions, ref nextObjectNumber);
+            ApplyCreateRadioButtonGroup(objects, acroForm, fieldOwner, parentReference, partialName, pages, options, appearanceFontName, refillValues, appearanceOptions, limits, ref nextObjectNumber);
             if (!acroForm.Items.ContainsKey("NeedAppearances")) acroForm.Items["NeedAppearances"] = new PdfBoolean(false);
             return;
         }
@@ -158,8 +159,8 @@ internal static partial class PdfAcroFormEditor {
         bool movesAcrossPages = sourcePageObjectNumber.HasValue
             ? sourcePageObjectNumber.Value != pages[pageNumber - 1]
             : !ReferencesObject(widget.Items.TryGetValue("P", out PdfObject? sourcePageObject) ? sourcePageObject : null, pages[pageNumber - 1]);
-        if (movesAcrossPages && IsPushButton(objects, field) && HasResourceLessPushButtonAppearance(objects, widget)) {
-            throw new NotSupportedException("Moving a push button with an appearance that inherits page resources to another page is not supported because its caption or icon resources cannot be preserved safely.");
+        if (movesAcrossPages && HasResourceLessNormalAppearance(objects, widget)) {
+            throw new NotSupportedException("Moving a field with an appearance that inherits page resources to another page is not supported because its appearance resources cannot be preserved safely.");
         }
         bool pushButtonSizeChanged = IsPushButton(objects, field) && !HasSameRectangleSize(objects, widget, rectangle);
         if (pushButtonSizeChanged && HasPushButtonIcon(objects, widget)) {
@@ -219,7 +220,7 @@ internal static partial class PdfAcroFormEditor {
              appearances.Items.TryGetValue("D", out PdfObject? down) && PdfObjectLookup.Resolve(objects, down) is not PdfNull);
     }
 
-    private static bool HasResourceLessPushButtonAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+    private static bool HasResourceLessNormalAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
         PdfDictionary? appearances = ResolveDictionary(
             objects,
             widget.Items.TryGetValue("AP", out PdfObject? appearanceObject) ? appearanceObject : null);

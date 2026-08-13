@@ -75,7 +75,9 @@ internal static partial class PdfAcroFormEditor {
         string appearanceFontName,
         Dictionary<string, string> refillValues,
         PdfFormFillerOptions? appearanceOptions,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
+        byte[]? encodedJavaScript = ValidateRepeatedWidgetJavaScript(options.JavaScript, options.ChoiceOptions.Count, limits);
         PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
         int parentObjectNumber = nextObjectNumber++;
         string selectedValue = ResolveInitialValue(options);
@@ -135,7 +137,7 @@ internal static partial class PdfAcroFormEditor {
             var appearances = new PdfDictionary();
             appearances.Items["N"] = normalAppearances;
             widget.Items["AP"] = appearances;
-            ApplyWidgetJavaScript(widget, options.JavaScript, usePrimaryAction: false);
+            ApplyWidgetJavaScript(widget, options.JavaScript, usePrimaryAction: false, encodedJavaScript);
             objects[widgetObjectNumber] = new PdfIndirectObject(widgetObjectNumber, 0, widget);
             var widgetReference = new PdfReference(widgetObjectNumber, 0);
             kids.Items.Add(widgetReference);
@@ -262,9 +264,22 @@ internal static partial class PdfAcroFormEditor {
         widget.Items["BS"] = border;
     }
 
-    private static void ApplyWidgetJavaScript(PdfDictionary widget, string? javaScript, bool usePrimaryAction) {
+    private static byte[]? ValidateRepeatedWidgetJavaScript(string? javaScript, int widgetCount, PdfReadLimits limits) {
+        if (javaScript is null) return null;
+        if (widgetCount > limits.MaxJavaScripts) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, limits.MaxJavaScripts, widgetCount);
+        }
+        byte[] encoded = PdfJavaScriptStringEncoding.EncodeUnicode(javaScript, nameof(javaScript));
+        long totalBytes = (long)encoded.Length * widgetCount;
+        if (totalBytes > limits.MaxTotalJavaScriptBytes) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, limits.MaxTotalJavaScriptBytes, totalBytes);
+        }
+        return encoded;
+    }
+
+    private static void ApplyWidgetJavaScript(PdfDictionary widget, string? javaScript, bool usePrimaryAction, byte[]? preencodedSource = null) {
         if (javaScript is null) return;
-        byte[] encodedSource = PdfJavaScriptStringEncoding.EncodeUnicode(javaScript, nameof(javaScript));
+        byte[] encodedSource = preencodedSource ?? PdfJavaScriptStringEncoding.EncodeUnicode(javaScript, nameof(javaScript));
         var action = new PdfDictionary();
         action.Items["S"] = new PdfName("JavaScript");
         action.Items["JS"] = new PdfStringObj(encodedSource, useTextStringEncoding: true);

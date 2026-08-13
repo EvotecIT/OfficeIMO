@@ -264,6 +264,18 @@ public class PdfAcroFormReviewRegressionTests {
     }
 
     [Fact]
+    public void Create_RaisesPdf14HeaderForCombTextField() {
+        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(
+            edit => edit.Create(new PdfFormFieldCreateOptions {
+                Name = "code",
+                Kind = PdfFormFieldCreationKind.Text,
+                Style = new PdfFormFieldStyle { IsComb = true, MaxLength = 4 }
+            }));
+
+        Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Create_RaisesAnOverridingCatalogVersionForOpenTypeCffPushButtonAppearance() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath is null) return;
