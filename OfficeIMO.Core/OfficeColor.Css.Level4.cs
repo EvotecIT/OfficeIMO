@@ -123,6 +123,14 @@ public readonly partial struct OfficeColor {
 
     private static bool TryParseColorMix(string arguments, int depth, out OfficeColor color) {
         color = default;
+        if (!TryParseHighPrecisionColorMix(arguments, depth, out CssMixColor mixed)) return false;
+        color = mixed.ToOfficeColor();
+        return true;
+    }
+
+    private static bool TryParseHighPrecisionColorMix(string arguments, int depth, out CssMixColor color) {
+        color = default;
+        if (depth > 8) return false;
         IReadOnlyList<string> parts = SplitTopLevelCommas(arguments);
         if (parts.Count != 3) return false;
 
@@ -143,7 +151,7 @@ public readonly partial struct OfficeColor {
         double weightedSecondAlpha = secondAlpha * secondWeight;
         double mixedAlpha = weightedFirstAlpha + weightedSecondAlpha;
         if (mixedAlpha <= 0D) {
-            color = Transparent;
+            color = new CssMixColor(0D, 0D, 0D, 0D);
             return true;
         }
 
@@ -167,16 +175,15 @@ public readonly partial struct OfficeColor {
         double red = PremultipliedMix(firstRed, secondRed, weightedFirstAlpha, weightedSecondAlpha, mixedAlpha);
         double green = PremultipliedMix(firstGreen, secondGreen, weightedFirstAlpha, weightedSecondAlpha, mixedAlpha);
         double blue = PremultipliedMix(firstBlue, secondBlue, weightedFirstAlpha, weightedSecondAlpha, mixedAlpha);
-        OfficeColor resolved = space == "srgb"
-            ? FromNormalizedSrgb(red, green, blue)
-            : space == "srgb-linear"
-                ? OfficeColorSpaceConverter.FromLinearSrgb(red, green, blue)
-                : OfficeColorSpaceConverter.FromOklab(red, green, blue);
-        color = FromRgba(
-            resolved.R,
-            resolved.G,
-            resolved.B,
-            ToByte(mixedAlpha * alphaMultiplier * 255D));
+        double alpha = mixedAlpha * alphaMultiplier;
+        if (space == "srgb") {
+            color = CssMixColor.FromEncodedSrgb(red, green, blue, alpha);
+        } else if (space == "srgb-linear") {
+            color = new CssMixColor(red, green, blue, alpha);
+        } else {
+            OfficeColorSpaceConverter.ToLinearSrgbFromOklab(red, green, blue, out double linearRed, out double linearGreen, out double linearBlue);
+            color = new CssMixColor(linearRed, linearGreen, linearBlue, alpha);
+        }
         return true;
     }
 
@@ -199,15 +206,16 @@ public readonly partial struct OfficeColor {
                 candidate = candidate.Substring(0, separator).Trim();
             }
         }
-        if (TryParseHighPrecisionColorFunction(candidate, out color)) return true;
+        if (TryParseHighPrecisionColorFunction(candidate, depth, out color)) return true;
         if (!TryParseCss(candidate, depth, out OfficeColor parsed)) return false;
         color = CssMixColor.FromOfficeColor(parsed);
         return true;
     }
 
-    private static bool TryParseHighPrecisionColorFunction(string candidate, out CssMixColor color) {
+    private static bool TryParseHighPrecisionColorFunction(string candidate, int depth, out CssMixColor color) {
         color = default;
         if (!TryReadFunction(candidate, out string name, out string arguments)) return false;
+        if (name == "color-mix") return TryParseHighPrecisionColorMix(arguments, depth + 1, out color);
         if (name == "lab" || name == "lch" || name == "oklab" || name == "oklch") {
             return TryParseHighPrecisionLabFunction(name, arguments, out color);
         }
@@ -558,6 +566,23 @@ public readonly partial struct OfficeColor {
                 color.R / 255D,
                 color.G / 255D,
                 color.B / 255D);
+
+        internal static CssMixColor FromEncodedSrgb(double red, double green, double blue, double alpha) =>
+            new CssMixColor(
+                DecodeSrgb(red),
+                DecodeSrgb(green),
+                DecodeSrgb(blue),
+                alpha,
+                red,
+                green,
+                blue);
+
+        internal OfficeColor ToOfficeColor() =>
+            FromRgba(
+                ToByte(EncodedRed * 255D),
+                ToByte(EncodedGreen * 255D),
+                ToByte(EncodedBlue * 255D),
+                ToByte(Alpha * 255D));
 
         internal void ToLinearSrgb(out double red, out double green, out double blue) {
             red = Red; green = Green; blue = Blue;

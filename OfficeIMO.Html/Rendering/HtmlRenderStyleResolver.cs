@@ -195,16 +195,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.HyphenateMinimumSuffixLength = parent?.HyphenateMinimumSuffixLength ?? 2;
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return;
-        if (normalized == "auto") {
-            style.HyphenateMinimumWordLength = 5;
-            style.HyphenateMinimumPrefixLength = 2;
-            style.HyphenateMinimumSuffixLength = 2;
-            return;
-        }
-        int[] values = HtmlRenderCssValues.SplitWhitespace(normalized)
-            .Select(token => int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1 ? parsed : -1)
+        string[] tokens = HtmlRenderCssValues.SplitWhitespace(normalized).ToArray();
+        int[] values = tokens
+            .Select((token, index) => token == "auto"
+                ? index == 0 ? 5 : 2
+                : int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1 ? parsed : -1)
             .ToArray();
         if (values.Length is < 1 or > 3 || values.Any(parsed => parsed < 1)) return;
+        style.HyphenateMinimumWordLength = 5;
+        style.HyphenateMinimumPrefixLength = 2;
+        style.HyphenateMinimumSuffixLength = 2;
         style.HyphenateMinimumWordLength = Math.Min(values[0], 10000);
         if (values.Length >= 2) style.HyphenateMinimumPrefixLength = Math.Min(values[1], 10000);
         if (values.Length >= 3) style.HyphenateMinimumSuffixLength = Math.Min(values[2], 10000);

@@ -171,18 +171,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("10", 2)]
-    [InlineData("10 4", 4)]
-    public void HtmlRendering_HyphenateLimitCharsKeepsOmittedComponentsAutomatic(string limits, int expectedPrefix) {
-        var document = HtmlConversionDocument.Parse("<div style='hyphenate-limit-chars:" + limits + "'>typography</div>").CreateDocumentForRendering();
+    [InlineData("10", 10, 2, 2)]
+    [InlineData("10 4", 10, 4, 2)]
+    [InlineData("auto 3 2", 5, 3, 2)]
+    [InlineData("10 auto 4", 10, 2, 4)]
+    public void HtmlRendering_HyphenateLimitCharsKeepsOmittedAndExplicitAutoComponentsAutomatic(string limits, int expectedWord, int expectedPrefix, int expectedSuffix) {
+        var document = HtmlConversionDocument.Parse("<div style='hyphenate-limit-chars:9 4 3'><span style='hyphenate-limit-chars:" + limits + "'>typography</span></div>").CreateDocumentForRendering();
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
 
-        HtmlRenderBoxStyle style = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions()).Resolve(document.QuerySelector("div")!, 120D);
+        HtmlRenderStyleResolver resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
+        HtmlRenderBoxStyle style = resolver.Resolve(document.QuerySelector("span")!, 120D, parent);
 
-        Assert.Equal(10, style.HyphenateMinimumWordLength);
+        Assert.Equal(expectedWord, style.HyphenateMinimumWordLength);
         Assert.Equal(expectedPrefix, style.HyphenateMinimumPrefixLength);
-        Assert.Equal(2, style.HyphenateMinimumSuffixLength);
+        Assert.Equal(expectedSuffix, style.HyphenateMinimumSuffixLength);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(hyphenate-limit-chars:" + limits + ")"));
     }
 
     [Fact]

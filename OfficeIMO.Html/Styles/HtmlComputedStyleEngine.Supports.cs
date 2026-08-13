@@ -359,10 +359,10 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool IsSupportedHyphenateLimitCharsSyntax(string value) {
-        if (value == "auto") return true;
         IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
         return parts.Count is >= 1 and <= 3
-            && parts.All(part => int.TryParse(part, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed) && parsed > 0);
+            && parts.All(part => part == "auto"
+                || int.TryParse(part, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed) && parsed > 0);
     }
 
     private static bool IsNonNegativeCssLengthOrPercentage(string value) =>

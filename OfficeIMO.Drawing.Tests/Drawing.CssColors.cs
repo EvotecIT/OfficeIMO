@@ -57,6 +57,16 @@ public sealed class DrawingCssColorTests {
         Assert.Equal(OfficeColor.FromRgb(188, 188, 0), OfficeColor.ParseCss("color-mix(in srgb-linear, red, lime)"));
     }
 
+    [Fact]
+    public void OfficeColor_PreservesNestedColorMixUntilTheOutermostGamutClip() {
+        OfficeColor nested = OfficeColor.ParseCss(
+            "color-mix(in srgb-linear,color-mix(in srgb-linear,color(display-p3 1 0 0),black),black)");
+        OfficeColor direct = OfficeColor.ParseCss(
+            "color-mix(in srgb-linear,color(display-p3 1 0 0) 25%,black 75%)");
+
+        Assert.Equal(direct, nested);
+    }
+
     [Theory]
     [InlineData("lab(50% 100 100)", 50D, 100D, 100D, false)]
     [InlineData("lch(50 141.421356 45deg)", 50D, 100D, 100D, false)]
