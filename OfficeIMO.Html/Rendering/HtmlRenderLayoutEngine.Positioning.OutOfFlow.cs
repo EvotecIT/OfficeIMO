@@ -204,7 +204,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .ThenBy(request => request.SourceOrder);
 
     private PositionedLayer LayoutPositionedElement(PositionedElementRequest request, double containingWidth, double containingHeight) {
+        HtmlRenderBoxStyle parentStyle = request.ParentStyle;
         HtmlRenderBoxStyle style = request.Style.Clone();
+        if (request.IsFixed) {
+            parentStyle = ResolveFixedPositionedParentStyle(request);
+            style = _styleResolver.Resolve(request.Element, containingWidth, parentStyle);
+        }
         string source = HtmlRenderStyleResolver.DescribeSource(request.Element);
         double? left = ResolveOutOfFlowInset(style.Left, containingWidth, style, source, "left");
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
@@ -219,7 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         style.Position = "static";
         style.ZIndex = "auto";
-        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, request.ParentStyle, request.Depth);
+        HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
         PositionedPoint staticPosition = ResolvePositionedStaticPoint(
             request,
             block,
@@ -230,6 +235,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x, y);
+    }
+
+    private HtmlRenderBoxStyle ResolveFixedPositionedParentStyle(PositionedElementRequest request) {
+        var ancestors = new Stack<IElement>();
+        for (IElement? ancestor = request.DirectParent; ancestor != null; ancestor = ancestor.ParentElement) {
+            ancestors.Push(ancestor);
+        }
+
+        HtmlRenderBoxStyle? parentStyle = null;
+        double containingWidth = _options.Mode == HtmlRenderMode.Paged
+            ? _activePageGeometry.ContentWidth
+            : Math.Max(1D, _options.ViewportWidth - _options.Margins.Left - _options.Margins.Right);
+        while (ancestors.Count > 0) {
+            parentStyle = _styleResolver.Resolve(ancestors.Pop(), containingWidth, parentStyle);
+        }
+        return parentStyle ?? request.ParentStyle;
     }
 
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
@@ -302,6 +323,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
         internal PositionedStaticAnchor? StaticAnchor { get; }
+        internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
             if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
                 _cached = engine.LayoutPositionedElement(this, width, height);
