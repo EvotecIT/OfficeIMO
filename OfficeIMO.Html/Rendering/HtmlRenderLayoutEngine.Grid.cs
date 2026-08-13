@@ -22,8 +22,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool usesColumnSubgrid = IsSubgridTrackList(style.GridTemplateColumns)
             && ReferenceEquals(_activeSubgridOwner, element)
             && _activeSubgridColumnSizes != null;
+        double inheritedColumnGap = usesColumnSubgrid && _activeSubgridColumnSizes!.Count > 1
+            ? style.ColumnGapWasSpecified ? style.ColumnGap : _activeSubgridColumnGap
+            : 0D;
         List<GridTrack> columnTracks = usesColumnSubgrid
-            ? _activeSubgridColumnSizes!.Select(size => GridTrack.Fixed(size, "subgrid")).ToList()
+            ? ResolveColumnSubgridTrackSizes(_activeSubgridColumnSizes!, contentWidth, _activeSubgridColumnGap, inheritedColumnGap, style)
+                .Select(size => GridTrack.Fixed(size, "subgrid"))
+                .ToList()
             : ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         List<GridTrack> rowTracks = ParseGridTracks(
             style.GridTemplateRows,
@@ -169,6 +174,49 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset));
         return true;
+    }
+
+    private static IReadOnlyList<double> ResolveColumnSubgridTrackSizes(
+        IReadOnlyList<double> inheritedSizes,
+        double contentWidth,
+        double parentGap,
+        double subgridGap,
+        HtmlRenderBoxStyle style) {
+        var sizes = inheritedSizes.Select(size => Math.Max(0D, size)).ToList();
+        if (sizes.Count == 0) return sizes;
+
+        if (sizes.Count == 1) {
+            sizes[0] -= style.BorderLeftWidth + style.PaddingLeft + style.BorderRightWidth + style.PaddingRight;
+        } else {
+            double halfGapDifference = (parentGap - subgridGap) / 2D;
+            sizes[0] += halfGapDifference - style.BorderLeftWidth - style.PaddingLeft;
+            sizes[sizes.Count - 1] += halfGapDifference - style.BorderRightWidth - style.PaddingRight;
+            for (int index = 1; index < sizes.Count - 1; index++) sizes[index] += halfGapDifference * 2D;
+        }
+        for (int index = 0; index < sizes.Count; index++) sizes[index] = Math.Max(0D, sizes[index]);
+
+        double targetTrackWidth = Math.Max(0D, contentWidth - subgridGap * Math.Max(0, sizes.Count - 1));
+        double adjustment = targetTrackWidth - sizes.Sum();
+        if (adjustment > 0.000001D) {
+            sizes[0] += adjustment / 2D;
+            sizes[sizes.Count - 1] += adjustment - adjustment / 2D;
+            return sizes;
+        }
+
+        double remaining = -adjustment;
+        for (int offset = 0; remaining > 0.000001D && offset < sizes.Count; offset++) {
+            int left = offset;
+            int right = sizes.Count - 1 - offset;
+            remaining = ReduceSubgridEdgeTrack(sizes, left, remaining);
+            if (remaining > 0.000001D && right != left) remaining = ReduceSubgridEdgeTrack(sizes, right, remaining);
+        }
+        return sizes;
+    }
+
+    private static double ReduceSubgridEdgeTrack(IList<double> sizes, int index, double requested) {
+        double applied = Math.Min(Math.Max(0D, requested), sizes[index]);
+        sizes[index] -= applied;
+        return requested - applied;
     }
 
     private HtmlRenderFlowBlock LayoutGridItem(

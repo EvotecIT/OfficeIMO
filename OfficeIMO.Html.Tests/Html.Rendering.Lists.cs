@@ -19,9 +19,11 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("lower-alpha", "d. ")]
     [InlineData("lower-greek", "δ. ")]
     [InlineData("decimal-leading-zero", "04. ")]
-    [InlineData("cjk-decimal", "四. ")]
-    [InlineData("hiragana", "え. ")]
-    [InlineData("katakana", "エ. ")]
+    [InlineData("cjk-decimal", "四、")]
+    [InlineData("hiragana", "え、")]
+    [InlineData("hiragana-iroha", "に、")]
+    [InlineData("katakana", "エ、")]
+    [InlineData("katakana-iroha", "ニ、")]
     public void HtmlRendering_FormatsStandardOrderedListCounterStyles(string style, string marker) {
         string html = "<ol start='4' style='list-style-type:" + style + "'><li>Item</li></ol>";
 
@@ -31,10 +33,10 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("cjk-decimal", 204, "二〇四. ")]
+    [InlineData("cjk-decimal", 204, "二〇四、")]
     [InlineData("full-width", 204, "２０４. ")]
-    [InlineData("cjk-heavenly-stem", 10, "癸. ")]
-    [InlineData("cjk-earthly-branch", 12, "亥. ")]
+    [InlineData("cjk-heavenly-stem", 10, "癸、")]
+    [InlineData("cjk-earthly-branch", 12, "亥、")]
     public void HtmlRendering_FormatsBoundedEastAsianCounterStyles(string style, int start, string marker) {
         string html = "<ol start='" + start + "' style='list-style-type:" + style + "'><li>Item</li></ol>";
 

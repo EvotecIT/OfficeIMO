@@ -115,7 +115,9 @@ internal static class HtmlCounterStyleFormatter {
 
     internal static string MarkerSuffix(string style, bool ordered) {
         string normalized = HtmlCssEscapeDecoder.Decode(style.Trim()).ToLowerInvariant();
-        if (normalized is "japanese-informal" or "japanese-formal"
+        if (normalized is "cjk-decimal" or "cjk-heavenly-stem" or "cjk-earthly-branch"
+            or "hiragana" or "hiragana-iroha" or "katakana" or "katakana-iroha"
+            or "japanese-informal" or "japanese-formal"
             or "simp-chinese-informal" or "simp-chinese-formal"
             or "trad-chinese-informal" or "trad-chinese-formal" or "cjk-ideographic") return "、";
         if (normalized is "korean-hangul-formal" or "korean-hanja-informal" or "korean-hanja-formal") return ", ";

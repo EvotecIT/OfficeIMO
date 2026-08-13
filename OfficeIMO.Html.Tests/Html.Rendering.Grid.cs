@@ -88,6 +88,59 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_ColumnSubgridFitsInheritedTracksInsideItsEdgeInsets() {
+        const string html = """
+            <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">
+              <div style="display:grid;grid-column:1 / span 2;grid-template-columns:subgrid;padding-left:10px;padding-right:20px;border-left:2px solid black;border-right:3px solid black">
+                <span id="inset-subgrid-a" style="background:#ff0000">A</span>
+                <span id="inset-subgrid-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 230D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#inset-subgrid-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#inset-subgrid-b");
+
+        Assert.Equal(12D, first.X, 3);
+        Assert.Equal(48D, first.Width, 3);
+        Assert.Equal(70D, second.X, 3);
+        Assert.Equal(117D, second.Width, 3);
+        Assert.Equal(187D, second.X + second.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_ColumnSubgridCentersDifferentGapsOnInheritedGridLines() {
+        const string html = """
+            <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">
+              <div style="display:grid;grid-column:1 / span 2;grid-template-columns:subgrid;column-gap:0">
+                <span id="zero-gap-a" style="background:#ff0000">A</span>
+                <span id="zero-gap-b" style="background:#0000ff">B</span>
+              </div>
+              <div style="display:grid;grid-column:1 / span 2;grid-template-columns:subgrid;column-gap:20px">
+                <span id="wide-gap-a" style="background:#ff0000">A</span>
+                <span id="wide-gap-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 230D);
+        HtmlRenderShape zeroFirst = FindGridShape(rendered, "span#zero-gap-a");
+        HtmlRenderShape zeroSecond = FindGridShape(rendered, "span#zero-gap-b");
+        HtmlRenderShape wideFirst = FindGridShape(rendered, "span#wide-gap-a");
+        HtmlRenderShape wideSecond = FindGridShape(rendered, "span#wide-gap-b");
+
+        Assert.Equal(65D, zeroFirst.Width, 3);
+        Assert.Equal(65D, zeroSecond.X, 3);
+        Assert.Equal(145D, zeroSecond.Width, 3);
+        Assert.Equal(55D, wideFirst.Width, 3);
+        Assert.Equal(75D, wideSecond.X, 3);
+        Assert.Equal(135D, wideSecond.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_MinmaxAutoPreservesTheAutomaticItemMinimum() {
         const string html = "<div style='display:grid;width:200px;grid-template-columns:minmax(auto,1fr) minmax(0,1fr)'>"
             + "<span id='automatic-floor' style='white-space:nowrap;background:red'>unbreakable-automatic-minimum</span>"
