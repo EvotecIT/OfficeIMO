@@ -27,6 +27,36 @@ internal static class PdfDocumentObjectGraphRewriter {
         }
 
         IReadOnlyList<int> reachableObjectNumbers = collector.ObjectIds;
+        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
+        bool requiresPdf20 = reachableObjectNumbers.Any(objectNumber =>
+            objects[objectNumber].Value is PdfDictionary dictionary &&
+            string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
+            string.Equals(dictionary.Get<PdfName>("Tabs")?.Name, "A", StringComparison.Ordinal));
+        bool requiresPdf16 = reachableObjectNumbers.Any(objectNumber =>
+                objects[objectNumber].Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType");
+        bool requiresPdf15 = reachableObjectNumbers.Any(objectNumber =>
+            objects[objectNumber].Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfNumber>("Ff") is PdfNumber flags &&
+            ((int)flags.Value & (16777216 | 33554432 | 67108864)) != 0) ||
+            reachableObjectNumbers.Any(objectNumber =>
+                objects[objectNumber].Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal) &&
+                dictionary.Get<PdfName>("Tabs") is not null);
+        PdfFileVersion minimumVersion = requiresPdf20 ? PdfFileVersion.Pdf20 : requiresPdf16 ? PdfFileVersion.Pdf16 : requiresPdf15 ? PdfFileVersion.Pdf15 : PdfFileVersion.Pdf14;
+        if (fileVersion < minimumVersion && !CatalogDeclaresAtLeast(root.Value as PdfDictionary, objects, minimumVersion)) {
+            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, minimumVersion);
+            if (root.Value is PdfDictionary catalog && catalog.Items.ContainsKey("Version")) {
+                catalog.Items["Version"] = new PdfName(PdfFileAssembler.GetHeaderVersion(minimumVersion));
+                collector = new PdfPageExtractor.ObjectCollector(objects);
+                collector.CollectObjectGraph(new PdfReference(root.ObjectNumber, root.Generation));
+                if (infoObjectNumber.HasValue) {
+                    PdfIndirectObject info = objects[infoObjectNumber.Value];
+                    collector.CollectObjectGraph(new PdfReference(info.ObjectNumber, info.Generation));
+                }
+                reachableObjectNumbers = collector.ObjectIds;
+            }
+        }
         var numberMap = new Dictionary<int, int>(reachableObjectNumbers.Count);
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             numberMap[reachableObjectNumbers[i]] = i + 1;
@@ -45,7 +75,6 @@ internal static class PdfDocumentObjectGraphRewriter {
             serializedObjects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, body));
         }
 
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
         return PdfFileAssembler.Assemble(
@@ -54,6 +83,37 @@ internal static class PdfDocumentObjectGraphRewriter {
             rewrittenInfoObjectNumber,
             fileVersion,
             outputEncryption);
+    }
+
+    private static bool CatalogDeclaresAtLeast(
+        PdfDictionary? catalog,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfFileVersion minimumVersion) {
+        string? version = catalog != null &&
+            catalog.Items.TryGetValue("Version", out PdfObject? versionObject) &&
+            TryResolveReferenceChain(objects, versionObject, out PdfObject? resolvedVersion) &&
+            resolvedVersion is PdfName versionName
+                ? versionName.Name
+                : null;
+        return version != null && PdfFileAssembler.ParseHeaderVersionOrDefault(version) >= minimumVersion;
+    }
+
+    private static bool TryResolveReferenceChain(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? value,
+        out PdfObject? resolved) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        resolved = value;
+        while (resolved is PdfReference reference) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Generation != reference.Generation) {
+                resolved = null;
+                return false;
+            }
+            resolved = indirect.Value;
+        }
+        return true;
     }
 
     private static int RequireRootObjectNumber(

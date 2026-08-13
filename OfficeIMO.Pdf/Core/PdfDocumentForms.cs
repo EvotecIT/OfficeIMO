@@ -301,6 +301,12 @@ public sealed class PdfDocumentForms {
     /// <summary>Transactionally creates or edits fields, widgets, ordering, and selective flattening.</summary>
     public PdfAcroFormEditResult Edit(Action<PdfAcroFormEditSession> edit) => PdfAcroFormEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions);
 
+    /// <summary>Transactionally creates or edits fields using the configured embedded-font policy for generated appearances.</summary>
+    public PdfAcroFormEditResult Edit(Action<PdfAcroFormEditSession> edit, PdfFormFillerOptions appearanceOptions) {
+        Guard.NotNull(appearanceOptions, nameof(appearanceOptions));
+        return PdfAcroFormEditor.Edit(_document.GetBytesForOperation(), edit, _document.ReadOptions, appearanceOptions);
+    }
+
     private static PdfIncrementalFormFieldUpdateOptions CreateIncrementalOptions(PdfFormFillerOptions? formOptions) {
         if (formOptions?.HasAppearanceFontFamily == true || formOptions?.HasAppearanceFontFallbacks == true) {
             throw new NotSupportedException("Append-only form updates cannot yet embed custom appearance fonts. Use the default appearance policy or a PDF that permits full rewrite.");

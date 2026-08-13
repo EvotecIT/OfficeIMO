@@ -285,6 +285,12 @@
     "WebMcp": false,
     "MarkdownNegotiation": true
   },
+  "Cloudflare": {
+    "Cache": {
+      "EdgeTtlSeconds": 604800
+    },
+    "PurgeMode": "hostname"
+  },
   "EditLinks": {
     "Enabled": true,
     "Template": "https://github.com/EvotecIT/OfficeIMO/edit/master/{path}",

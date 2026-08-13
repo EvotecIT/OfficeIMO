@@ -6,6 +6,95 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfFormFillerTests {
     [Fact]
+    public void FillFields_EmptyChoiceValueClearsSelectionAndRebuildsBlankAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = string.Empty
+        });
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.DoesNotContain("<506F6C616E64> Tj", PdfEncoding.Latin1GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppendRevision_EmptyChoiceValueClearsSelectionAndRebuildsBlankAppearance() {
+        byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "PL"
+        });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        PdfFormField field = Assert.Single(appended.Inspect().FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.True(appended.Inspect().Security.HasIncrementalUpdates);
+        Assert.DoesNotContain("<506F6C616E64> Tj", GetFlattenedAppearanceStreamText(
+            PdfFormFiller.FlattenFields(appended.ToBytes())), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_EmptyChoiceValueSelectsDeclaredEmptyExportOption() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdfWithEmptyOption(), new Dictionary<string, string> {
+            ["Country"] = string.Empty
+        });
+
+        Assert.Contains("<4E6F6E65> Tj", PdfEncoding.Latin1GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppendRevision_EmptyChoiceValueSelectsDeclaredEmptyExportOption() {
+        byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdfWithEmptyOption(), new Dictionary<string, string> {
+            ["Country"] = "PL"
+        });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        string appearance = GetFlattenedAppearanceStreamText(PdfFormFiller.FlattenFields(appended.ToBytes()));
+        Assert.Contains("<4E6F6E65> Tj", appearance, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppendRevision_EmptyChoiceValueSelectsInheritedEmptyExportOption() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            PdfEncoding.Latin1GetString(BuildInheritedChoiceWidgetFormPdf())
+                .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]"));
+
+        byte[] appendable = PdfFormFiller.FillFields(
+            source,
+            new Dictionary<string, string> { ["Selection.Country"] = "PL" });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Selection.Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        PdfFormField field = Assert.Single(appended.Inspect().FormFields);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.Contains(
+            "<4E6F6E65> Tj",
+            GetFlattenedAppearanceStreamText(PdfFormFiller.FlattenFields(appended.ToBytes())),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppendRevision_EmptyMultiSelectChoiceStoresAnEmptyArray() {
+        byte[] appendable = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
+            ["Country"] = PdfFormFieldValue.FromValues("PL", "US")
+        });
+        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+            new Dictionary<string, string> { ["Country"] = string.Empty },
+            new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
+
+        PdfFormField field = Assert.Single(appended.Inspect().FormFields);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(appended.ToBytes(), null).Map;
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(objects[field.ObjectNumber!.Value].Value);
+
+        Assert.True(field.AllowsMultipleSelection);
+        Assert.Empty(field.Values);
+        Assert.Empty(Assert.IsType<PdfArray>(dictionary.Items["V"]).Items);
+        Assert.False(dictionary.Items.ContainsKey("I"));
+    }
+
+    [Fact]
     public void FillAndFlattenFields_PaintsChoiceOptionDisplayText() {
         byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Country"] = "PL"
@@ -208,5 +297,11 @@ public partial class PdfFormFillerTests {
         Assert.True(preflight.CanFlattenSimpleFormFields);
         Assert.True(preflight.CanFillAndFlattenSimpleFormFields);
         Assert.Empty(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FlattenSimpleFormFields));
+    }
+
+    private static byte[] BuildChoiceWidgetFormPdfWithEmptyOption() {
+        string pdf = PdfEncoding.Latin1GetString(BuildChoiceWidgetFormPdf())
+            .Replace("/Opt [[(PL) (Poland)]", "/Opt [[() (None)] [(PL) (Poland)]");
+        return Encoding.ASCII.GetBytes(pdf);
     }
 }

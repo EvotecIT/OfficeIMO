@@ -16,6 +16,25 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        out byte[] pngBytes) =>
+        TryBuildPngFile(
+            colorSpaceObj,
+            width,
+            height,
+            bitsPerComponent,
+            stream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out pngBytes);
+
+    internal static bool TryBuildPngFile(
+        PdfObject? colorSpaceObj,
+        int width,
+        int height,
+        int bitsPerComponent,
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
@@ -24,13 +43,13 @@ internal static class PdfIndexedImageNormalizer {
             return false;
         }
 
-        if (!TryReadDecodedStreamBytes(stream, objects, out var indexedPixels)) {
+        if (!TryReadDecodedStreamBytes(stream, objects, maximumDecodedStreamBytes, out var indexedPixels)) {
             return false;
         }
 
         var decodeTransform = PdfImageDecodeTransform.CreateIndexed(stream.Dictionary, indexedPalette.Length / 3 - 1, objects);
         if (stream.Dictionary.Items.ContainsKey("SMask")) {
-            return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, out pngBytes);
+            return TryBuildPngFileFromIndexedPixelsWithSoftMask(width, height, bitsPerComponent, indexedPalette, decodeTransform, indexedPixels, stream, objects, maximumDecodedStreamBytes, out pngBytes);
         }
 
         var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, 1, objects);
@@ -157,8 +176,9 @@ internal static class PdfIndexedImageNormalizer {
     private static bool TryReadDecodedStreamBytes(
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedStreamBytes,
         out byte[] bytes) {
-        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes) && bytes.Length > 0;
+        return PdfImageStreamDecoder.TryDecode(stream, objects, out bytes, maximumDecodedStreamBytes) && bytes.Length > 0;
     }
 
     private static bool TryBuildPngFileFromIndexedPixels(
@@ -303,6 +323,7 @@ internal static class PdfIndexedImageNormalizer {
         byte[] indexedPixels,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
+        int maximumDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
@@ -322,7 +343,7 @@ internal static class PdfIndexedImageNormalizer {
             softMaskHeight != height ||
             softMaskBitsPerComponent != 8 ||
             !string.Equals(softMaskColorSpace, "DeviceGray", StringComparison.Ordinal) ||
-            !TryReadDecodedStreamBytes(softMask, objects, out var alphaPixels)) {
+            !TryReadDecodedStreamBytes(softMask, objects, maximumDecodedStreamBytes, out var alphaPixels)) {
             return false;
         }
 

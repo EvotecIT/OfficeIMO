@@ -64,7 +64,7 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void ActiveContentBlocksAppendOnlyMetadataAndFormMutations() {
+    public void ActiveContentBlocksMetadataAndFormFillUntilItCanBePreservedSafely() {
         byte[] metadataSource = WithCatalogAction(
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Active metadata source")).ToBytes());
         byte[] formSource = WithCatalogAction(
@@ -85,9 +85,11 @@ public class PdfMutationPlannerTests {
         Assert.False(metadataPlan.CanExecute);
         Assert.False(metadataPlan.AppendOnlyAvailable);
         Assert.False(formPlan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.Blocked, formPlan.ExecutionMode);
         Assert.False(formPlan.AppendOnlyAvailable);
         Assert.False(metadataResult.Succeeded);
         Assert.False(formResult.Succeeded);
+        Assert.Contains(formPlan.BlockerCodes, static code => code == "FullRewrite.OpenActions");
     }
 
     [Fact]

@@ -23,7 +23,8 @@ public sealed class PdfRedactionMatch {
         string? text,
         string? subtype,
         int? objectNumber,
-        string? resourceName = null) {
+        string? resourceName = null,
+        PdfImagePlacement? imagePlacement = null) {
         Kind = kind;
         Area = area;
         PageNumber = pageNumber;
@@ -35,6 +36,7 @@ public sealed class PdfRedactionMatch {
         Subtype = subtype;
         ObjectNumber = objectNumber;
         ResourceName = resourceName;
+        ImagePlacement = imagePlacement;
     }
 
     /// <summary>Matched content kind.</summary>
@@ -69,4 +71,6 @@ public sealed class PdfRedactionMatch {
 
     /// <summary>Related PDF resource name, when matching an image placement.</summary>
     public string? ResourceName { get; }
+
+    internal PdfImagePlacement? ImagePlacement { get; }
 }

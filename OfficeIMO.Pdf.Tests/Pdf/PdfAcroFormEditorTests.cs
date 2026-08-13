@@ -6,6 +6,129 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAcroFormEditorTests {
     [Fact]
+    public void Edit_ValidatesChoiceDefaultsAgainstAuthoredOptions() {
+        byte[] list = PdfDocument.Create().ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland").ToBytes();
+        byte[] editableCombo = PdfDocument.Create()
+            .ChoiceField(
+                "Country",
+                new[] { "Poland", "Germany" },
+                value: "Poland",
+                style: new PdfFormFieldStyle { IsEditableChoice = true })
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "France")));
+
+        PdfAcroFormEditResult listed = PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "Germany"));
+        PdfAcroFormEditResult arbitrary = PdfDocument.Open(editableCombo).Forms.Edit(edit => edit.SetDefaultValue("Country", "France"));
+        Assert.Equal("Germany", Assert.Single(listed.Fields).DefaultValue);
+        Assert.Equal("France", Assert.Single(arbitrary.Fields).DefaultValue);
+    }
+
+    [Fact]
+    public void Edit_RejectsButtonDefaultsWithoutMatchingAppearanceStates() {
+        byte[] checkBox = PdfDocument.Create().CheckBox("Choice", isChecked: true).ToBytes();
+        byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetDefaultValue("Choice", "No")));
+        Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Three")));
+
+        PdfAcroFormEditResult valid = PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Two"));
+        Assert.Equal("Two", Assert.Single(valid.Fields).DefaultValue);
+    }
+
+    [Fact]
+    public void Edit_RejectsDefaultValuesForPushButtons() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push default")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit"
+        })).ToBytes();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Open(authored).Forms.Edit(edit => edit.SetDefaultValue("Submit", "On")));
+
+        Assert.Contains("push-button", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_ValidatesOnlyFinalOrderingCommandsInOneTransaction() {
+        byte[] source = PdfDocument.Create()
+            .TextField("First", value: "1")
+            .TextField("Second", value: "2")
+            .ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetTabOrder(1, PdfPageTabOrder.Column)
+            .SetCalculationOrder("First", "Second")
+            .SetTabOrder(1, PdfPageTabOrder.Row)
+            .SetCalculationOrder("Second", "First"));
+
+        Assert.Equal("R", PdfInspector.Inspect(result.ToBytes()).Pages[0].TabOrder);
+        Assert.Equal(new[] { "Second", "First" }, result.CalculationOrder);
+    }
+
+    [Fact]
+    public void Edit_RetargetsDeferredFlatteningAndCalculationOrderThroughLaterTreeEdits() {
+        byte[] source = PdfDocument.Create()
+            .TextField("FlattenMe", value: "one")
+            .TextField("RenameMe", value: "two")
+            .TextField("RemoveMe", value: "three")
+            .ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetCalculationOrder("RenameMe", "RemoveMe")
+            .Flatten("FlattenMe")
+            .Rename("FlattenMe", "FlattenedName")
+            .Rename("RenameMe", "Renamed")
+            .Remove("RemoveMe"));
+
+        Assert.Equal(new[] { "Renamed" }, result.CalculationOrder);
+        Assert.Equal(new[] { "Renamed" }, result.Fields.Select(static field => field.Name).ToArray());
+    }
+
+    [Fact]
+    public void Edit_AllowsRecreatingOriginalNameAfterFlattenedFieldIsRenamed() {
+        byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Flatten("f")
+            .Rename("f", "g")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "new" }));
+
+        PdfFormField field = Assert.Single(result.Fields);
+        Assert.Equal("f", field.Name);
+        Assert.Equal("new", field.Value);
+    }
+
+    [Fact]
+    public void Edit_AllowsReplacingAFieldAfterEarlierFlagsAndFlattenCommands() {
+        byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
+
+        PdfAcroFormEditResult afterFlags = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetFlags("f", 1)
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flags replacement" }));
+        PdfAcroFormEditResult afterFlatten = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Flatten("f")
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flatten replacement" }));
+        PdfAcroFormEditResult afterDefaultValue = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetDefaultValue("f", "old default")
+            .Remove("f")
+            .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "default replacement", DefaultValue = "new default" }));
+
+        Assert.Equal("flags replacement", Assert.Single(afterFlags.Fields).Value);
+        Assert.Equal("flatten replacement", Assert.Single(afterFlatten.Fields).Value);
+        PdfFormField defaultReplacement = Assert.Single(afterDefaultValue.Fields);
+        Assert.Equal("default replacement", defaultReplacement.Value);
+        Assert.Equal("new default", defaultReplacement.DefaultValue);
+    }
+
+    [Fact]
     public void Edit_AppliesFieldTreeWidgetOrderAndSelectiveFlattenTransaction() {
         byte[] source = PdfDocument.Create()
             .TextField("Person.Name", value: "Ada")
@@ -99,6 +222,127 @@ public class PdfAcroFormEditorTests {
         Assert.Equal("Created.Name", field.Name);
         Assert.Equal("Ada", field.Value);
         Assert.Equal(1, Assert.Single(field.Widgets).PageNumber);
+
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfIndirectObject parentObject = Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Created");
+        PdfDictionary parent = Assert.IsType<PdfDictionary>(parentObject.Value);
+        PdfReference childReference = Assert.IsType<PdfReference>(Assert.Single(Assert.IsType<PdfArray>(parent.Items["Kids"]).Items));
+        PdfDictionary child = Assert.IsType<PdfDictionary>(objects[childReference.ObjectNumber].Value);
+        Assert.Equal("Name", Assert.IsType<PdfStringObj>(child.Items["T"]).Value);
+        Assert.Equal(parentObject.ObjectNumber, Assert.IsType<PdfReference>(child.Items["Parent"]).ObjectNumber);
+    }
+
+    [Fact]
+    public void Edit_RejectsTerminalNamesThatCollideWithNonterminalParents() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Field hierarchy collisions")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .Create(new PdfFormFieldCreateOptions { Name = "Customer.Notes", Value = "kept" })
+            .Create(new PdfFormFieldCreateOptions { Name = "Other", Value = "rename source" }))
+            .ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Create(
+            new PdfFormFieldCreateOptions { Name = "Customer", Value = "invalid" })));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("Other", "Customer")));
+    }
+
+    [Fact]
+    public void Edit_MoveRegeneratesAnEmptyChoiceAppearanceForTheNewBounds() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Empty choice move")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Country",
+            Kind = PdfFormFieldCreationKind.Choice,
+            ChoiceOptions = new[] { "Poland", "Germany" },
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+
+        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Country", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Country").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+        PdfArray boundingBox = Assert.IsType<PdfArray>(normalAppearance.Dictionary.Items["BBox"]);
+
+        Assert.Equal(new[] { 0D, 0D, 200D, 40D }, boundingBox.Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
+
+    [Fact]
+    public void Edit_MoveRegeneratesPushButtonCaptionAppearanceForTheNewBounds() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push button move")).ToBytes();
+        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit",
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+
+        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Submit", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Submit").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+        PdfArray boundingBox = Assert.IsType<PdfArray>(normalAppearance.Dictionary.Items["BBox"]);
+
+        Assert.Equal(new[] { 0D, 0D, 200D, 40D }, boundingBox.Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
+
+    [Fact]
+    public void Edit_MoveRejectsResizingAnIconBearingPushButton() {
+        byte[] source = BuildIconPushButtonPdf();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Icon", 1, 20D, 80D, 120D, 40D)));
+
+        Assert.Contains("icon", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_MoveRejectsCrossPagePushButtonWithResourceLessAppearance() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("First page"))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page"))
+            .ToBytes();
+        source = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "Submit",
+            Kind = PdfFormFieldCreationKind.PushButton,
+            Caption = "Submit",
+            PageNumber = 1,
+            Width = 120D,
+            Height = 24D
+        })).ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Submit").Value);
+            PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+            PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+            PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+            normalAppearance.Dictionary.Items.Remove("Resources");
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        byte[] samePageMove = PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.Move("Submit", 1, 80D, 430D, 120D, 24D)).ToBytes();
+        Assert.NotEmpty(samePageMove);
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Submit", 2, 72D, 440D, 120D, 24D)));
+
+        Assert.Contains("page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -113,6 +357,35 @@ public class PdfAcroFormEditorTests {
         Assert.Equal(440D, widget.Y1, 3);
         Assert.Equal(290D, widget.X2, 3);
         Assert.Equal(490D, widget.Y2, 3);
+    }
+
+    [Fact]
+    public void Edit_MoveRejectsCrossPageUnsignedSignatureWithResourceLessAppearance() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("First page"))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page"))
+            .ToBytes();
+        source = PdfAcroFormEditor.Edit(source, edit => edit.PlaceSignatureField("Approval", 1, 72, 500, 180, 40)).ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Approval").Value);
+            var normalAppearance = new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q Q"));
+            int appearanceObjectNumber = objects.Keys.Max() + 1;
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, normalAppearance);
+            var appearances = new PdfDictionary();
+            appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+            widget.Items["AP"] = appearances;
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        Assert.NotEmpty(PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 1, 80, 450, 180, 40)).ToBytes());
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 2, 80, 450, 180, 40)));
+
+        Assert.Contains("appearance resources", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -131,5 +404,221 @@ public class PdfAcroFormEditorTests {
 
         Assert.Contains("does not modify XFA packets", exception.Message, StringComparison.Ordinal);
         Assert.Contains("unsupported-packet", Encoding.ASCII.GetString(source), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsConvertingAButtonFieldToPushButton() {
+        byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
+            edit.SetFlags("Action", 1 << 16)));
+
+        Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsChangingBetweenCheckBoxAndRadioSemantics() {
+        byte[] checkBox = PdfDocument.Create().CheckBox("Choice", isChecked: true).ToBytes();
+        byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
+
+        NotSupportedException checkBoxException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetFlags("Choice", 1 << 15)));
+        NotSupportedException radioException = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetFlags("Choice", 0)));
+
+        Assert.Contains("radio-button", checkBoxException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("radio-button", radioException.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(1 << 24)]
+    [InlineData((1 << 24) | (1 << 12))]
+    [InlineData((1 << 24) | (1 << 13))]
+    [InlineData((1 << 24) | (1 << 20))]
+    public void Edit_SetFlagsRejectsInvalidCombTextFieldSemantics(int flags) {
+        PdfFormFieldStyle? style = flags == (1 << 24)
+            ? null
+            : new PdfFormFieldStyle { MaxLength = 4 };
+        byte[] source = PdfDocument.Create().TextField("Name", value: "Ada", style: style).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Name", flags)));
+
+        Assert.Contains("comb", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData((1 << 17) | (1 << 21), "multi-select")]
+    [InlineData(1 << 18, "combo")]
+    public void Edit_SetFlagsRejectsInvalidChoiceFieldSemantics(int flags, string expectedMessage) {
+        byte[] source = PdfDocument.Create()
+            .ChoiceField("Country", new[] { "Poland", "Germany" }, value: "Poland")
+            .ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", flags)));
+
+        Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsClearingMultiSelectWhileChoiceStoresArrayValue() {
+        byte[] source = PdfDocument.Create()
+            .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
+            .ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+
+        Assert.Contains("array value", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsClearingMultiSelectWhileChoiceDefaultRemainsAnArray() {
+        byte[] source = PdfDocument.Create()
+            .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
+            .ToBytes();
+        source = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary field = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, item =>
+                item.Value is PdfDictionary dictionary && dictionary.Get<PdfStringObj>("T")?.Value == "Regions").Value);
+            field.Items["V"] = new PdfStringObj("EU");
+            return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                ? security.InfoObjectNumber
+                : null;
+        });
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+
+        Assert.Contains("default value", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRejectsDemotingEditableChoiceWithUnlistedDefault() {
+        byte[] source = PdfDocument.Create().ChoiceField(
+            "Country",
+            new[] { "Poland", "Germany" },
+            value: "Poland",
+            style: new PdfFormFieldStyle { IsEditableChoice = true }).ToBytes();
+        source = PdfDocument.Open(source).Forms.Edit(edit => edit.SetDefaultValue("Country", "Custom")).ToBytes();
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", 1 << 17)));
+
+        Assert.Contains("authored options", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(1 << 13)]
+    [InlineData(1 << 12)]
+    public void Edit_RejectsFileSelectCombinedWithPasswordOrMultiline(int incompatibleFlag) {
+        const int fileSelectFlag = 1 << 20;
+        byte[] source = PdfDocument.Create().TextField("Upload", value: "file.txt").ToBytes();
+
+        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(
+            new PdfFormFieldCreateOptions {
+                Name = "InvalidUpload",
+                Kind = PdfFormFieldCreationKind.Text,
+                Value = "file.txt",
+                FieldFlags = fileSelectFlag | incompatibleFlag
+            })));
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Upload", fileSelectFlag | incompatibleFlag)));
+
+        Assert.Contains("file-select", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Edit_MoveOnTheSamePagePreservesAnnotationOrder() {
+        byte[] source = PdfDocument.Create()
+            .TextField("First", value: "1")
+            .TextField("Moved", value: "2")
+            .TextField("Last", value: "3")
+            .ToBytes();
+        string[] expectedOrder = ReadPageAnnotationNames(source);
+
+        byte[] moved = PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Moved", 1, 72D, 440D, 200D, 40D)).ToBytes();
+
+        Assert.Equal(expectedOrder, ReadPageAnnotationNames(moved));
+    }
+
+    [Fact]
+    public void Edit_UsesTheLastFlagsAssignmentInOneTransaction() {
+        byte[] source = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+            .SetFlags("Name", 1)
+            .SetFlags("Name", 2));
+
+        Assert.Equal(2, Assert.Single(result.Fields).Flags);
+    }
+
+    [Fact]
+    public void Edit_SetFlagsRegeneratesAppearanceFromInheritedValue() {
+        byte[] source = BuildInheritedValueFieldPdf();
+
+        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Group.Name", 4096));
+        Assert.Equal("Inherited value", Assert.Single(result.Fields).Value);
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
+        PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("T", out PdfObject? name) &&
+            name is PdfStringObj text && text.Value == "Name").Value);
+        PdfDictionary appearances = Assert.IsType<PdfDictionary>(widget.Items["AP"]);
+        PdfReference normalReference = Assert.IsType<PdfReference>(appearances.Items["N"]);
+        PdfStream normalAppearance = Assert.IsType<PdfStream>(objects[normalReference.ObjectNumber].Value);
+
+        Assert.Contains("496E686572697465642076616C7565", Encoding.ASCII.GetString(normalAppearance.Data), StringComparison.Ordinal);
+    }
+
+    private static string[] ReadPageAnnotationNames(byte[] pdf) {
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, null).Map;
+        PdfDictionary page = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
+            item.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("Type", out PdfObject? type) && type is PdfName { Name: "Page" }).Value);
+        PdfArray annotations = Assert.IsType<PdfArray>(page.Items["Annots"]);
+        return annotations.Items.Select(item => {
+            PdfReference annotationReference = Assert.IsType<PdfReference>(item);
+            PdfDictionary annotation = Assert.IsType<PdfDictionary>(objects[annotationReference.ObjectNumber].Value);
+            if (annotation.Items.TryGetValue("T", out PdfObject? directName)) {
+                return Assert.IsType<PdfStringObj>(directName).Value;
+            }
+            PdfReference parentReference = Assert.IsType<PdfReference>(annotation.Items["Parent"]);
+            PdfDictionary parent = Assert.IsType<PdfDictionary>(objects[parentReference.ObjectNumber].Value);
+            return Assert.IsType<PdfStringObj>(parent.Items["T"]).Value;
+        }).ToArray();
+    }
+
+    private static byte[] BuildInheritedValueFieldPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Resources << /Font << /Helv 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+        "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+        "5 0 obj", "<< /Fields [6 0 R] /DA (/Helv 10 Tf 0 g) /DR << /Font << /Helv 8 0 R >> >> >>", "endobj",
+        "6 0 obj", "<< /FT /Tx /T (Group) /V (Inherited value) /Kids [7 0 R] >>", "endobj",
+        "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /T (Name) /Rect [20 100 220 125] /DA (/Helv 10 Tf 0 g) /F 4 >>", "endobj",
+        "8 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+    }));
+
+    private static byte[] BuildIconPushButtonPdf() => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [7 0 R] >>", "endobj",
+        "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+        "5 0 obj", "<< /Fields [6 0 R] >>", "endobj",
+        "6 0 obj", "<< /FT /Btn /Ff 65536 /T (Icon) /Kids [7 0 R] >>", "endobj",
+        "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 100 100 125] /MK << /I 8 0 R >> /AP << /N 8 0 R >> /F 4 >>", "endobj",
+        "8 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 80 25] /Length 0 >>", "stream", "", "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF"
+    }));
+
+    [Fact]
+    public void Edit_RejectsUndefinedTabOrderValuesAtThePublicBoundary() {
+        var session = new PdfAcroFormEditSession();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => session.SetTabOrder(1, (PdfPageTabOrder)99));
     }
 }

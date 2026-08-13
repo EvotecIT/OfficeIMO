@@ -4,7 +4,7 @@ internal sealed class PdfPageInlineImage {
     public PdfPageInlineImage(string resourceName, PdfStream stream) {
         ResourceName = resourceName;
         Stream = stream;
-        DirectStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(stream);
+        DirectStreamIdentity = PdfDirectStreamIdentity.Compute(stream);
     }
 
     public string ResourceName { get; }

@@ -26,7 +26,11 @@ public sealed class PdfImagePlacement {
         double? imageOpacity = null,
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        OfficeBlendMode? blendMode = null,
+        bool hasUnsupportedBlendMode = false,
+        bool hasSoftMask = false,
+        bool hasAuthoredRenderingIntent = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -47,6 +51,10 @@ public sealed class PdfImagePlacement {
         InlineImageStream = inlineImageStream;
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
+        BlendMode = blendMode;
+        HasUnsupportedBlendMode = hasUnsupportedBlendMode;
+        HasSoftMask = hasSoftMask;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -102,6 +110,16 @@ public sealed class PdfImagePlacement {
     internal PdfDictionary? InlineImageResources { get; }
 
     internal double PaintOrder { get; }
+
+    internal OfficeBlendMode? BlendMode { get; }
+
+    internal bool HasUnsupportedBlendMode { get; }
+
+    internal bool HasSoftMask { get; }
+
+    internal bool HasAuthoredRenderingIntent { get; }
+
+    internal string? SourceDocumentIdentity { get; set; }
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

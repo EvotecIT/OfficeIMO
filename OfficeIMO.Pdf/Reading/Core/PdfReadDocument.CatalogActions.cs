@@ -186,9 +186,9 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
-        if (TryReadCatalogActionType(dictionary, out string? actionType) &&
-            IsActiveCatalogActionType(actionType!)) {
-            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction));
+        if (TryReadCatalogActionType(dictionary, out string? actionType)) {
+            string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal) ? TryReadText(dictionary, "URI") : null;
+            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _options.Limits)));
         }
 
         if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
@@ -253,18 +253,4 @@ public sealed partial class PdfReadDocument {
         return false;
     }
 
-    private static bool IsActiveCatalogActionType(string actionType) {
-        switch (actionType) {
-            case "JavaScript":
-            case "Launch":
-            case "SubmitForm":
-            case "ImportData":
-            case "Movie":
-            case "Rendition":
-            case "RichMedia":
-                return true;
-            default:
-                return false;
-        }
-    }
 }

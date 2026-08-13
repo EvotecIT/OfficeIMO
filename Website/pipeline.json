@@ -1122,10 +1122,31 @@
       "failOnThemeContract": true
     },
     {
+      "task": "ecosystem-stats",
+      "id": "build-llms-publication-catalog",
+      "dependsOn": "verify-ci",
+      "skipModes": ["dev"],
+      "out": "./_temp/llms-publication-catalog.json",
+      "publishPath": "",
+      "summaryPath": "./_temp/llms-publication-catalog-summary.json",
+      "nugetOwner": "Evotec",
+      "psgalleryOwner": "Przemyslaw.Klys",
+      "timeoutSeconds": 120,
+      "preserveOnWarnings": false,
+      "strict": true
+    },
+    {
       "task": "llms",
       "id": "build-llms",
-      "dependsOn": "verify-ci",
+      "dependsOn": "build-llms-publication-catalog",
+      "skipModes": ["dev"],
       "siteRoot": "./_site",
+      "contentKind": "Package",
+      "installPolicy": "VerifiedCatalog",
+      "publicationCatalog": "./_temp/llms-publication-catalog.json",
+      "nugetOwner": "Evotec",
+      "powerShellGalleryOwner": "Przemyslaw.Klys",
+      "publicationCatalogMaxAgeHours": 24,
       "apiIndexes": [
         "./_site/api/word/index.json",
         "./_site/api/excel/index.json",
@@ -1149,6 +1170,7 @@
         "./_site/api/reader/index.json",
         "./_site/api/powershell/index.json"
       ],
+      "apiLevel": "Summary",
       "name": "OfficeIMO",
       "packageFiles": [
         "../OfficeIMO.Adf/OfficeIMO.Adf.csproj",
