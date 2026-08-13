@@ -34,7 +34,7 @@ public sealed partial class PdfReadDocument {
                 profileStream = ResolveObject(profileObject) as PdfStream;
             }
 
-            byte[]? profileBytes = profileStream is null ? null : StreamDecoder.Decode(profileStream.Dictionary, profileStream.Data, _objects);
+            byte[]? profileBytes = profileStream is null ? null : _decodedStreamBudget.Decode(profileStream, _objects);
             result.Add(new PdfOutputIntentInfo(
                 objectNumber,
                 TryReadName(outputIntent, "S"),

@@ -9,6 +9,7 @@ public sealed partial class PdfReadDocument {
     private readonly string _trailerRaw;
     private readonly PdfReadOptions _options;
     private readonly long _decodedStreamBytes;
+    private readonly PdfDecodedStreamBudget _decodedStreamBudget;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
     private readonly PdfFontResourceCache _fontResourceCache = new();
@@ -48,7 +49,8 @@ public sealed partial class PdfReadDocument {
         PdfRepairReport repairReport,
         PdfReadOptions? options,
         long decodedStreamBytes) {
-        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions(); _decodedStreamBytes = decodedStreamBytes;
+        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         Security = security;
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
@@ -75,6 +77,7 @@ public sealed partial class PdfReadDocument {
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
         CatalogLanguage = ExtractCatalogString("Lang");
+        _decodedStreamBytes = _decodedStreamBudget.UsedBytes;
     }
 
     /// <summary>All page objects discovered in document order.</summary>

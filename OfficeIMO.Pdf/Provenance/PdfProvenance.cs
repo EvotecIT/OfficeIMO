@@ -39,6 +39,7 @@ public static class PdfProvenance {
             bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
                 string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
                 attachment.FileSpecObjectNumber > 0 &&
+                HasEmbeddedFileStreamType(document.Objects, attachment) &&
                 IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber, pageTreeObjectNumbers, associations.StructuralObjectNumbers) &&
                 HasOnlySelectedEmbeddedFileVariants(document.Objects, attachment) &&
                 associations.IsValid(attachment.FileSpecObjectNumber) &&
@@ -375,6 +376,7 @@ public static class PdfProvenance {
             maximumContainerEntries);
         AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
         var resourceSites = new HashSet<PdfObject>();
+        var structuralTraversalVisited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
             if (dictionary == null) continue;
@@ -384,13 +386,22 @@ public static class PdfProvenance {
                     dictionary.Items.TryGetValue("PieceInfo", out PdfObject? pieceInfo) ? pieceInfo : null,
                     result,
                     maximumContainerEntries,
-                    pageTreeObjectNumbers);
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue("Group", out PdfObject? group) ? group : null,
                     result,
                     maximumContainerEntries,
-                    pageTreeObjectNumbers);
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("Trans", out PdfObject? transition) ? transition : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
                 AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries);
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
@@ -407,7 +418,8 @@ public static class PdfProvenance {
                     owner.Items.TryGetValue(key, out PdfObject? action) ? action : null,
                     result,
                     maximumContainerEntries,
-                    pageTreeObjectNumbers);
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
             }
         }
         return result;
@@ -418,9 +430,10 @@ public static class PdfProvenance {
         PdfObject? value,
         HashSet<PdfObject> result,
         int maximumContainerEntries,
-        HashSet<int>? terminalObjectNumbers = null) {
+        HashSet<int>? terminalObjectNumbers = null,
+        HashSet<PdfObject>? sharedVisited = null) {
         if (value == null) return;
-        var visited = new HashSet<PdfObject>();
+        HashSet<PdfObject> visited = sharedVisited ?? new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>();
         pending.Push(value);
         while (pending.Count > 0) {
@@ -679,6 +692,13 @@ public static class PdfProvenance {
         }
         return true;
     }
+
+    private static bool HasEmbeddedFileStreamType(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfExtractedAttachment attachment) =>
+        objects.TryGetValue(attachment.EmbeddedFileObjectNumber, out PdfIndirectObject? embeddedFile) &&
+        embeddedFile.Value is PdfStream stream &&
+        string.Equals(stream.Dictionary.Get<PdfName>("Type")?.Name, "EmbeddedFile", StringComparison.Ordinal);
 
     private static HashSet<int> CollectPageTreeObjectNumbers(PdfReadDocument document, int maximumContainerEntries) {
         var result = new HashSet<int>(document.Pages.Select(static page => page.ObjectNumber));
