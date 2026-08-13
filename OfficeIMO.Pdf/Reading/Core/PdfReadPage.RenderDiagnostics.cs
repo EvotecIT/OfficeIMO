@@ -199,7 +199,7 @@ public sealed partial class PdfReadPage {
                 if (!string.IsNullOrEmpty(fontName)) invokedFonts.Add(fontName);
             },
             patternInvocationVisitor: name => invokedPatternNames.Add(name),
-            graphicsStateVisitor: (state, _) => {
+            graphicsStateVisitor: (state, _, _, _, _, _) => {
                 if (state.SoftMask?.Group is PdfStream group) invokedSoftMasks.Add(group);
             },
             patternBaseColorSpaces: patternBaseColorSpaces,
@@ -276,7 +276,7 @@ public sealed partial class PdfReadPage {
                 if (!string.IsNullOrEmpty(fontName)) invokedFonts.Add(fontName);
             },
             patternInvocationVisitor: patternName => invokedPatterns.Add(patternName),
-            graphicsStateVisitor: (state, _) => {
+            graphicsStateVisitor: (state, _, _, _, _, _) => {
                 if (state.SoftMask?.Group is PdfStream group) invokedSoftMasks.Add(group);
             },
             patternBaseColorSpaces: patternBaseColorSpaces,
@@ -398,17 +398,19 @@ public sealed partial class PdfReadPage {
                     activeType3PaintChannelStreams,
                     pageContentBudget,
                     type3GlyphBudget),
-                softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
-                    softMask,
-                    transform,
-                    resources,
-                    surfaceWidth,
-                    surfaceHeight,
-                    type3PaintChannelCache,
-                    activeType3PaintChannelStreams,
-                    pageContentBudget,
-                    type3GlyphBudget,
-                    depth + 1),
+                softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                    LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                    !IsSoftMaskEntirelyTransparent(
+                        softMask,
+                        transform,
+                        resources,
+                        surfaceWidth,
+                        surfaceHeight,
+                        type3PaintChannelCache,
+                        activeType3PaintChannelStreams,
+                        pageContentBudget,
+                        type3GlyphBudget,
+                        depth + 1),
                 pageWidth: surfaceWidth);
             if (invokedPatternNames.Count > 0 && softMaskNestingDepth != null) {
                 softMaskNestingDepth.Cacheable = false;
@@ -581,7 +583,7 @@ public sealed partial class PdfReadPage {
                          unsupportedTextVisitor: () => supported = false,
                          unsupportedGraphicsEffectVisitor: () => supported = false,
                          allowSupportedGraphicsEffects: true,
-                         graphicsStateVisitor: (resource, resourceTransform) => {
+                         graphicsStateVisitor: (resource, resourceTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) => {
                              if (!CanDecodeType3SoftMask(
                                      resource.SoftMask,
                                      resourceTransform,
@@ -595,7 +597,11 @@ public sealed partial class PdfReadPage {
                                      softMaskNestingDepth!,
                                      surfaceWidth,
                                      surfaceHeight,
-                                     softMaskValidation.TextOutputBudget)) {
+                                     softMaskValidation.TextOutputBudget,
+                                     fillColor,
+                                     strokeColor,
+                                     hasFillPattern,
+                                     hasStrokePattern)) {
                                  supported = false;
                              }
                          },
@@ -648,17 +654,19 @@ public sealed partial class PdfReadPage {
                              activeType3PaintChannelStreams,
                              pageContentBudget,
                              type3GlyphBudget),
-                         softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
-                             softMask,
-                             transform,
-                             resources,
-                             surfaceWidth,
-                             surfaceHeight,
-                             type3PaintChannelCache,
-                             activeType3PaintChannelStreams,
-                             pageContentBudget,
-                             type3GlyphBudget,
-                             depth + 1),
+                         softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                             LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                             !IsSoftMaskEntirelyTransparent(
+                                 softMask,
+                                 transform,
+                                 resources,
+                                 surfaceWidth,
+                                 surfaceHeight,
+                                 type3PaintChannelCache,
+                                 activeType3PaintChannelStreams,
+                                 pageContentBudget,
+                                 type3GlyphBudget,
+                                 depth + 1),
                          visibleShadingVisitor: name => {
                              if (requireImageMask ||
                                  !directShadings.TryGetValue(name, out PdfPageShadingResource shading) ||

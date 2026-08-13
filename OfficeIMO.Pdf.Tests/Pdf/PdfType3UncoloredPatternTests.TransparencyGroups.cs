@@ -60,6 +60,7 @@ public partial class PdfType3UncoloredPatternTests {
     [Theory]
     [InlineData("1e999 0 0 1 0 0 cm 0 0 500 700 re f")]
     [InlineData("0 0 500 700 re 1e999 f")]
+    [InlineData("2 1 0 0 1 0 0 cm 0 0 500 700 re f")]
     public void RenderPage_FailsClosedForInvalidNumericOperandsInStrictType3Content(string glyphContent) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

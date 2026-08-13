@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private static bool IsInvisibleImagePlacement(
+    internal static bool IsInvisibleImagePlacement(
         PdfImagePlacement placement,
         double pageHeight,
         double drawingWidth,
@@ -23,20 +23,34 @@ public sealed partial class PdfReadPage {
             -placement.D,
             placement.E,
             pageHeight - placement.F);
-        VisualPath? placementPath = VisualPath.Rectangle(
-            0D,
-            0D,
-            1D,
-            1D,
-            imageTransform,
-            geometryBudget);
+        OfficePoint[] imageCorners = {
+            imageTransform.TransformPoint(new OfficePoint(0D, 0D)),
+            imageTransform.TransformPoint(new OfficePoint(1D, 0D)),
+            imageTransform.TransformPoint(new OfficePoint(1D, 1D)),
+            imageTransform.TransformPoint(new OfficePoint(0D, 1D))
+        };
+        OfficePathCommand[] imageCommands = {
+            OfficePathCommand.MoveTo(imageCorners[0]),
+            OfficePathCommand.LineTo(imageCorners[1]),
+            OfficePathCommand.LineTo(imageCorners[2]),
+            OfficePathCommand.LineTo(imageCorners[3]),
+            OfficePathCommand.Close()
+        };
+        if (PdfPageClipPath.TryCreatePath(imageCommands, OfficeFillRule.NonZero, out PdfPageClipPath imageClip)) {
+            PdfPageClipPath exactCandidate = PdfPageClipPath.ResolveActiveClip(
+                imageClip,
+                PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight));
+            if (placement.ClipPath.HasValue) {
+                exactCandidate = PdfPageClipPath.ResolveActiveClip(exactCandidate, placement.ClipPath.Value);
+            }
+            if ((!placement.ClipPath.HasValue || placement.ClipPath.Value.CanProveExactIntersection) &&
+                exactCandidate.IsExact) return exactCandidate.Width <= 0D || exactCandidate.Height <= 0D;
+        }
+        VisualPath? placementPath = VisualPath.Rectangle(0D, 0D, 1D, 1D, imageTransform, geometryBudget);
         VisualPath? drawingPath = VisualPath.FromClip(
             PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight),
             geometryBudget);
-        if (placementPath == null || drawingPath == null || geometryBudget.Exceeded) {
-            return false;
-        }
-
+        if (placementPath == null || drawingPath == null || geometryBudget.Exceeded) return false;
         var visiblePaths = new List<VisualPath> { placementPath, drawingPath };
         if (placement.ClipPath.HasValue) {
             VisualPath? clipPath = VisualPath.FromClip(placement.ClipPath.Value, geometryBudget);

@@ -584,6 +584,8 @@ internal readonly struct PdfPageClipPath {
 
     internal bool IsExact { get; }
 
+    internal bool CanProveExactIntersection => CanServeAsExactPathClip(this);
+
     private PdfPageClipPath WithExactness(bool isExact) =>
         IsExact == isExact
             ? this

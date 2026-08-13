@@ -397,17 +397,21 @@ public sealed partial class PdfReadPage {
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             graphicsStateVisitor: softMaskValidation == null
                 ? null
-                : (state, stateTransform) => {
+                : (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern, stateNestingDepth) => {
                     if (!CanDecodeType3SoftMask(
                             state.SoftMask,
                             stateTransform,
                             softMaskValidation.PageContentBudget,
                             softMaskValidation.ValidatedGroups,
                             softMaskValidation.Type3GlyphBudget,
-                            contentNestingDepth + 1,
+                            stateNestingDepth + 1,
                             projectionPageWidth: width,
                             projectionPageHeight: height,
-                            textOutputBudget: softMaskValidation.TextOutputBudget)) {
+                            textOutputBudget: softMaskValidation.TextOutputBudget,
+                            inheritedFillColor: fillColor,
+                            inheritedStrokeColor: strokeColor,
+                            hasInheritedFillPattern: hasFillPattern,
+                            hasInheritedStrokePattern: hasStrokePattern)) {
                         type3GlyphBudget.RecordFailure();
                     }
                 },

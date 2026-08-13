@@ -98,6 +98,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
+
         private bool StrokeIntersectsSingleFill(
             VisualPath fill,
             double strokeHalfWidth,

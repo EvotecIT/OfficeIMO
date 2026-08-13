@@ -40,8 +40,8 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                         ApplyState(restored.Effect, paintOrder, contentOrderKey);
                         break;
                     case "cm":
-                        if (operation.Operands.Count >= 6) {
-                            int start = operation.Operands.Count - 6;
+                        if (HasExactFiniteNumbers(operation.Operands, 6)) {
+                            const int start = 0;
                             var matrix = new Matrix2D(
                                 NumberAt(operation.Operands, start),
                                 NumberAt(operation.Operands, start + 1),
@@ -86,6 +86,14 @@ internal static class PdfPageGraphicsEffectTimelineParser {
 
     private static double NumberAt(IReadOnlyList<object> operands, int index) =>
         operands[index] is double value ? value : 0D;
+
+    private static bool HasExactFiniteNumbers(IReadOnlyList<object> operands, int count) {
+        if (operands.Count != count) return false;
+        for (int index = 0; index < count; index++) {
+            if (operands[index] is not double value || double.IsNaN(value) || double.IsInfinity(value)) return false;
+        }
+        return true;
+    }
 
     private static bool SameEffect(PdfPageDrawingEffect left, PdfPageDrawingEffect right) =>
         left.BlendMode == right.BlendMode &&

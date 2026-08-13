@@ -497,7 +497,7 @@ public sealed partial class PdfReadPage {
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
-        Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor = null,
+        Action<PdfPageGraphicsStateResource, Matrix2D, OfficeColor, OfficeColor, bool, bool, int>? graphicsStateVisitor = null,
         TilingPatternResourceCache? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -720,7 +720,17 @@ public sealed partial class PdfReadPage {
                       authoredPatternInvocationVisitor: requireNestedType3Uncolored
                           ? _ => type3GlyphBudget.RecordFailure()
                           : null,
-                      graphicsStateVisitor: graphicsStateVisitor,
+                      graphicsStateVisitor: graphicsStateVisitor == null
+                          ? null
+                          : (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                              graphicsStateVisitor(
+                                  state,
+                                  stateTransform,
+                                  fillColor,
+                                  strokeColor,
+                                  hasFillPattern,
+                                  hasStrokePattern,
+                                  contentNestingDepth),
                       allowSupportedGraphicsEffects: requireSupportedType3Content,
                       patternBaseColorSpaces: patternBaseColorSpaces,
                       initialFillPattern: initialFillPattern,
@@ -745,17 +755,19 @@ public sealed partial class PdfReadPage {
                           activeType3PaintChannelStreams,
                           pageContentBudget,
                           type3GlyphBudget),
-                      softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
-                          softMask,
-                          transform,
-                          resources,
-                          pageWidth,
-                          pageHeight,
-                          type3PaintChannelCache,
-                          activeType3PaintChannelStreams,
-                          pageContentBudget,
-                          type3GlyphBudget,
-                          contentNestingDepth + 1),
+                      softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                          LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                          !IsSoftMaskEntirelyTransparent(
+                              softMask,
+                              transform,
+                              resources,
+                              pageWidth,
+                              pageHeight,
+                              type3PaintChannelCache,
+                              activeType3PaintChannelStreams,
+                              pageContentBudget,
+                              type3GlyphBudget,
+                              contentNestingDepth + 1),
                       invalidPatternSelectionVisitor: requireSupportedType3Content
                           ? type3GlyphBudget.RecordFailure
                           : null,

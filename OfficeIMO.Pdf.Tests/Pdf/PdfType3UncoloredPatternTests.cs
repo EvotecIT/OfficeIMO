@@ -760,6 +760,24 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void NarrowPolygonClipOverlapDoesNotProveImageInvisible() {
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(9.9999D, 80D),
+            OfficePathCommand.LineTo(10.0001D, 80D),
+            OfficePathCommand.LineTo(10D, 90D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+        var placement = new PdfImagePlacement(
+            1, "Im1", 1, 0,
+            10D, 0D, 0D, 10D, 0D, 10D,
+            0D, 10D, 10D, 10D,
+            clipPath: clip);
+
+        Assert.False(PdfReadPage.IsInvisibleImagePlacement(placement, 100D, 100D, 100D));
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForShearedOuterRadialShadingPattern() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",

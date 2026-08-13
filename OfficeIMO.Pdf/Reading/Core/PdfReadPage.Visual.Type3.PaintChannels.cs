@@ -199,17 +199,19 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
-                         softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
-                             softMask,
-                             transform,
-                             resources,
-                             pageWidth,
-                             pageHeight,
-                             cache,
-                             activeStreams,
-                             pageContentBudget,
-                             type3GlyphBudget,
-                             depth + 1),
+                         softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                             LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                             !IsSoftMaskEntirelyTransparent(
+                                 softMask,
+                                 transform,
+                                 resources,
+                                 pageWidth,
+                                 pageHeight,
+                                 cache,
+                                 activeStreams,
+                                 pageContentBudget,
+                                 type3GlyphBudget,
+                                 depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&

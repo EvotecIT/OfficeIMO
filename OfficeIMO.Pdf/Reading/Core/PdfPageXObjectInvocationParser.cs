@@ -58,7 +58,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string>? visibleFontVisitor = null,
         Action<string>? patternInvocationVisitor = null,
         Action<string>? authoredPatternInvocationVisitor = null,
-        Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor = null,
+        Action<PdfPageGraphicsStateResource, Matrix2D, OfficeColor, OfficeColor, bool, bool>? graphicsStateVisitor = null,
         bool allowSupportedGraphicsEffects = false,
         IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null,
         PdfPagePatternSelection? initialFillPattern = null,
@@ -69,7 +69,7 @@ internal static class PdfPageXObjectInvocationParser {
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns = null,
         Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver = null,
         Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver = null,
-        Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver = null,
+        Func<PdfPageSoftMaskResource, Matrix2D, OfficeColor, OfficeColor, bool, bool, bool>? softMaskVisibilityResolver = null,
         Action<string>? visibleShadingVisitor = null,
         Action? invalidPatternSelectionVisitor = null,
         Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor = null,
@@ -104,7 +104,8 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<GraphicsEffectState> _graphicsEffectStack = new Stack<GraphicsEffectState>();
         private readonly Stack<PatternState> _patternStack = new Stack<PatternState>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
-        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform)> _softMaskStack = new Stack<(PdfPageSoftMaskResource?, Matrix2D?)>();
+        private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern)> _softMaskStack =
+            new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
@@ -145,9 +146,9 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action? _invalidPatternSelectionVisitor;
         private readonly Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? _type3PaintChannelResolver;
         private readonly Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? _xObjectPaintChannelResolver;
-        private readonly Func<PdfPageSoftMaskResource, Matrix2D, bool>? _softMaskVisibilityResolver;
+        private readonly Func<PdfPageSoftMaskResource, Matrix2D, OfficeColor, OfficeColor, bool, bool, bool>? _softMaskVisibilityResolver;
         private readonly Action<string>? _visibleShadingVisitor;
-        private readonly Action<PdfPageGraphicsStateResource, Matrix2D>? _graphicsStateVisitor;
+        private readonly Action<PdfPageGraphicsStateResource, Matrix2D, OfficeColor, OfficeColor, bool, bool>? _graphicsStateVisitor;
         private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
@@ -156,6 +157,10 @@ internal static class PdfPageXObjectInvocationParser {
         private int _currentOperatorIndex;
         private PdfPageSoftMaskResource? _softMask;
         private Matrix2D? _softMaskTransform;
+        private OfficeColor _softMaskFillColor = OfficeColor.Black;
+        private OfficeColor _softMaskStrokeColor = OfficeColor.Black;
+        private bool _softMaskHasFillPattern;
+        private bool _softMaskHasStrokePattern;
         private bool _hasInexactDash;
 
         public Parser(
@@ -195,7 +200,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action<string>? visibleFontVisitor,
             Action<string>? patternInvocationVisitor,
             Action<string>? authoredPatternInvocationVisitor,
-            Action<PdfPageGraphicsStateResource, Matrix2D>? graphicsStateVisitor,
+            Action<PdfPageGraphicsStateResource, Matrix2D, OfficeColor, OfficeColor, bool, bool>? graphicsStateVisitor,
             bool allowSupportedGraphicsEffects,
             IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces,
             PdfPagePatternSelection? initialFillPattern,
@@ -206,7 +211,7 @@ internal static class PdfPageXObjectInvocationParser {
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             Func<PdfPageType3GlyphInvocation, PdfType3PaintChannels>? type3PaintChannelResolver,
             Func<string, PdfPageXObjectPaintState, PdfType3PaintChannels>? xObjectPaintChannelResolver,
-            Func<PdfPageSoftMaskResource, Matrix2D, bool>? softMaskVisibilityResolver,
+            Func<PdfPageSoftMaskResource, Matrix2D, OfficeColor, OfficeColor, bool, bool, bool>? softMaskVisibilityResolver,
             Action<string>? visibleShadingVisitor,
             Action? invalidPatternSelectionVisitor,
             Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor,
@@ -600,7 +605,13 @@ internal static class PdfPageXObjectInvocationParser {
                     _graphicsEffectStack.Push(_graphicsEffectState);
                     _patternStack.Push(_patternState);
                     _textStack.Push(CaptureTextState());
-                    _softMaskStack.Push((_softMask, _softMaskTransform));
+                    _softMaskStack.Push((
+                        _softMask,
+                        _softMaskTransform,
+                        _softMaskFillColor,
+                        _softMaskStrokeColor,
+                        _softMaskHasFillPattern,
+                        _softMaskHasStrokePattern));
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
@@ -608,21 +619,25 @@ internal static class PdfPageXObjectInvocationParser {
                     _graphicsEffectState = _graphicsEffectStack.Count > 0 ? _graphicsEffectStack.Pop() : default;
                     _patternState = _patternStack.Count > 0 ? _patternStack.Pop() : _initialPatternState;
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
-                    (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform) restoredSoftMask = _softMaskStack.Count > 0
+                    (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern) restoredSoftMask = _softMaskStack.Count > 0
                         ? _softMaskStack.Pop()
-                        : (null, null);
+                        : (null, null, OfficeColor.Black, OfficeColor.Black, false, false);
                     _softMask = restoredSoftMask.SoftMask;
                     _softMaskTransform = restoredSoftMask.Transform;
+                    _softMaskFillColor = restoredSoftMask.FillColor;
+                    _softMaskStrokeColor = restoredSoftMask.StrokeColor;
+                    _softMaskHasFillPattern = restoredSoftMask.HasFillPattern;
+                    _softMaskHasStrokePattern = restoredSoftMask.HasStrokePattern;
                     break;
                 case "cm":
-                    if (_args.Count >= 6) {
+                    if (HasExactFiniteNumbers(6)) {
                         Matrix2D matrix = new Matrix2D(
-                            NumberAt(_args.Count - 6),
-                            NumberAt(_args.Count - 5),
-                            NumberAt(_args.Count - 4),
-                            NumberAt(_args.Count - 3),
-                            NumberAt(_args.Count - 2),
-                            NumberAt(_args.Count - 1));
+                            NumberAt(0),
+                            NumberAt(1),
+                            NumberAt(2),
+                            NumberAt(3),
+                            NumberAt(4),
+                            NumberAt(5));
                         _state = _state.WithTransform(Matrix2D.Multiply(_state.Transform, matrix));
                     }
 
@@ -1306,6 +1321,9 @@ internal static class PdfPageXObjectInvocationParser {
             return true;
         }
 
+        private bool HasExactFiniteNumbers(int count) =>
+            _args.Count == count && HasTrailingFiniteNumbers(count);
+
         private void ApplyGraphicsStateResource(string name) {
             if (_graphicsStates == null || !_graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
                 if (!HasHiddenContent()) _unsupportedGraphicsEffectVisitor?.Invoke();
@@ -1316,6 +1334,10 @@ internal static class PdfPageXObjectInvocationParser {
             if (resource.HasSoftMask) {
                 _softMask = resource.SoftMask;
                 _softMaskTransform = resource.SoftMask == null ? null : _state.Transform;
+                _softMaskFillColor = _state.FillColor;
+                _softMaskStrokeColor = _state.StrokeColor;
+                _softMaskHasFillPattern = _patternState.Fill.HasValue;
+                _softMaskHasStrokePattern = _patternState.Stroke.HasValue;
             }
             _graphicsEffectState = _graphicsEffectState.Apply(resource, _state.Transform);
         }
@@ -1323,7 +1345,13 @@ internal static class PdfPageXObjectInvocationParser {
         private void PublishActiveGraphicsEffectUse() {
             if (!_graphicsEffectState.HasEffect) return;
             PdfPageGraphicsStateResource resource = _graphicsEffectState.ToResource();
-            _graphicsStateVisitor?.Invoke(resource, _graphicsEffectState.SoftMaskTransform);
+            _graphicsStateVisitor?.Invoke(
+                resource,
+                _graphicsEffectState.SoftMaskTransform,
+                _softMaskFillColor,
+                _softMaskStrokeColor,
+                _softMaskHasFillPattern,
+                _softMaskHasStrokePattern);
             if ((!_allowSupportedGraphicsEffects &&
                  ((resource.BlendMode.HasValue && resource.BlendMode.Value != OfficeBlendMode.Normal) ||
                   (resource.HasSoftMask && resource.SoftMask != null))) ||
@@ -1359,7 +1387,13 @@ internal static class PdfPageXObjectInvocationParser {
         private bool IsCurrentPaintSuppressedBySoftMask() =>
             _softMask != null &&
             _softMaskVisibilityResolver != null &&
-            !_softMaskVisibilityResolver(_softMask, _softMaskTransform ?? _state.Transform);
+            !_softMaskVisibilityResolver(
+                _softMask,
+                _softMaskTransform ?? _state.Transform,
+                _softMaskFillColor,
+                _softMaskStrokeColor,
+                _softMaskHasFillPattern,
+                _softMaskHasStrokePattern);
 
         private bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&

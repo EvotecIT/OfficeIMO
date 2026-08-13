@@ -100,6 +100,25 @@ public sealed partial class PdfReadPage {
                         type3ImageVisitor: (placement, image, effect) => localImages.Add((placement, image, effect)),
                         type3PrimitiveVisitor: (primitive, effect) => localPrimitives.Add((primitive, effect)),
                         type3GroupVisitor: (drawing, transform, paintOrder, key, effect) => localGroups.Add((drawing, transform, paintOrder, key, effect)),
+                        graphicsStateVisitor: (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern, stateNestingDepth) => {
+                            if (state.SoftMask?.Mode == OfficeSoftMaskMode.Luminosity &&
+                                !CanDecodeType3SoftMask(
+                                    state.SoftMask,
+                                    stateTransform,
+                                    softMaskValidation.PageContentBudget,
+                                    softMaskValidation.ValidatedGroups,
+                                    softMaskValidation.Type3GlyphBudget,
+                                    stateNestingDepth + 1,
+                                    projectionPageWidth: pageWidth,
+                                    projectionPageHeight: pageHeight,
+                                    textOutputBudget: softMaskValidation.TextOutputBudget,
+                                    inheritedFillColor: fillColor,
+                                    inheritedStrokeColor: strokeColor,
+                                    hasInheritedFillPattern: hasFillPattern,
+                                    hasInheritedStrokePattern: hasStrokePattern)) {
+                                type3GlyphBudget.RecordFailure();
+                            }
+                        },
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
                         pageContentBudget: pageContentBudget,
@@ -1005,17 +1024,19 @@ public sealed partial class PdfReadPage {
                              pageContentBudget,
                              type3GlyphBudget,
                              depth + 1),
-                         softMaskVisibilityResolver: (softMask, transform) => !IsSoftMaskEntirelyTransparent(
-                             softMask,
-                             transform,
-                             resources,
-                             pageWidth,
-                             pageHeight,
-                             cache,
-                             activeStreams,
-                             pageContentBudget,
-                             type3GlyphBudget,
-                             depth + 1),
+                         softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                             LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                             !IsSoftMaskEntirelyTransparent(
+                                 softMask,
+                                 transform,
+                                 resources,
+                                 pageWidth,
+                                 pageHeight,
+                                 cache,
+                                 activeStreams,
+                                 pageContentBudget,
+                                 type3GlyphBudget,
+                                 depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null) {

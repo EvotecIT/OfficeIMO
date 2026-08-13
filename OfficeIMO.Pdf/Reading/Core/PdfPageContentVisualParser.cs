@@ -440,7 +440,7 @@ internal static class PdfPageContentVisualParser {
                     }
                     break;
                 case "cm":
-                    if (HasTrailingFiniteNumbers(6)) {
+                    if (HasExactFiniteNumbers(6)) {
                         Matrix2D matrix = new Matrix2D(
                             NumberAt(_args.Count - 6),
                             NumberAt(_args.Count - 5),

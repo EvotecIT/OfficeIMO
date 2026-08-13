@@ -119,7 +119,11 @@ public sealed partial class PdfReadPage {
         SoftMaskNestingDepth? nestingDepth = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null,
-        TextContentParser.TextOutputBudget? textOutputBudget = null) {
+        TextContentParser.TextOutputBudget? textOutputBudget = null,
+        OfficeColor? inheritedFillColor = null,
+        OfficeColor? inheritedStrokeColor = null,
+        bool hasInheritedFillPattern = false,
+        bool hasInheritedStrokePattern = false) {
         nestingDepth ??= new SoftMaskNestingDepth(contentNestingDepth);
         (double Width, double Height) pageSize = GetVisualPageSize();
         return CanDecodeType3SoftMask(
@@ -135,7 +139,11 @@ public sealed partial class PdfReadPage {
             nestingDepth,
             projectionPageWidth ?? pageSize.Width,
             projectionPageHeight ?? pageSize.Height,
-            textOutputBudget ?? CreateTextOutputBudget());
+            textOutputBudget ?? CreateTextOutputBudget(),
+            inheritedFillColor ?? OfficeColor.Black,
+            inheritedStrokeColor ?? OfficeColor.Black,
+            hasInheritedFillPattern,
+            hasInheritedStrokePattern);
     }
 
     private bool CanDecodeType3SoftMask(
@@ -151,7 +159,11 @@ public sealed partial class PdfReadPage {
         SoftMaskNestingDepth nestingDepth,
         double projectionPageWidth,
         double projectionPageHeight,
-        TextContentParser.TextOutputBudget textOutputBudget) {
+        TextContentParser.TextOutputBudget textOutputBudget,
+        OfficeColor inheritedFillColor,
+        OfficeColor inheritedStrokeColor,
+        bool hasInheritedFillPattern,
+        bool hasInheritedStrokePattern) {
         if (resource == null) return true;
         if (!resource.IsIsolated) return false;
         if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
@@ -179,6 +191,13 @@ public sealed partial class PdfReadPage {
             string content = WrapFormContentWithBoundingBoxClip(
                 PdfEncoding.Latin1GetString(pageContentBudget.Decode(resource.Group)),
                 resource.Group.Dictionary);
+            if (resource.Mode == OfficeSoftMaskMode.Luminosity &&
+                RequiresUnsupportedInheritedLuminosityColor(
+                    content,
+                    inheritedFillColor,
+                    inheritedStrokeColor,
+                    hasInheritedFillPattern,
+                    hasInheritedStrokePattern)) return false;
             PdfDictionary? resources = ResolveDictionary(
                 resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
                     ? resourceObject
@@ -423,7 +442,7 @@ public sealed partial class PdfReadPage {
                     supported = false;
                 }
             },
-            graphicsStateVisitor: (state, stateTransform) => {
+            graphicsStateVisitor: (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) => {
                 if (!CanDecodeType3SoftMask(
                         state.SoftMask,
                         stateTransform,
@@ -437,7 +456,11 @@ public sealed partial class PdfReadPage {
                         nestingDepth,
                         projectionPageWidth,
                         projectionPageHeight,
-                        textOutputBudget)) {
+                        textOutputBudget,
+                        fillColor,
+                        strokeColor,
+                        hasFillPattern,
+                        hasStrokePattern)) {
                     supported = false;
                 }
             },
@@ -544,6 +567,98 @@ public sealed partial class PdfReadPage {
             }
         }
         return true;
+    }
+
+    private bool RequiresUnsupportedInheritedLuminosityColor(
+        string content,
+        OfficeColor inheritedFillColor,
+        OfficeColor inheritedStrokeColor,
+        bool hasInheritedFillPattern,
+        bool hasInheritedStrokePattern) {
+        bool inheritedFillDiffers = hasInheritedFillPattern || !inheritedFillColor.Equals(OfficeColor.Black);
+        bool inheritedStrokeDiffers = hasInheritedStrokePattern || !inheritedStrokeColor.Equals(OfficeColor.Black);
+        if (!inheritedFillDiffers && !inheritedStrokeDiffers) return false;
+
+        bool fillExplicit = false;
+        bool strokeExplicit = false;
+        int textRenderingMode = 0;
+        var stack = new Stack<(bool FillExplicit, bool StrokeExplicit, int TextRenderingMode)>();
+        bool dependsOnUnsupportedInheritedColor = false;
+        PdfContentStreamInterpreter.InterpretUntil(
+            content,
+            _limits.MaxContentOperations,
+            operation => {
+                switch (operation.Name) {
+                    case "q":
+                        stack.Push((fillExplicit, strokeExplicit, textRenderingMode));
+                        break;
+                    case "Q":
+                        if (stack.Count > 0) {
+                            (fillExplicit, strokeExplicit, textRenderingMode) = stack.Pop();
+                        }
+                        break;
+                    case "g": case "rg": case "k": case "sc": case "scn":
+                        fillExplicit = true;
+                        break;
+                    case "G": case "RG": case "K": case "SC": case "SCN":
+                        strokeExplicit = true;
+                        break;
+                    case "Tr":
+                        if (operation.Operands.Count == 1 &&
+                            operation.Operands[0] is double mode &&
+                            mode >= 0D && mode <= 7D && mode == Math.Truncate(mode)) {
+                            textRenderingMode = (int)mode;
+                        }
+                        break;
+                    case "f": case "F": case "f*":
+                        dependsOnUnsupportedInheritedColor = inheritedFillDiffers && !fillExplicit;
+                        break;
+                    case "S": case "s":
+                        dependsOnUnsupportedInheritedColor = inheritedStrokeDiffers && !strokeExplicit;
+                        break;
+                    case "B": case "B*": case "b": case "b*":
+                        dependsOnUnsupportedInheritedColor =
+                            (inheritedFillDiffers && !fillExplicit) ||
+                            (inheritedStrokeDiffers && !strokeExplicit);
+                        break;
+                    case "Tj": case "TJ": case "'": case "\"":
+                        bool paintsFill = textRenderingMode is 0 or 2 or 4 or 6;
+                        bool paintsStroke = textRenderingMode is 1 or 2 or 5 or 6;
+                        dependsOnUnsupportedInheritedColor =
+                            (paintsFill && inheritedFillDiffers && !fillExplicit) ||
+                            (paintsStroke && inheritedStrokeDiffers && !strokeExplicit);
+                        break;
+                    case "Do":
+                        dependsOnUnsupportedInheritedColor =
+                            (inheritedFillDiffers && !fillExplicit) ||
+                            (inheritedStrokeDiffers && !strokeExplicit);
+                        break;
+                    case "BI":
+                        dependsOnUnsupportedInheritedColor = inheritedFillDiffers && !fillExplicit;
+                        break;
+                }
+                return !dependsOnUnsupportedInheritedColor;
+            },
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands);
+        return dependsOnUnsupportedInheritedColor;
+    }
+
+    private bool LuminositySoftMaskDependsOnInheritedPaint(
+        PdfPageSoftMaskResource softMask,
+        OfficeColor fillColor,
+        OfficeColor strokeColor,
+        bool hasFillPattern,
+        bool hasStrokePattern,
+        PageContentBudget pageContentBudget) {
+        if (softMask.Mode != OfficeSoftMaskMode.Luminosity) return false;
+        string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(softMask.Group));
+        return RequiresUnsupportedInheritedLuminosityColor(
+            content,
+            fillColor,
+            strokeColor,
+            hasFillPattern,
+            hasStrokePattern);
     }
 
     private static bool IsSupportedSoftMaskTextFont(PdfFontResource font) {
