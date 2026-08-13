@@ -40,7 +40,7 @@ public static partial class OfficeSvgDrawingReader {
         pixelScaleY = viewportHeight / viewHeight;
         if (Math.Abs(pixelScaleX - 1D) < 0.000001D && Math.Abs(pixelScaleY - 1D) < 0.000001D) return true;
         if (!TryParsePreserveAspectRatio(
-                root.Attribute("preserveAspectRatio")?.Value,
+                ReadRasterProjectedAttribute(root, "preserveAspectRatio"),
                 out SvgAspectAlignment alignment,
                 out bool slice)) return false;
         if (alignment == SvgAspectAlignment.None) return true;

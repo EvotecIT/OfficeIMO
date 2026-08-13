@@ -578,6 +578,27 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Theory]
+    [InlineData("x:viewBox='0 0 1 1'")]
+    [InlineData("viewBox='0 0 4096 4096' x:viewBox='0 0 1 1'")]
+    public void SvgSafetyPredicateUsesProjectedRootViewBox(string viewBoxAttributes) {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='4096' height='4096' ")
+            .Append(viewBoxAttributes).Append(">");
+        for (int index = 0; index < 257; index++) svg.Append("<rect width='1' height='1'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateUsesProjectedRootPreserveAspectRatio() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' xmlns:x='urn:test' width='4096' height='4096' viewBox='0 0 4096 1' x:preserveAspectRatio='xMidYMid slice'>");
+        for (int index = 0; index < 257; index++) svg.Append("<rect width='1' height='1'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Theory]
     [InlineData("stroke-width='20000'")]
     [InlineData("stroke-width='1' stroke-linejoin='miter' stroke-miterlimit='20000'")]
     public void SvgSafetyPredicateChargesInheritedStrokeExtents(string strokeAttributes) {

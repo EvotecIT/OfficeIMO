@@ -204,7 +204,7 @@ public static partial class OfficeSvgDrawingReader {
         bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
         if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
             || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
-        if (TryParseNumberList(root.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
+        if (TryParseNumberList(ReadRasterProjectedAttribute(root, "viewBox"), out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
             && viewBox[3] > 0D) {
