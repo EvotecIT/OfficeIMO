@@ -44,6 +44,10 @@ Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass
 
 Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
 
+## OfficeIMO 3.2: bounded PDF text clipping
+
+PDF reading now accepts at most 4,096 pending glyph clipping paths in one text object. Older versions continued accumulating larger clipping-mode text runs; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` before that accumulation can exhaust memory. This safety ceiling is not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle the exception as an unsupported or over-complex input. Trusted producers must simplify the clipping text or split it into smaller text objects before OfficeIMO reads the file.
+
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
 `PdfDocument` no longer duplicates every heading, paragraph, table, image, form,

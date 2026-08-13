@@ -275,6 +275,35 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateCountsRepeatedClipPathElementsAgainstRenderedBudget() {
+        const string oneClipUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' clip-path='url(#c)'/></svg>";
+        const string twoClipUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' clip-path='url(#c)'/><rect x='5' width='4' height='4' clip-path='url(#c)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneClipUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoClipUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsInlineStyleFilterAndMarkerReferences() {
+        const string oneReferencedShape = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><filter id='f'><feGaussianBlur stdDeviation='1'/></filter><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1' style='filter:url(#f);marker-end:url(#m)'/></svg>";
+        const string twoReferencedShapes = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><filter id='f'><feGaussianBlur stdDeviation='1'/></filter><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1' style='filter:url(#f);marker-end:url(#m)'/>"
+            + "<path d='M1 0 L2 1' style='filter:url(#f);marker-end:url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 8 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneReferencedShape), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoReferencedShapes), options));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

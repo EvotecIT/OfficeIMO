@@ -293,24 +293,13 @@ public static partial class OfficeSvgDrawingReader {
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
 
-        SvgElementReferenceEntryResult maskResult = references.TryEnterLocalDetailed(
-            ReadPresentationProperty(element, "mask"),
-            out string maskId,
-            out XElement? maskElement);
-        if (maskResult == SvgElementReferenceEntryResult.DepthExceeded) return false;
-        if (maskResult == SvgElementReferenceEntryResult.Entered) {
-            try {
-                foreach (XElement child in maskElement!.Elements()) {
-                    if (!TryAddRenderedSvgExpansion(
-                            child,
-                            references,
-                            maximumElements,
-                            ref elementCount,
-                            ref commandCount)) return false;
-                }
-            } finally {
-                references.Exit(maskId);
-            }
+        foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
+            if (!TryAddRenderedSvgLocalReference(
+                    ReadPresentationProperty(element, propertyName),
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount)) return false;
         }
 
         if (name == "use") {
@@ -342,6 +331,39 @@ public static partial class OfficeSvgDrawingReader {
                     ref commandCount)) return false;
         }
         return true;
+    }
+
+    private static readonly string[] RenderedSvgLocalReferenceProperties = {
+        "mask",
+        "clip-path",
+        "filter",
+        "marker-start",
+        "marker-mid",
+        "marker-end"
+    };
+
+    private static bool TryAddRenderedSvgLocalReference(
+        string? value,
+        SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
+        ref int commandCount) {
+        SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
+            value,
+            out string referenceId,
+            out XElement? target);
+        if (result == SvgElementReferenceEntryResult.DepthExceeded) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return true;
+        try {
+            return TryAddRenderedSvgExpansion(
+                target!,
+                references,
+                maximumElements,
+                ref elementCount,
+                ref commandCount);
+        } finally {
+            references.Exit(referenceId);
+        }
     }
 
     private static bool TryAddSvgGeometryCommands(XElement element, ref int commandCount) {
