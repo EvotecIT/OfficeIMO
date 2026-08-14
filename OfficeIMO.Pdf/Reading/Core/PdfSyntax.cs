@@ -228,13 +228,15 @@ internal static partial class PdfSyntax {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
-                if (appliedXrefStreamEntries) {
-                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget);
-                }
             }
         }
 
-        if (!appliedXrefStreamEntries) {
+        if (appliedXrefStreamEntries) {
+            // Xref streams are never encrypted, but the object streams they reference can be.
+            // Materialize compressed objects only after authentication and decryption so their
+            // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
+            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget);
+        } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget);
         }

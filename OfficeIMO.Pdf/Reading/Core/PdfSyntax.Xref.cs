@@ -434,6 +434,15 @@ internal static partial class PdfSyntax {
 
             int offset = (int)entry.Field1;
             int generation = (int)entry.Field2;
+            if (map.TryGetValue(entry.ObjectNumber, out PdfIndirectObject? existing) &&
+                existing.Value is PdfStream existingStream &&
+                existingStream.Dictionary.Get<PdfName>("Type")?.Name == "XRef" &&
+                parsedOffsets.TryGetValue(entry.ObjectNumber, out int existingOffset) &&
+                existingOffset == offset) {
+                // Preserve the already-decoded active xref stream instance. Re-parsing its
+                // self-entry would replace the budget cache key and charge the same stream again.
+                continue;
+            }
             if (!parsedObjectsByOffset.TryGetValue(offset, out PdfIndirectObject? parsed)) {
                 parsed = TryParseIndirectObjectAt(pdf, text, offset, map, scanBudget, out PdfIndirectObject candidate)
                     ? candidate
@@ -449,22 +458,8 @@ internal static partial class PdfSyntax {
             }
         }
 
-        foreach (var entry in entries) {
-            if (entry.Type != 2 ||
-                entry.Field1 < 0 ||
-                entry.Field1 > int.MaxValue ||
-                entry.Field2 < 0 ||
-                entry.Field2 > int.MaxValue) {
-                continue;
-            }
-
-            int objectStreamNumber = (int)entry.Field1;
-            int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out var parsed, out int objectStreamOffset)) {
-                map[entry.ObjectNumber] = parsed;
-                parsedOffsets[entry.ObjectNumber] = objectStreamOffset;
-            }
-        }
+        // Type 2 entries are applied in one dedicated pass after any Standard Security
+        // decryption has replaced encrypted object streams in the active object map.
     }
 
     private static List<(int Offset, List<(int ObjectNumber, int Offset, int Generation, bool InUse)> Entries, int? XrefStreamOffset)> GetClassicPredecessorTablesForXrefStreamChain(

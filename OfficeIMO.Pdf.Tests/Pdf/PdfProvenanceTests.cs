@@ -1244,6 +1244,7 @@ public sealed partial class PdfProvenanceTests {
             PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));
             PdfDictionary embeddedFiles = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, names.Items["EmbeddedFiles"]));
             PdfArray entries = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, embeddedFiles.Items["Names"]));
+            PdfArray associatedFiles = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, catalog.Items["AF"]));
             var pairs = new List<(PdfStringObj Name, PdfObject Reference)>();
             for (int index = 0; index + 1 < entries.Items.Count; index += 2) {
                 pairs.Add((Assert.IsType<PdfStringObj>(entries.Items[index]), entries.Items[index + 1]));
@@ -1252,8 +1253,20 @@ public sealed partial class PdfProvenanceTests {
             (PdfStringObj Name, PdfObject Reference) retained = pairs.Single(pair => pair.Name.Value == "keep.txt");
             entries.Items.Clear();
             for (int index = 0; index < copies; index++) {
+                PdfObject candidateReference = candidate.Reference;
+                if (index > 0) {
+                    PdfDictionary sourceFileSpec = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, candidate.Reference));
+                    var copiedFileSpec = new PdfDictionary();
+                    foreach (KeyValuePair<string, PdfObject> item in sourceFileSpec.Items) {
+                        copiedFileSpec.Items[item.Key] = item.Value;
+                    }
+                    int copiedObjectNumber = objects.Keys.Max() + 1;
+                    objects[copiedObjectNumber] = new PdfIndirectObject(copiedObjectNumber, 0, copiedFileSpec);
+                    candidateReference = new PdfReference(copiedObjectNumber, 0);
+                    associatedFiles.Items.Add(candidateReference);
+                }
                 entries.Items.Add(new PdfStringObj(candidate.Name.Value + index, true));
-                entries.Items.Add(candidate.Reference);
+                entries.Items.Add(candidateReference);
                 if (index == 0) {
                     entries.Items.Add(retained.Name);
                     entries.Items.Add(retained.Reference);
