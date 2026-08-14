@@ -502,8 +502,16 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         bool hasUnsupportedViewUsageApplications = false;
         for (int applicationIndex = 0; applicationIndex < applications.Items.Count; applicationIndex++) {
-            if (ResolveObject(applications.Items[applicationIndex], objects) is not PdfDictionary application ||
-                !string.Equals(ReadName(application, "Event", objects), "View", StringComparison.Ordinal)) {
+            if (ResolveObject(applications.Items[applicationIndex], objects) is not PdfDictionary application) {
+                hasUnsupportedViewUsageApplications = true;
+                continue;
+            }
+            if (!application.Items.TryGetValue("Event", out PdfObject? eventObject) ||
+                ResolveObject(eventObject, objects) is not PdfName eventName) {
+                hasUnsupportedViewUsageApplications = true;
+                continue;
+            }
+            if (!string.Equals(eventName.Name, "View", StringComparison.Ordinal)) {
                 continue;
             }
             if (!HasExactViewCategory(application, objects)) {

@@ -88,14 +88,24 @@ public sealed partial class PdfReadPage {
 
     private static bool CanRenderTilingPatterns(PdfPageVisualPrimitive primitive, double drawingWidth, double drawingHeight) {
         if (primitive.FillTilingPattern is PdfPageTilingPatternPaint fillPaint &&
-            (IsMagnifyingTilingPatternTransform(fillPaint.Transform) ||
+            (!IsWithinStrictTilingPatternRasterLimit(fillPaint) ||
+             IsMagnifyingTilingPatternTransform(fillPaint.Transform) ||
              (TryGetTilingPatternFillBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath fillBounds) &&
               (!fillBounds.IsExact || !IsWithinTilingPatternLimit(fillPaint, fillBounds))))) return false;
         if (primitive.StrokeTilingPattern is PdfPageTilingPatternPaint strokePaint && primitive.StrokeWidth > 0D &&
-            (IsMagnifyingTilingPatternTransform(strokePaint.Transform) ||
+            (!IsWithinStrictTilingPatternRasterLimit(strokePaint) ||
+             IsMagnifyingTilingPatternTransform(strokePaint.Transform) ||
              (TryGetTilingPatternStrokeBounds(primitive, drawingWidth, drawingHeight, out PdfPageClipPath strokeBounds) &&
               (!strokeBounds.IsExact || !IsWithinTilingPatternLimit(strokePaint, strokeBounds))))) return false;
         return true;
+    }
+
+    private static bool IsWithinStrictTilingPatternRasterLimit(PdfPageTilingPatternPaint paint) {
+        double width = paint.Resource.Tile.Width;
+        double height = paint.Resource.Tile.Height;
+        if (!IsFinite(width) || !IsFinite(height) || width <= 0D || height <= 0D) return false;
+        return width <= OfficeImageExportOptions.DefaultMaximumRasterPixels &&
+            height <= OfficeImageExportOptions.DefaultMaximumRasterPixels / width;
     }
 
     private static bool IsMagnifyingTilingPatternTransform(OfficeTransform transform) {

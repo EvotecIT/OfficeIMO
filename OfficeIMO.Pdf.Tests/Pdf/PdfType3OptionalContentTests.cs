@@ -439,6 +439,8 @@ public class PdfType3OptionalContentTests {
     [Theory]
     [InlineData("/AS /Bad")]
     [InlineData("/AS 99 0 R")]
+    [InlineData("/AS [null]")]
+    [InlineData("/AS [99 0 R]")]
     public void RenderPage_FailsClosedForMalformedViewUsageApplicationContainer(string applicationEntry) {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
@@ -447,6 +449,17 @@ public class PdfType3OptionalContentTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresWellFormedNonViewUsageApplication() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            defaultConfigurationEntries: "/AS [<< /Event /Print >>] /ON [11 0 R] /OFF [10 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
