@@ -72,7 +72,7 @@ internal static class PdfProvenanceGraphEditor {
             }
             results[dictionary] = PruneNameTreeDictionary(objects, dictionary, targets, results);
         }
-        return results.TryGetValue(rootDictionary, out NameTreeResult result) && result.HasEntries;
+        return results.TryGetValue(rootDictionary, out NameTreeResult result) && result.ShouldRetain;
     }
 
     private static NameTreeResult PruneNameTreeDictionary(
@@ -81,6 +81,7 @@ internal static class PdfProvenanceGraphEditor {
         HashSet<int> targets,
         Dictionary<PdfDictionary, NameTreeResult> results) {
         bool hadLimits = dictionary.Items.ContainsKey("Limits");
+        bool changed = false;
         PdfObject? firstName = null;
         PdfObject? lastName = null;
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
@@ -91,22 +92,27 @@ internal static class PdfProvenanceGraphEditor {
                     !IsTargetReference(objects, names.Items[index + 1], targets)) continue;
                 names.Items.RemoveAt(index + 1);
                 names.Items.RemoveAt(index);
+                changed = true;
             }
             if (names.Items.Count % 2 != 0 && IsTargetReference(objects, names.Items[names.Items.Count - 1], targets)) {
                 names.Items.RemoveAt(names.Items.Count - 1);
+                changed = true;
             }
             completePairCount = names.Items.Count / 2;
-            if (completePairCount == 0) dictionary.Items.Remove("Names");
-            else {
+            if (completePairCount == 0) {
+                if (changed) dictionary.Items.Remove("Names");
+            } else {
                 firstName = names.Items[0];
                 lastName = names.Items[(completePairCount - 1) * 2];
             }
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
             for (int index = kids.Items.Count - 1; index >= 0; index--) {
-                if (PdfObjectLookup.Resolve(objects, kids.Items[index]) is not PdfDictionary child ||
-                    !results.TryGetValue(child, out NameTreeResult childResult) || !childResult.HasEntries) {
-                    kids.Items.RemoveAt(index);
+                if (PdfObjectLookup.Resolve(objects, kids.Items[index]) is PdfDictionary child &&
+                    results.TryGetValue(child, out NameTreeResult childResult) &&
+                    childResult.WasChanged) {
+                    changed = true;
+                    if (!childResult.ShouldRetain) kids.Items.RemoveAt(index);
                 }
             }
             foreach (PdfObject childValue in kids.Items) {
@@ -115,19 +121,21 @@ internal static class PdfProvenanceGraphEditor {
                 firstName ??= childResult.FirstName;
                 lastName = childResult.LastName ?? lastName;
             }
-            if (kids.Items.Count == 0) dictionary.Items.Remove("Kids");
+            if (kids.Items.Count == 0 && changed) dictionary.Items.Remove("Kids");
         }
         if (firstName == null || lastName == null) {
-            dictionary.Items.Remove("Limits");
-            return default;
+            bool hasUnrelatedContent = dictionary.Items.Keys.Any(key =>
+                !string.Equals(key, "Limits", StringComparison.Ordinal));
+            if (changed && !hasUnrelatedContent) dictionary.Items.Remove("Limits");
+            return new NameTreeResult(null, null, changed, !changed || hasUnrelatedContent);
         }
-        if (hadLimits) {
+        if (hadLimits && changed) {
             var limits = new PdfArray();
             limits.Items.Add(firstName);
             limits.Items.Add(lastName);
             dictionary.Items["Limits"] = limits;
         }
-        return new NameTreeResult(firstName, lastName);
+        return new NameTreeResult(firstName, lastName, changed, shouldRetain: true);
     }
 
     private static bool IsTargetReference(
@@ -139,13 +147,17 @@ internal static class PdfProvenanceGraphEditor {
         PdfObjectLookup.TryGet(objects, reference, out _);
 
     private readonly struct NameTreeResult {
-        internal NameTreeResult(PdfObject firstName, PdfObject lastName) {
+        internal NameTreeResult(PdfObject? firstName, PdfObject? lastName, bool wasChanged, bool shouldRetain) {
             FirstName = firstName;
             LastName = lastName;
+            WasChanged = wasChanged;
+            ShouldRetain = shouldRetain;
         }
 
         internal PdfObject? FirstName { get; }
         internal PdfObject? LastName { get; }
+        internal bool WasChanged { get; }
+        internal bool ShouldRetain { get; }
         internal bool HasEntries => FirstName != null && LastName != null;
     }
 

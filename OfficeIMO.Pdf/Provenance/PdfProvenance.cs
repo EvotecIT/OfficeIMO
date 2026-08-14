@@ -508,6 +508,7 @@ public static class PdfProvenance {
             maximumContainerEntries);
         if (PdfObjectLookup.Resolve(objects, acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsValue) ? fieldsValue : null) is not PdfArray fields) return;
         var visited = new HashSet<PdfObject>();
+        var structuralVisited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>(fields.Items);
         while (pending.Count > 0) {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
@@ -516,6 +517,14 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(field);
+            foreach (string key in new[] { "Lock", "SV" }) {
+                AddStructuralGraphDictionaries(
+                    objects,
+                    field.Items.TryGetValue(key, out PdfObject? constraintValue) ? constraintValue : null,
+                    result,
+                    maximumContainerEntries,
+                    sharedVisited: structuralVisited);
+            }
             if (PdfObjectLookup.Resolve(objects, field.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is not PdfArray kids) continue;
             foreach (PdfObject child in kids.Items) pending.Push(child);
         }
@@ -644,7 +653,7 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
