@@ -487,6 +487,13 @@ public static class PdfProvenance {
                     maximumContainerEntries,
                     pageTreeObjectNumbers,
                     structuralTraversalVisited);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("SeparationInfo", out PdfObject? separationInfo) ? separationInfo : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
                 AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries, annotationStructuralVisited);
             }
             if (item.Value is PdfStream activeStream) {
