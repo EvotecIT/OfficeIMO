@@ -413,6 +413,42 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type2_ValidatesNonpositiveExponentAgainstTheAuthoredDomain() {
+        PdfDictionary valid = Type2(new[] { 0D }, new[] { 1D });
+        valid.Items["Domain"] = Numbers(1D, 2D);
+        valid.Items["N"] = Number(-1D);
+        PdfDictionary singular = Type2(new[] { 0D }, new[] { 1D });
+        singular.Items["Domain"] = Numbers(0D, 1D);
+        singular.Items["N"] = Number(-1D);
+        PdfDictionary nonReal = Type2(new[] { 0D }, new[] { 1D });
+        nonReal.Items["Domain"] = Numbers(-2D, -1D);
+        nonReal.Items["N"] = Number(0.5D);
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            valid,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024,
+            out PdfColorFunction function));
+        Assert.Equal(0.5D, Assert.Single(function.Evaluate(new[] { 2D })!), 8);
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            singular,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024,
+            out _));
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            nonReal,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024,
+            out _));
+    }
+
+    [Fact]
     public void Type3_SelectsTheZeroWidthLeftEndpointFunctionOnlyAtTheEndpoint() {
         PdfDictionary stitching = Dictionary(
             ("FunctionType", Number(3)),

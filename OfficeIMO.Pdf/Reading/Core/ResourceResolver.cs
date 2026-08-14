@@ -1571,7 +1571,7 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if ((sourceColorCount != 1 && sourceColorCount != 3 && sourceColorCount != 4) ||
+        if (!HasSupportedPngSourceColorCount(colorNormalization) ||
             (pngColorType != 0 && pngColorType != 2)) {
             return false;
         }
@@ -1656,7 +1656,7 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if ((sourceColorCount != 1 && sourceColorCount != 3 && sourceColorCount != 4) ||
+        if (!HasSupportedPngSourceColorCount(colorNormalization) ||
             (pngColorType != 0 && pngColorType != 2)) {
             return false;
         }
@@ -1729,6 +1729,11 @@ internal static partial class ResourceResolver {
             OfficePngCompression.Stored);
         return true;
     }
+
+    private static bool HasSupportedPngSourceColorCount(PdfImageColorSpaceNormalization normalization) =>
+        normalization.RequiresColorConversion
+            ? normalization.SourceColorCount is >= 1 and <= 32
+            : normalization.SourceColorCount is 1 or 3 or 4;
 
     private static void CopyDecodedColorRow(
         byte[] source,

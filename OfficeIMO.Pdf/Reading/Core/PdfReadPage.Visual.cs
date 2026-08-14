@@ -1698,12 +1698,16 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
+            bool hasInvalidRenderingIntent = !TryReadSupportedExtGStateRenderingIntent(
+                state,
+                out OfficeIccRenderingIntent? renderingIntent);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
             bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
                 ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
-                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask")) ||
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask" or "RI")) ||
                 hasUnsupportedType ||
+                hasInvalidRenderingIntent ||
                 HasInvalidStrictNumber(state, "ca", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "CA", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
@@ -1713,14 +1717,7 @@ public sealed partial class PdfReadPage {
             bool? softMaskEnabled = ReadSoftMaskEnabled(state);
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
-            bool unsupportedTextRestampEffect = HasUnsupportedTextRestampEffect(state);
-            OfficeIccRenderingIntent? renderingIntent = PdfRenderingIntentResolver.TryRead(
-                state,
-                "RI",
-                _objects,
-                out OfficeIccRenderingIntent resolvedRenderingIntent)
-                ? resolvedRenderingIntent
-                : (OfficeIccRenderingIntent?)null;
+            bool unsupportedTextRestampEffect = hasInvalidRenderingIntent || HasUnsupportedTextRestampEffect(state);
             result[entry.Key] = new PdfPageGraphicsStateResource(
                 fillOpacity,
                 strokeOpacity,
@@ -1773,9 +1770,27 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool HasUnsupportedTextRestampEffect(PdfDictionary state) {
-        string[] keys = { "op", "OPM", "RI", "Font", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
+        string[] keys = { "op", "OPM", "Font", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
         for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
         return false;
+    }
+
+    private bool TryReadSupportedExtGStateRenderingIntent(
+        PdfDictionary state,
+        out OfficeIccRenderingIntent? renderingIntent) {
+        renderingIntent = null;
+        if (!state.Items.TryGetValue("RI", out PdfObject? value)) return true;
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return true;
+        if (resolved is not PdfName name) return false;
+        renderingIntent = name.Name switch {
+            "Perceptual" => OfficeIccRenderingIntent.Perceptual,
+            "RelativeColorimetric" => OfficeIccRenderingIntent.RelativeColorimetric,
+            "Saturation" => OfficeIccRenderingIntent.Saturation,
+            "AbsoluteColorimetric" => OfficeIccRenderingIntent.AbsoluteColorimetric,
+            _ => null
+        };
+        return renderingIntent.HasValue;
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(

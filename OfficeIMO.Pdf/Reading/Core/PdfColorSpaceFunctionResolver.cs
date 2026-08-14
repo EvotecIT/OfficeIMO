@@ -338,7 +338,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             TryReadNumber(exponentValue, objects) is not double exponent ||
             c0.Length != outputCount || c1.Length != outputCount ||
             c0.Any(static value => !IsFinite(value)) || c1.Any(static value => !IsFinite(value)) ||
-            !IsFinite(exponent) || exponent <= 0D) return false;
+            !IsSupportedType2Exponent(exponent, domain)) return false;
 
         function = new PdfColorFunction(
             inputCount,
@@ -348,6 +348,15 @@ internal static partial class PdfColorSpaceFunctionResolver {
             (values, output, outputOffset) => EvaluateType2(values, output, outputOffset, c0, c1, exponent),
             exponent == 1D ? domain : CreateUniformBreakpoints(domain, 65));
         return true;
+    }
+
+    private static bool IsSupportedType2Exponent(double exponent, double[] domain) {
+        if (!IsFinite(exponent) || domain.Length != 2) return false;
+        double minimum = domain[0];
+        double maximum = domain[1];
+        if (minimum < 0D && exponent != Math.Truncate(exponent)) return false;
+        if (exponent < 0D && minimum <= 0D && maximum >= 0D) return false;
+        return IsFinite(Math.Pow(minimum, exponent)) && IsFinite(Math.Pow(maximum, exponent));
     }
 
     private static bool TryCreateStitchingFunction(

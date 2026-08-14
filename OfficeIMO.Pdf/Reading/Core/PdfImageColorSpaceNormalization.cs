@@ -293,8 +293,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 if (colorSpaceArray.Items.Count < 2 ||
                     ResolveObject(colorSpaceArray.Items[1], objects) is not PdfArray names ||
                     names.Items.Count < 1 || names.Items.Count > 32 ||
-                    names.Items.Any(item => ResolveObject(item, objects) is not PdfName name ||
-                        string.Equals(name.Name, "None", StringComparison.Ordinal))) return false;
+                    names.Items.Any(item => ResolveObject(item, objects) is not PdfName)) return false;
                 return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, renderingIntent, depth, out normalization);
             default:
                 return false;

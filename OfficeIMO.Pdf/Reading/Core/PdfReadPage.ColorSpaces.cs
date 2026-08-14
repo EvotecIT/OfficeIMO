@@ -234,8 +234,7 @@ public sealed partial class PdfReadPage {
     private int TryReadDeviceNComponentCount(PdfArray array) {
         if (array.Items.Count < 2 || ResolveColorSpaceDeclaration(array.Items[1]) is not PdfArray names) return 0;
         if (names.Items.Count < 1 || names.Items.Count > MaxDeviceNComponents) return 0;
-        return names.Items.All(item => ResolveColorSpaceDeclaration(item) is PdfName name &&
-            !string.Equals(name.Name, "None", StringComparison.Ordinal)) ? names.Items.Count : 0;
+        return names.Items.All(item => ResolveColorSpaceDeclaration(item) is PdfName) ? names.Items.Count : 0;
     }
 
     private bool TryReadCalGrayColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {

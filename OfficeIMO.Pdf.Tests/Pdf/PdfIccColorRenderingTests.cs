@@ -2450,6 +2450,38 @@ public class PdfIccColorRenderingTests {
         Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(imagePdf)).IsImageFile);
     }
 
+    [Fact]
+    public void RenderPage_AcceptsNoneColorantsInMixedDeviceNAcrossContentAndImages() {
+        const string function =
+            "7 0 obj\n<< /FunctionType 4 /Domain [0 1 0 1] /Range [0 1 0 1 0 1] /Length 11 >>\n" +
+            "stream\n{ pop 0 0 }\nendstream\nendobj\n";
+        const string colorSpace = "[/DeviceN [/Spot /None] /DeviceRGB 7 0 R]";
+        byte[] contentPdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            "1 0.5 scn",
+            extraObjects: function,
+            colorSpaceResources: "/CsIcc " + colorSpace);
+        byte[] imagePdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 255, 128 },
+            "/N 3",
+            imageColorSpace: colorSpace,
+            extraObjects: function);
+
+        PdfReadPage contentPage = PdfReadDocument.Open(contentPdf).Pages[0];
+        PdfReadPage imagePage = PdfReadDocument.Open(imagePdf).Pages[0];
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(contentPdf).Shapes);
+        Assert.True(Assert.Single(PdfImageExtractor.ExtractImages(imagePdf)).IsImageFile);
+        Assert.DoesNotContain(
+            contentPage.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+        Assert.DoesNotContain(
+            imagePage.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
     [Theory]
     [InlineData("[/CalGray << /WhitePoint [0.9505 1 1.089] /BlackPoint [0.1 0 0] >>]")]
     [InlineData("[/CalRGB << /WhitePoint [0.9505 1 1.089] /BlackPoint [0 0.1 0] >>]")]

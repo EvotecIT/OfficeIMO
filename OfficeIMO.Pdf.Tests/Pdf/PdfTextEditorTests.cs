@@ -54,9 +54,15 @@ public class PdfTextEditorTests {
         Assert.Equal(2, findException.Limit);
     }
 
-    [Fact]
-    public void PortableTextRestampsPreserveSupportedAuthoredRenderingIntent() {
-        byte[] source = BuildRawTextPdf("q /Perceptual ri BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n");
+    [Theory]
+    [InlineData("/Perceptual ri", "")]
+    [InlineData("/IntentGs gs", "/ExtGState << /IntentGs << /RI /Perceptual >> >>")]
+    public void PortableTextRestampsPreserveSupportedAuthoredRenderingIntent(
+        string renderingIntentOperation,
+        string additionalResources) {
+        byte[] source = BuildRawTextPdf(
+            "q " + renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n",
+            additionalResources);
         PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
