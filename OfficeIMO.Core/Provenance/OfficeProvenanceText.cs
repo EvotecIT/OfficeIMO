@@ -123,7 +123,12 @@ internal static class OfficeProvenanceText {
             }
             int contentStart = begin + BeginDelimiter.Length;
             int end = pendingEnd >= contentStart ? pendingEnd : IndexOf(data, EndDelimiter, contentStart);
-            if (end < 0) yield break;
+            if (end < 0) {
+                int unmatchedLineStart = FindLineStart(data, begin);
+                int unmatchedLineEnd = FindLineEndIncludingTerminator(data, begin + BeginDelimiter.Length);
+                yield return new StructuredBlock(begin, unmatchedLineStart, unmatchedLineEnd, false, false, 0L, null);
+                yield break;
+            }
             int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart);
             if (newerBegin >= 0 && newerBegin < end) {
                 int nestedLineStart = FindLineStart(data, begin);

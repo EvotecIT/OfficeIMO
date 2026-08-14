@@ -94,7 +94,14 @@ namespace OfficeIMO.Security {
             return output.ToArray();
         }
 
-        internal OfficePackageDigestResult VerifyReference(XElement reference, long maxPartBytes) {
+        internal OfficePackageDigestResult VerifyReference(
+            XElement reference,
+            long maxPartBytes,
+            long maxDigestBytes = long.MaxValue) {
+            if (maxDigestBytes < 0) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    "OPC signature inspection exceeds the configured aggregate digest-byte limit.");
+            }
             XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             string? uri = ((string?)reference.Attribute("URI"))?.Trim();
             string? targetPartUri = NormalizeReferencePartUri(uri);
@@ -149,13 +156,20 @@ namespace OfficeIMO.Security {
             }
 
             byte[] input;
+            long transformInputBytes = 0;
             try {
-                input = ApplyTransforms(targetPartUri, reference, maxPartBytes);
+                input = ApplyTransforms(targetPartUri, reference, maxPartBytes, maxDigestBytes, ref transformInputBytes);
+            } catch (OfficePackageSignatureResourceLimitException) {
+                throw;
             } catch (NotSupportedException exception) {
-                return OfficePackageDigestResult.Unsupported(exception.Message);
+                return OfficePackageDigestResult.Unsupported(exception.Message, transformInputBytes);
             } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or CryptographicException) {
-                return OfficePackageDigestResult.Failed("Digest verification for " + targetPartUri + " failed while applying transforms: " + exception.Message);
+                return OfficePackageDigestResult.Failed(
+                    "Digest verification for " + targetPartUri + " failed while applying transforms: " + exception.Message,
+                    transformInputBytes);
             }
+
+            long digestWorkBytes = AddDigestWorkBytes(transformInputBytes, input.LongLength, maxDigestBytes);
 
             byte[] actual;
             using (HashAlgorithm hash = hashFactory()) {
@@ -163,8 +177,8 @@ namespace OfficeIMO.Security {
             }
 
             return FixedTimeEquals(actual, expected)
-                ? OfficePackageDigestResult.Passed("Digest verification passed for " + targetPartUri + ".")
-                : OfficePackageDigestResult.Failed("Digest verification failed for " + targetPartUri + ".");
+                ? OfficePackageDigestResult.Passed("Digest verification passed for " + targetPartUri + ".", digestWorkBytes)
+                : OfficePackageDigestResult.Failed("Digest verification failed for " + targetPartUri + ".", digestWorkBytes);
         }
 
         internal string ComputeDigestValue(XElement reference, long maxPartBytes) {
@@ -195,7 +209,8 @@ namespace OfficeIMO.Security {
                 !string.Equals(declaredContentType, actualContentType, StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidDataException("The OPC signature Reference content type does not match the package content type for " + targetPartUri + ".");
             }
-            byte[] input = ApplyTransforms(targetPartUri, reference, maxPartBytes);
+            long ignoredTransformInputBytes = 0;
+            byte[] input = ApplyTransforms(targetPartUri, reference, maxPartBytes, long.MaxValue, ref ignoredTransformInputBytes);
             using HashAlgorithm hash = hashFactory();
             return Convert.ToBase64String(hash.ComputeHash(input));
         }
@@ -269,7 +284,12 @@ namespace OfficeIMO.Security {
             return stream.ToArray();
         }
 
-        private byte[] ApplyTransforms(string targetPartUri, XElement reference, long maxPartBytes) {
+        private byte[] ApplyTransforms(
+            string targetPartUri,
+            XElement reference,
+            long maxPartBytes,
+            long maxDigestBytes,
+            ref long transformInputBytes) {
             XNamespace ds = XmlDigitalSignatureAlgorithms.Namespace;
             List<XElement> transforms = reference
                 .Element(ds + "Transforms")?
@@ -286,14 +306,25 @@ namespace OfficeIMO.Security {
                     if (currentBytes != null || currentXml != null) {
                         throw new NotSupportedException("RelationshipTransform must be the first transform for " + targetPartUri + ".");
                     }
-                    currentXml = ApplyRelationshipTransform(targetPartUri, transform, maxPartBytes);
+                    currentXml = ApplyRelationshipTransform(
+                        targetPartUri,
+                        transform,
+                        maxPartBytes,
+                        maxDigestBytes,
+                        ref transformInputBytes);
                     continue;
                 }
 
                 if (algorithm.Equals(CanonicalXmlAlgorithm, StringComparison.Ordinal) ||
                     algorithm.Equals(CanonicalXmlWithCommentsAlgorithm, StringComparison.Ordinal)) {
                     if (currentXml == null) {
-                        currentXml = LoadXml(currentBytes ?? ReadPart(targetPartUri, maxPartBytes), maxPartBytes);
+                        currentXml = LoadXml(
+                            currentBytes ?? ReadPartForDigestWork(
+                                targetPartUri,
+                                maxPartBytes,
+                                maxDigestBytes,
+                                ref transformInputBytes),
+                            maxPartBytes);
                     }
                     currentBytes = Canonicalize(
                         currentXml,
@@ -309,11 +340,22 @@ namespace OfficeIMO.Security {
             if (currentXml != null) {
                 throw new NotSupportedException("RelationshipTransform for " + targetPartUri + " must be followed by an XML canonicalization transform.");
             }
-            return currentBytes ?? ReadPart(targetPartUri, maxPartBytes);
+            return currentBytes ?? ReadPartForDigestWork(
+                targetPartUri,
+                maxPartBytes,
+                maxDigestBytes,
+                ref transformInputBytes);
         }
 
-        private XmlDocument ApplyRelationshipTransform(string targetPartUri, XElement transform, long maxPartBytes) {
-            XmlDocument source = LoadXml(ReadPart(targetPartUri, maxPartBytes), maxPartBytes);
+        private XmlDocument ApplyRelationshipTransform(
+            string targetPartUri,
+            XElement transform,
+            long maxPartBytes,
+            long maxDigestBytes,
+            ref long transformInputBytes) {
+            XmlDocument source = LoadXml(
+                ReadPartForDigestWork(targetPartUri, maxPartBytes, maxDigestBytes, ref transformInputBytes),
+                maxPartBytes);
             const string relationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
             XNamespace opc = "http://schemas.openxmlformats.org/package/2006/digital-signature";
             var ids = new HashSet<string>(transform
@@ -349,6 +391,29 @@ namespace OfficeIMO.Security {
                 root.AppendChild(selected);
             }
             return result;
+        }
+
+        private byte[] ReadPartForDigestWork(
+            string partUri,
+            long maxPartBytes,
+            long maxDigestBytes,
+            ref long transformInputBytes) {
+            if (TryGetPartLength(partUri, out long declaredLength) &&
+                declaredLength > maxDigestBytes - transformInputBytes) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    "OPC signature inspection exceeds the configured aggregate digest-byte limit.");
+            }
+            byte[] bytes = ReadPart(partUri, maxPartBytes);
+            transformInputBytes = AddDigestWorkBytes(transformInputBytes, bytes.LongLength, maxDigestBytes);
+            return bytes;
+        }
+
+        private static long AddDigestWorkBytes(long current, long additional, long maximum) {
+            if (additional < 0 || current < 0 || additional > maximum - current) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    "OPC signature inspection exceeds the configured aggregate digest-byte limit.");
+            }
+            return current + additional;
         }
 
         private Dictionary<string, string> ReadContentTypes(long maxPartBytes) {
@@ -453,24 +518,27 @@ namespace OfficeIMO.Security {
     internal readonly struct OfficePackageDigestResult {
         private OfficePackageDigestResult(
             OfficePackageSignatureValidationState status,
-            string detail) {
+            string detail,
+            long digestWorkBytes) {
             Status = status;
             Detail = detail;
+            DigestWorkBytes = digestWorkBytes;
         }
 
         internal OfficePackageSignatureValidationState Status { get; }
         internal string Detail { get; }
+        internal long DigestWorkBytes { get; }
 
-        internal static OfficePackageDigestResult Passed(string detail) =>
-            new(OfficePackageSignatureValidationState.Passed, detail);
+        internal static OfficePackageDigestResult Passed(string detail, long hashedBytes = 0) =>
+            new(OfficePackageSignatureValidationState.Passed, detail, hashedBytes);
 
-        internal static OfficePackageDigestResult Failed(string detail) =>
-            new(OfficePackageSignatureValidationState.Failed, detail);
+        internal static OfficePackageDigestResult Failed(string detail, long hashedBytes = 0) =>
+            new(OfficePackageSignatureValidationState.Failed, detail, hashedBytes);
 
-        internal static OfficePackageDigestResult Unsupported(string detail) =>
-            new(OfficePackageSignatureValidationState.Unsupported, detail);
+        internal static OfficePackageDigestResult Unsupported(string detail, long digestWorkBytes = 0) =>
+            new(OfficePackageSignatureValidationState.Unsupported, detail, digestWorkBytes);
 
         internal static OfficePackageDigestResult NotChecked(string detail) =>
-            new(OfficePackageSignatureValidationState.NotChecked, detail);
+            new(OfficePackageSignatureValidationState.NotChecked, detail, 0);
     }
 }

@@ -101,15 +101,17 @@ public static class OfficeProvenanceInspector {
             if (version == 42 || version == 43) return OfficeProvenanceAssetFormat.Tiff;
         }
         if (OfficeProvenanceZip.HasSignature(data)) return OfficeProvenanceAssetFormat.ZipPackage;
-        if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-") ||
-            Path.GetExtension(fileName ?? string.Empty).Equals(".pdf", StringComparison.OrdinalIgnoreCase)) {
-            return OfficeProvenanceAssetFormat.Pdf;
-        }
-        if (LooksLikeSvg(data, fileName, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
-        if (LooksLikeHtml(data, fileName, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Html;
+        if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-")) return OfficeProvenanceAssetFormat.Pdf;
+        if (LooksLikeSvg(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
+        if (LooksLikeHtml(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Html;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.UnstructuredText;
-        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
         if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
+        string extension = Path.GetExtension(fileName ?? string.Empty);
+        if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return OfficeProvenanceAssetFormat.Svg;
+        if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return OfficeProvenanceAssetFormat.Html;
+        if (HasStructuredTextExtension(fileName)) return OfficeProvenanceAssetFormat.StructuredText;
+        if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return OfficeProvenanceAssetFormat.Pdf;
         return OfficeProvenanceAssetFormat.Unknown;
     }
 

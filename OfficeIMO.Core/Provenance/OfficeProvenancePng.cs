@@ -28,7 +28,7 @@ internal static class OfficeProvenancePng {
         OfficeProvenanceRemovalOptions? removalOptions,
         List<OfficeProvenanceChange>? changes) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validHeader);
+        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validStructure);
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
@@ -50,7 +50,7 @@ internal static class OfficeProvenancePng {
             string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
             bool isC2pa = type == "caBX";
             if (isC2pa) {
-                bool valid = c2paCount == 1 && validHeader && foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
+                bool valid = c2paCount == 1 && validStructure && foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"PNG/caBX@{offset}";
@@ -61,7 +61,7 @@ internal static class OfficeProvenancePng {
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength, out bool fieldsValid)) {
-                bool carrierValid = xmpCount == 1 && validHeader && fieldsValid && HasValidCrc(data, offset, payloadLength);
+                bool carrierValid = xmpCount == 1 && validStructure && fieldsValid && HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
                 string location = $"PNG/iTXt-XMP@{offset}";
@@ -97,13 +97,14 @@ internal static class OfficeProvenancePng {
         byte[] data,
         OfficeProvenanceOptions options,
         out int xmpCount,
-        out bool validHeader) {
+        out bool validStructure) {
         int offset = SignatureLength;
         int chunkCount = 0;
         int c2paCount = 0;
         xmpCount = 0;
         int headerCount = 0;
         bool validLeadingHeader = false;
+        bool validEnd = false;
         bool foundEnd = false;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
@@ -124,11 +125,13 @@ internal static class OfficeProvenancePng {
                     HasValidCrc(data, offset, payloadLength);
             }
             bool isEnd = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IEND");
+            if (isEnd) validEnd = payloadLength == 0 && HasValidCrc(data, offset, payloadLength) &&
+                offset + (int)totalValue == data.Length;
             offset += (int)totalValue;
             if (isEnd) { foundEnd = true; break; }
         }
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
-        validHeader = headerCount == 1 && validLeadingHeader;
+        validStructure = headerCount == 1 && validLeadingHeader && validEnd;
         return c2paCount;
     }
 

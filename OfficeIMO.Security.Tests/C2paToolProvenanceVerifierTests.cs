@@ -17,6 +17,8 @@ public sealed class C2paToolProvenanceVerifierTests {
     [InlineData("{\"active_manifest\":{}}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"signingCredential.untrusted\"}]}", 0, OfficeProvenanceVerificationStatus.Untrusted)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}]}", 0, OfficeProvenanceVerificationStatus.Invalid)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\",\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.match\",\"success\":false}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":null,\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}]}", 0, OfficeProvenanceVerificationStatus.Invalid)]
     [InlineData("{\"active_manifest\":null,\"validation_status\":[{\"code\":\"signingCredential.untrusted\"}]}", 0, OfficeProvenanceVerificationStatus.Untrusted)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"signingCredential.ocsp.revoked\"}]}", 0, OfficeProvenanceVerificationStatus.Untrusted)]

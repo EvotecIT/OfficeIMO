@@ -176,7 +176,8 @@ public sealed class OfficePackageSignatureIntegrationTests {
             OfficePackageSignatureValidationReport validation = Validate(path, "docx");
 
             Assert.False(validation.IsCryptographicallyValid);
-            Assert.Equal(0, validation.SignatureInfo.OriginRelationshipCount);
+            Assert.Equal(shape == "malformed-target" ? 1 : 0, validation.SignatureInfo.OriginRelationshipCount);
+            if (shape == "malformed-target") Assert.True(validation.SignatureInfo.HasSignatures);
             Assert.Contains(validation.SignatureInfo.SignatureParts, part => !part.IsReachableFromOrigin);
         } finally {
             if (File.Exists(path)) File.Delete(path);

@@ -384,12 +384,11 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             CreateJpegSegment(0xE1, Join(Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0"), packet)),
             new byte[] { 0xFF, 0xD9 });
 
-        OfficeProvenanceReport bounded = OfficeProvenanceInspector.Inspect(
-            jpeg, "fixture.jpg", new OfficeProvenanceOptions { MaxContainerEntries = 8 });
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
+            jpeg, "fixture.jpg", new OfficeProvenanceOptions { MaxContainerEntries = 8 }));
         OfficeProvenanceReport accepted = OfficeProvenanceInspector.Inspect(
             jpeg, "fixture.jpg", new OfficeProvenanceOptions { MaxContainerEntries = 64 });
 
-        Assert.Empty(bounded.Evidence);
         Assert.Single(accepted.Evidence);
     }
 

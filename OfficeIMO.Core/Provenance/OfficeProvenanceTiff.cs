@@ -16,10 +16,11 @@ internal static class OfficeProvenanceTiff {
     private const ushort TileByteCountsTag = 325;
     private const ushort JpegInterchangeFormatTag = 513;
     private const ushort JpegInterchangeFormatLengthTag = 514;
+    private const ushort SubIfdsTag = 330;
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         List<TiffIfd> ifds = ReadIfds(data, options);
-        int primaryC2paCount = ifds.Count == 0 ? 0 : ifds[0].Entries.Count(static entry => entry.Tag == C2paTag);
+        int reachableC2paCount = ifds.Sum(static ifd => ifd.Entries.Count(static entry => entry.Tag == C2paTag));
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
@@ -41,7 +42,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
-                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}";
@@ -56,7 +57,7 @@ internal static class OfficeProvenanceTiff {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         List<TiffIfd> ifds = ReadIfds(data, options.Limits);
-        int primaryC2paCount = ifds.Count == 0 ? 0 : ifds[0].Entries.Count(static entry => entry.Tag == C2paTag);
+        int reachableC2paCount = ifds.Sum(static ifd => ifd.Entries.Count(static entry => entry.Tag == C2paTag));
         byte[] output = (byte[])data.Clone();
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
@@ -112,7 +113,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
-                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && primaryC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 && entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
                 if (options.RemoveC2paManifests && (valid || !options.RequireStructurallyValidCarrier)) {
@@ -125,6 +126,13 @@ internal static class OfficeProvenanceTiff {
                 }
             }
             if (retained.Count == ifd.Entries.Count) continue;
+            if (HasOverlappingIfdRewriteStorage(
+                data,
+                ifds,
+                ifd,
+                options.Limits.MaxContainerEntries)) {
+                throw new InvalidDataException("TIFF IFD rewrite overlaps retained value or image data.");
+            }
             RewriteIfd(output, ifd, retained);
             reserialized = true;
         }
@@ -186,6 +194,50 @@ internal static class OfficeProvenanceTiff {
                     JpegInterchangeFormatLengthTag,
                     xmpOffset,
                     xmpEnd,
+                    maximumContainerEntries)) return true;
+        }
+        return false;
+    }
+
+    private static bool HasOverlappingIfdRewriteStorage(
+        byte[] data,
+        List<TiffIfd> ifds,
+        TiffIfd rewrittenIfd,
+        int maximumContainerEntries) {
+        int rewriteOffset = rewrittenIfd.Offset;
+        long rewriteEnd = (long)rewrittenIfd.NextFieldOffset + rewrittenIfd.NextFieldSize;
+        foreach (TiffIfd ifd in ifds) {
+            long ifdEnd = (long)ifd.NextFieldOffset + ifd.NextFieldSize;
+            if (!ReferenceEquals(ifd, rewrittenIfd) && ifd.Offset < rewriteEnd && rewriteOffset < ifdEnd) return true;
+            foreach (TiffEntry entry in ifd.Entries) {
+                if (!TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
+                if (ReferenceEquals(ifd, rewrittenIfd) && length <= entry.InlineSize) continue;
+                long end = (long)offset + length;
+                if (offset < rewriteEnd && rewriteOffset < end) return true;
+            }
+            if (HasOverlappingReferencedData(
+                data,
+                ifd,
+                StripOffsetsTag,
+                StripByteCountsTag,
+                rewriteOffset,
+                rewriteEnd,
+                maximumContainerEntries) ||
+                HasOverlappingReferencedData(
+                    data,
+                    ifd,
+                    TileOffsetsTag,
+                    TileByteCountsTag,
+                    rewriteOffset,
+                    rewriteEnd,
+                    maximumContainerEntries) ||
+                HasOverlappingReferencedData(
+                    data,
+                    ifd,
+                    JpegInterchangeFormatTag,
+                    JpegInterchangeFormatLengthTag,
+                    rewriteOffset,
+                    rewriteEnd,
                     maximumContainerEntries)) return true;
         }
         return false;
@@ -301,14 +353,20 @@ internal static class OfficeProvenanceTiff {
         var visited = new HashSet<ulong>();
         var result = new List<TiffIfd>();
         int totalStructuralEntries = 0;
-        while (nextOffset != 0) {
-            if (!visited.Add(nextOffset)) throw new InvalidDataException("TIFF main IFD chain contains a cycle.");
+        var pendingOffsets = new Queue<ulong>();
+        int scheduledIfds = 0;
+        EnqueueIfdOffset(nextOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+        while (pendingOffsets.Count > 0) {
+            ulong currentOffset = pendingOffsets.Dequeue();
+            if (!visited.Add(currentOffset)) {
+                throw new InvalidDataException("TIFF IFD references contain a cycle or duplicate reachable directory.");
+            }
             if (totalStructuralEntries >= options.MaxContainerEntries) {
                 throw new InvalidDataException("TIFF IFDs exceed the configured container-entry limit.");
             }
             totalStructuralEntries++;
-            if (nextOffset > int.MaxValue || nextOffset > (ulong)(data.Length - countFieldSize)) throw new InvalidDataException("TIFF IFD offset exceeds the asset bounds.");
-            int ifdOffset = (int)nextOffset;
+            if (currentOffset > int.MaxValue || currentOffset > (ulong)(data.Length - countFieldSize)) throw new InvalidDataException("TIFF IFD offset exceeds the asset bounds.");
+            int ifdOffset = (int)currentOffset;
             ulong countValue = bigTiff
                 ? OfficeProvenanceBinary.ReadUInt64(data, ifdOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt16(data, ifdOffset, littleEndian);
@@ -339,12 +397,38 @@ internal static class OfficeProvenanceTiff {
                 entries.Add(new TiffEntry(entryOffset, tag, type, valueCount, valueOrOffset, bigTiff ? 8 : 4, littleEndian));
             }
             int nextFieldOffset = entriesOffset + count * entrySize;
-            nextOffset = bigTiff
+            ulong linkedOffset = bigTiff
                 ? OfficeProvenanceBinary.ReadUInt64(data, nextFieldOffset, littleEndian)
                 : OfficeProvenanceBinary.ReadUInt32(data, nextFieldOffset, littleEndian);
             result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
+            EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+            foreach (TiffEntry subIfds in entries.Where(static entry => entry.Tag == SubIfdsTag)) {
+                if (subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
+                    !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {
+                    throw new InvalidDataException("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
+                }
+                for (int index = 0; index < (int)subIfds.Count; index++) {
+                    if (!TryReadUnsignedValue(data, subIfds, storageOffset, index, out ulong subIfdOffset)) {
+                        throw new InvalidDataException("TIFF SubIFD references are malformed.");
+                    }
+                    EnqueueIfdOffset(subIfdOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
+                }
+            }
         }
         return result;
+    }
+
+    private static void EnqueueIfdOffset(
+        ulong offset,
+        Queue<ulong> pending,
+        ref int scheduledIfds,
+        int maximumContainerEntries) {
+        if (offset == 0) return;
+        if (scheduledIfds >= maximumContainerEntries) {
+            throw new InvalidDataException("TIFF IFD references exceed the configured container-entry limit.");
+        }
+        scheduledIfds++;
+        pending.Enqueue(offset);
     }
 
     private static bool TryGetPayload(byte[] data, TiffEntry entry, long maximumBytes, out int offset, out int length) {

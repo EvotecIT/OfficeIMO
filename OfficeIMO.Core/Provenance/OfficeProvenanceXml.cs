@@ -20,7 +20,7 @@ internal static class OfficeProvenanceXml {
             using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
             document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
             return document.Root != null;
-        } catch (Exception exception) when (exception is XmlException || exception is InvalidDataException) {
+        } catch (XmlException) {
             document = null;
             return false;
         }

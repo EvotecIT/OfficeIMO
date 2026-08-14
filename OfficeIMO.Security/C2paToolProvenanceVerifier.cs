@@ -184,7 +184,9 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             if (string.IsNullOrWhiteSpace(code)) return false;
             string? explanation = hasExplanation ? explanationElement.GetString() : null;
             bool? explicitSuccess = hasSuccess ? successElement.GetBoolean() : null;
-            if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
+            bool codeIndicatesSuccess = SuccessfulValidationCodes.Contains(code!);
+            if (explicitSuccess.HasValue && explicitSuccess.Value != codeIndicatesSuccess) return false;
+            if (codeIndicatesSuccess) continue;
             string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
             if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
             if (findingSet.Add(finding)) findings.Add(finding);

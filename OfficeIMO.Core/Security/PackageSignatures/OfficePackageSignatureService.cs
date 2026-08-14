@@ -223,12 +223,13 @@ public static class OfficePackageSignatureService {
                     .Where(algorithm => !string.IsNullOrWhiteSpace(algorithm))
                     .Select(algorithm => algorithm!)
                     .ToArray() ?? Array.Empty<string>();
-                if (options.VerifyDigests && target != null && archive.TryGetPartLength(target, out long targetLength)) {
-                    ReserveInspectionBytes(ref totalDigestBytes, targetLength, options.MaxTotalDigestBytes);
-                }
                 OfficePackageDigestResult digest = options.VerifyDigests
-                    ? archive.VerifyReference(reference, options.MaxPartBytes)
+                    ? archive.VerifyReference(
+                        reference,
+                        options.MaxPartBytes,
+                        options.MaxTotalDigestBytes - totalDigestBytes)
                     : OfficePackageDigestResult.NotChecked("Digest verification was not requested.");
+                ReserveInspectionBytes(ref totalDigestBytes, digest.DigestWorkBytes, options.MaxTotalDigestBytes);
                 references.Add(new OfficePackageSignatureReferenceInfo(
                     uri, digestMethod, digestValue, target, exists, transforms, digest.Status, digest.Detail));
             }
@@ -560,7 +561,11 @@ public static class OfficePackageSignatureService {
                 }
                 string? target = (string?)relationship.Attribute("Target");
                 if (!string.IsNullOrWhiteSpace(target)) {
-                    partUris.Add(ResolveRelationshipTarget("/", target!));
+                    try {
+                        partUris.Add(ResolveRelationshipTarget("/", target!));
+                    } catch (Exception exception) when (exception is InvalidDataException or UriFormatException) {
+                        findings.Add("A signature-origin relationship target is invalid: " + exception.Message);
+                    }
                 }
             }
             string? first = partUris.OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
