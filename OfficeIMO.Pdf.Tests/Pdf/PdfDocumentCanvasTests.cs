@@ -392,7 +392,11 @@ public class PdfDocumentCanvasTests {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
-                .Artifact(artifact => artifact.Text("Decoration", 10D, 10D, 100D, 20D))
+                .Artifact(artifact => artifact
+                    .Text("Decoration", 10D, 10D, 100D, 20D)
+                    .SearchableText("Searchable decoration", 10D, 30D)
+                    .Table(new[] { new[] { "Decorative header" }, new[] { "Decorative cell" } }, 10D, 40D, 100D, 40D)
+                    .Figure("Decorative figure", figure => figure.Text("Figure decoration", 10D, 85D, 100D, 20D)))
                 .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Meaningful", 10D, 40D, 100D, 20D)))
             .ToBytes();
 
@@ -400,7 +404,13 @@ public class PdfDocumentCanvasTests {
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
         Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "P"));
-        Assert.DoesNotContain("Decoration", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType is "Span" or "TH" or "TD" or "Figure");
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
+        Assert.DoesNotContain("Decoration", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Searchable decoration", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative header", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative cell", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Figure decoration", extracted, StringComparison.Ordinal);
 
         var canvas = new PdfPageCanvas();
         Assert.Throws<ArgumentNullException>(() => canvas.Artifact(null!));

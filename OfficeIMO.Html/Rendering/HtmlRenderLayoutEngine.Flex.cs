@@ -157,10 +157,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderStyleResolver.DescribeSource(element),
             breakOffsets,
             pageName: style.PageName,
-            runningStringAssignments: runningElementAssignments.Concat(itemPaintLayers.SelectMany(layer =>
-                    layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
-                .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset)),
+            runningStringAssignments: NormalizeRunningElementAssignmentOrder(
+                PlaceDirectRunningElementAssignments(
+                        runningElementAssignments,
+                        lines.SelectMany(line => line.Items.Select(item =>
+                            new RunningElementFlowAnchor(item.SourceIndex, contentY + line.CrossOffset + item.CrossOffset))),
+                        contentY,
+                        contentY + crossSize)
+                    .Concat(itemPaintLayers.SelectMany(layer =>
+                        layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
+                    .Concat(positionedRunningStringAssignments),
+                outerHeight),
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
         return true;

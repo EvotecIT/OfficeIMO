@@ -17,7 +17,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         PositionedStaticAnchor? staticAnchor = null) {
         IElement root = _document.Body ?? _document.DocumentElement ?? container;
-        PositionedArtifactBoundary? artifactBoundary = ResolvePositionedArtifactBoundary(element.ParentElement, parentStyle);
+        IReadOnlyList<PositionedArtifactBoundary> artifactBoundaries = ResolvePositionedArtifactBoundaries(element.ParentElement, parentStyle);
         IReadOnlyList<FlattenedSemanticBoundary> flattenedSemanticBoundaries = ResolvePositionedFlattenedSemanticBoundaries(element.ParentElement);
         if (style.Position == "fixed") {
             if (!_registeredFixedElements.Add(element)) return;
@@ -31,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ResolvePositionedZIndex(element, style),
                 GetPositionedSourceOrder(element),
                 staticAnchor,
-                artifactBoundary,
+                artifactBoundaries,
                 flattenedSemanticBoundaries));
             return;
         }
@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolvePositionedZIndex(element, style),
             GetPositionedSourceOrder(element),
             staticAnchor,
-            artifactBoundary,
+            artifactBoundaries,
             flattenedSemanticBoundaries);
         if (IsRootLayoutContainer(containingBlock)) {
             _rootPositionedElements.Add(request);
@@ -62,21 +62,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         requests.Add(request);
     }
 
-    private PositionedArtifactBoundary? ResolvePositionedArtifactBoundary(IElement? directParent, HtmlRenderBoxStyle directParentStyle) {
-        if (directParent == null) return null;
-        if (directParentStyle.SemanticArtifact) return CreatePositionedArtifactBoundary(directParent);
-
+    private IReadOnlyList<PositionedArtifactBoundary> ResolvePositionedArtifactBoundaries(IElement? directParent, HtmlRenderBoxStyle directParentStyle) {
+        var boundaries = new List<PositionedArtifactBoundary>();
+        if (directParent == null) return boundaries;
         double referenceWidth = Math.Max(1D, ActiveSurfaceWidth - ActiveMargins.Left - ActiveMargins.Right);
-        for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
-            HtmlRenderBoxStyle ancestorStyle = _styleResolver.Resolve(ancestor, referenceWidth);
-            if (ancestorStyle.SemanticArtifact) return CreatePositionedArtifactBoundary(ancestor);
+        for (IElement? ancestor = directParent; ancestor != null; ancestor = ancestor.ParentElement) {
+            HtmlRenderBoxStyle ancestorStyle = ReferenceEquals(ancestor, directParent)
+                ? directParentStyle
+                : _styleResolver.Resolve(ancestor, referenceWidth);
+            if (ancestorStyle.SemanticArtifact) boundaries.Add(CreatePositionedArtifactBoundary(ancestor));
         }
-        return null;
+        return boundaries;
     }
 
     private PositionedArtifactBoundary CreatePositionedArtifactBoundary(IElement element) {
         int nodeId = GetSemanticNodeId(element);
         return new PositionedArtifactBoundary(
+            element,
             HtmlRenderStyleResolver.DescribeSource(element),
             "html-positioned-artifact:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
@@ -261,22 +263,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.Position = "static";
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElement(request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
-        if (request.ArtifactBoundary != null) {
-            block = block.WithVisuals(new[] {
-                new HtmlRenderSemanticGroup(
-                    HtmlRenderSemanticGroupRole.Artifact,
-                    0D,
-                    0D,
-                    Math.Max(0.01D, block.Width),
-                    Math.Max(0.01D, block.Height),
-                    block.Visuals,
-                    0,
-                    request.ArtifactBoundary.Source,
-                    structureElementKey: request.ArtifactBoundary.StructureElementKey)
-            });
-        }
+        int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {
+            while (artifactIndex < request.ArtifactBoundaries.Count
+                && ContainsElementOrSelf(boundary.Element, request.ArtifactBoundaries[artifactIndex].Element)) {
+                block = ApplyPositionedArtifactBoundary(block, request.ArtifactBoundaries[artifactIndex]);
+                artifactIndex++;
+            }
             block = ApplyFlattenedSemanticBoundary(block, boundary, firstFragment: true);
+        }
+        while (artifactIndex < request.ArtifactBoundaries.Count) {
+            block = ApplyPositionedArtifactBoundary(block, request.ArtifactBoundaries[artifactIndex]);
+            artifactIndex++;
         }
         PositionedPoint staticPosition = ResolvePositionedStaticPoint(
             request,
@@ -289,6 +287,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x, y);
     }
+
+    private static HtmlRenderFlowBlock ApplyPositionedArtifactBoundary(
+        HtmlRenderFlowBlock block,
+        PositionedArtifactBoundary boundary) =>
+        block.WithVisuals(new[] {
+            new HtmlRenderSemanticGroup(
+                HtmlRenderSemanticGroupRole.Artifact,
+                0D,
+                0D,
+                Math.Max(0.01D, block.Width),
+                Math.Max(0.01D, block.Height),
+                block.Visuals,
+                0,
+                boundary.Source,
+                structureElementKey: boundary.StructureElementKey)
+        });
 
     private HtmlRenderBoxStyle ResolveFixedPositionedParentStyle(PositionedElementRequest request) {
         var ancestors = new Stack<IElement>();
@@ -357,7 +371,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int zIndex,
             int sourceOrder,
             PositionedStaticAnchor? staticAnchor,
-            PositionedArtifactBoundary? artifactBoundary,
+            IReadOnlyList<PositionedArtifactBoundary> artifactBoundaries,
             IReadOnlyList<FlattenedSemanticBoundary> flattenedSemanticBoundaries) {
             Element = element;
             DirectParent = directParent;
@@ -368,7 +382,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ZIndex = zIndex;
             SourceOrder = sourceOrder;
             StaticAnchor = staticAnchor;
-            ArtifactBoundary = artifactBoundary;
+            ArtifactBoundaries = artifactBoundaries;
             FlattenedSemanticBoundaries = flattenedSemanticBoundaries;
         }
         internal IElement Element { get; }
@@ -380,7 +394,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
         internal PositionedStaticAnchor? StaticAnchor { get; }
-        internal PositionedArtifactBoundary? ArtifactBoundary { get; }
+        internal IReadOnlyList<PositionedArtifactBoundary> ArtifactBoundaries { get; }
         internal IReadOnlyList<FlattenedSemanticBoundary> FlattenedSemanticBoundaries { get; }
         internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
@@ -394,11 +408,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class PositionedArtifactBoundary {
-        internal PositionedArtifactBoundary(string source, string structureElementKey) {
+        internal PositionedArtifactBoundary(IElement element, string source, string structureElementKey) {
+            Element = element;
             Source = source;
             StructureElementKey = structureElementKey;
         }
 
+        internal IElement Element { get; }
         internal string Source { get; }
         internal string StructureElementKey { get; }
     }

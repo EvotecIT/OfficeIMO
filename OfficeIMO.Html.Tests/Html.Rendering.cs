@@ -1765,6 +1765,89 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("flex")]
+    [InlineData("grid")]
+    public void HtmlRender_Paged_FlexAndGridRunningElementsUseDomOrderForFirstAndLastSelection(string layout) {
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:32px;
+                @top-left { content:element(chapter, first); }
+                @top-right { content:element(chapter, last); }
+              }
+              .container { display:LAYOUT; width:240px; height:64px; }
+              .nested { padding-top:20px; }
+              .running { position:running(chapter); }
+            </style>
+            <div class="container">
+              <div class="nested"><span class="running">Earlier nested</span></div>
+              <span class="running">Later direct</span>
+              <div>Body</div>
+            </div>
+            """.Replace("LAYOUT", layout, StringComparison.Ordinal);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+        IReadOnlyList<HtmlRenderSemanticGroup> marginGroups = Assert.Single(rendered.Pages).Scene
+            .OfType<HtmlRenderSemanticGroup>()
+            .Where(group => group.Source?.Contains("element(chapter", StringComparison.Ordinal) == true)
+            .OrderBy(group => group.X)
+            .ToList();
+
+        Assert.Equal(2, marginGroups.Count);
+        Assert.Contains("Earliernested", string.Concat(EnumerateRenderVisuals(marginGroups[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
+        Assert.Contains("Later direct", string.Concat(EnumerateRenderVisuals(marginGroups[1].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("flex;flex-direction:column")]
+    [InlineData("flex;flex-wrap:wrap")]
+    [InlineData("grid;grid-template-columns:1fr")]
+    public void HtmlRender_Paged_FlexAndGridRunningElementsBecomeAvailableAtTheirFragmentedSourcePosition(string layout) {
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:24px;
+                @top-center { content:element(chapter, last); }
+              }
+              .container { display:LAYOUT; width:240px; }
+              .running { position:running(chapter); }
+              .tall { width:240px; height:100px; }
+            </style>
+            <div class="container">
+              <span class="running">Earlier chapter</span>
+              <div class="tall">Tall body one</div>
+              <div class="tall">Tall body two</div>
+              <div class="tall">Tall body three</div>
+              <span class="running">Later chapter</span>
+            </div>
+            """.Replace("LAYOUT", layout, StringComparison.Ordinal);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+        IReadOnlyList<string> pageHeaders = rendered.Pages
+            .Select(page => string.Concat(page.Scene
+                .OfType<HtmlRenderSemanticGroup>()
+                .Where(group => group.Source?.Contains("element(chapter", StringComparison.Ordinal) == true)
+                .SelectMany(group => EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderText>())
+                .Select(text => text.Text)))
+            .ToList();
+
+        Assert.True(pageHeaders.Count > 1);
+        Assert.Contains("Earlierchapter", pageHeaders[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("Laterchapter", pageHeaders[0], StringComparison.Ordinal);
+        Assert.Contains("Laterchapter", pageHeaders[pageHeaders.Count - 1], StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void HtmlRender_Paged_MixedRunningElementContentIsDiagnosedAndStrictModeRejectsIt() {
         const string html = """
@@ -2204,7 +2287,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_OutOfFlowDescendantsRemainInsideAncestorArtifactAndBookmarkText() {
         const string html = "<main>"
-            + "<div id='artifact' style='position:relative;height:60px;-officeimo-pdf-tag-type:artifact'><input style='position:absolute;left:0;top:0' name='absolute-field' value='hidden'><a style='position:fixed;left:0;top:0' href='https://evotec.xyz/fixed'>Fixed link</a></div>"
+            + "<div id='artifact' style='position:relative;height:60px;-officeimo-pdf-tag-type:artifact'><div style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><input style='position:absolute;left:0;top:0' name='absolute-field' value='hidden'><a style='position:fixed;left:0;top:0' href='https://evotec.xyz/fixed'>Fixed link</a></div></div>"
             + "<h1>Start<span style='position:absolute;left:120px'>Middle</span>End</h1>"
             + "</main>";
         var options = new HtmlPdfSaveOptions {
@@ -2215,12 +2298,67 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
 
         Assert.Equal("StartMiddleEnd", Assert.Single(rendered.Headings).Text);
         Assert.Equal("StartMiddleEnd", Assert.Single(info.Outlines).Title);
         Assert.Empty(info.LinkAnnotations);
         Assert.Empty(info.FormFields);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
         Assert.DoesNotContain("Fixed link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_OutOfFlowArtifactRemainsInsideOuterFlattenedBookmark() {
+        const string html = "<main>"
+            + "<div style='display:contents;bookmark-level:1;bookmark-label:\"Outer bookmark\";-officeimo-pdf-tag-type:H2'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<a style='display:block;position:fixed;left:0;top:0' href='https://evotec.xyz/hidden'>Hidden artifact link</a>"
+            + "</div></div></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal("Outer bookmark", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Outer bookmark", Assert.Single(info.Outlines).Title);
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "H2");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.DoesNotContain("Hidden artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("fixed")]
+    [InlineData("absolute")]
+    public void HtmlPdf_NestedArtifactsSuppressIntermediateFlattenedBookmark(string position) {
+        string html = "<main style='position:relative'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<div style='display:contents;bookmark-level:1;bookmark-label:\"Hidden bookmark\";-officeimo-pdf-tag-type:H2'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<a style='display:block;position:" + position + ";left:0;top:0' href='https://evotec.xyz/hidden'>Hidden nested artifact link</a>"
+            + "</div></div></div></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Empty(rendered.Headings);
+        Assert.Empty(info.Outlines);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.DoesNotContain("Hidden nested artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
 

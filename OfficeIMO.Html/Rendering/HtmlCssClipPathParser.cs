@@ -119,8 +119,7 @@ internal static class HtmlCssClipPathParser {
         else if (radiusToken == "farthest-corner") radius = ResolveCircleCornerRadius(centerX, centerY, width, height, closest: false);
         else {
             double reference = Math.Sqrt(width * width + height * height) / Math.Sqrt(2D);
-            if (radiusToken.IndexOf('%') >= 0
-                || !TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
+            if (!TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
             if (radius < 0D) return false;
         }
         if (radius <= 0.0001D) {

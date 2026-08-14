@@ -187,10 +187,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             breakOffsets,
             pageName: style.PageName,
-            runningStringAssignments: runningElementAssignments.Concat(itemPaintLayers.SelectMany(layer =>
-                    layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
-                .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset)));
+            runningStringAssignments: NormalizeRunningElementAssignmentOrder(
+                PlaceDirectRunningElementAssignments(
+                        runningElementAssignments,
+                        items.Select(item => new RunningElementFlowAnchor(
+                            item.Item.SourceIndex,
+                            contentY + rows.Positions[item.Row] + item.OffsetY)),
+                        contentY,
+                        contentY + contentHeight)
+                    .Concat(itemPaintLayers.SelectMany(layer =>
+                        layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
+                    .Concat(positionedRunningStringAssignments),
+                outerHeight));
         return true;
     }
 
