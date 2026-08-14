@@ -85,7 +85,7 @@ public partial class PdfType3UncoloredPatternTests {
             "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 2 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Group 8 0 R >> >> >>\nendobj",
             StreamObject(6, "<<", "500 0 d0 /Group Do"),
             StreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "1 0 0 rg 0 0 5 5 re f"),
-            StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /K false /CS /DeviceRGB >> /Resources << /Pattern << /Bad 9 0 R >> /XObject << /Im1 10 0 R >> /Properties << /Hidden 11 0 R >> >>", groupContent),
+            StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /K false /CS /DeviceRGB >> /Resources << /Pattern << /Bad 9 0 R >> /XObject << /Im1 10 0 R >> /Properties << /Hidden 11 0 R >> >>", groupContent),
             StreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>", "0 0 1 rg 0 0 5 5 re f"),
             StreamObject(10, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode", "FF0000>"),
             "11 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"

@@ -62,7 +62,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_PreservesDeepSoftMaskImagePaintOrder() {
         string graphicsState = "5 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 6 0 R >> >>\nendobj";
-        string softMask = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Fm1 7 0 R >> >>", "/Fm1 Do");
+        string softMask = BuildStreamObject(6, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Fm1 7 0 R >> >>", "/Fm1 Do");
         string form1 = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /Fm2 8 0 R >> >>", "/Fm2 Do");
         string form2 = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /Im1 9 0 R >> >>", "1 0 0 rg 0 0 20 20 re f q 20 0 0 20 0 0 cm /Im1 Do Q 0 0 0 rg 0 0 20 20 re f");
         string image = BuildStreamObject(9, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8", "\u00ff\u00ff\u00ff");

@@ -43,6 +43,22 @@ public partial class DrawingTests {
             cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public void OfficeDrawingSvgExporter_SkipsTransparentNearestNeighborImageBeforeDecoding() {
+        var drawing = new OfficeDrawing(1D, 1D);
+        drawing.AddImage(
+            new byte[] { 1, 2, 3 },
+            "image/x-test",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D)),
+            interpolate: false,
+            opacity: 0D);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel);
+
+        Assert.DoesNotContain("<image", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<rect", svg, StringComparison.Ordinal);
+    }
+
     private sealed class CancelingNearestNeighborCodec : IOfficeRasterImageCodec {
         private readonly CancellationTokenSource _cancellation;
 

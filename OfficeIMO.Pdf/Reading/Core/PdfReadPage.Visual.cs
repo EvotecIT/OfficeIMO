@@ -1084,6 +1084,7 @@ public sealed partial class PdfReadPage {
         pattern = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
+            ResolveEffectObject(dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "Pattern" } ||
             TryReadInteger(dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ? patternTypeObject : null) != 2 ||
             HasUnsupportedShadingPatternGraphicsState(dictionary) ||
             !dictionary.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
@@ -1134,7 +1135,7 @@ public sealed partial class PdfReadPage {
             components[index] = number.Value;
         }
         matrix = new Matrix2D(components[0], components[1], components[2], components[3], components[4], components[5]);
-        return true;
+        return IsUsableTilingPatternMatrix(matrix);
     }
 
     private bool TryReadShading(PdfObject? value, out PdfPageShadingResource shading) {

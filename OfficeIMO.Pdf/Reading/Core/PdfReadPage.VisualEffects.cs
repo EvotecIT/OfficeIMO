@@ -48,7 +48,7 @@ public sealed partial class PdfReadPage {
         if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||
             ResolveEffectObject(group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Form" } ||
             transparency == null ||
-            ResolveEffectObject(transparency.Items.TryGetValue("S", out PdfObject? groupSubtypeObject) ? groupSubtypeObject : null) is not PdfName { Name: "Transparency" } ||
+            !HasExactTransparencyGroupDeclaration(transparency) ||
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
@@ -88,7 +88,7 @@ public sealed partial class PdfReadPage {
         if (!_pageDict.Items.TryGetValue("Group", out PdfObject? groupObject) ||
             ResolveEffectObject(groupObject) is null or PdfNull) return true;
         if (ResolveEffectObject(groupObject) is not PdfDictionary group ||
-            ResolveEffectObject(group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Transparency" }) return false;
+            !HasExactTransparencyGroupDeclaration(group)) return false;
         if (!group.Items.TryGetValue("CS", out PdfObject? colorSpaceObject) ||
             ResolveEffectObject(colorSpaceObject) is null or PdfNull) return true;
         return ResolveEffectObject(colorSpaceObject) is PdfName { Name: "DeviceRGB" };

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private bool IsSupportedType3TransparencyGroup(PdfDictionary formDictionary) {
         if (ResolveEffectObject(formDictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ? groupObject : null) is not PdfDictionary group ||
-            ResolveEffectObject(group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Transparency" } ||
+            !HasExactTransparencyGroupDeclaration(group) ||
             ResolveEffectObject(group.Items.TryGetValue("I", out PdfObject? isolatedObject) ? isolatedObject : null) is not PdfBoolean { Value: true }) {
             return false;
         }
@@ -24,6 +24,11 @@ public sealed partial class PdfReadPage {
             }
         }
         return true;
+    }
+
+    private bool HasExactTransparencyGroupDeclaration(PdfDictionary group) {
+        return ResolveEffectObject(group.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is PdfName { Name: "Group" } &&
+            ResolveEffectObject(group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null) is PdfName { Name: "Transparency" };
     }
 
     private Type3TransparencyGroupDrawingResult TryCreateType3TransparencyGroupDrawing(

@@ -370,6 +370,7 @@ public static partial class OfficeDrawingSvgExporter {
         string? clipPathId,
         IOfficeRasterImageCodec? imageCodec,
         System.Threading.CancellationToken cancellationToken) {
+        if (drawingImage.Opacity == 0D) return;
         byte[] bytes = drawingImage.EncodedBytes;
         string dataUri = string.Empty;
         OfficeRasterImage? nearestNeighborRaster = null;

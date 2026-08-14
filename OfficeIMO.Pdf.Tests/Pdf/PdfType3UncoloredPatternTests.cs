@@ -1089,7 +1089,7 @@ public partial class PdfType3UncoloredPatternTests {
             pageHeight: 2000D,
             extraObjects: new[] {
                 StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x"),
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 2000 2000] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 2000 2000 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 2000 2000] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 2000 2000 re f")
             });
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -1116,7 +1116,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 500 700 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 500 700 re f")
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1134,7 +1134,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Luminosity /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true >> /Resources << >>", "1 g 0 0 500 700 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true >> /Resources << >>", "1 g 0 0 500 700 re f")
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1152,7 +1152,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Matrix 10 0 R /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 250 700 re f"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Matrix 10 0 R /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 250 700 re f"),
                 "10 0 obj\n[11 0 R 0 0 1 250 0]\nendobj",
                 "11 0 obj\n1\nendobj"
             });
@@ -1180,7 +1180,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /SMask << " + maskEntries + " /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form " + formEntries + " /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 500 700 re f"),
+                StreamObject(9, "<< /Type /XObject /Subtype /Form " + formEntries + " /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 0 500 700 re f"),
                 "10 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
             });
 
@@ -1252,7 +1252,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Alpha /G 9 0 R >> >> >> /XObject << /Im1 8 0 R >> >>",
             extraObjects: new[] {
                 StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x"),
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 350 500 350 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 g 0 350 500 350 re f")
             });
 
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
@@ -1747,7 +1747,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /ca 0.34 /SMask << /S /Luminosity /BC [0.00584] /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", "1 g 0 0 500 700 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", "1 g 0 0 500 700 re f")
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
@@ -1819,7 +1819,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Masked gs 0 0 500 700 re f",
             glyphResources: "<< /ExtGState << /Masked << /SMask << /S /Luminosity /G 9 0 R >> >> >> >>",
             extraObjects: new[] {
-                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 0 0 rg 0 0 500 700 re f")
+                StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 0 0 rg 0 0 500 700 re f")
             });
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));

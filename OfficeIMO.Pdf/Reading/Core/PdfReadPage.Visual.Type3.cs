@@ -429,7 +429,7 @@ public sealed partial class PdfReadPage {
             parentBits != maskBits ||
             mask.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
                 ResolveEffectObject(imageMaskObject) is not PdfBoolean { Value: false } and not PdfNull ||
-            ResolveType3ImageColorSpace(mask, resources) is not PdfName { Name: "DeviceGray" } and not PdfName { Name: "G" } ||
+            ResolveType3ImageColorSpace(mask, resources) is not PdfName { Name: "DeviceGray" } ||
             !ResourceResolver.HasValidImageDecode(mask, resources, _objects)) {
             return false;
         }
