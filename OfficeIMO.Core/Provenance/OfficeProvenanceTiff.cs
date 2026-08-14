@@ -95,6 +95,7 @@ internal static class OfficeProvenanceTiff {
                         if (HasOverlappingValueStorage(
                             data,
                             ifds,
+                            entry,
                             xmpOffset,
                             xmpLength,
                             options.Limits.MaxContainerEntries)) {
@@ -167,6 +168,7 @@ internal static class OfficeProvenanceTiff {
     private static bool HasOverlappingValueStorage(
         byte[] data,
         List<TiffIfd> ifds,
+        TiffEntry sourceEntry,
         int xmpOffset,
         int xmpLength,
         int maximumContainerEntries) {
@@ -176,8 +178,7 @@ internal static class OfficeProvenanceTiff {
             if (ifd.Offset < xmpEnd && xmpOffset < ifdEnd) return true;
             foreach (TiffEntry entry in ifd.Entries) {
                 if (!TryGetValueStorageRange(data, entry, out int offset, out int length)) continue;
-                if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
-                    offset == xmpOffset && length == xmpLength) continue;
+                if (ReferenceEquals(entry, sourceEntry)) continue;
                 long end = (long)offset + length;
                 if (offset < xmpEnd && xmpOffset < end) return true;
             }

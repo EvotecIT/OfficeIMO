@@ -751,11 +751,22 @@ internal static class OfficeProvenanceZip {
     }
 
     internal static bool HasPackageSignature(byte[] data, OfficeProvenanceRemovalOptions options) {
+        return HasPackageSignature(data, options, includeApplicationMetadata: true);
+    }
+
+    internal static bool HasNativePackageSignature(byte[] data, OfficeProvenanceRemovalOptions options) {
+        return HasPackageSignature(data, options, includeApplicationMetadata: false);
+    }
+
+    private static bool HasPackageSignature(
+        byte[] data,
+        OfficeProvenanceRemovalOptions options,
+        bool includeApplicationMetadata) {
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         long expandedBytes = 0;
-        return HasPackageSignature(data, archive, options, ref expandedBytes);
+        return HasPackageSignature(data, archive, options, ref expandedBytes, includeApplicationMetadata);
     }
 
     internal static bool HasApplicationSignatureMetadata(byte[] data, OfficeProvenanceOptions options) {
@@ -877,7 +888,8 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         ZipArchive archive,
         OfficeProvenanceRemovalOptions options,
-        ref long expandedBytes) {
+        ref long expandedBytes,
+        bool includeApplicationMetadata = true) {
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
         bool rawSignatureEvidence = archive.Entries.Any(entry => IsNonOpcSignatureEntry(entryMetadata[entry].Name)) ||
             archive.Entries.Any(entry => IsOpcSignatureEvidenceEntry(entryMetadata[entry].Name)) ||
@@ -903,7 +915,11 @@ internal static class OfficeProvenanceZip {
         if (!signatureInfo.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The OPC package signature state could not be determined safely.");
         }
-        return signatureInfo.HasSignatures || rawSignatureEvidence;
+        return rawSignatureEvidence ||
+            signatureInfo.OriginRelationshipCount > 0 ||
+            signatureInfo.HasDigitalSignatureOriginPart ||
+            signatureInfo.SignatureParts.Count > 0 ||
+            includeApplicationMetadata && signatureInfo.HasApplicationSignatureMetadata;
     }
 
     private static bool TryGetSupportedEmbeddedAsset(

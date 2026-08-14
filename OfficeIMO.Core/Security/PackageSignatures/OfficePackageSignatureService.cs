@@ -607,7 +607,7 @@ public static class OfficePackageSignatureService {
         ref long totalInspectionBytes) {
         const string conventionalProperties = "/docProps/app.xml";
         ApplicationMetadataDiscovery conventional = ReadApplicationSignatureMetadataPart(
-            archive, conventionalProperties, options, findings, ref totalInspectionBytes);
+            archive, conventionalProperties, options, findings, ref totalInspectionBytes, requireContentType: false);
         if (!conventional.IsComplete) return conventional;
 
         const string rootRelationships = "/_rels/.rels";
@@ -671,13 +671,14 @@ public static class OfficePackageSignatureService {
         string partUri,
         OfficePackageSignatureInspectionOptions options,
         ICollection<string> findings,
-        ref long totalInspectionBytes) {
+        ref long totalInspectionBytes,
+        bool requireContentType = true) {
         if (!archive.ContainsPart(partUri)) return new ApplicationMetadataDiscovery(false, true);
         try {
             if (!archive.TryGetContentType(partUri, out string contentType) ||
                 !string.Equals(contentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
                 findings.Add("An extended-properties part has an unexpected OPC content type.");
-                return new ApplicationMetadataDiscovery(false, true);
+                if (requireContentType) return new ApplicationMetadataDiscovery(false, true);
             }
             byte[] propertyBytes = ReadInspectionPart(
                 archive, partUri, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);

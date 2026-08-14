@@ -816,7 +816,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
-    public void TiffDeduplicatesRepeatedXmpPayloadRanges() {
+    public void TiffPreservesRepeatedTagsThatShareTheSameXmpPayloadRange() {
         byte[] xmp = Encoding.UTF8.GetBytes(
             "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
             "<rdf:Description xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" " +
@@ -835,8 +835,9 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         removalOptions.Limits.MaxExpandedContainerBytes = xmp.Length;
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tiff", removalOptions);
 
-        Assert.True(result.WasChanged);
-        Assert.Empty(result.After.Evidence);
+        Assert.False(result.WasChanged);
+        Assert.True(result.After.HasGenerativeAiDeclaration);
+        Assert.Equal(tiff, result.ToArray());
     }
 
     [Fact]

@@ -41,6 +41,7 @@ internal static class OfficeProvenanceRiff {
         int xmpChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "XMP ");
         int extendedHeaderCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "VP8X");
         int lastImagePayloadOffset = FindLastImagePayloadOffset(data, declaredEnd, options.MaxContainerEntries);
+        bool allChunksHaveValidPadding = HaveValidChunkPadding(data, declaredEnd, options.MaxContainerEntries);
         int offset = 12;
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
@@ -49,7 +50,6 @@ internal static class OfficeProvenanceRiff {
         int losslessImagePayloads = 0;
         int animationFramePayloads = 0;
         bool foundXmp = false;
-        bool hasValidPadding = true;
         while (offset < declaredEnd) {
             if (++chunkCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("WebP exceeds the configured container entry limit.");
@@ -63,7 +63,6 @@ internal static class OfficeProvenanceRiff {
             int total = (int)totalValue;
             string chunkType = System.Text.Encoding.ASCII.GetString(data, offset, 4);
             if ((payloadLength & 1) != 0 && data[offset + 8 + payloadLength] != 0) {
-                hasValidPadding = false;
                 context?.Diagnostics.Add($"The WebP {chunkType} chunk has a nonzero padding byte.");
             }
             if (chunkCount == 1 && chunkType == "VP8X") {
@@ -81,7 +80,7 @@ internal static class OfficeProvenanceRiff {
                     lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
                 bool valid = c2paChunkCount == 1 &&
                     extendedHeaderCount == 1 && hasValidExtendedHeader &&
-                    hasValidPadding && isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
+                    allChunksHaveValidPadding && isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
@@ -101,7 +100,7 @@ internal static class OfficeProvenanceRiff {
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
                 bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
-                    hasValidPadding && hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
+                    allChunksHaveValidPadding && hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
                     HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads) &&
                     offset > lastImagePayloadOffset && !foundXmp;
                 if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");
@@ -171,6 +170,25 @@ internal static class OfficeProvenanceRiff {
         }
         if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
         return lastOffset;
+    }
+
+    private static bool HaveValidChunkPadding(byte[] data, int declaredEnd, int maximumEntries) {
+        int entries = 0;
+        int offset = 12;
+        bool valid = true;
+        while (offset < declaredEnd) {
+            if (++entries > maximumEntries) throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
+            uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
+            if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");
+            int payloadLength = (int)payloadValue;
+            long totalValue = 8L + payloadLength + (payloadLength & 1);
+            if (totalValue > declaredEnd - offset) throw new InvalidDataException("RIFF chunk exceeds the declared container bounds.");
+            if ((payloadLength & 1) != 0 && data[offset + 8 + payloadLength] != 0) valid = false;
+            offset += (int)totalValue;
+        }
+        if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
+        return valid;
     }
 
     private static bool IsValidExtendedHeader(byte[] data, int payloadOffset, int payloadLength) {
