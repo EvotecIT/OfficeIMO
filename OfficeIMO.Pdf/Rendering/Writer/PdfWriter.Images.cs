@@ -208,7 +208,12 @@ internal static partial class PdfWriter {
     }
 
     internal static bool TryGetJpegComponentCount(byte[] data, out int componentCount) {
+        return TryGetJpegFrameMetadata(data, out componentCount, out _);
+    }
+
+    internal static bool TryGetJpegFrameMetadata(byte[] data, out int componentCount, out int samplePrecision) {
         componentCount = 0;
+        samplePrecision = 0;
         if (data == null || data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) return false;
         int offset = 2;
         while (offset < data.Length) {
@@ -223,8 +228,9 @@ internal static partial class PdfWriter {
             if (segmentLength < 2 || (long)offset + segmentLength > data.Length) return false;
             if (marker is 0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF) {
                 if (segmentLength < 8) return false;
+                samplePrecision = data[offset + 2];
                 componentCount = data[offset + 7];
-                return componentCount > 0;
+                return samplePrecision > 0 && componentCount > 0;
             }
             offset += segmentLength;
         }

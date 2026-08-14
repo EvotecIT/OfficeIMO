@@ -34,6 +34,12 @@ public sealed class OfficeDrawingSoftMask {
         OfficeColor? backdropColor = null,
         OfficeSoftMaskLuminosityStandard luminosityStandard = OfficeSoftMaskLuminosityStandard.Srgb) {
         _drawing = drawing?.Clone() ?? throw new ArgumentNullException(nameof(drawing));
+        if (!Enum.IsDefined(typeof(OfficeSoftMaskMode), mode)) {
+            throw new ArgumentOutOfRangeException(nameof(mode));
+        }
+        if (!Enum.IsDefined(typeof(OfficeSoftMaskLuminosityStandard), luminosityStandard)) {
+            throw new ArgumentOutOfRangeException(nameof(luminosityStandard));
+        }
         Mode = mode;
         Transform = transform ?? OfficeTransform.Identity;
         BackdropColor = backdropColor ?? OfficeColor.Transparent;

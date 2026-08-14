@@ -366,8 +366,18 @@ public static partial class OfficeDrawingSvgExporter {
 
     private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId, IOfficeRasterImageCodec? imageCodec) {
         byte[] bytes = drawingImage.EncodedBytes;
-        if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out string dataUri)) {
-            return;
+        string dataUri = string.Empty;
+        OfficeRasterImage? nearestNeighborRaster = null;
+        if (drawingImage.Interpolate) {
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out dataUri)) {
+                return;
+            }
+        } else if (!OfficeRasterImageDecoder.TryDecode(bytes, out nearestNeighborRaster) || nearestNeighborRaster == null) {
+            if (imageCodec == null ||
+                !imageCodec.TryDecode((byte[])bytes.Clone(), drawingImage.ContentType, out nearestNeighborRaster) ||
+                nearestNeighborRaster == null) {
+                throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
+            }
         }
 
         if (drawingImage.Opacity < 1D) {
@@ -381,6 +391,7 @@ public static partial class OfficeDrawingSvgExporter {
             dataUri,
             drawingImage.Projection,
             drawingImage.Interpolate,
+            nearestNeighborRaster,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
             "none");

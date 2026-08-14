@@ -5,6 +5,43 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeDrawingSoftMask_RejectsUndefinedPublicEnumValues() {
+        var maskDrawing = new OfficeDrawing(1D, 1D);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
+            maskDrawing,
+            (OfficeSoftMaskMode)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
+            maskDrawing,
+            luminosityStandard: (OfficeSoftMaskLuminosityStandard)99));
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_VectorizesInexactNearestNeighborScale() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+        var inexact = new OfficeDrawing(10D, 10D);
+        inexact.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 5D, 3D)),
+            interpolate: false);
+        var exact = new OfficeDrawing(10D, 10D);
+        exact.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 6D, 4D)),
+            interpolate: false);
+
+        string inexactSvg = OfficeDrawingSvgExporter.ToSvg(inexact);
+        string svg = OfficeDrawingSvgExporter.ToSvg(exact);
+
+        Assert.Contains("shape-rendering=\"crispEdges\"", inexactSvg, StringComparison.Ordinal);
+        Assert.Contains("scale(2.5 1.5)", inexactSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<image", inexactSvg, StringComparison.Ordinal);
+        Assert.Contains("shape-rendering=\"crispEdges\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingEffectGroup_CompositesOpacityOnceAfterTransform() {
         var inner = new OfficeDrawing(20D, 20D);
         OfficeShape first = OfficeShape.Rectangle(10D, 10D);

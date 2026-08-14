@@ -7,7 +7,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared dependency-free SVG renderer for projected bitmap/vector images.
 /// </summary>
-public static class OfficeSvgImageRenderer {
+public static partial class OfficeSvgImageRenderer {
     /// <summary>
     /// Appends an SVG image using normalized source cropping, optional clipping, rotation, and flips.
     /// </summary>
@@ -102,13 +102,14 @@ public static class OfficeSvgImageRenderer {
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null) =>
-        AppendImageWithSampling(builder, href, projection, true, clipPathId, clipRectangle, preserveAspectRatio);
+        AppendImageWithSampling(builder, href, projection, true, null, clipPathId, clipRectangle, preserveAspectRatio);
 
     internal static StringBuilder AppendImageWithSampling(
         StringBuilder builder,
         string href,
         OfficeImageProjection projection,
         bool interpolate,
+        OfficeRasterImage? nearestNeighborRaster,
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null) {
@@ -116,7 +117,7 @@ public static class OfficeSvgImageRenderer {
             throw new ArgumentNullException(nameof(builder));
         }
 
-        if (string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
+        if (interpolate && string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
             return builder;
         }
 
@@ -125,6 +126,11 @@ public static class OfficeSvgImageRenderer {
         }
 
         SvgImageLayout layout = CreateLayout(projection, clipRectangle);
+        if (!interpolate) return AppendNearestNeighborRaster(
+            builder,
+            nearestNeighborRaster,
+            layout,
+            clipPathId);
 
         if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
             OfficeImagePlacement clip = layout.EffectiveClip.Value;

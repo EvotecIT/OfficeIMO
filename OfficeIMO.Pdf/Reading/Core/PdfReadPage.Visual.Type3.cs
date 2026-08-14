@@ -338,6 +338,9 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null &&
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+        if (placement.InlineImageStream == null &&
+            (imageDictionary == null ||
+             ResolveEffectObject(imageDictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" })) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageMaskDeclaration(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
@@ -345,7 +348,9 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
         if (image.TransparencyMaskKind != null && !image.TransparencyMaskResolved) return false;
         if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources)) return false;
-        if (image.IsImageMask) return imageDictionary != null && HasValidType3ImageMaskDecode(imageDictionary);
+        if (image.IsImageMask) return imageDictionary != null &&
+            !imageDictionary.Items.ContainsKey("ColorSpace") &&
+            HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
             HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources) &&
@@ -359,9 +364,11 @@ public sealed partial class PdfReadPage {
         if (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) return true;
         return OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
             validated.Format == OfficeImageFormat.Jpeg &&
-            PdfWriter.TryGetJpegComponentCount(image.Bytes, out int jpegComponentCount) &&
+            PdfWriter.TryGetJpegFrameMetadata(image.Bytes, out int jpegComponentCount, out int jpegSamplePrecision) &&
             TryGetType3ImageComponentCount(imageDictionary, resources, out int authoredComponentCount) &&
             jpegComponentCount == authoredComponentCount &&
+            TryReadExactPositiveInteger(imageDictionary, "BitsPerComponent", out int authoredBitsPerComponent) &&
+            jpegSamplePrecision == authoredBitsPerComponent &&
             TryReadExactPositiveInteger(imageDictionary, "Width", out int width) &&
             TryReadExactPositiveInteger(imageDictionary, "Height", out int height) &&
             validated.Width == width &&
