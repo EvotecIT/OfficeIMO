@@ -31,6 +31,10 @@ internal sealed class PdfTextClippingBudget {
         ChargeIntersectionWork(CountVertices(contours));
     }
 
+    internal void ChargeContourIntersectionWork(IReadOnlyList<List<OfficePoint>> contours) {
+        ChargeIntersectionWork(CountVertices(contours));
+    }
+
     internal void ChargeLinearIntersectionWork(int pathCommandCount) {
         ChargeIntersectionWork(pathCommandCount);
     }

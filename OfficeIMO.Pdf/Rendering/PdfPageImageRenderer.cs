@@ -96,12 +96,14 @@ internal static partial class PdfPageImageRenderer {
         double scale,
         OfficeColor? background,
         IOfficeRasterImageCodec? imageCodec = null,
+        long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
         CancellationToken cancellationToken = default) {
         EnsureRasterImagesCanRender(drawing, imageCodec, cancellationToken);
         return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
+            MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
     }

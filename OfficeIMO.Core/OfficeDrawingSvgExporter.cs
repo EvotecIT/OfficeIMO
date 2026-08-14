@@ -113,7 +113,9 @@ public static partial class OfficeDrawingSvgExporter {
         string idPrefix,
         ref int gradientId,
         ref int clipPathId,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        SvgTilingExpansionBudget tilingExpansionBudget,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             switch (elements[i]) {
@@ -154,25 +156,25 @@ public static partial class OfficeDrawingSvgExporter {
                     string? imageClipPathId = drawingImage.Projection.HasCrop
                         ? idPrefix + "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
-                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec);
+                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
             }
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
@@ -188,7 +190,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
@@ -360,10 +362,27 @@ public static partial class OfficeDrawingSvgExporter {
         return new OfficeDrawingShape(shape, clampedX, clampedY);
     }
 
-    private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId, IOfficeRasterImageCodec? imageCodec) {
+    private static void AppendImage(
+        StringBuilder sb,
+        OfficeDrawingImage drawingImage,
+        string? clipPathId,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+        if (drawingImage.Opacity == 0D) return;
         byte[] bytes = drawingImage.EncodedBytes;
-        if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out string dataUri)) {
-            return;
+        string dataUri = string.Empty;
+        OfficeRasterImage? nearestNeighborRaster = null;
+        if (drawingImage.Interpolate) {
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out dataUri)) {
+                return;
+            }
+        } else if (!OfficeRasterImageDecoder.TryDecode(bytes, out nearestNeighborRaster) || nearestNeighborRaster == null) {
+            if (imageCodec == null ||
+                !imageCodec.TryDecode((byte[])bytes.Clone(), drawingImage.ContentType, out nearestNeighborRaster) ||
+                nearestNeighborRaster == null) {
+                throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
+            }
         }
 
         if (drawingImage.Opacity < 1D) {
@@ -372,13 +391,17 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append('>');
         }
 
-        OfficeSvgImageRenderer.AppendImage(
+        OfficeSvgImageRenderer.AppendImageWithSampling(
             sb,
             dataUri,
             drawingImage.Projection,
+            drawingImage.Interpolate,
+            nearestNeighborRaster,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
-            "none");
+            "none",
+            cancellationToken,
+            nearestNeighborRectangleBudget);
         if (drawingImage.Opacity < 1D) {
             sb.Append("</g>");
         }

@@ -569,6 +569,11 @@ public sealed partial class OfficeRasterCanvas {
     /// <param name="image">Image to draw.</param>
     /// <param name="projection">Shared image projection.</param>
     public void DrawImage(OfficeRasterImage image, OfficeImageProjection projection) {
+        DrawImage(image, projection, interpolate: true);
+    }
+
+    /// <summary>Draws an image using a shared projection and the requested sampling behavior.</summary>
+    public void DrawImage(OfficeRasterImage image, OfficeImageProjection projection, bool interpolate) {
         DrawImage(
             image,
             projection.X,
@@ -583,7 +588,8 @@ public sealed partial class OfficeRasterCanvas {
             projection.RotationCenterX,
             projection.RotationCenterY,
             projection.FlipHorizontal,
-            projection.FlipVertical);
+            projection.FlipVertical,
+            interpolate);
     }
 
     /// <summary>
@@ -646,6 +652,27 @@ public sealed partial class OfficeRasterCanvas {
         double rotationCenterY,
         bool flipHorizontal,
         bool flipVertical) {
+        DrawImage(image, x, y, width, height, sourceLeft, sourceTop, sourceWidth, sourceHeight,
+            rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical, interpolate: true);
+    }
+
+    /// <summary>Draws a transformed image with explicit scaling interpolation behavior.</summary>
+    public void DrawImage(
+        OfficeRasterImage image,
+        double x,
+        double y,
+        double width,
+        double height,
+        double sourceLeft,
+        double sourceTop,
+        double sourceWidth,
+        double sourceHeight,
+        double rotationDegrees,
+        double rotationCenterX,
+        double rotationCenterY,
+        bool flipHorizontal,
+        bool flipVertical,
+        bool interpolate) {
         if (image == null || width <= 0D || height <= 0D) {
             return;
         }
@@ -680,7 +707,6 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
-        bool cropped = sourceLeft > 0D || sourceTop > 0D || sourceWidth < 1D || sourceHeight < 1D;
         for (int py = top; py <= bottom; py++) {
             for (int px = left; px <= right; px++) {
                 OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
@@ -690,23 +716,23 @@ public sealed partial class OfficeRasterCanvas {
                     continue;
                 }
 
-                double sourceX;
-                double sourceY;
-                if (cropped) {
-                    sourceX = (sourceLeft * image.Width) + (u * Math.Max(0D, (sourceWidth * image.Width) - 1D));
-                    sourceY = (sourceTop * image.Height) + (v * Math.Max(0D, (sourceHeight * image.Height) - 1D));
-                } else {
-                    sourceX = (u * image.Width) - 0.5D;
-                    sourceY = (v * image.Height) - 0.5D;
-                }
+                double sourceX = ((sourceLeft + (u * sourceWidth)) * image.Width) - 0.5D;
+                double sourceY = ((sourceTop + (v * sourceHeight)) * image.Height) - 0.5D;
 
-                BlendPixel(px, py, SampleBilinear(image, sourceX, sourceY));
+                BlendPixel(px, py, interpolate
+                    ? SampleBilinear(image, sourceX, sourceY)
+                    : image.GetPixel(
+                        Clamp((int)Math.Floor(sourceX + 0.5D), 0, image.Width - 1),
+                        Clamp((int)Math.Floor(sourceY + 0.5D), 0, image.Height - 1)));
             }
         }
     }
 
     /// <summary>Draws an image through an arbitrary destination-space affine transform.</summary>
-    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) {
+    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) =>
+        DrawAffineImage(image, transform, opacity, interpolate: true);
+
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
@@ -722,7 +748,11 @@ public sealed partial class OfficeRasterCanvas {
             for (int px = left; px <= right; px++) {
                 OfficePoint source = inverse.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
                 if (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height) continue;
-                OfficeColor color = SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D);
+                OfficeColor color = interpolate
+                    ? SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D)
+                    : image.GetPixel(
+                        Clamp((int)Math.Floor(source.X), 0, image.Width - 1),
+                        Clamp((int)Math.Floor(source.Y), 0, image.Height - 1));
                 if (opacity < 1D) color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
                 BlendPixel(px, py, color);
             }

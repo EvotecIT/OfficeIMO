@@ -57,6 +57,40 @@ public sealed class DrawingRasterLimitTests {
     }
 
     [Fact]
+    public void DrawingRendererAppliesCallerPixelCeilingBeforeManagedImageDecode() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
+        var drawing = new OfficeDrawing(1D, 1D);
+        drawing.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D)));
+
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(
+            drawing,
+            new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 1L });
+
+        Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+    }
+
+    [Fact]
+    public void DrawingRendererRejectsCallerCodecRasterAboveCallerPixelCeiling() {
+        var drawing = new OfficeDrawing(1D, 1D);
+        drawing.AddImage(
+            new byte[] { 1 },
+            "image/custom",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D)));
+
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(
+            drawing,
+            new OfficeDrawingRasterRenderOptions {
+                ImageCodec = new OversizedCodec(),
+                MaximumRasterPixels = 1L
+            });
+
+        Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+    }
+
+    [Fact]
     public void PngDecoderRejectsOverflowingChunkLengthBeforeAllocatingItsPayload() {
         byte[] png = {
             137, 80, 78, 71, 13, 10, 26, 10,
@@ -255,6 +289,13 @@ public sealed class DrawingRasterLimitTests {
     private sealed class SolidCodec : IOfficeRasterImageCodec {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             image = new OfficeRasterImage(1, 1, OfficeColor.Black);
+            return true;
+        }
+    }
+
+    private sealed class OversizedCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            image = new OfficeRasterImage(2, 2, OfficeColor.Red);
             return true;
         }
     }

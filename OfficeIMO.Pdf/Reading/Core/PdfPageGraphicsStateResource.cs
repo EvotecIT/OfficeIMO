@@ -15,6 +15,7 @@ internal readonly struct PdfPageGraphicsStateResource {
         PdfPageSoftMaskResource? softMask = null,
         bool hasUnsupportedSoftMask = false,
         bool hasUnsupportedBlendMode = false,
+        bool hasUnsupportedEntries = false,
         bool hasUnsupportedTextRestampEffect = false) {
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
@@ -27,6 +28,7 @@ internal readonly struct PdfPageGraphicsStateResource {
         SoftMask = softMask;
         HasUnsupportedSoftMask = hasUnsupportedSoftMask;
         HasUnsupportedBlendMode = hasUnsupportedBlendMode;
+        HasUnsupportedEntries = hasUnsupportedEntries;
         HasUnsupportedTextRestampEffect = hasUnsupportedTextRestampEffect;
     }
 
@@ -47,11 +49,15 @@ internal readonly struct PdfPageGraphicsStateResource {
     /// <summary>Null inherits the current mask, false clears it, and true activates a mask.</summary>
     public bool? SoftMaskEnabled { get; }
 
+    public bool HasSoftMask => SoftMaskEnabled.HasValue;
+
     public PdfPageSoftMaskResource? SoftMask { get; }
 
     public bool HasUnsupportedSoftMask { get; }
 
     public bool HasUnsupportedBlendMode { get; }
+
+    public bool HasUnsupportedEntries { get; }
 
     public bool HasUnsupportedTextRestampEffect { get; }
 }

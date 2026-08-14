@@ -15,6 +15,25 @@ public static class OfficeRasterImageDecoder {
     public static bool TryDecode(byte[]? bytes, out OfficeRasterImage? image) =>
         TryDecode(bytes, options: null, out image, out _);
 
+    internal static bool TryDecode(byte[]? bytes, long maximumRasterPixels, out OfficeRasterImage? image) {
+        if (maximumRasterPixels <= 0L) throw new System.ArgumentOutOfRangeException(nameof(maximumRasterPixels));
+        OfficeImageFormat format = IdentifyFormat(bytes);
+        if (IsManagedRasterFormat(format) &&
+            OfficeImageReader.TryIdentifyByContent(bytes, fileName: null, out OfficeImageInfo info) &&
+            !IsWithinPixelLimit(info.Width, info.Height, maximumRasterPixels)) {
+            image = null;
+            return false;
+        }
+
+        if (!TryDecode(bytes, out image) || image == null) return false;
+        if (IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) return true;
+        image = null;
+        return false;
+    }
+
+    internal static bool IsWithinPixelLimit(int width, int height, long maximumRasterPixels) =>
+        width > 0 && height > 0 && width <= maximumRasterPixels && height <= maximumRasterPixels / width;
+
     /// <summary>
     /// Attempts to decode image bytes using explicit frame and animation-loss policy.
     /// </summary>
@@ -100,6 +119,14 @@ public static class OfficeRasterImageDecoder {
         bytes != null && OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo identified)
             ? identified.Format
             : OfficeImageFormat.Unknown;
+
+    private static bool IsManagedRasterFormat(OfficeImageFormat format) =>
+        format == OfficeImageFormat.Png ||
+        format == OfficeImageFormat.Jpeg ||
+        format == OfficeImageFormat.Gif ||
+        format == OfficeImageFormat.Bmp ||
+        format == OfficeImageFormat.Tiff ||
+        format == OfficeImageFormat.Webp;
 
     private static int CountWebpAnimationFrames(byte[] bytes) {
         if (bytes.Length < 12 ||

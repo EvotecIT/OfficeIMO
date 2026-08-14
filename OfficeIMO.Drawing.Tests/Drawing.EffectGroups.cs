@@ -5,6 +5,63 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeDrawingSoftMask_PreservesOriginalFourParameterConstructor() {
+        Assert.NotNull(typeof(OfficeDrawingSoftMask).GetConstructor(new[] {
+            typeof(OfficeDrawing),
+            typeof(OfficeSoftMaskMode),
+            typeof(OfficeTransform?),
+            typeof(OfficeColor?)
+        }));
+    }
+
+    [Fact]
+    public void OfficeDrawingSoftMask_DefaultLiteralRetainsOriginalConstructorSemantics() {
+        var drawing = new OfficeDrawing(1D, 1D);
+
+        var mask = new OfficeDrawingSoftMask(drawing, default);
+
+        Assert.Equal(OfficeSoftMaskMode.Alpha, mask.Mode);
+        Assert.Equal(OfficeSoftMaskLuminosityStandard.Srgb, mask.LuminosityStandard);
+    }
+
+    [Fact]
+    public void OfficeDrawingSoftMask_RejectsUndefinedPublicEnumValues() {
+        var maskDrawing = new OfficeDrawing(1D, 1D);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
+            maskDrawing,
+            (OfficeSoftMaskMode)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeDrawingSoftMask.CreateWithLuminosityStandard(
+            maskDrawing,
+            (OfficeSoftMaskLuminosityStandard)99));
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_VectorizesInexactNearestNeighborScale() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
+        var inexact = new OfficeDrawing(10D, 10D);
+        inexact.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 5D, 3D)),
+            interpolate: false);
+        var exact = new OfficeDrawing(10D, 10D);
+        exact.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 6D, 4D)),
+            interpolate: false);
+
+        string inexactSvg = OfficeDrawingSvgExporter.ToSvg(inexact);
+        string svg = OfficeDrawingSvgExporter.ToSvg(exact);
+
+        Assert.Contains("shape-rendering=\"crispEdges\"", inexactSvg, StringComparison.Ordinal);
+        Assert.Contains("scale(2.5 1.5)", inexactSvg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<image", inexactSvg, StringComparison.Ordinal);
+        Assert.Contains("shape-rendering=\"crispEdges\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingEffectGroup_CompositesOpacityOnceAfterTransform() {
         var inner = new OfficeDrawing(20D, 20D);
         OfficeShape first = OfficeShape.Rectangle(10D, 10D);
@@ -47,6 +104,290 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(6, 5));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(23, 17));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(26, 17));
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_PreservesNearestNeighborSamplingThroughTransform(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_BoundsNestedPatternSamplingInspection() {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var clipped = new OfficeDrawing(2D, 1D);
+        clipped.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var hiddenTile = new OfficeDrawing(2D, 1D);
+        hiddenTile.AddClippedDrawing(clipped, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D), 3D, 0D);
+        OfficeTransform minified = OfficeTransform.Scale(1D / 1024D, 1D);
+        var nestedTile = new OfficeDrawing(2D, 1D);
+        nestedTile.AddTilingPattern(
+            hiddenTile,
+            new OfficeImagePlacement(0D, 0D, 2D, 1D),
+            2D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            transform: minified);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddTilingPattern(
+            nestedTile,
+            new OfficeImagePlacement(0D, 0D, 2D, 1D),
+            2D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            transform: minified);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresTransparentNearestNeighborImagesForSampling(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false,
+            opacity: 0D);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresClippedNearestNeighborImagesForSampling(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var clipped = new OfficeDrawing(2D, 1D);
+        clipped.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        inner.AddClippedDrawing(clipped, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D), 3D, 0D);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresClippedNearestNeighborImagesInsideTransformedGroups(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var clipped = new OfficeDrawing(2D, 1D);
+        clipped.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        inner.AddClippedDrawing(
+            clipped,
+            0D,
+            0D,
+            OfficeClipPath.Rectangle(2D, 1D),
+            3D,
+            0D,
+            new OfficeImageFrameTransform(180D, 1D, 0.5D));
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal, false)]
+    [InlineData(OfficeBlendMode.Multiply, false)]
+    [InlineData(OfficeBlendMode.Normal, true)]
+    [InlineData(OfficeBlendMode.Multiply, true)]
+    public void OfficeDrawingEffectGroup_PropagatesVisibleBoundsThroughNestedContainers(
+        OfficeBlendMode blendMode,
+        bool useTilingPattern) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var nearest = new OfficeDrawing(2D, 1D);
+        nearest.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var clippedContent = new OfficeDrawing(4D, 1D);
+        clippedContent.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        if (useTilingPattern) {
+            clippedContent.AddTilingPattern(
+                nearest,
+                new OfficeImagePlacement(3D, 0D, 1D, 1D),
+                2D,
+                1D,
+                repeatX: false,
+                repeatY: false,
+                transform: OfficeTransform.Scale(0.5D, 1D).Then(OfficeTransform.Translate(3D, 0D)));
+        } else {
+            clippedContent.AddEffectDrawing(nearest, OfficeTransform.Translate(3D, 0D));
+        }
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddClippedDrawing(clippedContent, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D));
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_PreservesNearestNeighborSamplingFromSoftMask(OfficeBlendMode blendMode) {
+        var source = new OfficeDrawing(2D, 1D);
+        OfficeShape red = OfficeShape.Rectangle(2D, 1D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        source.AddShape(red, 0D, 0D);
+
+        OfficeRasterImage maskPixels = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        maskPixels.SetPixel(0, 0, OfficeColor.Black);
+        maskPixels.SetPixel(1, 0, OfficeColor.White);
+        var maskDrawing = new OfficeDrawing(2D, 1D);
+        maskDrawing.AddImageWithInterpolation(
+            OfficePngWriter.Encode(maskPixels),
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var mask = new OfficeDrawingSoftMask(maskDrawing, OfficeSoftMaskMode.Luminosity);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Scale(2D, 1D), blendMode, mask);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 0));
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresTransformedAwayNearestNeighborSoftMaskImage(OfficeBlendMode blendMode) {
+        OfficeRasterImage sourcePixels = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        sourcePixels.SetPixel(0, 0, OfficeColor.Black);
+        sourcePixels.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(sourcePixels);
+        var source = new OfficeDrawing(2D, 1D);
+        source.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        var maskDrawing = new OfficeDrawing(2D, 1D);
+        maskDrawing.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var mask = new OfficeDrawingSoftMask(
+            maskDrawing,
+            transform: OfficeTransform.Translate(10D, 0D),
+            backdropColor: OfficeColor.White);
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Scale(2D, 1D), blendMode, mask);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
     }
 
     [Fact]
@@ -93,6 +434,25 @@ public partial class DrawingTests {
         Assert.InRange(pixel.B, (byte)31, (byte)33);
         Assert.Equal((byte)255, pixel.A);
         Assert.Contains("mix-blend-mode:multiply", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_IsolatesEverySvgCompositionBoundary() {
+        var painted = new OfficeDrawing(8D, 8D);
+        OfficeShape red = OfficeShape.Rectangle(8D, 8D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        painted.AddShape(red, 0D, 0D);
+
+        var nested = new OfficeDrawing(8D, 8D);
+        nested.AddEffectDrawing(painted, OfficeTransform.Identity, OfficeBlendMode.Multiply);
+        var drawing = new OfficeDrawing(8D, 8D);
+        drawing.AddEffectDrawing(nested, OfficeTransform.Identity);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(2, svg.Split(new[] { "isolation:isolate" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("isolation:isolate;mix-blend-mode:multiply", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,5 +510,33 @@ public partial class DrawingTests {
 
         Assert.Equal((byte)255, pixel.R);
         Assert.InRange(pixel.A, (byte)126, (byte)128);
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_PreservesPdfDeviceRgbLuminosityAcrossRasterAndSvg() {
+        var source = new OfficeDrawing(4D, 4D);
+        OfficeShape sourceShape = OfficeShape.Rectangle(4D, 4D);
+        sourceShape.FillColor = OfficeColor.Blue;
+        sourceShape.StrokeWidth = 0D;
+        source.AddShape(sourceShape, 0D, 0D);
+
+        var maskDrawing = new OfficeDrawing(4D, 4D);
+        OfficeShape redMask = OfficeShape.Rectangle(4D, 4D);
+        redMask.FillColor = OfficeColor.Red;
+        redMask.StrokeWidth = 0D;
+        maskDrawing.AddShape(redMask, 0D, 0D);
+        var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
+            maskDrawing,
+            OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
+            mode: OfficeSoftMaskMode.Luminosity);
+
+        var drawing = new OfficeDrawing(4D, 4D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
+
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(2, 2);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.InRange(pixel.A, (byte)76, (byte)77);
+        Assert.Contains("0.3 0.59 0.11", svg, StringComparison.Ordinal);
     }
 }

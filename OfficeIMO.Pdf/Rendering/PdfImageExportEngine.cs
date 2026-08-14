@@ -157,6 +157,7 @@ internal static class PdfImageExportEngine {
             TextShapingLanguage = effective.TextShapingLanguage,
             DiagnosticSink = diagnostics,
             DiagnosticSource = source,
+            MaximumRasterPixels = effective.MaximumRasterPixels,
             CancellationToken = cancellationToken
         });
         byte[] bytes = OfficeRasterImageEncoder.Encode(

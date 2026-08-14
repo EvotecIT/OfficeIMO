@@ -205,6 +205,7 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public int SourceOperatorIndex { get; }
         public bool HasUnsupportedEffect { get; }
         public bool FillColorResolved { get; }
 
@@ -220,6 +221,7 @@ internal static class TextContentParser {
             double? strokeOpacity = null,
             int textRenderingMode = 0,
             PdfPageClipPath? clipPath = null,
+            int sourceOperatorIndex = 0,
             bool hasUnsupportedEffect = false,
             bool fillColorResolved = true) {
             Name = name;
@@ -233,6 +235,7 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            SourceOperatorIndex = sourceOperatorIndex;
             HasUnsupportedEffect = hasUnsupportedEffect;
             FillColorResolved = fillColorResolved;
         }
@@ -272,6 +275,8 @@ internal static class TextContentParser {
         TextOutputBudget? textOutputBudget = null,
         PdfTextClippingBudget? textClippingBudget = null,
         System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0,
         bool initialUnsupportedEffect = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -316,6 +321,7 @@ internal static class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
+        PdfContentOrderKey? currentContentOrderKey = null;
         int textObjectFirstSpanIndex = 0;
         PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
         bool textObjectHasCollateralVisual = false;
@@ -326,6 +332,7 @@ internal static class TextContentParser {
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
+            currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
             if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
@@ -905,6 +912,7 @@ internal static class TextContentParser {
                     pendingLineBreaks,
                     logicalLeadingSpace,
                     logicalTrailingSpace,
+                    currentContentOrderKey,
                     string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) ? transformedCharacterAdvances : null,
                     textRenderingMode,
                     canRestamp && visibleGlyphsMatchLogicalText,
@@ -1487,7 +1495,21 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect || HasUnsupportedRestampContent(), fillColorResolved));
+                            invocations.Add(new FormInvocation(
+                                name,
+                                ctm,
+                                paintOrder,
+                                fillColor,
+                                fillColorSpace,
+                                strokeColor,
+                                strokeColorSpace,
+                                fillOpacity,
+                                strokeOpacity,
+                                textRenderingMode,
+                                clipPath,
+                                operation.OperatorOffset,
+                                hasUnsupportedEffect || HasUnsupportedRestampContent(),
+                                fillColorResolved));
                         }
                     }
                     args.Clear();
