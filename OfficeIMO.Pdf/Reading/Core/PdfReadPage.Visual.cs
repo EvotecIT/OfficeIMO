@@ -1136,6 +1136,7 @@ public sealed partial class PdfReadPage {
 
     private bool TryReadStrictPatternMatrix(PdfObject? matrixObject, out Matrix2D matrix) {
         matrix = Matrix2D.Identity;
+        if (ResolveEffectObject(matrixObject) is PdfNull) return true;
         PdfArray? values = ResolveArray(matrixObject);
         if (values == null || values.Items.Count != 6) return false;
         var components = new double[6];

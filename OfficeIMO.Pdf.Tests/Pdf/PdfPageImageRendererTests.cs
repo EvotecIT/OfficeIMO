@@ -2321,6 +2321,25 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_PreservesFractionalLuminositySoftMaskBackdrop() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs\n1 0 0 rg\n0 0 240 200 re f",
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /SMask 6 0 R >>\nendobj",
+            "6 0 obj\n<< /S /Luminosity /BC [0.5] /G 7 0 R >>\nendobj",
+            BuildStreamObject(
+                7,
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /Type /Group /S /Transparency /CS /DeviceGray >> /Resources << >>",
+                string.Empty));
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+
+        Assert.NotNull(effect.SoftMask);
+        Assert.Equal(OfficeColor.FromRgb(128, 128, 128), effect.SoftMask!.BackdropColor);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsColoredTilingPatternThroughSharedVectorPattern() {
         byte[] pdf = BuildSingleStreamPdf(
             """

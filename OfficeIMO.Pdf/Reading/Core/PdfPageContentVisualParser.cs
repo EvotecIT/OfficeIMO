@@ -810,6 +810,8 @@ internal static class PdfPageContentVisualParser {
                         _args[0] is string tagName &&
                         string.Equals(tagName, "OC", StringComparison.Ordinal) &&
                         (_optionalContentVisibility?.HasUnsupportedViewUsageApplications == true ||
+                         _args[1] is string propertyName &&
+                         (_optionalContentVisibility == null || _optionalContentVisibility.HasInvalidProperty(propertyName)) ||
                          _args[1] is PdfInlineOptionalContentReferences references &&
                          _optionalContentVisibility?.HasInvalidMembershipReferences(references) == true ||
                          _args[1] is PdfContentDictionary dictionary &&

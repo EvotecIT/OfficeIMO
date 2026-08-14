@@ -335,6 +335,31 @@ public class PdfType3OptionalContentTests {
     }
 
     [Theory]
+    [InlineData("<< /Type /OCMD /OCGs [10 0 R] /P /Bad >>")]
+    [InlineData("<< /Type /OCMD /OCGs [10 0 R] /VE [/Or] >>")]
+    [InlineData("<< /Type /OCMD /OCGs [10 1 R] /P /AnyOn >>")]
+    public void RenderPage_FailsClosedForMalformedResourceMembershipDictionary(string membershipDictionary) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            resourceMembershipDictionary: membershipDictionary);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForMissingNamedOptionalContentProperty() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            omitPropertyResource: true);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("/Type /Bad")]
     public void RenderPage_FailsClosedForMalformedOptionalContentGroupDeclaration(string hiddenGroupType) {
@@ -395,7 +420,8 @@ public class PdfType3OptionalContentTests {
         int indirectVisibilityChainLength = 0,
         string? resourceMembershipDictionary = null,
         string hiddenGroupType = "/Type /OCG",
-        string? defaultConfigurationEntries = null) {
+        string? defaultConfigurationEntries = null,
+        bool omitPropertyResource = false) {
         string hiddenProperty = inlineMembershipDictionary ?? (resourceMembershipDictionary is null ? "/Hidden" : "/Membership");
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -405,6 +431,7 @@ public class PdfType3OptionalContentTests {
             "0 1 0 rg 250 0 250 700 re f";
         string type3Resources = nestedForm
             ? "<< /XObject << /Fm1 7 0 R >> >>"
+            : omitPropertyResource ? "<< >>"
             : inlineMembershipDictionary is not null ? "<< >>" : resourceMembershipDictionary is not null
                 ? "<< /Properties << /Membership 14 0 R >> >>"
                 : "<< /Properties << /Hidden 10 0 R >> >>";

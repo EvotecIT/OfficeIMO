@@ -2,13 +2,17 @@ namespace OfficeIMO.Pdf;
 
 internal sealed class PdfPageOptionalContentVisibility {
     private readonly Dictionary<string, bool> _hiddenProperties;
+    private readonly HashSet<string> _knownProperties;
+    private readonly HashSet<string> _invalidProperties;
     private readonly HashSet<int> _hiddenObjectNumbers;
     private readonly Dictionary<int, bool> _groupVisibility;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxExpressionDepth;
 
-    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects, int maxExpressionDepth, bool hasUnsupportedViewUsageApplications) {
+    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<string> knownProperties, HashSet<string> invalidProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects, int maxExpressionDepth, bool hasUnsupportedViewUsageApplications) {
         _hiddenProperties = hiddenProperties;
+        _knownProperties = knownProperties;
+        _invalidProperties = invalidProperties;
         _hiddenObjectNumbers = hiddenObjectNumbers;
         _groupVisibility = groupVisibility;
         _objects = objects;
@@ -24,7 +28,12 @@ internal sealed class PdfPageOptionalContentVisibility {
         int maxExpressionDepth) {
         int effectiveMaxExpressionDepth = System.Math.Min(maxExpressionDepth, PdfReadLimits.DefaultMaxContentNestingDepth);
         Dictionary<int, bool> groupVisibility = ReadGroupVisibility(objects, out bool hasUnsupportedViewUsageApplications);
-        if (groupVisibility.Count == 0 && !hasUnsupportedViewUsageApplications) {
+        bool hasPropertiesDeclaration = resources != null && resources.Items.ContainsKey("Properties");
+        PdfDictionary? properties = resources != null &&
+            resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject)
+                ? ResolveObject(propertiesObject, objects) as PdfDictionary
+                : null;
+        if (groupVisibility.Count == 0 && !hasUnsupportedViewUsageApplications && !hasPropertiesDeclaration) {
             return null;
         }
 
@@ -46,21 +55,28 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         var hiddenProperties = new Dictionary<string, bool>(StringComparer.Ordinal);
-        if (resources != null &&
-            resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) &&
-            ResolveObject(propertiesObject, objects) is PdfDictionary properties) {
+        var knownProperties = new HashSet<string>(StringComparer.Ordinal);
+        var invalidProperties = new HashSet<string>(StringComparer.Ordinal);
+        if (properties != null) {
             foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
+                knownProperties.Add(entry.Key);
+                if (IsOptionalContentObjectInvalid(entry.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
+                    invalidProperties.Add(entry.Key);
+                }
                 if (IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects, new HashSet<int>(), effectiveMaxExpressionDepth, depth: 0)) {
                     hiddenProperties[entry.Key] = true;
                 }
             }
         }
 
-        return new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers, groupVisibility, objects, effectiveMaxExpressionDepth, hasUnsupportedViewUsageApplications);
+        return new PdfPageOptionalContentVisibility(hiddenProperties, knownProperties, invalidProperties, hiddenObjectNumbers, groupVisibility, objects, effectiveMaxExpressionDepth, hasUnsupportedViewUsageApplications);
     }
 
     public bool IsHidden(string propertyName) =>
         _hiddenProperties.TryGetValue(propertyName, out bool hidden) && hidden;
+
+    internal bool HasInvalidProperty(string propertyName) =>
+        !_knownProperties.Contains(propertyName) || _invalidProperties.Contains(propertyName);
 
     public bool IsHiddenAny(IReadOnlyList<int> objectNumbers) {
         for (int i = 0; i < objectNumbers.Count; i++) {
@@ -599,6 +615,75 @@ internal sealed class PdfPageOptionalContentVisibility {
             _ => visibilities.Exists(static visible => visible)
         };
         return !visible;
+    }
+
+    private static bool IsOptionalContentObjectInvalid(
+        PdfObject value,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> visited,
+        int maxExpressionDepth,
+        int depth) {
+        if (depth > maxExpressionDepth) return true;
+        if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return true;
+            if (groupVisibility.ContainsKey(reference.ObjectNumber)) {
+                return ResolveObject(indirect.Value, objects) is not PdfDictionary group ||
+                    ResolveObject(group.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null, objects) is not PdfName { Name: "OCG" };
+            }
+            if (!visited.Add(reference.ObjectNumber)) return true;
+            try {
+                return IsOptionalContentObjectInvalid(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1);
+            } finally {
+                visited.Remove(reference.ObjectNumber);
+            }
+        }
+
+        if (ResolveObject(value, objects) is not PdfDictionary dictionary ||
+            !string.Equals(ReadName(dictionary, "Type", objects), "OCMD", StringComparison.Ordinal)) return true;
+        if (dictionary.Items.TryGetValue("P", out PdfObject? policyObject)) {
+            PdfObject? policy = ResolveObject(policyObject, objects);
+            if (policy is null || policy is not PdfNull and not PdfName { Name: "AnyOn" or "AllOn" or "AnyOff" or "AllOff" }) return true;
+        }
+        if (dictionary.Items.TryGetValue("VE", out PdfObject? expressionObject)) {
+            PdfObject? expression = ResolveObject(expressionObject, objects);
+            if (expression is null ||
+                expression is not PdfNull &&
+                !TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1, out _)) return true;
+        }
+        return dictionary.Items.TryGetValue("OCGs", out PdfObject? groupsObject) &&
+            HasInvalidOptionalContentGroups(groupsObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1);
+    }
+
+    private static bool HasInvalidOptionalContentGroups(
+        PdfObject value,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> visited,
+        int maxExpressionDepth,
+        int depth) {
+        if (depth > maxExpressionDepth) return true;
+        if (value is PdfReference reference) {
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return true;
+            if (groupVisibility.ContainsKey(reference.ObjectNumber)) {
+                return ResolveObject(indirect.Value, objects) is not PdfDictionary group ||
+                    ResolveObject(group.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null, objects) is not PdfName { Name: "OCG" };
+            }
+            if (!visited.Add(reference.ObjectNumber)) return true;
+            try {
+                return HasInvalidOptionalContentGroups(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1);
+            } finally {
+                visited.Remove(reference.ObjectNumber);
+            }
+        }
+
+        PdfObject? resolved = ResolveObject(value, objects);
+        if (resolved is PdfNull) return false;
+        if (resolved is not PdfArray groups) return true;
+        for (int index = 0; index < groups.Items.Count; index++) {
+            if (HasInvalidOptionalContentGroups(groups.Items[index], groupVisibility, objects, visited, maxExpressionDepth, depth + 1)) return true;
+        }
+        return false;
     }
 
     private static List<bool> ReadOptionalContentMembershipGroupVisibilities(

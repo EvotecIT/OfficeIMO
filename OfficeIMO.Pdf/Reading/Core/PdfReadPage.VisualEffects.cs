@@ -69,6 +69,7 @@ public sealed partial class PdfReadPage {
         }
         OfficeSoftMaskMode mode = modeName.Name == "Luminosity" ? OfficeSoftMaskMode.Luminosity : OfficeSoftMaskMode.Alpha;
         OfficeColor backdrop = OfficeColor.Transparent;
+        bool hasByteExactBackdrop = true;
         if (mode == OfficeSoftMaskMode.Luminosity &&
             mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
             if (ResolveEffectObject(backdropObject) is not PdfArray components) return null;
@@ -77,13 +78,13 @@ public sealed partial class PdfReadPage {
                 ? 1
                 : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Length;
             if ((expectedComponents != 1 && expectedComponents != 3) ||
-                values.Length != expectedComponents ||
-                values.Any(static value => !IsByteRepresentableComponent(value))) return null;
+                values.Length != expectedComponents) return null;
+            hasByteExactBackdrop = values.All(IsByteRepresentableComponent);
             backdrop = values.Length == 1
                 ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
-        return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+        return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
     }
 
     private bool HasSupportedType3PageBlendColorSpace() {
@@ -185,6 +186,7 @@ public sealed partial class PdfReadPage {
         PdfPageGraphicsStateResource? inheritedGraphicsState) {
         if (resource == null) return true;
         if (!resource.IsIsolated) return false;
+        if (!resource.HasByteExactBackdrop) return false;
         if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
         if (resource.Group.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) &&
             ResolveEffectObject(optionalContent) is not PdfNull) return false;
