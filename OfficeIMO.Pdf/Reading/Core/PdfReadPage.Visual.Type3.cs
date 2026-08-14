@@ -384,7 +384,7 @@ public sealed partial class PdfReadPage {
 
     private bool HasValidType3ImageMaskDeclaration(PdfDictionary imageDictionary) {
         return !imageDictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) ||
-            ResolveEffectObject(imageMaskObject) is PdfBoolean;
+            ResolveEffectObject(imageMaskObject) is PdfBoolean or PdfNull;
     }
 
     private bool HasValidType3TransparencyMasks(PdfDictionary imageDictionary, PdfDictionary? resources) {

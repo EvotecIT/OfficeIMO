@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfInlineOptionalContentReferences {
-    public PdfInlineOptionalContentReferences(IReadOnlyList<PdfReference> objectReferences, bool isMembershipDictionary = false, string? policy = null, string? visibilityExpression = null) {
+    public PdfInlineOptionalContentReferences(IReadOnlyList<PdfReference> objectReferences, bool isMembershipDictionary = false, string? policy = null, string? visibilityExpression = null, bool hasInvalidPolicy = false) {
         ObjectReferences = objectReferences;
         var objectNumbers = new int[objectReferences.Count];
         for (int index = 0; index < objectReferences.Count; index++) objectNumbers[index] = objectReferences[index].ObjectNumber;
@@ -9,6 +9,7 @@ internal sealed class PdfInlineOptionalContentReferences {
         IsMembershipDictionary = isMembershipDictionary;
         Policy = string.IsNullOrWhiteSpace(policy) ? null : policy;
         VisibilityExpression = string.IsNullOrWhiteSpace(visibilityExpression) ? null : visibilityExpression;
+        HasInvalidPolicy = hasInvalidPolicy;
     }
 
     public IReadOnlyList<int> ObjectNumbers { get; }
@@ -18,6 +19,8 @@ internal sealed class PdfInlineOptionalContentReferences {
     public bool IsMembershipDictionary { get; }
 
     public string? Policy { get; }
+
+    public bool HasInvalidPolicy { get; }
 
     public string? VisibilityExpression { get; }
 }
@@ -36,14 +39,22 @@ internal static class PdfInlineOptionalContentReferenceParser {
             TryReadObjectValue(content, start, length, "OCGs", out string? groupsValue)
                 ? ExtractReferences(groupsValue!)
                 : Array.Empty<PdfReference>();
-        string? policy = isMembershipDictionary && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
+        string? policyValue = null;
+        bool hasPolicyValue = isMembershipDictionary && TryReadObjectValue(content, start, length, "P", out policyValue);
+        string? policy = hasPolicyValue && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
             ? parsedPolicy
             : null;
+        bool hasInvalidPolicy = hasPolicyValue &&
+            !string.Equals(policyValue?.Trim(), "null", StringComparison.Ordinal) &&
+            !IsSupportedMembershipPolicy(policy);
         string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression)
             ? parsedExpression
             : null;
-        return new PdfInlineOptionalContentReferences(objectReferences, isMembershipDictionary, policy, visibilityExpression);
+        return new PdfInlineOptionalContentReferences(objectReferences, isMembershipDictionary, policy, visibilityExpression, hasInvalidPolicy);
     }
+
+    private static bool IsSupportedMembershipPolicy(string? policy) =>
+        policy is "AnyOn" or "AllOn" or "AnyOff" or "AllOff";
 
     public static IReadOnlyList<int> ExtractObjectNumbers(string content, int start, int length) {
         IReadOnlyList<PdfReference> references = ExtractReferences(content, start, length);

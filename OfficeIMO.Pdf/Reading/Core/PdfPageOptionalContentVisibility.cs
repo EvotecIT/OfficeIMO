@@ -97,6 +97,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
     internal bool HasInvalidMembershipReferences(PdfInlineOptionalContentReferences references) {
         if (!references.IsMembershipDictionary) return false;
+        if (references.HasInvalidPolicy) return true;
         for (int index = 0; index < references.ObjectReferences.Count; index++) {
             PdfReference reference = references.ObjectReferences[index];
             if (!PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject groupObject) ||
@@ -366,10 +367,10 @@ internal sealed class PdfPageOptionalContentVisibility {
         PdfDictionary? defaultConfiguration = ResolveObject(
             optionalContent.Items.TryGetValue("D", out PdfObject? defaultConfigurationObject) ? defaultConfigurationObject : null,
             objects) as PdfDictionary;
-        string? baseState = ReadName(defaultConfiguration, "BaseState", objects);
+        bool validBaseState = TryReadBaseState(defaultConfiguration, objects, out string? baseState);
         HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects, out bool invalidOnGroups);
         HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects, out bool invalidOffGroups);
-        hasUnsupportedViewUsageApplications = invalidOnGroups || invalidOffGroups;
+        hasUnsupportedViewUsageApplications = !validBaseState || invalidOnGroups || invalidOffGroups;
 
         for (int i = 0; i < groups.Items.Count; i++) {
             if (groups.Items[i] is not PdfReference reference) {
@@ -400,6 +401,27 @@ internal sealed class PdfPageOptionalContentVisibility {
             ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
 
         return result;
+    }
+
+    private static bool TryReadBaseState(
+        PdfDictionary? defaultConfiguration,
+        Dictionary<int, PdfIndirectObject> objects,
+        out string? baseState) {
+        baseState = null;
+        if (defaultConfiguration == null ||
+            !defaultConfiguration.Items.TryGetValue("BaseState", out PdfObject? baseStateObject)) {
+            return true;
+        }
+
+        PdfObject? resolved = ResolveObject(baseStateObject, objects);
+        if (resolved is null or PdfNull) return true;
+        if (resolved is not PdfName name ||
+            name.Name is not ("ON" or "OFF" or "Unchanged")) {
+            return false;
+        }
+
+        baseState = name.Name;
+        return true;
     }
 
     private static bool HasUnsupportedOptionalContentIntent(

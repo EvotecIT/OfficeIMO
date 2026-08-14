@@ -41,12 +41,12 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
         for (int index = 0; index < drawing.Elements.Count; index++) {
             OfficeDrawingElement element = drawing.Elements[index];
-            if (element is OfficeDrawingImage { Interpolate: false }) return true;
+            if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D }) return true;
             if (element is OfficeDrawingGroup group && ContainsNonInterpolatedImage(group.InnerDrawing)) return true;
-            if (element is OfficeDrawingEffectGroup effectGroup &&
+            if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
                 (ContainsNonInterpolatedImage(effectGroup.InnerDrawing) ||
                  (effectGroup.SoftMask != null && ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing)))) return true;
-            if (element is OfficeDrawingTilingPattern pattern && ContainsNonInterpolatedImage(pattern.InnerTile)) return true;
+            if (element is OfficeDrawingTilingPattern { Opacity: > 0D } pattern && ContainsNonInterpolatedImage(pattern.InnerTile)) return true;
         }
 
         return false;

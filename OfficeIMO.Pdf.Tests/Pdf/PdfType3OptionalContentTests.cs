@@ -14,7 +14,19 @@ public class PdfType3OptionalContentTests {
 
         Assert.True(references.IsMembershipDictionary);
         Assert.Equal("AnyOn", references.Policy);
+        Assert.False(references.HasInvalidPolicy);
         Assert.Equal(new[] { 11 }, references.ObjectNumbers);
+    }
+
+    [Theory]
+    [InlineData("/Bad")]
+    [InlineData("1")]
+    public void InlineOptionalContentMembershipDictionary_RejectsMalformedPolicy(string policy) {
+        string content = "<< /Type /OCMD /OCGs [11 0 R] /P " + policy + " >>";
+
+        PdfInlineOptionalContentReferences references = PdfInlineOptionalContentReferenceParser.Parse(content, 0, content.Length);
+
+        Assert.True(references.HasInvalidPolicy);
     }
 
     [Fact]
@@ -148,6 +160,34 @@ public class PdfType3OptionalContentTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
+    [InlineData("/Bad")]
+    [InlineData("1")]
+    public void RenderPage_FailsClosedForMalformedInlineMembershipPolicy(string policy) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P " + policy + " >>",
+            includeUnsupportedConditionalContent: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsExplicitNullInlineMembershipPolicyAsDefaultAnyOn() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P null >>");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
+        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
     }
 
     [Fact]
@@ -314,6 +354,30 @@ public class PdfType3OptionalContentTests {
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
+    [InlineData("/Bad")]
+    [InlineData("1")]
+    public void RenderPage_FailsClosedForMalformedDefaultConfigurationBaseState(string baseState) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            defaultConfigurationEntries: "/BaseState " + baseState + " /ON [11 0 R] /OFF [10 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsExplicitNullDefaultConfigurationBaseStateAsAbsent() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            defaultConfigurationEntries: "/BaseState null /ON [11 0 R] /OFF [10 0 R]");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     private static byte[] BuildType3OptionalContentPdf(
