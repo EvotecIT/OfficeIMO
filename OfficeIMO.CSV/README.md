@@ -547,13 +547,15 @@ CsvDocument.WriteDataReaderParallel(
 
 The parallel writer keeps at most two batches in memory. Its effective row
 count per batch is the smaller of `BatchSize` and
-`MaximumBufferedCellsPerBatch / reader.FieldCount` after the reader's field
-types qualify for independent parallel snapshots. A qualifying schema wider
-than the cell budget is rejected before the writer snapshots a row. Readers
-whose values require provider-owned access continue through the sequential
-fallback and do not allocate these batches. Raise the cell budget only for a
-trusted qualifying schema whose working set the application can afford;
-otherwise select fewer fields or use sequential `WriteDataReader`. Custom
+`MaximumBufferedCellsPerBatch / reader.FieldCount`. On the multi-worker path,
+every request whose schema is wider than the cell budget is rejected before
+field-type inspection, snapshot planning, or output mutation. Readers within
+that width whose values require provider-owned access continue through the
+sequential fallback and do not allocate parallel batches. An explicit or
+environment-derived single-worker configuration delegates directly to
+`WriteDataReader`, so the parallel batch-width limit does not apply. Raise the
+cell budget only for a trusted schema whose working set the application can
+afford; otherwise select fewer fields or use sequential `WriteDataReader`. Custom
 values and format providers used during parallel formatting must support
 concurrent read-only access. For small or simply formatted exports,
 `WriteDataReader` avoids the thread-pool and batch-buffering overhead and may be

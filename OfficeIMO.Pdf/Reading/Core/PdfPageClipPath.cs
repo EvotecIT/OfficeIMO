@@ -4,7 +4,8 @@ namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
-    internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumTextClippingIntersectionWork = MaximumClippingIntersectionWork;
     private const int CurveFlatteningPointCount = 24;
 
     private PdfPageClipPath(
@@ -42,24 +43,23 @@ internal readonly struct PdfPageClipPath {
 
         PdfPageClipPath active = activeClipPath.Value;
         bool containsTextClipping = active.ContainsTextClipping || clipPath.ContainsTextClipping;
-        PdfTextClippingBudget? effectiveBudget = containsTextClipping ? textClippingBudget : null;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
                 PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(clipPath, active, intersection, effectiveBudget)
+                    ? IntersectPathWithRectangle(clipPath, active, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
                 return resolved.WithTextClipping(containsTextClipping);
             }
 
             if (clipPath.IsRectangle) {
                 PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(active, clipPath, intersection, effectiveBudget)
+                    ? IntersectPathWithRectangle(active, clipPath, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
                 return resolved.WithTextClipping(containsTextClipping);
             }
 
             PdfPageClipPath pathResolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
-                ? IntersectPathWithPath(active, clipPath, pathIntersection, effectiveBudget)
+                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget)
                 : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
             return pathResolved.WithTextClipping(containsTextClipping);
         }

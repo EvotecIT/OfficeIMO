@@ -51,22 +51,13 @@ public sealed partial class CsvRowWriter
         {
             throw new InvalidOperationException("Data reader must expose at least one field.");
         }
+        int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
-        if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(
-                reader,
-                parallelOptions.MaximumBufferedCellsPerBatch,
-                out bool[] cloneColumns,
-                out bool fieldLimitExceeded))
+        if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(reader, out bool[] cloneColumns))
         {
             WriteDataReader(reader, cancellationToken);
             return;
         }
-
-        if (fieldLimitExceeded)
-        {
-            throw parallelOptions.CreateFieldCountLimitException(fieldCount);
-        }
-        int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
         var columns = new string[fieldCount];
         for (int index = 0; index < fieldCount; index++)

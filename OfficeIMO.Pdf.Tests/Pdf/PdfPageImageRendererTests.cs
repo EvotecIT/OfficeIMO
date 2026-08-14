@@ -898,23 +898,23 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void ParserPassesDoNotChargeOrdinaryClipWorkWithoutTextClipping() {
+    public void ParserPassesBoundOrdinaryClipIntersectionWork() {
         string content = "0 -20 100 120 re W n " + BuildCurveHeavyPathClip();
 
-        _ = TextContentParser.Parse(
+        AssertIntersectionLimit(() => TextContentParser.Parse(
             content,
             (_, bytes) => Encoding.ASCII.GetString(bytes),
             (_, bytes) => bytes.Length * 500D,
             pageHeight: 200D,
-            textClippingBudget: new PdfTextClippingBudget());
-        _ = PdfPageXObjectInvocationParser.Parse(
+            textClippingBudget: new PdfTextClippingBudget()));
+        AssertIntersectionLimit(() => PdfPageXObjectInvocationParser.Parse(
             content,
             Matrix2D.Identity,
             200D,
             graphicsStates: null,
             colorSpaces: null,
-            textClippingBudget: new PdfTextClippingBudget());
-        _ = PdfPageContentVisualParser.Parse(
+            textClippingBudget: new PdfTextClippingBudget()));
+        AssertIntersectionLimit(() => PdfPageContentVisualParser.Parse(
             content,
             100D,
             200D,
@@ -923,16 +923,23 @@ public class PdfPageImageRendererTests {
             shadings: null,
             shadingPatterns: null,
             tilingPatterns: null,
-            textClippingBudget: new PdfTextClippingBudget());
-        _ = TextContentParser.ExtractFormInvocations(
+            textClippingBudget: new PdfTextClippingBudget()));
+        AssertIntersectionLimit(() => TextContentParser.ExtractFormInvocations(
             content,
             pageHeight: 200D,
-            textClippingBudget: new PdfTextClippingBudget());
+            textClippingBudget: new PdfTextClippingBudget()));
+
+        static void AssertIntersectionLimit(Action action) {
+            PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(action);
+            Assert.Equal(PdfReadLimitKind.ClippingIntersectionWork, exception.Kind);
+            Assert.Equal(PdfPageClipPath.MaximumClippingIntersectionWork, exception.Limit);
+            Assert.True(exception.Actual > exception.Limit);
+        }
     }
 
     [Fact]
-    public void TextParserStopsChargingAfterRestoringPreTextClipState() {
-        string content = "q BT /F1 12 Tf 4 Tr (A) Tj ET Q 0 -20 100 120 re W n " + BuildCurveHeavyPathClip();
+    public void TextParserAllowsBoundedOrdinaryClipAfterRestoringPreTextClipState() {
+        const string content = "q BT /F1 12 Tf 4 Tr (A) Tj ET Q 0 -20 100 120 re W n 0 -20 100 120 re W n";
 
         _ = TextContentParser.Parse(
             content,
