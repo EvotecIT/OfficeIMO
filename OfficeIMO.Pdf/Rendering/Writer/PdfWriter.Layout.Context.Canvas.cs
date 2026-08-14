@@ -69,6 +69,13 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasArtifact(PdfCanvasArtifactItem item) {
             EnsurePage();
+            LayoutResult.Page artifactPage = currentPage!;
+            int linkAnnotationCount = artifactPage.Annotations.Count;
+            int textAnnotationCount = artifactPage.TextAnnotations.Count;
+            int freeTextAnnotationCount = artifactPage.FreeTextAnnotations.Count;
+            int highlightAnnotationCount = artifactPage.HighlightAnnotations.Count;
+            int formFieldCount = artifactPage.FormFields.Count;
+            int bookmarkCount = artifactPage.Bookmarks.Count;
             sb.Append("/Artifact BMC\n");
             bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
             bool previousStructure = _suppressCanvasStructureRegistration;
@@ -79,8 +86,32 @@ internal static partial class PdfWriter {
             } finally {
                 _suppressCanvasAccessibilityWrappers = previousAccessibility;
                 _suppressCanvasStructureRegistration = previousStructure;
+                RemoveCanvasArtifactInteractions(
+                    artifactPage,
+                    linkAnnotationCount,
+                    textAnnotationCount,
+                    freeTextAnnotationCount,
+                    highlightAnnotationCount,
+                    formFieldCount,
+                    bookmarkCount);
             }
             sb.Append("EMC\n");
+        }
+
+        private static void RemoveCanvasArtifactInteractions(
+            LayoutResult.Page page,
+            int linkAnnotationCount,
+            int textAnnotationCount,
+            int freeTextAnnotationCount,
+            int highlightAnnotationCount,
+            int formFieldCount,
+            int bookmarkCount) {
+            page.Annotations.RemoveRange(linkAnnotationCount, page.Annotations.Count - linkAnnotationCount);
+            page.TextAnnotations.RemoveRange(textAnnotationCount, page.TextAnnotations.Count - textAnnotationCount);
+            page.FreeTextAnnotations.RemoveRange(freeTextAnnotationCount, page.FreeTextAnnotations.Count - freeTextAnnotationCount);
+            page.HighlightAnnotations.RemoveRange(highlightAnnotationCount, page.HighlightAnnotations.Count - highlightAnnotationCount);
+            page.FormFields.RemoveRange(formFieldCount, page.FormFields.Count - formFieldCount);
+            page.Bookmarks.RemoveRange(bookmarkCount, page.Bookmarks.Count - bookmarkCount);
         }
 
         private void RenderCanvasFormField(PdfCanvasFormFieldItem item) {

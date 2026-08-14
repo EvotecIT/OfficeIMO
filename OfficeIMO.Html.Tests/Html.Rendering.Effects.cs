@@ -290,7 +290,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlClipPath_BasicShapesShareOneVectorSceneAcrossRasterAndSvg() {
         const string html = "<div id='polygon' style='width:20px;height:20px;margin:0;background:red;clip-path:polygon(0 0,100% 0,0 100%)'></div>"
             + "<div id='inset' style='width:20px;height:20px;margin:0;background:blue;clip-path:inset(2px 3px 4px 5px round 2px)'></div>"
-            + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(40% at 50% 50%)'></div>"
+            + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(8px at 50% 50%)'></div>"
             + "<div id='ellipse' style='width:20px;height:20px;margin:0;background:purple;clip-path:ellipse(40% 25% at center)'></div>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 30D,
@@ -387,6 +387,60 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("InsetMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("CircleMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("EllipseMarker", pdfText, StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlClipPath_DefaultCircleAndEllipseArgumentsUseCssDefaults() {
+        const string html = "<div id='circle-default' style='width:20px;height:20px;margin:0;background:red;clip-path:circle()'></div>"
+            + "<div id='ellipse-default' style='width:20px;height:20px;margin:0;background:blue;clip-path:ellipse()'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderPathClipGroup>()
+            .Where(group => group.Source != null && group.Source.EndsWith("-default", StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal(2, clips.Count);
+        Assert.All(clips, clip => Assert.Equal(OfficeClipPathKind.Path, clip.ClipPath.Kind));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle())"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse())"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlClipPath_CircleAndEllipseImplementTheCompleteBasicShapeRadialGrammar() {
+        const string html = "<div style='width:40px;height:20px;background:red;clip-path:circle(closest-corner at 25% 25%)'></div>"
+            + "<div style='width:40px;height:20px;background:red;clip-path:circle(farthest-corner at 25% 25%)'></div>"
+            + "<div style='width:40px;height:20px;background:red;clip-path:ellipse(closest-side at 25% 25%)'></div>"
+            + "<div style='width:40px;height:20px;background:red;clip-path:ellipse(farthest-corner at 25% 25%)'></div>"
+            + "<div style='width:40px;height:20px;background:red;clip-path:circle(closest-side at -5px 10px)'></div>"
+            + "<div style='width:40px;height:20px;background:red;clip-path:ellipse(closest-side at -5px 10px)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 50D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>().ToList();
+        Assert.Equal(6, clips.Count);
+        Assert.All(clips, clip => Assert.Equal(OfficeClipPathKind.Path, clip.ClipPath.Kind));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(closest-corner))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(farthest-corner at 20px 10px))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse(closest-side))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse(farthest-corner at center))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(40%))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(at))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse(at))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse(10px))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:ellipse(closest-side farthest-side))"));
         Assert.Empty(rendered.Diagnostics);
     }
 

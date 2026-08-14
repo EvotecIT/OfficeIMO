@@ -102,11 +102,11 @@ public sealed class HtmlRenderDocument {
         : visual is HtmlRenderFormField formField ? formField.Visuals : null;
 
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
-        var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();
+        var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)>();
         foreach (HtmlRenderPage page in pages) {
             foreach (HtmlRenderBookmarkAnchor anchor in EnumerateVisuals(page.Scene).OfType<HtmlRenderBookmarkAnchor>()) {
                 if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
-                fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, anchor.X, anchor.Y, anchor.PaintOrder));
+                fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, anchor.X, anchor.Y, anchor.PaintOrder, null, true));
             }
             foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene)) {
                 if (!text.SemanticNodeId.HasValue) continue;
@@ -115,24 +115,26 @@ public sealed class HtmlRenderDocument {
                     if (definition.Suppressed) continue;
                     level = definition.Level;
                 } else if (!automatic) continue;
-                fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder));
+                fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder, text.LogicalOrder, false));
             }
         }
 
         var headings = new List<HtmlRenderHeading>();
-        foreach (IGrouping<int, (int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)> group in fragments
+        foreach (IGrouping<int, (int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)> group in fragments
             .GroupBy(item => item.NodeId)
             .OrderBy(group => bookmarks != null && bookmarks.TryGetValue(group.Key, out HtmlRenderBookmarkDefinition? definition)
                 ? definition.SourceOrder
                 : int.MaxValue)) {
             var ordered = group
-                .OrderBy(item => item.PageNumber)
+                .OrderBy(item => item.LogicalOrder ?? int.MaxValue)
+                .ThenBy(item => item.PageNumber)
+                .ThenBy(item => item.Order)
                 .ThenBy(item => item.Y)
                 .ThenBy(item => item.X)
-                .ThenBy(item => item.Order)
                 .ToList();
             var first = ordered[0];
-            string headingText = string.Concat(ordered.Select(item => item.Text)).Trim();
+            string? anchorText = group.Where(item => item.IsAnchor).Select(item => item.Text).FirstOrDefault();
+            string headingText = (anchorText ?? string.Concat(ordered.Where(item => !item.IsAnchor).Select(item => item.Text))).Trim();
             if (headingText.Length == 0) continue;
             HtmlRenderBookmarkDefinition? definition = null;
             bookmarks?.TryGetValue(first.NodeId, out definition);
@@ -157,12 +159,13 @@ public sealed class HtmlRenderDocument {
                         representative.SemanticNodeId,
                         logicalTextGroup.X,
                         logicalTextGroup.Y,
-                        logicalTextGroup.PaintOrder);
+                        logicalTextGroup.PaintOrder,
+                        representative.SemanticFragmentOrder);
                 }
                 continue;
             }
             if (visual is HtmlRenderText text) {
-                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, text.X, text.Y, text.PaintOrder);
+                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, text.X, text.Y, text.PaintOrder, text.SemanticFragmentOrder);
                 continue;
             }
 
@@ -173,13 +176,14 @@ public sealed class HtmlRenderDocument {
     }
 
     private readonly struct HtmlRenderTextFragment {
-        internal HtmlRenderTextFragment(string text, string? semanticRole, int? semanticNodeId, double x, double y, int paintOrder) {
+        internal HtmlRenderTextFragment(string text, string? semanticRole, int? semanticNodeId, double x, double y, int paintOrder, int? logicalOrder) {
             Text = text;
             SemanticRole = semanticRole;
             SemanticNodeId = semanticNodeId;
             X = x;
             Y = y;
             PaintOrder = paintOrder;
+            LogicalOrder = logicalOrder;
         }
 
         internal string Text { get; }
@@ -188,5 +192,6 @@ public sealed class HtmlRenderDocument {
         internal double X { get; }
         internal double Y { get; }
         internal int PaintOrder { get; }
+        internal int? LogicalOrder { get; }
     }
 }

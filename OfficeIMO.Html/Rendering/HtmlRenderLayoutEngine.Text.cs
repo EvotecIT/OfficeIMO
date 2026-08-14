@@ -39,6 +39,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
             foreach (HtmlInlineRun run in runs) run.AssignSemanticNode(parentStyle.SemanticRole, semanticNodeId);
         }
+        AssignSemanticFragmentOrders(runs);
 
         return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters);
     }
@@ -64,7 +65,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (OfficeFontFallbackRun fallback in fallbacks) {
                 HtmlRenderBoxStyle style = run.Style.Clone();
                 style.Font = style.Font.WithFamilyName(fallback.FamilyName);
-                resolvedRuns.Add(new HtmlInlineRun(
+                var resolvedRun = new HtmlInlineRun(
                     OfficeArabicTextShaper.Shape(fallback.Text),
                     style,
                     run.LinkUri,
@@ -73,11 +74,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     run.PaintOffsetY,
                     run.OwnerElement,
                     run.PositionedMarkerElement,
-                    fallback.Text));
+                    fallback.Text);
+                if (run.SemanticNodeId.HasValue) {
+                    resolvedRun.AssignSemanticNode(run.SemanticRole, run.SemanticNodeId.Value, run.BookmarkAnchorText, run.SemanticFragmentOrder);
+                }
+                if (run.InlineSemanticGroupRole.HasValue && run.InlineSemanticGroupKey != null) {
+                    resolvedRun.AssignInlineSemanticGroup(run.InlineSemanticGroupRole.Value, run.InlineSemanticGroupKey);
+                }
+                resolvedRuns.Add(resolvedRun);
             }
         }
 
         return resolvedRuns;
+    }
+
+    private static void AssignSemanticFragmentOrders(IEnumerable<HtmlInlineRun> runs) {
+        var nextOrders = new Dictionary<int, int>();
+        foreach (HtmlInlineRun run in runs) {
+            if (!run.SemanticNodeId.HasValue) continue;
+            int nodeId = run.SemanticNodeId.Value;
+            nextOrders.TryGetValue(nodeId, out int order);
+            run.AssignSemanticNode(run.SemanticRole, nodeId, run.BookmarkAnchorText, order);
+            nextOrders[nodeId] = order + 1;
+        }
     }
 
     private void CollectInlineRuns(
@@ -948,7 +967,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source.PaintOffsetY,
             source.OwnerElement,
             logicalText: "\u2026");
-        if (source.SemanticNodeId.HasValue) run.AssignSemanticNode(source.SemanticRole, source.SemanticNodeId.Value);
+        if (source.SemanticNodeId.HasValue) run.AssignSemanticNode(source.SemanticRole, source.SemanticNodeId.Value, source.BookmarkAnchorText, source.SemanticFragmentOrder);
+        if (source.InlineSemanticGroupRole.HasValue && source.InlineSemanticGroupKey != null) {
+            run.AssignInlineSemanticGroup(source.InlineSemanticGroupRole.Value, source.InlineSemanticGroupKey);
+        }
         return run;
     }
 

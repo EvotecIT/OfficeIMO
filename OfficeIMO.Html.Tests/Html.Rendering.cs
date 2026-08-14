@@ -2094,6 +2094,180 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_BookmarkTitlesKeepLogicalSourceOrderAfterVisualRepositioning() {
+        const string html = "<h1><span style='position:relative;left:100px'>A</span><span>B</span></h1>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { OutlineExpansionLevel = 64 }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal("AB", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("AB", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsPreservesBookmarkAndArtifactControlsAcrossBlockChildren() {
+        const string html = "<main>"
+            + "<div id='bookmark-contents' style='display:contents;bookmark-level:1;bookmark-label:\"Contents entry\"'><p>Bookmark body</p><p>Second body</p></div>"
+            + "<div id='artifact-contents' style='display:contents;-officeimo-pdf-tag-type:artifact'><p>Decorative first <a href='https://evotec.xyz/decorative'>link</a></p><p>Decorative second <input name='decorative-field' value='hidden'></p></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        IReadOnlyList<HtmlRenderSemanticGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderSemanticGroup>().ToList();
+
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Contents entry" && heading.Level == 1);
+        Assert.Contains(info.Outlines, outline => outline.Title == "Contents entry");
+        Assert.Equal(2, groups.Count(group => group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source == "div#artifact-contents"));
+        Assert.DoesNotContain("Decorative first", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsPreservesSemanticsForDirectFlexAndGridItems() {
+        const string html = "<main>"
+            + "<div style='display:flex'><div id='flex-bookmark' style='display:contents;bookmark-level:1;bookmark-label:\"Flex entry\"'><span>Flex body</span></div><div id='flex-artifact' style='display:contents;-officeimo-pdf-tag-type:artifact'><a href='https://evotec.xyz/flex'>Flex link</a><input name='flex-field' value='hidden'></div></div>"
+            + "<div style='display:grid'><div id='grid-bookmark' style='display:contents;bookmark-level:1;bookmark-label:\"Grid entry\"'><span>Grid body</span></div><div id='grid-artifact' style='display:contents;-officeimo-pdf-tag-type:artifact'><a href='https://evotec.xyz/grid'>Grid link</a><input name='grid-field' value='hidden'></div></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Flex entry");
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Grid entry");
+        Assert.Contains(info.Outlines, outline => outline.Title == "Flex entry");
+        Assert.Contains(info.Outlines, outline => outline.Title == "Grid entry");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.DoesNotContain("Flex link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Grid link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsWithOnlyPositionedChildrenKeepsSemanticOwnership() {
+        const string html = "<main>"
+            + "<div id='block-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:fixed;left:0;top:0'>Block only</span></div>"
+            + "<div style='display:flex;position:relative;height:20px'><div id='flex-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:absolute;left:0;top:0'>Flex only</span></div></div>"
+            + "<div style='display:grid;position:relative;height:20px'><div id='grid-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:absolute;left:0;top:0'>Grid only</span></div></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, info.Outlines.Select(outline => outline.Title).ToArray());
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarkFallbackLabelsUseCssNormalWhitespace() {
+        const string html = "<h1>Alpha   <span>Beta</span>\n    Gamma</h1>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal("Alpha Beta Gamma", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Alpha Beta Gamma", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_OutOfFlowDescendantsRemainInsideAncestorArtifactAndBookmarkText() {
+        const string html = "<main>"
+            + "<div id='artifact' style='position:relative;height:60px;-officeimo-pdf-tag-type:artifact'><input style='position:absolute;left:0;top:0' name='absolute-field' value='hidden'><a style='position:fixed;left:0;top:0' href='https://evotec.xyz/fixed'>Fixed link</a></div>"
+            + "<h1>Start<span style='position:absolute;left:120px'>Middle</span>End</h1>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal("StartMiddleEnd", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("StartMiddleEnd", Assert.Single(info.Outlines).Title);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.DoesNotContain("Fixed link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_PagedDisplayContentsRetainsListStructureAndBookmarkAnchor() {
+        string longText = string.Join(" ", Enumerable.Repeat("breakable", 80));
+        string html = "<main><ol style='display:contents;bookmark-level:1;bookmark-label:\"Paged list\"'><li style='display:contents'><p style='width:120px;font-size:16px;line-height:20px;margin:0'>" + longText + "</p><p style='margin:0'>Continuation body</p></li></ol></main>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 1.25D),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Equal("Paged list", Assert.Single(rendered.Headings).Text);
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "L");
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "LI");
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "LBody");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsReusesOneListStructureAcrossSiblingFragments() {
+        const string html = "<main><ol style='display:contents'><li>First item body</li><li>Second item body</li></ol><ol><li style='display:contents'><p>Flattened item body</p><p>Continuation body</p></li></ol></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "L"));
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "LI"));
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Lbl"));
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "LBody"));
+    }
+
+    [Fact]
     public void HtmlRender_InvalidPdfControlsOnSpecializedAndInlineElementsAreNeverSilent() {
         const string html = "<hr style='-officeimo-pdf-tag-type:made-up;bookmark-state:sideways'><p><span style='-officeimo-pdf-tag-type:also-made-up;bookmark-state:sideways'>Text</span></p><div style='bookmark-level:bogus'>Not a heading</div>";
 

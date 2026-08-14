@@ -417,6 +417,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Source { get; }
         internal string? Link { get; }
         internal bool PaintAnonymousBox { get; }
+        internal List<FlattenedSemanticPlacement> FlattenedSemanticPlacements { get; } = new List<FlattenedSemanticPlacement>();
         internal HtmlRenderBoxStyle Style { get; set; }
         internal int SourceIndex { get; }
         internal double Basis { get; set; }

@@ -408,6 +408,33 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasArtifact_SuppressesEveryInteractiveDescendant() {
+        const string uri = "https://evotec.xyz/decorative";
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Artifact(artifact => artifact
+                .Text(new[] { PdfTextRun.Link("Decorative link", uri) }, 10D, 10D, 100D, 20D)
+                .TextAnnotation("Decorative note", 10D, 35D)
+                .FreeTextAnnotation("Decorative free text", 35D, 35D, 100D, 20D)
+                .HighlightAnnotation("Decorative highlight", 10D, 60D, 100D, 20D)
+                .Outline("Decorative outline", 1, 10D)
+                .Structure(PdfCanvasStructureRole.Paragraph, nested => nested
+                    .TextField("DecorativeField", "Value", 10D, 85D, 100D, 20D))))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.Empty(info.GetAnnotationsBySubtype("Text"));
+        Assert.Empty(info.GetAnnotationsBySubtype("FreeText"));
+        Assert.Empty(info.GetAnnotationsBySubtype("Highlight"));
+        Assert.Empty(info.Outlines);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Form");
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasOutline_SupportsPerEntryExpansionState() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { OutlineExpansionLevel = 0 })
             .Canvas(canvas => canvas

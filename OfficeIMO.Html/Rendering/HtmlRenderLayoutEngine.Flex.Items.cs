@@ -38,11 +38,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (style.Display == "contents") {
-            AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
+            FlattenedSemanticBoundary boundary = CreateFlattenedSemanticBoundary(element, style);
+            var flattenedItems = new List<FlexItem>();
+            AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, flattenedItems);
             foreach (INode child in element.ChildNodes) {
-                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, items, runningElementAssignments)) return false;
+                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems, runningElementAssignments)) return false;
             }
-            AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
+            AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, flattenedItems);
+            for (int index = 0; index < flattenedItems.Count; index++) {
+                FlexItem flattenedItem = flattenedItems[index];
+                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0));
+                items.Add(flattenedItem);
+            }
             return true;
         }
 
@@ -81,8 +88,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
-        if (item.Element != null) return LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth);
-        return LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        HtmlRenderFlowBlock block = item.Element != null
+            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth)
+            : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
+            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
+        }
+        return block;
     }
 
     private HtmlRenderFlowBlock LayoutAnonymousFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle) {

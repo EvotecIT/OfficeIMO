@@ -80,17 +80,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     adjoiningMargins.Clear();
                     continue;
                 }
+                FlattenedSemanticBoundary? flattenedSemanticBoundary = childStyle.Display == "contents"
+                    ? CreateFlattenedSemanticBoundary(element, childStyle)
+                    : null;
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
-                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(
+                    IReadOnlyList<HtmlRenderFlowBlock> flattenedBlocks = BuildChildBlocks(
                         element,
                         width,
                         childStyle,
                         depth + 1,
                         carriesContinuation ? continuationTarget : null,
-                        carriesContinuation ? continuationLogicalCharacters : 0)) {
+                        carriesContinuation ? continuationLogicalCharacters : 0);
+                    foreach (HtmlRenderFlowBlock flattenedBlock in ApplyFlattenedElementSemantics(flattenedBlocks, flattenedSemanticBoundary!)) {
                         blocks.Add(flattenedBlock);
                         flowHeight += flattenedBlock.Height;
                     }

@@ -592,14 +592,16 @@ internal sealed class HtmlInlineRun {
     internal double? AtomicBaseline { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
+    internal int? SemanticFragmentOrder { get; private set; }
     internal HtmlRenderSemanticGroupRole? InlineSemanticGroupRole { get; private set; }
     internal string? InlineSemanticGroupKey { get; private set; }
     internal string? BookmarkAnchorText { get; private set; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
 
-    internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null) {
+    internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null, int? semanticFragmentOrder = null) {
         SemanticNodeId = nodeId;
+        SemanticFragmentOrder = semanticFragmentOrder;
         BookmarkAnchorText = bookmarkAnchorText;
         if (!SemanticRole.StartsWith("generated-", StringComparison.Ordinal)) {
             SemanticRole = role;

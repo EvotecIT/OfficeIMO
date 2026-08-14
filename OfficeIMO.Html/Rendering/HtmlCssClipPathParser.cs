@@ -106,16 +106,21 @@ internal static class HtmlCssClipPathParser {
         out HtmlCssResolvedClipPath? resolved) {
         resolved = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(arguments);
-        SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
-        if (shapeTokens.Count > 1 || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY)) return false;
+        bool hasPosition = SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
+        if (shapeTokens.Count > 1
+            || hasPosition && positionTokens.Count == 0
+            || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY)) return false;
 
         double radius;
         string radiusToken = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[0];
-        if (radiusToken == "closest-side") radius = Math.Min(Math.Min(centerX, width - centerX), Math.Min(centerY, height - centerY));
-        else if (radiusToken == "farthest-side") radius = Math.Max(Math.Max(centerX, width - centerX), Math.Max(centerY, height - centerY));
+        if (radiusToken == "closest-side") radius = Math.Min(Math.Min(Math.Abs(centerX), Math.Abs(width - centerX)), Math.Min(Math.Abs(centerY), Math.Abs(height - centerY)));
+        else if (radiusToken == "farthest-side") radius = Math.Max(Math.Max(Math.Abs(centerX), Math.Abs(width - centerX)), Math.Max(Math.Abs(centerY), Math.Abs(height - centerY)));
+        else if (radiusToken == "closest-corner") radius = ResolveCircleCornerRadius(centerX, centerY, width, height, closest: true);
+        else if (radiusToken == "farthest-corner") radius = ResolveCircleCornerRadius(centerX, centerY, width, height, closest: false);
         else {
             double reference = Math.Sqrt(width * width + height * height) / Math.Sqrt(2D);
-            if (!TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
+            if (radiusToken.IndexOf('%') >= 0
+                || !TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
             if (radius < 0D) return false;
         }
         if (radius <= 0.0001D) {
@@ -139,15 +144,23 @@ internal static class HtmlCssClipPathParser {
         out HtmlCssResolvedClipPath? resolved) {
         resolved = null;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(arguments);
-        SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
-        if (shapeTokens.Count != 0 && shapeTokens.Count != 2
+        bool hasPosition = SplitAtPosition(tokens, out IReadOnlyList<string> shapeTokens, out IReadOnlyList<string> positionTokens);
+        bool extentKeyword = shapeTokens.Count == 1 && IsRadialExtent(shapeTokens[0]);
+        if (shapeTokens.Count != 0 && !extentKeyword && shapeTokens.Count != 2
+            || shapeTokens.Count == 2 && (IsRadialExtent(shapeTokens[0]) || IsRadialExtent(shapeTokens[1]))
+            || hasPosition && positionTokens.Count == 0
             || !TryPosition(positionTokens, width, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double centerX, out double centerY)) return false;
 
-        string horizontal = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[0];
-        string vertical = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[1];
-        if (!TryShapeRadius(horizontal, centerX, width - centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double radiusX)
-            || !TryShapeRadius(vertical, centerY, height - centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double radiusY)
-            || radiusX < 0D || radiusY < 0D) return false;
+        double radiusX;
+        double radiusY;
+        if (shapeTokens.Count == 0 || extentKeyword) {
+            string extent = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[0];
+            ResolveEllipseExtent(extent, centerX, centerY, width, height, out radiusX, out radiusY);
+        } else if (!TryLength(shapeTokens[0], width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusX)
+            || !TryLength(shapeTokens[1], height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radiusY)
+            || radiusX < 0D || radiusY < 0D) {
+            return false;
+        }
         if (radiusX <= 0.0001D || radiusY <= 0.0001D) {
             resolved = HtmlCssResolvedClipPath.Empty;
             return true;
@@ -233,16 +246,51 @@ internal static class HtmlCssClipPathParser {
             && TryLength(yValue, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out y);
     }
 
-    private static void SplitAtPosition(IReadOnlyList<string> tokens, out IReadOnlyList<string> shape, out IReadOnlyList<string> position) {
+    private static bool SplitAtPosition(IReadOnlyList<string> tokens, out IReadOnlyList<string> shape, out IReadOnlyList<string> position) {
         int at = tokens.ToList().FindIndex(token => string.Equals(token, "at", StringComparison.OrdinalIgnoreCase));
         shape = at < 0 ? tokens : tokens.Take(at).ToList();
         position = at < 0 ? Array.Empty<string>() : tokens.Skip(at + 1).ToList();
+        return at >= 0;
     }
 
-    private static bool TryShapeRadius(string token, double near, double far, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double radius) {
-        if (token == "closest-side") { radius = Math.Max(0D, Math.Min(near, far)); return true; }
-        if (token == "farthest-side") { radius = Math.Max(0D, Math.Max(near, far)); return true; }
-        return TryLength(token, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius);
+    private static double ResolveCircleCornerRadius(double centerX, double centerY, double width, double height, bool closest) {
+        double[] distances = {
+            Math.Sqrt(centerX * centerX + centerY * centerY),
+            Math.Sqrt((width - centerX) * (width - centerX) + centerY * centerY),
+            Math.Sqrt(centerX * centerX + (height - centerY) * (height - centerY)),
+            Math.Sqrt((width - centerX) * (width - centerX) + (height - centerY) * (height - centerY))
+        };
+        return closest ? distances.Min() : distances.Max();
+    }
+
+    private static bool IsRadialExtent(string token) =>
+        token == "closest-side"
+        || token == "farthest-side"
+        || token == "closest-corner"
+        || token == "farthest-corner";
+
+    private static void ResolveEllipseExtent(
+        string extent,
+        double centerX,
+        double centerY,
+        double width,
+        double height,
+        out double radiusX,
+        out double radiusY) {
+        bool closest = extent == "closest-side" || extent == "closest-corner";
+        radiusX = closest ? Math.Min(Math.Abs(centerX), Math.Abs(width - centerX)) : Math.Max(Math.Abs(centerX), Math.Abs(width - centerX));
+        radiusY = closest ? Math.Min(Math.Abs(centerY), Math.Abs(height - centerY)) : Math.Max(Math.Abs(centerY), Math.Abs(height - centerY));
+        if (extent == "closest-side" || extent == "farthest-side" || radiusX <= 0D || radiusY <= 0D) return;
+
+        double[] scales = {
+            Math.Sqrt(centerX * centerX / (radiusX * radiusX) + centerY * centerY / (radiusY * radiusY)),
+            Math.Sqrt((width - centerX) * (width - centerX) / (radiusX * radiusX) + centerY * centerY / (radiusY * radiusY)),
+            Math.Sqrt(centerX * centerX / (radiusX * radiusX) + (height - centerY) * (height - centerY) / (radiusY * radiusY)),
+            Math.Sqrt((width - centerX) * (width - centerX) / (radiusX * radiusX) + (height - centerY) * (height - centerY) / (radiusY * radiusY))
+        };
+        double scale = closest ? scales.Min() : scales.Max();
+        radiusX *= scale;
+        radiusY *= scale;
     }
 
     private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
@@ -255,7 +303,9 @@ internal static class HtmlCssClipPathParser {
         if (open <= 0 || HtmlRenderCssValues.FindMatchingParenthesis(value, open) != value.Length - 1) return false;
         name = value.Substring(0, open).Trim();
         arguments = value.Substring(open + 1, value.Length - open - 2).Trim();
-        return arguments.Length > 0;
+        return arguments.Length > 0
+            || name == "circle"
+            || name == "ellipse";
     }
 
     private static void ExpandFour(double[] values, out double top, out double right, out double bottom, out double left) {

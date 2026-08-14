@@ -41,6 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, FlattenedSemanticBoundary> _flattenedSemanticBoundaries = new Dictionary<IElement, FlattenedSemanticBoundary>();
     private readonly Dictionary<IElement, int> _documentOrderByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<int, HtmlRenderBookmarkDefinition> _bookmarkDefinitions = new Dictionary<int, HtmlRenderBookmarkDefinition>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
@@ -776,7 +777,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         semanticGroup.ColumnSpan,
                         semanticGroup.RowSpan,
                         semanticGroup.HeaderScope,
-                        semanticGroup.LayoutY - start));
+                        semanticGroup.LayoutY - start,
+                        semanticGroup.StructureElementKey));
+                }
+                continue;
+            }
+
+            if (visual is HtmlRenderBookmarkAnchor bookmarkAnchor) {
+                if (bookmarkAnchor.LayoutY >= start - 0.0001D && bookmarkAnchor.LayoutY < end - 0.0001D) {
+                    fragment.Add(new HtmlRenderBookmarkAnchor(
+                        bookmarkAnchor.SemanticNodeId,
+                        bookmarkAnchor.Text,
+                        bookmarkAnchor.X,
+                        bookmarkAnchor.Y - start,
+                        bookmarkAnchor.Width,
+                        bookmarkAnchor.Height,
+                        fragment.Count,
+                        bookmarkAnchor.Source,
+                        bookmarkAnchor.LayoutY - start));
                 }
                 continue;
             }

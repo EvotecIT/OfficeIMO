@@ -23,7 +23,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? layoutY = null,
         int? semanticNodeId = null,
         bool bidiVisualOrderResolved = false)
-        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder, linkUri, source, semanticRole, layoutY, semanticNodeId, null, bidiVisualOrderResolved) {
+        : this(text, x, y, width, height, font, color, alignment, lineHeight, paintOrder, linkUri, source, semanticRole, layoutY, semanticNodeId, null, bidiVisualOrderResolved, null) {
     }
 
     internal HtmlRenderText(
@@ -43,7 +43,8 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? layoutY,
         int? semanticNodeId,
         double? textAdvanceWidth,
-        bool bidiVisualOrderResolved = false)
+        bool bidiVisualOrderResolved = false,
+        int? semanticFragmentOrder = null)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
@@ -55,6 +56,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         LineHeight = lineHeight;
         SemanticRole = semanticRole;
         SemanticNodeId = semanticNodeId;
+        SemanticFragmentOrder = semanticFragmentOrder;
         TextAdvanceWidth = textAdvanceWidth;
         BidiVisualOrderResolved = bidiVisualOrderResolved;
     }
@@ -80,14 +82,16 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Stable operation-scoped semantic node identifier shared by fragments from the same source element.</summary>
     public int? SemanticNodeId { get; }
 
+    internal int? SemanticFragmentOrder { get; }
+
     /// <summary>Resolved signed glyph advance for positioned inline text, distinct from its non-negative clipping frame.</summary>
     public double? TextAdvanceWidth { get; }
 
     internal bool BidiVisualOrderResolved { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder);
 }
