@@ -23,11 +23,15 @@ public sealed partial class PdfReadPage {
 
         internal Type3SoftMaskValidationContext GetOrCreateSoftMaskValidationContext(
             PdfReadPage owner,
-            PageContentBudget pageContentBudget) =>
+            PageContentBudget pageContentBudget,
+            PdfTextClippingBudget? invocationTextClippingBudget = null,
+            PdfTextClippingBudget? patternTextClippingBudget = null) =>
             _softMaskValidationContext ??= new Type3SoftMaskValidationContext(
                 this,
                 owner.CreateTextOutputBudget(),
-                pageContentBudget);
+                pageContentBudget,
+                invocationTextClippingBudget ?? new PdfTextClippingBudget(),
+                patternTextClippingBudget ?? new PdfTextClippingBudget());
 
         internal void AttachSoftMaskValidationContext(Type3SoftMaskValidationContext context) =>
             _softMaskValidationContext = context;
@@ -41,12 +45,16 @@ public sealed partial class PdfReadPage {
         internal Type3SoftMaskValidationContext(
             Type3GlyphBudget type3GlyphBudget,
             TextContentParser.TextOutputBudget textOutputBudget,
-            PageContentBudget pageContentBudget) {
+            PageContentBudget pageContentBudget,
+            PdfTextClippingBudget invocationTextClippingBudget,
+            PdfTextClippingBudget patternTextClippingBudget) {
             PageContentBudget = pageContentBudget;
             Type3GlyphBudget = type3GlyphBudget;
             TextOutputBudget = textOutputBudget;
             TransparencyProofPageContentBudget = pageContentBudget;
             TransparencyProofType3GlyphBudget = type3GlyphBudget;
+            InvocationTextClippingBudget = invocationTextClippingBudget;
+            PatternTextClippingBudget = patternTextClippingBudget;
         }
 
         internal PageContentBudget PageContentBudget { get; }
@@ -61,6 +69,10 @@ public sealed partial class PdfReadPage {
         internal PageContentBudget TransparencyProofPageContentBudget { get; }
 
         internal Type3GlyphBudget TransparencyProofType3GlyphBudget { get; }
+
+        internal PdfTextClippingBudget InvocationTextClippingBudget { get; }
+
+        internal PdfTextClippingBudget PatternTextClippingBudget { get; }
 
     }
 }

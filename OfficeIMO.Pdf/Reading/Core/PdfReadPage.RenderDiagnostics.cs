@@ -228,7 +228,11 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
             invokedPatternNames,
-            textOutputBudget: type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget).TextOutputBudget,
+            textOutputBudget: type3GlyphBudget.GetOrCreateSoftMaskValidationContext(
+                this,
+                pageContentBudget,
+                textClippingBudget,
+                textClippingBudget).TextOutputBudget,
             pageContentBudget: pageContentBudget,
             type3GlyphBudget: type3GlyphBudget,
             requireSupportedType3Content: false,
@@ -358,7 +362,11 @@ public sealed partial class PdfReadPage {
             activeSoftMaskForms ??= new HashSet<PdfStream>();
             softMaskNestingDepth ??= new SoftMaskNestingDepth(depth);
             Type3SoftMaskValidationContext softMaskValidation =
-                type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
+                type3GlyphBudget.GetOrCreateSoftMaskValidationContext(
+                    this,
+                    pageContentBudget,
+                    textClippingBudget,
+                    textClippingBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);

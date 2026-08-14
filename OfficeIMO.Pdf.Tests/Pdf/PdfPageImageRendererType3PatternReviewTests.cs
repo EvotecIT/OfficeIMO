@@ -540,6 +540,31 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForInlineColorSpaceAliasOnType3DctImageXObject() {
+        byte[] jpeg = CreateMinimalJpeg(1, 1);
+        string marker = new string('J', jpeg.Length);
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /RGB /BitsPerComponent 8 /Filter /DCTDecode", marker);
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image);
+        ReplaceAsciiPayload(pdf, marker, jpeg);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsNullType3ExtGStateScalarsAsAbsent() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string graphicsState = "7 0 obj\n<< /Type /ExtGState /ca null /CA null /LW null /LC null /LJ null /D null >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, graphicsState);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForType3DctImageWithMismatchedIntrinsicDimensions() {
         byte[] jpeg = CreateMinimalJpeg(2, 1);
         string marker = new string('J', jpeg.Length);

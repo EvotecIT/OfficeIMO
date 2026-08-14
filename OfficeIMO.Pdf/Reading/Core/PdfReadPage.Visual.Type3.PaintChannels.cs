@@ -343,6 +343,8 @@ public sealed partial class PdfReadPage {
             return false;
         }
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        Type3SoftMaskValidationContext validation =
+            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
         OfficeDrawing drawing = CreateFormDrawing(
             softMask.Group,
             effectiveParentResources,
@@ -354,8 +356,8 @@ public sealed partial class PdfReadPage {
             CreateTextOutputBudget(),
             pageContentBudget,
             type3GlyphBudget,
-            new PdfTextClippingBudget(),
-            new PdfTextClippingBudget(),
+            validation.InvocationTextClippingBudget,
+            validation.PatternTextClippingBudget,
             decodedContent: content);
         bool result = IsEntirelyBlackLuminosityDrawing(drawing);
         cache.BlackLuminosityForms[cacheKey] = result;

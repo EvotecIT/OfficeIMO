@@ -1545,34 +1545,20 @@ public sealed partial class PdfReadPage {
             PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
             bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
             bool unsupportedTextRestampEffect = HasUnsupportedTextRestampEffect(state);
-            if (fillOpacity.HasValue ||
-                strokeOpacity.HasValue ||
-                strokeWidth.HasValue ||
-                strokeDashStyle.HasValue ||
-                strokeLineCap.HasValue ||
-                strokeLineJoin.HasValue ||
-                blendMode.HasValue ||
-                hasUnsupportedBlendMode ||
-                unsupportedSoftMask ||
-                unsupportedTextRestampEffect ||
-                state.Items.ContainsKey("SMask") ||
-                softMaskEnabled.HasValue ||
-                hasUnsupportedEntries) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(
-                    fillOpacity,
-                    strokeOpacity,
-                    strokeWidth,
-                    strokeDashStyle,
-                    strokeLineCap,
-                    strokeLineJoin,
-                    blendMode,
-                    softMaskEnabled,
-                    softMask,
-                    unsupportedSoftMask,
-                    hasUnsupportedBlendMode,
-                    hasUnsupportedEntries,
-                    unsupportedTextRestampEffect);
-            }
+            result[entry.Key] = new PdfPageGraphicsStateResource(
+                fillOpacity,
+                strokeOpacity,
+                strokeWidth,
+                strokeDashStyle,
+                strokeLineCap,
+                strokeLineJoin,
+                blendMode,
+                softMaskEnabled,
+                softMask,
+                unsupportedSoftMask,
+                hasUnsupportedBlendMode,
+                hasUnsupportedEntries,
+                unsupportedTextRestampEffect);
         }
 
         return result;
@@ -1580,12 +1566,16 @@ public sealed partial class PdfReadPage {
 
     private bool HasInvalidStrictNumber(PdfDictionary dictionary, string key, Func<double, bool> isValid) {
         if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
-        return ResolveEffectObject(value) is not PdfNumber number || !IsFinite(number.Value) || !isValid(number.Value);
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return false;
+        return resolved is not PdfNumber number || !IsFinite(number.Value) || !isValid(number.Value);
     }
 
     private bool HasInvalidStrictInteger(PdfDictionary dictionary, string key, int minimum, int maximum) {
         if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
-        if (ResolveEffectObject(value) is not PdfNumber number ||
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return false;
+        if (resolved is not PdfNumber number ||
             !IsFinite(number.Value) ||
             number.Value != Math.Truncate(number.Value)) return true;
         return number.Value < minimum || number.Value > maximum;
@@ -1593,7 +1583,9 @@ public sealed partial class PdfReadPage {
 
     private bool HasExactlyRepresentableStrokeDash(PdfDictionary dictionary) {
         if (!dictionary.Items.TryGetValue("D", out PdfObject? value)) return true;
-        if (ResolveEffectObject(value) is not PdfArray dash || dash.Items.Count != 2 ||
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return true;
+        if (resolved is not PdfArray dash || dash.Items.Count != 2 ||
             ResolveEffectObject(dash.Items[0]) is not PdfArray dashArray ||
             ResolveEffectObject(dash.Items[1]) is not PdfNumber phase ||
             !IsFinite(phase.Value) || phase.Value != 0D) return false;

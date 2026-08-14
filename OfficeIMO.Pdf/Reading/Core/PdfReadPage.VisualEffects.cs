@@ -613,7 +613,10 @@ public sealed partial class PdfReadPage {
             value.StrokeWidth.HasValue && value.StrokeWidth.Value != 1D ||
             value.StrokeDashStyle.HasValue && value.StrokeDashStyle.Value != OfficeStrokeDashStyle.Solid ||
             value.StrokeLineCap.HasValue ||
-            value.StrokeLineJoin.HasValue;
+            value.StrokeLineJoin.HasValue ||
+            value.BlendMode.HasValue && value.BlendMode.Value != OfficeBlendMode.Normal ||
+            value.HasUnsupportedBlendMode ||
+            value.HasUnsupportedEntries;
     }
 
     private bool RequiresUnsupportedInheritedLuminosityColor(

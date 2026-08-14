@@ -692,7 +692,7 @@ internal sealed class PdfPageOptionalContentVisibility {
                 !TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1, out _)) return true;
         }
         return dictionary.Items.TryGetValue("OCGs", out PdfObject? groupsObject) &&
-            HasInvalidOptionalContentGroups(groupsObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1);
+            HasInvalidOptionalContentGroups(groupsObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1, allowArray: true);
     }
 
     private static bool HasInvalidOptionalContentGroups(
@@ -701,7 +701,8 @@ internal sealed class PdfPageOptionalContentVisibility {
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<int> visited,
         int maxExpressionDepth,
-        int depth) {
+        int depth,
+        bool allowArray) {
         if (depth > maxExpressionDepth) return true;
         if (value is PdfReference reference) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject indirect)) return true;
@@ -711,7 +712,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
             if (!visited.Add(reference.ObjectNumber)) return true;
             try {
-                return HasInvalidOptionalContentGroups(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1);
+                return HasInvalidOptionalContentGroups(indirect.Value, groupVisibility, objects, visited, maxExpressionDepth, depth + 1, allowArray);
             } finally {
                 visited.Remove(reference.ObjectNumber);
             }
@@ -719,9 +720,9 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         PdfObject? resolved = ResolveObject(value, objects);
         if (resolved is PdfNull) return false;
-        if (resolved is not PdfArray groups) return true;
+        if (!allowArray || resolved is not PdfArray groups) return true;
         for (int index = 0; index < groups.Items.Count; index++) {
-            if (HasInvalidOptionalContentGroups(groups.Items[index], groupVisibility, objects, visited, maxExpressionDepth, depth + 1)) return true;
+            if (HasInvalidOptionalContentGroups(groups.Items[index], groupVisibility, objects, visited, maxExpressionDepth, depth + 1, allowArray: false)) return true;
         }
         return false;
     }

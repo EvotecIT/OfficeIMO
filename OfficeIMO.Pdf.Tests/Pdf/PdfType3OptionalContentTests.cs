@@ -364,6 +364,7 @@ public class PdfType3OptionalContentTests {
     [InlineData("<< /Type /OCMD /OCGs [10 1 R] /P /AnyOn >>")]
     [InlineData("<< /Type /OCMD /OCGs << /Fake 10 0 R >> /P /AnyOn >>")]
     [InlineData("<< /Type /OCMD /OCGs [10 0 R /Bad] /P /AnyOn >>")]
+    [InlineData("<< /Type /OCMD /OCGs [[10 0 R]] /P /AnyOn >>")]
     public void RenderPage_FailsClosedForMalformedResourceMembershipDictionary(string membershipDictionary) {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,

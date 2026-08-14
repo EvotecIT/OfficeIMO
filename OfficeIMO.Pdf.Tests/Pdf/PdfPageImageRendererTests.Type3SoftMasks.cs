@@ -67,6 +67,19 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForBlendModeInheritedByType3SoftMaskAtInstallation() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /Blend 7 0 R /Mask 8 0 R /Normal 9 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Blend gs /Mask gs /Normal gs 0 0 500 700 re f");
+        string blend = "7 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj";
+        string maskState = "8 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 10 0 R >> >>\nendobj";
+        string normal = "9 0 obj\n<< /Type /ExtGState /BM /Normal >>\nendobj";
+        string mask = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", "1 0 0 rg 0 0 300 700 re f 0 0 1 rg 200 0 300 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, blend, maskState, normal, mask);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotReuseLuminosityMaskValidationAcrossInheritedColors() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q /GS1 gs 0 0 100 700 re f Q 1 0 0 rg /GS1 gs 200 0 100 700 re f");

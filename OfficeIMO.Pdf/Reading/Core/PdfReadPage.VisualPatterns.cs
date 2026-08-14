@@ -445,7 +445,11 @@ public sealed partial class PdfReadPage {
         var primitives = new List<PdfPageVisualPrimitive>();
         var renderedType3PaintOrders = new RenderedType3TextTracker();
         Type3SoftMaskValidationContext? softMaskValidation = requireSupportedType3Content
-            ? type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget)
+            ? type3GlyphBudget.GetOrCreateSoftMaskValidationContext(
+                this,
+                pageContentBudget,
+                invocationTextClippingBudget,
+                patternTextClippingBudget)
             : null;
         CollectVisualPrimitivesAndForms(
             content,

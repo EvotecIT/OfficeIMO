@@ -1432,7 +1432,9 @@ internal static class PdfPageXObjectInvocationParser {
             _state.StrokeWidth,
             _state.StrokeDashStyle,
             _state.StrokeLineCap,
-            _state.StrokeLineJoin);
+            _state.StrokeLineJoin,
+            blendMode: _state.BlendMode,
+            hasUnsupportedBlendMode: _state.HasUnsupportedBlendMode);
 
         private void PublishActiveGraphicsEffectUse() {
             if (!_graphicsEffectState.HasEffect) return;
@@ -1450,7 +1452,10 @@ internal static class PdfPageXObjectInvocationParser {
                 softMask: effect.SoftMask,
                 hasUnsupportedSoftMask: effect.HasUnsupportedSoftMask,
                 hasUnsupportedBlendMode: effect.HasUnsupportedBlendMode,
-                hasUnsupportedEntries: effect.HasUnsupportedEntries,
+                hasUnsupportedEntries: effect.HasUnsupportedEntries ||
+                    softMaskState.HasValue &&
+                    ((softMaskState.Value.BlendMode.HasValue && softMaskState.Value.BlendMode.Value != OfficeBlendMode.Normal) ||
+                     softMaskState.Value.HasUnsupportedBlendMode),
                 hasUnsupportedTextRestampEffect: effect.HasUnsupportedTextRestampEffect);
             _graphicsStateVisitor?.Invoke(
                 resource,

@@ -74,16 +74,20 @@ internal static partial class ResourceResolver {
     internal static bool CanPassThroughDctDecode(
         PdfDictionary image,
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        bool allowInlineColorSpaceAbbreviations = false) {
         PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
         string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
         int componentCount = colorSpaceName switch {
-            "DeviceGray" or "G" => 1,
-            "DeviceRGB" or "RGB" => 3,
-            "DeviceCMYK" or "CMYK" => 4,
+            "DeviceGray" => 1,
+            "DeviceRGB" => 3,
+            "DeviceCMYK" => 4,
+            "G" when allowInlineColorSpaceAbbreviations => 1,
+            "RGB" when allowInlineColorSpaceAbbreviations => 3,
+            "CMYK" when allowInlineColorSpaceAbbreviations => 4,
             _ => 0
         };
         if (componentCount == 0) {

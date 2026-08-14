@@ -491,9 +491,9 @@ public partial class PdfPageImageRendererTests {
     private static string BuildTextClipFollowedByCurveHeavyPath() =>
         "BT /F1 12 Tf 4 Tr (A) Tj ET " + BuildCurveHeavyPathClip();
 
-    private static string BuildCurveHeavyPathClip() {
+    private static string BuildCurveHeavyPathClip(int curveCount = 42000) {
         var content = new StringBuilder("0 -20 m ");
-        for (int index = 0; index < 42000; index++) {
+        for (int index = 0; index < curveCount; index++) {
             content.Append("0 -20 50 100 100 -20 c ");
         }
         return content.Append("h W n").ToString();
@@ -603,6 +603,25 @@ public partial class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
         Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
         Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+    }
+
+    [Fact]
+    public void RenderPageSharesClipIntersectionBudgetWithType3LuminosityProofs() {
+        string heavyClip = "0 -20 100 120 re W n " + BuildCurveHeavyPathClip(11000);
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R /B 7 0 R >> /Encoding << /Differences [65 /A /B] >> /FirstChar 65 /LastChar 66 /Widths [500 500] /Resources << /ExtGState << /GS1 8 0 R /GS2 9 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string glyphB = BuildStreamObject(7, "<<", "500 0 d0 /GS2 gs 0 0 500 700 re f");
+        string state1 = "8 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 10 0 R >> >>\nendobj";
+        string state2 = "9 0 obj\n<< /Type /ExtGState /SMask << /S /Luminosity /G 11 0 R >> >>\nendobj";
+        string mask1 = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", heavyClip + " 0 0 500 700 re f");
+        string mask2 = BuildStreamObject(11, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", heavyClip + " 0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (AB) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, glyphB, state1, state2, mask1, mask2);
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.ClippingIntersectionWork, exception.Kind);
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]

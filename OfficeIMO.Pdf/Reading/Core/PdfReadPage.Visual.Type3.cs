@@ -39,7 +39,11 @@ public sealed partial class PdfReadPage {
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext), PdfExtractedImage>();
         Type3SoftMaskValidationContext softMaskValidation =
-            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
+            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(
+                this,
+                pageContentBudget,
+                invocationTextClippingBudget,
+                patternTextClippingBudget);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -371,7 +375,11 @@ public sealed partial class PdfReadPage {
             ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
-             ResourceResolver.CanPassThroughDctDecode(imageDictionary, resources, _objects));
+             ResourceResolver.CanPassThroughDctDecode(
+                 imageDictionary,
+                 resources,
+                 _objects,
+                 allowInlineColorSpaceAbbreviations: placement.InlineImageStream != null));
     }
 
     private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary, PdfDictionary? resources) {
