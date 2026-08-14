@@ -125,33 +125,57 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeDrawingSvgExporter_BoundsAggregateNestedTilingExpansion() {
-        var leaf = new OfficeDrawing(1D, 1D);
-        OfficeShape square = OfficeShape.Rectangle(1D, 1D);
-        square.FillColor = OfficeColor.Red;
-        square.StrokeWidth = 0D;
-        leaf.AddShape(square, 0D, 0D);
-
-        var nestedTile = new OfficeDrawing(129D, 1D);
-        nestedTile.AddTilingPattern(
-            leaf,
-            new OfficeImagePlacement(0D, 0D, 129D, 1D),
-            1D,
-            1D,
-            repeatX: true,
-            repeatY: false);
-        var drawing = new OfficeDrawing(129D, 1D);
+    public void OfficeDrawingTilingPattern_IgnoresOffCanvasNearestNeighborImagesForSampling() {
+        var source = new OfficeRasterImage(2, 1, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var tile = new OfficeDrawing(2D, 1D);
+        tile.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        var hidden = new OfficeDrawing(2D, 1D);
+        hidden.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        tile.AddEffectDrawing(hidden, OfficeTransform.Translate(10D, 0D));
+        var drawing = new OfficeDrawing(4D, 1D);
         drawing.AddTilingPattern(
-            nestedTile,
-            new OfficeImagePlacement(0D, 0D, 129D, 1D),
+            tile,
+            new OfficeImagePlacement(0D, 0D, 4D, 1D),
+            2D,
             1D,
-            1D,
-            repeatX: true,
+            repeatX: false,
+            repeatY: false,
+            transform: OfficeTransform.Scale(2D, 1D));
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Fact]
+    public void OfficeDrawingTilingPattern_BoundsScaledIntermediateRaster() {
+        var tile = new OfficeDrawing(4000D, 4000D);
+        var drawing = new OfficeDrawing(1D, 1D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 1D, 1D),
+            4000D,
+            4000D,
+            repeatX: false,
             repeatY: false);
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(drawing));
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(
+            () => OfficeDrawingRasterRenderer.Render(drawing, scale: 2D));
 
-        Assert.Contains("aggregate expansion", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(64_000_000L, exception.RequestedPixels);
+        Assert.Equal(OfficeImageExportOptions.DefaultMaximumRasterPixels, exception.MaximumPixels);
     }
 
     [Fact]
@@ -177,33 +201,60 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeDrawingSvgExporter_AppliesExpansionLimitPerSiblingPattern() {
+    public void OfficeDrawingSvgExporter_BoundsExpansionAcrossSiblingPatterns() {
         var tile = new OfficeDrawing(1D, 1D);
         OfficeShape square = OfficeShape.Rectangle(1D, 1D);
         square.FillColor = OfficeColor.Red;
         square.StrokeWidth = 0D;
         tile.AddShape(square, 0D, 0D);
-        var drawing = new OfficeDrawing(6D, 2D);
+        var drawing = new OfficeDrawing(2D, 2D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 2D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            maximumTileCount: 2);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 1D, 2D, 1D),
+            1D,
+            1D,
+            repeatX: true,
+            repeatY: false,
+            originY: 1D,
+            maximumTileCount: 2);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => OfficeDrawingSvgExporter.ToSvg(drawing));
+
+        Assert.Contains("aggregate expansion", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_DefinesTilePayloadOnceAndReusesPlacements() {
+        var source = new OfficeRasterImage(2, 1, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        var tile = new OfficeDrawing(2D, 1D);
+        tile.AddImageWithInterpolation(
+            OfficePngWriter.Encode(source),
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        var drawing = new OfficeDrawing(6D, 1D);
         drawing.AddTilingPattern(
             tile,
             new OfficeImagePlacement(0D, 0D, 6D, 1D),
-            1D,
-            1D,
-            repeatX: true,
-            repeatY: false,
-            maximumTileCount: 10);
-        drawing.AddTilingPattern(
-            tile,
-            new OfficeImagePlacement(0D, 1D, 6D, 1D),
-            1D,
+            2D,
             1D,
             repeatX: true,
-            repeatY: false,
-            maximumTileCount: 10);
+            repeatY: false);
 
         string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
 
-        Assert.Equal(2, CountOccurrences(svg, "<clipPath id=\"officeimo-pattern-clip-"));
+        Assert.Equal(1, CountOccurrences(svg, "data:image/png;base64,"));
+        Assert.Equal(3, CountOccurrences(svg, "<use href=\"#officeimo-pattern-tile-"));
     }
 
     [Fact]

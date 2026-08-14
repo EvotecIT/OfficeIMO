@@ -9,6 +9,15 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Threading.CancellationToken cancellationToken) {
         if (pattern.Opacity <= 0D) return;
         cancellationToken.ThrowIfCancellationRequested();
+        _ = OfficeRasterExportPlanner.Resolve(
+            pattern.InnerTile.Width,
+            pattern.InnerTile.Height,
+            OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions {
+                Scale = scale,
+                MaximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+                RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            });
         OfficeRasterImage tile = Render(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             ImageCodec = imageCodec,
@@ -18,7 +27,9 @@ public static partial class OfficeDrawingRasterRenderer {
             DiagnosticSource = canvas.DiagnosticSource,
             CancellationToken = cancellationToken
         });
-        bool interpolate = !ContainsNonInterpolatedImage(pattern.InnerTile);
+        bool interpolate = !ContainsNonInterpolatedImage(
+            pattern.InnerTile,
+            (0D, 0D, pattern.InnerTile.Width, pattern.InnerTile.Height));
         OfficeImagePlacement area = pattern.Area;
         using (canvas.PushClipRectangle(area.X * scale, area.Y * scale, area.Width * scale, area.Height * scale)) {
             foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {
