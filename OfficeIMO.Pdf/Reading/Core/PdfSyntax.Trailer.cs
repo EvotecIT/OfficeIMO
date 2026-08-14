@@ -1,6 +1,21 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
+    internal static byte[]? ReadPermanentTrailerIdentifier(string trailerRaw) {
+        string entry = PdfIncrementalObjectWriter.ReadTrailerIdEntry(trailerRaw);
+        if (string.IsNullOrWhiteSpace(entry)) return null;
+        try {
+            PdfDictionary dictionary = ParseDictionary("<<" + entry + ">>");
+            if (dictionary.Get<PdfArray>("ID") is PdfArray identifiers &&
+                identifiers.Items.Count > 0 && identifiers.Items[0] is PdfStringObj permanent) {
+                return (byte[])permanent.RawBytes.Clone();
+            }
+        } catch {
+            // A malformed optional identifier is not allowed to block an otherwise safe rewrite.
+        }
+        return null;
+    }
+
     private static string GetActiveTrailerRaw(
         string text,
         Dictionary<int, PdfIndirectObject> map,

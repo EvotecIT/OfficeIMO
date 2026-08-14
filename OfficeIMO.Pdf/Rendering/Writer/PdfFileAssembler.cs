@@ -26,7 +26,7 @@ internal static class PdfFileAssembler {
         PdfStandardEncryptionOptions? encryption = null,
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
         string? trailerIdEntry = null) =>
-        AssembleWithEvidence(
+        AssembleWithEvidenceCore(
             destination,
             objects,
             catalogId,
@@ -35,7 +35,45 @@ internal static class PdfFileAssembler {
             encryption,
             objectMemoryLimitBytes,
             trailerIdEntry,
+            permanentFileId: null,
             out _);
+
+    internal static byte[] AssemblePreservingPermanentId(
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        PdfStandardEncryptionOptions? encryption,
+        byte[] permanentFileId,
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
+        using var stream = new MemoryStream();
+        AssemblePreservingPermanentId(
+            stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes);
+        return stream.ToArray();
+    }
+
+    internal static long AssemblePreservingPermanentId(
+        Stream destination,
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        PdfStandardEncryptionOptions? encryption,
+        byte[] permanentFileId,
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
+        Guard.NotNull(permanentFileId, nameof(permanentFileId));
+        return AssembleWithEvidenceCore(
+            destination,
+            objects,
+            catalogId,
+            infoId,
+            fileVersion,
+            encryption,
+            objectMemoryLimitBytes,
+            trailerIdEntry: null,
+            permanentFileId,
+            out _);
+    }
 
     internal static byte[] AssembleWithEvidence(
         IReadOnlyList<byte[]> objects,
@@ -46,7 +84,7 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes,
         out PdfFileAssemblyBufferEvidence bufferEvidence) {
         using var stream = new MemoryStream();
-        AssembleWithEvidence(
+        AssembleWithEvidenceCore(
             stream,
             objects,
             catalogId,
@@ -55,6 +93,7 @@ internal static class PdfFileAssembler {
             encryption,
             objectMemoryLimitBytes,
             trailerIdEntry: null,
+            permanentFileId: null,
             out bufferEvidence);
         return stream.ToArray();
     }
@@ -68,6 +107,29 @@ internal static class PdfFileAssembler {
         PdfStandardEncryptionOptions? encryption,
         long objectMemoryLimitBytes,
         string? trailerIdEntry,
+        out PdfFileAssemblyBufferEvidence bufferEvidence) =>
+        AssembleWithEvidenceCore(
+            destination,
+            objects,
+            catalogId,
+            infoId,
+            fileVersion,
+            encryption,
+            objectMemoryLimitBytes,
+            trailerIdEntry,
+            permanentFileId: null,
+            out bufferEvidence);
+
+    private static long AssembleWithEvidenceCore(
+        Stream destination,
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        PdfStandardEncryptionOptions? encryption,
+        long objectMemoryLimitBytes,
+        string? trailerIdEntry,
+        byte[]? permanentFileId,
         out PdfFileAssemblyBufferEvidence bufferEvidence) {
         Guard.FileVersion(fileVersion, nameof(fileVersion));
         Guard.NotNull(destination, nameof(destination));
@@ -131,7 +193,7 @@ internal static class PdfFileAssembler {
         trailer.Append("<< /Size ").Append((objects.Count + 1).ToString(CultureInfo.InvariantCulture))
             .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogId))
             .Append(infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty)
-            .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry)).Append(" >>\n");
+            .Append(BuildTrailerEntries(encryptionAssembly, fileId, trailerIdEntry, permanentFileId)).Append(" >>\n");
         trailer.Append("startxref\n").Append(xrefPos.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
         byte[] trailerBytes = Encoding.ASCII.GetBytes(trailer.ToString());
         destination.Write(trailerBytes, 0, trailerBytes.Length);
@@ -161,7 +223,11 @@ internal static class PdfFileAssembler {
     private static long AddWithoutOverflow(long left, long right) =>
         left > long.MaxValue - right ? long.MaxValue : left + right;
 
-    private static string BuildTrailerEntries(PdfEncryptionAssembly? encryptionAssembly, byte[] fileId, string? trailerIdEntry) {
+    private static string BuildTrailerEntries(
+        PdfEncryptionAssembly? encryptionAssembly,
+        byte[] fileId,
+        string? trailerIdEntry,
+        byte[]? permanentFileId) {
         if (encryptionAssembly == null && !string.IsNullOrWhiteSpace(trailerIdEntry)) {
             return trailerIdEntry!;
         }
@@ -170,7 +236,8 @@ internal static class PdfFileAssembler {
         string encryptionEntry = encryptionAssembly == null
             ? string.Empty
             : " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber);
-        return encryptionEntry + " /ID [" + id + " " + id + "]";
+        string permanentId = permanentFileId == null ? id : PdfSyntaxEscaper.HexString(permanentFileId);
+        return encryptionEntry + " /ID [" + permanentId + " " + id + "]";
     }
 
     private static byte[] FinalizeFileId(HashAlgorithm hash) {

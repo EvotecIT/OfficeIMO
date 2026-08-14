@@ -170,12 +170,18 @@ public sealed class PdfReadLimits {
         };
     }
 
-    internal PdfReadLimits WithMaximumContainerEntries(int maximumContainerEntries, long? maximumDecodedStreamBytes = null) {
+    internal PdfReadLimits WithMaximumContainerEntries(
+        int maximumContainerEntries,
+        long? maximumDecodedStreamBytes = null,
+        long? maximumTotalAttachmentBytes = null) {
         if (maximumContainerEntries <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
         }
         if (maximumDecodedStreamBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumDecodedStreamBytes), maximumDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+        if (maximumTotalAttachmentBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumTotalAttachmentBytes), maximumTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
         }
         int effectiveDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
             ? (int)Math.Min(MaxDecodedStreamBytes, Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue))
@@ -210,7 +216,7 @@ public sealed class PdfReadLimits {
             MaxWidgetActions = Math.Min(MaxWidgetActions, maximumContainerEntries),
             MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
             MaxAttachments = Math.Min(MaxAttachments, maximumContainerEntries),
-            MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,
+            MaxTotalAttachmentBytes = maximumTotalAttachmentBytes ?? MaxTotalAttachmentBytes,
             MaxFormFieldAppearanceStates = Math.Min(MaxFormFieldAppearanceStates, maximumContainerEntries),
             MaxAnnotationsPerPage = Math.Min(MaxAnnotationsPerPage, maximumContainerEntries),
             MaxColorSpaceResourcesPerPage = Math.Min(MaxColorSpaceResourcesPerPage, maximumContainerEntries),

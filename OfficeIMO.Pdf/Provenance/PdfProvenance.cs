@@ -17,15 +17,19 @@ public static class PdfProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
+        long maximumManifestBytes = Math.Min(
+            options.MaxExpandedContainerBytes,
+            MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers));
         PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
             readOptions,
             options.MaxContainerEntries,
-            options.MaxExpandedContainerBytes);
+            options.MaxExpandedContainerBytes,
+            maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
-            Math.Min(options.MaxExpandedContainerBytes, MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers)),
+            maximumManifestBytes,
             options.MaxManifestBytes,
             options.MaxCarriers,
             options.MaxContainerEntries,
@@ -74,10 +78,14 @@ public static class PdfProvenance {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
+        long maximumManifestBytes = Math.Min(
+            options.Limits.MaxExpandedContainerBytes,
+            MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers));
         PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
             readOptions,
             options.Limits.MaxContainerEntries,
-            options.Limits.MaxExpandedContainerBytes);
+            options.Limits.MaxExpandedContainerBytes,
+            maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
         OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
@@ -87,7 +95,7 @@ public static class PdfProvenance {
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
-            Math.Min(options.Limits.MaxExpandedContainerBytes, MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers)),
+            maximumManifestBytes,
             options.Limits.MaxManifestBytes,
             options.Limits.MaxCarriers,
             options.Limits.MaxContainerEntries,
@@ -412,6 +420,11 @@ public static class PdfProvenance {
             maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
+            catalog.Items.TryGetValue("PieceInfo", out PdfObject? catalogPieceInfo) ? catalogPieceInfo : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
             catalog.Items.TryGetValue("Threads", out PdfObject? threads) ? threads : null,
             result,
             maximumContainerEntries,
@@ -463,6 +476,13 @@ public static class PdfProvenance {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue("Trans", out PdfObject? transition) ? transition : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("BoxColorInfo", out PdfObject? boxColorInfo) ? boxColorInfo : null,
                     result,
                     maximumContainerEntries,
                     pageTreeObjectNumbers,

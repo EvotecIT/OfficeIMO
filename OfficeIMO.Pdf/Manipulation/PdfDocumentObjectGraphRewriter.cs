@@ -16,6 +16,9 @@ internal static class PdfDocumentObjectGraphRewriter {
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(sourcePdf, sourceReadOptions);
         var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
         Dictionary<int, PdfIndirectObject> objects = parsed.Map;
+        byte[]? permanentFileId = outputEncryption == null
+            ? PdfSyntax.ReadPermanentTrailerIdentifier(parsed.TrailerRaw)
+            : null;
         int rootObjectNumber = RequireRootObjectNumber(security, objects);
         int? infoObjectNumber = mutateObjectGraph is null
             ? FindInfoObjectNumber(security, objects)
@@ -81,6 +84,7 @@ internal static class PdfDocumentObjectGraphRewriter {
                 infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0,
                 fileVersion,
                 outputEncryption,
+                permanentFileId,
                 maximumOutputBytes.Value);
         }
 
@@ -96,12 +100,20 @@ internal static class PdfDocumentObjectGraphRewriter {
 
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
-        return PdfFileAssembler.Assemble(
-            serializedObjects,
-            rewrittenRootObjectNumber,
-            rewrittenInfoObjectNumber,
-            fileVersion,
-            outputEncryption);
+        return permanentFileId == null
+            ? PdfFileAssembler.Assemble(
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption)
+            : PdfFileAssembler.AssemblePreservingPermanentId(
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                permanentFileId);
     }
 
     private static byte[] RewriteBounded(
@@ -112,6 +124,7 @@ internal static class PdfDocumentObjectGraphRewriter {
         int rewrittenInfoObjectNumber,
         PdfFileVersion fileVersion,
         PdfStandardEncryptionOptions? outputEncryption,
+        byte[]? permanentFileId,
         long maximumOutputBytes) {
         using var serializedObjects = new PdfObjectStore(memoryLimitBytes: 0L);
         long serializedObjectBytes = 0L;
@@ -136,14 +149,26 @@ internal static class PdfDocumentObjectGraphRewriter {
 
         using FileStream output = PdfTemporaryFile.Create(".rewrite", FileOptions.RandomAccess, out _);
         using var boundedOutput = new PdfBoundedWriteStream(output, maximumOutputBytes);
-        PdfFileAssembler.Assemble(
-            boundedOutput,
-            serializedObjects,
-            rewrittenRootObjectNumber,
-            rewrittenInfoObjectNumber,
-            fileVersion,
-            outputEncryption,
-            objectMemoryLimitBytes: 0L);
+        if (permanentFileId == null) {
+            PdfFileAssembler.Assemble(
+                boundedOutput,
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                objectMemoryLimitBytes: 0L);
+        } else {
+            PdfFileAssembler.AssemblePreservingPermanentId(
+                boundedOutput,
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                permanentFileId,
+                objectMemoryLimitBytes: 0L);
+        }
         boundedOutput.Flush();
         return ReadBoundedOutput(output, maximumOutputBytes);
     }
