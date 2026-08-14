@@ -116,16 +116,24 @@ internal static class OfficeProvenanceJpeg {
             ReserveMarker(ref markers, options.MaxContainerEntries);
             if (marker == 0xD8) throw new InvalidDataException("JPEG contains a nested start-of-image marker.");
             if (marker == 0xD9 || marker == 0xDA) return count;
-            if (marker == 0xEB && TryGetC2paSequence(data, offset, payloadOffset, payloadLength, options, ref markers,
-                out int sequenceEnd, out _, out _)) {
+            if (marker == 0xEB && IsC2paSequenceStart(data, payloadOffset, payloadLength)) {
                 count++;
-                offset = sequenceEnd;
+                if (TryGetC2paSequence(data, offset, payloadOffset, payloadLength, options, ref markers,
+                    out int sequenceEnd, out _, out _)) {
+                    offset = sequenceEnd;
+                } else {
+                    offset = segmentEnd;
+                }
             } else {
                 offset = segmentEnd;
             }
         }
         throw new InvalidDataException("JPEG does not contain an end marker.");
     }
+
+    private static bool IsC2paSequenceStart(byte[] data, int payloadOffset, int payloadLength) =>
+        payloadLength >= 8 && data[payloadOffset] == 0x4A && data[payloadOffset + 1] == 0x50 &&
+        OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false) == 1;
 
     private static void SortBySourceOffset<T>(List<T>? items) {
         if (items == null || items.Count < 2) return;

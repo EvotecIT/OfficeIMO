@@ -353,10 +353,20 @@ namespace OfficeIMO.Security {
             long maxPartBytes,
             long maxDigestBytes,
             ref long transformInputBytes) {
+            if (!TryGetContentType(targetPartUri, out string contentType) ||
+                !string.Equals(contentType, RelationshipsContentType, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException(
+                    "RelationshipTransform requires an OPC relationships part, but " + targetPartUri +
+                    " resolves to content type '" + (contentType ?? string.Empty) + "'.");
+            }
             XmlDocument source = LoadXml(
                 ReadPartForDigestWork(targetPartUri, maxPartBytes, maxDigestBytes, ref transformInputBytes),
                 maxPartBytes);
             const string relationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+            if (!IsValidRelationshipsDocument(source, relationshipNamespace)) {
+                throw new InvalidDataException(
+                    "RelationshipTransform requires a structurally valid OPC Relationships document for " + targetPartUri + ".");
+            }
             XNamespace opc = "http://schemas.openxmlformats.org/package/2006/digital-signature";
             var ids = new HashSet<string>(transform
                 .Elements(opc + "RelationshipReference")
@@ -391,6 +401,26 @@ namespace OfficeIMO.Security {
                 root.AppendChild(selected);
             }
             return result;
+        }
+
+        private static bool IsValidRelationshipsDocument(XmlDocument source, string relationshipNamespace) {
+            XmlElement? root = source.DocumentElement;
+            if (root == null || root.LocalName != "Relationships" || root.NamespaceURI != relationshipNamespace) return false;
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (XmlElement relationship in root.ChildNodes.OfType<XmlElement>()) {
+                if (relationship.LocalName != "Relationship" || relationship.NamespaceURI != relationshipNamespace ||
+                    relationship.ChildNodes.OfType<XmlElement>().Any()) return false;
+                string id = relationship.GetAttribute("Id");
+                string type = relationship.GetAttribute("Type");
+                string target = relationship.GetAttribute("Target");
+                if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(type) ||
+                    string.IsNullOrWhiteSpace(target) || !ids.Add(id)) return false;
+                if (relationship.HasAttribute("TargetMode")) {
+                    string targetMode = relationship.GetAttribute("TargetMode");
+                    if (targetMode != "Internal" && targetMode != "External") return false;
+                }
+            }
+            return true;
         }
 
         private byte[] ReadPartForDigestWork(

@@ -113,6 +113,10 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     DuplicateCriticalReportFieldFinding, process.StandardOutput, options);
             }
+            if (!hasActiveManifest) {
+                return Result(OfficeProvenanceVerificationStatus.Error,
+                    MalformedActiveManifestFinding, process.StandardOutput, options);
+            }
             string? activeManifest = null;
             if (hasActiveManifest) {
                 if (activeManifestElement.ValueKind == JsonValueKind.String) {

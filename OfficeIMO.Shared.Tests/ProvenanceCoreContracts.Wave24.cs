@@ -128,5 +128,6 @@ public sealed partial class ProvenanceCoreContracts {
         new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
         CreatePngChunk("IHDR", new byte[13]),
         CreatePngChunk("caBX", manifest),
+        CreatePngChunk("IDAT", Array.Empty<byte>()),
         CreatePngChunk("IEND", Array.Empty<byte>()));
 }
