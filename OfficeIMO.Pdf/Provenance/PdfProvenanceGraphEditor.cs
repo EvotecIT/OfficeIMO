@@ -287,10 +287,10 @@ internal static class PdfProvenanceGraphEditor {
         if (dictionary != null) {
             foreach (string key in dictionary.Items.Keys.ToArray()) {
                 PdfObject child = dictionary.Items[key];
-                if (key == "Names" && PdfObjectLookup.Resolve(objects, child) is PdfArray namePairs) {
-                    RemoveNameTreePairs(objects, namePairs, removedObjectNumbers, removedDirectAnnotations);
-                    ScrubReferences(objects, namePairs, removedObjectNumbers, removedDirectAnnotations, visited);
-                    if (namePairs.Items.Count == 0) dictionary.Items.Remove(key);
+                if ((key == "Names" || key == "Nums") && PdfObjectLookup.Resolve(objects, child) is PdfArray treePairs) {
+                    RemoveTreePairs(objects, treePairs, removedObjectNumbers, removedDirectAnnotations);
+                    ScrubReferences(objects, treePairs, removedObjectNumbers, removedDirectAnnotations, visited);
+                    if (treePairs.Items.Count == 0) dictionary.Items.Remove(key);
                     continue;
                 }
                 if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) {
@@ -312,7 +312,7 @@ internal static class PdfProvenanceGraphEditor {
         }
     }
 
-    private static void RemoveNameTreePairs(
+    private static void RemoveTreePairs(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray names,
         HashSet<int> removedObjectNumbers,

@@ -633,15 +633,25 @@ public static class PdfProvenance {
         HashSet<int> pageTreeObjectNumbers) {
         if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary names) return;
         result.Add(names);
+        var ordinaryVisited = new HashSet<PdfObject>();
+        var destinationVisited = new HashSet<PdfObject>();
+        var actionVisited = new HashSet<PdfObject>();
+        var ordinaryLeafVisited = new HashSet<PdfObject>();
+        var destinationLeafVisited = new HashSet<PdfObject>();
+        var actionLeafVisited = new HashSet<PdfObject>();
         foreach (KeyValuePair<string, PdfObject> item in names.Items) {
+            bool addDestinationLeafValues = string.Equals(item.Key, "Dests", StringComparison.Ordinal);
+            bool addActionLeafGraphs = string.Equals(item.Key, "JavaScript", StringComparison.Ordinal);
             AddNameTreeDictionaries(
                 objects,
                 new[] { item.Value },
                 result,
                 maximumContainerEntries,
-                addDestinationLeafValues: string.Equals(item.Key, "Dests", StringComparison.Ordinal),
-                addActionLeafGraphs: string.Equals(item.Key, "JavaScript", StringComparison.Ordinal),
-                pageTreeObjectNumbers: pageTreeObjectNumbers);
+                addDestinationLeafValues,
+                addActionLeafGraphs,
+                pageTreeObjectNumbers,
+                addDestinationLeafValues ? destinationVisited : addActionLeafGraphs ? actionVisited : ordinaryVisited,
+                addDestinationLeafValues ? destinationLeafVisited : addActionLeafGraphs ? actionLeafVisited : ordinaryLeafVisited);
         }
     }
 
@@ -652,9 +662,9 @@ public static class PdfProvenance {
         int maximumContainerEntries,
         bool addDestinationLeafValues,
         bool addActionLeafGraphs,
-        HashSet<int> pageTreeObjectNumbers) {
-        var visited = new HashSet<PdfObject>();
-        var leafStructuralVisited = new HashSet<PdfObject>();
+        HashSet<int> pageTreeObjectNumbers,
+        HashSet<PdfObject> visited,
+        HashSet<PdfObject> leafStructuralVisited) {
         var pending = new Stack<PdfObject>(values.Where(static value => value != null).Cast<PdfObject>());
         while (pending.Count > 0) {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
@@ -851,7 +861,10 @@ public static class PdfProvenance {
 
     private static bool IsFileSpecificationValue(Dictionary<int, PdfIndirectObject> objects, PdfObject value) {
         if (value is not PdfDictionary dictionary) return false;
-        string? type = dictionary.Get<PdfName>("Type")?.Name;
+        bool hasType = dictionary.Items.TryGetValue("Type", out PdfObject? typeValue);
+        PdfObject? resolvedType = PdfObjectLookup.Resolve(objects, typeValue);
+        if (hasType && resolvedType is not PdfName) return false;
+        string? type = (resolvedType as PdfName)?.Name;
         if (string.Equals(type, "Annot", StringComparison.Ordinal) || dictionary.Items.ContainsKey("Subtype")) return false;
         bool hasFileName = PdfObjectLookup.Resolve(objects,
                 dictionary.Items.TryGetValue("UF", out PdfObject? unicodeName) ? unicodeName : null) is PdfStringObj unicodeText &&
