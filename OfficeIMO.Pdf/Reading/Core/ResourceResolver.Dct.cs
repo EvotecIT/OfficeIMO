@@ -151,6 +151,7 @@ internal static partial class ResourceResolver {
 
         if (!TryReadDctColorTransform(stream.Dictionary, objects, out int? requestedColorTransform, out _) ||
             !TryGetDctPayload(stream, objects, maxDecodedStreamBytes, out byte[] jpegBytes) ||
+            !HasExpectedDctFrame(jpegBytes, width, height, expectedColorCount) ||
             !OfficeJpegCodec.TryDecodeColorComponents(
                 jpegBytes,
                 requestedColorTransform,
@@ -169,6 +170,14 @@ internal static partial class ResourceResolver {
 
         return true;
     }
+
+    internal static bool HasExpectedDctFrame(byte[] jpegBytes, int width, int height, int expectedColorCount) =>
+        OfficeImageReader.TryIdentify(jpegBytes, null, out OfficeImageInfo jpegInfo) &&
+        jpegInfo.Format == OfficeImageFormat.Jpeg &&
+        jpegInfo.Width == width &&
+        jpegInfo.Height == height &&
+        PdfWriter.TryGetJpegFrameMetadata(jpegBytes, out int frameColorCount, out _) &&
+        frameColorCount == expectedColorCount;
 
     private static bool TryReadDctColorTransform(
         PdfDictionary imageDictionary,

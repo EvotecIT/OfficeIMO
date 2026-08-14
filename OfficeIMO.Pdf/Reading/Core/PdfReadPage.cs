@@ -1684,9 +1684,18 @@ public sealed partial class PdfReadPage {
         private readonly PdfReadPage _page;
         private readonly Dictionary<PdfStream, byte[]> _decodedStreams = new();
         private long _decodedBytes;
+        private long _remainingColorFunctionEvaluationWork;
 
         internal PageContentBudget(PdfReadPage page) {
             _page = page;
+            _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
+        }
+
+        internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) {
+            long cost = Math.Max(1, evaluationCost);
+            if (cost > _remainingColorFunctionEvaluationWork) return false;
+            _remainingColorFunctionEvaluationWork -= cost;
+            return true;
         }
 
         internal byte[] Decode(PdfStream stream) {

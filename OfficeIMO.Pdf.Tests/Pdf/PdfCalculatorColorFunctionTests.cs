@@ -107,6 +107,35 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type4_DerivesConditionalBoundaryFromAffineOperands() {
+        PdfStream calculator = CalculatorFunction(1, 1, "{ dup 2 mul 1 lt { pop 0 } { pop 1 } ifelse }");
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            calculator,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out PdfColorFunction function));
+
+        Assert.Contains(0.5D, function.Breakpoints);
+        Assert.Contains(0.5D, function.Discontinuities);
+    }
+
+    [Fact]
+    public void Type4_RejectsConditionalThresholdThatCannotBeBounded() {
+        PdfStream calculator = CalculatorFunction(1, 1, "{ dup 360 mul sin 0 lt { pop 0 } { pop 1 } ifelse }");
+
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            calculator,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out _));
+    }
+
+    [Fact]
     public void Type4_BoundsValidationWorkAcrossAuthoredConstants() {
         string body = string.Join(" ", Enumerable.Range(1, 2000).Select(index =>
             (index / 2001D).ToString("0.000000", System.Globalization.CultureInfo.InvariantCulture) + " pop"));

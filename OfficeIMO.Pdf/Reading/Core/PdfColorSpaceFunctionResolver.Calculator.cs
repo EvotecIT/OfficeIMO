@@ -54,8 +54,14 @@ internal static partial class PdfColorSpaceFunctionResolver {
         if (inputCount == 1) {
             double domainMinimum = Math.Min(domain[0], domain[1]);
             double domainMaximum = Math.Max(domain[0], domain[1]);
+            double[] conditionalBoundaries = Array.Empty<double>();
+            if (program.HasConditional &&
+                !program.TryGetOneInputConditionalBoundaries(domainMinimum, domainMaximum, out conditionalBoundaries)) {
+                return false;
+            }
             double[] authoredPoints = program.NumericConstants
                 .Where(value => value >= domainMinimum && value <= domainMaximum)
+                .Concat(program.HasConditional ? conditionalBoundaries : Array.Empty<double>())
                 .Distinct()
                 .OrderBy(static value => value)
                 .ToArray();
@@ -69,7 +75,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 CreateUniformBreakpoints(domain, MaxSuggestedSampleBreakpoints).Concat(requiredPoints),
                 requiredPoints);
             if (program.HasConditional) {
-                discontinuities = authoredPoints
+                discontinuities = conditionalBoundaries
                     .Where(value => value > domainMinimum && value < domainMaximum)
                     .ToArray();
             }

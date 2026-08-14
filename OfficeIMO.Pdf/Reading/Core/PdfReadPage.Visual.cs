@@ -704,8 +704,8 @@ public sealed partial class PdfReadPage {
                 initialStrokeColorSelection: initialStrokeColorSelection,
                 outputIntentColorTransform: EffectiveOutputIntentColorTransform);
         }
-        Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources, invokedResources.Patterns);
-        Dictionary<string, PdfPageShadingResource> shadingResources = GetShadingResources(resources, invokedResources.Shadings);
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources, invokedResources.Patterns, pageContentBudget);
+        Dictionary<string, PdfPageShadingResource> shadingResources = GetShadingResources(resources, invokedResources.Shadings, pageContentBudget);
         Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
             ? GetTilingPatternResources(
                 resources,
@@ -1116,7 +1116,8 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageShadingResource> GetShadingResources(
         PdfDictionary? resources,
-        HashSet<string>? invokedNames = null) {
+        HashSet<string>? invokedNames = null,
+        PageContentBudget? pageContentBudget = null) {
         var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
@@ -1131,7 +1132,7 @@ public sealed partial class PdfReadPage {
         foreach (KeyValuePair<string, PdfObject> entry in shadings.Items) {
             if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
             foreach (OfficeIccRenderingIntent renderingIntent in PdfRenderingIntentResolver.All) {
-                if (TryReadShading(entry.Value, out PdfPageShadingResource shading, renderingIntent)) {
+                if (TryReadShading(entry.Value, out PdfPageShadingResource shading, renderingIntent, pageContentBudget)) {
                     result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = shading;
                     if (renderingIntent == OfficeIccRenderingIntent.RelativeColorimetric) result[entry.Key] = shading;
                 }
@@ -1143,7 +1144,8 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageShadingPatternResource> GetShadingPatternResources(
         PdfDictionary? resources,
-        HashSet<string>? invokedNames = null) {
+        HashSet<string>? invokedNames = null,
+        PageContentBudget? pageContentBudget = null) {
         var result = new Dictionary<string, PdfPageShadingPatternResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) {
@@ -1159,7 +1161,7 @@ public sealed partial class PdfReadPage {
             if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
             bool added = false;
             foreach (OfficeIccRenderingIntent renderingIntent in PdfRenderingIntentResolver.All) {
-                if (!TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern, renderingIntent)) continue;
+                if (!TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern, renderingIntent, pageContentBudget)) continue;
                 result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = pattern;
                 if (renderingIntent == OfficeIccRenderingIntent.RelativeColorimetric) result[entry.Key] = pattern;
                 added = true;
@@ -1178,7 +1180,8 @@ public sealed partial class PdfReadPage {
     private bool TryReadShadingPattern(
         PdfObject? value,
         out PdfPageShadingPatternResource pattern,
-        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PageContentBudget? pageContentBudget = null) {
         pattern = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
@@ -1186,7 +1189,7 @@ public sealed partial class PdfReadPage {
             TryReadInteger(dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ? patternTypeObject : null) != 2 ||
             HasUnsupportedShadingPatternGraphicsState(dictionary) ||
             !dictionary.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
-            !TryReadShading(shadingObject, out PdfPageShadingResource shading, renderingIntent)) {
+            !TryReadShading(shadingObject, out PdfPageShadingResource shading, renderingIntent, pageContentBudget)) {
             return false;
         }
 
@@ -1240,7 +1243,8 @@ public sealed partial class PdfReadPage {
     private bool TryReadShading(
         PdfObject? value,
         out PdfPageShadingResource shading,
-        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PageContentBudget? pageContentBudget = null) {
         shading = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
@@ -1286,7 +1290,8 @@ public sealed partial class PdfReadPage {
         }
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
-        if (!TryReadShadingStops(functionObject, colorSpace, shadingDomain[0], shadingDomain[1], renderingIntent, out IReadOnlyList<OfficeGradientStop> stops)) {
+        pageContentBudget ??= new PageContentBudget(this);
+        if (!TryReadShadingStops(functionObject, colorSpace, shadingDomain[0], shadingDomain[1], renderingIntent, pageContentBudget, out IReadOnlyList<OfficeGradientStop> stops)) {
             return false;
         }
         exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
@@ -1436,6 +1441,7 @@ public sealed partial class PdfReadPage {
         double domainStart,
         double domainEnd,
         OfficeIccRenderingIntent renderingIntent,
+        PageContentBudget pageContentBudget,
         out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
         if (!PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
@@ -1462,26 +1468,26 @@ public sealed partial class PdfReadPage {
             double boundedOffset = Clamp01(offset);
             if (discontinuities.Contains(input)) {
                 if (boundedOffset == 0D) {
-                    if (!TryEvaluateStitchingLeftBoundaryColor(functionObject, input, colorSpace, renderingIntent, out OfficeColor endpointColor) &&
-                        !TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out endpointColor)) return false;
+                    if (!TryEvaluateStitchingLeftBoundaryColor(functionObject, input, colorSpace, renderingIntent, pageContentBudget, out OfficeColor endpointColor) &&
+                        !TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, pageContentBudget, out endpointColor)) return false;
                     AddShadingStop(result, boundedOffset, endpointColor);
                 } else {
                     double previousInput = NextRepresentableToward(input, domainStart);
-                    if (!TryEvaluateShadingColor(function, previousInput, colorSpace, renderingIntent, out OfficeColor previousColor)) return false;
+                    if (!TryEvaluateShadingColor(function, previousInput, colorSpace, renderingIntent, pageContentBudget, out OfficeColor previousColor)) return false;
                     AddShadingStop(result, boundedOffset, previousColor);
                 }
                 double followingInput = boundedOffset < 1D ? NextRepresentableToward(input, domainEnd) : input;
-                if (!TryEvaluateShadingColor(function, followingInput, colorSpace, renderingIntent, out OfficeColor followingColor)) return false;
+                if (!TryEvaluateShadingColor(function, followingInput, colorSpace, renderingIntent, pageContentBudget, out OfficeColor followingColor)) return false;
                 AddShadingStop(result, boundedOffset, followingColor);
                 continue;
             }
-            if (!TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out OfficeColor color)) return false;
+            if (!TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, pageContentBudget, out OfficeColor color)) return false;
             AddShadingStop(result, boundedOffset, color);
         }
 
         if (result.Count < 2) return false;
         if (colorSpace.RequiresColorManagedGradientSampling &&
-            !TryRefineColorManagedShadingStops(function, colorSpace, domainStart, domainEnd, renderingIntent, result, out result)) return false;
+            !TryRefineColorManagedShadingStops(function, colorSpace, domainStart, domainEnd, renderingIntent, pageContentBudget, result, out result)) return false;
         stops = result.AsReadOnly();
         return true;
     }
@@ -1491,6 +1497,7 @@ public sealed partial class PdfReadPage {
         double input,
         PdfPageColorSpace colorSpace,
         OfficeIccRenderingIntent renderingIntent,
+        PageContentBudget pageContentBudget,
         out OfficeColor color) {
         color = OfficeColor.Black;
         PdfDictionary? stitching = ResolveFunctionDictionary(functionObject);
@@ -1515,6 +1522,7 @@ public sealed partial class PdfReadPage {
             encode[(boundaryIndex * 2) + 1],
             colorSpace,
             renderingIntent,
+            pageContentBudget,
             out color);
     }
 
@@ -1524,6 +1532,7 @@ public sealed partial class PdfReadPage {
         double domainStart,
         double domainEnd,
         OfficeIccRenderingIntent renderingIntent,
+        PageContentBudget pageContentBudget,
         List<OfficeGradientStop> source,
         out List<OfficeGradientStop> refined) {
         const int MaximumDepth = 12;
@@ -1545,7 +1554,7 @@ public sealed partial class PdfReadPage {
 
         bool TryEvaluateOffset(double offset, out OfficeColor color) {
             double input = PdfColorFunction.Interpolate(offset, 0D, 1D, domainStart, domainEnd);
-            return TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out color);
+            return TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, pageContentBudget, out color);
         }
 
         bool AppendAdaptive(double startOffset, OfficeColor startColor, double endOffset, OfficeColor endColor, int depth) {
@@ -1581,8 +1590,9 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool TryEvaluateShadingColor(PdfColorFunction function, double input, PdfPageColorSpace colorSpace, OfficeIccRenderingIntent renderingIntent, out OfficeColor color) {
+    private bool TryEvaluateShadingColor(PdfColorFunction function, double input, PdfPageColorSpace colorSpace, OfficeIccRenderingIntent renderingIntent, PageContentBudget pageContentBudget, out OfficeColor color) {
         color = OfficeColor.Black;
+        if (!pageContentBudget.TryConsumeColorFunctionEvaluation(function.EvaluationCost)) return false;
         double[]? components = function.Evaluate(new[] { input });
         if (components == null || !colorSpace.TryConvertColor(components, renderingIntent, out color)) return false;
         if (EffectiveOutputIntentColorTransform != null) color = EffectiveOutputIntentColorTransform.Apply(color, renderingIntent);

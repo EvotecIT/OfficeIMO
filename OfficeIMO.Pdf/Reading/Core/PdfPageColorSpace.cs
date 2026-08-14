@@ -149,6 +149,13 @@ internal readonly struct PdfPageColorSpace {
         if (components == null || components.Count < ComponentCount || Kind == PdfPageColorSpaceKind.Pattern) return false;
         for (int index = 0; index < ComponentCount; index++) if (!IsFinite(components[index])) return false;
 
+        if (_custom?.ColorTransform != null) {
+            OfficeColor? transformed = _custom.ColorTransform(components, renderingIntent);
+            if (!transformed.HasValue) return false;
+            color = transformed.Value;
+            return true;
+        }
+
         if (Kind == PdfPageColorSpaceKind.Indexed) {
             IReadOnlyList<IReadOnlyList<double>>? lookupComponents = _custom?.IndexedLookupComponents;
             if (lookupComponents != null && _custom?.IndexedBaseColorSpace is PdfPageColorSpace indexedBase) {
@@ -165,13 +172,6 @@ internal readonly struct PdfPageColorSpace {
             if (index < 0) index = 0;
             if (index >= palette.Count) index = palette.Count - 1;
             color = palette[index];
-            return true;
-        }
-
-        if (_custom?.ColorTransform != null) {
-            OfficeColor? transformed = _custom.ColorTransform(components, renderingIntent);
-            if (!transformed.HasValue) return false;
-            color = transformed.Value;
             return true;
         }
 

@@ -103,7 +103,7 @@ public sealed partial class PdfReadPage {
             if (resolvedAlternate == null) return false;
             if (resolvedAlternate is not PdfNull) {
                 if (!TryReadExtendedColorSpaceResource(resolvedAlternate, depth + 1, out PdfPageColorSpace alternate) ||
-                    alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
+                    alternate.Kind == PdfPageColorSpaceKind.Pattern ||
                     alternate.ComponentCount != components) {
                     return false;
                 }

@@ -1266,6 +1266,14 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void DctFramePreflightRejectsAuthoredDimensionMismatchBeforeDecode() {
+        byte[] jpeg = CreateSolidJpeg(20, 1, OfficeColor.Red);
+
+        Assert.False(ResourceResolver.HasExpectedDctFrame(jpeg, width: 1, height: 1, expectedColorCount: 3));
+        Assert.True(ResourceResolver.HasExpectedDctFrame(jpeg, width: 20, height: 1, expectedColorCount: 3));
+    }
+
+    [Fact]
     public void ExtractImages_AppliesEmbeddedCmykLut8Profile() {
         byte[] pdf = BuildIccImagePdf(
             IccLutTestProfiles.CreateCmykLut8(),
@@ -1580,6 +1588,37 @@ public class PdfIccColorRenderingTests {
         Assert.True(gradient.Stops.Count > 4);
         Assert.Contains(gradient.Stops, stop => stop.Offset > 0D && stop.Offset < 0.5D);
         Assert.Contains(gradient.Stops, stop => stop.Offset > 0.5D && stop.Offset < 1D);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsAdaptiveCalculatorShadingWorkAcrossThePage() {
+        const string program = "{ dup dup mul exch dup }";
+        string function = "7 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1] /Length " +
+            Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + program + "\nendstream\nendobj\n";
+        byte[] pdf = BuildIccShadingPdf(PdfIccProfiles.SrgbIec6196621, "7 0 R", function);
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 100 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.DoesNotContain(drawing.Shapes, item => item.Shape.FillGradient != null);
+        Assert.Contains(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+    }
+
+    [Fact]
+    public void RenderPage_PermitsIndexedAlternateForUnsupportedIccProfile() {
+        byte[] pdf = BuildIccContentPdf(
+            new byte[] { 0 },
+            "/N 1 /Alternate [/Indexed /DeviceRGB 1 <FF000000FF00>]",
+            "1 scn");
+
+        OfficeShape shape = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape;
+
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), shape.FillColor);
     }
 
     [Fact]
@@ -2682,7 +2721,7 @@ public class PdfIccColorRenderingTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildIccShadingPdf(byte[] profile, string? function = null) {
+    private static byte[] BuildIccShadingPdf(byte[] profile, string? function = null, string extraObjects = "") {
         function ??= "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>";
         byte[] contentBytes = Encoding.ASCII.GetBytes("20 80 120 40 re\nW\nn\n/Sh1 sh");
         using var output = new MemoryStream();
@@ -2696,7 +2735,9 @@ public class PdfIccColorRenderingTests {
         WriteAscii(output, "5 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 6 0 R] /Coords [20 80 140 80] /Function " + function + " /Extend [true true] >>\nendobj\n");
         WriteAscii(output, "6 0 obj\n<< /N 3 /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(profile, 0, profile.Length);
-        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteAscii(output, extraObjects);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 
