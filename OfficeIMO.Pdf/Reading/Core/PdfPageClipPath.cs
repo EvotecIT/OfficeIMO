@@ -4,7 +4,8 @@ namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
-    internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumTextClippingIntersectionWork = MaximumClippingIntersectionWork;
     private const int CurveFlatteningPointCount = 24;
 
     private PdfPageClipPath(

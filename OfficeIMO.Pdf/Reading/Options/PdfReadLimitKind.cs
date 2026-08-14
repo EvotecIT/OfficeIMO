@@ -120,5 +120,8 @@ public enum PdfReadLimitKind {
     TextClippingPaths = 38,
 
     /// <summary>Estimated contour comparisons spent intersecting text clipping paths on one page content tree.</summary>
-    TextClippingIntersectionWork = 39
+    TextClippingIntersectionWork = 39,
+
+    /// <summary>Aggregate work spent intersecting ordinary clipping paths on one page content tree.</summary>
+    ClippingIntersectionWork = 40
 }

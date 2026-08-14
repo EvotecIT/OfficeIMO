@@ -931,8 +931,8 @@ public class PdfPageImageRendererTests {
 
         static void AssertIntersectionLimit(Action action) {
             PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(action);
-            Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
-            Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+            Assert.Equal(PdfReadLimitKind.ClippingIntersectionWork, exception.Kind);
+            Assert.Equal(PdfPageClipPath.MaximumClippingIntersectionWork, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
         }
     }

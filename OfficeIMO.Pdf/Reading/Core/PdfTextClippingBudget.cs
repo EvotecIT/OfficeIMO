@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfTextClippingBudget {
     private int _pathCount;
     private long _intersectionWork;
+    private PdfReadLimitKind _intersectionLimitKind = PdfReadLimitKind.TextClippingIntersectionWork;
 
     internal void ChargePath() {
         PdfPageClipPath.ThrowIfTextClippingPathBudgetExceeded(_pathCount);
@@ -12,6 +13,9 @@ internal sealed class PdfTextClippingBudget {
     }
 
     internal PdfPageClipPath ResolveActiveClip(PdfPageClipPath? activeClipPath, PdfPageClipPath clipPath) {
+        _intersectionLimitKind = activeClipPath.GetValueOrDefault().ContainsTextClipping || clipPath.ContainsTextClipping
+            ? PdfReadLimitKind.TextClippingIntersectionWork
+            : PdfReadLimitKind.ClippingIntersectionWork;
         return PdfPageClipPath.ResolveActiveClip(activeClipPath, clipPath, this);
     }
 
@@ -37,10 +41,10 @@ internal sealed class PdfTextClippingBudget {
 
     private void ChargeIntersectionWork(long addedWork) {
         long nextWork = SaturatingAdd(_intersectionWork, Math.Max(0L, addedWork));
-        if (nextWork > PdfPageClipPath.MaximumTextClippingIntersectionWork) {
+        if (nextWork > PdfPageClipPath.MaximumClippingIntersectionWork) {
             throw PdfReadLimitException.Create(
-                PdfReadLimitKind.TextClippingIntersectionWork,
-                PdfPageClipPath.MaximumTextClippingIntersectionWork,
+                _intersectionLimitKind,
+                PdfPageClipPath.MaximumClippingIntersectionWork,
                 nextWork);
         }
         _intersectionWork = nextWork;
