@@ -118,6 +118,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
         private readonly PdfTextClippingBudget _textClippingBudget;
+        private readonly PdfReadPage.VisualGeometryBudget _type3VisibilityGeometryBudget = new PdfReadPage.VisualGeometryBudget();
         private readonly GraphicsState _initialState;
         private readonly PatternState _initialPatternState;
         private readonly bool _initialHasAuthoredRenderingIntent;
@@ -1790,7 +1791,8 @@ internal static class PdfPageXObjectInvocationParser {
             return PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
                 primitive,
                 _pageWidth,
-                _pageHeight);
+                _pageHeight,
+                _type3VisibilityGeometryBudget);
         }
 
         private PdfType3PaintChannels ResolveVisibleDegenerateStrokePaintChannels(double strokeWidth) {
@@ -1826,7 +1828,7 @@ internal static class PdfPageXObjectInvocationParser {
                         _state.StrokeLineJoin,
                         _state.StrokeOpacity,
                         _state.ClipPath);
-                    channels |= PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(segment, _pageWidth, _pageHeight);
+                    channels |= PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(segment, _pageWidth, _pageHeight, _type3VisibilityGeometryBudget);
                     if (channels == PdfType3PaintChannels.Stroke) return channels;
                 }
                 current = next;
@@ -1885,7 +1887,8 @@ internal static class PdfPageXObjectInvocationParser {
             return PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
                 primitive,
                 _pageWidth,
-                _pageHeight);
+                _pageHeight,
+                _type3VisibilityGeometryBudget);
         }
 
         private void PublishDeferredPatternUse(bool fill, bool stroke) {

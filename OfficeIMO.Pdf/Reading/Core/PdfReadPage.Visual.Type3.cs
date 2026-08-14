@@ -643,8 +643,18 @@ public sealed partial class PdfReadPage {
         PdfPageVisualPrimitive primitive,
         double? pageWidth = null,
         double? pageHeight = null) {
-        var budget = new VisualGeometryBudget();
-        if (!HasFinitePrimitiveGeometry(primitive, budget)) return PdfType3PaintChannels.None;
+        return ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight, new VisualGeometryBudget());
+    }
+
+    internal static PdfType3PaintChannels ResolveVisibleType3PrimitivePaintChannels(
+        PdfPageVisualPrimitive primitive,
+        double? pageWidth,
+        double? pageHeight,
+        VisualGeometryBudget budget) {
+        if (budget.Exceeded) return PdfType3PaintChannels.Both;
+        if (!HasFinitePrimitiveGeometry(primitive, budget)) {
+            return budget.Exceeded ? PdfType3PaintChannels.Both : PdfType3PaintChannels.None;
+        }
         if (budget.Exceeded) return PdfType3PaintChannels.Both;
 
         IReadOnlyList<VisualPath>? visibleClips = null;
@@ -1233,6 +1243,7 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands);
             string transformedContent = WrapContentWithTransform(content, programState.Transform, out int transformedOffset);
+            var visibilityGeometryBudget = new VisualGeometryBudget();
             _ = PdfPageContentVisualParser.Parse(
                 transformedContent,
                 pageWidth,
@@ -1270,7 +1281,7 @@ public sealed partial class PdfReadPage {
                             depth + 1)) {
                         return;
                     }
-                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
+                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight, visibilityGeometryBudget);
                 },
                 scaleStrokeWidthWithTransform: true,
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,

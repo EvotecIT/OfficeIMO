@@ -179,6 +179,27 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingTilingPattern_HonorsCallerRasterCeilingForIntermediateTile() {
+        var tile = new OfficeDrawing(1000D, 1000D);
+        var drawing = new OfficeDrawing(1D, 1D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 1D, 1D),
+            1000D,
+            1000D,
+            repeatX: false,
+            repeatY: false);
+
+        OfficeImageExportLimitException exception = Assert.Throws<OfficeImageExportLimitException>(
+            () => OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+                MaximumRasterPixels = 500_000L
+            }));
+
+        Assert.Equal(1_000_000L, exception.RequestedPixels);
+        Assert.Equal(500_000L, exception.MaximumPixels);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_HonorsExplicitTileCountAboveDefaultAggregateLimit() {
         var tile = new OfficeDrawing(1D, 1D);
         OfficeShape square = OfficeShape.Rectangle(1D, 1D);

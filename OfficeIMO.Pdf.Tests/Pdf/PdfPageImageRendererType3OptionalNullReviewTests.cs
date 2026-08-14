@@ -74,6 +74,15 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Theory]
+    [InlineData("/Usage /Bad")]
+    [InlineData("/Usage 99 0 R")]
+    [InlineData("/Usage << /View /Bad >>")]
+    [InlineData("/Usage << /View 99 0 R >>")]
+    public void RenderPage_FailsClosedForMalformedViewUsageDictionaryInType3OptionalContent(string usageEntry) {
+        AssertType3FallsBackWithoutNativeShapes(BuildViewUsageType3Pdf("", usageEntry));
+    }
+
+    [Theory]
     [InlineData("/F /Fl", "rgb")]
     [InlineData("/D [0 1 0 1 0 1]", "rgb")]
     [InlineData("/DP << >>", "rgb")]
@@ -90,7 +99,7 @@ public partial class PdfPageImageRendererTests {
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
 
-    private static byte[] BuildViewUsageType3Pdf(string viewState) {
+    private static byte[] BuildViewUsageType3Pdf(string viewState, string? usageEntry = null) {
         const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Properties << /Layer 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /OC /Layer BDC 0 0 500 700 re f EMC");
@@ -103,7 +112,7 @@ public partial class PdfPageImageRendererTests {
             content,
             type3Font,
             glyph,
-            $"7 0 obj\n<< /Type /OCG /Name (View default) /Usage << /View << {viewState} >> >> >>\nendobj",
+            $"7 0 obj\n<< /Type /OCG /Name (View default) {usageEntry ?? $"/Usage << /View << {viewState} >> >>"} >>\nendobj",
             "trailer\n<< /Root 1 0 R >>\n%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdfText);

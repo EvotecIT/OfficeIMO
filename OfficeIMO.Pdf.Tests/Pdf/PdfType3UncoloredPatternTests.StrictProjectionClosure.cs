@@ -6,6 +6,34 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfType3UncoloredPatternTests {
     [Fact]
+    public void ExhaustedSharedType3VisibilityBudgetFailsClosed() {
+        PdfPageVisualPrimitive primitive = PdfPageVisualPrimitive.Rectangle(
+            0D,
+            0D,
+            10D,
+            10D,
+            OfficeColor.Red,
+            null,
+            0D,
+            OfficeStrokeDashStyle.Solid,
+            null,
+            null,
+            1D,
+            null,
+            null);
+        var budget = new PdfReadPage.VisualGeometryBudget();
+        budget.Exhaust();
+
+        PdfType3PaintChannels channels = PdfReadPage.ResolveVisibleType3PrimitivePaintChannels(
+            primitive,
+            100D,
+            100D,
+            budget);
+
+        Assert.Equal(PdfType3PaintChannels.Both, channels);
+    }
+
+    [Fact]
     public void ExactPathClipClassificationIsReusableAcrossRepeatedPlacements() {
         var commands = new List<OfficePathCommand>(256 * 5);
         for (int index = 0; index < 256; index++) {

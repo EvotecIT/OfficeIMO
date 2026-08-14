@@ -184,10 +184,11 @@ public sealed partial class PdfReadPage {
         }
 
         if (!localTransform.IsConformalStrokeTransform()) {
+            var visibilityGeometryBudget = new VisualGeometryBudget();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 PdfPageDrawingElement element = elements[elementIndex];
                 if (element.Kind == PdfPageDrawingElementKind.Primitive &&
-                    (ResolveVisibleType3PrimitivePaintChannels(element.Primitive, localPageWidth, localPageHeight) & PdfType3PaintChannels.Stroke) != 0) {
+                    (ResolveVisibleType3PrimitivePaintChannels(element.Primitive, localPageWidth, localPageHeight, visibilityGeometryBudget) & PdfType3PaintChannels.Stroke) != 0) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }

@@ -6,6 +6,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingImagePattern pattern,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         OfficeImagePatternLayout layout = pattern.Layout.Scale(scale);
         if (!TryDecodeImage(
@@ -18,6 +19,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) ||
             image == null) {

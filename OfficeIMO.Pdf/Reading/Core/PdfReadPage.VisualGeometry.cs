@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private const double VisualGeometryEpsilon = 0.000001D;
 
-    private sealed class VisualGeometryBudget {
+    internal sealed class VisualGeometryBudget {
         private const int MaximumOperations = 250000;
         private const int MaximumFlattenedPoints = 32768;
         private int _operations;

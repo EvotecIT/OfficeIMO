@@ -6,6 +6,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingEffectGroup effectGroup,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (effectGroup.Opacity <= 0D) return;
         cancellationToken.ThrowIfCancellationRequested();
@@ -16,6 +17,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
         if (effectGroup.SoftMask != null) {
@@ -28,6 +30,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                maximumRasterPixels,
                 cancellationToken);
         }
         OfficeTransform transform = effectGroup.Transform;
@@ -198,6 +201,7 @@ public static partial class OfficeDrawingRasterRenderer {
         string? textShapingLanguage,
         System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         var maskScene = new OfficeDrawing(source.Width / scale, source.Height / scale);
         maskScene.AddEffectDrawing(softMask.InnerDrawing, softMask.Transform);
@@ -208,6 +212,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = textShapingLanguage,
             DiagnosticSink = diagnosticSink,
             DiagnosticSource = diagnosticSource,
+            MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
         var result = new OfficeRasterImage(source.Width, source.Height);

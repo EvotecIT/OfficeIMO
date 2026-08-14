@@ -96,6 +96,7 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands);
             string transformedContent = WrapContentWithTransform(content, formTransform, out int transformedOffset);
+            var visibilityGeometryBudget = new VisualGeometryBudget();
             _ = PdfPageContentVisualParser.Parse(
                 transformedContent,
                 pageWidth,
@@ -133,7 +134,7 @@ public sealed partial class PdfReadPage {
                             depth + 1)) {
                         return;
                     }
-                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight);
+                    channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight, visibilityGeometryBudget);
                 },
                 scaleStrokeWidthWithTransform: true,
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,

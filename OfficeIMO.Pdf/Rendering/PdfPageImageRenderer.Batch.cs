@@ -145,7 +145,7 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = options.Format == PdfPageRenderFormat.Png
-                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec, cancellationToken)
+                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec, options.MaxPixelsPerPage, cancellationToken)
                 : OfficeDrawingSvgExporter.ToSvgBytes(
                     drawing,
                     scale,

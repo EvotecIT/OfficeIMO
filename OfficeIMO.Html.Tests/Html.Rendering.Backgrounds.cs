@@ -188,7 +188,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 19));
         Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
-        Assert.True(CountBackgroundOccurrences(svg, "<rect") >= 16);
+        Assert.Equal(1, CountBackgroundOccurrences(svg, "<g id=\"officeimo-pattern-tile-"));
+        Assert.True(CountBackgroundOccurrences(svg, "<use href=\"#officeimo-pattern-tile-") >= 4);
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Red);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));

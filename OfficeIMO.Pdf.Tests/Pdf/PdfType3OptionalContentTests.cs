@@ -336,6 +336,24 @@ public class PdfType3OptionalContentTests {
         Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
     }
 
+    [Theory]
+    [InlineData("AnyOn", true)]
+    [InlineData("AnyOff", true)]
+    [InlineData("AllOn", false)]
+    [InlineData("AllOff", false)]
+    public void RenderPage_AppliesMembershipPolicyToEmptyGroupSet(string policy, bool expectHidden) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            resourceMembershipDictionary: $"<< /Type /OCMD /OCGs [] /P /{policy} >>",
+            includeUnsupportedConditionalContent: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(expectHidden ? 1 : 2, drawing.Shapes.Count);
+    }
+
     [Fact]
     public void RenderPage_IgnoresInexactDashUsedOnlyByHiddenOptionalContent() {
         byte[] pdf = BuildType3OptionalContentPdf(

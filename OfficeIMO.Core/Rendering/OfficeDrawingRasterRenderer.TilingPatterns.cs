@@ -6,6 +6,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingTilingPattern pattern,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (pattern.Opacity <= 0D) return;
         cancellationToken.ThrowIfCancellationRequested();
@@ -15,7 +16,7 @@ public static partial class OfficeDrawingRasterRenderer {
             OfficeImageExportFormat.Png,
             new OfficeImageExportOptions {
                 Scale = scale,
-                MaximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+                MaximumRasterPixels = maximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
         OfficeRasterImage tile = Render(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
@@ -25,6 +26,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });
         bool interpolate = !ContainsNonInterpolatedImage(

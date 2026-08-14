@@ -1179,8 +1179,8 @@ public sealed partial class PdfReadPage {
 
     private void CollectXObjectCapabilityDiagnostics(
         PdfDictionary resources,
-        IReadOnlyList<string> invokedXObjects,
-        IReadOnlyList<PdfPageXObjectInvocation> invokedXObjectStates,
+        List<string> invokedXObjects,
+        List<PdfPageXObjectInvocation> invokedXObjectStates,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         HashSet<PdfStream> activeForms,
@@ -1191,7 +1191,19 @@ public sealed partial class PdfReadPage {
         int auxiliarySurfaceDepth) {
         PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? value) ? value : null);
         if (xObjects == null) return;
+        var statesByName = new Dictionary<string, List<PdfPageXObjectInvocation>>(StringComparer.Ordinal);
+        for (int stateIndex = 0; stateIndex < invokedXObjectStates.Count; stateIndex++) {
+            PdfPageXObjectInvocation invocation = invokedXObjectStates[stateIndex];
+            if (!statesByName.TryGetValue(invocation.Name, out List<PdfPageXObjectInvocation>? states)) {
+                states = new List<PdfPageXObjectInvocation>();
+                statesByName.Add(invocation.Name, states);
+            }
+            states.Add(invocation);
+        }
+
+        var seenInvokedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (string invokedName in invokedXObjects) {
+            if (!seenInvokedNames.Add(invokedName)) continue;
             if (!xObjects.Items.TryGetValue(invokedName, out PdfObject? xObject)) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.XObjectId, invokedName);
                 continue;
@@ -1219,9 +1231,9 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            List<PdfPageXObjectInvocation> states = invokedXObjectStates
-                .Where(invocation => string.Equals(invocation.Name, invokedName, StringComparison.Ordinal))
-                .ToList();
+            if (!statesByName.TryGetValue(invokedName, out List<PdfPageXObjectInvocation>? states)) {
+                states = new List<PdfPageXObjectInvocation>();
+            }
             if (states.Count == 0) {
                 states.Add(default);
             }

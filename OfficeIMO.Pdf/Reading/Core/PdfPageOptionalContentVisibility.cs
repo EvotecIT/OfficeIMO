@@ -538,9 +538,23 @@ internal sealed class PdfPageOptionalContentVisibility {
                     continue;
                 }
                 if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
-                    ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||
-                    ResolveObject(group.Items.TryGetValue("Usage", out PdfObject? usageObject) ? usageObject : null, objects) is not PdfDictionary usage ||
-                    ResolveObject(usage.Items.TryGetValue("View", out PdfObject? viewObject) ? viewObject : null, objects) is not PdfDictionary view) {
+                    ResolveObject(groupObject.Value, objects) is not PdfDictionary group) {
+                    hasUnsupportedViewUsageApplications = true;
+                    continue;
+                }
+
+                if (!group.Items.TryGetValue("Usage", out PdfObject? usageObject)) continue;
+                PdfObject? resolvedUsage = ResolveObject(usageObject, objects);
+                if (resolvedUsage is PdfNull) continue;
+                if (resolvedUsage is not PdfDictionary usage) {
+                    hasUnsupportedViewUsageApplications = true;
+                    continue;
+                }
+                if (!usage.Items.TryGetValue("View", out PdfObject? viewObject)) continue;
+                PdfObject? resolvedView = ResolveObject(viewObject, objects);
+                if (resolvedView is PdfNull) continue;
+                if (resolvedView is not PdfDictionary view) {
+                    hasUnsupportedViewUsageApplications = true;
                     continue;
                 }
 
@@ -651,10 +665,6 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         List<bool> visibilities = ReadOptionalContentMembershipGroupVisibilities(dictionary, groupVisibility, objects);
-        if (visibilities.Count == 0) {
-            return false;
-        }
-
         string policy = ReadName(dictionary, "P", objects) ?? "AnyOn";
         bool visible = policy switch {
             "AllOn" => visibilities.TrueForAll(static visible => visible),
