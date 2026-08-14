@@ -85,7 +85,10 @@ public sealed partial class ProvenanceCoreContracts {
         WriteLittleEndianEntry(tiff, 22, 0xCD41, 7, manifest.Length, payloadOffset);
         Buffer.BlockCopy(manifest, 0, tiff, payloadOffset, manifest.Length);
 
-        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(tiff, "fixture.tif"));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(
+            tiff,
+            "fixture.tif",
+            new OfficeProvenanceRemovalOptions { RequireStructurallyValidCarrier = false }));
     }
 
     [Fact]

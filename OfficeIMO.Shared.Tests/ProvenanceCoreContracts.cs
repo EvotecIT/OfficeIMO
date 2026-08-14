@@ -306,9 +306,9 @@ public sealed partial class ProvenanceCoreContracts {
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
         byte[] output = result.ToArray();
 
-        Assert.Equal((byte)0, output[8]);
+        Assert.Equal((byte)4, output[8]);
         Assert.Equal((byte)0, output[9]);
-        Assert.Equal(manifest, output.Skip(26).Take(manifest.Length).ToArray());
+        Assert.Equal(manifest, output.Skip(74).Take(manifest.Length).ToArray());
         Assert.True(result.WasReserialized);
         Assert.Empty(result.After.Evidence);
     }
@@ -318,7 +318,10 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] originalXmp = CreateXmpPacket();
         byte[] tiff = CreateLittleEndianTiffWithXmpBeforeC2pa(CreateManifestStore(), originalXmp);
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(
+            tiff,
+            "fixture.tif",
+            new OfficeProvenanceRemovalOptions { RequireStructurallyValidCarrier = false });
         byte[] output = result.ToArray();
 
         Assert.True(result.WasChanged);
@@ -946,17 +949,20 @@ public sealed partial class ProvenanceCoreContracts {
     }
 
     private static byte[] CreateLittleEndianTiff(byte[] manifest) {
-        byte[] result = new byte[26 + manifest.Length];
+        const int payloadOffset = 74;
+        int pixelOffset = payloadOffset + manifest.Length;
+        byte[] result = new byte[pixelOffset + 1];
         result[0] = result[1] = (byte)'I';
         result[2] = 42;
         result[4] = 8;
-        result[8] = 1;
-        result[10] = 0x41;
-        result[11] = 0xCD;
-        result[12] = 7;
-        BitConverter.GetBytes(manifest.Length).CopyTo(result, 14);
-        BitConverter.GetBytes(26).CopyTo(result, 18);
-        manifest.CopyTo(result, 26);
+        result[8] = 5;
+        WriteLittleEndianEntry(result, 10, 256, 4, 1, 1);
+        WriteLittleEndianEntry(result, 22, 257, 4, 1, 1);
+        WriteLittleEndianEntry(result, 34, 273, 4, 1, pixelOffset);
+        WriteLittleEndianEntry(result, 46, 279, 4, 1, 1);
+        WriteLittleEndianEntry(result, 58, 0xCD41, 7, manifest.Length, payloadOffset);
+        manifest.CopyTo(result, payloadOffset);
+        result[pixelOffset] = 0;
         return result;
     }
 

@@ -664,11 +664,11 @@ internal static class OfficeProvenanceZip {
 
     private static bool IsOpcSignatureEvidenceEntry(string entryName) {
         if (entryName.EndsWith("/", StringComparison.Ordinal) ||
-            !entryName.StartsWith("_xmlsignatures/", StringComparison.Ordinal)) return false;
+            !entryName.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase)) return false;
         string relativeName = entryName.Substring("_xmlsignatures/".Length);
-        return relativeName.Equals("origin.sigs", StringComparison.Ordinal) ||
+        return relativeName.Equals("origin.sigs", StringComparison.OrdinalIgnoreCase) ||
             relativeName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
-            relativeName.StartsWith("_rels/", StringComparison.Ordinal) &&
+            relativeName.StartsWith("_rels/", StringComparison.OrdinalIgnoreCase) &&
                 relativeName.EndsWith(".rels", StringComparison.OrdinalIgnoreCase);
     }
 

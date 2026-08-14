@@ -145,8 +145,9 @@ public static class OfficePackageSignatureService {
         string? originUri = origins.FirstOriginUri;
         bool hasOrigin = origins.ExistingPartCount > 0;
         long totalDigestBytes = 0;
-        bool hasApplicationMetadata = ReadApplicationSignatureMetadata(
+        ApplicationMetadataDiscovery applicationMetadata = ReadApplicationSignatureMetadata(
             archive, options, findings, ref totalDigestBytes);
+        bool hasApplicationMetadata = applicationMetadata.HasMetadata;
         var contentTypeSignatureUris = new HashSet<string>(archive.PartUris
             .Where(uri => archive.TryGetContentType(uri, out string contentType) &&
                 string.Equals(contentType, SignatureContentType, StringComparison.OrdinalIgnoreCase)),
@@ -159,7 +160,7 @@ public static class OfficePackageSignatureService {
             .OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        bool signatureDiscoveryComplete = signatureUris.Length <= options.MaxSignatureParts;
+        bool signatureDiscoveryComplete = applicationMetadata.IsComplete && signatureUris.Length <= options.MaxSignatureParts;
         if (!signatureDiscoveryComplete) {
             findings.Add("The package contains more XML signature parts than the configured limit.");
             signatureUris = signatureUris.Take(options.MaxSignatureParts).ToArray();
@@ -599,13 +600,13 @@ public static class OfficePackageSignatureService {
         internal string? FirstOriginUri { get; }
     }
 
-    private static bool ReadApplicationSignatureMetadata(
+    private static ApplicationMetadataDiscovery ReadApplicationSignatureMetadata(
         OfficePackageSignatureArchive archive,
         OfficePackageSignatureInspectionOptions options,
         ICollection<string> findings,
         ref long totalInspectionBytes) {
         const string rootRelationships = "/_rels/.rels";
-        if (!archive.ContainsPart(rootRelationships)) return false;
+        if (!archive.ContainsPart(rootRelationships)) return new ApplicationMetadataDiscovery(false, true);
         try {
             byte[] relationshipBytes = ReadInspectionPart(
                 archive, rootRelationships, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
@@ -644,17 +645,35 @@ public static class OfficePackageSignatureService {
                     XDocument properties = LoadXml(propertyBytes);
                     if (properties.Root?.Name == extendedProperties + "Properties" &&
                         properties.Root.Elements(extendedProperties + "DigSig").Any()) {
-                        return true;
+                        return new ApplicationMetadataDiscovery(true, true);
                     }
-                } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or UriFormatException) {
+                } catch (OfficePackageSignatureResourceLimitException exception) {
+                    findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
+                    return new ApplicationMetadataDiscovery(false, false);
+                } catch (Exception exception) when (
+                    (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
                     findings.Add("An extended application properties target could not be parsed: " + exception.Message);
                 }
             }
-            return false;
-        } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or UriFormatException) {
+            return new ApplicationMetadataDiscovery(false, true);
+        } catch (OfficePackageSignatureResourceLimitException exception) {
+            findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
+            return new ApplicationMetadataDiscovery(false, false);
+        } catch (Exception exception) when (
+            (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);
-            return false;
+            return new ApplicationMetadataDiscovery(false, true);
         }
+    }
+
+    private readonly struct ApplicationMetadataDiscovery {
+        internal ApplicationMetadataDiscovery(bool hasMetadata, bool isComplete) {
+            HasMetadata = hasMetadata;
+            IsComplete = isComplete;
+        }
+
+        internal bool HasMetadata { get; }
+        internal bool IsComplete { get; }
     }
 
     private static byte[] ReadInspectionPart(
@@ -665,7 +684,12 @@ public static class OfficePackageSignatureService {
         ref long totalBytes) {
         if (archive.TryGetPartLength(partUri, out long declaredLength) &&
             declaredLength > maximumTotalBytes - totalBytes) {
-            throw new InvalidDataException("OPC package signature inspection exceeds the configured aggregate limit.");
+            throw new OfficePackageSignatureResourceLimitException(
+                "OPC package signature inspection exceeds the configured aggregate limit.");
+        }
+        if (archive.TryGetPartLength(partUri, out declaredLength) && declaredLength > maximumPartBytes) {
+            throw new OfficePackageSignatureResourceLimitException(
+                "The OPC package signature inspection part exceeds the configured part limit.");
         }
         byte[] bytes = archive.ReadPart(partUri, maximumPartBytes);
         ReserveInspectionBytes(ref totalBytes, bytes.LongLength, maximumTotalBytes);

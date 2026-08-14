@@ -84,6 +84,7 @@ public sealed class OfficePackageSignatureBudgetTestsWave54 {
             MaxTotalDigestBytes = relationshipBytes.Length + propertyBytes.Length - 1
         });
 
+        Assert.False(info.SignatureDiscoveryComplete);
         Assert.Contains(info.Findings, finding => finding.Contains("aggregate limit", StringComparison.OrdinalIgnoreCase));
     }
 

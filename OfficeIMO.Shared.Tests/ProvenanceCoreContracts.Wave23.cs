@@ -38,15 +38,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void TiffAcceptsC2paOnlyInThePrimaryIfd() {
         byte[] manifest = CreateManifestStore();
-        byte[] tiff = new byte[32 + manifest.Length];
-        tiff[0] = tiff[1] = (byte)'I';
-        tiff[2] = 42;
-        tiff[4] = 8;
-        tiff[8] = 1;
-        WriteLittleEndianEntry(tiff, 10, 0xCD41, 7, manifest.Length, 32);
-        BitConverter.GetBytes(26).CopyTo(tiff, 22);
-        BitConverter.GetBytes(0).CopyTo(tiff, 28);
-        Buffer.BlockCopy(manifest, 0, tiff, 32, manifest.Length);
+        byte[] tiff = CreateLittleEndianTiff(manifest);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tif");
 
