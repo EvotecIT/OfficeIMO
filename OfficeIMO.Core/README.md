@@ -80,7 +80,7 @@ bool validStream = OfficeImageReader.TryValidateContent(input, "upload.png", out
 
 ### Bounded SVG safety checks
 
-Use `IsWithinSafetyLimits(...)` before sending untrusted SVG to a raster fallback or another renderer that may expand references and styles differently from OfficeIMO's vector importer:
+Use `IsWithinSafetyLimits(...)` before sending untrusted SVG to the ChartForgeX raster fallback. The predicate models the packaged ChartForgeX rasterizer's resource, reference, style, and work behavior; it is not a general safety approval for arbitrary SVG renderers:
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -97,7 +97,7 @@ if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(svg, limits)) {
 }
 ```
 
-A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, rendered-payload, projected raster-paint, and filter-work ceilings enforced by the safety predicate. It does not mean every SVG feature can be projected into an `OfficeDrawing`. `TryRead(...)` performs that projection and reports unsupported features; use it when the drawing result is required.
+A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, rendered-payload, projected raster-paint, and filter-work ceilings enforced for the ChartForgeX fallback. It does not authorize network access or external resource loading by another renderer, and it does not mean every SVG feature can be projected into an `OfficeDrawing`. Apply renderer-specific resource and execution policies before using another SVG engine. `TryRead(...)` performs OfficeIMO's vector projection and reports unsupported features; use it when the drawing result is required.
 
 `MaximumElements`, `MaximumViewportDimension`, and `MaximumViewportPixels` can be lowered for an application policy or raised for trusted input up to their documented hard maxima. They do not relax the fixed 8 MiB input, nesting, path-command, transform, reference-depth, conservative stylesheet/reference, or 256-viewport raster-work checks. Raster work includes projected paint bounds and the estimated cost of blur, morphology, convolution, and turbulence filter parameters.
 

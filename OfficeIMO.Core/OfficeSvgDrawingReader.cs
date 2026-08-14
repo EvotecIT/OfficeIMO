@@ -324,6 +324,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
                     ReadRasterPresentationProperty(root, propertyName),
+                    propertyName,
                     references,
                     maximumElements,
                     ref elementCount,
@@ -508,6 +509,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
             if (!TryAddRenderedSvgLocalReference(
                     ReadRasterPresentationProperty(element, propertyName),
+                    propertyName,
                     references,
                     maximumElements,
                     ref elementCount,
@@ -611,6 +613,7 @@ public static partial class OfficeSvgDrawingReader {
 
     private static bool TryAddRenderedSvgLocalReference(
         string? value,
+        string propertyName,
         SvgElementReferenceRegistry references,
         int maximumElements,
         ref int elementCount,
@@ -626,16 +629,23 @@ public static partial class OfficeSvgDrawingReader {
         if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
         if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
         try {
-            return TryAddRenderedSvgDefinitionExpansion(
-                target!,
-                references,
-                maximumElements,
-                ref elementCount,
-                ref commandCount,
-                transform,
-                viewX,
-                viewY,
-                rasterWork);
+            bool conservativeMaskPlacement = propertyName.Equals("mask", StringComparison.OrdinalIgnoreCase)
+                && target!.Name.LocalName.Equals("mask", StringComparison.OrdinalIgnoreCase);
+            if (conservativeMaskPlacement) rasterWork.EnterConservativePlacement();
+            try {
+                return TryAddRenderedSvgDefinitionExpansion(
+                    target!,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork);
+            } finally {
+                if (conservativeMaskPlacement) rasterWork.ExitConservativePlacement();
+            }
         } finally {
             references.Exit(referenceId);
         }

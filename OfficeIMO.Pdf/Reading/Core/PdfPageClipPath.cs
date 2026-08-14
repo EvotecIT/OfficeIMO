@@ -147,11 +147,12 @@ internal readonly struct PdfPageClipPath {
             return intersection;
         }
 
-        textClippingBudget?.ChargePolygonIntersectionWork(subjectContours, clipContours);
-
         for (int i = 0; i < subjectContours.Count; i++) {
             for (int clipIndex = 0; clipIndex < clipContours.Count; clipIndex++) {
-                List<OfficePoint> clipped = ClipPolygonToConvexPolygon(subjectContours[i], clipContours[clipIndex]);
+                List<OfficePoint> clipped = ClipPolygonToConvexPolygon(
+                    subjectContours[i],
+                    clipContours[clipIndex],
+                    textClippingBudget);
                 if (clipped.Count >= 3) {
                     intersectedContours.Add(clipped);
                 }
@@ -310,18 +311,23 @@ internal readonly struct PdfPageClipPath {
         }
     }
 
-    private static List<OfficePoint> ClipPolygonToConvexPolygon(IReadOnlyList<OfficePoint> subject, List<OfficePoint> clip) {
+    private static List<OfficePoint> ClipPolygonToConvexPolygon(
+        IReadOnlyList<OfficePoint> subject,
+        List<OfficePoint> clip,
+        PdfTextClippingBudget? textClippingBudget) {
         var output = new List<OfficePoint>(subject);
         if (clip.Count < 3) {
             output.Clear();
             return output;
         }
 
+        textClippingBudget?.ChargeLinearIntersectionWork(clip.Count);
         bool positiveArea = SignedArea(clip) >= 0D;
         for (int i = 0; i < clip.Count && output.Count > 0; i++) {
             OfficePoint edgeStart = clip[i];
             OfficePoint edgeEnd = clip[(i + 1) % clip.Count];
             var input = output;
+            textClippingBudget?.ChargeLinearIntersectionWork(input.Count);
             output = new List<OfficePoint>();
             OfficePoint previous = input[input.Count - 1];
             bool previousInside = IsInsideClipEdge(previous, edgeStart, edgeEnd, positiveArea);

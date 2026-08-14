@@ -27,12 +27,6 @@ internal sealed class PdfTextClippingBudget {
         ChargeIntersectionWork(CountVertices(contours));
     }
 
-    internal void ChargePolygonIntersectionWork(
-        IReadOnlyList<List<OfficePoint>> subjectContours,
-        IReadOnlyList<List<OfficePoint>> clipContours) {
-        ChargeIntersectionWork(SaturatingMultiply(CountVertices(subjectContours), CountVertices(clipContours)));
-    }
-
     internal void ChargeLinearIntersectionWork(int pathCommandCount) {
         ChargeIntersectionWork(pathCommandCount);
     }
@@ -63,6 +57,4 @@ internal sealed class PdfTextClippingBudget {
     private static long SaturatingAdd(long left, long right) =>
         right > long.MaxValue - left ? long.MaxValue : left + right;
 
-    private static long SaturatingMultiply(long left, long right) =>
-        left != 0L && right > long.MaxValue / left ? long.MaxValue : left * right;
 }

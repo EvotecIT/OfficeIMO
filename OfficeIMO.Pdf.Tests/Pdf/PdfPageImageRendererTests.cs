@@ -767,6 +767,36 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ChargesGrowingPolygonClipWork() {
+        Assert.True(PdfPageClipPath.TryCreatePath(new[] {
+            OfficePathCommand.MoveTo(-10000D, -10000D),
+            OfficePathCommand.LineTo(10000D, -10000D),
+            OfficePathCommand.LineTo(0D, 10000D),
+            OfficePathCommand.Close()
+        }, OfficeFillRule.NonZero, out PdfPageClipPath active));
+
+        const int clipVertices = 1500;
+        var clipCommands = new List<OfficePathCommand>(clipVertices + 2);
+        for (int index = 0; index < clipVertices; index++) {
+            double angle = index * Math.PI * 2D / clipVertices;
+            var point = new OfficePoint(Math.Cos(angle) * 100D, Math.Sin(angle) * 100D);
+            clipCommands.Add(index == 0
+                ? OfficePathCommand.MoveTo(point)
+                : OfficePathCommand.LineTo(point));
+        }
+        clipCommands.Add(OfficePathCommand.Close());
+        Assert.True(PdfPageClipPath.TryCreatePath(clipCommands, OfficeFillRule.NonZero, out PdfPageClipPath next));
+        var budget = new PdfTextClippingBudget();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            budget.ResolveActiveClip(active, next));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void TextParser_ChargesLaterPathClipAgainstActiveTextClip() {
         string content = BuildTextClipFollowedByCurveHeavyPath();
 
