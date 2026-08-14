@@ -270,7 +270,10 @@ internal sealed partial class PdfCalculatorProgram {
         private static bool IsUnboundedDiscontinuityOperator(CalculatorOperator calculatorOperator) =>
             calculatorOperator is CalculatorOperator.Ceiling or CalculatorOperator.Cvi or
                 CalculatorOperator.Floor or CalculatorOperator.Idiv or CalculatorOperator.Mod or
-                CalculatorOperator.Round or CalculatorOperator.Truncate;
+                CalculatorOperator.Round or CalculatorOperator.Truncate or
+                // Periodic output can alias every bounded adaptive probe, so strict shading
+                // projection must fail closed instead of inferring a finite stop set.
+                CalculatorOperator.Sin or CalculatorOperator.Cos;
 
         private bool TryCreateInstruction(string token, out Instruction instruction) {
             instruction = default;

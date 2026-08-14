@@ -24,6 +24,15 @@ internal sealed partial class PdfCalculatorProgram {
     }
 
     internal bool HasOneInputAffineOutput(int outputCount) {
+        return TryGetOneInputAffineOutput(outputCount, out _, out _);
+    }
+
+    internal bool TryGetOneInputAffineOutput(
+        int outputCount,
+        out double[] coefficients,
+        out double[] constants) {
+        coefficients = Array.Empty<double>();
+        constants = Array.Empty<double>();
         if (HasConditional || outputCount < 1) return false;
         var initial = new SymbolicStack();
         initial.Values.Add(SymbolicValue.Affine(1D, 0D));
@@ -33,9 +42,12 @@ internal sealed partial class PdfCalculatorProgram {
                 new HashSet<double>(),
                 out List<SymbolicStack> outputStates) ||
             outputStates.Count != 1 ||
-            outputStates[0].Values.Count != outputCount) return false;
-        return outputStates[0].Values.All(static value =>
-            value.Kind == SymbolicValueKind.Numeric && value.IsAffine && value.IsFinite);
+            outputStates[0].Values.Count != outputCount ||
+            outputStates[0].Values.Any(static value =>
+                value.Kind != SymbolicValueKind.Numeric || !value.IsAffine || !value.IsFinite)) return false;
+        coefficients = outputStates[0].Values.Select(static value => value.A).ToArray();
+        constants = outputStates[0].Values.Select(static value => value.B).ToArray();
+        return true;
     }
 
     private static bool TryAnalyzeInstructions(

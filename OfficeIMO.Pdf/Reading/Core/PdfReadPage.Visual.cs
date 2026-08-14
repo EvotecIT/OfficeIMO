@@ -1598,7 +1598,9 @@ public sealed partial class PdfReadPage {
         if (!pageContentBudget.TryConsumeColorFunctionEvaluation(function.EvaluationCost)) return false;
         double[]? components = function.Evaluate(new[] { input });
         if (components == null || !colorSpace.TryConvertColor(components, renderingIntent, out color)) return false;
-        if (EffectiveOutputIntentColorTransform != null) color = EffectiveOutputIntentColorTransform.Apply(color, renderingIntent);
+        if (EffectiveOutputIntentColorTransform != null) {
+            color = EffectiveOutputIntentColorTransform.Apply(colorSpace, components, color, renderingIntent);
+        }
         return true;
     }
 

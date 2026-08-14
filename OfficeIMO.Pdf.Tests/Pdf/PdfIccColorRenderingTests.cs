@@ -2642,6 +2642,47 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void SeparationImageConversionChargesTheSharedPageEvaluationBudget() {
+        var functionDictionary = new PdfDictionary();
+        functionDictionary.Items["FunctionType"] = new PdfNumber(4);
+        functionDictionary.Items["Domain"] = NumberArray(0, 1);
+        functionDictionary.Items["Range"] = NumberArray(0, 1, 0, 1, 0, 1);
+        var function = new PdfStream(functionDictionary, Encoding.ASCII.GetBytes("{ dup dup }"));
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Separation"));
+        colorSpace.Items.Add(new PdfName("Spot"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(function);
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Type"] = new PdfName("XObject");
+        dictionary.Items["Subtype"] = new PdfName("Image");
+        dictionary.Items["Width"] = new PdfNumber(2);
+        dictionary.Items["Height"] = new PdfNumber(1);
+        dictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+        dictionary.Items["ColorSpace"] = colorSpace;
+        var stream = new PdfStream(dictionary, new byte[] { 0, 255 });
+        int chargedCost = 0;
+        long chargedCount = 0;
+
+        PdfExtractedImage image = ResourceResolver.BuildExtractedImage(
+            pageNumber: 1,
+            resourceName: "Im1",
+            objectNumber: 5,
+            directStreamIdentity: 0,
+            stream,
+            new Dictionary<int, PdfIndirectObject>(),
+            colorFunctionEvaluationBudget: (cost, count) => {
+                chargedCost = cost;
+                chargedCount = count;
+                return false;
+            });
+
+        Assert.False(image.IsImageFile);
+        Assert.True(chargedCost > 0);
+        Assert.Equal(2L, chargedCount);
+    }
+
+    [Fact]
     public void IndexedImageDecodeHonorsCallerLimitBeforeNormalizingPixels() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");

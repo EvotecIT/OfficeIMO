@@ -651,7 +651,13 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "ri":
-                    if (args.Count == 1) ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[0])));
+                    if (args.Count == 1 && args[0] is string renderingIntentName) {
+                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName));
+                    } else {
+                        hasUnsupportedEffect = true;
+                        MarkPendingPersistentStateAsUnsafe();
+                        if (inText) textObjectHasCollateralVisual = true;
+                    }
                     args.Clear();
                     break;
                 case "BI":
@@ -1479,7 +1485,11 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "ri":
-                    if (args.Count >= 1) ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[args.Count - 1])));
+                    if (args.Count == 1 && args[0] is string renderingIntentName) {
+                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName));
+                    } else {
+                        hasUnsupportedEffect = true;
+                    }
                     args.Clear();
                     break;
                 case "cs":

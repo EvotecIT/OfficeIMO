@@ -23,6 +23,22 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ConvertsMatchingDeviceCmykPaintDirectlyThroughOutputProfile() {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        byte[] pdf = BuildPdf(profileBytes, "0.2 0.4 0.6 0.1 k 10 10 20 20 re f", profileEntries: "/N 4");
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TryConvert(
+            new[] { 0.2D, 0.4D, 0.6D, 0.1D },
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out OfficeColor expected));
+
+        OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void IccProfile_AcceptsMbaClutWithoutOptionalACurves() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16BidirectionalWithoutOutputCurves();
 

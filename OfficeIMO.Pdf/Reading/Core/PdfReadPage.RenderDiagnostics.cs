@@ -120,8 +120,8 @@ public sealed partial class PdfReadPage {
                 GetVisualPageSize().Height,
                 GetGraphicsStateResources(resources),
                 GetColorSpaceResources(resources, pageContentBudget: pageContentBudget),
-                GetShadingResources(resources),
-                GetShadingPatternResources(resources),
+                GetShadingResources(resources, pageContentBudget: pageContentBudget),
+                GetShadingPatternResources(resources, pageContentBudget: pageContentBudget),
                 tilingPatterns: null,
                 GetOptionalContentVisibility(resources),
                 initialFillColorSpace: initialFillColorSpace,
@@ -329,7 +329,7 @@ public sealed partial class PdfReadPage {
             initialStrokePattern: initialStrokePattern,
             initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
             tilingPatterns: tilingPatterns,
-            shadingPatterns: GetShadingPatternResources(resources),
+            shadingPatterns: GetShadingPatternResources(resources, pageContentBudget: pageContentBudget),
             textClippingBudget: textClippingBudget);
         invokedXObjectStates.AddRange(resolvedXObjects);
         return failures;
@@ -490,8 +490,8 @@ public sealed partial class PdfReadPage {
                 contentNestingDepth: depth,
                 invocationTextClippingBudget: textClippingBudget,
                 patternTextClippingBudget: textClippingBudget);
-            Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
-            Dictionary<string, PdfPageShadingResource> directShadings = GetShadingResources(resources);
+            Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources, pageContentBudget: pageContentBudget);
+            Dictionary<string, PdfPageShadingResource> directShadings = GetShadingResources(resources, pageContentBudget: pageContentBudget);
             bool usesFillPaint = false;
             bool usesStrokePaint = false;
             bool usesUnsupportedInheritedShadingStroke = false;

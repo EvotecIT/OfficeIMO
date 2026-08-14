@@ -73,6 +73,20 @@ public class PdfTextEditorTests {
         Assert.Contains("replacement", replaced.Document.Read.Text(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("42 ri")]
+    [InlineData("/Perceptual /RelativeColorimetric ri")]
+    public void PortableTextRestampsRejectMalformedRenderingIntentOperands(string renderingIntentOperation) {
+        byte[] source = BuildRawTextPdf(
+            renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (unsafe intent) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "unsafe intent",
+            new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 10D, 0D));
+    }
+
     [Fact]
     public void ReplaceRemovesOnlyTextAndPreservesIntersectingAnnotation() {
         byte[] source = PdfDocument.Create()

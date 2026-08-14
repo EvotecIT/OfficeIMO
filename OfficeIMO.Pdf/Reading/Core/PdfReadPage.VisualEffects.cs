@@ -364,8 +364,8 @@ public sealed partial class PdfReadPage {
             contentNestingDepth: contentNestingDepth,
             invocationTextClippingBudget: textClippingBudget,
             patternTextClippingBudget: textClippingBudget);
-        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
-        Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources);
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources, pageContentBudget: pageContentBudget);
+        Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources, pageContentBudget: pageContentBudget);
         _ = PdfPageContentVisualParser.Parse(
             WrapContentWithTransform(content, baseTransform),
             visualPageSize.Width,

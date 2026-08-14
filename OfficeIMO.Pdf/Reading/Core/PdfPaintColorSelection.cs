@@ -61,7 +61,9 @@ internal sealed class PdfPaintColorSelection {
 
     internal bool TryConvert(OfficeIccRenderingIntent renderingIntent, out OfficeColor color) {
         if (!ColorSpace.TryConvertColor(_components, renderingIntent, out color)) return false;
-        if (_outputIntentColorTransform != null) color = _outputIntentColorTransform.Apply(color, renderingIntent);
+        if (_outputIntentColorTransform != null) {
+            color = _outputIntentColorTransform.Apply(ColorSpace, _components, color, renderingIntent);
+        }
         return true;
     }
 }

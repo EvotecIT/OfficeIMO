@@ -1986,8 +1986,11 @@ internal static class PdfPageContentVisualParser {
             int startIndex = endIndex - componentCount;
             var components = new double[componentCount];
             for (int i = 0; i < componentCount; i++) components[i] = NumberAt(startIndex + i);
-            return colorSpace.TryConvertColor(components, _renderingIntent, out color) &&
-                ApplyOutputIntent(ref color);
+            if (!colorSpace.TryConvertColor(components, _renderingIntent, out color)) return false;
+            if (_outputIntentColorTransform != null) {
+                color = _outputIntentColorTransform.Apply(colorSpace, components, color, _renderingIntent);
+            }
+            return true;
         }
 
         private bool ApplyOutputIntent(ref OfficeColor color) {

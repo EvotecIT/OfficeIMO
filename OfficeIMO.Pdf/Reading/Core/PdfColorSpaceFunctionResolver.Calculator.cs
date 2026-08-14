@@ -81,6 +81,12 @@ internal static partial class PdfColorSpaceFunctionResolver {
             }
         }
 
+        double[] affineCoefficients = Array.Empty<double>();
+        double[] affineConstants = Array.Empty<double>();
+        bool hasAffineOutput = inputCount == 1 &&
+            program.TryGetOneInputAffineOutput(outputCount, out affineCoefficients, out affineConstants);
+        bool affineRangeClippingAbsent = hasAffineOutput &&
+            IsAffineRangeClippingAbsent(domain, range, affineCoefficients, affineConstants);
         function = new PdfColorFunction(
             inputCount,
             outputCount,
@@ -91,8 +97,28 @@ internal static partial class PdfColorSpaceFunctionResolver {
             breakpoints,
             discontinuities,
             evaluationCost: program.MaximumEvaluationWork,
-            requiresAdaptiveShadingSampling: inputCount != 1 || !program.HasOneInputAffineOutput(outputCount),
-            hasUnboundedDiscontinuities: program.HasUnboundedDiscontinuities);
+            requiresAdaptiveShadingSampling: inputCount != 1 || !hasAffineOutput,
+            hasUnboundedDiscontinuities: program.HasUnboundedDiscontinuities,
+            rangeClippingProvenAbsent: affineRangeClippingAbsent);
+        return true;
+    }
+
+    private static bool IsAffineRangeClippingAbsent(
+        double[] domain,
+        double[] range,
+        double[] coefficients,
+        double[] constants) {
+        if (domain.Length != 2 || range.Length < coefficients.Length * 2 ||
+            coefficients.Length != constants.Length) return false;
+        for (int index = 0; index < coefficients.Length; index++) {
+            double atStart = coefficients[index] * domain[0] + constants[index];
+            double atEnd = coefficients[index] * domain[1] + constants[index];
+            double minimum = Math.Min(atStart, atEnd);
+            double maximum = Math.Max(atStart, atEnd);
+            if (double.IsNaN(minimum) || double.IsInfinity(minimum) ||
+                double.IsNaN(maximum) || double.IsInfinity(maximum) ||
+                minimum < range[index * 2] || maximum > range[index * 2 + 1]) return false;
+        }
         return true;
     }
 }

@@ -153,6 +153,16 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type4_ShadingRejectsPeriodicOutputThatCanAliasAdaptiveProbes() {
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+            CalculatorFunction(1, 3, "{ 7200 mul sin dup dup }"),
+            3,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out _));
+    }
+
+    [Fact]
     public void Type4_BoundsValidationWorkAcrossAuthoredConstants() {
         string body = string.Join(" ", Enumerable.Range(1, 2000).Select(index =>
             (index / 2001D).ToString("0.000000", System.Globalization.CultureInfo.InvariantCulture) + " pop"));

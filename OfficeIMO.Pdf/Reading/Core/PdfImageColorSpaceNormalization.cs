@@ -62,6 +62,13 @@ internal sealed class PdfImageColorSpaceNormalization {
         (_evaluationCost == 0 ||
          (_maximumEvaluationWork > 0L && pixelCount <= _maximumEvaluationWork / _evaluationCost));
 
+    internal bool TryConsumeEvaluationWork(
+        long pixelCount,
+        Func<int, long, bool>? sharedEvaluationBudget) =>
+        CanConvertPixelCount(pixelCount) &&
+        (_evaluationCost == 0 || sharedEvaluationBudget == null ||
+         sharedEvaluationBudget(_evaluationCost, pixelCount));
+
     internal PdfImageColorConversionBuffer CreateConversionBuffer() =>
         new PdfImageColorConversionBuffer(
             SourceColorCount,
@@ -96,7 +103,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         out OfficeColor color) {
         if (!TryConvertComponentsCore(components, conversionBuffer, out color)) return false;
         if (_outputIntentColorTransform != null) {
-            color = _outputIntentColorTransform.Apply(color, _renderingIntent);
+            color = _outputIntentColorTransform.Apply(_colorSpace, components, color, _renderingIntent);
         }
         return true;
     }

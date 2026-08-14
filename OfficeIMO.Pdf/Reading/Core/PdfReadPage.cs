@@ -358,13 +358,31 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
-        return GetImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, imagePlacements, colorizeImageMasks);
+        return GetImagesForResources(
+            ResolveDictionary(GetInheritedValue("Resources")),
+            pageNumber,
+            imagePlacements,
+            colorizeImageMasks,
+            new PageContentBudget(this));
     }
 
-    private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks = false) {
+    private IReadOnlyList<PdfExtractedImage> GetImagesForResources(
+        PdfDictionary? resources,
+        int pageNumber,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements,
+        bool colorizeImageMasks = false,
+        PageContentBudget? pageContentBudget = null) {
         var images = resources == null
             ? new List<PdfExtractedImage>()
-            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks, _limits, EffectiveOutputIntentColorTransform));
+            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(
+                resources,
+                _objects,
+                pageNumber,
+                imagePlacements,
+                colorizeImageMasks,
+                _limits,
+                EffectiveOutputIntentColorTransform,
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
@@ -384,7 +402,8 @@ public sealed partial class PdfReadPage {
                     colorizeImageMasks,
                     _limits.MaxDecodedStreamBytes,
                     placement.RenderingIntent,
-                    EffectiveOutputIntentColorTransform));
+                    EffectiveOutputIntentColorTransform,
+                    pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations));
             }
         }
 
@@ -1691,8 +1710,17 @@ public sealed partial class PdfReadPage {
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
         }
 
-        internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) {
-            long cost = Math.Max(1, evaluationCost);
+        internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) =>
+            TryConsumeColorFunctionEvaluations(evaluationCost, 1L);
+
+        internal bool TryConsumeColorFunctionEvaluations(int evaluationCost, long evaluationCount) {
+            if (evaluationCount < 0L) return false;
+            long cost;
+            try {
+                cost = checked(Math.Max(1, evaluationCost) * evaluationCount);
+            } catch (OverflowException) {
+                return false;
+            }
             if (cost > _remainingColorFunctionEvaluationWork) return false;
             _remainingColorFunctionEvaluationWork -= cost;
             return true;

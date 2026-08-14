@@ -20,20 +20,19 @@ internal sealed class PdfColorFunction {
         IReadOnlyList<double>? discontinuities = null,
         int evaluationCost = 0,
         bool requiresAdaptiveShadingSampling = false,
-        bool hasUnboundedDiscontinuities = false) {
+        bool hasUnboundedDiscontinuities = false,
+        bool rangeClippingProvenAbsent = false) {
         InputCount = inputCount;
         OutputCount = outputCount;
         _domain = (double[])domain.Clone();
         _range = range == null ? null : (double[])range.Clone();
         _evaluateCore = evaluateCore;
         EvaluationCost = Math.Max(0, evaluationCost);
-        RequiresAdaptiveShadingSampling = requiresAdaptiveShadingSampling || HasRangeClipping(
-            inputCount,
-            outputCount,
-            _domain,
-            _range,
-            evaluateCore,
-            breakpoints);
+        // Range clipping can introduce a nonlinear plateau even when the authored function is
+        // otherwise affine. Treat every one-input ranged function as adaptive instead of
+        // probing the evaluator outside the caller-owned calculator work budget.
+        RequiresAdaptiveShadingSampling = requiresAdaptiveShadingSampling ||
+            (!rangeClippingProvenAbsent && inputCount == 1 && outputCount > 0 && _range != null);
         HasUnboundedDiscontinuities = hasUnboundedDiscontinuities;
 
         double[] points = breakpoints == null
@@ -76,32 +75,6 @@ internal sealed class PdfColorFunction {
 
     internal bool TryEvaluate(IReadOnlyList<double> values, double[] output) =>
         TryEvaluate(values, output, 0);
-
-    private static bool HasRangeClipping(
-        int inputCount,
-        int outputCount,
-        double[] domain,
-        double[]? range,
-        PdfColorFunctionEvaluator evaluateCore,
-        IReadOnlyList<double>? breakpoints) {
-        if (inputCount != 1 || outputCount < 1 || range == null || range.Length < outputCount * 2) return false;
-        IEnumerable<double> samplePoints = new[] { domain[0], domain[1] };
-        if (breakpoints != null) samplePoints = samplePoints.Concat(breakpoints);
-        var input = new double[1];
-        var output = new double[outputCount];
-        foreach (double samplePoint in samplePoints.Distinct()) {
-            if (!IsFinite(samplePoint)) continue;
-            input[0] = Clamp(samplePoint, domain[0], domain[1]);
-            Array.Clear(output, 0, output.Length);
-            if (!evaluateCore(input, output, 0)) return true;
-            for (int index = 0; index < outputCount; index++) {
-                if (!IsFinite(output[index]) || output[index] < range[index * 2] || output[index] > range[index * 2 + 1]) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
     internal bool TryEvaluate(IReadOnlyList<double> values, double[] output, int outputOffset) {
         if (values == null || values.Count < InputCount || output == null ||
