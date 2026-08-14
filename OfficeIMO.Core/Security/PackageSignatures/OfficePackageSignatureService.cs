@@ -626,17 +626,21 @@ public static class OfficePackageSignatureService {
                 if (string.Equals((string?)declaration.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                 string? target = (string?)declaration.Attribute("Target");
                 if (string.IsNullOrWhiteSpace(target)) continue;
-                string partUri = ResolveRelationshipTarget("/", target!);
-                if (!archive.ContainsPart(partUri)) continue;
-                if (!archive.TryGetContentType(partUri, out string contentType) ||
-                    !string.Equals(contentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
-                    findings.Add("An extended-properties relationship target has an unexpected OPC content type.");
-                    continue;
-                }
-                XDocument properties = LoadXml(archive.ReadPart(partUri, options.MaxSignatureBytes));
-                if (properties.Root?.Name == extendedProperties + "Properties" &&
-                    properties.Root.Elements(extendedProperties + "DigSig").Any()) {
-                    return true;
+                try {
+                    string partUri = ResolveRelationshipTarget("/", target!);
+                    if (!archive.ContainsPart(partUri)) continue;
+                    if (!archive.TryGetContentType(partUri, out string contentType) ||
+                        !string.Equals(contentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
+                        findings.Add("An extended-properties relationship target has an unexpected OPC content type.");
+                        continue;
+                    }
+                    XDocument properties = LoadXml(archive.ReadPart(partUri, options.MaxSignatureBytes));
+                    if (properties.Root?.Name == extendedProperties + "Properties" &&
+                        properties.Root.Elements(extendedProperties + "DigSig").Any()) {
+                        return true;
+                    }
+                } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or UriFormatException) {
+                    findings.Add("An extended application properties target could not be parsed: " + exception.Message);
                 }
             }
             return false;

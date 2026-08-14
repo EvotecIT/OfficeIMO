@@ -70,7 +70,7 @@ internal static class OfficeProvenanceRiff {
             } else if (chunkType == "C2PA") {
                 if (payloadLength > options.MaxManifestBytes) throw new InvalidDataException("RIFF provenance chunk exceeds the configured manifest limit.");
                 bool isLast = offset + total == declaredEnd;
-                bool valid = c2paChunkCount == 1 && isLast && OfficeC2paManifestStore.IsValid(
+                bool valid = c2paChunkCount == 1 && isLast && foundImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));

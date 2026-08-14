@@ -105,6 +105,7 @@ internal static class OfficeProvenancePng {
         int headerCount = 0;
         bool validLeadingHeader = false;
         bool validEnd = false;
+        bool allChunksHaveValidCrc = true;
         bool foundEnd = false;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
@@ -116,6 +117,7 @@ internal static class OfficeProvenancePng {
             int payloadLength = (int)payloadValue;
             long totalValue = 12L + payloadLength;
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
+            allChunksHaveValidCrc &= HasValidCrc(data, offset, payloadLength);
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
@@ -131,7 +133,7 @@ internal static class OfficeProvenancePng {
             if (isEnd) { foundEnd = true; break; }
         }
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
-        validStructure = headerCount == 1 && validLeadingHeader && validEnd;
+        validStructure = headerCount == 1 && validLeadingHeader && validEnd && allChunksHaveValidCrc;
         return c2paCount;
     }
 
