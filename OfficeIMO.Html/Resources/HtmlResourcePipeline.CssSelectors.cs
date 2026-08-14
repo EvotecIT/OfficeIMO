@@ -387,7 +387,7 @@ public static partial class HtmlResourcePipeline {
 
     private static string NormalizeSelectorForQuery(string selector, bool stripPseudoElements = true, bool stripStatefulPseudoClasses = false) {
         string normalized = selector.Trim();
-        int pseudoElement = stripPseudoElements ? normalized.IndexOf("::", StringComparison.Ordinal) : -1;
+        int pseudoElement = stripPseudoElements ? FindPseudoElementStart(normalized) : -1;
         if (pseudoElement >= 0) {
             normalized = normalized.Substring(0, pseudoElement).TrimEnd();
         }
@@ -397,6 +397,40 @@ public static partial class HtmlResourcePipeline {
         }
 
         return normalized;
+    }
+
+    private static int FindPseudoElementStart(string selector) {
+        int parenthesisDepth = 0;
+        int bracketDepth = 0;
+        char quote = '\0';
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (current == '\\') {
+                index++;
+                continue;
+            }
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') { quote = current; continue; }
+            if (current == '[') { bracketDepth++; continue; }
+            if (current == ']') { bracketDepth = Math.Max(0, bracketDepth - 1); continue; }
+            if (current == '(') { parenthesisDepth++; continue; }
+            if (current == ')') { parenthesisDepth = Math.Max(0, parenthesisDepth - 1); continue; }
+            if (current != ':' || parenthesisDepth != 0 || bracketDepth != 0) continue;
+            if (index + 1 < selector.Length && selector[index + 1] == ':') return index;
+            if (IsLegacyPseudoElement(selector, index + 1, "before") ||
+                IsLegacyPseudoElement(selector, index + 1, "after")) return index;
+        }
+        return -1;
+    }
+
+    private static bool IsLegacyPseudoElement(string selector, int start, string name) {
+        if (start > selector.Length - name.Length ||
+            !selector.Substring(start, name.Length).Equals(name, StringComparison.OrdinalIgnoreCase)) return false;
+        int end = start + name.Length;
+        return end == selector.Length || !(char.IsLetterOrDigit(selector[end]) || selector[end] is '-' or '_');
     }
 
     private static bool IsBarePseudoElementSelector(string selector) {

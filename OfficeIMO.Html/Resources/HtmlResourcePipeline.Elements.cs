@@ -379,6 +379,10 @@ public static partial class HtmlResourcePipeline {
         char quote = '\0';
         for (int i = 0; i < text.Length; i++) {
             char current = text[i];
+            if (current == '\\') {
+                i++;
+                continue;
+            }
             if (quote != '\0') {
                 if (current == quote && !IsEscaped(text, i)) {
                     quote = '\0';

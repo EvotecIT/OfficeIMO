@@ -6,6 +6,9 @@ namespace OfficeIMO.Markdown;
 
 /// <summary>Inspects and selectively removes standards-defined C2PA text carriers from Markdown.</summary>
 public static class MarkdownProvenance {
+    private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
     /// <summary>Inspects a Markdown string for structured and unstructured C2PA carriers.</summary>
     public static OfficeProvenanceReport Inspect(string markdown, OfficeProvenanceOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
@@ -119,10 +122,14 @@ public static class MarkdownProvenance {
     }
 
     private static byte[] EncodeUtf8Bounded(string text, long maximumBytes) {
-        int byteCount = Encoding.UTF8.GetByteCount(text);
-        if (byteCount > maximumBytes) {
-            throw new InvalidDataException("The Markdown document exceeds the configured asset limit after decoding.");
+        try {
+            int byteCount = StrictUtf8.GetByteCount(text);
+            if (byteCount > maximumBytes) {
+                throw new InvalidDataException("The Markdown document exceeds the configured asset limit after decoding.");
+            }
+            return StrictUtf8.GetBytes(text);
+        } catch (EncoderFallbackException exception) {
+            throw new InvalidDataException("The Markdown document contains invalid Unicode text.", exception);
         }
-        return Encoding.UTF8.GetBytes(text);
     }
 }

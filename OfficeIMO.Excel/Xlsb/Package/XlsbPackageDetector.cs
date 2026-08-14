@@ -50,12 +50,12 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                     return false;
                 }
 
-                ZipArchiveEntry? workbookEntry = FindEntry(archive, normalizedTarget);
-                if (workbookEntry == null || !HasExcelBinaryWorkbookContentType(archive, normalizedTarget)) {
+                ZipArchiveEntry[] workbookEntries = FindEntries(archive, normalizedTarget).Take(2).ToArray();
+                if (workbookEntries.Length != 1 || !HasExcelBinaryWorkbookContentType(archive, normalizedTarget)) {
                     return false;
                 }
 
-                workbookPartName = workbookEntry.FullName;
+                workbookPartName = workbookEntries[0].FullName;
                 return true;
             } catch (InvalidDataException) {
                 workbookPartName = null;
@@ -153,8 +153,11 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static ZipArchiveEntry? FindEntry(ZipArchive archive, string fullName) {
-            return archive.Entries.FirstOrDefault(entry =>
-                string.Equals(entry.FullName.Replace('\\', '/'), fullName, StringComparison.OrdinalIgnoreCase));
+            return FindEntries(archive, fullName).FirstOrDefault();
         }
+
+        private static IEnumerable<ZipArchiveEntry> FindEntries(ZipArchive archive, string fullName) =>
+            archive.Entries.Where(entry =>
+                string.Equals(entry.FullName.Replace('\\', '/'), fullName, StringComparison.OrdinalIgnoreCase));
     }
 }

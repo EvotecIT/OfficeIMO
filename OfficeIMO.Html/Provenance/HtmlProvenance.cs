@@ -356,7 +356,11 @@ public static partial class HtmlProvenance {
         IElement element,
         ISet<int>? usedImageProperties,
         ISet<int>? resolvedVarFallbacks) {
+        const string htmlNamespace = "http://www.w3.org/1999/xhtml";
+        const string svgNamespace = "http://www.w3.org/2000/svg";
         string localName = element.LocalName.ToLowerInvariant();
+        bool isHtmlElement = string.Equals(element.NamespaceUri, htmlNamespace, StringComparison.Ordinal);
+        bool isSvgElement = string.Equals(element.NamespaceUri, svgNamespace, StringComparison.Ordinal);
         if (localName == "style") {
             if (!HtmlResourcePipeline.IsActiveProvenanceStyleElement(element)) yield break;
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
@@ -383,10 +387,12 @@ public static partial class HtmlProvenance {
         }
 
         string? background = element.GetAttribute("background");
-        if (background != null && HtmlResourcePipeline.SupportsLegacyBackground(localName)) {
+        if (background != null && isHtmlElement && HtmlResourcePipeline.SupportsLegacyBackground(localName)) {
             yield return CreateDirectUrlReference("background", background);
         }
 
+        if (localName is "img" or "source" or "video" or "input" or "link" && !isHtmlElement) yield break;
+        if (localName is "image" or "feimage" or "use" && !isSvgElement) yield break;
         if (localName == "source" && !IsSupportedPictureSource(element)) yield break;
         if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
         if (localName is "img" or "source") {
@@ -504,7 +510,11 @@ public static partial class HtmlProvenance {
         while (start < value.Length && IsAsciiWhitespace(value[start])) start++;
         int end = value.Length;
         while (end > start && IsAsciiWhitespace(value[end - 1])) end--;
-        return new EmbeddedImageReference(attributeName, value.Substring(start, end - start), start, end - start);
+        string parsedValue = value.Substring(start, end - start)
+            .Replace("\t", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace("\r", string.Empty);
+        return new EmbeddedImageReference(attributeName, parsedValue, start, end - start);
     }
 
     private static bool IsImageLink(IElement element) {
