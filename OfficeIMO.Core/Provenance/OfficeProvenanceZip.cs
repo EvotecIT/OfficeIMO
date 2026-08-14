@@ -687,26 +687,56 @@ internal static class OfficeProvenanceZip {
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
-        ZipArchiveEntry[] entries = archive.Entries
-            .Where(entry => entryMetadata[entry].Name.Equals("docProps/app.xml", StringComparison.Ordinal))
-            .ToArray();
-        if (entries.Length == 0) return false;
-        if (entries.Length != 1) throw new InvalidDataException("The OPC package contains duplicate application metadata parts.");
-        ZipArchiveEntry entry = entries[0];
-        if (entry.Length == 0) return false;
-        if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
-            throw new InvalidDataException("Open XML application metadata exceeds the configured asset limit.");
-        }
         long expandedBytes = 0;
-        ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
-        byte[] xml = ReadEntry(entry, (int)entry.Length);
-        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "Open XML application metadata");
-        using var input = new MemoryStream(xml, writable: false);
-        using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(options));
-        while (reader.Read()) {
-            if (reader.NodeType == XmlNodeType.Element &&
-                reader.LocalName == "DigSig" &&
-                reader.NamespaceURI == "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties") return true;
+        var applicationMetadataParts = new HashSet<string>(StringComparer.Ordinal) { "docProps/app.xml" };
+        ZipArchiveEntry[] rootRelationships = archive.Entries
+            .Where(entry => entryMetadata[entry].Name.Equals("_rels/.rels", StringComparison.Ordinal))
+            .ToArray();
+        if (rootRelationships.Length > 1) throw new InvalidDataException("The OPC package contains duplicate root relationship parts.");
+        if (rootRelationships.Length == 1) {
+            ZipArchiveEntry relationships = rootRelationships[0];
+            if (relationships.Length > options.MaxAssetBytes || relationships.Length > int.MaxValue) {
+                throw new InvalidDataException("The OPC root relationships part exceeds the configured asset limit.");
+            }
+            ReserveExpandedBytes(ref expandedBytes, relationships.Length, options.MaxExpandedContainerBytes);
+            byte[] relationshipsXml = ReadEntry(relationships, (int)relationships.Length);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(relationshipsXml, options, "OPC root relationships");
+            using var relationshipsInput = new MemoryStream(relationshipsXml, writable: false);
+            using XmlReader relationshipsReader = XmlReader.Create(relationshipsInput, OfficeProvenanceXml.CreateReaderSettings(options));
+            while (relationshipsReader.Read()) {
+                if (relationshipsReader.NodeType != XmlNodeType.Element ||
+                    relationshipsReader.LocalName != "Relationship" ||
+                    relationshipsReader.NamespaceURI != "http://schemas.openxmlformats.org/package/2006/relationships" ||
+                    relationshipsReader.GetAttribute("Type") != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" ||
+                    string.Equals(relationshipsReader.GetAttribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
+                if (!TryNormalizeOpcTarget(string.Empty, relationshipsReader.GetAttribute("Target") ?? string.Empty, out string target)) {
+                    throw new InvalidDataException("The OPC extended-properties relationship has an invalid target.");
+                }
+                applicationMetadataParts.Add(target);
+            }
+        }
+
+        foreach (string partName in applicationMetadataParts) {
+            ZipArchiveEntry[] entries = archive.Entries
+                .Where(entry => entryMetadata[entry].Name.Equals(partName, StringComparison.Ordinal))
+                .ToArray();
+            if (entries.Length == 0) continue;
+            if (entries.Length != 1) throw new InvalidDataException("The OPC package contains duplicate application metadata parts.");
+            ZipArchiveEntry entry = entries[0];
+            if (entry.Length == 0) continue;
+            if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) {
+                throw new InvalidDataException("Open XML application metadata exceeds the configured asset limit.");
+            }
+            ReserveExpandedBytes(ref expandedBytes, entry.Length, options.MaxExpandedContainerBytes);
+            byte[] xml = ReadEntry(entry, (int)entry.Length);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "Open XML application metadata");
+            using var input = new MemoryStream(xml, writable: false);
+            using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(options));
+            while (reader.Read()) {
+                if (reader.NodeType == XmlNodeType.Element &&
+                    reader.LocalName == "DigSig" &&
+                    reader.NamespaceURI == "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties") return true;
+            }
         }
         return false;
     }
