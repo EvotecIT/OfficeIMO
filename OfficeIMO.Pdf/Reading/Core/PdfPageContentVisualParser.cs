@@ -1061,10 +1061,11 @@ internal static class PdfPageContentVisualParser {
         }
 
         private bool TryReadShadingPattern(string patternName, out PdfPageShadingPatternResource pattern) {
-            pattern = default;
-            return _shadingPatterns != null &&
-                (_shadingPatterns.TryGetValue(PdfRenderingIntentResolver.BuildResourceKey(patternName, _renderingIntent), out pattern) ||
-                 _shadingPatterns.TryGetValue(patternName, out pattern));
+            return PdfRenderingIntentResolver.TryGetResource(
+                _shadingPatterns,
+                patternName,
+                _renderingIntent,
+                out pattern);
         }
 
         private bool TryReadTilingPattern(string patternName, out PdfPageTilingPatternResource pattern) {
@@ -1107,9 +1108,11 @@ internal static class PdfPageContentVisualParser {
                 return;
             }
             _authoredShadingInvocationVisitor?.Invoke(shadingName);
-            if (_shadings == null ||
-                (!_shadings.TryGetValue(PdfRenderingIntentResolver.BuildResourceKey(shadingName, _renderingIntent), out PdfPageShadingResource shading) &&
-                 !_shadings.TryGetValue(shadingName, out shading))) {
+            if (!PdfRenderingIntentResolver.TryGetResource(
+                    _shadings,
+                    shadingName,
+                    _renderingIntent,
+                    out PdfPageShadingResource shading)) {
                 _unrenderedShadingVisitor?.Invoke(shadingName);
                 return;
             }

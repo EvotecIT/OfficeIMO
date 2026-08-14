@@ -3453,7 +3453,8 @@ public partial class PdfPageImageRendererTests {
         OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
 
         Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
-        Assert.Equal(OfficeColor.Blue, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[gradient.Stops.Count - 1].Color);
+        Assert.True(gradient.Stops.Count > 2);
     }
 
     [Fact]

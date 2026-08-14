@@ -20,6 +20,20 @@ internal static class PdfRenderingIntentResolver {
     internal static string BuildResourceKey(string name, OfficeIccRenderingIntent renderingIntent) =>
         name + "|intent:" + ((int)renderingIntent).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
+    internal static bool TryGetResource<T>(
+        IReadOnlyDictionary<string, T>? resources,
+        string name,
+        OfficeIccRenderingIntent renderingIntent,
+        out T resource) {
+        resource = default!;
+        if (resources == null) return false;
+        if (resources.TryGetValue(BuildResourceKey(name, renderingIntent), out resource!)) return true;
+        foreach (OfficeIccRenderingIntent intent in All) {
+            if (resources.ContainsKey(BuildResourceKey(name, intent))) return false;
+        }
+        return resources.TryGetValue(name, out resource!);
+    }
+
     internal static OfficeIccRenderingIntent Read(
         PdfDictionary dictionary,
         string key,

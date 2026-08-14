@@ -1635,6 +1635,32 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderingIntentResources_DoNotUseQualifiedRelativeFallbackForMissingIntent() {
+        var legacy = new Dictionary<string, int>(StringComparer.Ordinal) { ["Sh"] = 1 };
+        Assert.True(PdfRenderingIntentResolver.TryGetResource(
+            legacy,
+            "Sh",
+            OfficeIccRenderingIntent.AbsoluteColorimetric,
+            out int legacyValue));
+        Assert.Equal(1, legacyValue);
+
+        var qualified = new Dictionary<string, int>(legacy, StringComparer.Ordinal) {
+            [PdfRenderingIntentResolver.BuildResourceKey("Sh", OfficeIccRenderingIntent.RelativeColorimetric)] = 2
+        };
+        Assert.False(PdfRenderingIntentResolver.TryGetResource(
+            qualified,
+            "Sh",
+            OfficeIccRenderingIntent.AbsoluteColorimetric,
+            out _));
+        Assert.True(PdfRenderingIntentResolver.TryGetResource(
+            qualified,
+            "Sh",
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out int relativeValue));
+        Assert.Equal(2, relativeValue);
+    }
+
+    [Fact]
     public void RenderPage_PermitsIndexedAlternateForUnsupportedIccProfile() {
         byte[] pdf = BuildIccContentPdf(
             new byte[] { 0 },

@@ -709,6 +709,20 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void RenderPage_RefinesAffineShadingWhenAuthoredRangeClipsOutput() {
+        byte[] pdf = BuildSinglePagePdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] " +
+            "/Function << /FunctionType 2 /Domain [0 1] /Range [0 1 0 1 0 1] " +
+            "/C0 [-1 0 0] /C1 [1 0 0] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
+
+        Assert.Contains(gradient.Stops, static stop => Math.Abs(stop.Offset - 0.5D) < 0.01D && stop.Color.R == 0);
+    }
+
+    [Fact]
     public void RenderPage_RejectsCalculatorShadingWithUnboundedRoundingDiscontinuities() {
         const string program = "{ 4 mul floor 4 div dup dup }";
         byte[] pdf = BuildSinglePagePdf(
