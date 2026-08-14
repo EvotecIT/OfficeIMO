@@ -78,7 +78,8 @@ public static partial class HtmlResourcePipeline {
             List<string> aliases = ExtractCustomPropertyAliases(css, valueStart + 1, valueEnd);
             bool addedUrl = false;
             foreach (Match urlMatch in CssUrlExpression.Matches(css)) {
-                if (urlMatch.Index < valueStart || urlMatch.Index >= valueEnd || !IsCssFunctionNameAt(css, urlMatch.Index, "url") || IsInsideCssString(css, urlMatch.Index)) {
+                if (urlMatch.Index < valueStart || urlMatch.Index >= valueEnd || !IsValidCssUrlMatch(css, urlMatch) ||
+                    !IsCssFunctionNameAt(css, urlMatch.Index, "url") || IsInsideCssString(css, urlMatch.Index)) {
                     continue;
                 }
 

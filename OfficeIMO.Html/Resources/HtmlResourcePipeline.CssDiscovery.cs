@@ -16,7 +16,8 @@ public static partial class HtmlResourcePipeline {
             .ToList();
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
             string propertyName = GetCssDeclarationPropertyName(normalized, match.Index);
-            if (IsCssFunctionNameAt(normalized, match.Index, "url")
+            if (IsValidCssUrlMatch(normalized, match)
+                && IsCssFunctionNameAt(normalized, match.Index, "url")
                 && !IsInsideCssString(normalized, match.Index)
                 && !IsImportUrl(match.Index, importRanges)
                 && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font
@@ -104,6 +105,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         foreach (Match match in CssUrlExpression.Matches(css)) {
+            if (!IsValidCssUrlMatch(css, match)) continue;
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             if (!string.IsNullOrWhiteSpace(source)
                 && !IsFragmentOnlyReference(source)

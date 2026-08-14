@@ -93,6 +93,53 @@ public static partial class HtmlResourcePipeline {
 
     private static bool IsCssWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
 
+    private static bool IsValidCssUrlMatch(string css, Match match) {
+        Group source = match.Groups["url"];
+        if (!source.Success) return false;
+        int open = css.IndexOf('(', match.Index, source.Index - match.Index + 1);
+        if (open < 0) return false;
+        int tokenStart = open + 1;
+        while (tokenStart < source.Index && IsCssWhitespace(css[tokenStart])) tokenStart++;
+        bool quoted = tokenStart < css.Length && (css[tokenStart] == '\'' || css[tokenStart] == '"');
+        int start = source.Index;
+        int end = source.Index + source.Length;
+        if (!quoted) {
+            while (start < end && IsCssWhitespace(css[start])) start++;
+            while (end > start && IsCssWhitespace(css[end - 1])) end--;
+        }
+        if (start == end) return false;
+        for (int index = start; index < end; index++) {
+            char value = css[index];
+            if (value == '\\') {
+                if (++index >= end || css[index] is '\r' or '\n' or '\f') return false;
+                if (IsCssHexDigit(css[index])) {
+                    int digits = 1;
+                    while (digits < 6 && index + 1 < end && IsCssHexDigit(css[index + 1])) {
+                        index++;
+                        digits++;
+                    }
+                    if (index + 1 < end && IsCssWhitespace(css[index + 1])) {
+                        index++;
+                        if (css[index] == '\r' && index + 1 < end && css[index + 1] == '\n') index++;
+                    }
+                }
+                continue;
+            }
+            if (quoted) {
+                if (value is '\r' or '\n' or '\f') return false;
+                continue;
+            }
+            if (IsCssWhitespace(value) || value is '\'' or '"' or '(' ||
+                value <= '\u0008' || value == '\u000B' || value is >= '\u000E' and <= '\u001F' || value == '\u007F') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsCssHexDigit(char value) =>
+        value is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
+
     private static int FindMatchingCssParenthesis(string css, int open) {
         int depth = 0;
         char quote = '\0';

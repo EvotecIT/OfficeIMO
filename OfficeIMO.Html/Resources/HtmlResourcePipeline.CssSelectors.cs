@@ -355,7 +355,7 @@ public static partial class HtmlResourcePipeline {
         if (string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(name)) return false;
         string decoded = DecodeCssEscapes(value);
         for (int index = 0; index <= decoded.Length - name.Length; index++) {
-            if (!decoded.Substring(index, name.Length).Equals(name, StringComparison.OrdinalIgnoreCase)) continue;
+            if (!decoded.Substring(index, name.Length).Equals(name, StringComparison.Ordinal)) continue;
             bool before = index == 0 || !IsCssIdentifierCharacter(decoded[index - 1]);
             int afterIndex = index + name.Length;
             bool after = afterIndex == decoded.Length || !IsCssIdentifierCharacter(decoded[afterIndex]);

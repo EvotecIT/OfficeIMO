@@ -69,6 +69,7 @@ public static partial class HtmlResourcePipeline {
         string masked = MaskCssComments(css);
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options);
         foreach (Match match in CssUrlExpression.Matches(masked)) {
+            if (!IsValidCssUrlMatch(masked, match)) continue;
             if (IsResolvedVarFallbackUrl(masked, match.Index, definitions, inlineSourceOrders, document,
                 inlineUseElement, computedStyles, inactiveRanges, options, attributeName)) {
                 result.AddResolvedFallback(sourceOwner, match.Index);
@@ -136,6 +137,7 @@ public static partial class HtmlResourcePipeline {
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, new HtmlResourcePipelineOptions());
         var emittedRanges = new HashSet<(int Start, int Length)>();
         foreach (Match match in CssUrlExpression.Matches(masked)) {
+            if (!IsValidCssUrlMatch(masked, match)) continue;
             bool isCustomProperty = TryGetCustomPropertyName(masked, match.Index, out _);
             if (IsInRanges(match.Index, inactiveRanges) || resolvedVarFallbackStarts?.Contains(match.Index) == true ||
                 !IsCssFunctionNameAt(masked, match.Index, "url") ||

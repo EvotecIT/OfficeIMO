@@ -76,7 +76,8 @@ public static partial class HtmlResourcePipeline {
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(normalized, options);
         List<SourceRange> importRanges = imports.Select(import => new SourceRange(import.Start, import.End)).ToList();
         foreach (System.Text.RegularExpressions.Match match in CssUrlExpression.Matches(normalized)) {
-            if (!IsCssFunctionNameAt(normalized, match.Index, "url")
+            if (!IsValidCssUrlMatch(normalized, match)
+                || !IsCssFunctionNameAt(normalized, match.Index, "url")
                 || IsInsideCssString(normalized, match.Index)
                 || IsInRanges(match.Index, importRanges)
                 || IsInRanges(match.Index, inactiveRanges)

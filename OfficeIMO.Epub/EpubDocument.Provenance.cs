@@ -23,7 +23,14 @@ public sealed partial class EpubDocument {
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.RemoveFile(
-            inputPath, outputPath, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+            inputPath,
+            outputPath,
+            options,
+            StripPackageSignatures,
+            HasPackageSignatures,
+            ValidatePackage,
+            removeOpcManifestReferences: false,
+            validateOpcMetadata: false);
 
     /// <summary>Removes selected provenance from encoded EPUB package bytes.</summary>
     public static OfficeProvenanceRemovalResult RemoveProvenance(
@@ -31,7 +38,14 @@ public sealed partial class EpubDocument {
         string fileName = "publication.epub",
         OfficeProvenanceRemovalOptions? options = null) =>
         OfficeProvenancePackageMutation.Remove(
-            packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+            packageBytes,
+            fileName,
+            options,
+            StripPackageSignatures,
+            HasPackageSignatures,
+            ValidatePackage,
+            removeOpcManifestReferences: false,
+            validateOpcMetadata: false);
 
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);

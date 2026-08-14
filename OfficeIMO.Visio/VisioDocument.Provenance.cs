@@ -47,8 +47,33 @@ public partial class VisioDocument {
     }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
-        OfficeProvenanceZip.HasPackageSignature(data, options) ||
-        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
+        OfficeProvenanceZip.HasNativePackageSignature(data, options) ||
+        HasRelationshipOwnedApplicationSignatureMetadata(data, options.Limits);
+
+    private static bool HasRelationshipOwnedApplicationSignatureMetadata(byte[] data, OfficeProvenanceOptions limits) {
+        using var stream = new MemoryStream(data, writable: false);
+        using Package package = Package.Open(stream, FileMode.Open, FileAccess.Read);
+        var inspected = new HashSet<Uri>();
+        foreach (PackageRelationship relationship in package.GetRelationshipsByType(ExtendedPropertiesRelationship)) {
+            if (relationship.TargetMode != TargetMode.Internal) continue;
+            Uri partUri = PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri);
+            if (!inspected.Add(partUri) || !package.PartExists(partUri)) continue;
+            PackagePart part = package.GetPart(partUri);
+            if (!string.Equals(part.ContentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException("A Visio extended-properties relationship targets a part with an unexpected content type.");
+            }
+            using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
+            byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio app metadata");
+            using var xmlInput = new MemoryStream(xml, writable: false);
+            using XmlReader reader = XmlReader.Create(xmlInput, OfficeProvenanceXml.CreateReaderSettings(limits));
+            XDocument document = XDocument.Load(reader, LoadOptions.None);
+            XNamespace properties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+            if (document.Root?.Name == properties + "Properties" &&
+                document.Root.Elements(properties + "DigSig").Any()) return true;
+        }
+        return false;
+    }
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);

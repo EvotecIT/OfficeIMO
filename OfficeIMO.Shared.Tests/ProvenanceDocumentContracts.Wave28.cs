@@ -77,7 +77,7 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains("invalidate package signatures", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static byte[] CreateVisioPackageWithApplicationSignatureOnly() {
+    private static byte[] CreateVisioPackageWithApplicationSignatureOnly(bool relationshipOwned = true) {
         using var output = new MemoryStream();
         using (Package package = Package.Open(output, FileMode.Create, FileAccess.ReadWrite)) {
             Uri documentUri = PackUriHelper.CreatePartUri(new Uri("/visio/document.xml", UriKind.Relative));
@@ -96,6 +96,12 @@ public sealed partial class ProvenanceDocumentContracts {
                 appUri,
                 "application/vnd.openxmlformats-officedocument.extended-properties+xml",
                 CompressionOption.Maximum);
+            if (relationshipOwned) {
+                package.CreateRelationship(
+                    appUri,
+                    TargetMode.Internal,
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties");
+            }
             using var writer = new StreamWriter(app.GetStream(), new UTF8Encoding(false), 4096, leaveOpen: false);
             writer.Write("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\"><DigSig>signature</DigSig></Properties>");
         }
