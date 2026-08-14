@@ -39,15 +39,18 @@ public partial class ExcelDocument {
         if (XlsbPackageDetector.TryFindWorkbookPart(data, out _)) return;
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
-        if (document.WorkbookPart == null || document.WorkbookPart.ContentType is not (
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" or
-            "application/vnd.ms-excel.sheet.macroEnabled.main+xml" or
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml" or
-            "application/vnd.ms-excel.template.macroEnabled.main+xml" or
-            "application/vnd.ms-excel.addin.macroEnabled.main+xml")) {
+        if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
             throw new InvalidDataException("The package is not an Excel workbook.");
         }
     }
+
+    private static bool IsSupportedWorkbookContentType(string contentType) => new[] {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "application/vnd.ms-excel.sheet.macroEnabled.main+xml",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml",
+        "application/vnd.ms-excel.template.macroEnabled.main+xml",
+        "application/vnd.ms-excel.addin.macroEnabled.main+xml"
+    }.Contains(contentType, StringComparer.OrdinalIgnoreCase);
 
     private static void ValidateXlsbDetectionMetadata(byte[] data, OfficeProvenanceOptions options) {
         using var stream = new MemoryStream(data, writable: false);

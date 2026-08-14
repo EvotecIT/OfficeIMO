@@ -114,8 +114,18 @@ public sealed partial class EpubDocument {
         normalized = string.Empty;
         if (string.IsNullOrWhiteSpace(value) || value!.IndexOfAny(new[] { '\\', '?', '#' }) >= 0 || value.StartsWith("/", StringComparison.Ordinal)) return false;
         var segments = new List<string>();
-        foreach (string segment in value.Split('/')) {
-            if (segment.Length == 0 || segment == "." || segment == "..") return false;
+        foreach (string encodedSegment in value.Split('/')) {
+            if (encodedSegment.Length == 0) return false;
+            string segment;
+            try { segment = Uri.UnescapeDataString(encodedSegment); }
+            catch (UriFormatException) { return false; }
+            if (segment.IndexOfAny(new[] { '/', '\\', '?', '#' }) >= 0 || segment.Length == 0) return false;
+            if (segment == ".") continue;
+            if (segment == "..") {
+                if (segments.Count == 0) return false;
+                segments.RemoveAt(segments.Count - 1);
+                continue;
+            }
             segments.Add(segment);
         }
         if (segments.Count == 0) return false;

@@ -27,14 +27,15 @@ public static partial class HtmlResourcePipeline {
 
     internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(IHtmlDocument document) {
         var options = new HtmlResourcePipelineOptions();
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = HtmlComputedStyleEngine.Compute(document, options);
         Dictionary<string, List<CssCustomPropertyDefinition>> documentDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
-        var result = new HtmlProvenanceCssScope();
+        var result = new HtmlProvenanceCssScope(computedStyles);
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
-            CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, options, result.UsedCustomPropertyDeclarations);
-            CollectResolvedVarFallbackStarts(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, options, "css", styleElement, result);
+            CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, result.UsedCustomPropertyDeclarations);
+            CollectResolvedVarFallbackStarts(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, "css", styleElement, result);
         }
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
             string css = element.GetAttribute("style") ?? string.Empty;
@@ -47,8 +48,8 @@ public static partial class HtmlResourcePipeline {
                 ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
             definitions = MergeCustomPropertyDefinitions(definitions,
                 ExtractCustomPropertyDefinitions(css, inactiveRanges, sourceOrderBase, isInline: true, sourceOwner: element));
-            CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, options, result.UsedCustomPropertyDeclarations);
-            CollectResolvedVarFallbackStarts(css, definitions, inlineSourceOrders, document, element, options, "style", element, result);
+            CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, computedStyles, options, result.UsedCustomPropertyDeclarations);
+            CollectResolvedVarFallbackStarts(css, definitions, inlineSourceOrders, document, element, computedStyles, options, "style", element, result);
         }
         return result;
     }
@@ -59,6 +60,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument document,
         IElement? inlineUseElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         HtmlResourcePipelineOptions options,
         string attributeName,
         IElement sourceOwner,
@@ -68,13 +70,13 @@ public static partial class HtmlResourcePipeline {
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options);
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             if (IsResolvedVarFallbackUrl(masked, match.Index, definitions, inlineSourceOrders, document,
-                inlineUseElement, inactiveRanges, options, attributeName)) {
+                inlineUseElement, computedStyles, inactiveRanges, options, attributeName)) {
                 result.AddResolvedFallback(sourceOwner, match.Index);
             }
         }
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
             if (IsResolvedVarFallbackUrl(masked, reference.Start, definitions, inlineSourceOrders, document,
-                inlineUseElement, inactiveRanges, options, attributeName)) {
+                inlineUseElement, computedStyles, inactiveRanges, options, attributeName)) {
                 result.AddResolvedFallback(sourceOwner, reference.Start);
             }
         }
@@ -86,6 +88,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument document,
         IElement? inlineUseElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         HtmlResourcePipelineOptions options,
         IDictionary<IElement, HashSet<int>> result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
@@ -108,7 +111,7 @@ public static partial class HtmlResourcePipeline {
                     if (inlineDefinitions.Count != 0) effectiveDefinitions = MergeCustomPropertyDefinitions(definitions, inlineDefinitions);
                 }
                 foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(
-                    propertyName, effectiveDefinitions, useSelector, document, useElement,
+                    propertyName, effectiveDefinitions, useSelector, document, useElement, computedStyles,
                     new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
                     if (source.SourceOwner == null) continue;
                     if (!result.TryGetValue(source.SourceOwner, out HashSet<int>? starts)) {
@@ -126,7 +129,8 @@ public static partial class HtmlResourcePipeline {
         string attributeName,
         string css,
         ISet<int>? usedCustomPropertyDeclarationStarts = null,
-        ISet<int>? resolvedVarFallbackStarts = null) {
+        ISet<int>? resolvedVarFallbackStarts = null,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, new HtmlResourcePipelineOptions());
@@ -138,7 +142,7 @@ public static partial class HtmlResourcePipeline {
                 IsInsideCssString(masked, match.Index) ||
                 IsImportAtRuleUrl(masked, match.Index) ||
                 IsAtRulePreludeUrl(masked, match.Index) ||
-                !IsCssReferenceForMatchingSelector(document, attributeName, masked, match.Index) ||
+                !IsCssReferenceForMatchingSelector(document, attributeName, masked, match.Index, computedStyles) ||
                 isCustomProperty && (!TryGetCustomPropertyDeclarationStart(masked, match.Index, out int declarationStart) ||
                     usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)) ||
                 !isCustomProperty && ClassifyCssUrl(masked, match.Index) != HtmlResourceKind.Image) continue;
@@ -156,7 +160,7 @@ public static partial class HtmlResourcePipeline {
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(masked)) {
             bool isCustomProperty = TryGetCustomPropertyName(masked, reference.Start, out _);
             if (IsInRanges(reference.Start, inactiveRanges) || resolvedVarFallbackStarts?.Contains(reference.Start) == true ||
-                !IsCssReferenceForMatchingSelector(document, attributeName, masked, reference.Start) ||
+                !IsCssReferenceForMatchingSelector(document, attributeName, masked, reference.Start, computedStyles) ||
                 (isCustomProperty
                     ? !TryGetCustomPropertyDeclarationStart(masked, reference.Start, out int declarationStart) ||
                         usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)
@@ -199,6 +203,11 @@ public static partial class HtmlResourcePipeline {
 }
 
 internal sealed class HtmlProvenanceCssScope {
+    internal HtmlProvenanceCssScope(IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles) {
+        ComputedStyles = computedStyles;
+    }
+
+    internal IReadOnlyDictionary<IElement, HtmlComputedStyle> ComputedStyles { get; }
     internal Dictionary<IElement, HashSet<int>> UsedCustomPropertyDeclarations { get; } = new();
     internal Dictionary<IElement, HashSet<int>> ResolvedVarFallbackStarts { get; } = new();
 

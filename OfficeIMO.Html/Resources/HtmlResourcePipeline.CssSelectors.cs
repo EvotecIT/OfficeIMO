@@ -29,6 +29,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         IReadOnlyList<SourceRange> inactiveRanges,
         HtmlResourcePipelineOptions options,
         string attributeName) {
@@ -64,11 +65,11 @@ public static partial class HtmlResourcePipeline {
             if (document != null && useElement == null && !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
                 IElement[] matchedElements = GetElementsMatchingSelectorList(document, useSelector).ToArray();
                 if (matchedElements.Length > 0) {
-                    return matchedElements.All(matchedElement => HasResolvedCustomProperty(propertyName, customPropertyDefinitions, inlineSourceOrders, document, matchedElement, options, useSelector));
+                    return matchedElements.All(matchedElement => HasResolvedCustomProperty(propertyName, customPropertyDefinitions, inlineSourceOrders, document, matchedElement, computedStyles, options, useSelector));
                 }
             }
 
-            return HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
+            return HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
         }
 
         return false;
@@ -80,13 +81,14 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument document,
         IElement useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         HtmlResourcePipelineOptions options,
         string useSelector) {
         Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options, includeSelf: true);
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
             ? customPropertyDefinitions
             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
-        return HasResolvedCustomProperty(propertyName, mergedDefinitions, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
+        return HasResolvedCustomProperty(propertyName, mergedDefinitions, document, useElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
     }
 
     private static bool HasResolvedCustomProperty(
@@ -94,6 +96,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         ISet<string> visited,
         int depth,
         string useSelector = "") {
@@ -104,7 +107,8 @@ public static partial class HtmlResourcePipeline {
         }
 
         bool resolved = false;
-        int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector, document, useElement);
+        int selectedDeclarationStart = SelectCustomPropertyDeclaration(
+            propertyName, sources, useSelector, document, useElement, computedStyles);
         if (selectedDeclarationStart >= 0) {
             foreach (CssCustomPropertyDefinition source in sources) {
                 if (source.DeclarationStart != selectedDeclarationStart || !CanSubstituteCustomProperty(source, useSelector, document, useElement)) {
@@ -114,17 +118,17 @@ public static partial class HtmlResourcePipeline {
                 if (source.IsInheritedKeyword) {
                     if (useElement?.ParentElement != null) {
                         visited.Remove(propertyName);
-                        resolved = HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement.ParentElement, visited, depth + 1);
+                        resolved = HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement.ParentElement, computedStyles, visited, depth + 1);
                         visited.Add(propertyName);
                     }
                 } else if (source.HasUrl) {
                     resolved = source.FallbackAlias == null
-                        || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, visited, depth + 1, useSelector);
+                        || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, computedStyles, visited, depth + 1, useSelector);
                 } else if (source.Aliases.Count == 0 && !source.IsCssWideInvalidatingKeyword) {
                     resolved = true;
                 } else {
                     foreach (string alias in source.Aliases) {
-                        if (HasResolvedCustomProperty(alias, customPropertyDefinitions, document, useElement, visited, depth + 1, useSelector)) {
+                        if (HasResolvedCustomProperty(alias, customPropertyDefinitions, document, useElement, computedStyles, visited, depth + 1, useSelector)) {
                             resolved = true;
                             break;
                         }
@@ -263,9 +267,21 @@ public static partial class HtmlResourcePipeline {
             : selector;
     }
 
-    private static bool IsCssReferenceForMatchingSelector(IHtmlDocument? document, string attributeName, string css, int index) {
+    private static bool IsCssReferenceForMatchingSelector(
+        IHtmlDocument? document,
+        string attributeName,
+        string css,
+        int index,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
         if (document == null || string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
             return true;
+        }
+
+        if (TryGetEnclosingKeyframesName(css, index, out string keyframesName)) {
+            computedStyles ??= HtmlComputedStyleEngine.Compute(document);
+            return computedStyles.Values.Any(style =>
+                ContainsAnimationName(style.GetValue("animation-name"), keyframesName) ||
+                ContainsAnimationName(style.GetValue("animation"), keyframesName));
         }
 
         string selector = GetDeclarationSelector(css, index);
@@ -297,6 +313,55 @@ public static partial class HtmlResourcePipeline {
         }
 
         return potentiallyActive;
+    }
+
+    private static bool TryGetEnclosingKeyframesName(string css, int index, out string name) {
+        name = string.Empty;
+        if (index < 0 || index >= css.Length) return false;
+
+        int search = 0;
+        while (search < index) {
+            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            if (atRule < 0 || atRule >= index) return false;
+
+            string atRuleName = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
+            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, atRuleName)) {
+                search = atRule + atRuleName.Length;
+                continue;
+            }
+
+            int open = FindNextTopLevelBlockStart(css, atRule + atRuleName.Length);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close < 0) return false;
+            if (index > open && index < close) {
+                string prelude = css.Substring(atRule + atRuleName.Length, open - atRule - atRuleName.Length).Trim();
+                if (prelude.Length >= 2 && prelude[0] == prelude[prelude.Length - 1] && prelude[0] is '\'' or '"') {
+                    prelude = prelude.Substring(1, prelude.Length - 2);
+                }
+                name = DecodeCssEscapes(prelude).Trim();
+                return name.Length != 0;
+            }
+
+            search = close + 1;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAnimationName(string value, string name) {
+        if (string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(name)) return false;
+        string decoded = DecodeCssEscapes(value);
+        for (int index = 0; index <= decoded.Length - name.Length; index++) {
+            if (!decoded.Substring(index, name.Length).Equals(name, StringComparison.OrdinalIgnoreCase)) continue;
+            bool before = index == 0 || !IsCssIdentifierCharacter(decoded[index - 1]);
+            int afterIndex = index + name.Length;
+            bool after = afterIndex == decoded.Length || !IsCssIdentifierCharacter(decoded[afterIndex]);
+            if (before && after) return true;
+        }
+        return false;
     }
 
     private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {

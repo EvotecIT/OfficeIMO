@@ -386,6 +386,7 @@ public static partial class HtmlResourcePipeline {
         string css,
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         IReadOnlyList<SourceRange> inactiveRanges,
         Uri? baseUri,
         HtmlResourcePipelineOptions options,
@@ -409,7 +410,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             string useSelector = GetDeclarationSelector(css, match.Index);
-            if (!IsCssReferenceForMatchingSelector(document, attributeName, css, match.Index)) {
+            if (!IsCssReferenceForMatchingSelector(document, attributeName, css, match.Index, computedStyles)) {
                 continue;
             }
 
@@ -422,7 +423,7 @@ public static partial class HtmlResourcePipeline {
                         Dictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
                             ? CloneCustomPropertyDefinitions(customPropertyDefinitions)
                             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
-                        foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, useSelector, document, matchedElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
+                        foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, mergedDefinitions, useSelector, document, matchedElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
                             if (!IsFragmentOnlyReference(source.Source) && addedSources.Add(source.Source)) {
                                 AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
                             }
@@ -433,7 +434,7 @@ public static partial class HtmlResourcePipeline {
                 }
             }
 
-            foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
+            foreach (CssCustomPropertyDefinition source in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, useSelector, document, useElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0)) {
                 if (!IsFragmentOnlyReference(source.Source) && addedSources.Add(source.Source)) {
                     AddRaw(manifest, kind, element, attributeName + "-var-url", source.Source, baseUri, options);
                 }

@@ -26,17 +26,20 @@ public sealed partial class PowerPointPresentation {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, _);
         using var stream = new MemoryStream(data, writable: false);
         using PresentationDocument document = PresentationDocument.Open(stream, false);
-        if (document.PresentationPart == null || document.PresentationPart.ContentType is not (
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml" or
-            "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml" or
-            "application/vnd.ms-powerpoint.addin.macroEnabled.main+xml" or
-            "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml" or
-            "application/vnd.ms-powerpoint.template.macroEnabled.main+xml" or
-            "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml" or
-            "application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml")) {
+        if (document.PresentationPart == null || !IsSupportedPresentationContentType(document.PresentationPart.ContentType)) {
             throw new InvalidDataException("The package is not a PowerPoint presentation.");
         }
     }
+
+    private static bool IsSupportedPresentationContentType(string contentType) => new[] {
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml",
+        "application/vnd.ms-powerpoint.addin.macroEnabled.main+xml",
+        "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+        "application/vnd.ms-powerpoint.template.macroEnabled.main+xml",
+        "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml",
+        "application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml"
+    }.Contains(contentType, StringComparer.OrdinalIgnoreCase);
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
         OfficeProvenanceZip.HasPackageSignature(data, options) ||

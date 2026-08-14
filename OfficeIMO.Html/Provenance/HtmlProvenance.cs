@@ -234,7 +234,7 @@ public static partial class HtmlProvenance {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks)) {
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles)) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                     int index = count++;
@@ -297,7 +297,7 @@ public static partial class HtmlProvenance {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 EmbeddedImageReference[] references = GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks).ToArray();
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -355,7 +355,8 @@ public static partial class HtmlProvenance {
         IHtmlDocument document,
         IElement element,
         ISet<int>? usedImageProperties,
-        ISet<int>? resolvedVarFallbacks) {
+        ISet<int>? resolvedVarFallbacks,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles) {
         const string htmlNamespace = "http://www.w3.org/1999/xhtml";
         const string svgNamespace = "http://www.w3.org/2000/svg";
         string localName = element.LocalName.ToLowerInvariant();
@@ -368,7 +369,8 @@ public static partial class HtmlProvenance {
                 "css",
                 element.TextContent,
                 usedImageProperties,
-                resolvedVarFallbacks)) {
+                resolvedVarFallbacks,
+                computedStyles)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;
@@ -381,7 +383,8 @@ public static partial class HtmlProvenance {
                 "style",
                 inlineStyle,
                 usedImageProperties,
-                resolvedVarFallbacks)) {
+                resolvedVarFallbacks,
+                computedStyles)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
         }
@@ -679,11 +682,18 @@ public static partial class HtmlProvenance {
 
     private static bool IsSafeManifestReference(string value, out Uri? uri) {
         uri = null;
-        if (string.IsNullOrWhiteSpace(value) || !Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? parsed)) return false;
+        string preprocessed = PreprocessHtmlUrl(value);
+        if (preprocessed.Length == 0 || !Uri.TryCreate(preprocessed, UriKind.RelativeOrAbsolute, out Uri? parsed)) return false;
         if (parsed.IsAbsoluteUri && parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) return false;
         uri = parsed;
         return true;
     }
+
+    private static string PreprocessHtmlUrl(string? value) =>
+        TrimAsciiWhitespace(value)
+            .Replace("\t", string.Empty)
+            .Replace("\n", string.Empty)
+            .Replace("\r", string.Empty);
 
     private static IHtmlDocument ParseBoundedDocument(string html, int maximumEntries, ref int structuralEntries) {
         int remaining = maximumEntries - structuralEntries;
