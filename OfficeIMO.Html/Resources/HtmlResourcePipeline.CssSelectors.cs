@@ -250,13 +250,12 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string GetDeclarationSelector(string css, int index) {
-        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        FindPreviousCssStructuralTokens(css, index, out int blockStart, out _, out _);
         if (blockStart < 0) {
             return string.Empty;
         }
 
-        int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, blockStart - 1));
-        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, blockStart - 1));
+        FindPreviousCssStructuralTokens(css, blockStart, out _, out int previousBlockEnd, out int previousStatementEnd);
         int selectorStart = Math.Max(0, Math.Max(previousBlockEnd, previousStatementEnd) + 1);
         string selector = css.Substring(selectorStart, blockStart - selectorStart)
             .Replace(CssCommentMask.ToString(), string.Empty)
@@ -277,7 +276,8 @@ public static partial class HtmlResourcePipeline {
             return true;
         }
 
-        if (TryGetEnclosingKeyframesName(css, index, out string keyframesName)) {
+        if (TryGetEnclosingKeyframesName(css, index, out string keyframesName, out int keyframesStart)) {
+            if (!IsLastActiveKeyframesDefinition(css, keyframesName, keyframesStart)) return false;
             computedStyles ??= HtmlComputedStyleEngine.Compute(document);
             return computedStyles.Values.Any(style =>
                 ContainsAnimationLonghandName(style.GetValue("animation-name"), keyframesName) ||
@@ -315,8 +315,9 @@ public static partial class HtmlResourcePipeline {
         return potentiallyActive;
     }
 
-    private static bool TryGetEnclosingKeyframesName(string css, int index, out string name) {
+    private static bool TryGetEnclosingKeyframesName(string css, int index, out string name, out int definitionStart) {
         name = string.Empty;
+        definitionStart = -1;
         if (index < 0 || index >= css.Length) return false;
 
         int search = 0;
@@ -342,6 +343,7 @@ public static partial class HtmlResourcePipeline {
                     prelude = prelude.Substring(1, prelude.Length - 2);
                 }
                 name = DecodeCssEscapes(prelude).Trim();
+                definitionStart = atRule;
                 return name.Length != 0;
             }
 
@@ -349,6 +351,35 @@ public static partial class HtmlResourcePipeline {
         }
 
         return false;
+    }
+
+    private static bool IsLastActiveKeyframesDefinition(string css, string name, int definitionStart) {
+        List<SourceRange> inactive = GetInactiveCssRuleRanges(css, new HtmlResourcePipelineOptions());
+        int search = definitionStart + 1;
+        while (search < css.Length) {
+            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            if (atRule < 0) return true;
+            string token = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
+            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, token)) {
+                search = atRule + token.Length;
+                continue;
+            }
+            int open = FindNextTopLevelBlockStart(css, atRule + token.Length);
+            if (open < 0) return true;
+            int close = FindMatchingCssBrace(css, open);
+            if (close < 0) return true;
+            string candidate = css.Substring(atRule + token.Length, open - atRule - token.Length).Trim();
+            if (candidate.Length >= 2 && candidate[0] == candidate[candidate.Length - 1] && candidate[0] is '\'' or '"') {
+                candidate = candidate.Substring(1, candidate.Length - 2);
+            }
+            if (!IsInRanges(open + 1, inactive) && string.Equals(DecodeCssEscapes(candidate).Trim(), name, StringComparison.Ordinal)) {
+                return false;
+            }
+            search = close + 1;
+        }
+        return true;
     }
 
     private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {

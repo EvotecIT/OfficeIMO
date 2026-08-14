@@ -131,7 +131,8 @@ public static partial class HtmlResourcePipeline {
         string css,
         ISet<int>? usedCustomPropertyDeclarationStarts = null,
         ISet<int>? resolvedVarFallbackStarts = null,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null,
+        IElement? sourceOwner = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, new HtmlResourcePipelineOptions());
@@ -155,6 +156,8 @@ public static partial class HtmlResourcePipeline {
             while (trailing > leading && IsCssWhitespace(sourceGroup.Value[trailing - 1])) trailing--;
             if (trailing == leading) continue;
             string source = DecodeCssEscapes(sourceGroup.Value.Substring(leading, trailing - leading));
+            if (!isCustomProperty && !IsEffectiveImageDeclaration(
+                    document, attributeName, sourceOwner, masked, match.Index, source, computedStyles)) continue;
             var range = (sourceGroup.Index + leading, trailing - leading);
             if (emittedRanges.Add(range)) yield return new HtmlCssImageReference(range.Item1, range.Item2, source);
         }
@@ -167,9 +170,78 @@ public static partial class HtmlResourcePipeline {
                     ? !TryGetCustomPropertyDeclarationStart(masked, reference.Start, out int declarationStart) ||
                         usedCustomPropertyDeclarationStarts == null || !usedCustomPropertyDeclarationStarts.Contains(declarationStart)
                     : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image)) continue;
+            if (!isCustomProperty && !IsEffectiveImageDeclaration(
+                    document, attributeName, sourceOwner, masked, reference.Start,
+                    DecodeCssEscapes(reference.Source), computedStyles)) continue;
             if (!emittedRanges.Add((reference.SourceStart, reference.Source.Length))) continue;
             yield return new HtmlCssImageReference(reference.SourceStart, reference.Source.Length, DecodeCssEscapes(reference.Source));
         }
+    }
+
+    private static bool IsEffectiveImageDeclaration(
+        IHtmlDocument document,
+        string attributeName,
+        IElement? sourceOwner,
+        string css,
+        int index,
+        string source,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles) {
+        if (TryGetEnclosingKeyframesName(css, index, out _, out _)) return true;
+        string propertyName = GetCssDeclarationPropertyName(css, index);
+        if (propertyName.Length == 0) return true;
+        int declarationStart = GetDeclarationStart(css, index);
+        int colon = css.IndexOf(':', declarationStart, Math.Max(0, index - declarationStart));
+        if (colon < 0) return true;
+        int valueEnd = FindDeclarationValueEnd(css, colon + 1);
+        string declarationValue = css.Substring(colon + 1, valueEnd - colon - 1).Trim();
+        int important = declarationValue.LastIndexOf("!important", StringComparison.OrdinalIgnoreCase);
+        if (important >= 0 && string.IsNullOrWhiteSpace(declarationValue.Substring(important + 10))) {
+            declarationValue = declarationValue.Substring(0, important).TrimEnd();
+        }
+        computedStyles ??= HtmlComputedStyleEngine.Compute(document);
+        IEnumerable<IElement> elements;
+        if (string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
+            if (sourceOwner == null) return true;
+            elements = new[] { sourceOwner };
+        } else {
+            string selector = GetDeclarationSelector(css, index);
+            elements = GetElementsMatchingSelectorList(document, selector);
+        }
+        bool sawElement = false;
+        foreach (IElement element in elements) {
+            sawElement = true;
+            if (!computedStyles.TryGetValue(element, out HtmlComputedStyle? style)) continue;
+            string effective = style.GetValue(propertyName);
+            if (effective.Length == 0) {
+                if (!IsInsideContainerRule(css, index)) return true;
+                continue;
+            }
+            if ((source.StartsWith("data:", StringComparison.OrdinalIgnoreCase) &&
+                    effective.IndexOf("data:", StringComparison.OrdinalIgnoreCase) >= 0) || string.Equals(
+                    HtmlRenderCssValues.NormalizeComponentValueWhitespace(DecodeCssEscapes(declarationValue)),
+                    HtmlRenderCssValues.NormalizeComponentValueWhitespace(effective),
+                    StringComparison.Ordinal)) return true;
+        }
+        return !sawElement;
+    }
+
+    private static bool IsInsideContainerRule(string css, int index) {
+        int search = 0;
+        while (search < index) {
+            int start = css.IndexOf("@container", search, StringComparison.OrdinalIgnoreCase);
+            if (start < 0 || start >= index) return false;
+            if (IsInsideCssString(css, start) || !HasAtRuleTokenBoundary(css, start, "@container")) {
+                search = start + 10;
+                continue;
+            }
+            int open = FindNextTopLevelBlockStart(css, start + 10);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close < 0) return false;
+            if (index > open && index < close) return true;
+            search = close + 1;
+        }
+        return false;
     }
 
     private static bool TryGetCustomPropertyDeclarationStart(string css, int valueIndex, out int declarationStart) {

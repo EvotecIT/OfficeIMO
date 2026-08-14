@@ -370,7 +370,8 @@ public static partial class HtmlProvenance {
                 element.TextContent,
                 usedImageProperties,
                 resolvedVarFallbacks,
-                computedStyles)) {
+                computedStyles,
+                element)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
             yield break;
@@ -384,7 +385,8 @@ public static partial class HtmlProvenance {
                 inlineStyle,
                 usedImageProperties,
                 resolvedVarFallbacks,
-                computedStyles)) {
+                computedStyles,
+                element)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
         }
@@ -402,7 +404,9 @@ public static partial class HtmlProvenance {
             if (localName == "img") {
                 foreach (string attributeName in EmbeddedImageSourceAttributes) {
                     string? source = element.GetAttribute(attributeName);
-                    if (source != null) yield return CreateDirectUrlReference(attributeName, source);
+                    if (source != null && !SourceSetReplacesDirectSource(element, attributeName)) {
+                        yield return CreateDirectUrlReference(attributeName, source);
+                    }
                 }
             }
             foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
@@ -525,9 +529,33 @@ public static partial class HtmlProvenance {
 
     private static bool IsImageLink(IElement element) {
         string? rel = element.GetAttribute("rel");
-        return HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
+        return HtmlResourcePipeline.IsApplicableProvenanceMedia(element) &&
+            (HasRelationship(rel, "icon") || HasRelationship(rel, "apple-touch-icon") ||
             HasRelationship(rel, "shortcut icon") ||
-            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon") || IsPreloadedImage(element);
+            HasRelationship(rel, "shortcut") && HasRelationship(rel, "icon") || IsPreloadedImage(element));
+    }
+
+    private static bool SourceSetReplacesDirectSource(IElement element, string sourceAttribute) {
+        string? sourceSetAttribute = sourceAttribute switch {
+            "src" => "srcset",
+            "data-src" => "data-srcset",
+            "data-original" or "data-original-src" => "data-original-srcset",
+            "data-lazy-src" => "data-lazy-srcset",
+            _ => null
+        };
+        if (sourceSetAttribute == null) return false;
+        string? sourceSet = element.GetAttribute(sourceSetAttribute);
+        if (string.IsNullOrEmpty(sourceSet)) return false;
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {
+            string descriptor = candidate.Descriptor.Trim();
+            if (descriptor.Length == 0 || descriptor.EndsWith("w", StringComparison.Ordinal)) return true;
+            if (descriptor.EndsWith("x", StringComparison.Ordinal) && double.TryParse(
+                    descriptor.Substring(0, descriptor.Length - 1),
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double density) && density == 1D) return true;
+        }
+        return false;
     }
 
     private static bool IsPreloadedImage(IElement element) =>

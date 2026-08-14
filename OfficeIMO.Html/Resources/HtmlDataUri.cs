@@ -223,6 +223,9 @@ public sealed class HtmlDataUri {
             }
         }
 
+        int remainder = builder.Length & 3;
+        if (remainder == 2) builder.Append("==");
+        else if (remainder == 3) builder.Append('=');
         return builder.ToString();
     }
 

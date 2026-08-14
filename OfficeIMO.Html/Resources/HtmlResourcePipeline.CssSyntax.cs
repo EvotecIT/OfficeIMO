@@ -5,9 +5,42 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
     private static int GetDeclarationStart(string css, int index) {
-        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
-        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, index - 1));
+        FindPreviousCssStructuralTokens(css, index, out int blockStart, out _, out int previousStatementEnd);
         return Math.Max(0, Math.Max(blockStart, previousStatementEnd) + 1);
+    }
+
+    private static void FindPreviousCssStructuralTokens(
+        string css,
+        int beforeIndex,
+        out int blockStart,
+        out int blockEnd,
+        out int statementEnd) {
+        blockStart = -1;
+        blockEnd = -1;
+        statementEnd = -1;
+        char quote = '\0';
+        int parenthesesDepth = 0;
+        int limit = Math.Min(Math.Max(beforeIndex, 0), css.Length);
+        for (int index = 0; index < limit; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') { quote = current; continue; }
+            if (current == '/' && index + 1 < limit && css[index + 1] == '*') {
+                index += 2;
+                while (index + 1 < limit && !(css[index] == '*' && css[index + 1] == '/')) index++;
+                if (index + 1 < limit) index++;
+                continue;
+            }
+            if (current == '(') { parenthesesDepth++; continue; }
+            if (current == ')' && parenthesesDepth > 0) { parenthesesDepth--; continue; }
+            if (parenthesesDepth != 0) continue;
+            if (current == '{') blockStart = index;
+            else if (current == '}') blockEnd = index;
+            else if (current == ';') statementEnd = index;
+        }
     }
 
     private static IEnumerable<CssStringUrlReference> ExtractImageSetStringUrls(string css) {

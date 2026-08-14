@@ -176,7 +176,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static string? NormalizePackageTarget(string target) {
-            string normalized = target.Replace('\\', '/');
+            if (target.IndexOf('\\') >= 0) return null;
+            string normalized = target;
             if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? absolute) &&
                 !string.Equals(absolute.Host, "package", StringComparison.OrdinalIgnoreCase)) return null;
             var packageRoot = new Uri("http://package/", UriKind.Absolute);
