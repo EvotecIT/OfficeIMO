@@ -5,6 +5,16 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeDrawingSoftMask_PreservesOriginalFourParameterConstructor() {
+        Assert.NotNull(typeof(OfficeDrawingSoftMask).GetConstructor(new[] {
+            typeof(OfficeDrawing),
+            typeof(OfficeSoftMaskMode),
+            typeof(OfficeTransform?),
+            typeof(OfficeColor?)
+        }));
+    }
+
+    [Fact]
     public void OfficeDrawingSoftMask_RejectsUndefinedPublicEnumValues() {
         var maskDrawing = new OfficeDrawing(1D, 1D);
 
@@ -13,7 +23,7 @@ public partial class DrawingTests {
             (OfficeSoftMaskMode)99));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
             maskDrawing,
-            luminosityStandard: (OfficeSoftMaskLuminosityStandard)99));
+            (OfficeSoftMaskLuminosityStandard)99));
     }
 
     [Fact]
@@ -379,8 +389,8 @@ public partial class DrawingTests {
         maskDrawing.AddShape(redMask, 0D, 0D);
         var mask = new OfficeDrawingSoftMask(
             maskDrawing,
-            OfficeSoftMaskMode.Luminosity,
-            luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
+            OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
+            mode: OfficeSoftMaskMode.Luminosity);
 
         var drawing = new OfficeDrawing(4D, 4D);
         drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);

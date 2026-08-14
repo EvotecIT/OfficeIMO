@@ -502,7 +502,18 @@ internal sealed class PdfPageOptionalContentVisibility {
                 continue;
             }
 
-            PdfArray targets = ResolveObject(application.Items.TryGetValue("OCGs", out PdfObject? targetObject) ? targetObject : null, objects) as PdfArray ?? groups;
+            PdfArray targets;
+            if (!application.Items.TryGetValue("OCGs", out PdfObject? targetObject)) {
+                targets = groups;
+            } else {
+                PdfObject? resolvedTargets = ResolveObject(targetObject, objects);
+                if (resolvedTargets is PdfNull) targets = groups;
+                else if (resolvedTargets is PdfArray targetArray) targets = targetArray;
+                else {
+                    hasUnsupportedViewUsageApplications = true;
+                    continue;
+                }
+            }
             for (int targetIndex = 0; targetIndex < targets.Items.Count; targetIndex++) {
                 if (targets.Items[targetIndex] is not PdfReference reference ||
                     !declaredGroups.Contains(GetReferenceKey(reference))) {

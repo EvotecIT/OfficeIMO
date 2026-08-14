@@ -31,8 +31,27 @@ public sealed class OfficeDrawingSoftMask {
         OfficeDrawing drawing,
         OfficeSoftMaskMode mode = OfficeSoftMaskMode.Alpha,
         OfficeTransform? transform = null,
-        OfficeColor? backdropColor = null,
-        OfficeSoftMaskLuminosityStandard luminosityStandard = OfficeSoftMaskLuminosityStandard.Srgb) {
+        OfficeColor? backdropColor = null)
+        : this(drawing, mode, transform, backdropColor, OfficeSoftMaskLuminosityStandard.Srgb) {
+    }
+
+    /// <summary>Creates a mask with an explicit luminosity standard.</summary>
+    public OfficeDrawingSoftMask(
+        OfficeDrawing drawing,
+        OfficeSoftMaskLuminosityStandard luminosityStandard,
+        OfficeSoftMaskMode mode = OfficeSoftMaskMode.Alpha,
+        OfficeTransform? transform = null,
+        OfficeColor? backdropColor = null)
+        : this(drawing, mode, transform, backdropColor, luminosityStandard) {
+    }
+
+    /// <summary>Creates a mask with all interpretation settings supplied positionally.</summary>
+    public OfficeDrawingSoftMask(
+        OfficeDrawing drawing,
+        OfficeSoftMaskMode mode,
+        OfficeTransform? transform,
+        OfficeColor? backdropColor,
+        OfficeSoftMaskLuminosityStandard luminosityStandard) {
         _drawing = drawing?.Clone() ?? throw new ArgumentNullException(nameof(drawing));
         if (!Enum.IsDefined(typeof(OfficeSoftMaskMode), mode)) {
             throw new ArgumentOutOfRangeException(nameof(mode));

@@ -266,7 +266,7 @@ public sealed partial class PdfReadPage {
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfExtractedImage image = extractedImageCache[GetType3ImageCacheKey(localImagePlacements[imageIndex])];
-                        if (!IsSupportedType3Image(localImagePlacements[imageIndex], image, type3.Resources) || image.HasUnresolvedTransparencyMask) return false;
+                        if (!IsSupportedType3ImagePlacement(localImagePlacements[imageIndex]) || image.HasUnresolvedTransparencyMask) return false;
                         if (image.IsImageMask && localImagePlacements[imageIndex].FillPattern.HasValue) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
@@ -332,7 +332,7 @@ public sealed partial class PdfReadPage {
 
     private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image, PdfDictionary? fallbackResources = null) {
         if (!image.IsImageFile) return false;
-        if (placement.HasAuthoredRenderingIntent) return false;
+        if (!IsSupportedType3ImagePlacement(placement)) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
         PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         if (imageDictionary == null && resources != null) {
@@ -377,6 +377,8 @@ public sealed partial class PdfReadPage {
     private bool HasMatchingType3DctDimensions(PdfExtractedImage image, PdfDictionary imageDictionary, PdfDictionary? resources) {
         if (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal)) return true;
         return OfficeImageReader.TryValidateContent(image.Bytes, ".jpg", out OfficeImageInfo validated) &&
+            (!OfficeImageOrientationNormalizer.TryRead(image.Bytes, out OfficeImageOrientation orientation) ||
+             orientation == OfficeImageOrientation.Normal) &&
             validated.Format == OfficeImageFormat.Jpeg &&
             PdfWriter.TryGetJpegFrameMetadata(image.Bytes, out int jpegComponentCount, out int jpegSamplePrecision) &&
             TryGetType3ImageComponentCount(imageDictionary, resources, out int authoredComponentCount) &&
@@ -388,6 +390,9 @@ public sealed partial class PdfReadPage {
             validated.Width == width &&
             validated.Height == height;
     }
+
+    private static bool IsSupportedType3ImagePlacement(PdfImagePlacement placement) =>
+        !placement.HasAuthoredRenderingIntent;
 
     private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {
         return !imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) ||

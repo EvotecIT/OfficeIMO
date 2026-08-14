@@ -950,17 +950,19 @@ public sealed partial class PdfReadPage {
         if (!active.Add(resource.Group)) {
             return new OfficeDrawingSoftMask(
                 new OfficeDrawing(width, height),
-                resource.Mode,
+                OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
+                mode: resource.Mode,
                 backdropColor: resource.BackdropColor,
-                luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
+                transform: null);
         }
         try {
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
             var mask = new OfficeDrawingSoftMask(
                 drawing,
-                resource.Mode,
+                OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
+                mode: resource.Mode,
                 backdropColor: resource.BackdropColor,
-                luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
+                transform: null);
             cache[cacheKey] = mask;
             return mask;
         } finally {
