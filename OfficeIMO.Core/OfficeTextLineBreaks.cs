@@ -14,7 +14,14 @@ public static class OfficeTextLineBreaks {
     /// <summary>
     /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text.
     /// </summary>
-    public static IReadOnlyList<int> GetBreakPositions(string? text) {
+    public static IReadOnlyList<int> GetBreakPositions(string? text) =>
+        GetBreakPositions(text, allowCjkBreaks: true);
+
+    /// <summary>
+    /// Returns safe UTF-16 indexes where an unspaced token can wrap without inserting text,
+    /// optionally excluding boundaries introduced only by CJK characters.
+    /// </summary>
+    public static IReadOnlyList<int> GetBreakPositions(string? text, bool allowCjkBreaks) {
         if (text == null || text.Length == 0) {
             return Array.Empty<int>();
         }
@@ -29,7 +36,7 @@ public static class OfficeTextLineBreaks {
             int boundary = elementStarts[elementIndex];
             int left = ReadLastScalar(text, boundary);
             int right = ReadFirstScalar(text, boundary);
-            if (CanBreakBetween(left, right)) {
+            if (CanBreakBetween(left, right, allowCjkBreaks)) {
                 positions.Add(boundary);
             }
         }
@@ -47,13 +54,12 @@ public static class OfficeTextLineBreaks {
         return Array.BinarySearch(elementStarts, position) >= 0;
     }
 
-    private static bool CanBreakBetween(int left, int right) {
+    private static bool CanBreakBetween(int left, int right, bool allowCjkBreaks) {
         if (IsNonStarter(right) || IsOpeningPunctuation(left) || IsClosingPunctuation(right)) {
             return false;
         }
 
-        return IsCjkScalar(left) ||
-            IsCjkScalar(right) ||
+        return (allowCjkBreaks && (IsCjkScalar(left) || IsCjkScalar(right))) ||
             IsBreakAfterScalar(left);
     }
 
@@ -73,6 +79,7 @@ public static class OfficeTextLineBreaks {
 
     private static bool IsNonStarter(int scalar) {
         if (scalar == 0x200D ||
+            IsCjkNonStarter(scalar) ||
             scalar >= 0xFE00 && scalar <= 0xFE0F ||
             scalar >= 0xE0100 && scalar <= 0xE01EF) {
             return true;
@@ -83,6 +90,16 @@ public static class OfficeTextLineBreaks {
             category == UnicodeCategory.SpacingCombiningMark ||
             category == UnicodeCategory.EnclosingMark;
     }
+
+    private static bool IsCjkNonStarter(int scalar) => scalar is
+        0x3005 or 0x303B or // ideographic iteration marks
+        0x3041 or 0x3043 or 0x3045 or 0x3047 or 0x3049 or
+        0x3063 or 0x3083 or 0x3085 or 0x3087 or 0x308E or
+        0x3095 or 0x3096 or 0x309D or 0x309E or
+        0x30A1 or 0x30A3 or 0x30A5 or 0x30A7 or 0x30A9 or
+        0x30C3 or 0x30E3 or 0x30E5 or 0x30E7 or 0x30EE or
+        0x30F5 or 0x30F6 or 0x30FC or 0x30FD or 0x30FE ||
+        scalar >= 0x31F0 && scalar <= 0x31FF;
 
     private static bool IsCjkScalar(int scalar) =>
         scalar >= 0x3040 && scalar <= 0x309F ||

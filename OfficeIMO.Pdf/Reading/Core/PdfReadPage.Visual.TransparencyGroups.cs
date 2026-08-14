@@ -46,6 +46,8 @@ public sealed partial class PdfReadPage {
         TilingPatternResourceCache? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
         PageContentBudget pageContentBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget,
         int contentNestingDepth,
         PdfContentOrderKey? contentOrderPrefix,
         out OfficeDrawing groupDrawing,
@@ -138,6 +140,8 @@ public sealed partial class PdfReadPage {
                 PdfPageDrawingElement.FromGroup(drawing, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             tilingPatternResourceCache: tilingPatternResourceCache,
             textOutputBudget: textOutputBudget,
+            invocationTextClippingBudget: invocationTextClippingBudget,
+            patternTextClippingBudget: patternTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: contentOrderPrefix);
         if (type3GlyphBudget.FailureVersion != failureVersion) {
@@ -202,6 +206,7 @@ public sealed partial class PdfReadPage {
             initialStrokeLineJoin: invocation.StrokeLineJoin,
             contentNestingDepth: contentNestingDepth + 1,
             pageContentBudget: pageContentBudget,
+            textClippingBudget: invocationTextClippingBudget,
             contentOrderPrefix: contentOrderPrefix,
             skipTransparencyGroupForms: true);
         SortGraphicsEffectTransitions(effects);
@@ -223,6 +228,7 @@ public sealed partial class PdfReadPage {
             initialClipPath: localClipPath,
             contentNestingDepth: contentNestingDepth + 1,
             pageContentBudget: pageContentBudget,
+            textClippingBudget: invocationTextClippingBudget,
             contentOrderPrefix: contentOrderPrefix,
             skipTransparencyGroupForms: true);
         if (placements.Count > 0) {
@@ -315,7 +321,7 @@ public sealed partial class PdfReadPage {
         var activeSoftMasks = new HashSet<PdfStream>();
         TextContentParser.TextOutputBudget outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(contentDrawing, localPageHeight, localTransform, elements[i], softMasks, activeSoftMasks, outputBudget, pageContentBudget, type3GlyphBudget);
+            AddDrawingElement(contentDrawing, localPageHeight, localTransform, elements[i], softMasks, activeSoftMasks, outputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
         double groupOpacity = invocation.FillOpacity ?? 1D;
         if (groupOpacity < 1D) {

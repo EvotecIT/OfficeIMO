@@ -24,9 +24,17 @@ internal sealed class HtmlRenderBackgroundLayer {
         Size = string.IsNullOrWhiteSpace(size) ? "auto" : size;
     }
 
+    internal HtmlRenderBackgroundLayer(HtmlCssConicGradientDefinition gradient, string position, string repeat, string size) {
+        ConicGradient = gradient ?? throw new ArgumentNullException(nameof(gradient));
+        Position = string.IsNullOrWhiteSpace(position) ? "0% 0%" : position;
+        Repeat = string.IsNullOrWhiteSpace(repeat) ? "repeat" : repeat;
+        Size = string.IsNullOrWhiteSpace(size) ? "auto" : size;
+    }
+
     internal string? Source { get; }
     internal HtmlCssLinearGradientDefinition? LinearGradient { get; }
     internal HtmlCssRadialGradientDefinition? RadialGradient { get; }
+    internal HtmlCssConicGradientDefinition? ConicGradient { get; }
     internal string Position { get; }
     internal string Repeat { get; }
     internal string Size { get; }

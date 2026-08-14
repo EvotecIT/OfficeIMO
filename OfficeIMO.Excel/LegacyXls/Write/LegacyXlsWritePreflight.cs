@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return true;
         }
 
-        private static bool SupportsWorkbookPackageParts(WorkbookPart workbookPart, out string? reason) {
+        internal static bool SupportsWorkbookPackageParts(WorkbookPart workbookPart, out string? reason) {
             reason = null;
             if (workbookPart.VbaProjectPart != null) {
                 reason = "VBA projects or macros";

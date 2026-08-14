@@ -147,7 +147,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
+    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null, string? exportValue = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
@@ -156,6 +156,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         ValidateAsciiPdfNameValue(checkedValueName, nameof(checkedValueName));
+        string resolvedExportValue = string.IsNullOrWhiteSpace(exportValue) ? checkedValueName : exportValue!;
+        string exportEntry = string.Equals(resolvedExportValue, checkedValueName, StringComparison.Ordinal)
+            ? string.Empty
+            : " /Opt [" + PdfSyntaxEscaper.TextString(resolvedExportValue) + "]";
 
         string selectedName = isChecked ? checkedValueName : "Off";
         return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
@@ -173,6 +177,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(selectedName) +
+            exportEntry +
             BuildMkEntry(style) +
             BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
@@ -189,7 +194,16 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox, PdfFormFieldStyle? style = null) =>
         BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false, style);
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) {
+        Guard.NotNull(options, nameof(options));
+        var pairedOptions = options.Select(option => new PdfFormFieldOption(option, option)).ToList();
+        return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false, selectedIndices, topIndex);
+    }
+
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) =>
+        BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, options, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: false, emitPairedOptions: true, selectedIndices, topIndex);
+
+    private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
@@ -203,10 +217,6 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             throw new ArgumentException("PDF choice field requires at least one option.", nameof(options));
         }
 
-        if (values.Count == 0) {
-            throw new ArgumentException("PDF choice field requires at least one selected value.", nameof(values));
-        }
-
         if (!allowsMultipleSelection && values.Count > 1) {
             throw new ArgumentException("PDF scalar choice field cannot contain multiple selected values.", nameof(values));
         }
@@ -218,21 +228,30 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         var optionBuilder = new StringBuilder();
         var optionSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < options.Count; i++) {
-            string option = options[i];
-            Guard.NotNullOrWhiteSpace(option, nameof(options));
-            if (!optionSet.Add(option)) {
+            PdfFormFieldOption option = options[i] ?? throw new ArgumentException("PDF choice field options cannot contain null entries.", nameof(options));
+            Guard.NotNullOrWhiteSpace(option.DisplayText, nameof(options));
+            if (requireUniqueExportValues && !optionSet.Add(option.ExportValue)) {
                 throw new ArgumentException("PDF choice field options must be unique.", nameof(options));
             }
+            optionSet.Add(option.ExportValue);
 
-            optionBuilder.Append(' ')
-                .Append(PdfSyntaxEscaper.TextString(option));
+            optionBuilder.Append(' ');
+            if (emitPairedOptions || !string.Equals(option.ExportValue, option.DisplayText, StringComparison.Ordinal)) {
+                optionBuilder.Append('[')
+                    .Append(PdfSyntaxEscaper.TextString(option.ExportValue))
+                    .Append(' ')
+                    .Append(PdfSyntaxEscaper.TextString(option.DisplayText))
+                    .Append(']');
+            } else {
+                optionBuilder.Append(PdfSyntaxEscaper.TextString(option.ExportValue));
+            }
         }
 
         bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style != null && style.IsEditableChoice;
         var valueSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < values.Count; i++) {
             string value = values[i];
-            Guard.NotNullOrWhiteSpace(value, nameof(values));
+            if (value == null) throw new ArgumentException("PDF choice field values cannot contain null entries.", nameof(values));
             if (!allowsCustomScalarValue && !optionSet.Contains(value)) {
                 throw new ArgumentException("PDF choice field values must match the provided options.", nameof(values));
             }
@@ -242,14 +261,38 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
         }
 
+        IReadOnlyList<int> effectiveSelectedIndices = selectedIndices ?? Array.Empty<int>();
+        if (effectiveSelectedIndices.Count > 0) {
+            if (isComboBox || effectiveSelectedIndices.Count != values.Count) {
+                throw new ArgumentException("PDF list-box selected indices must correspond one-to-one with selected values.", nameof(selectedIndices));
+            }
+            var seenIndices = new HashSet<int>();
+            for (int i = 0; i < effectiveSelectedIndices.Count; i++) {
+                int selectedIndex = effectiveSelectedIndices[i];
+                if (selectedIndex < 0 || selectedIndex >= options.Count || !seenIndices.Add(selectedIndex) ||
+                    !string.Equals(options[selectedIndex].ExportValue, values[i], StringComparison.Ordinal)) {
+                    throw new ArgumentException("PDF list-box selected indices must uniquely identify selected option values in order.", nameof(selectedIndices));
+                }
+            }
+        }
+        if (topIndex.HasValue && (isComboBox || topIndex.Value < 0 || topIndex.Value >= options.Count)) {
+            throw new ArgumentOutOfRangeException(nameof(topIndex), topIndex, "PDF list-box top index must refer to a provided option.");
+        }
+
         int flags = BuildChoiceFieldFlags(style, (isComboBox ? FieldFlagCombo : 0) | (allowsMultipleSelection ? 2097152 : 0), isComboBox);
+        string valueEntries = !allowsMultipleSelection && values.Count == 0
+            ? string.Empty
+            : " /V " + BuildChoiceValue(values, allowsMultipleSelection) + " /DV " + BuildChoiceValue(values, allowsMultipleSelection);
+        string indexEntries = effectiveSelectedIndices.Count == 0
+            ? string.Empty
+            : " /I [" + string.Join(" ", effectiveSelectedIndices.Select(index => index.ToString(CultureInfo.InvariantCulture))) + "]";
+        string topIndexEntry = topIndex.HasValue ? " /TI " + topIndex.Value.ToString(CultureInfo.InvariantCulture) : string.Empty;
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
-            " /V " +
-            BuildChoiceValue(values, allowsMultipleSelection) +
-            " /DV " +
-            BuildChoiceValue(values, allowsMultipleSelection) +
+            valueEntries +
+            indexEntries +
+            topIndexEntry +
             " /Opt [" +
             optionBuilder +
             " ]" +
@@ -271,7 +314,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds, PdfFormFieldStyle? style = null) {
+    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds, PdfFormFieldStyle? style = null, IReadOnlyList<string>? exportValues = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.NotNullOrWhiteSpace(value, nameof(value));
@@ -279,6 +322,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         ValidateRadioOptions(options, value);
         if (widgetObjectIds.Count != options.Count) {
             throw new ArgumentException("PDF radio button group requires one widget object per option.", nameof(widgetObjectIds));
+        }
+        IReadOnlyList<string> exports = exportValues ?? options;
+        if (exports.Count != options.Count || exports.Any(string.IsNullOrWhiteSpace)) {
+            throw new ArgumentException("PDF radio button exports must contain one non-empty value per option.", nameof(exportValues));
         }
 
         var sb = new StringBuilder();
@@ -296,7 +343,15 @@ internal static partial class PdfAnnotationDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.IndirectReference(widgetObjectIds[i]));
         }
 
-        sb.Append(" ] >>\n");
+        sb.Append(" ]");
+        if (!exports.SequenceEqual(options, StringComparer.Ordinal)) {
+            sb.Append(" /Opt [");
+            for (int i = 0; i < exports.Count; i++) {
+                sb.Append(' ').Append(PdfSyntaxEscaper.TextString(exports[i]));
+            }
+            sb.Append(" ]");
+        }
+        sb.Append(" >>\n");
         return sb.ToString();
     }
 
@@ -323,6 +378,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(stateName) +
+            BuildFormFieldAlternateNameEntry(style) +
             BuildMkEntry(style) +
             BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
@@ -335,6 +391,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
+
+    private static string BuildFormFieldAlternateNameEntry(PdfFormFieldStyle? style) =>
+        style == null || string.IsNullOrWhiteSpace(style.AlternateName)
+            ? string.Empty
+            : " /TU " + PdfSyntaxEscaper.TextString(style.AlternateName!);
 
     private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
         if (values.Count == 1 && !forceArray) {
@@ -581,7 +642,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
         }
 
-        if (!optionSet.Contains(value)) {
+        if (!string.Equals(value, "Off", StringComparison.Ordinal) && !optionSet.Contains(value)) {
             throw new ArgumentException("PDF radio button value must match the provided options.", nameof(value));
         }
     }

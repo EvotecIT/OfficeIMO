@@ -11,6 +11,7 @@ public class PdfFormFieldStyle {
     private int? _maxLength;
     private double[]? _borderDashPattern;
     private PdfFormFieldBorderStyle _borderStyle = PdfFormFieldBorderStyle.Solid;
+    private double _cornerRadius;
 
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
     public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
@@ -96,6 +97,18 @@ public class PdfFormFieldStyle {
         }
     }
 
+    /// <summary>Uniform circular corner radius in points for generated field appearance streams.</summary>
+    public double CornerRadius {
+        get => _cornerRadius;
+        set {
+            if (value < 0 || double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "PDF form field corner radius must be a non-negative finite number.");
+            }
+
+            _cornerRadius = value;
+        }
+    }
+
     /// <summary>Border rendering style for generated field dictionaries and appearance streams.</summary>
     public PdfFormFieldBorderStyle BorderStyle {
         get => _borderStyle;
@@ -174,6 +187,7 @@ public class PdfFormFieldStyle {
             BackgroundColor = BackgroundColor,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
+            CornerRadius = CornerRadius,
             BorderStyle = BorderStyle,
             TextColor = TextColor,
             MarkColor = MarkColor,

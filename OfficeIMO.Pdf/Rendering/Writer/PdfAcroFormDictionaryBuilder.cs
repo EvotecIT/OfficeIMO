@@ -132,7 +132,7 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         string content = "q\n";
         if (effectiveStyle.BackgroundColor.HasValue) {
-            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+            content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
         if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
@@ -424,7 +424,7 @@ internal static class PdfAcroFormDictionaryBuilder {
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         string content = "q\n";
         if (effectiveStyle.BackgroundColor.HasValue) {
-            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+            content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
         if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
@@ -459,7 +459,7 @@ internal static class PdfAcroFormDictionaryBuilder {
         double control = radius * 0.5522847498D;
         string content = "q\n";
         if (effectiveStyle.BackgroundColor.HasValue) {
-            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+            content += BuildFormFieldBackgroundAppearanceContent(width, height, effectiveStyle);
         }
 
         if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
@@ -493,12 +493,48 @@ internal static class PdfAcroFormDictionaryBuilder {
     internal static string FormatColor(PdfColor color) =>
         Format(color.R) + " " + Format(color.G) + " " + Format(color.B);
 
-    private static string BuildRectangularBorderAppearanceContent(double width, double height, PdfFormFieldStyle style) {
+    internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfFormFieldStyle style) {
         if (style.BorderColor == null || style.BorderWidth <= 0D) {
             return string.Empty;
         }
 
-        return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style), style.BorderStyle);
+        if (style.CornerRadius <= 0D || style.BorderStyle == PdfFormFieldBorderStyle.Underline || style.BorderStyle == PdfFormFieldBorderStyle.Beveled || style.BorderStyle == PdfFormFieldBorderStyle.Inset) {
+            return BuildRectangularBorderAppearanceContent(width, height, style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style), style.BorderStyle);
+        }
+
+        double inset = Math.Max(0.5D, style.BorderWidth * 0.5D);
+        return BuildBorderStrokeOperators(style.BorderColor.Value, style.BorderWidth, GetEffectiveBorderDashPattern(style)) +
+            BuildRoundedRectanglePath(width, height, style.CornerRadius, inset) + "S\n";
+    }
+
+    internal static string BuildFormFieldBackgroundAppearanceContent(double width, double height, PdfFormFieldStyle style) {
+        if (!style.BackgroundColor.HasValue) return string.Empty;
+        string path = style.CornerRadius <= 0D
+            ? "0 0 " + Format(width) + " " + Format(height) + " re "
+            : BuildRoundedRectanglePath(width, height, style.CornerRadius, 0D);
+        return FormatColor(style.BackgroundColor.Value) + " rg " + path + "f\n";
+    }
+
+    private static string BuildRoundedRectanglePath(double width, double height, double cornerRadius, double inset) {
+        const double kappa = 0.5522847498307936D;
+        double left = inset;
+        double bottom = inset;
+        double right = Math.Max(left, width - inset);
+        double top = Math.Max(bottom, height - inset);
+        double radius = Math.Min(Math.Max(0D, cornerRadius - inset), Math.Min(right - left, top - bottom) * 0.5D);
+        if (radius <= 0.0001D) {
+            return Format(left) + " " + Format(bottom) + " " + Format(Math.Max(0D, right - left)) + " " + Format(Math.Max(0D, top - bottom)) + " re ";
+        }
+        double control = radius * kappa;
+        return Format(left + radius) + " " + Format(bottom) + " m " +
+            Format(right - radius) + " " + Format(bottom) + " l " +
+            Format(right - radius + control) + " " + Format(bottom) + " " + Format(right) + " " + Format(bottom + radius - control) + " " + Format(right) + " " + Format(bottom + radius) + " c " +
+            Format(right) + " " + Format(top - radius) + " l " +
+            Format(right) + " " + Format(top - radius + control) + " " + Format(right - radius + control) + " " + Format(top) + " " + Format(right - radius) + " " + Format(top) + " c " +
+            Format(left + radius) + " " + Format(top) + " l " +
+            Format(left + radius - control) + " " + Format(top) + " " + Format(left) + " " + Format(top - radius + control) + " " + Format(left) + " " + Format(top - radius) + " c " +
+            Format(left) + " " + Format(bottom + radius) + " l " +
+            Format(left) + " " + Format(bottom + radius - control) + " " + Format(left + radius - control) + " " + Format(bottom) + " " + Format(left + radius) + " " + Format(bottom) + " c h ";
     }
 
     internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfColor borderColor, double borderWidth, IReadOnlyList<double>? dashPattern, PdfFormFieldBorderStyle borderStyle) {

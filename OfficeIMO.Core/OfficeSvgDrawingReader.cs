@@ -41,39 +41,37 @@ public static partial class OfficeSvgDrawingReader {
         byte[]? bytes,
         OfficeSvgDrawingReaderOptions? options,
         out OfficeDrawing? drawing,
+        out int unsupportedFeatureCount) =>
+        TryReadCore(bytes, options, allowUnresolvedViewport: false, out drawing, out unsupportedFeatureCount);
+
+    private static bool TryReadCore(
+        byte[]? bytes,
+        OfficeSvgDrawingReaderOptions? options,
+        bool allowUnresolvedViewport,
+        out OfficeDrawing? drawing,
         out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
-        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
-        int maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
-        double maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
-        double maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
-        if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
-        if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
-            maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
+        if (!TryReadBoundedDocument(
+                bytes,
+                options,
+                allowUnresolvedViewport,
+                out XElement root,
+                out int maximumElements,
+                out double maximumViewportDimension,
+                out double maximumViewportPixels,
+                out double viewX,
+                out double viewY,
+                out double viewWidth,
+                out double viewHeight,
+                out double viewportWidth,
+                out double viewportHeight)) return false;
 
         try {
-            var settings = new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                MaxCharactersInDocument = MaximumInputBytes
-            };
-            XDocument document;
-            using (var stream = new MemoryStream(bytes, writable: false))
-            using (XmlReader reader = XmlReader.Create(stream, settings)) {
-                document = XDocument.Load(reader, LoadOptions.None);
-            }
-
-            XElement? root = document.Root;
-            if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
-            if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
-            if (!TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels,
-                    out double viewX, out double viewY, out double viewWidth, out double viewHeight,
-                    out double viewportWidth, out double viewportHeight)) return false;
-
             var scene = new OfficeDrawing(viewWidth, viewHeight);
             int visited = 0;
             int pathCommands = 0;
+            bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions);
             var references = new SvgElementReferenceRegistry(definitions);
@@ -81,7 +79,7 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
             AddChildren(root, scene, context, paintServers, references, rootTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, 0,
-                ref visited, ref pathCommands, ref unsupportedFeatureCount);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupportedFeatureCount);
             if (visited > maximumElements) return false;
             if (Math.Abs(viewportWidth - viewWidth) < 0.000001D && Math.Abs(viewportHeight - viewHeight) < 0.000001D) {
                 drawing = scene;
@@ -106,11 +104,90 @@ public static partial class OfficeSvgDrawingReader {
         }
     }
 
+    /// <summary>
+    /// Returns whether an SVG payload is well formed and stays within the supplied parser and viewport safety limits,
+    /// regardless of whether every valid SVG shape can be imported into an <see cref="OfficeDrawing"/>.
+    /// </summary>
+    public static bool IsWithinSafetyLimits(byte[]? bytes, OfficeSvgDrawingReaderOptions? options = null) {
+        if (!TryReadBoundedDocument(
+                bytes,
+                options,
+                allowUnresolvedViewport: true,
+                out XElement root,
+                out int maximumElements,
+                out _,
+                out double maximumViewportPixels,
+                out double viewX,
+                out double viewY,
+                out double viewWidth,
+                out double viewHeight,
+                out double viewportWidth,
+                out double viewportHeight)) return false;
+
+        return !ExceedsSvgElementNestingLimit(root) &&
+               !ExceedsSvgDocumentPathCommandLimit(root) &&
+               !ExceedsSvgRenderedExpansionLimits(root, maximumElements, maximumViewportPixels,
+                   viewX, viewY, viewWidth, viewHeight, viewportWidth, viewportHeight);
+    }
+
+    private static bool TryReadBoundedDocument(
+        byte[]? bytes,
+        OfficeSvgDrawingReaderOptions? options,
+        bool allowUnresolvedViewport,
+        out XElement root,
+        out int maximumElements,
+        out double maximumViewportDimension,
+        out double maximumViewportPixels,
+        out double viewX,
+        out double viewY,
+        out double viewWidth,
+        out double viewHeight,
+        out double viewportWidth,
+        out double viewportHeight) {
+        root = null!;
+        maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
+        maximumViewportDimension = options?.MaximumViewportDimension ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportDimension;
+        maximumViewportPixels = options?.MaximumViewportPixels ?? OfficeSvgDrawingReaderOptions.DefaultMaximumViewportPixels;
+        viewX = viewY = viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
+        if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
+        if (maximumViewportDimension <= 0D || maximumViewportDimension > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension ||
+            maximumViewportPixels <= 0D || maximumViewportPixels > OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels) return false;
+
+        try {
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = MaximumInputBytes
+            };
+            XDocument document;
+            using (var stream = new MemoryStream(bytes, writable: false))
+            using (XmlReader reader = XmlReader.Create(stream, settings)) {
+                document = XDocument.Load(reader, LoadOptions.None);
+            }
+
+            XElement? documentRoot = document.Root;
+            if (documentRoot == null || !string.Equals(documentRoot.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
+            root = documentRoot;
+            if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
+            return TryResolveViewport(bytes, root, maximumViewportDimension, maximumViewportPixels, allowUnresolvedViewport,
+                out viewX, out viewY, out viewWidth, out viewHeight,
+                out viewportWidth, out viewportHeight);
+        } catch (XmlException) {
+            return false;
+        } catch (InvalidOperationException) {
+            return false;
+        } catch (ArgumentException) {
+            return false;
+        }
+    }
+
     private static bool TryResolveViewport(
         byte[] bytes,
         XElement root,
         double maximumViewportDimension,
         double maximumViewportPixels,
+        bool allowUnresolvedViewport,
         out double viewX,
         out double viewY,
         out double viewWidth,
@@ -119,7 +196,15 @@ public static partial class OfficeSvgDrawingReader {
         out double viewportHeight) {
         viewX = viewY = 0D;
         viewWidth = viewHeight = viewportWidth = viewportHeight = 0D;
-        if (TryParseNumberList(root.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
+        // ChartForgeX selects the first XML attribute by case-insensitive local name for
+        // raster output dimensions; inline CSS does not override this allocation sink.
+        string? widthText = ReadRasterViewportAttribute(root, "width");
+        string? heightText = ReadRasterViewportAttribute(root, "height");
+        bool hasDeclaredWidth = OfficeImageReader.TryParseSvgLength(widthText, out double declaredWidth);
+        bool hasDeclaredHeight = OfficeImageReader.TryParseSvgLength(heightText, out double declaredHeight);
+        if ((!string.IsNullOrWhiteSpace(widthText) && !hasDeclaredWidth)
+            || (!string.IsNullOrWhiteSpace(heightText) && !hasDeclaredHeight)) return false;
+        if (TryParseNumberList(ReadRasterProjectedAttribute(root, "viewBox"), out IReadOnlyList<double> viewBox)
             && viewBox.Count == 4
             && viewBox[2] > 0D
             && viewBox[3] > 0D) {
@@ -129,29 +214,43 @@ public static partial class OfficeSvgDrawingReader {
             viewHeight = viewBox[3];
             viewportWidth = viewWidth;
             viewportHeight = viewHeight;
-            bool hasViewportWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double declaredWidth);
-            bool hasViewportHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double declaredHeight);
-            if (hasViewportWidth) viewportWidth = declaredWidth;
-            if (hasViewportHeight) viewportHeight = declaredHeight;
-            if (hasViewportWidth && !hasViewportHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
-            if (!hasViewportWidth && hasViewportHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
+            if (hasDeclaredWidth) viewportWidth = declaredWidth;
+            if (hasDeclaredHeight) viewportHeight = declaredHeight;
+            if (hasDeclaredWidth && !hasDeclaredHeight) viewportHeight = declaredWidth * viewHeight / viewWidth;
+            if (!hasDeclaredWidth && hasDeclaredHeight) viewportWidth = declaredHeight * viewWidth / viewHeight;
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels)
                 && IsSupportedSvgViewport(viewportWidth, viewportHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
-        bool hasIntrinsicWidth = OfficeImageReader.TryParseSvgLength(root.Attribute("width")?.Value, out double intrinsicWidth);
-        bool hasIntrinsicHeight = OfficeImageReader.TryParseSvgLength(root.Attribute("height")?.Value, out double intrinsicHeight);
+        bool hasIntrinsicWidth = hasDeclaredWidth;
+        bool hasIntrinsicHeight = hasDeclaredHeight;
+        double intrinsicWidth = declaredWidth;
+        double intrinsicHeight = declaredHeight;
+        if ((hasIntrinsicWidth && intrinsicWidth > maximumViewportDimension) ||
+            (hasIntrinsicHeight && intrinsicHeight > maximumViewportDimension)) {
+            return false;
+        }
         if (hasIntrinsicWidth && hasIntrinsicHeight) {
             viewWidth = viewportWidth = intrinsicWidth;
             viewHeight = viewportHeight = intrinsicHeight;
             return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
         }
 
-        if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) return false;
+        if (!OfficeImageReader.TryIdentify(bytes, ".svg", out OfficeImageInfo info) || info.Width <= 0 || info.Height <= 0) {
+            if (!allowUnresolvedViewport) return false;
+            viewWidth = viewportWidth = hasIntrinsicWidth ? intrinsicWidth : 300D;
+            viewHeight = viewportHeight = hasIntrinsicHeight ? intrinsicHeight : 150D;
+            return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
+        }
         viewWidth = viewportWidth = info.Width * 96D / Math.Max(1D, info.DpiX);
         viewHeight = viewportHeight = info.Height * 96D / Math.Max(1D, info.DpiY);
         return IsSupportedSvgViewport(viewWidth, viewHeight, maximumViewportDimension, maximumViewportPixels);
     }
+
+    private static string? ReadRasterViewportAttribute(XElement root, string name) =>
+        root.Attributes()
+            .FirstOrDefault(attribute => attribute.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase))
+            ?.Value;
 
     private static bool IsSupportedSvgViewport(
         double width,
@@ -161,6 +260,510 @@ public static partial class OfficeSvgDrawingReader {
         width > 0D && height > 0D &&
         width <= maximumViewportDimension && height <= maximumViewportDimension &&
         width * height <= maximumViewportPixels;
+
+    private static bool ExceedsSvgElementNestingLimit(XElement root) {
+        var pending = new Stack<(XElement Element, int Depth)>();
+        foreach (XElement child in root.Elements()) pending.Push((child, 0));
+        while (pending.Count > 0) {
+            (XElement element, int depth) = pending.Pop();
+            if (depth > MaximumSvgNestingDepth) return true;
+            foreach (XElement child in element.Elements()) pending.Push((child, depth + 1));
+        }
+        return false;
+    }
+
+    private static bool ExceedsSvgDocumentPathCommandLimit(XElement root) {
+        int commandCount = 0;
+        foreach (XElement element in root.DescendantsAndSelf()) {
+            if (!TryAddSvgGeometryCommands(element, ref commandCount)) return true;
+        }
+        return false;
+    }
+
+    private static bool ExceedsSvgRenderedExpansionLimits(
+        XElement root,
+        int maximumElements,
+        double maximumViewportPixels,
+        double viewX,
+        double viewY,
+        double viewWidth,
+        double viewHeight,
+        double viewportWidth,
+        double viewportHeight) {
+        if (HasPotentialStylesheetRenderedDefinitionReference(root)
+            || HasStylesheetRasterGeometryDeclaration(root)
+            || HasUnsupportedInlineRasterGeometryDeclaration(root)) return true;
+        if (!TryResolveSupportedRasterTransform(
+                root,
+                OfficeTransform.Identity,
+                viewX,
+                viewY,
+                out OfficeTransform rootTransform)) return true;
+        if (!TryResolveRasterPixelScales(
+                root,
+                viewWidth,
+                viewHeight,
+                viewportWidth,
+                viewportHeight,
+                out double pixelScaleX,
+                out double pixelScaleY)) return true;
+        int commandCount = 0;
+        int elementCount = 0;
+        var rasterWork = new SvgRasterWorkBudget(maximumViewportPixels, viewX, viewY,
+            viewWidth, viewHeight, viewportWidth, viewportHeight, pixelScaleX, pixelScaleY,
+            HasStylesheetNonScalingStrokeDeclaration(root));
+        var references = new SvgElementReferenceRegistry(SvgDefinitionRegistry.Create(root));
+        string? fill = ResolveInheritedSvgPaint(root, "fill", inherited: null);
+        string? stroke = ResolveInheritedSvgPaint(root, "stroke", inherited: null);
+        if (!TryResolveRasterStrokeStyle(root, SvgRasterStrokeStyle.Default, out SvgRasterStrokeStyle strokeStyle)) return true;
+        if (!TryResolveRasterTextStyle(root, SvgRasterTextStyle.Default, out SvgRasterTextStyle textStyle)) return true;
+        string? marker = ResolveInheritedSvgPaint(root, "marker", inherited: null);
+        string? markerStart = ResolveInheritedSvgPaint(root, "marker-start", marker);
+        string? markerMid = ResolveInheritedSvgPaint(root, "marker-mid", marker);
+        string? markerEnd = ResolveInheritedSvgPaint(root, "marker-end", marker);
+        foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
+            if (!TryAddRenderedSvgLocalReference(
+                    ReadRasterPresentationProperty(root, propertyName),
+                    propertyName,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    rootTransform,
+                    viewX,
+                    viewY,
+                    rasterWork)) return true;
+        }
+        foreach (XElement child in root.Elements()) {
+            if (!TryAddRenderedSvgExpansion(
+                    child,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    rootTransform,
+                    viewX,
+                    viewY,
+                    rasterWork,
+                    fill,
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd,
+                    strokeStyle,
+                    textStyle)) return true;
+        }
+        return false;
+    }
+
+    private static bool HasPotentialStylesheetRenderedDefinitionReference(XElement root) {
+        var expandedDefinitionIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement element in root.Descendants()) {
+            string name = element.Name.LocalName;
+            bool isExpandedDefinition = name.Equals("pattern", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("mask", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("filter", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("marker", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("radialGradient", StringComparison.OrdinalIgnoreCase);
+            if (!isExpandedDefinition) continue;
+            string? id = ReadRasterElementId(element);
+            if (!string.IsNullOrEmpty(id)) expandedDefinitionIds.Add(id!);
+        }
+        return expandedDefinitionIds.Count > 0
+            && (root.Descendants().Any(element =>
+                    element.Name.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase)
+                    && ContainsLocalCssUrlReference(element.Value, expandedDefinitionIds))
+                || root.DescendantsAndSelf().Any(element =>
+                    ContainsLocalCssCustomPropertyUrlReference(ReadRasterInlineStyleAttribute(element), expandedDefinitionIds)));
+    }
+
+    // ChartForgeX projects non-XML attributes by local name into a dictionary, so a later
+    // namespace-qualified attribute replaces an earlier value with the same local name.
+    private static string? ReadRasterInlineStyleAttribute(XElement element) =>
+        ReadRasterProjectedAttribute(element, "style");
+
+    private static bool TryAddRenderedSvgExpansion(
+        XElement element,
+        SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
+        ref int commandCount,
+        OfficeTransform inheritedTransform,
+        double viewX,
+        double viewY,
+        SvgRasterWorkBudget rasterWork,
+        string? inheritedFill = null,
+        string? inheritedStroke = null,
+        string? inheritedMarkerStart = null,
+        string? inheritedMarkerMid = null,
+        string? inheritedMarkerEnd = null,
+        SvgRasterStrokeStyle inheritedStrokeStyle = default,
+        SvgRasterTextStyle inheritedTextStyle = default) {
+        elementCount++;
+        if (elementCount > maximumElements) return false;
+
+        string name = element.Name.LocalName.ToLowerInvariant();
+        if (name is "defs" or "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return true;
+        if (!TryResolveSupportedRasterTransform(
+                element,
+                inheritedTransform,
+                viewX,
+                viewY,
+                out OfficeTransform transform)) return false;
+        if (name == "use") {
+            if (!TryReadRasterUsePlacement(element, out double useX, out double useY)) return false;
+            transform = OfficeTransform.Translate(useX, useY).Then(transform);
+            if (!IsSupportedSvgTransform(transform)) return false;
+        }
+
+        if (name == "svg"
+            && !TryResolveNestedRasterViewportTransform(element, transform, out transform)) return false;
+
+        if (!TryAddRenderedSvgPayloadComplexity(element, maximumElements, ref elementCount)) return false;
+        string? fill = ResolveInheritedSvgPaint(element, "fill", inheritedFill);
+        string? stroke = ResolveInheritedSvgPaint(element, "stroke", inheritedStroke);
+        if (!TryResolveRasterStrokeStyle(element, inheritedStrokeStyle, out SvgRasterStrokeStyle strokeStyle)
+            || !TryResolveRasterTextStyle(element, inheritedTextStyle, out SvgRasterTextStyle textStyle)
+            || !rasterWork.TryChargeRenderedElement(element, transform, stroke, strokeStyle, textStyle)) return false;
+        if (name == "textpath"
+            && !TryAddRenderedSvgElementReference(
+                element,
+                "path",
+                references,
+                maximumElements,
+                ref elementCount,
+                ref commandCount,
+                transform,
+                viewX,
+                viewY,
+                rasterWork)) return false;
+
+        string? marker = ResolveInheritedSvgPaint(element, "marker", inherited: null);
+        string? markerStart = ResolveInheritedSvgPaint(element, "marker-start", marker ?? inheritedMarkerStart);
+        string? markerMid = ResolveInheritedSvgPaint(element, "marker-mid", marker ?? inheritedMarkerMid);
+        string? markerEnd = ResolveInheritedSvgPaint(element, "marker-end", marker ?? inheritedMarkerEnd);
+        if (IsRenderedSvgPaintConsumer(name)) {
+            if (!TryAddRenderedSvgPatternReference(
+                    fill,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork)
+                || !TryAddRenderedSvgPatternReference(
+                    stroke,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork)) return false;
+        }
+
+        SvgMarkerPlacementCounts markerPlacements = CountSvgMarkerPlacements(element);
+        if (markerPlacements.HasAny
+            && (!TryAddRenderedSvgLocalReferenceApplications(
+                    markerStart,
+                    "marker",
+                    markerPlacements.Start,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork)
+                || !TryAddRenderedSvgLocalReferenceApplications(
+                    markerMid,
+                    "marker",
+                    markerPlacements.Mid,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork)
+                || !TryAddRenderedSvgLocalReferenceApplications(
+                    markerEnd,
+                    "marker",
+                    markerPlacements.End,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork))) return false;
+
+        foreach (string propertyName in RenderedSvgLocalReferenceProperties) {
+            if (!TryAddRenderedSvgLocalReference(
+                    ReadRasterPresentationProperty(element, propertyName),
+                    propertyName,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork)) return false;
+        }
+
+        if (name == "use") {
+            SvgElementReferenceEntryResult useResult = references.TryEnterDetailed(
+                element,
+                out string referenceId,
+                out XElement? target);
+            if (useResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (useResult != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(element);
+            try {
+                if (!TryResolveRenderedUseTargetTransform(
+                        element,
+                        target!,
+                        transform,
+                        out OfficeTransform targetTransform)) return false;
+                return TryAddRenderedSvgExpansion(
+                    target!,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    targetTransform,
+                    viewX,
+                    viewY,
+                    rasterWork,
+                    fill,
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd,
+                    strokeStyle,
+                    textStyle);
+            } finally {
+                references.Exit(referenceId);
+            }
+        }
+
+        if (name is "pattern" or "filter") {
+            SvgElementReferenceEntryResult inheritedDefinitionResult = references.TryEnterDetailed(
+                element,
+                name,
+                out string inheritedDefinitionId,
+                out XElement? inheritedDefinition);
+            if (inheritedDefinitionResult is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+            if (inheritedDefinitionResult != SvgElementReferenceEntryResult.Entered
+                && HasLocalSvgElementReference(element)) return false;
+            if (inheritedDefinitionResult == SvgElementReferenceEntryResult.Entered) {
+                try {
+                    if (!TryAddRenderedSvgDefinitionExpansion(
+                            inheritedDefinition!,
+                            references,
+                            maximumElements,
+                            ref elementCount,
+                            ref commandCount,
+                            transform,
+                            viewX,
+                            viewY,
+                            rasterWork)) return false;
+                } finally {
+                    references.Exit(inheritedDefinitionId);
+                }
+            }
+        }
+
+        if (!TryAddSvgGeometryCommands(element, ref commandCount)) return false;
+        foreach (XElement child in element.Elements()) {
+            if (!TryAddRenderedSvgExpansion(
+                    child,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork,
+                    fill,
+                    stroke,
+                    markerStart,
+                    markerMid,
+                    markerEnd,
+                    strokeStyle,
+                    textStyle)) return false;
+        }
+        return true;
+    }
+
+    private static readonly string[] RenderedSvgLocalReferenceProperties = {
+        "mask",
+        "clip-path",
+        "filter"
+    };
+
+    private static bool TryAddRenderedSvgLocalReference(
+        string? value,
+        string propertyName,
+        SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
+        SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
+            value,
+            out string referenceId,
+            out XElement? target);
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
+        try {
+            string targetName = target!.Name.LocalName;
+            bool conservativeReferencePlacement =
+                (propertyName.Equals("mask", StringComparison.OrdinalIgnoreCase)
+                    && targetName.Equals("mask", StringComparison.OrdinalIgnoreCase))
+                || (propertyName.Equals("clip-path", StringComparison.OrdinalIgnoreCase)
+                    && targetName.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(
+                        ReadRasterProjectedAttribute(target, "clipPathUnits")?.Trim(),
+                        "objectBoundingBox",
+                        StringComparison.OrdinalIgnoreCase));
+            if (conservativeReferencePlacement) rasterWork.EnterConservativePlacement();
+            try {
+                return TryAddRenderedSvgDefinitionExpansion(
+                    target!,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork);
+            } finally {
+                if (conservativeReferencePlacement) rasterWork.ExitConservativePlacement();
+            }
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static bool TryAddRenderedSvgPatternReference(
+        string? value,
+        SvgElementReferenceRegistry references,
+        int maximumElements,
+        ref int elementCount,
+        ref int commandCount,
+        OfficeTransform transform,
+        double viewX,
+        double viewY,
+        SvgRasterWorkBudget rasterWork) {
+        SvgElementReferenceEntryResult result = references.TryEnterLocalDetailed(
+            value,
+            out string referenceId,
+            out XElement? target);
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
+        try {
+            string targetName = target!.Name.LocalName;
+            if (targetName.Equals("linearGradient", StringComparison.OrdinalIgnoreCase)
+                || targetName.Equals("radialGradient", StringComparison.OrdinalIgnoreCase)) {
+                return TryValidateInheritedGradientReference(target, references);
+            }
+            if (!targetName.Equals("pattern", StringComparison.OrdinalIgnoreCase)) return false;
+            // Pattern units, content units, viewBox, and preserveAspectRatio can remap every
+            // descendant across the consumer bounds. Keep safe patterns compatible while
+            // conservatively charging each expanded paint operation as a viewport repaint.
+            rasterWork.EnterConservativePlacement();
+            try {
+                return TryAddRenderedSvgDefinitionExpansion(
+                    target,
+                    references,
+                    maximumElements,
+                    ref elementCount,
+                    ref commandCount,
+                    transform,
+                    viewX,
+                    viewY,
+                    rasterWork);
+            } finally {
+                rasterWork.ExitConservativePlacement();
+            }
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static bool TryValidateInheritedGradientReference(
+        XElement gradient,
+        SvgElementReferenceRegistry references) {
+        SvgElementReferenceEntryResult result = references.TryEnterDetailed(
+            gradient,
+            gradient.Name.LocalName,
+            out string referenceId,
+            out XElement? inheritedGradient);
+        if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
+        if (result != SvgElementReferenceEntryResult.Entered) return !HasLocalSvgElementReference(gradient);
+        try {
+            return TryValidateInheritedGradientReference(inheritedGradient!, references);
+        } finally {
+            references.Exit(referenceId);
+        }
+    }
+
+    private static bool HasPotentialSvgUrlFunction(string? value) =>
+        ContainsPotentialCssIdentifier(value, "url");
+
+    private static string? ResolveInheritedSvgPaint(XElement element, string propertyName, string? inherited) {
+        string? value = ReadRasterPresentationProperty(element, propertyName);
+        if (string.IsNullOrWhiteSpace(value)) return inherited;
+        return value!.Trim().Equals("inherit", StringComparison.OrdinalIgnoreCase) ? inherited : value;
+    }
+
+    private static bool IsRenderedSvgPaintConsumer(string name) => name is not (
+        "svg" or "g" or "a" or "switch" or "symbol" or "pattern" or "mask" or "clippath" or
+        "filter" or "marker" or "style");
+
+    private static bool TryAddSvgGeometryCommands(XElement element, ref int commandCount) {
+        string name = element.Name.LocalName;
+        int remaining = MaximumSvgPathCommands - commandCount;
+        if (name.Equals("path", StringComparison.OrdinalIgnoreCase)) {
+            _ = OfficeSvgPathDataParser.TryParse(
+                ReadRasterProjectedAttribute(element, "d"),
+                remaining + 1,
+                out IReadOnlyList<OfficePathCommand> commands,
+                out bool commandLimitExceeded);
+            if (commandLimitExceeded || commands.Count > remaining) return false;
+            commandCount += commands.Count;
+            return true;
+        }
+
+        bool close = name.Equals("polygon", StringComparison.OrdinalIgnoreCase);
+        if (!close && !name.Equals("polyline", StringComparison.OrdinalIgnoreCase)) return true;
+        int maximumValues = (remaining + 1) * 2;
+        bool parsed = TryParseNumberList(
+            ReadRasterProjectedAttribute(element, "points"),
+            maximumValues,
+            out IReadOnlyList<double> values,
+            out bool valueLimitExceeded);
+        if (valueLimitExceeded) return false;
+        int elementCommands = values.Count / 2;
+        if (parsed && close && values.Count >= 6 && values.Count % 2 == 0) elementCommands++;
+        if (elementCommands > remaining) return false;
+        commandCount += elementCommands;
+        return true;
+    }
 
     private static void AddChildren(
         XElement parent,
@@ -177,6 +780,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (depth > MaximumSvgNestingDepth) {
             unsupported++;
@@ -185,7 +789,7 @@ public static partial class OfficeSvgDrawingReader {
         foreach (XElement element in parent.Elements()) {
             AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (visited > maximumElements) return;
         }
     }
@@ -205,6 +809,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         visited++;
         if (visited > maximumElements) return;
@@ -232,13 +837,14 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             AddChildren(element, target, style, paintServers, references, transform, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (hasEffects) drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             return;
         }
@@ -259,6 +865,7 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
@@ -266,7 +873,7 @@ public static partial class OfficeSvgDrawingReader {
             if (name == "use") {
                 AddReferencedElement(element, target, style, paintServers, references, transform, viewX, viewY,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
-                    ref visited, ref pathCommands, ref unsupported);
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             } else {
                 AddText(element, target, style, paintServers, transform, viewX, viewY, ref unsupported);
             }
@@ -279,9 +886,9 @@ public static partial class OfficeSvgDrawingReader {
             "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "ellipse" => CreateEllipse(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "line" => CreateLine(element, style, viewX, viewY, drawing.Width, drawing.Height),
-            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands),
-            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands),
-            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands),
+            "polygon" => CreatePolygon(element, style, viewX, viewY, close: true, ref pathCommands, ref pathCommandLimitExceeded),
+            "polyline" => CreatePolygon(element, style, viewX, viewY, close: false, ref pathCommands, ref pathCommandLimitExceeded),
+            "path" => CreatePath(element, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded),
             _ => null
         };
         if (shape == null) {
@@ -310,6 +917,7 @@ public static partial class OfficeSvgDrawingReader {
                 depth,
                 ref visited,
                 ref pathCommands,
+                ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask);
@@ -456,10 +1064,13 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePolygon(XElement element, SvgPaintContext style, double viewX,
-        double viewY, bool close, ref int pathCommands) {
+        double viewY, bool close, ref int pathCommands, ref bool pathCommandLimitExceeded) {
         int remainingCommands = MaximumSvgPathCommands - pathCommands;
         if (remainingCommands <= 0) {
-            pathCommands = MaximumSvgPathCommands;
+            int minimumValues = close ? 6 : 4;
+            _ = TryParseNumberList(element.Attribute("points")?.Value, minimumValues,
+                out IReadOnlyList<double> probeValues, out _);
+            pathCommandLimitExceeded |= probeValues.Count >= minimumValues;
             return null;
         }
         bool parsed = TryParseNumberList(element.Attribute("points")?.Value, remainingCommands * 2,
@@ -467,6 +1078,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!parsed || values.Count < 4 || values.Count % 2 != 0) {
             if (limitExceeded) {
                 pathCommands = MaximumSvgPathCommands;
+                pathCommandLimitExceeded = true;
             } else if (values.Count > 0) {
                 int parsedCommands = Math.Max(1, (values.Count + 1) / 2);
                 pathCommands += Math.Min(remainingCommands, parsedCommands);
@@ -480,6 +1092,7 @@ public static partial class OfficeSvgDrawingReader {
         }
         if (commandCount > remainingCommands) {
             pathCommands = MaximumSvgPathCommands;
+            pathCommandLimitExceeded = true;
             return null;
         }
         var points = new List<OfficePoint>(values.Count / 2);
@@ -505,13 +1118,21 @@ public static partial class OfficeSvgDrawingReader {
     }
 
     private static OfficeDrawingShape? CreatePath(XElement element, SvgPaintContext style, double viewX,
-        double viewY, ref int pathCommands) {
+        double viewY, ref int pathCommands, ref bool pathCommandLimitExceeded) {
         int remaining = MaximumSvgPathCommands - pathCommands;
-        if (remaining <= 0) return null;
+        if (remaining <= 0) {
+            _ = OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, 1,
+                out IReadOnlyList<OfficePathCommand> probeCommands, out _);
+            pathCommandLimitExceeded |= probeCommands.Count > 0;
+            return null;
+        }
         if (!OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, remaining,
                 out IReadOnlyList<OfficePathCommand> parsed, out bool commandLimitExceeded)) {
             pathCommands += Math.Min(remaining, parsed.Count);
-            if (commandLimitExceeded) pathCommands = MaximumSvgPathCommands;
+            if (commandLimitExceeded) {
+                pathCommands = MaximumSvgPathCommands;
+                pathCommandLimitExceeded = true;
+            }
             return null;
         }
         pathCommands += parsed.Count;
@@ -599,6 +1220,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("baseline-shift", element.Attribute("baseline-shift")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("filter", element.Attribute("filter")?.Value, paintServers, ref result, ref unsupported);
@@ -606,14 +1228,66 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("marker-start", element.Attribute("marker-start")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("marker-mid", element.Attribute("marker-mid")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("marker-end", element.Attribute("marker-end")?.Value, paintServers, ref result, ref unsupported);
+        string? authoredLineHeight = element.Attribute("line-height")?.Value;
         foreach (string declaration in declarations) {
             int colon = declaration.IndexOf(':');
             if (colon <= 0) continue;
             string name = declaration.Substring(0, colon).Trim();
-            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals("color", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("line-height", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("baseline-shift", StringComparison.OrdinalIgnoreCase)) continue;
             ApplyProperty(name, declaration.Substring(colon + 1).Trim(), paintServers, ref result, ref unsupported);
         }
+        if (TryResolveInlineProperty(declarations, "baseline-shift", IsValidBaselineShiftValue, out string? inlineBaselineShift, out int invalidBaselineShifts)) {
+            ApplyProperty("baseline-shift", inlineBaselineShift, paintServers, ref result, ref unsupported);
+        }
+        unsupported += invalidBaselineShifts;
+        if (TryResolveInlineProperty(
+                declarations,
+                "line-height",
+                candidate => candidate.Equals("inherit", StringComparison.OrdinalIgnoreCase) || TryParseLineHeight(candidate, result.FontSize, out _),
+                out string? inlineLineHeight,
+                out int invalidLineHeights)) {
+            authoredLineHeight = inlineLineHeight;
+        }
+        unsupported += invalidLineHeights;
+        ApplyProperty("line-height", authoredLineHeight, paintServers, ref result, ref unsupported);
         return result;
+    }
+
+    private static bool TryResolveInlineProperty(
+        IEnumerable<string> declarations,
+        string propertyName,
+        Func<string, bool> validator,
+        out string? value,
+        out int invalidCount) {
+        value = null;
+        invalidCount = 0;
+        bool hasWinner = false;
+        bool winnerIsImportant = false;
+        foreach (string declaration in declarations) {
+            int colon = declaration.IndexOf(':');
+            if (colon <= 0 || !declaration.Substring(0, colon).Trim().Equals(propertyName, StringComparison.OrdinalIgnoreCase)) continue;
+            string candidate = declaration.Substring(colon + 1).Trim();
+            bool important = TryStripImportant(candidate, out candidate);
+            if (!validator(candidate)) {
+                invalidCount++;
+                continue;
+            }
+            if (hasWinner && winnerIsImportant && !important) continue;
+            value = candidate;
+            hasWinner = true;
+            winnerIsImportant = important;
+        }
+        return hasWinner;
+    }
+
+    private static bool TryStripImportant(string value, out string normalized) {
+        normalized = value.Trim();
+        int bang = normalized.LastIndexOf('!');
+        if (bang < 0 || !normalized.Substring(bang + 1).Trim().Equals("important", StringComparison.OrdinalIgnoreCase)) return false;
+        normalized = normalized.Substring(0, bang).Trim();
+        return true;
     }
 
     private static void ApplyProperty(string name, string? value, SvgPaintServerRegistry paintServers, ref SvgPaintContext style, ref int unsupported) {
@@ -686,6 +1360,11 @@ public static partial class OfficeSvgDrawingReader {
                 if (!TrySvgLength(normalized, out double fontSize) || fontSize <= 0D) unsupported++;
                 else style.FontSize = fontSize;
                 break;
+            case "line-height":
+                if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (!TryParseLineHeight(normalized, style.FontSize, out SvgLineHeight lineHeight)) unsupported++;
+                else style.LineHeight = lineHeight;
+                break;
             case "font-style":
                 if (normalized.Equals("normal", StringComparison.OrdinalIgnoreCase)) style.FontStyle &= ~OfficeFontStyle.Italic;
                 else if (normalized.Equals("italic", StringComparison.OrdinalIgnoreCase) || normalized.Equals("oblique", StringComparison.OrdinalIgnoreCase)) style.FontStyle |= OfficeFontStyle.Italic;
@@ -712,6 +1391,16 @@ public static partial class OfficeSvgDrawingReader {
                 else if (baseline is "middle" or "central") style.DominantBaseline = SvgDominantBaseline.Middle;
                 else if (baseline is "text-after-edge" or "ideographic") style.DominantBaseline = SvgDominantBaseline.TextAfterEdge;
                 else unsupported++;
+                break;
+            case "baseline-shift":
+                if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) break;
+                if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)
+                    || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) {
+                    style.BaselineShift = default;
+                    break;
+                }
+                if (!TryParseBaselineShift(normalized, out SvgBaselineShift baselineShift)) unsupported++;
+                else style.BaselineShift = baselineShift;
                 break;
             case "display":
                 if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
@@ -895,9 +1584,11 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeFillRule FillRule;
         internal string FontFamily;
         internal double FontSize;
+        internal SvgLineHeight LineHeight;
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
         internal SvgDominantBaseline DominantBaseline;
+        internal SvgBaselineShift BaselineShift;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -928,9 +1619,11 @@ public static partial class OfficeSvgDrawingReader {
             FillRule = OfficeFillRule.NonZero,
             FontFamily = "Arial",
             FontSize = 16D,
+            LineHeight = SvgLineHeight.Normal,
             FontStyle = OfficeFontStyle.Regular,
             TextAnchor = "start",
             DominantBaseline = SvgDominantBaseline.Alphabetic,
+            BaselineShift = default,
             Visible = true
         };
     }
@@ -940,5 +1633,127 @@ public static partial class OfficeSvgDrawingReader {
         Hanging,
         Middle,
         TextAfterEdge
+    }
+
+    private enum SvgBaselineShiftBasis {
+        Absolute,
+        FontSize,
+        LineHeight
+    }
+
+    private readonly struct SvgBaselineShift {
+        internal SvgBaselineShift(double value, SvgBaselineShiftBasis basis) {
+            Value = value;
+            Basis = basis;
+        }
+
+        internal double Value { get; }
+        internal SvgBaselineShiftBasis Basis { get; }
+
+        internal double Resolve(double fontSize, double lineHeight) {
+            if (Basis == SvgBaselineShiftBasis.FontSize) return Value * fontSize;
+            if (Basis == SvgBaselineShiftBasis.LineHeight) return Value * lineHeight;
+            return Value;
+        }
+    }
+
+    private readonly struct SvgLineHeight {
+        internal SvgLineHeight(double value, bool relativeToFontSize) {
+            Value = value;
+            RelativeToFontSize = relativeToFontSize;
+        }
+
+        internal double Value { get; }
+        internal bool RelativeToFontSize { get; }
+        internal double Resolve(double fontSize) => RelativeToFontSize ? Value * fontSize : Value;
+        internal static SvgLineHeight Normal => new SvgLineHeight(1.2D, relativeToFontSize: true);
+    }
+
+    private static bool TryParseBaselineShift(string value, out SvgBaselineShift shift) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "baseline") {
+            shift = default;
+            return true;
+        }
+        if (normalized == "super") {
+            shift = new SvgBaselineShift(0.6D, SvgBaselineShiftBasis.FontSize);
+            return true;
+        }
+        if (normalized == "sub") {
+            shift = new SvgBaselineShift(-0.2D, SvgBaselineShiftBasis.FontSize);
+            return true;
+        }
+        if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage)
+            && !double.IsNaN(percentage)
+            && !double.IsInfinity(percentage)) {
+            shift = new SvgBaselineShift(percentage / 100D, SvgBaselineShiftBasis.LineHeight);
+            return true;
+        }
+        if (TryParseFontRelativeBaselineShift(normalized, out shift)) {
+            return true;
+        }
+        if (TrySvgLength(normalized, out double length)) {
+            shift = new SvgBaselineShift(length, SvgBaselineShiftBasis.Absolute);
+            return true;
+        }
+        shift = default;
+        return false;
+    }
+
+    private static bool TryParseFontRelativeBaselineShift(string value, out SvgBaselineShift shift) {
+        double scale;
+        string number;
+        if (value.EndsWith("em", StringComparison.Ordinal)) {
+            scale = 1D;
+            number = value.Substring(0, value.Length - 2);
+        } else if (value.EndsWith("ex", StringComparison.Ordinal) || value.EndsWith("ch", StringComparison.Ordinal)) {
+            scale = 0.5D;
+            number = value.Substring(0, value.Length - 2);
+        } else {
+            shift = default;
+            return false;
+        }
+
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
+            || double.IsNaN(multiplier)
+            || double.IsInfinity(multiplier)) {
+            shift = default;
+            return false;
+        }
+
+        shift = new SvgBaselineShift(multiplier * scale, SvgBaselineShiftBasis.FontSize);
+        return true;
+    }
+
+    private static bool TryParseLineHeight(string value, double fontSize, out SvgLineHeight lineHeight) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "normal") {
+            lineHeight = SvgLineHeight.Normal;
+            return true;
+        }
+        if (normalized.EndsWith("%", StringComparison.Ordinal)
+            && double.TryParse(normalized.Substring(0, normalized.Length - 1), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double percentage)
+            && percentage >= 0D
+            && !double.IsNaN(percentage)
+            && !double.IsInfinity(percentage)) {
+            lineHeight = new SvgLineHeight(fontSize * percentage / 100D, relativeToFontSize: false);
+            return true;
+        }
+        if (double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier)
+            && multiplier >= 0D
+            && !double.IsNaN(multiplier)
+            && !double.IsInfinity(multiplier)) {
+            lineHeight = new SvgLineHeight(multiplier, relativeToFontSize: true);
+            return true;
+        }
+        if (TrySvgLength(normalized, out double length) && length >= 0D) {
+            lineHeight = new SvgLineHeight(length, relativeToFontSize: false);
+            return true;
+        }
+        lineHeight = default;
+        return false;
     }
 }

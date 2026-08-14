@@ -119,6 +119,169 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_DescendantNoWrapMovesBelowTheObstructedLineAsOneRange() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"
+            + "<span id='float' style='float:left;width:45px;height:20px;background:#ff0000'></span>"
+            + "Lead <span style='white-space:nowrap'><span>No wrap</span> range</span> tail</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape floating = FindPositionedShape(rendered, "span#float");
+        IReadOnlyList<HtmlRenderText> text = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+        HtmlRenderText noWrapStart = Assert.Single(text, visual => visual.Text == "No wrap");
+        HtmlRenderText noWrapEnd = Assert.Single(text, visual => visual.Text == " range");
+
+        Assert.True(noWrapStart.Y >= floating.Y + floating.Height - 0.001D);
+        Assert.Equal(0D, noWrapStart.X, 3);
+        Assert.Equal(noWrapStart.Y, noWrapEnd.Y, 3);
+        Assert.True(noWrapEnd.X > noWrapStart.X);
+    }
+
+    [Fact]
+    public void HtmlFloat_AutomaticHyphenationUsesAuthoredBreakpointsAndCharacter() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextHyphenationCallback = token => token == "typography" ? new[] { 2, 5, 7 } : Array.Empty<int>()
+        };
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px'>"
+            + "<span style='float:left;width:50px;height:28px'></span>"
+            + "<span style='hyphens:auto;hyphenate-character:\"·\"'>typography</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderText> fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
+
+        Assert.Contains(fragments, fragment => fragment.Text.EndsWith("·", StringComparison.Ordinal));
+        Assert.Equal("typography", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
+    public void HtmlFloat_ExpandsPreformattedTabsUsingAuthoredTabStops() {
+        const string compact = "<pre style='width:120px;margin:0;font:12px/14px Consolas;tab-size:2'><span style='float:left;width:20px;height:14px'></span>A\tB</pre>";
+        const string wide = "<pre style='width:120px;margin:0;font:12px/14px Consolas;tab-size:8'><span style='float:left;width:20px;height:14px'></span>A\tB</pre>";
+
+        HtmlRenderText[] compactText = HtmlRenderTestDriver.Render(compact).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText[] wideText = HtmlRenderTestDriver.Render(wide).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.DoesNotContain('\t', string.Concat(compactText.Select(text => text.Text)));
+        Assert.DoesNotContain('\t', string.Concat(wideText.Select(text => text.Text)));
+        Assert.True(Assert.Single(wideText, text => text.Text == "B").X > Assert.Single(compactText, text => text.Text == "B").X);
+    }
+
+    [Fact]
+    public void HtmlFloat_PreservesInteriorTabPositionsInsideSpacedWhitespaceRuns() {
+        const string html = "<pre style='width:140px;margin:0;font:12px/14px Consolas;tab-size:8'><span style='float:left;width:20px;height:14px'></span>A \t B</pre>";
+
+        HtmlRenderText[] text = HtmlRenderTestDriver.Render(html).Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+        HtmlRenderText before = Assert.Single(text, item => item.Text == "A ");
+        HtmlRenderText after = Assert.Single(text, item => item.Text == " B");
+
+        Assert.True(after.X > before.X + before.Width + 15D);
+    }
+
+    [Fact]
+    public void HtmlFloat_HyphenateLimitLastAlwaysDoesNotSuppressEarlierWordBreaks() {
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 180D }
+            .UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(
+                new[] { "ty-pog-ra-phy" },
+                minimumPrefixLength: 1,
+                minimumSuffixLength: 1));
+        const string html = "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>"
+            + "<span style='float:left;width:8px;height:10px'></span>to show typography continues</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string text = string.Join("\n", rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(fragment => fragment.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text))));
+
+        Assert.Contains("-", text, StringComparison.Ordinal);
+        Assert.EndsWith("continues", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFloat_BreakAllSuppressesManualAndAutomaticHyphenation() {
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextHyphenationCallback = _ => throw new InvalidOperationException("break-all must suppress automatic hyphenation callbacks")
+        };
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px'>"
+            + "<span style='float:left;width:50px;height:28px'></span>"
+            + "<span style='word-break:break-all;hyphens:auto;hyphenate-character:\"·\"'>ty\u00ADpography</span></p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] fragments = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToArray();
+
+        Assert.True(fragments.Select(fragment => fragment.Y).Distinct().Count() > 1);
+        Assert.InRange(fragments[0].X, 49.9D, 50.1D);
+        Assert.InRange(fragments[0].Y, -0.001D, 0.001D);
+        Assert.DoesNotContain("·", string.Concat(fragments.Select(fragment => fragment.Text)), StringComparison.Ordinal);
+        Assert.Equal("typography", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
+    public void HtmlFloat_LineClampTruncatesFloatAwareLinesAndAddsEllipsis() {
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px;overflow:hidden;line-clamp:2'>"
+            + "<span style='float:left;width:30px;height:28px'></span>one two three four five six seven eight nine ten eleven twelve</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToList();
+
+        Assert.Equal(2, lines.Select(line => line.Y).Distinct().Count());
+        Assert.EndsWith("\u2026", lines[lines.Count - 1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFloat_NoWrapTextOverflowUsesEllipsisBesideAnObstruction() {
+        const string html = "<p style='width:100px;margin:0;font-size:12px;line-height:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis'>"
+            + "<span style='float:left;width:30px;height:20px'></span>one two three four five six seven eight</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderText> fragments = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .OrderBy(fragment => fragment.X)
+            .ToList();
+
+        Assert.Single(fragments.Select(fragment => fragment.Y).Distinct());
+        Assert.EndsWith("\u2026", fragments[fragments.Count - 1].Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFloat_CjkUsesPreferredLineBreaksBesideAnObstruction() {
+        const string text = "日本語中文";
+        string html = """
+            <div style="width:70px;font:12px/14px Arial,sans-serif">
+              <span style="float:left;width:38px;height:28px"></span>日本語中文
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 120D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        IReadOnlyList<HtmlRenderText> lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(visual => text.Contains(visual.Text, StringComparison.Ordinal))
+            .OrderBy(visual => visual.Y)
+            .ThenBy(visual => visual.X)
+            .ToList();
+        Assert.True(lines.Select(line => line.Y).Distinct().Count() > 1);
+        Assert.Equal(text, string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+    }
+
+    [Fact]
     public void HtmlFloatImage_UsesIntrinsicAspectRatioWithoutConsumingTheLine() {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
         string html = "<p style='width:100px;margin:0;font-size:10px;line-height:10px'>"

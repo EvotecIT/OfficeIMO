@@ -280,8 +280,10 @@ public sealed partial class PdfReadPage {
         double projectionPageWidth,
         double projectionPageHeight,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PdfPageXObjectInvocation? initialState = null) {
+        PdfPageXObjectInvocation? initialState = null,
+        PdfTextClippingBudget? textClippingBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
+        textClippingBudget ??= new PdfTextClippingBudget();
         nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, contentNestingDepth);
         bool supported = true;
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
@@ -339,7 +341,8 @@ public sealed partial class PdfReadPage {
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget,
-                type3GlyphBudget));
+                type3GlyphBudget),
+            textClippingBudget: textClippingBudget);
         if (invokedPatternNames.Count > 0) nestingDepth.Cacheable = false;
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
@@ -348,7 +351,9 @@ public sealed partial class PdfReadPage {
             pageContentBudget: pageContentBudget,
             type3GlyphBudget: type3GlyphBudget,
             requireSupportedType3Content: true,
-            contentNestingDepth: contentNestingDepth);
+            contentNestingDepth: contentNestingDepth,
+            invocationTextClippingBudget: textClippingBudget,
+            patternTextClippingBudget: textClippingBudget);
         Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
         Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources);
         _ = PdfPageContentVisualParser.Parse(
@@ -387,7 +392,8 @@ public sealed partial class PdfReadPage {
                 }
             },
             initialFillPattern: initialState?.FillPattern,
-            initialStrokePattern: initialState?.StrokePattern);
+            initialStrokePattern: initialState?.StrokePattern,
+            textClippingBudget: textClippingBudget);
         if (!supported) return false;
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -438,6 +444,7 @@ public sealed partial class PdfReadPage {
                             glyph.StrokePatternBaseColorSpace,
                             pageContentBudget,
                             type3GlyphBudget,
+                            textClippingBudget,
                             activeType3Glyphs,
                             validationDiagnostics,
                             validationDiagnosticKeys,
@@ -524,7 +531,8 @@ public sealed partial class PdfReadPage {
                 type3PaintChannelCache,
                 activeType3PaintChannelStreams,
                 pageContentBudget,
-                type3GlyphBudget));
+                type3GlyphBudget),
+            textClippingBudget: textClippingBudget);
         if (!supported) return false;
 
         for (int index = 0; index < invocations.Count; index++) {
@@ -583,7 +591,8 @@ public sealed partial class PdfReadPage {
                         projectionPageWidth,
                         projectionPageHeight,
                         textOutputBudget,
-                        invocation)) {
+                        invocation,
+                        textClippingBudget)) {
                     return false;
                 }
             } finally {
@@ -771,11 +780,13 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
         PdfContentOrderKey? contentOrderPrefix = null,
         bool skipTransparencyGroupForms = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
@@ -827,7 +838,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeLineJoin,
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
-                     _limits.MaxContentOperands)) {
+                     _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
@@ -861,6 +873,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget,
                     contentOrderPrefix: formOrderPrefix,
                     skipTransparencyGroupForms: skipTransparencyGroupForms);
@@ -925,7 +938,9 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> active,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget) {
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
@@ -936,7 +951,7 @@ public sealed partial class PdfReadPage {
                 luminosityStandard: OfficeSoftMaskLuminosityStandard.PdfDeviceRgb);
         }
         try {
-            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
             var mask = new OfficeDrawingSoftMask(
                 drawing,
                 resource.Mode,
@@ -960,6 +975,8 @@ public sealed partial class PdfReadPage {
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget,
         string? decodedContent = null) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
@@ -994,6 +1011,8 @@ public sealed partial class PdfReadPage {
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
             tilingPatternResourceCache: new TilingPatternResourceCache(),
             textOutputBudget: textOutputBudget,
+            invocationTextClippingBudget: invocationTextClippingBudget,
+            patternTextClippingBudget: patternTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -1017,6 +1036,7 @@ public sealed partial class PdfReadPage {
             paintOrderOffset: -transformedOffset,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset);
@@ -1034,6 +1054,7 @@ public sealed partial class PdfReadPage {
             height,
             placements,
             activeForms,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         if (placements.Count > 0) {
@@ -1052,6 +1073,7 @@ public sealed partial class PdfReadPage {
             enclosingEffects,
             new HashSet<PdfStream>(),
             PdfPageDrawingEffect.Default,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         SortGraphicsEffectTransitions(enclosingEffects);
@@ -1059,7 +1081,7 @@ public sealed partial class PdfReadPage {
 
         SortDrawingElements(elements);
         for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
         return drawing;
     }

@@ -12,7 +12,15 @@ public sealed class HtmlRenderPage {
     private readonly OfficeFontFaceCollection _fonts;
     private readonly HtmlCssRunningStringPageContext? _runningStrings;
 
-    internal HtmlRenderPage(int pageNumber, double width, double height, IEnumerable<HtmlRenderVisual> visuals, string? pageName = null, OfficeFontFaceCollection? fonts = null, HtmlCssRunningStringPageContext? runningStrings = null) {
+    internal HtmlRenderPage(
+        int pageNumber,
+        double width,
+        double height,
+        IEnumerable<HtmlRenderVisual> visuals,
+        string? pageName = null,
+        OfficeFontFaceCollection? fonts = null,
+        HtmlCssRunningStringPageContext? runningStrings = null,
+        HtmlRenderMargins? margins = null) {
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
@@ -24,6 +32,7 @@ public sealed class HtmlRenderPage {
         PageNumber = pageNumber;
         Width = width;
         Height = height;
+        Margins = margins ?? HtmlRenderMargins.All(0D);
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
         _scene = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
@@ -43,6 +52,9 @@ public sealed class HtmlRenderPage {
 
     /// <summary>Page height in CSS pixels.</summary>
     public double Height { get; }
+
+    /// <summary>Resolved page margins in CSS pixels.</summary>
+    public HtmlRenderMargins Margins { get; }
 
     /// <summary>CSS named-page identifier selected for this page, or <see langword="null"/> for the generic page master.</summary>
     public string? PageName { get; }
@@ -81,6 +93,8 @@ public sealed class HtmlRenderPage {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(semanticGroup.Visuals)) yield return child;
             } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 foreach (HtmlRenderVisual child in FlattenSemanticGroups(logicalTextGroup.Visuals)) yield return child;
+            } else if (visual is HtmlRenderFormField formField) {
+                foreach (HtmlRenderVisual child in FlattenSemanticGroups(formField.Visuals)) yield return child;
             } else {
                 yield return visual;
             }
@@ -112,7 +126,7 @@ public sealed class HtmlRenderPage {
                     text.Color,
                     text.Alignment,
                     text.LineHeight,
-                    textAdvanceWidth: text.TextAdvanceWidth.Value);
+                    textAdvanceWidth: text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width);
             } else {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }
@@ -142,6 +156,8 @@ public sealed class HtmlRenderPage {
             foreach (HtmlRenderVisual child in semanticGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         } else if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
+        } else if (visual is HtmlRenderFormField formField) {
+            foreach (HtmlRenderVisual child in formField.Visuals) AddVisual(drawing, child, surfaceWidth, surfaceHeight, fonts, cancellationToken);
         }
     }
 

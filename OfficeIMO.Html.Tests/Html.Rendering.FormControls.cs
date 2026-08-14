@@ -91,6 +91,80 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_TextInputsPreserveAuthoredWhitespaceAndHonorIntrinsicSize() {
+        const string html = "<input id='small' name='small' size='5' value='  A  B  '>"
+            + "<input id='large' name='large' size='50' value='Large'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            html,
+            new HtmlRenderOptions { ViewportWidth = 900D, Margins = HtmlRenderMargins.All(8D) });
+        HtmlRenderFormField[] fields = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderFormField>().ToArray();
+        HtmlRenderFormField small = Assert.Single(fields, field => field.Name == "small");
+        HtmlRenderFormField large = Assert.Single(fields, field => field.Name == "large");
+
+        Assert.Equal("  A  B  ", small.Value);
+        Assert.Equal("  A  B  ", Assert.Single(small.Visuals.OfType<HtmlRenderText>()).Text);
+        Assert.True(large.Width > small.Width * 5D, $"Expected size=50 to be materially wider than size=5, but widths were {large.Width:F1} and {small.Width:F1}.");
+    }
+
+    [Fact]
+    public void HtmlRendering_LongPasswordUsesTheSameMaskLengthAsItsInteractiveValue() {
+        string password = new string('s', 40);
+        string html = "<input id='secret' name='secret' type='password' value='" + password + "' style='width:400px'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 500D });
+        HtmlRenderFormField field = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderFormField>());
+
+        Assert.Equal(password, field.Value);
+        Assert.Equal(new string('*', password.Length), Assert.Single(field.Visuals.OfType<HtmlRenderText>()).Text);
+    }
+
+    [Fact]
+    public void HtmlRendering_TextAreaSoftWrapsStaticPaintUnlessWrapIsOff() {
+        const string content = "Alpha beta gamma delta epsilon";
+        string html = "<textarea id='soft' style='width:90px;height:100px;font:12px Arial'>" + content + "</textarea>"
+            + "<textarea id='off' wrap='off' style='width:90px;height:100px;font:12px Arial'>" + content + "</textarea>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 240D });
+        HtmlRenderText[] soft = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Where(text => text.Source == "textarea#soft").ToArray();
+        HtmlRenderText[] off = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().Where(text => text.Source == "textarea#off").ToArray();
+
+        Assert.True(soft.Length > 1);
+        Assert.True(soft.Select(text => text.Y).Distinct().Count() > 1);
+        Assert.Equal(content, string.Concat(soft.Select(text => text.Text)));
+        Assert.Equal(content, Assert.Single(off).Text);
+    }
+
+    [Fact]
+    public void HtmlRendering_GridAutoPlacementKeepsSpanningControlRowAfterPriorRows() {
+        const string html = """
+            <form style="display:grid;width:320px;grid-template-columns:1fr 1fr;gap:8px">
+              <label for="reviewer">Reviewer</label>
+              <label for="decision">Decision</label>
+              <input id="reviewer" name="reviewer" value="Ada" style="height:27px">
+              <select id="decision" name="decision" style="height:27px"><option selected>Approved</option></select>
+              <div style="grid-column:1 / span 2;display:grid;grid-template-columns:1fr 1fr;align-items:center;min-height:18px">
+                <label style="display:flex;align-items:center;min-height:18px"><input id="verified" type="checkbox" name="verified" checked style="width:12px;height:12px;flex:0 0 12px"><span>Verified</span></label>
+                <label style="display:flex;align-items:center;min-height:18px"><input id="managed" type="radio" name="lane" checked style="width:12px;height:12px;flex:0 0 12px"><span>Managed</span></label>
+              </div>
+            </form>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 360D });
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+        HtmlRenderShape reviewer = scene.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "input#reviewer")
+            .OrderByDescending(shape => shape.Height)
+            .First();
+        HtmlRenderShape verified = scene.OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source == "input#verified")
+            .OrderByDescending(shape => shape.Height)
+            .First();
+
+        Assert.True(verified.Y >= reviewer.Y + reviewer.Height, $"Expected the spanning control row below the text field, but reviewer={reviewer.Y:F1}-{reviewer.Y + reviewer.Height:F1} and verified={verified.Y:F1}.");
+    }
+
+    [Fact]
     public void HtmlRendering_SizedSingleSelectWithoutSelectionRendersBlank() {
         const string html = "<select size='2'><option>First choice</option><option>Second choice</option></select>";
 
@@ -98,6 +172,55 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.DoesNotContain("First choice", rendered.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Second choice", rendered.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRendering_TransformedControlsUseFaithfulStaticPaintInsteadOfAxisAlignedWidgets() {
+        const string html = "<input id='rotated' name='rotated' value='Tilted' style='width:140px;transform:rotate(12deg)'>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "input#rotated");
+        Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Tilted");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#rotated");
+    }
+
+    [Fact]
+    public void HtmlRendering_AncestorTransformsConvertDescendantControlsToStaticPaint() {
+        const string html = "<div id='rotated-parent' style='transform:rotate(12deg)'><input id='child' name='child' value='Descendant'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#rotated-parent");
+        Assert.True(Math.Abs(effect.Transform.M12) > 0.0001D || Math.Abs(effect.Transform.M21) > 0.0001D);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Descendant");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#child");
+    }
+
+    [Fact]
+    public void HtmlRendering_AncestorOpacityConvertsDescendantControlsToStaticPaint() {
+        const string html = "<div id='faded-parent' style='opacity:.4'><input id='child' name='child' value='Faded descendant'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        HtmlRenderEffectGroup effect = Assert.Single(scene.OfType<HtmlRenderEffectGroup>(), group => group.Source == "div#faded-parent");
+        Assert.Equal(0.4D, effect.Opacity, 6);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Faded descendant");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#child"
+            && diagnostic.Detail!.StartsWith("ancestor-opacity=", StringComparison.Ordinal));
     }
 
     [Fact]

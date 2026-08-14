@@ -173,7 +173,7 @@ public static partial class OfficeTiffCodec {
                      compression != (int)OfficeTiffCompression.PackBits &&
                      compression != (int)OfficeTiffCompression.Deflate &&
                      compression != 32946) ||
-                    orientation < 1 || orientation > 4 ||
+                    orientation < 1 || orientation > 8 ||
                     (samples != baseSamples && samples != baseSamples + 1) ||
                     rowsPerStrip < 1 ||
                     planarConfiguration != 1 ||
@@ -238,15 +238,16 @@ public static partial class OfficeTiffCodec {
                 }
                 if (destinationOffset != source.Length) return false;
 
+                int orientedWidth = orientation >= 5 ? height : width;
+                int orientedHeight = orientation >= 5 ? width : height;
                 byte[]? rgba = isFirstIfd
-                    ? OfficeRasterGuards.AllocateRgba32(width, height, "TIFF decoded pixels exceed the managed limit.")
+                    ? OfficeRasterGuards.AllocateRgba32(orientedWidth, orientedHeight, "TIFF decoded pixels exceed the managed limit.")
                     : null;
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         int sourcePixel = ((y * width) + x) * samples;
-                        int targetX = orientation == 2 || orientation == 3 ? width - 1 - x : x;
-                        int targetY = orientation == 3 || orientation == 4 ? height - 1 - y : y;
-                        int targetPixel = ((targetY * width) + targetX) * 4;
+                        ResolveOrientedPixel(x, y, width, height, orientation, out int targetX, out int targetY);
+                        int targetPixel = ((targetY * orientedWidth) + targetX) * 4;
                         byte alpha = samples == baseSamples + 1
                             ? source[sourcePixel + baseSamples]
                             : (byte)255;
@@ -270,7 +271,7 @@ public static partial class OfficeTiffCodec {
                 }
 
                 if (isFirstIfd && rgba != null) {
-                    firstImage = OfficeRasterImage.FromRgba32(width, height, rgba);
+                    firstImage = OfficeRasterImage.FromRgba32(orientedWidth, orientedHeight, rgba);
                 }
                 int nextIfdPointerOffset = checked(ifdOffset + 2 + entryCount * 12);
                 ifdOffset = ReadOffset(encodedBytes, nextIfdPointerOffset, littleEndian);
@@ -284,6 +285,50 @@ public static partial class OfficeTiffCodec {
             return false;
         } catch (OverflowException) {
             return false;
+        }
+    }
+
+    private static void ResolveOrientedPixel(
+        int x,
+        int y,
+        int width,
+        int height,
+        int orientation,
+        out int targetX,
+        out int targetY) {
+        switch (orientation) {
+            case 2:
+                targetX = width - 1 - x;
+                targetY = y;
+                break;
+            case 3:
+                targetX = width - 1 - x;
+                targetY = height - 1 - y;
+                break;
+            case 4:
+                targetX = x;
+                targetY = height - 1 - y;
+                break;
+            case 5:
+                targetX = y;
+                targetY = x;
+                break;
+            case 6:
+                targetX = height - 1 - y;
+                targetY = x;
+                break;
+            case 7:
+                targetX = height - 1 - y;
+                targetY = width - 1 - x;
+                break;
+            case 8:
+                targetX = y;
+                targetY = width - 1 - x;
+                break;
+            default:
+                targetX = x;
+                targetY = y;
+                break;
         }
     }
 

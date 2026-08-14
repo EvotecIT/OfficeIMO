@@ -255,6 +255,83 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_AppliesNamedAndPseudoPageRulesInsideNestedActiveGroups() {
+        const string html = "<style>@media print{@supports (display:block){@page report:first{margin:0}}}p{page:report}</style><p>SupportedPageMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("SupportedPageMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, -0.1D, 0.1D);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_AppliesNamedPageRulesInsideCascadeLayers() {
+        const string html = "<style>@layer print{@page report:first{margin:0}}p{page:report}</style><p>LayeredPageMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("LayeredPageMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, -0.1D, 0.1D);
+    }
+
+    [Theory]
+    [InlineData("@page report{margin-left:12px;margin-top:0}@layer later{@page report{margin-left:8px}}", 12D)]
+    [InlineData("@layer early,later;@layer early{@page report{margin-left:4px!important;margin-top:0}}@layer later{@page report{margin-left:8px!important}}", 4D)]
+    [InlineData("@layer outer,other;@layer outer{@layer nested{@page report{margin-left:4px;margin-top:0}}}@layer other{@page report{margin-left:8px}}", 8D)]
+    [InlineData("@layer outer{@page report{margin-left:6px;margin-top:0}@layer nested{@page report{margin-left:4px}}}", 6D)]
+    public void HtmlRender_Paged_CascadeLayersUseNormalAndImportantLayerPrecedence(string pageCss, double expectedX) {
+        string html = "<style>" + pageCss + "p{page:report}</style><p>LayerCascadeMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("LayerCascadeMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, expectedX - 0.1D, expectedX + 0.1D);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_InvalidLaterPageDeclarationDoesNotReplaceEarlierValidValue() {
+        const string html = "<style>@page report{margin-left:10px;margin-left:bogus;margin-top:0}p{page:report}</style><p>ValidPageMarginMarker</p>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderText text = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), visual => visual.Text.Contains("ValidPageMarginMarker", StringComparison.Ordinal));
+        Assert.InRange(text.X, 9.9D, 10.1D);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_InvalidLaterPageSizeAndMarginContentKeepEarlierValidValues() {
+        const string html = "<style>@page report{size:200px 100px;size:bogus;margin:20px;@top-center{content:\"ValidHeader\";content:attr(title)}}section{page:report}</style><section>Body</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(20D)
+        });
+
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        Assert.Equal((200D, 100D), (page.Width, page.Height));
+        Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole == "page-margin" && text.Text == "ValidHeader");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "bogus");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageMarginContentUnsupported && diagnostic.Detail == "attr(title)");
+    }
+
+    [Fact]
     public void HtmlRender_DisplayContentsSuppressesTheElementBox() {
         const string html = "<div id='contents' style='display:contents;background:#ff0000;padding:20px'><div id='child' style='background:#0000ff'>ContentsMarker</div></div>";
 

@@ -891,7 +891,7 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderDrawing_ChargesNestedType3PaintAnalysisToContentDepth() {
+    public void RenderDrawingAndDiagnostics_ChargeNestedType3PaintAnalysisToContentDepth() {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FMiddle 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 BT /FMiddle 500 Tf (A) Tj ET");
         string middleFont = "7 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 8 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Font << /FInner 9 0 R >> >> >>\nendobj";
@@ -903,11 +903,15 @@ public partial class PdfPageImageRendererTests {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         });
 
-        IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics = document.Pages[0].GetRenderCapabilityDiagnostics();
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+        PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
+            document.Pages[0].GetRenderCapabilityDiagnostics());
+        PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() =>
+            document.Pages[0].ToDrawing());
 
-        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, exception.Kind);
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, diagnosticException.Kind);
+        Assert.Equal(2, diagnosticException.Actual);
+        Assert.Equal(PdfReadLimitKind.ContentNestingDepth, drawingException.Kind);
+        Assert.Equal(2, drawingException.Actual);
     }
 
     [Fact]

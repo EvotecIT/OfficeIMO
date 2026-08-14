@@ -163,7 +163,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaWidth = Math.Max(0.01D, width - borderInsets.Horizontal);
         double areaHeight = Math.Max(0.01D, height - borderInsets.Vertical);
         HtmlResolvedBorderRadii innerRadii = radii.Inset(borderInsets.Left, borderInsets.Top, borderInsets.Right, borderInsets.Bottom, areaWidth, areaHeight);
-        if (layer.LinearGradient != null || layer.RadialGradient != null) {
+        if (layer.LinearGradient != null || layer.RadialGradient != null || layer.ConicGradient != null) {
             AddGradientBackground(
                 visuals,
                 style,
@@ -303,11 +303,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 layer.Size);
         }
 
+
+        if (layer.ConicGradient != null) {
+            if (!layer.ConicGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out OfficeConicGradient? conicGradient, out bool conicStopLimitExceeded)
+                || conicGradient == null) {
+                if (conicStopLimitExceeded) {
+                    _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
+                        "A repeating CSS conic gradient exceeded the configured materialized color-stop limit and was omitted.",
+                        HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
+                        "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
+                } else {
+                    AddUnsupported(HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                        "A CSS conic gradient could not be resolved against its paint area and was omitted.",
+                        source, lossKind: OfficeConversionLossKind.Omission);
+                }
+                return;
+            }
+            OfficeDrawing drawing = conicGradient.CreateDrawing(areaWidth, areaHeight, _options.ConicGradientQualitySegments);
+            var layerVisuals = new List<HtmlRenderVisual> {
+                HtmlRenderDrawing.CreateShared(drawing, areaX, areaY, areaWidth, areaHeight, 0, null, null, visualSourceDescription)
+            };
+            AddBoxClipVisuals(visuals, layerVisuals, areaX, areaY, areaWidth, areaHeight, radii, visualSourceDescription + ":clip");
+            return;
+        }
+
         OfficeShape fill = CreateBoxShape(areaWidth, areaHeight, radii);
         fill.FillColor = null;
+        bool stopLimitExceeded = false;
         OfficeLinearGradient? linearGradient = null;
         if (layer.LinearGradient != null
-            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out linearGradient)) {
+            && !layer.LinearGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out linearGradient, out stopLimitExceeded)) {
+            if (stopLimitExceeded) {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
+                    "A repeating CSS linear gradient exceeded the configured materialized color-stop limit and was omitted.",
+                    HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
+                    "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
+                return;
+            }
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS linear gradient could not be resolved against its paint area and was omitted.",
@@ -318,7 +350,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         fill.FillGradient = linearGradient;
         OfficeRadialGradient? radialGradient = null;
         if (layer.RadialGradient != null
-            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, out radialGradient)) {
+            && !layer.RadialGradient.TryResolve(areaWidth, areaHeight, style.Font.Size, _options.DefaultFontSize, ActiveSurfaceWidth, _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN, out radialGradient, out stopLimitExceeded)) {
+            if (stopLimitExceeded) {
+                _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
+                    "A repeating CSS radial gradient exceeded the configured materialized color-stop limit and was omitted.",
+                    HtmlDiagnosticSeverity.Error, HtmlRenderStyleResolver.DescribeSource(source),
+                    "limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture), OfficeConversionLossKind.Omission);
+                return;
+            }
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
                 "A CSS radial gradient could not be resolved against its paint area and was omitted.",
@@ -338,7 +377,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         string sourceDescription) {
-        if (HtmlCssBorderRadiusParser.TryResolve(style, width, height, _options.DefaultFontSize, out HtmlResolvedBorderRadii radii, out string detail)) {
+        if (HtmlCssBorderRadiusParser.TryResolve(
+            style,
+            width,
+            height,
+            _options.DefaultFontSize,
+            ActiveSurfaceWidth,
+            _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+            style.ContainerUnitWidth ?? double.NaN,
+            style.ContainerUnitHeight ?? double.NaN,
+            out HtmlResolvedBorderRadii radii,
+            out string detail)) {
             return radii;
         }
         if (_reportedBorderRadiusFallbacks.Add(sourceDescription)) {
@@ -546,12 +595,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool heightAuto = parts.Count == 1 || parts[1] == "auto";
         double resolvedWidth = intrinsicWidth;
         double resolvedHeight = intrinsicHeight;
-        if (!widthAuto && !HtmlRenderCssValues.TryLength(parts[0], areaWidth, fontSize, _options.DefaultFontSize, out resolvedWidth)) {
+        if (!widthAuto && !TryResolveLength(parts[0], areaWidth, fontSize, out resolvedWidth)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
 
-        if (!heightAuto && !HtmlRenderCssValues.TryLength(parts[1], areaHeight, fontSize, _options.DefaultFontSize, out resolvedHeight)) {
+        if (!heightAuto && !TryResolveLength(parts[1], areaHeight, fontSize, out resolvedHeight)) {
             usedFallback = true;
             return Contain(areaWidth, areaHeight, intrinsicWidth, intrinsicHeight);
         }
@@ -589,7 +638,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return available * percentage / 100D;
         }
 
-        return HtmlRenderCssValues.TryLength(value, available, fontSize, _options.DefaultFontSize, out double length)
+        return TryResolveLength(value, available, fontSize, out double length)
             ? length
             : 0D;
     }

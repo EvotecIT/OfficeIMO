@@ -16,6 +16,8 @@ public sealed partial class PdfReadPage {
         bool retainPrimitiveData,
         TilingPatternResourceCache? tilingPatternResourceCache,
         TextContentParser.TextOutputBudget? textOutputBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget,
         PageContentBudget pageContentBudget,
         int contentNestingDepth,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? imageVisitor,
@@ -122,6 +124,8 @@ public sealed partial class PdfReadPage {
                         },
                         tilingPatternResourceCache: tilingPatternResourceCache,
                         textOutputBudget: textOutputBudget,
+                        invocationTextClippingBudget: invocationTextClippingBudget,
+                        patternTextClippingBudget: patternTextClippingBudget,
                         pageContentBudget: pageContentBudget,
                         contentOrderPrefix: glyphOrderPrefix);
                 } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
@@ -148,6 +152,7 @@ public sealed partial class PdfReadPage {
                         new HashSet<PdfStream>(),
                         PdfPageDrawingEffect.Default,
                         contentNestingDepth: contentNestingDepth,
+                        textClippingBudget: invocationTextClippingBudget,
                         pageContentBudget: pageContentBudget,
                         contentOrderPrefix: glyphOrderPrefix,
                         skipTransparencyGroupForms: true);
@@ -733,7 +738,7 @@ public sealed partial class PdfReadPage {
                 null);
 
         var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        AddVisualPrimitive(patternDrawing, localPaintBounds);
+        AddVisualPrimitive(patternDrawing, localPaintBounds, new PdfTextClippingBudget());
         if (patternDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);

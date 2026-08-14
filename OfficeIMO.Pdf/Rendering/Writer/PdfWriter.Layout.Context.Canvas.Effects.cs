@@ -28,11 +28,16 @@ internal static partial class PdfWriter {
 
             string groupContent = sb.ToString(contentStart, sb.Length - contentStart);
             sb.Length = contentStart;
+            ResolveEffectGroupBounds(transform, out double boundsLeft, out double boundsBottom, out double boundsRight, out double boundsTop);
             string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
             currentPage.EffectGroups.Add(new PageEffectGroup {
                 Content = pageContents.Store(groupContent),
                 Token = token,
                 Transform = transform,
+                BoundsLeft = boundsLeft,
+                BoundsBottom = boundsBottom,
+                BoundsRight = boundsRight,
+                BoundsTop = boundsTop,
                 GraphicsStateName = opacityState
             });
             sb.Append(token);
@@ -43,6 +48,25 @@ internal static partial class PdfWriter {
             TransformCanvasPageImageBounds(currentPage.Images, imageStart, transform);
             TransformCanvasRectangles(currentPage.FormFields, formFieldStart, transform);
             pageDirty = true;
+        }
+
+        private void ResolveEffectGroupBounds(
+            OfficeTransform transform,
+            out double left,
+            out double bottom,
+            out double right,
+            out double top) {
+            left = 0D;
+            bottom = 0D;
+            right = currentOpts.PageWidth;
+            top = currentOpts.PageHeight;
+            if (!transform.TryInvert(out OfficeTransform inverse)) return;
+
+            (left, bottom, right, top) = inverse.TransformRectangleBounds(
+                0D,
+                0D,
+                currentOpts.PageWidth,
+                currentOpts.PageHeight);
         }
 
         private static void TransformCanvasPageImageBounds(System.Collections.Generic.List<PageImage> images, int startIndex, OfficeTransform transform) {

@@ -37,6 +37,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     boxHeight,
                     style.Font.Size,
                     _options.DefaultFontSize,
+                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
+                    _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+                    style.ContainerUnitWidth ?? double.NaN,
+                    style.ContainerUnitHeight ?? double.NaN,
                     out transform,
                     out string detail)) {
                 _diagnostics.Add(
@@ -54,6 +58,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
         createsStackingContext = hasTransform || hasOpacity;
         if (!createsStackingContext || block.Visuals.Count == 0) return block;
+        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity
+            ? ReplaceDescendantFormFieldsForPaintEffect(
+                block.Visuals,
+                hasTransform ? "ancestor-transform=" + source : "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            : block.Visuals;
         var group = new HtmlRenderEffectGroup(
             0D,
             0D,
@@ -61,10 +70,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Math.Max(0.01D, block.Height),
             transform,
             hasOpacity ? style.Opacity : 1D,
-            block.Visuals,
+            effectVisuals,
             0,
             source);
         return block.WithVisuals(new[] { group });
+    }
+
+    private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForPaintEffect(
+        IReadOnlyList<HtmlRenderVisual> visuals,
+        string detail) {
+        var replaced = new List<HtmlRenderVisual>(visuals.Count);
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderFormField field) {
+                ReportTransformedFormFieldFallback(field.Source ?? "form-control", detail);
+                replaced.AddRange(field.Visuals);
+                continue;
+            }
+
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children == null) {
+                replaced.Add(visual);
+                continue;
+            }
+
+            IReadOnlyList<HtmlRenderVisual> transformedChildren = ReplaceDescendantFormFieldsForPaintEffect(children, detail);
+            replaced.Add(CloneGroupWithChildren(visual, transformedChildren));
+        }
+        return replaced;
     }
 
     private void ReportUnsupportedInlinePaintEffects(IElement element, HtmlRenderBoxStyle style) {

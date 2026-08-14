@@ -19,9 +19,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int pendingCharacterCharge = 0;
         double containingWidth = Math.Max(
             1D,
-            (_options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth)
-            - _options.Margins.Left
-            - _options.Margins.Right);
+            ActiveSurfaceWidth
+            - ActiveMargins.Left
+            - ActiveMargins.Right);
         while (pending.Count > 0) {
             (INode node, HtmlRenderBoxStyle parentStyle) = pending.Pop();
             chargeOperations(1L);

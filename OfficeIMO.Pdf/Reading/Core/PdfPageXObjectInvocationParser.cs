@@ -76,6 +76,7 @@ internal static class PdfPageXObjectInvocationParser {
         Action<PdfPagePatternSelection>? patternSelectionVisitor = null,
         double? pageWidth = null,
         PdfContentOrderKey? contentOrderPrefix = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         OfficeBlendMode initialBlendMode = OfficeBlendMode.Normal,
         bool initialHasUnsupportedBlendMode = false,
         bool initialHasSoftMask = false,
@@ -84,7 +85,7 @@ internal static class PdfPageXObjectInvocationParser {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent);
         return parser.Parse();
     }
 
@@ -116,6 +117,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
+        private readonly PdfTextClippingBudget _textClippingBudget;
         private readonly GraphicsState _initialState;
         private readonly PatternState _initialPatternState;
         private readonly bool _initialHasAuthoredRenderingIntent;
@@ -227,6 +229,7 @@ internal static class PdfPageXObjectInvocationParser {
             Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? ordinaryTextPaintVisitor,
             Action<PdfPagePatternSelection>? patternSelectionVisitor,
             PdfContentOrderKey? contentOrderPrefix,
+            PdfTextClippingBudget? textClippingBudget,
             OfficeBlendMode initialBlendMode,
             bool initialHasUnsupportedBlendMode,
             bool initialHasSoftMask,
@@ -279,6 +282,7 @@ internal static class PdfPageXObjectInvocationParser {
             _visibleShadingVisitor = visibleShadingVisitor;
             _graphicsStateVisitor = graphicsStateVisitor;
             _allowSupportedGraphicsEffects = allowSupportedGraphicsEffects;
+            _textClippingBudget = textClippingBudget ?? new PdfTextClippingBudget();
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -574,6 +578,7 @@ internal static class PdfPageXObjectInvocationParser {
             var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                _textClippingBudget.ChargePath();
                 _pendingTextClipPaths.Add(textClipPath);
             }
         }
@@ -609,7 +614,7 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void ApplyPendingTextClippingPath() {
             if (PdfPageClipPath.TryCombineTextClippingPaths(_pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textClipPath));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, textClipPath));
             }
             _pendingTextClipPaths.Clear();
         }
@@ -1299,14 +1304,14 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void CaptureClipPath(OfficeFillRule fillRule) {
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, clipPath));
             } else {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(
                     _state.ClipPath,
                     PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
             }

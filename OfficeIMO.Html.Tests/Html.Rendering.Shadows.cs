@@ -78,6 +78,28 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlShadows_ResolveContainerUnitsAgainstTheActiveQueryContainer() {
+        const string html = "<section style='width:200px;height:100px;margin:0;container-type:size'>"
+            + "<div id='shadow' style='width:20px;height:20px;margin:0;background:white;box-shadow:10cqw 10cqh 5cqw 2cqh red'></div>"
+            + "</section>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 500D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape shadow = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#shadow:box-shadow");
+        Assert.Equal(20D, shadow.Shape.Shadow!.OffsetX, 3);
+        Assert.Equal(10D, shadow.Shape.Shadow.OffsetY, 3);
+        Assert.Equal(10D, shadow.Shape.Shadow.BlurRadius, 3);
+        Assert.Equal(24D, shadow.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlShadows_InsetSpreadAndBlurAreClippedAcrossPngAndSvg() {
         const string html = "<body style='margin:0'><div id='inset-shadow' style='width:30px;height:20px;margin:5px;border-radius:4px;background:white;box-shadow:inset 3px 0 2px 2px rgba(255,0,0,.8)'></div></body>";
         var options = new HtmlRenderOptions {

@@ -3,7 +3,10 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    private static void AddTilingPatternFill(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddTilingPatternFill(
+        OfficeDrawing drawing,
+        PdfPageVisualPrimitive primitive,
+        PdfTextClippingBudget textClippingBudget) {
         PdfPageTilingPatternPaint paint = primitive.FillTilingPattern!;
         if (primitive.Width <= 0D || primitive.Height <= 0D) return;
         PdfPageClipPath shapeClip;
@@ -14,7 +17,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (primitive.ClipPath.HasValue) {
-            shapeClip = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, shapeClip);
+            shapeClip = textClippingBudget.ResolveActiveClip(primitive.ClipPath.Value, shapeClip);
         }
         if (!TryFitClipToDrawing(shapeClip, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
         if (!IsWithinTilingPatternLimit(paint, fitted)) return;
@@ -36,7 +39,10 @@ public sealed partial class PdfReadPage {
         drawing.AddClippedDrawing(patternDrawing, fitted.X, fitted.Y, clip);
     }
 
-    private static void AddTilingPatternStroke(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddTilingPatternStroke(
+        OfficeDrawing drawing,
+        PdfPageVisualPrimitive primitive,
+        PdfTextClippingBudget textClippingBudget) {
         PdfPageTilingPatternPaint paint = primitive.StrokeTilingPattern!;
         double strokePadding = GetTilingPatternStrokePadding(primitive);
         double left = primitive.X - strokePadding;
@@ -53,7 +59,7 @@ public sealed partial class PdfReadPage {
 
         PdfPageClipPath strokeBounds = PdfPageClipPath.Rectangle(left, top, width, height);
         if (primitive.ClipPath.HasValue) {
-            strokeBounds = PdfPageClipPath.ResolveActiveClip(primitive.ClipPath.Value, strokeBounds);
+            strokeBounds = textClippingBudget.ResolveActiveClip(primitive.ClipPath.Value, strokeBounds);
         }
         if (!TryFitClipToDrawing(strokeBounds, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
         if (!IsWithinTilingPatternLimit(paint, fitted)) return;
@@ -225,7 +231,9 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget? type3GlyphBudget = null,
         bool requireSupportedType3Content = false,
         int contentNestingDepth = 0,
-        bool allowNestedPatternContent = false) {
+        bool allowNestedPatternContent = false,
+        PdfTextClippingBudget? invocationTextClippingBudget = null,
+        PdfTextClippingBudget? patternTextClippingBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
@@ -269,6 +277,8 @@ public sealed partial class PdfReadPage {
                     requireSupportedType3Content,
                     allowNestedPatternContent,
                     patternNestingDepth,
+                    invocationTextClippingBudget,
+                    patternTextClippingBudget,
                     out PdfPageTilingPatternResource? parsed)
                     ? parsed
                     : null;
@@ -293,6 +303,8 @@ public sealed partial class PdfReadPage {
         bool requireSupportedType3Content,
         bool allowNestedPatternContent,
         int contentNestingDepth,
+        PdfTextClippingBudget? invocationTextClippingBudget,
+        PdfTextClippingBudget? patternTextClippingBudget,
         out PdfPageTilingPatternResource pattern) {
         pattern = null!;
         int? paintType;
@@ -339,6 +351,8 @@ public sealed partial class PdfReadPage {
             allowNestedPatterns,
             uncolored,
             contentNestingDepth,
+            invocationTextClippingBudget,
+            patternTextClippingBudget,
             out bool consumesInheritedLineState,
             out bool hasMalformedStrictInvocation);
         if (type3GlyphBudget.FailureVersion != failureVersion) return false;
@@ -396,8 +410,12 @@ public sealed partial class PdfReadPage {
         bool allowNestedPatterns,
         bool rejectColorOperators,
         int contentNestingDepth,
+        PdfTextClippingBudget? invocationTextClippingBudget,
+        PdfTextClippingBudget? patternTextClippingBudget,
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
+        invocationTextClippingBudget ??= new PdfTextClippingBudget();
+        patternTextClippingBudget ??= new PdfTextClippingBudget();
         var drawing = new OfficeDrawing(width, height);
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;
@@ -499,6 +517,8 @@ public sealed partial class PdfReadPage {
                 },
             tilingPatternResourceCache: resourceCache,
             textOutputBudget: textOutputBudget,
+            invocationTextClippingBudget: invocationTextClippingBudget,
+            patternTextClippingBudget: patternTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
@@ -521,6 +541,7 @@ public sealed partial class PdfReadPage {
             useLogicalTextFilters: false,
             contentNestingDepth: contentNestingDepth,
             textOutputBudget: textOutputBudget,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root,
             contentOrderOffset: -transformedOffset);
@@ -539,6 +560,7 @@ public sealed partial class PdfReadPage {
             placements,
             activeForms,
             contentNestingDepth: contentNestingDepth,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         if (placements.Count > 0) {
@@ -571,7 +593,7 @@ public sealed partial class PdfReadPage {
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget);
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
         return drawing;
     }

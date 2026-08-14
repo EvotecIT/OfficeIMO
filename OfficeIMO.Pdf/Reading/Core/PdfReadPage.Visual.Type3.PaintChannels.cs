@@ -353,6 +353,8 @@ public sealed partial class PdfReadPage {
             CreateTextOutputBudget(),
             pageContentBudget,
             type3GlyphBudget,
+            new PdfTextClippingBudget(),
+            new PdfTextClippingBudget(),
             decodedContent: content);
         bool result = IsEntirelyBlackLuminosityDrawing(drawing);
         cache.BlackLuminosityForms[cacheKey] = result;

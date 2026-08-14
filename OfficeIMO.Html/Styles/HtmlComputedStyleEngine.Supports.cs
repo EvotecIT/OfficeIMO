@@ -73,7 +73,7 @@ public static partial class HtmlComputedStyleEngine {
             return IsKnownKeyword(normalized, "separate", "collapse");
         }
         if (string.Equals(propertyName, "border-spacing", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssTableParser.TryParseBorderSpacing(normalized, 16D, 16D, out _, out _);
+            return HtmlCssTableParser.TryParseBorderSpacing(normalized, 16D, 16D, 100D, 100D, out _, out _);
         }
         if (string.Equals(propertyName, "overflow", StringComparison.OrdinalIgnoreCase)) {
             string[] values = normalized.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries);
@@ -85,7 +85,7 @@ public static partial class HtmlComputedStyleEngine {
             return IsKnownKeyword(normalized, "visible", "hidden", "clip", "auto", "scroll");
         }
         if (string.Equals(propertyName, "overflow-clip-margin", StringComparison.OrdinalIgnoreCase)) {
-            return HtmlCssOverflowClipMarginParser.TryParse(normalized, 16D, 16D, out _, out _);
+            return HtmlCssOverflowClipMarginParser.TryParse(normalized, 16D, 16D, 100D, 100D, out _, out _);
         }
         if (string.Equals(propertyName, "column-count", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "auto" || int.TryParse(normalized, out int count) && count > 0;
@@ -161,6 +161,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "object-fit", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectFitSyntax(normalized);
         }
+        if (string.Equals(propertyName, "image-orientation", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedImageOrientationSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "image-resolution", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssReplacedElementParser.IsSupportedImageResolutionSyntax(normalized);
+        }
         if (string.Equals(propertyName, "object-position", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssReplacedElementParser.IsSupportedObjectPositionSyntax(normalized);
         }
@@ -229,7 +235,7 @@ public static partial class HtmlComputedStyleEngine {
         }
         if (string.Equals(propertyName, "outline-offset", StringComparison.OrdinalIgnoreCase)) {
             return !normalized.EndsWith("%", StringComparison.Ordinal)
-                && HtmlRenderCssValues.TryLength(normalized, 100D, 16D, 16D, out _);
+                && TryValidateCssLength(normalized, out _);
         }
         if (string.Equals(propertyName, "border-top-left-radius", StringComparison.OrdinalIgnoreCase)
             || string.Equals(propertyName, "border-top-right-radius", StringComparison.OrdinalIgnoreCase)
@@ -242,13 +248,13 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool IsPositiveCssLength(string value) {
         return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: false)
-            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && TryValidateCssLength(value, out double length)
             && length > 0D;
     }
 
     private static bool IsNonNegativeCssLength(string value) {
         return HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: false, allowUnitlessZero: true)
-            && HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, out double length)
+            && TryValidateCssLength(value, out double length)
             && length >= 0D;
     }
 
@@ -265,8 +271,24 @@ public static partial class HtmlComputedStyleEngine {
             return true;
         }
 
-        string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        string rawNormalized = value.Trim().ToLowerInvariant();
+        if (IsCssWideKeyword(rawNormalized)) {
+            return true;
+        }
+        string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "container-type":
+                return IsKnownKeyword(normalized, "normal", "size", "inline-size");
+            case "container-name":
+                return normalized == "none" || TryParseContainerNameList(normalized, out _);
+            case "container":
+                int slash = normalized.IndexOf('/');
+                if (slash < 0) return normalized == "none" || TryParseContainerNameList(normalized, out _);
+                string containerNames = normalized.Substring(0, slash).Trim();
+                string containerType = normalized.Substring(slash + 1).Trim();
+                return containerNames.Length > 0
+                    && (containerNames == "none" || TryParseContainerNameList(containerNames, out _))
+                    && IsKnownKeyword(containerType, "normal", "size", "inline-size");
             case "display":
                 return IsKnownKeyword(normalized, "block", "inline", "inline-block", "none", "flex", "inline-flex", "grid", "inline-grid", "table", "table-row", "table-cell", "list-item", "contents", "flow-root");
             case "visibility":
@@ -288,10 +310,65 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "ltr", "rtl");
             case "white-space":
                 return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
+            case "hyphens":
+                return IsKnownKeyword(normalized, "none", "manual", "auto");
+            case "hyphenate-character":
+                return IsSupportedHyphenateCharacterSyntax(value.Trim());
+            case "hyphenate-limit-chars":
+                return IsSupportedHyphenateLimitCharsSyntax(normalized);
+            case "hyphenate-limit-lines":
+                return normalized == "no-limit"
+                    || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int hyphenatedLines)
+                    && hyphenatedLines > 0;
+            case "hyphenate-limit-last":
+                return IsKnownKeyword(normalized, "none", "always");
+            case "hyphenate-limit-zone":
+                return IsNonNegativeCssLengthOrPercentage(normalized);
+            case "text-overflow":
+                return IsKnownKeyword(normalized, "clip", "ellipsis");
+            case "line-clamp":
+            case "-webkit-line-clamp":
+                return normalized == "none"
+                    || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int clampedLines)
+                    && clampedLines > 0;
+            case "tab-size":
+                return double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double tabCount)
+                    ? tabCount >= 0D && !double.IsNaN(tabCount) && !double.IsInfinity(tabCount)
+                    : IsNonNegativeCssLength(normalized);
+            case "letter-spacing":
+            case "word-spacing":
+                return normalized == "normal"
+                    || HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
+                    && TryValidateCssLength(normalized, out _);
+            case "image-orientation":
+                return HtmlCssReplacedElementParser.IsSupportedImageOrientationSyntax(normalized);
+            case "image-resolution":
+                return HtmlCssReplacedElementParser.IsSupportedImageResolutionSyntax(normalized);
             default:
                 return !normalized.StartsWith("not-a-real", StringComparison.Ordinal);
         }
     }
+
+    private static bool IsCssWideKeyword(string value) =>
+        IsKnownKeyword(value, "inherit", "initial", "revert", "revert-layer", "unset");
+
+    private static bool IsSupportedHyphenateCharacterSyntax(string value) {
+        if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return true;
+        if (value.Length < 2 || value[0] != value[value.Length - 1] || value[0] != '\'' && value[0] != '"') return false;
+        return HtmlCssEscapeDecoder.Decode(value.Substring(1, value.Length - 2)).Length <= 8;
+    }
+
+    private static bool IsSupportedHyphenateLimitCharsSyntax(string value) {
+        IReadOnlyList<string> parts = HtmlRenderCssValues.SplitWhitespace(value);
+        return parts.Count is >= 1 and <= 3
+            && parts.All(part => part == "auto"
+                || int.TryParse(part, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int parsed) && parsed > 0);
+    }
+
+    private static bool IsNonNegativeCssLengthOrPercentage(string value) =>
+        HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
+        && TryValidateCssLength(value, out double length)
+        && length >= 0D;
 
     private static bool IsKnownKeyword(string value, params string[] keywords) {
         foreach (string keyword in keywords) {
@@ -308,11 +385,29 @@ public static partial class HtmlComputedStyleEngine {
 
     private static IDictionary<string, string> ResolveComputedProperties(
         IReadOnlyDictionary<string, CascadedProperty> properties,
-        IReadOnlyDictionary<string, string>? parentProperties) {
-        var raw = properties
-            .Where(pair => pair.Value.HasValue)
-            .ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase);
-        var resolved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyDictionary<string, string>? parentProperties,
+        out IReadOnlyCollection<string> inheritedProperties,
+        out IReadOnlyCollection<string> resetProperties) {
+        var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
+        var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        var reset = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
+        foreach (KeyValuePair<string, CascadedProperty> pair in properties) {
+            CascadedProperty? effective = ResolveLayerRevert(pair.Value);
+            if (effective?.HasValue == true) {
+                raw[pair.Key] = effective.Value;
+                if (ReferenceEquals(effective.Specificity, Specificity.Inherited) || effective.InheritsComputedValue) inherited.Add(pair.Key);
+            }
+            else if (effective?.RevertsLayer == true
+                && IsInheritedProperty(pair.Key)
+                && parentProperties != null
+                && parentProperties.TryGetValue(pair.Key, out string? inheritedValue)) {
+                raw[pair.Key] = inheritedValue;
+                inherited.Add(pair.Key);
+            } else {
+                reset.Add(pair.Key);
+            }
+        }
+        var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
                 resolved[pair.Key] = pair.Value;
@@ -330,7 +425,58 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
+        inherited.IntersectWith(resolved.Keys);
+        inheritedProperties = inherited;
+        reset.ExceptWith(resolved.Keys);
+        resetProperties = reset;
         return resolved;
+    }
+
+    private static bool TryValidateCssLength(string value, out double length) =>
+        HtmlRenderCssValues.TryLength(value, 100D, 16D, 16D, 100D, 100D, out length);
+
+    private static bool TryParseContainerNameList(string value, out IReadOnlyList<string> names) {
+        var parsed = new List<string>();
+        int cursor = 0;
+        while (cursor < value.Length) {
+            while (cursor < value.Length && char.IsWhiteSpace(value[cursor])) cursor++;
+            if (cursor >= value.Length) break;
+            if (!HtmlCssIdentifierParser.TryRead(value, ref cursor, out string identifier) || !IsContainerNameIdentifier(identifier)) {
+                names = Array.Empty<string>();
+                return false;
+            }
+            if (cursor < value.Length && !char.IsWhiteSpace(value[cursor])) {
+                names = Array.Empty<string>();
+                return false;
+            }
+            parsed.Add(identifier);
+        }
+        names = parsed.AsReadOnly();
+        return parsed.Count > 0;
+    }
+
+    private static bool IsContainerNameIdentifier(string identifier) {
+        return !IsKnownKeyword(identifier.ToLowerInvariant(), "none", "and", "or", "not", "default", "inherit", "initial", "revert", "revert-layer", "unset");
+    }
+
+    private static CascadedProperty? ResolveLayerRevert(CascadedProperty property) {
+        if (!property.RevertsLayer) return property;
+
+        var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
+        candidates.AddRange(property.Alternatives);
+        var revertedLayers = new HashSet<CascadeLayerOrder?>();
+        while (true) {
+            CascadedProperty? current = null;
+            foreach (CascadedProperty candidate in candidates) {
+                if (candidate.Specificity != Specificity.Inherited && revertedLayers.Contains(candidate.LayerOrder)) continue;
+                if (current == null || ShouldReplace(current, candidate.IsImportant, candidate.Specificity, candidate.Order, candidate.LayerOrder)) {
+                    current = candidate;
+                }
+            }
+            if (current?.RevertsLayer != true) return current;
+            if (current.LayerOrder == null) return current;
+            revertedLayers.Add(current.LayerOrder);
+        }
     }
 
     private static bool StartsWithLogicalNot(string conditionText) {

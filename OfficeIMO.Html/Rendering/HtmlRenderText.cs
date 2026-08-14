@@ -45,7 +45,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         double? textAdvanceWidth,
         bool bidiVisualOrderResolved = false)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
-        if (textAdvanceWidth.HasValue && (textAdvanceWidth.Value <= 0D || double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
+        if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
         }
         Text = text ?? throw new ArgumentNullException(nameof(text));
@@ -80,7 +80,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Stable operation-scoped semantic node identifier shared by fragments from the same source element.</summary>
     public int? SemanticNodeId { get; }
 
-    /// <summary>Resolved glyph advance for positioned inline text, distinct from its tolerant clipping frame.</summary>
+    /// <summary>Resolved signed glyph advance for positioned inline text, distinct from its non-negative clipping frame.</summary>
     public double? TextAdvanceWidth { get; }
 
     internal bool BidiVisualOrderResolved { get; }

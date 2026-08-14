@@ -27,6 +27,89 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_RemovesIndirectObjectReferenceKidsForDeletedWidgets() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectObjectReferencePdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "OBJR");
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("Obj", out PdfObject? value) &&
+            value is PdfReference reference && reference.ObjectNumber == 7);
+    }
+
+    [Fact]
+    public void FlattenFields_PrunesIndirectParentTreeArraysForDeletedWidgets() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectParentTreeArraysPdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructElem" &&
+            dictionary.Get<PdfName>("S")?.Name == "Form");
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(flattened).TaggedContent);
+        Assert.Empty(tagged.ParentTreeStructParentIndexes);
+    }
+
+    [Fact]
+    public void FlattenFields_RebuildsNestedParentTreeLimitsAndPrunesEmptyKids() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithNestedParentTreeLimitsPdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+        PdfDictionary root = Assert.IsType<PdfDictionary>(objects.Values.Single(indirect =>
+            indirect.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "StructTreeRoot").Value);
+        PdfDictionary parentTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, root.Items["ParentTree"]));
+        PdfArray rootKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, parentTree.Items["Kids"]));
+        PdfDictionary leaf = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, Assert.Single(rootKids.Items)));
+        PdfArray nums = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, leaf.Items["Nums"]));
+
+        Assert.Equal(5D, Assert.IsType<PdfNumber>(nums.Items[0]).Value);
+        Assert.Equal("P", Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, nums.Items[1])).Get<PdfName>("S")?.Name);
+        foreach (PdfDictionary node in new[] { parentTree, leaf }) {
+            PdfArray limits = Assert.IsType<PdfArray>(node.Items["Limits"]);
+            Assert.All(limits.Items, item => Assert.Equal(5D, Assert.IsType<PdfNumber>(item).Value));
+        }
+    }
+
+    [Fact]
+    public void FlattenFields_PrunesIndirectStructureKidArraysForDeletedWidgets() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIndirectStructureKidArraysPdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructElem");
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(flattened).TaggedContent);
+        Assert.Empty(tagged.ParentTreeStructParentIndexes);
+    }
+
+    [Fact]
+    public void FlattenFields_PrunesIdTreeEntriesForDeletedStructureElements() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTaggedTextWidgetWithIdTreePdf());
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+
+        Assert.DoesNotContain(objects.Values, indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructElem" &&
+            dictionary.Get<PdfName>("S")?.Name == "Form");
+        PdfDictionary root = Assert.IsType<PdfDictionary>(objects.Values.Single(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "StructTreeRoot").Value);
+        PdfDictionary idTree = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, root.Items["IDTree"]));
+        PdfArray rootKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, idTree.Items["Kids"]));
+        PdfDictionary leaf = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, Assert.Single(rootKids.Items)));
+        PdfArray names = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(objects, leaf.Items["Names"]));
+        Assert.Equal(2, names.Items.Count);
+        Assert.Equal("document-id", Assert.IsType<PdfStringObj>(names.Items[0]).Value);
+        PdfReference retainedReference = Assert.IsType<PdfReference>(names.Items[1]);
+        PdfDictionary retainedElement = Assert.IsType<PdfDictionary>(objects[retainedReference.ObjectNumber].Value);
+        Assert.Equal("Document", retainedElement.Get<PdfName>("S")?.Name);
+        Assert.Equal("document-id", retainedElement.Get<PdfStringObj>("ID")?.Value);
+        PdfArray limits = Assert.IsType<PdfArray>(leaf.Items["Limits"]);
+        Assert.All(limits.Items, item => Assert.Equal("document-id", Assert.IsType<PdfStringObj>(item).Value));
+    }
+
+    [Fact]
     public void FlattenFields_SynthesizesMaskedPasswordTextAppearanceWhenMissing() {
         byte[] flattened = PdfFormFiller.FlattenFields(BuildPasswordTextWidgetWithoutAppearancePdf());
 

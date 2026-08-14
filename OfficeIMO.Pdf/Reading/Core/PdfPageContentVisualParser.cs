@@ -60,12 +60,13 @@ internal static class PdfPageContentVisualParser {
         Action<string>? unrenderedShadingVisitor = null,
         Action<string>? unsupportedOperatorVisitor = null,
         PdfPagePatternSelection? initialFillPattern = null,
-        PdfPagePatternSelection? initialStrokePattern = null) {
+        PdfPagePatternSelection? initialStrokePattern = null,
+        PdfTextClippingBudget? textClippingBudget = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget);
         return parser.Parse();
     }
 
@@ -234,6 +235,7 @@ internal static class PdfPageContentVisualParser {
         private readonly Action<string>? _authoredShadingInvocationVisitor;
         private readonly Action<string>? _unrenderedShadingVisitor;
         private readonly Action<string>? _unsupportedOperatorVisitor;
+        private readonly PdfTextClippingBudget _textClippingBudget;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<bool> _inexactDashStack = new Stack<bool>();
@@ -305,7 +307,8 @@ internal static class PdfPageContentVisualParser {
             Action<string>? unrenderedShadingVisitor,
             Action<string>? unsupportedOperatorVisitor,
             PdfPagePatternSelection? initialFillPattern,
-            PdfPagePatternSelection? initialStrokePattern) {
+            PdfPagePatternSelection? initialStrokePattern,
+            PdfTextClippingBudget? textClippingBudget) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -330,6 +333,7 @@ internal static class PdfPageContentVisualParser {
             _authoredShadingInvocationVisitor = authoredShadingInvocationVisitor;
             _unrenderedShadingVisitor = unrenderedShadingVisitor;
             _unsupportedOperatorVisitor = unsupportedOperatorVisitor;
+            _textClippingBudget = textClippingBudget ?? new PdfTextClippingBudget();
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -1714,7 +1718,7 @@ internal static class PdfPageContentVisualParser {
 
         private void CaptureClipPath(OfficeFillRule fillRule) {
             if (_path.Count < 2) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(
                     _state.ClipPath,
                     PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
                 return;
@@ -1726,14 +1730,14 @@ internal static class PdfPageContentVisualParser {
                     out double y,
                     out double width,
                     out double height)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, clipPath));
             } else {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(
                     _state.ClipPath,
                     PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D)));
             }

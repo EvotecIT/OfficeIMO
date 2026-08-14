@@ -32,5 +32,8 @@ public enum HtmlRenderVisualKind {
     SemanticGroup,
 
     /// <summary>Paint-neutral positioned fragments sharing one logical extraction string.</summary>
-    LogicalTextGroup
+    LogicalTextGroup,
+
+    /// <summary>Standard HTML form semantics with ordered static fallback visuals.</summary>
+    FormField
 }

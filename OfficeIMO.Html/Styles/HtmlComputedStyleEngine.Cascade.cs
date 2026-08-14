@@ -18,24 +18,54 @@ public static partial class HtmlComputedStyleEngine {
             value = StripTrailingImportant(value, out isImportant);
 
             if (name.Length > 0 && value.Length > 0) {
-                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue);
+                ApplyDeclaration(properties, parentProperties, name, value, isImportant, Specificity.Inline, int.MaxValue, layerOrder: null);
             }
         }
     }
 
-    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order) {
+    private static void ApplyDeclaration(IDictionary<string, CascadedProperty> properties, IReadOnlyDictionary<string, string>? parentProperties, string name, string value, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        string shorthandValue = value;
+        if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
+            && HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            HtmlCssCustomPropertyResolver.TryResolve(
+                value,
+                customName => TryGetCascadedValue(properties, customName)
+                    ?? (parentProperties != null && parentProperties.TryGetValue(customName, out string? inherited) ? inherited : null),
+                out shorthandValue);
+        }
+        if (string.Equals(name, "container", StringComparison.OrdinalIgnoreCase)
+            && IsSupportedDeclarationValue(name, shorthandValue)
+            && TryExpandContainerShorthand(shorthandValue, out string containerName, out string containerType)) {
+            ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder);
+            ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder);
+        }
+
+        CascadedProperty? existing;
+        properties.TryGetValue(name, out existing);
+        if (string.Equals(value.Trim(), "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            var candidate = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, alternatives: null);
+            if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder)) {
+                properties[name] = existing.WithAlternative(candidate);
+                return;
+            }
+            properties[name] = CascadedProperty.RevertLayer(isImportant, specificity, order, layerOrder, CollectCandidates(existing));
             return;
         }
 
         var resolved = ResolveCssWideKeyword(name, value, parentProperties);
         if (!resolved.HasValue) {
             CascadedProperty? resetExisting;
-            if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order)) {
+            if (properties.TryGetValue(name, out resetExisting) && resetExisting != null && !ShouldReplace(resetExisting, isImportant, specificity, order, layerOrder)) {
+                resetExisting = resetExisting.WithAlternative(CascadedProperty.Clear(isImportant, specificity, order, layerOrder, alternatives: null));
+                properties[name] = resetExisting;
                 return;
             }
 
-            properties[name] = CascadedProperty.Clear(isImportant, specificity, order);
+            properties[name] = CascadedProperty.Clear(isImportant, specificity, order, layerOrder, CollectCandidates(resetExisting));
             return;
         }
 
@@ -43,12 +73,35 @@ public static partial class HtmlComputedStyleEngine {
             return;
         }
 
-        CascadedProperty? existing;
-        if (properties.TryGetValue(name, out existing) && existing != null && !ShouldReplace(existing, isImportant, specificity, order)) {
+        if (existing != null && !ShouldReplace(existing, isImportant, specificity, order, layerOrder)) {
+            properties[name] = existing.WithAlternative(new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, inheritsComputedValue: resolved.InheritsComputedValue));
             return;
         }
 
-        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order);
+        properties[name] = new CascadedProperty(resolved.Value, isImportant, specificity, order, layerOrder, CollectCandidates(existing), resolved.InheritsComputedValue);
+    }
+
+    private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {
+        if (!properties.TryGetValue(name, out CascadedProperty? property)) return null;
+        return ResolveLayerRevert(property)?.HasValue == true ? ResolveLayerRevert(property)!.Value : null;
+    }
+
+    private static bool TryExpandContainerShorthand(string value, out string containerName, out string containerType) {
+        string normalized = value.Trim();
+        if (IsCssWideKeyword(normalized)) {
+            containerName = normalized;
+            containerType = normalized;
+            return true;
+        }
+        if (HtmlCssCustomPropertyResolver.ContainsVarFunction(normalized)) {
+            containerName = string.Empty;
+            containerType = string.Empty;
+            return false;
+        }
+        int slash = normalized.IndexOf('/');
+        containerName = (slash < 0 ? normalized : normalized.Substring(0, slash)).Trim();
+        containerType = slash < 0 ? "normal" : normalized.Substring(slash + 1).Trim();
+        return containerName.Length > 0 && containerType.Length > 0;
     }
 
     private static CssKeywordResolution ResolveCssWideKeyword(string name, string value, IReadOnlyDictionary<string, string>? parentProperties) {
@@ -57,13 +110,19 @@ public static partial class HtmlComputedStyleEngine {
             || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name))) {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
-                ? CssKeywordResolution.ForValue(inheritedValue)
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
+                : CssKeywordResolution.Clear;
+        }
+
+        if (string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase) && InheritedProperties.Contains(name)) {
+            string? inheritedValue;
+            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
                 : CssKeywordResolution.Clear;
         }
 
         if (string.Equals(trimmed, "initial", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(trimmed, "revert-layer", StringComparison.OrdinalIgnoreCase)) {
+            || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) {
             return string.Equals(name, "visibility", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForValue("visible")
                 : CssKeywordResolution.Clear;
@@ -76,9 +135,35 @@ public static partial class HtmlComputedStyleEngine {
         return CssKeywordResolution.ForValue(value);
     }
 
-    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order) {
+    private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder) {
+        // Inheritance happens after the cascade. A value copied from the parent is therefore
+        // only a fallback for this element and must never outrank a declaration that matches
+        // the element, including a declaration inside a cascade layer.
+        if (ReferenceEquals(existing.Specificity, Specificity.Inherited)) {
+            return true;
+        }
+
         if (existing.IsImportant != isImportant) {
             return isImportant;
+        }
+
+        if (isImportant) {
+            bool existingInline = ReferenceEquals(existing.Specificity, Specificity.Inline);
+            bool candidateInline = ReferenceEquals(specificity, Specificity.Inline);
+            if (existingInline != candidateInline) return candidateInline;
+        }
+
+        if ((existing.LayerOrder != null) != (layerOrder != null)) {
+            return isImportant ? layerOrder != null : layerOrder == null;
+        }
+
+        if (existing.LayerOrder != null && layerOrder != null) {
+            int layerComparison = layerOrder.CompareTo(existing.LayerOrder);
+            if (layerComparison != 0) {
+            return isImportant
+                    ? layerComparison < 0
+                    : layerComparison > 0;
+            }
         }
 
         int specificityComparison = specificity.CompareTo(existing.Specificity);
@@ -87,6 +172,13 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         return order >= existing.Order;
+    }
+
+    private static IReadOnlyList<CascadedProperty> CollectCandidates(CascadedProperty? property) {
+        if (property == null) return Array.Empty<CascadedProperty>();
+        var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
+        candidates.AddRange(property.Alternatives);
+        return candidates.AsReadOnly();
     }
 
     private static string StripTrailingImportant(string value, out bool isImportant) {

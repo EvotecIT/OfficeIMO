@@ -16,6 +16,17 @@ public readonly struct HtmlRenderMargins : IEquatable<HtmlRenderMargins> {
         Bottom = bottom;
     }
 
+    private HtmlRenderMargins(double left, double top, double right, double bottom, bool allowNegative) {
+        ValidateFinite(left, nameof(left));
+        ValidateFinite(top, nameof(top));
+        ValidateFinite(right, nameof(right));
+        ValidateFinite(bottom, nameof(bottom));
+        Left = left;
+        Top = top;
+        Right = right;
+        Bottom = bottom;
+    }
+
     /// <summary>Left margin in CSS pixels.</summary>
     public double Left { get; }
 
@@ -30,6 +41,9 @@ public readonly struct HtmlRenderMargins : IEquatable<HtmlRenderMargins> {
 
     /// <summary>Creates equal margins on every side.</summary>
     public static HtmlRenderMargins All(double value) => new HtmlRenderMargins(value, value, value, value);
+
+    internal static HtmlRenderMargins FromCssPageRule(double left, double top, double right, double bottom) =>
+        new HtmlRenderMargins(left, top, right, bottom, allowNegative: true);
 
     /// <inheritdoc />
     public bool Equals(HtmlRenderMargins other) =>
@@ -59,6 +73,12 @@ public readonly struct HtmlRenderMargins : IEquatable<HtmlRenderMargins> {
     private static void Validate(double value, string parameterName) {
         if (value < 0D || double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(parameterName, "HTML render margins must be finite non-negative values.");
+        }
+    }
+
+    private static void ValidateFinite(double value, string parameterName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(parameterName, "HTML render margins must be finite values.");
         }
     }
 }

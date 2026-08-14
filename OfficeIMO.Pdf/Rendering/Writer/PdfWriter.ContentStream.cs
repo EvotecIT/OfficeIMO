@@ -228,6 +228,15 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder TextRenderingMode(int mode) {
+        if (mode < 0 || mode > 7) {
+            throw new ArgumentOutOfRangeException(nameof(mode), "PDF text rendering mode must be between 0 and 7.");
+        }
+
+        _sb.Append(mode.ToString(CultureInfo.InvariantCulture)).Append(" Tr\n");
+        return this;
+    }
+
     public ContentStreamBuilder ShowHexText(string hexText) {
         Guard.NotNull(hexText, nameof(hexText));
         _sb.Append('<').Append(hexText).Append("> Tj\n");

@@ -12,6 +12,265 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentCanvasTests {
     [Fact]
+    public void CanvasFormDataExportOmitsNoExportFields() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .TextField("enabled", "included", 20D, 20D, 120D, 20D)
+                .TextField("disabled", "excluded", 20D, 50D, 120D, 20D, style: new PdfFormFieldStyle { IsNoExport = true }))
+            .ToBytes();
+
+        PdfFormDataSet data = PdfDocument.Open(bytes).Forms.ExportData();
+
+        Assert.Contains(data.Fields, field => field.Name == "enabled" && field.Values.SequenceEqual(new[] { "included" }));
+        Assert.DoesNotContain(data.Fields, field => field.Name == "disabled");
+    }
+
+    [Fact]
+    public void CanvasFormFields_CreatePositionedInspectableAcroFormWidgets() {
+        var textStyle = new PdfFormFieldStyle {
+            IsRequired = true,
+            AlternateName = "Contact name"
+        };
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .TextField("ContactName", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
+                .CheckBox("ContactAccept", true, 20D, 70D, 16D, 16D)
+                .ChoiceField("ContactCountry", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
+                .RadioButton("ContactMethod", "Email", false, 20D, 145D, 16D, 16D)
+                .RadioButton("ContactMethod", "Phone", true, 80D, 145D, 16D, 16D))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal(4, info.FormFields.Count);
+        PdfFormField text = Assert.Single(info.FormFields, field => field.Name == "ContactName");
+        Assert.Equal("Ada", text.Value);
+        Assert.True(text.IsRequired);
+        Assert.Equal("Contact name", text.AlternateName);
+        Assert.InRange(Assert.Single(text.Widgets).Width, 159.9D, 160.1D);
+
+        PdfFormField checkBox = Assert.Single(info.FormFields, field => field.Name == "ContactAccept");
+        Assert.True(checkBox.IsCheckBox);
+        Assert.Equal("Yes", checkBox.Value);
+
+        PdfFormField choice = Assert.Single(info.FormFields, field => field.Name == "ContactCountry");
+        Assert.Equal(new[] { "Poland", "Germany" }, choice.Options.Select(option => option.DisplayText).ToArray());
+        Assert.Equal("Poland", choice.Value);
+
+        PdfFormField radio = Assert.Single(info.FormFields, field => field.Name == "ContactMethod");
+        Assert.True(radio.IsRadioButton);
+        Assert.Equal("Phone", radio.Value);
+        Assert.Equal(2, radio.Widgets.Count);
+        Assert.True(radio.Widgets[1].X1 > radio.Widgets[0].X1);
+    }
+
+    [Fact]
+    public void CanvasChoiceField_ValueOnlyOverloadRejectsDuplicateExportValues() {
+        var options = new[] {
+            new PdfFormFieldOption("x", "First"),
+            new PdfFormFieldOption("x", "Second")
+        };
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => new PdfPageCanvas().ChoiceField(
+            "Choice",
+            options,
+            new[] { "x" },
+            20D,
+            20D,
+            120D,
+            24D));
+
+        Assert.Contains("export values must be unique", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasChoiceField_StringMultiSelectNormalizesDuplicateValuesBeforeSerialization() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas.ChoiceField(
+                "Choice",
+                new[] { "A", "B" },
+                new[] { "A", "A" },
+                20D,
+                20D,
+                120D,
+                36D,
+                isComboBox: false,
+                allowsMultipleSelection: true))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal(new[] { 0 }, field.SelectedIndices);
+        Assert.Equal(new[] { "A" }, field.SelectedOptions.Select(option => option.ExportValue).ToArray());
+    }
+
+    [Fact]
+    public void CanvasChoiceField_RejectsMultiSelectComboBoxesWhenAdded() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField(
+            "Strings",
+            new[] { "A", "B" },
+            new[] { "A" },
+            20D,
+            20D,
+            120D,
+            36D,
+            isComboBox: true,
+            allowsMultipleSelection: true));
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField(
+            "Options",
+            new[] { new PdfFormFieldOption("A", "First"), new PdfFormFieldOption("B", "Second") },
+            new[] { "A" },
+            20D,
+            20D,
+            120D,
+            36D,
+            isComboBox: true,
+            allowsMultipleSelection: true));
+    }
+
+    [Fact]
+    public void CanvasEditableComboFieldsAllowCustomScalarValues() {
+        var style = new PdfFormFieldStyle { IsEditableChoice = true };
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .ChoiceField("Strings", new[] { "A", "B" }, new[] { "Custom" }, 20D, 20D, 120D, 24D, style: style)
+                .ChoiceField("Options", new[] {
+                    new PdfFormFieldOption("A", "First"),
+                    new PdfFormFieldOption("B", "Second")
+                }, new[] { "Other" }, 20D, 60D, 120D, 24D, style: style))
+            .ToBytes();
+
+        PdfFormField[] fields = PdfInspector.Inspect(bytes).FormFields.ToArray();
+        Assert.Equal(new[] { "Custom", "Other" }, fields.Select(field => field.Value));
+        Assert.All(fields, field => Assert.True(field.IsEditableChoice));
+    }
+
+    [Fact]
+    public void CanvasFormFields_RejectPeriodsInPartialFieldNames() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", 20D, 20D, 120D, 24D));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("user.accepted", true, 20D, 20D, 14D, 14D));
+        Assert.Throws<ArgumentException>(() => canvas.ChoiceField("user.country", new[] { "Poland" }, new[] { "Poland" }, 20D, 20D, 120D, 24D));
+        Assert.Throws<ArgumentException>(() => canvas.RadioButton("user.method", "Email", true, 20D, 20D, 14D, 14D));
+    }
+
+    [Fact]
+    public void CanvasCheckBox_RejectsReservedAndNonAsciiAppearanceStatesWhenAdded() {
+        var canvas = new PdfPageCanvas();
+
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Off"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Off", "off-export"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBox("Check", false, 20D, 20D, 14D, 14D, "Y\u2713"));
+        Assert.Throws<ArgumentException>(() => canvas.CheckBoxWithExportValue("Check", false, 20D, 20D, 14D, 14D, "Y\u2713", "accepted"));
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("Preference", "One", false, 20D, 20D, 14D, 14D)
+                .RadioButton("Preference", "Two", false, 50D, 20D, 14D, 14D))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.True(field.IsRadioButton);
+        Assert.Equal("Off", field.Value);
+        Assert.All(field.Widgets, widget => Assert.Equal("Off", widget.AppearanceState));
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanShareOneFieldAcrossPages() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal("AcrossPages", field.Name);
+        Assert.Equal("Second", field.Value);
+        Assert.Equal(new[] { 1, 2 }, field.PageNumbers);
+        Assert.Equal(2, field.Widgets.Count);
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_NormalizeMultipleCrossPageSelectionsToTheLastOption() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", true, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+
+        Assert.Equal("Second", field.Value);
+        Assert.Equal(new[] { "Off", "Second" }, field.Widgets.Select(widget => widget.AppearanceState).ToArray());
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanUseDifferentWidgetDimensionsWithinOneField() {
+        byte[] bytes = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("VariableSize", "Small", false, 20D, 20D, 12D, 12D)
+                .RadioButton("VariableSize", "Large", true, 60D, 20D, 24D, 18D))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal("Large", field.Value);
+        Assert.Equal(12D, field.Widgets[0].Width, 3);
+        Assert.Equal(24D, field.Widgets[1].Width, 3);
+        Assert.Equal(18D, field.Widgets[1].Height, 3);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CanvasRadioButtons_RejectMixedFieldLevelStateWithinOneGroup(bool disabledFirst) {
+        var enabled = new PdfFormFieldStyle();
+        var disabled = new PdfFormFieldStyle { IsReadOnly = true, IsNoExport = true };
+        PdfFormFieldStyle first = disabledFirst ? disabled : enabled;
+        PdfFormFieldStyle second = disabledFirst ? enabled : disabled;
+        PdfDocument document = PdfDocument.Create()
+            .Canvas(canvas => canvas
+                .RadioButton("MixedState", "First", false, 20D, 20D, 14D, 14D, first)
+                .RadioButton("MixedState", "Second", true, 50D, 20D, 14D, 14D, second));
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
+
+        Assert.Contains("consistent read-only and no-export", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_RejectMixedFieldLevelStateAcrossPages() {
+        PdfDocument document = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButton("MixedPages", "First", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButton(
+                "MixedPages",
+                "Second",
+                true,
+                20D,
+                20D,
+                14D,
+                14D,
+                new PdfFormFieldStyle { IsReadOnly = true })));
+
+        Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
+    [Fact]
+    public void CanvasRadioButtons_CanSeparateAppearanceStatesFromUnicodeExportValues() {
+        byte[] bytes = PdfDocument.Create()
+            .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option1", "caf\u00E9", false, 20D, 20D, 14D, 14D)))
+            .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option2", "th\u00E9", true, 50D, 20D, 14D, 14D)))
+            .ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+
+        Assert.Equal("Option2", field.Value);
+        Assert.Equal(new[] { "caf\u00E9", "th\u00E9" }, field.Options.Select(option => option.ExportValue).ToArray());
+        Assert.Equal("th\u00E9", Assert.Single(PdfDocument.Open(bytes).Forms.ExportData().Fields).Values[0]);
+    }
+
+    [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
@@ -54,6 +313,22 @@ public class PdfDocumentCanvasTests {
         Assert.Contains(heading.ObjectNumber, section.ChildElementObjectNumbers);
         Assert.Contains(paragraph.ObjectNumber, section.ChildElementObjectNumbers);
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Span"));
+    }
+
+    [Fact]
+    public void CanvasStructure_KeepsInteractiveFormWidgetsUnderTheActiveSemanticParent() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
+                .TextField("ContactName", "Ada", 10D, 10D, 100D, 20D)))
+            .ToBytes();
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo form = Assert.Single(tagged.StructureElements, element => element.StructureType == "Form");
+
+        Assert.Contains(form.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Equal(1, form.ObjectReferenceCount);
     }
 
     [Fact]
@@ -384,6 +659,32 @@ public class PdfDocumentCanvasTests {
         string text = string.Join("", letters.Select(letter => letter.Value));
         Assert.Contains("SceneText", text, StringComparison.Ordinal);
         Assert.All(letters, letter => Assert.InRange(letter.StartBaseLine.X, 20D, 120D));
+    }
+
+    [Fact]
+    public void CanvasDrawing_DownscalesScenesLargerThanThePageWithoutClippingTheFrame() {
+        var drawing = new OfficeDrawing(400D, 160D);
+        OfficeShape shape = OfficeShape.Rectangle(400D, 160D);
+        shape.FillColor = OfficeColor.Red;
+        shape.StrokeWidth = 0D;
+        drawing.AddShape(shape, 0D, 0D);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240D,
+                PageHeight = 140D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Drawing(drawing, 20D, 30D, 100D, 40D))
+            .ToBytes();
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(110, 50));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(125, 50));
     }
 
     [Fact]
@@ -969,13 +1270,12 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
-    public void CanvasClip_ClipsInlineTableImagesAndFormControls() {
+    public void CanvasClip_ClipsInlineTableImages() {
         var rows = new[] {
             new[] {
                 PdfTableCell.WithImages(
                     string.Empty,
-                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.ClippedOwner", "Ada", width: 44, height: 40, fontSize: 8) })
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) })
             }
         };
 
@@ -998,13 +1298,36 @@ public class PdfDocumentCanvasTests {
         Assert.True(imageDraw > clip, "Expected the table-cell image to render inside the canvas clip state.");
         Assert.DoesNotContain("50 90 20 40 re W", raw, StringComparison.Ordinal);
 
-        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "Canvas.ClippedOwner");
-        PdfFormWidget widget = Assert.Single(field.Widgets);
-        AssertClose(50D, widget.X1);
-        AssertClose(50D, widget.Y1);
-        AssertClose(74D, widget.X2);
-        AssertClose(88D, widget.Y2);
+        Assert.Empty(PdfInspector.Inspect(bytes).FormFields);
+    }
+
+    [Fact]
+    public void CanvasClip_RequiresWidgetsToBeFullyContainedByRectangularClips() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            50D,
+            30D,
+            clipped => clipped.TextField("Partial", "Ada", 50D, 10D, 40D, 20D))).ToBytes());
+
+        byte[] contained = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            80D,
+            40D,
+            clipped => clipped.TextField("Contained", "Ada", 30D, 30D, 40D, 20D))).ToBytes();
+        Assert.Single(PdfInspector.Inspect(contained).FormFields);
+
+        OfficeClipPath triangle = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(80D, 0D),
+            OfficePathCommand.LineTo(40D, 40D),
+            OfficePathCommand.Close());
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            triangle,
+            clipped => clipped.CheckBox("NonRectangular", true, 50D, 25D, 12D, 12D))).ToBytes());
     }
 
     [Fact]
@@ -1341,6 +1664,36 @@ public class PdfDocumentCanvasTests {
             canvas.Effect(OfficeTransform.Identity, double.NaN, _ => { })));
         Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, null!)));
+    }
+
+    [Fact]
+    public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+            canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
+                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+
+        byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
+            canvas.Effect(OfficeTransform.Identity, 1D, nested =>
+                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))).ToBytes();
+        Assert.Single(PdfInspector.Inspect(identityBytes).FormFields);
+    }
+
+    [Fact]
+    public void CanvasMultiSelect_SerializesSelectionsInOptionOrder() {
+        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.ChoiceField(
+            "Letters",
+            new[] { "A", "B", "C" },
+            new[] { "C", "A" },
+            10D,
+            10D,
+            100D,
+            50D,
+            isComboBox: false,
+            allowsMultipleSelection: true)).ToBytes();
+
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(bytes).FormFields);
+        Assert.Equal(new[] { 0, 2 }, field.SelectedIndices);
+        Assert.Equal(new[] { "A", "C" }, field.SelectedOptions.Select(option => option.ExportValue).ToArray());
     }
 
     [Fact]

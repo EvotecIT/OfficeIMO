@@ -12,7 +12,8 @@ internal static class HtmlGeneratedContentResolver {
         IHtmlDocument document,
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
-        int maximumDepth) {
+        int maximumDepth,
+        HtmlCounterStyleRegistry counterStyles) {
         if (maximumDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
         var content = new Dictionary<IElement, HtmlGeneratedPseudoContentPair>();
         if (!styles.HasPseudoElements) return new HtmlGeneratedContentSet(content);
@@ -20,7 +21,7 @@ internal static class HtmlGeneratedContentResolver {
         IElement? root = document.DocumentElement ?? document.Body;
         if (root != null) {
             int level = counters.EnterLevel();
-            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content);
+            TraverseElement(root, level, 0, maximumDepth, styles, diagnostics, counters, content, counterStyles);
             counters.ExitLevel(level);
         }
 
@@ -35,7 +36,8 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
-        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
+        HtmlCounterStyleRegistry counterStyles) {
         if (depth > maximumDepth) {
             throw new HtmlDomLimitException(
                 HtmlRenderDiagnosticCodes.DepthLimitExceeded,
@@ -51,15 +53,15 @@ internal static class HtmlGeneratedContentResolver {
         }
 
         ApplyCounterProperties(elementStyle, level, counters, diagnostics, HtmlRenderStyleResolver.DescribeSource(element));
-        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content);
+        ResolvePseudo(element, HtmlPseudoElementKind.Before, level, styles, diagnostics, counters, content, counterStyles);
 
         int childLevel = counters.EnterLevel();
         foreach (IElement child in element.Children) {
-            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content);
+            if (!ShouldSkipSubtree(child)) TraverseElement(child, childLevel, depth + 1, maximumDepth, styles, diagnostics, counters, content, counterStyles);
         }
 
         counters.ExitLevel(childLevel);
-        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content);
+        ResolvePseudo(element, HtmlPseudoElementKind.After, level, styles, diagnostics, counters, content, counterStyles);
     }
 
     private static void ResolvePseudo(
@@ -69,7 +71,8 @@ internal static class HtmlGeneratedContentResolver {
         HtmlComputedStyleSet styles,
         HtmlDiagnosticReport diagnostics,
         CounterState counters,
-        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content) {
+        IDictionary<IElement, HtmlGeneratedPseudoContentPair> content,
+        HtmlCounterStyleRegistry counterStyles) {
         if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)
             || string.Equals(pseudoStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)) {
             return;
@@ -85,7 +88,7 @@ internal static class HtmlGeneratedContentResolver {
             return;
         }
 
-        if (!TryEvaluate(expression, element, counters, out string generated, out string detail)) {
+        if (!TryEvaluate(expression, element, counters, counterStyles, out string generated, out string detail, out bool counterRepresentationLimited)) {
             diagnostics.Add(
                 ComponentName,
                 HtmlRenderDiagnosticCodes.GeneratedContentUnsupported,
@@ -95,6 +98,17 @@ internal static class HtmlGeneratedContentResolver {
                 detail.Length > 0 ? detail : expression,
                 OfficeConversionLossKind.Omission);
             return;
+        }
+
+        if (counterRepresentationLimited) {
+            diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded,
+                "A CSS counter representation exceeded the managed rendering budget and used a decimal fallback.",
+                HtmlDiagnosticSeverity.Warning,
+                pseudoSource,
+                expression,
+                OfficeConversionLossKind.Approximation);
         }
 
         if (generated.Length == 0) return;
@@ -173,8 +187,11 @@ internal static class HtmlGeneratedContentResolver {
         string expression,
         IElement element,
         CounterState counters,
+        HtmlCounterStyleRegistry counterStyles,
         out string generated,
-        out string detail) {
+        out string detail,
+        out bool counterRepresentationLimited) {
+        counterRepresentationLimited = false;
         var text = new StringBuilder();
         int cursor = 0;
         while (cursor < expression.Length) {
@@ -217,11 +234,12 @@ internal static class HtmlGeneratedContentResolver {
 
                 string name = HtmlCssEscapeDecoder.Decode(parts[0].Trim());
                 string style = parts.Count == 2 ? parts[1].Trim() : "decimal";
-                if (!TryFormatCounter(counters.Get(name), style, out string formatted)) {
+                if (!TryFormatCounter(counters.Get(name), style, counterStyles, out string formatted, out bool limited)) {
                     generated = string.Empty;
                     detail = "unsupported counter style " + style;
                     return false;
                 }
+                counterRepresentationLimited |= limited;
 
                 text.Append(formatted);
             } else if (string.Equals(functionName, "counters", StringComparison.OrdinalIgnoreCase)) {
@@ -234,11 +252,12 @@ internal static class HtmlGeneratedContentResolver {
 
                 var formattedValues = new List<string>();
                 foreach (int value in counters.GetAll(name)) {
-                    if (!TryFormatCounter(value, style, out string formatted)) {
+                    if (!TryFormatCounter(value, style, counterStyles, out string formatted, out bool limited)) {
                         generated = string.Empty;
                         detail = "unsupported counter style " + style;
                         return false;
                     }
+                    counterRepresentationLimited |= limited;
 
                     formattedValues.Add(formatted);
                 }
@@ -254,6 +273,16 @@ internal static class HtmlGeneratedContentResolver {
         generated = text.ToString();
         detail = string.Empty;
         return true;
+    }
+
+    private static bool TryFormatCounter(
+        int value,
+        string style,
+        HtmlCounterStyleRegistry counterStyles,
+        out string formatted,
+        out bool representationLimited) {
+        if (counterStyles.TryFormat(value, style, out formatted, out representationLimited)) return true;
+        return HtmlCounterStyleFormatter.TryFormat(value, style, out formatted, out representationLimited);
     }
 
     private static bool TryReadQuoted(string value, ref int cursor, out string text) {
@@ -384,68 +413,6 @@ internal static class HtmlGeneratedContentResolver {
         if (!TryReadQuoted(trimmed, ref cursor, out result)) return false;
         while (cursor < trimmed.Length && char.IsWhiteSpace(trimmed[cursor])) cursor++;
         return cursor == trimmed.Length;
-    }
-
-    private static bool TryFormatCounter(int value, string style, out string formatted) {
-        string normalized = HtmlCssEscapeDecoder.Decode(style.Trim()).ToLowerInvariant();
-        switch (normalized) {
-            case "decimal-leading-zero":
-                formatted = value >= -9 && value <= 9
-                    ? value < 0 ? "-0" + (-value).ToString(CultureInfo.InvariantCulture) : "0" + value.ToString(CultureInfo.InvariantCulture)
-                    : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "lower-alpha":
-            case "lower-latin":
-                formatted = value > 0 ? FormatAlpha(value, false) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "upper-alpha":
-            case "upper-latin":
-                formatted = value > 0 ? FormatAlpha(value, true) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "lower-roman":
-                formatted = value > 0 && value <= 3999 ? FormatRoman(value).ToLowerInvariant() : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "upper-roman":
-                formatted = value > 0 && value <= 3999 ? FormatRoman(value) : value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            case "none":
-                formatted = string.Empty;
-                return true;
-            case "decimal":
-            case "":
-                formatted = value.ToString(CultureInfo.InvariantCulture);
-                return true;
-            default:
-                formatted = string.Empty;
-                return false;
-        }
-    }
-
-    private static string FormatAlpha(int value, bool upper) {
-        var result = new StringBuilder();
-        int remaining = value;
-        char first = upper ? 'A' : 'a';
-        while (remaining > 0) {
-            remaining--;
-            result.Insert(0, (char)(first + remaining % 26));
-            remaining /= 26;
-        }
-
-        return result.ToString();
-    }
-
-    private static string FormatRoman(int value) {
-        var result = new StringBuilder();
-        int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
-        string[] symbols = { "M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I" };
-        for (int index = 0; index < values.Length; index++) {
-            while (value >= values[index]) {
-                result.Append(symbols[index]);
-                value -= values[index];
-            }
-        }
-
-        return result.ToString();
     }
 
     private static bool IsCounterName(string value) {

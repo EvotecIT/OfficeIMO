@@ -1000,7 +1000,10 @@ internal static class PdfMutationPlanner {
             operation == PdfMutationOperation.FlattenFormFields ||
             operation == PdfMutationOperation.FillAndFlattenFormFields) {
             return blocker != PdfRewriteBlockerKind.Forms &&
-                blocker != PdfRewriteBlockerKind.CatalogNameTrees;
+                blocker != PdfRewriteBlockerKind.CatalogNameTrees &&
+                !((operation == PdfMutationOperation.FlattenFormFields ||
+                    operation == PdfMutationOperation.FillAndFlattenFormFields) &&
+                    blocker == PdfRewriteBlockerKind.TaggedContent);
         }
 
         return true;

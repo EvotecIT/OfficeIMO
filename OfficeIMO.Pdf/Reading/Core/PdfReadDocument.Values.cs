@@ -86,6 +86,26 @@ public sealed partial class PdfReadDocument {
         return options.Count == 0 ? Array.Empty<PdfFormFieldOption>() : options.AsReadOnly();
     }
 
+    private IReadOnlyList<int> ReadFormFieldSelectedIndices(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("I", out var indicesObject) ||
+            ResolveArray(indicesObject) is not PdfArray indicesArray ||
+            indicesArray.Items.Count == 0) {
+            return Array.Empty<int>();
+        }
+
+        var indices = new List<int>(indicesArray.Items.Count);
+        var seen = new HashSet<int>();
+        for (int i = 0; i < indicesArray.Items.Count; i++) {
+            if (ResolveObject(indicesArray.Items[i]) is PdfNumber number &&
+                TryGetNonNegativeInteger(number, out int index) &&
+                seen.Add(index)) {
+                indices.Add(index);
+            }
+        }
+
+        return indices.Count == 0 ? Array.Empty<int>() : indices.AsReadOnly();
+    }
+
     private bool TryReadOptionText(PdfObject value, out string? text) {
         PdfObject? resolved = ResolveObject(value);
         switch (resolved) {

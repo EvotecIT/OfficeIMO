@@ -33,11 +33,16 @@ public class DrawingTextTypographyTests {
         const string supplementary = "漢\U00020000字";
         Assert.False(OfficeTextLineBreaks.IsValidBreakPosition(supplementary, 2));
         Assert.DoesNotContain(2, OfficeTextLineBreaks.GetBreakPositions(supplementary));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時々"));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時ゃ"));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("時ー"));
     }
 
     [Fact]
     public void LineBreaks_ExposeUsefulNonCjkTokenBoundaries() {
         Assert.Equal(new[] { 6, 11 }, OfficeTextLineBreaks.GetBreakPositions("alpha-beta/gamma"));
+        Assert.Equal(new[] { 6, 11 }, OfficeTextLineBreaks.GetBreakPositions("alpha-beta/gamma", allowCjkBreaks: false));
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("日本語", allowCjkBreaks: false));
         Assert.True(OfficeTextLineBreaks.IsValidBreakPosition("alpha-beta", 6));
         Assert.False(OfficeTextLineBreaks.IsValidBreakPosition("alpha-beta", 0));
     }

@@ -11,6 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
     private readonly HtmlGeneratedContentSet _generatedContent;
+    private readonly HtmlCounterStyleRegistry _counterStyles;
     private readonly HtmlResourceSession _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
     private readonly OfficeFontFaceCollection _fonts;
@@ -40,6 +41,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _blankValueRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _mixedDisabledRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _transparentRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _backgroundImageRadioGroupKeys = new Dictionary<IElement, string>();
+    private readonly Dictionary<IElement, string> _staticRepeatedControlGroupKeys = new Dictionary<IElement, string>();
+    private readonly HashSet<string> _formFieldNames = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<IElement, string> _formFieldNamesByElement = new Dictionary<IElement, string>();
+    private readonly Dictionary<string, string> _radioFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
@@ -52,11 +62,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedBorderPaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedOutlinePaintFallbacks = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedReplacedElementFallbacks = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedTransformedFormFieldFallbacks = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedNonUniformFormFieldRadiusFallbacks = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedStaticRadioGroups = new HashSet<string>(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
+    private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly List<HtmlCssRunningStringAssignment> _currentPageRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
+    private HtmlCssPageGeometry _activePageGeometry;
+    private IElement? _activeSubgridOwner;
+    private IReadOnlyList<double>? _activeSubgridColumnSizes;
+    private IReadOnlyDictionary<string, int>? _activeSubgridColumnLineNames;
+    private double _activeSubgridColumnGap;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
@@ -65,14 +85,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
-        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth);
+        _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
+        _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
         _resources = resources ?? new HtmlResourceSession();
         _pageRules = pageRules ?? new HtmlCssPageRuleSet();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         _metadata = HtmlRenderMetadata.FromDocument(document, ResolveDocumentDirection(document, computedStyles));
         _baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         _resourceUrlPolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
+        _activePageGeometry = new HtmlCssPageGeometry(options.PageWidth, options.PageHeight, options.Margins);
     }
+
+    private bool TryResolveLength(string? value, double reference, double fontSize, out double result) =>
+        HtmlRenderCssValues.TryLength(
+            value,
+            reference,
+            fontSize,
+            _options.DefaultFontSize,
+            _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
+            _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+            out result);
+
+    private void SetActivePageGeometry(HtmlCssPageGeometry geometry) {
+        _activePageGeometry = geometry;
+        _styleResolver.SetViewport(geometry.Width, geometry.Height);
+    }
+
+    private double ActiveSurfaceWidth => _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth;
+    private HtmlRenderMargins ActiveMargins => _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Margins : _options.Margins;
 
     private static HtmlRenderTextDirection ResolveDocumentDirection(IHtmlDocument document, HtmlComputedStyleSet computedStyles) {
         IElement? root = document.DocumentElement;
@@ -97,9 +137,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     internal HtmlRenderDocument Render() {
         CheckCancellation();
+        IdentifyStaticRadioGroups();
         IElement root = _document.Body ?? _document.DocumentElement ?? throw new InvalidOperationException("The parsed HTML document has no renderable root element.");
-        double surfaceWidth = _options.Mode == HtmlRenderMode.Paged ? _options.PageWidth : _options.ViewportWidth;
-        double contentWidth = surfaceWidth - _options.Margins.Left - _options.Margins.Right;
+        HtmlCssPageGeometry initialGeometry = _options.Mode == HtmlRenderMode.Paged
+            ? _pageRules.ResolveGeometry(1, null, _options)
+            : new HtmlCssPageGeometry(_options.ViewportWidth, _options.ViewportHeight ?? 1056D, _options.Margins);
+        SetActivePageGeometry(initialGeometry);
+        double surfaceWidth = initialGeometry.Width;
+        double contentWidth = initialGeometry.ContentWidth;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
         _layoutStyles[root] = rootStyle.Clone();
         _surfaceRootElement = root;
@@ -122,11 +167,63 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
             ? Array.Empty<HtmlRenderFlowBlock>()
             : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+        if (_options.Mode == HtmlRenderMode.Paged && blocks.Count > 0 && blocks[0].PageName != null) {
+            HtmlCssPageGeometry namedGeometry = _pageRules.ResolveGeometry(1, blocks[0].PageName, _options);
+            if (!SamePageGeometry(initialGeometry, namedGeometry)) {
+                ResetLayoutPassState();
+                SetActivePageGeometry(namedGeometry);
+                contentWidth = namedGeometry.ContentWidth;
+                rootStyle = _styleResolver.Resolve(root, contentWidth);
+                _layoutStyles[root] = rootStyle.Clone();
+                _surfaceRootStyle = rootStyle;
+                blocks = rootStyle.Display == "none"
+                    ? Array.Empty<HtmlRenderFlowBlock>()
+                    : BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            }
+        }
         HtmlRenderDocument rendered = _options.Mode == HtmlRenderMode.Paged
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);
         CheckCancellation();
         return rendered;
+    }
+
+    private static bool SamePageGeometry(HtmlCssPageGeometry left, HtmlCssPageGeometry right) =>
+        Math.Abs(left.Width - right.Width) <= 0.0001D
+        && Math.Abs(left.Height - right.Height) <= 0.0001D
+        && Math.Abs(left.Margins.Left - right.Margins.Left) <= 0.0001D
+        && Math.Abs(left.Margins.Top - right.Margins.Top) <= 0.0001D
+        && Math.Abs(left.Margins.Right - right.Margins.Right) <= 0.0001D
+        && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
+
+    private void ResetLayoutPassState() {
+        _paintOrder = 0;
+        _positionedSourceOrder = 0;
+        _nextSemanticNodeId = 0;
+        _backgroundImageTileCount = 0;
+        _fixedPositionedElements.Clear();
+        _rootPositionedElements.Clear();
+        _localPositionedElements.Clear();
+        _normalFlowPlacements.Clear();
+        _positionedContainingRects.Clear();
+        _inlineContainingRects.Clear();
+        _inlineStaticPositions.Clear();
+        _inlineStackingElements.Clear();
+        _layoutStyles.Clear();
+        _containsInFlowFloatCache.Clear();
+        _rootStackingPaintOrders.Clear();
+        _positionedSourceOrdersByElement.Clear();
+        _semanticNodeIds.Clear();
+        _formFieldNames.Clear();
+        _formFieldNamesByElement.Clear();
+        _radioFieldNames.Clear();
+        _registeredFixedElements.Clear();
+        _registeredAbsoluteElements.Clear();
+        _reportedPositionStaticAnchorFallbacks.Clear();
+        _activeSubgridOwner = null;
+        _activeSubgridColumnSizes = null;
+        _activeSubgridColumnLineNames = null;
+        _activeSubgridColumnGap = 0D;
     }
 
     private void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
@@ -173,49 +270,72 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _runningStringValues.Clear();
         _currentPageRunningStringAssignments.Clear();
         _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
-        double pageWidth = _options.PageWidth;
-        double pageHeight = _options.PageHeight;
-        double contentHeight = pageHeight - _options.Margins.Top - _options.Margins.Bottom;
+        string? currentPageName = blocks.Count > 0 ? blocks[0].PageName : null;
+        HtmlCssPageGeometry pageGeometry = _pageRules.ResolveGeometry(1, currentPageName, _options);
+        SetActivePageGeometry(pageGeometry);
+        double pageWidth = pageGeometry.Width;
+        double pageHeight = pageGeometry.Height;
+        double contentHeight = pageGeometry.ContentHeight;
         ValidateSurface(pageWidth, pageHeight);
         PrepareGlobalPositionedRequests(
             includeRoot: true,
             pageWidth,
             pageHeight,
-            Math.Max(1D, pageWidth - _options.Margins.Left - _options.Margins.Right),
+            pageGeometry.ContentWidth,
             Math.Max(1D, contentHeight));
         BuildRootStackingPaintOrders(blocks);
 
         var pages = new List<HtmlRenderPage>();
         var visuals = CreatePageVisuals(pageWidth, pageHeight);
-        double y = _options.Margins.Top;
-        string? currentPageName = null;
+        double y = pageGeometry.Margins.Top;
+        void BeginPage(string? pageName) {
+            pageGeometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
+            SetActivePageGeometry(pageGeometry);
+            pageWidth = pageGeometry.Width;
+            pageHeight = pageGeometry.Height;
+            contentHeight = pageGeometry.ContentHeight;
+            ValidateSurface(pageWidth, pageHeight);
+            visuals = CreatePageVisuals(pageWidth, pageHeight);
+            y = pageGeometry.Margins.Top;
+        }
         for (int index = 0; index < blocks.Count; index++) {
             CheckCancellation();
             HtmlRenderFlowBlock block = blocks[index];
-            bool hasPageContent = y > _options.Margins.Top + 0.0001D;
-            if (hasPageContent && !string.Equals(currentPageName, block.PageName, StringComparison.OrdinalIgnoreCase)) {
-                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-                visuals = CreatePageVisuals(pageWidth, pageHeight);
-                y = _options.Margins.Top;
+            bool hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
+            if (!string.Equals(currentPageName, block.PageName, StringComparison.Ordinal)) {
+                if (hasPageContent) CommitPage(pages, visuals, pageGeometry, currentPageName);
+                BeginPage(block.PageName);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
                 hasPageContent = false;
+            } else {
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
             if (!hasPageContent) currentPageName = block.PageName;
-            if (block.BreakBefore != HtmlPageBreakTarget.None) {
-                ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
-                hasPageContent = y > _options.Margins.Top + 0.0001D;
+            HtmlPageBreakTarget breakBefore = ResolveForcedBreakAt(block.ForcedBreaks, 0D);
+            if (breakBefore == HtmlPageBreakTarget.None) breakBefore = block.BreakBefore;
+            if (breakBefore != HtmlPageBreakTarget.None) {
+                ApplyBreakBefore(breakBefore, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                pageWidth = pageGeometry.Width;
+                pageHeight = pageGeometry.Height;
+                contentHeight = pageGeometry.ContentHeight;
+                hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
                 currentPageName = block.PageName;
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
-            if (block.Height <= contentHeight && hasPageContent && y + block.Height > pageHeight - _options.Margins.Bottom) {
-                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-                visuals = CreatePageVisuals(pageWidth, pageHeight);
-                y = _options.Margins.Top;
+            if (block.Height <= contentHeight
+                && hasPageContent
+                && !HasInternalForcedBreak(block)
+                && y + block.Height > pageHeight - pageGeometry.Margins.Bottom) {
+                CommitPage(pages, visuals, pageGeometry, currentPageName);
+                BeginPage(block.PageName);
                 currentPageName = block.PageName;
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
             }
 
-            if (block.Height <= pageHeight - _options.Margins.Bottom - y) {
-                AddTranslatedVisuals(visuals, block.Visuals, _options.Margins.Left, y, block);
+            if (block.Height <= pageHeight - pageGeometry.Margins.Bottom - y && !HasInternalForcedBreak(block)) {
+                AddTranslatedVisuals(visuals, block.Visuals, pageGeometry.Margins.Left, y, block);
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
             } else {
@@ -225,20 +345,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
                     bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
                     double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
-                    double rawAvailable = pageHeight - _options.Margins.Bottom - y;
+                    double rawAvailable = pageHeight - pageGeometry.Margins.Bottom - y;
                     HtmlRenderTrailingGroup? trailingGroup = ResolveTrailingGroup(block, blockOffset, Math.Max(0D, rawAvailable - continuationHeight), out double fragmentLimit);
                     bool repeatTrailing = trailingGroup != null && trailingGroup.Visuals.Count > 0 && trailingGroup.Height > 0D;
                     double trailingHeight = repeatTrailing ? trailingGroup!.Height : 0D;
                     double available = rawAvailable - continuationHeight - trailingHeight;
-                    double fragmentEnd = available > 0.0001D
-                        ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
-                        : blockOffset;
+                    bool forcedBreakFits = TryGetNextForcedBreak(block.ForcedBreaks, blockOffset, out HtmlRenderForcedBreak? forcedBreak)
+                        && forcedBreak!.Offset <= fragmentLimit + 0.0001D
+                        && forcedBreak.Offset <= blockOffset + available + 0.0001D;
+                    double fragmentEnd = forcedBreakFits
+                        ? forcedBreak!.Offset
+                        : available > 0.0001D
+                            ? FindFragmentEnd(block, blockOffset, available, fragmentLimit)
+                            : blockOffset;
                     if (fragmentEnd <= blockOffset + 0.0001D) {
-                        if (y > _options.Margins.Top + 0.0001D) {
-                            CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-                            visuals = CreatePageVisuals(pageWidth, pageHeight);
-                            y = _options.Margins.Top;
-                            currentPageName = block.PageName;
+                        if (y > pageGeometry.Margins.Top + 0.0001D) {
+                            CommitPage(pages, visuals, pageGeometry, currentPageName);
+                            BeginPage(currentPageName);
                             continue;
                         }
 
@@ -308,40 +431,134 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
 
                     if (repeatContinuation) {
-                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, _options.Margins.Left, y, block);
+                        AddTranslatedVisuals(visuals, continuationGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += continuationHeight;
                     }
 
                     IReadOnlyList<HtmlRenderVisual> fragment = SliceBlockVisuals(block, blockOffset, fragmentEnd);
-                    AddTranslatedVisuals(visuals, fragment, _options.Margins.Left, y, block);
+                    AddTranslatedVisuals(visuals, fragment, pageGeometry.Margins.Left, y, block);
                     RecordRunningStringAssignments(block, blockOffset, fragmentEnd, y);
                     y += fragmentEnd - blockOffset;
                     blockOffset = fragmentEnd;
                     if (repeatTrailing) {
-                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, _options.Margins.Left, y, block);
+                        AddTranslatedVisuals(visuals, trailingGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += trailingHeight;
                         if (blockOffset >= trailingGroup.ContentEndsAt - 0.0001D) blockOffset = trailingGroup.SourceEndsAt;
                     }
 
                     if (blockOffset < block.Height - 0.0001D) {
-                        CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-                        visuals = CreatePageVisuals(pageWidth, pageHeight);
-                        y = _options.Margins.Top;
-                        currentPageName = block.PageName;
+                        HtmlInlineBreakProgress? continuationProgress = ResolveInlineContinuationProgress(block, blockOffset);
+                        string? nextPageName = ResolvePageNameAt(block.ForcedBreaks, blockOffset, currentPageName);
+                        CommitPage(pages, visuals, pageGeometry, currentPageName);
+                        BeginPage(nextPageName);
+                        currentPageName = nextPageName;
+                        pageWidth = pageGeometry.Width;
+                        pageHeight = pageGeometry.Height;
+                        contentHeight = pageGeometry.ContentHeight;
+                        HtmlPageBreakTarget internalBreak = ResolveForcedBreakAt(block.ForcedBreaks, blockOffset);
+                        if (internalBreak != HtmlPageBreakTarget.None) {
+                            EnsurePageSide(internalBreak, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                            pageWidth = pageGeometry.Width;
+                            pageHeight = pageGeometry.Height;
+                            contentHeight = pageGeometry.ContentHeight;
+                        }
+                        if (RequiresPageRelayout(block, pageGeometry)) {
+                            if (continuationProgress.HasValue
+                                && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
+                                block = reflowed;
+                                blockOffset = 0D;
+                            } else {
+                                ReportPageContinuationReflowPending(block, pageGeometry);
+                            }
+                        }
                     }
                 }
             }
 
-            if (block.BreakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
-                CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
-                visuals = CreatePageVisuals(pageWidth, pageHeight);
-                y = _options.Margins.Top;
-                EnsurePageSide(block.BreakAfter, pages, ref visuals, ref y, pageWidth, pageHeight, currentPageName);
+            HtmlPageBreakTarget breakAfter = ResolveForcedBreakAt(block.ForcedBreaks, block.Height);
+            if (block.BreakAfter != HtmlPageBreakTarget.None) breakAfter = block.BreakAfter;
+            if (breakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
+                CommitPage(pages, visuals, pageGeometry, currentPageName);
+                BeginPage(currentPageName);
+                EnsurePageSide(breakAfter, pages, ref visuals, ref y, ref pageGeometry, currentPageName);
+                pageWidth = pageGeometry.Width;
+                pageHeight = pageGeometry.Height;
+                contentHeight = pageGeometry.ContentHeight;
             }
         }
 
-        CommitPage(pages, visuals, pageWidth, pageHeight, currentPageName);
+        CommitPage(pages, visuals, pageGeometry, currentPageName);
         return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata);
+    }
+
+    private HtmlRenderFlowBlock RelayoutTopLevelBlockForPage(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
+        if (!RequiresPageRelayout(block, geometry)) return block;
+        if (block.OwnerElement == null) {
+            ReportPageContinuationReflowPending(block, geometry);
+            return block;
+        }
+        IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
+        if (!ReferenceEquals(block.OwnerElement.ParentElement, root)) {
+            ReportPageContinuationReflowPending(block, geometry);
+            return block;
+        }
+        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(block.OwnerElement, geometry.ContentWidth, rootStyle);
+        return LayoutElement(block.OwnerElement, geometry.ContentWidth, style, rootStyle, 1);
+    }
+
+    private static bool RequiresPageRelayout(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) =>
+        Math.Abs(block.Width - geometry.ContentWidth) > 0.0001D
+        || double.IsNaN(block.LayoutViewportWidth)
+        || double.IsNaN(block.LayoutViewportHeight)
+        || Math.Abs(block.LayoutViewportWidth - geometry.Width) > 0.0001D
+        || Math.Abs(block.LayoutViewportHeight - geometry.Height) > 0.0001D;
+
+    private void ReportPageContinuationReflowPending(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
+        string key = block.Source
+            + "|" + geometry.ContentWidth.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + geometry.Width.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + "|" + geometry.Height.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        if (!_reportedPageContinuationReflow.Add(key)) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.PagePseudoGeometryPending,
+            "A fragment crossing into a page with different geometry retained its source-page layout.",
+            HtmlDiagnosticSeverity.Warning,
+            block.Source,
+            "target-content-width=" + geometry.ContentWidth.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    private static HtmlInlineBreakProgress? ResolveInlineContinuationProgress(HtmlRenderFlowBlock block, double fragmentEnd) {
+        if (!block.SupportsInlineContinuationReflow) return null;
+        HtmlInlineBreakProgress? selected = null;
+        foreach (HtmlInlineBreakProgress item in block.InlineBreakProgress) {
+            if (item.OwnerElement != null && Math.Abs(item.Offset - fragmentEnd) <= 0.0001D) selected = item;
+        }
+        return selected;
+    }
+
+    private bool TryRelayoutInlineContinuation(
+        HtmlRenderFlowBlock source,
+        HtmlCssPageGeometry geometry,
+        HtmlInlineBreakProgress continuation,
+        out HtmlRenderFlowBlock reflowed) {
+        reflowed = source;
+        if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
+        IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
+        if (!ReferenceEquals(source.OwnerElement.ParentElement, root)) return false;
+        if (!ContainsElementOrSelf(source.OwnerElement, continuation.OwnerElement)) return false;
+        HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
+        HtmlRenderBoxStyle style = _styleResolver.Resolve(source.OwnerElement, geometry.ContentWidth, rootStyle);
+        reflowed = LayoutElement(
+            source.OwnerElement,
+            geometry.ContentWidth,
+            style,
+            rootStyle,
+            1,
+            continuation.OwnerElement,
+            continuation.LogicalCharacters);
+        return true;
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) {
@@ -367,25 +584,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return visuals;
     }
 
-    private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
-        if (y > _options.Margins.Top + 0.0001D) {
-            CommitPage(pages, visuals, width, height, pageName);
-            visuals = CreatePageVisuals(width, height);
-            y = _options.Margins.Top;
+    private void ApplyBreakBefore(
+        HtmlPageBreakTarget target,
+        ICollection<HtmlRenderPage> pages,
+        ref List<HtmlRenderVisual> visuals,
+        ref double y,
+        ref HtmlCssPageGeometry geometry,
+        string? pageName) {
+        if (y > geometry.Margins.Top + 0.0001D) {
+            CommitPage(pages, visuals, geometry, pageName);
+            geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
+            SetActivePageGeometry(geometry);
+            ValidateSurface(geometry.Width, geometry.Height);
+            visuals = CreatePageVisuals(geometry.Width, geometry.Height);
+            y = geometry.Margins.Top;
         }
 
-        EnsurePageSide(target, pages, ref visuals, ref y, width, height, pageName);
+        EnsurePageSide(target, pages, ref visuals, ref y, ref geometry, pageName);
     }
 
-    private void EnsurePageSide(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height, string? pageName) {
+    private void EnsurePageSide(
+        HtmlPageBreakTarget target,
+        ICollection<HtmlRenderPage> pages,
+        ref List<HtmlRenderVisual> visuals,
+        ref double y,
+        ref HtmlCssPageGeometry geometry,
+        string? pageName) {
         if (target != HtmlPageBreakTarget.Left && target != HtmlPageBreakTarget.Right) return;
         int nextPageNumber = pages.Count + 1;
         bool nextIsRight = nextPageNumber % 2 != 0;
         bool targetIsRight = target == HtmlPageBreakTarget.Right;
         if (nextIsRight == targetIsRight) return;
-        CommitPage(pages, visuals, width, height, pageName);
-        visuals = CreatePageVisuals(width, height);
-        y = _options.Margins.Top;
+        CommitPage(pages, visuals, geometry, pageName);
+        geometry = _pageRules.ResolveGeometry(pages.Count + 1, pageName, _options);
+        SetActivePageGeometry(geometry);
+        ValidateSurface(geometry.Width, geometry.Height);
+        visuals = CreatePageVisuals(geometry.Width, geometry.Height);
+        y = geometry.Margins.Top;
     }
 
     private HtmlRenderShape CreatePageBackground(double width, double height) {
@@ -399,14 +634,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.BackgroundColor.HasValue && style.BackgroundColor.Value.A > 0
         || style.HasDeclaredBackgroundImage;
 
-    private void CommitPage(ICollection<HtmlRenderPage> pages, List<HtmlRenderVisual> visuals, double width, double height, string? pageName) {
+    private void CommitPage(
+        ICollection<HtmlRenderPage> pages,
+        List<HtmlRenderVisual> visuals,
+        HtmlCssPageGeometry geometry,
+        string? pageName) {
         if (pages.Count >= _options.MaxPageCount) {
             throw new InvalidOperationException("HTML rendering exceeded the configured maximum page count.");
         }
 
+        double width = geometry.Width;
+        double height = geometry.Height;
         bool includeRoot = pages.Count == 0;
-        double contentWidth = Math.Max(1D, width - _options.Margins.Left - _options.Margins.Right);
-        double contentHeight = Math.Max(1D, height - _options.Margins.Top - _options.Margins.Bottom);
+        double contentWidth = geometry.ContentWidth;
+        double contentHeight = geometry.ContentHeight;
         PrepareGlobalPositionedRequests(includeRoot, width, height, contentWidth, contentHeight);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.Negative);
         AppendGlobalPositionedRequests(visuals, includeRoot, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
@@ -423,7 +664,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         ApplyViewportOverflow(visuals, width, height);
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage));
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage, geometry.Margins));
         _currentPageRunningStringAssignments.Clear();
         _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
     }
@@ -451,59 +692,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : _paintOrder++;
             target.Add(visual.Translate(offsetX, offsetY, paintOrder));
         }
-    }
-
-    private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null) {
-        double limit = Math.Min(maximumEnd ?? block.Height, Math.Min(block.Height, start + available));
-        double best = start;
-        foreach (double offset in block.BreakOffsets) {
-            if (offset > start + 0.0001D
-                && offset <= limit + 0.0001D
-                && IsAllowedLineBreak(block, start, offset)) {
-                best = offset;
-            }
-        }
-
-        return best;
-    }
-
-    private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, out double fragmentLimit) {
-        HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));
-        if (active != null) {
-            fragmentLimit = active.ContentEndsAt;
-            return active;
-        }
-
-        HtmlRenderTrailingGroup? upcoming = block.TrailingGroups
-            .Where(group => group.StartsAt > start + 0.0001D && group.StartsAt < start + available - 0.0001D)
-            .OrderBy(group => group.StartsAt)
-            .FirstOrDefault();
-        if (upcoming == null) {
-            fragmentLimit = block.Height;
-            return null;
-        }
-
-        double candidateAvailable = Math.Max(0D, available - upcoming.Height);
-        double candidateEnd = FindFragmentEnd(block, start, candidateAvailable, upcoming.ContentEndsAt);
-        if (candidateEnd > upcoming.StartsAt + 0.0001D) {
-            fragmentLimit = upcoming.ContentEndsAt;
-            return upcoming;
-        }
-
-        fragmentLimit = upcoming.StartsAt;
-        return null;
-    }
-
-    private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate) {
-        foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
-            if (!group.Offsets.Any(offset => Math.Abs(offset - candidate) <= 0.0001D)) continue;
-            int fragmentLines = group.Offsets.Count(offset => offset > start + 0.0001D && offset <= candidate + 0.0001D);
-            int remainingLines = group.Offsets.Count(offset => offset > candidate + 0.0001D);
-            if (remainingLines == 0 && candidate < block.Height - 0.0001D) return false;
-            return fragmentLines >= group.Orphans && (remainingLines == 0 || remainingLines >= group.Widows);
-        }
-
-        return true;
     }
 
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {

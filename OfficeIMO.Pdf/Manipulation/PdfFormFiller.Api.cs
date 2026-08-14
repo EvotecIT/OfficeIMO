@@ -323,6 +323,7 @@ internal static partial class PdfFormFiller {
             removableObjects.Add(acroFormReference.ObjectNumber);
         }
 
+        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
         foreach (int objectNumber in removableObjects) {
             objects.Remove(objectNumber);
         }
@@ -403,6 +404,7 @@ internal static partial class PdfFormFiller {
             if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);
         }
 
+        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
         foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
