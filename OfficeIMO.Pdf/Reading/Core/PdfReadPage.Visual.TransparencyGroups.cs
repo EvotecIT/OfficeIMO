@@ -72,6 +72,7 @@ public sealed partial class PdfReadPage {
                 invocation.ClipPath,
                 pageWidth,
                 pageHeight,
+                type3GlyphBudget.VisibilityGeometryBudget,
                 out PdfPageClipPath fittedBounds);
         if (boundsResult != Type3TransparencyGroupDrawingResult.Success) return boundsResult;
 
@@ -247,7 +248,12 @@ public sealed partial class PdfReadPage {
         if (placements.Count > 0) {
             var visiblePlacements = new List<PdfImagePlacement>(placements.Count);
             for (int i = 0; i < placements.Count; i++) {
-                if (!IsInvisibleImagePlacement(placements[i], localPageHeight, localPageWidth, localPageHeight)) {
+                if (!IsInvisibleImagePlacement(
+                        placements[i],
+                        localPageHeight,
+                        localPageWidth,
+                        localPageHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget)) {
                     visiblePlacements.Add(placements[i]);
                 }
             }
@@ -269,7 +275,11 @@ public sealed partial class PdfReadPage {
                         activePaintStreams,
                         pageContentBudget,
                         type3GlyphBudget,
-                        contentNestingDepth + 2);
+                        contentNestingDepth + 2,
+                        placement.ImageMaskColor,
+                        OfficeColor.Black,
+                        placement.FillPattern.HasValue,
+                        hasInheritedStrokePattern: false);
                 if (suppressedBySoftMask) {
                     continue;
                 }
@@ -303,6 +313,7 @@ public sealed partial class PdfReadPage {
                             image,
                             localPageWidth,
                             localPageHeight,
+                            type3GlyphBudget.VisibilityGeometryBudget,
                             out OfficeDrawing? maskedPattern,
                             out OfficeTransform maskedPatternTransform);
                     if (result == Type3PatternImageMaskDrawingResult.Unsupported) {
@@ -404,6 +415,7 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? activeClip,
         double pageWidth,
         double pageHeight,
+        VisualGeometryBudget geometryBudget,
         out PdfPageClipPath bounds) {
         bounds = default;
         if (!TryReadType3TransparencyGroupBox(
@@ -457,7 +469,7 @@ public sealed partial class PdfReadPage {
             }
         }
         if (activeClip.HasValue) {
-            if (projectedBounds.CanProveNoPositiveAreaIntersection(activeClip.Value)) {
+            if (projectedBounds.CanProveNoPositiveAreaIntersection(activeClip.Value, geometryBudget)) {
                 return Type3TransparencyGroupDrawingResult.Invisible;
             }
             projectedBounds = PdfPageClipPath.ResolveActiveClip(activeClip.Value, projectedBounds);
@@ -471,11 +483,12 @@ public sealed partial class PdfReadPage {
         if (!TryFitClipToDrawing(projectedBounds, pageWidth, pageHeight, out bounds)) {
             return Type3TransparencyGroupDrawingResult.Invisible;
         }
-        var geometryBudget = new VisualGeometryBudget();
         VisualPath? visibleBounds = VisualPath.FromClip(bounds, geometryBudget);
-        if (visibleBounds != null && !geometryBudget.Exceeded &&
-            !VisualPath.HasPositiveAreaIntersection(new[] { visibleBounds }, geometryBudget) &&
-            !geometryBudget.Exceeded) {
+        if (visibleBounds == null || geometryBudget.Exceeded) {
+            return Type3TransparencyGroupDrawingResult.Unsupported;
+        }
+        if (!VisualPath.HasPositiveAreaIntersection(new[] { visibleBounds }, geometryBudget)) {
+            if (geometryBudget.Exceeded) return Type3TransparencyGroupDrawingResult.Unsupported;
             return Type3TransparencyGroupDrawingResult.Invisible;
         }
         return Type3TransparencyGroupDrawingResult.Success;

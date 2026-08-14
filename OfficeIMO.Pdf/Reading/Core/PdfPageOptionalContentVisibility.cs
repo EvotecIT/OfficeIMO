@@ -8,6 +8,8 @@ internal sealed class PdfPageOptionalContentVisibility {
     private readonly Dictionary<int, bool> _groupVisibility;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxExpressionDepth;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, (bool Success, bool Visible)> _inlineVisibilityExpressionCache =
+        new System.Collections.Concurrent.ConcurrentDictionary<string, (bool Success, bool Visible)>(StringComparer.Ordinal);
 
     private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<string> knownProperties, HashSet<string> invalidProperties, HashSet<int> hiddenObjectNumbers, Dictionary<int, bool> groupVisibility, Dictionary<int, PdfIndirectObject> objects, int maxExpressionDepth, bool hasUnsupportedViewUsageApplications) {
         _hiddenProperties = hiddenProperties;
@@ -135,6 +137,17 @@ internal sealed class PdfPageOptionalContentVisibility {
     }
 
     private bool TryEvaluateInlineOrIndirectVisibilityExpression(string expression, out bool visible) {
+        if (_inlineVisibilityExpressionCache.TryGetValue(expression, out (bool Success, bool Visible) cached)) {
+            visible = cached.Visible;
+            return cached.Success;
+        }
+
+        bool success = TryEvaluateInlineOrIndirectVisibilityExpressionUncached(expression, out visible);
+        _inlineVisibilityExpressionCache[expression] = (success, visible);
+        return success;
+    }
+
+    private bool TryEvaluateInlineOrIndirectVisibilityExpressionUncached(string expression, out bool visible) {
         if (TryEvaluateInlineVisibilityExpression(expression, out visible)) return true;
 
         visible = false;

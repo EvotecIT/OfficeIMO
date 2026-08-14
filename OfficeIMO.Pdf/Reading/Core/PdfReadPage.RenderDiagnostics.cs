@@ -732,7 +732,11 @@ public sealed partial class PdfReadPage {
                         activeType3PaintChannelStreams,
                         pageContentBudget,
                         type3GlyphBudget,
-                        depth + 1)) {
+                        depth + 1,
+                        invocation.FillColor,
+                        invocation.StrokeColor,
+                        invocation.FillPattern.HasValue,
+                        invocation.StrokePattern.HasValue)) {
                     continue;
                 }
                 if (invocation.InlineImage != null || TryGetImageXObject(resources, invocation.Name, out _, out _)) {
@@ -745,6 +749,7 @@ public sealed partial class PdfReadPage {
                         seen,
                         surfaceWidth,
                         surfaceHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget,
                         requireInterpolation: requireIsolatedGroupSemantics);
                     if (!canProjectImage) supported = false;
                     continue;
@@ -798,6 +803,7 @@ public sealed partial class PdfReadPage {
                         invocation.ClipPath,
                         surfaceWidth,
                         surfaceHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget,
                         out PdfPageClipPath groupBounds);
                     if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
                     if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) {
@@ -878,6 +884,7 @@ public sealed partial class PdfReadPage {
         HashSet<string> seen,
         double projectionPageWidth,
         double projectionPageHeight,
+        VisualGeometryBudget geometryBudget,
         bool requireInterpolation = false) {
         PdfImagePlacement placement;
         PdfDictionary imageDictionary;
@@ -913,7 +920,12 @@ public sealed partial class PdfReadPage {
                 paintOrder: invocation.PaintOrder);
         }
 
-        if (IsInvisibleImagePlacement(placement, projectionPageHeight, projectionPageWidth, projectionPageHeight)) {
+        if (IsInvisibleImagePlacement(
+                placement,
+                projectionPageHeight,
+                projectionPageWidth,
+                projectionPageHeight,
+                geometryBudget)) {
             return true;
         }
         if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
@@ -950,6 +962,7 @@ public sealed partial class PdfReadPage {
                 image,
                 projectionPageWidth,
                 projectionPageHeight,
+                geometryBudget,
                 out _,
                 out _,
                 out _,

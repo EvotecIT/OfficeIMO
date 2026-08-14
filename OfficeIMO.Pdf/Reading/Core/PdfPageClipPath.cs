@@ -262,13 +262,15 @@ internal readonly partial struct PdfPageClipPath {
         List<List<OfficePoint>> contours,
         OfficeFillRule fillRule,
         OfficePoint point,
-        PdfTextClippingBudget? textClippingBudget = null) {
+        PdfTextClippingBudget? textClippingBudget = null,
+        PdfReadPage.VisualGeometryBudget? geometryBudget = null) {
         textClippingBudget?.ChargeContourIntersectionWork(contours);
         int winding = 0;
         bool inside = false;
         for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
             List<OfficePoint> contour = contours[contourIndex];
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                if (geometryBudget != null && !geometryBudget.TryUseOperation()) return true;
                 OfficePoint start = contour[pointIndex];
                 OfficePoint end = contour[(pointIndex + 1) % contour.Count];
                 if (IsPointOnSegment(point, start, end)) return true;
@@ -800,27 +802,43 @@ internal readonly partial struct PdfPageClipPath {
 
     internal bool CanProveExactIntersection => CanServeAsExactPathClip(this);
 
-    internal bool CanProveNoPositiveAreaIntersection(PdfPageClipPath other) {
+    internal bool CanProveNoPositiveAreaIntersection(PdfPageClipPath other) =>
+        CanProveNoPositiveAreaIntersection(other, new PdfReadPage.VisualGeometryBudget());
+
+    internal bool CanProveNoPositiveAreaIntersection(
+        PdfPageClipPath other,
+        PdfReadPage.VisualGeometryBudget geometryBudget) {
         if (!IsExact || !other.IsExact || ContainsCurve(Commands) || ContainsCurve(other.Commands)) return false;
         List<List<OfficePoint>> first = GetContours(this);
         List<List<OfficePoint>> second = GetContours(other);
-        if (first.Count == 0 || second.Count == 0) return false;
+        if (first.Count == 0 || second.Count == 0 ||
+            !geometryBudget.TryAddPoints(CountContourPoints(first)) ||
+            !geometryBudget.TryAddPoints(CountContourPoints(second))) return false;
         for (int firstIndex = 0; firstIndex < first.Count; firstIndex++) {
             for (int secondIndex = 0; secondIndex < second.Count; secondIndex++) {
-                if (ContoursIntersect(first[firstIndex], second[secondIndex])) return false;
+                if (ContoursIntersect(first[firstIndex], second[secondIndex], geometryBudget)) return false;
             }
         }
         for (int contourIndex = 0; contourIndex < first.Count; contourIndex++) {
             for (int pointIndex = 0; pointIndex < first[contourIndex].Count; pointIndex++) {
-                if (ContainsFilledPoint(second, other.FillRule, first[contourIndex][pointIndex])) return false;
+                if (ContainsFilledPoint(second, other.FillRule, first[contourIndex][pointIndex], geometryBudget: geometryBudget)) return false;
             }
         }
         for (int contourIndex = 0; contourIndex < second.Count; contourIndex++) {
             for (int pointIndex = 0; pointIndex < second[contourIndex].Count; pointIndex++) {
-                if (ContainsFilledPoint(first, FillRule, second[contourIndex][pointIndex])) return false;
+                if (ContainsFilledPoint(first, FillRule, second[contourIndex][pointIndex], geometryBudget: geometryBudget)) return false;
             }
         }
-        return true;
+        return !geometryBudget.Exceeded;
+    }
+
+    private static int CountContourPoints(List<List<OfficePoint>> contours) {
+        int count = 0;
+        for (int index = 0; index < contours.Count; index++) {
+            if (contours[index].Count > int.MaxValue - count) return int.MaxValue;
+            count += contours[index].Count;
+        }
+        return count;
     }
 
     private static List<List<OfficePoint>> GetContours(PdfPageClipPath path) {
@@ -835,11 +853,15 @@ internal readonly partial struct PdfPageClipPath {
         };
     }
 
-    private static bool ContoursIntersect(List<OfficePoint> first, List<OfficePoint> second) {
+    private static bool ContoursIntersect(
+        List<OfficePoint> first,
+        List<OfficePoint> second,
+        PdfReadPage.VisualGeometryBudget geometryBudget) {
         for (int firstIndex = 0; firstIndex < first.Count; firstIndex++) {
             OfficePoint firstStart = first[firstIndex];
             OfficePoint firstEnd = first[(firstIndex + 1) % first.Count];
             for (int secondIndex = 0; secondIndex < second.Count; secondIndex++) {
+                if (!geometryBudget.TryUseOperation()) return true;
                 OfficePoint secondStart = second[secondIndex];
                 OfficePoint secondEnd = second[(secondIndex + 1) % second.Count];
                 if (SegmentsIntersect(firstStart, firstEnd, secondStart, secondEnd)) return true;

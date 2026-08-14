@@ -57,9 +57,10 @@ internal static class PdfInlineOptionalContentReferenceParser {
         bool hasInvalidPolicy = hasPolicyValue &&
             !string.Equals(policyValue?.Trim(), "null", StringComparison.Ordinal) &&
             !IsSupportedMembershipPolicy(policy);
-        string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression)
-            ? parsedExpression
-            : null;
+        string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression) &&
+            !string.Equals(parsedExpression?.Trim(), "null", StringComparison.Ordinal)
+                ? parsedExpression
+                : null;
         return new PdfInlineOptionalContentReferences(objectReferences, isMembershipDictionary, policy, visibilityExpression, hasInvalidPolicy, hasInvalidGroupContainer);
     }
 

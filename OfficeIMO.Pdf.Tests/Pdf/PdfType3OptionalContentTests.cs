@@ -18,6 +18,16 @@ public class PdfType3OptionalContentTests {
         Assert.Equal(new[] { 11 }, references.ObjectNumbers);
     }
 
+    [Fact]
+    public void InlineOptionalContentMembershipDictionary_TreatsExplicitNullVisibilityExpressionAsAbsent() {
+        const string content = "<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE null >>";
+
+        PdfInlineOptionalContentReferences references = PdfInlineOptionalContentReferenceParser.Parse(content, 0, content.Length);
+
+        Assert.True(references.IsMembershipDictionary);
+        Assert.Null(references.VisibilityExpression);
+    }
+
     [Theory]
     [InlineData("/Bad")]
     [InlineData("1")]
@@ -108,6 +118,19 @@ public class PdfType3OptionalContentTests {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: membershipDictionary);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
+    [InlineData("<< /OCGs [10 0 R] /P /AnyOn >>")]
+    [InlineData("<< /Type /OCG /OCGs [10 0 R] /P /AnyOn >>")]
+    public void RenderPage_FailsClosedForInlineOptionalContentDictionaryThatIsNotAnOcmd(string dictionary) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: dictionary);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 

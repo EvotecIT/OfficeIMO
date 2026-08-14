@@ -7,7 +7,8 @@ public sealed partial class PdfReadPage {
         PdfImagePlacement placement,
         double pageHeight,
         double drawingWidth,
-        double drawingHeight) {
+        double drawingHeight,
+        VisualGeometryBudget? geometryBudget = null) {
         if ((placement.ImageOpacity ?? 1D) <= 0D) return true;
         if (!IsFinite(placement.A) || !IsFinite(placement.B) ||
             !IsFinite(placement.C) || !IsFinite(placement.D) ||
@@ -15,7 +16,7 @@ public sealed partial class PdfReadPage {
             !IsFinite(placement.X) || !IsFinite(placement.Y) ||
             !IsFinite(placement.Width) || !IsFinite(placement.Height) ||
             placement.Width <= 0D || placement.Height <= 0D) return false;
-        var geometryBudget = new VisualGeometryBudget();
+        geometryBudget ??= new VisualGeometryBudget();
         var imageTransform = new OfficeTransform(
             placement.A,
             -placement.B,
@@ -43,9 +44,9 @@ public sealed partial class PdfReadPage {
             if (pageCandidate.IsExact && (pageCandidate.Width <= 0D || pageCandidate.Height <= 0D)) return true;
             PdfPageClipPath exactCandidate = pageCandidate;
             if (placement.ClipPath.HasValue) {
-                if (imageClip.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value)) return true;
+                if (imageClip.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value, geometryBudget)) return true;
                 exactCandidate = PdfPageClipPath.ResolveActiveClip(exactCandidate, placement.ClipPath.Value);
-                if (pageCandidate.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value)) return true;
+                if (pageCandidate.CanProveNoPositiveAreaIntersection(placement.ClipPath.Value, geometryBudget)) return true;
             }
             if ((!placement.ClipPath.HasValue || placement.ClipPath.Value.CanProveExactIntersection) &&
                 exactCandidate.IsExact) return exactCandidate.Width <= 0D || exactCandidate.Height <= 0D;

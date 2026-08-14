@@ -131,7 +131,11 @@ public sealed partial class PdfReadPage {
                             activeStreams,
                             pageContentBudget,
                             type3GlyphBudget,
-                            depth + 1)) {
+                            depth + 1,
+                            primitive.FillColor,
+                            primitive.StrokeColor,
+                            primitive.FillTilingPattern != null || primitive.FillGradient != null || primitive.FillRadialGradient != null,
+                            primitive.StrokeTilingPattern != null || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null)) {
                         return;
                     }
                     channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight, visibilityGeometryBudget);
@@ -215,7 +219,12 @@ public sealed partial class PdfReadPage {
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth)) {
                 if (invocation.InlineImage != null &&
-                    !IsInvisibleInlineImageInvocation(invocation, resources, pageWidth, pageHeight)) {
+                    !IsInvisibleInlineImageInvocation(
+                        invocation,
+                        resources,
+                        pageWidth,
+                        pageHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget)) {
                     channels |= PdfImageMaskNormalizer.IsImageMask(invocation.InlineImage.Stream, _objects)
                         ? PdfType3PaintChannels.Fill
                         : PdfType3PaintChannels.Visible;
@@ -252,9 +261,21 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeStreams,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
-        int depth) {
+        int depth,
+        OfficeColor? inheritedFillColor = null,
+        OfficeColor? inheritedStrokeColor = null,
+        bool hasInheritedFillPattern = false,
+        bool hasInheritedStrokePattern = false) {
         PdfPageSoftMaskResource? softMask = effect.SoftMask;
-        return softMask != null && IsSoftMaskEntirelyTransparent(
+        if (softMask == null) return false;
+        if (LuminositySoftMaskDependsOnInheritedPaint(
+                softMask,
+                inheritedFillColor ?? OfficeColor.Black,
+                inheritedStrokeColor ?? OfficeColor.Black,
+                hasInheritedFillPattern,
+                hasInheritedStrokePattern,
+                pageContentBudget)) return false;
+        return IsSoftMaskEntirelyTransparent(
             softMask,
             effect.SoftMaskTransform ?? fallbackTransform,
             parentResources,

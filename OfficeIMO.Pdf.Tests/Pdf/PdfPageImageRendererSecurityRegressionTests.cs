@@ -10,6 +10,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void Type3VisibilityGeometryBudgetBoundsRepeatedClipSeparationProofs() {
+        PdfPageClipPath first = PdfPageClipPath.Rectangle(0D, 0D, 10D, 10D);
+        PdfPageClipPath second = PdfPageClipPath.Rectangle(20D, 20D, 10D, 10D);
+        var budget = new PdfReadPage.VisualGeometryBudget();
+        bool provedSeparated = true;
+
+        for (int index = 0; index < 5000 && provedSeparated; index++) {
+            provedSeparated = first.CanProveNoPositiveAreaIntersection(second, budget);
+        }
+
+        Assert.True(budget.Exceeded);
+        Assert.False(provedSeparated);
+    }
+
+    [Fact]
     public void RenderPage_ChargesType3CharProcAgainstContentNestingBudget() {
         string form = BuildStreamObject(5, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << /Font << /FType3 6 0 R >> >>", "BT /FType3 18 Tf 20 100 Td (A) Tj ET");
         string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";

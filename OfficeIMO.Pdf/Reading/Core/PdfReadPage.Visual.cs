@@ -988,6 +988,7 @@ public sealed partial class PdfReadPage {
                         invocation.ClipPath,
                         pageWidth,
                         pageHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget,
                         out _);
                     if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) {
                         continue;

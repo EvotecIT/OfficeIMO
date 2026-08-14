@@ -239,7 +239,12 @@ public sealed partial class PdfReadPage {
                 }
 
                 for (int imageIndex = localImagePlacements.Count - 1; imageIndex >= 0; imageIndex--) {
-                    if (IsInvisibleImagePlacement(localImagePlacements[imageIndex], pageHeight, pageWidth, pageHeight)) {
+                    if (IsInvisibleImagePlacement(
+                            localImagePlacements[imageIndex],
+                            pageHeight,
+                            pageWidth,
+                            pageHeight,
+                            type3GlyphBudget.VisibilityGeometryBudget)) {
                         localImagePlacements.RemoveAt(imageIndex);
                     }
                 }
@@ -295,6 +300,7 @@ public sealed partial class PdfReadPage {
                                 image.Image,
                                 pageWidth,
                                 pageHeight,
+                                type3GlyphBudget.VisibilityGeometryBudget,
                                 out OfficeDrawing? maskedPattern,
                                 out OfficeTransform maskedPatternTransform);
                         if (result == Type3PatternImageMaskDrawingResult.Unsupported) return false;
@@ -714,6 +720,7 @@ public sealed partial class PdfReadPage {
         PdfExtractedImage image,
         double pageWidth,
         double pageHeight,
+        VisualGeometryBudget geometryBudget,
         out OfficeDrawing drawing,
         out OfficeTransform drawingTransform) {
         drawing = new OfficeDrawing(1D, 1D);
@@ -724,6 +731,7 @@ public sealed partial class PdfReadPage {
             image,
             pageWidth,
             pageHeight,
+            geometryBudget,
             out OfficeImageProjection projection,
             out PdfPageClipPath fitted,
             out PdfPageTilingPatternPaint? tilingPaint,
@@ -811,6 +819,7 @@ public sealed partial class PdfReadPage {
         PdfExtractedImage image,
         double pageWidth,
         double pageHeight,
+        VisualGeometryBudget geometryBudget,
         out OfficeImageProjection projection,
         out PdfPageClipPath fitted,
         out PdfPageTilingPatternPaint? tilingPaint,
@@ -831,7 +840,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 out projection,
                 allowAxisAlignedFallback: false)) {
-            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
+            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight, geometryBudget)
                 ? Type3PatternImageMaskDrawingResult.Invisible
                 : Type3PatternImageMaskDrawingResult.Unsupported;
         }
@@ -1145,7 +1154,12 @@ public sealed partial class PdfReadPage {
                 OfficeColor.Black,
                 invocationState.FillOpacity,
                 paintOrder: 0D);
-            return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight)
+            return IsInvisibleImagePlacement(
+                    placement,
+                    pageHeight,
+                    pageWidth,
+                    pageHeight,
+                    type3GlyphBudget.VisibilityGeometryBudget)
                 ? PdfType3PaintChannels.None
                 : imageStream != null && PdfImageMaskNormalizer.IsImageMask(imageStream, _objects)
                     ? PdfType3PaintChannels.Fill
@@ -1167,6 +1181,7 @@ public sealed partial class PdfReadPage {
                 invocationState.ClipPath,
                 pageWidth,
                 pageHeight,
+                type3GlyphBudget.VisibilityGeometryBudget,
                 out _);
             if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) return PdfType3PaintChannels.None;
             if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) return PdfType3PaintChannels.Both;
@@ -1190,7 +1205,8 @@ public sealed partial class PdfReadPage {
         PdfPageXObjectInvocation invocation,
         PdfDictionary resources,
         double pageWidth,
-        double pageHeight) {
+        double pageHeight,
+        VisualGeometryBudget geometryBudget) {
         if (invocation.InlineImage == null) return false;
         PdfImagePlacement placement = BuildImagePlacement(
             0,
@@ -1204,7 +1220,7 @@ public sealed partial class PdfReadPage {
             invocation.InlineImage.Stream,
             resources,
             invocation.PaintOrder);
-        return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight);
+        return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight, geometryBudget);
     }
 
     private PdfType3PaintChannels ResolveType3PaintChannels(
@@ -1278,7 +1294,11 @@ public sealed partial class PdfReadPage {
                             activeStreams,
                             pageContentBudget,
                             type3GlyphBudget,
-                            depth + 1)) {
+                            depth + 1,
+                            primitive.FillColor,
+                            primitive.StrokeColor,
+                            primitive.FillTilingPattern != null || primitive.FillGradient != null || primitive.FillRadialGradient != null,
+                            primitive.StrokeTilingPattern != null || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null)) {
                         return;
                     }
                     channels |= ResolveVisibleType3PrimitivePaintChannels(primitive, pageWidth, pageHeight, visibilityGeometryBudget);
@@ -1355,7 +1375,8 @@ public sealed partial class PdfReadPage {
                             invocation,
                             resources,
                             pageWidth,
-                            pageHeight)) {
+                            pageHeight,
+                            type3GlyphBudget.VisibilityGeometryBudget)) {
                         channels |= PdfImageMaskNormalizer.IsImageMask(invocation.InlineImage.Stream, _objects)
                             ? PdfType3PaintChannels.Fill
                             : PdfType3PaintChannels.Visible;

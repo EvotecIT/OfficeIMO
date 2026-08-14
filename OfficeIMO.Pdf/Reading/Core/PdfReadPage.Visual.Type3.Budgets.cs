@@ -21,6 +21,8 @@ public sealed partial class PdfReadPage {
 
         internal int FailureVersion => _failureVersion;
 
+        internal VisualGeometryBudget VisibilityGeometryBudget { get; } = new VisualGeometryBudget();
+
         internal Type3SoftMaskValidationContext GetOrCreateSoftMaskValidationContext(
             PdfReadPage owner,
             PageContentBudget pageContentBudget,
