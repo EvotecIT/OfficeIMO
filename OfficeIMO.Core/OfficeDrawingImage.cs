@@ -21,9 +21,14 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     }
 
     /// <summary>Creates an image drawing element with explicit scaling interpolation behavior.</summary>
-    public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, string? alternativeText = null, double opacity = 1D)
-        : this(bytes, contentType, projection, alternativeText, opacity, interpolate, useDataSnapshot: false) {
-    }
+    public static OfficeDrawingImage CreateWithInterpolation(
+        byte[] bytes,
+        string? contentType,
+        OfficeImageProjection projection,
+        bool interpolate,
+        string? alternativeText = null,
+        double opacity = 1D) =>
+        new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity, interpolate, useDataSnapshot: false);
 
     internal OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool interpolate, bool useDataSnapshot) {
         if (bytes == null) {

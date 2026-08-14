@@ -103,7 +103,7 @@ public partial class DrawingTests {
         var source = new OfficeRasterImage(2, 1, OfficeColor.Black);
         source.SetPixel(1, 0, OfficeColor.White);
         var tile = new OfficeDrawing(2D, 1D);
-        tile.AddImage(
+        tile.AddImageWithInterpolation(
             OfficePngWriter.Encode(source),
             "image/png",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),

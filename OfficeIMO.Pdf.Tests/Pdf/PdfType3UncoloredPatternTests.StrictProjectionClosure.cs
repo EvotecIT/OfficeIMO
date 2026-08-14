@@ -6,6 +6,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfType3UncoloredPatternTests {
     [Fact]
+    public void ExactPathClipClassificationIsReusableAcrossRepeatedPlacements() {
+        var commands = new List<OfficePathCommand>(256 * 5);
+        for (int index = 0; index < 256; index++) {
+            double x = index * 2D;
+            commands.Add(OfficePathCommand.MoveTo(x, 0D));
+            commands.Add(OfficePathCommand.LineTo(x + 1D, 0D));
+            commands.Add(OfficePathCommand.LineTo(x + 1D, 1D));
+            commands.Add(OfficePathCommand.LineTo(x, 1D));
+            commands.Add(OfficePathCommand.Close());
+        }
+        Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+
+        for (int placement = 0; placement < 4096; placement++) {
+            Assert.True(clip.CanProveExactIntersection);
+        }
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForMalformedOrdinaryType3ImageDecodeArray() {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "BT /FType3 18 Tf 20 100 Td (A) Tj ET",

@@ -758,7 +758,7 @@ public sealed partial class PdfReadPage {
             localRight <= fitted.Width &&
             localBottom <= fitted.Height;
         if (fitted.IsRectangle && projectionFitsDrawing) {
-            maskDrawing.AddImage(
+            maskDrawing.AddImageWithInterpolation(
                 image.Bytes,
                 image.MimeType,
                 localProjection,
@@ -767,7 +767,7 @@ public sealed partial class PdfReadPage {
         } else {
             OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
             if (localClip == null) return Type3PatternImageMaskDrawingResult.Unsupported;
-            maskDrawing.AddClippedImage(
+            maskDrawing.AddClippedImageWithInterpolation(
                 image.Bytes,
                 image.MimeType,
                 localProjection,

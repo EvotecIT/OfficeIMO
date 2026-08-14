@@ -51,9 +51,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 IntersectsVisibleBounds(image.Projection.GetDestinationBounds(), visibleBounds)) return true;
             if (element is OfficeDrawingGroup group && ContainsVisibleNonInterpolatedImage(group, visibleBounds)) return true;
             if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
-                (ContainsNonInterpolatedImage(effectGroup.InnerDrawing) ||
-                 (effectGroup.SoftMask != null && ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing)))) return true;
-            if (element is OfficeDrawingTilingPattern { Opacity: > 0D } pattern && ContainsNonInterpolatedImage(pattern.InnerTile)) return true;
+                ContainsVisibleNonInterpolatedImage(effectGroup, visibleBounds)) return true;
+            if (element is OfficeDrawingTilingPattern { Opacity: > 0D } pattern &&
+                ContainsVisibleNonInterpolatedImage(pattern, visibleBounds)) return true;
         }
 
         return false;
@@ -94,6 +94,72 @@ public static partial class OfficeDrawingRasterRenderer {
             Right: visibleGroupBounds.Right - contentX,
             Bottom: visibleGroupBounds.Bottom - contentY);
         return ContainsNonInterpolatedImage(group.InnerDrawing, childVisibleBounds);
+    }
+
+    private static bool ContainsVisibleNonInterpolatedImage(
+        OfficeDrawingEffectGroup effectGroup,
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        if (!parentVisibleBounds.HasValue) {
+            return ContainsNonInterpolatedImage(effectGroup.InnerDrawing) ||
+                (effectGroup.SoftMask != null && ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing));
+        }
+
+        OfficeDrawing inner = effectGroup.InnerDrawing;
+        var transformedBounds = effectGroup.Transform.TransformRectangleBounds(0D, 0D, inner.Width, inner.Height);
+        if (!TryIntersectBounds(transformedBounds, parentVisibleBounds, out var transformedVisibleBounds) ||
+            !effectGroup.Transform.TryInvert(out OfficeTransform inverseTransform)) return false;
+        var childVisibleBounds = inverseTransform.TransformRectangleBounds(
+            transformedVisibleBounds.Left,
+            transformedVisibleBounds.Top,
+            transformedVisibleBounds.Right - transformedVisibleBounds.Left,
+            transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
+        return ContainsNonInterpolatedImage(inner, childVisibleBounds) ||
+            (effectGroup.SoftMask != null && ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, childVisibleBounds));
+    }
+
+    private static bool ContainsVisibleNonInterpolatedImage(
+        OfficeDrawingSoftMask softMask,
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        if (!parentVisibleBounds.HasValue) return ContainsNonInterpolatedImage(softMask.InnerDrawing);
+        OfficeDrawing inner = softMask.InnerDrawing;
+        var transformedBounds = softMask.Transform.TransformRectangleBounds(0D, 0D, inner.Width, inner.Height);
+        if (!TryIntersectBounds(transformedBounds, parentVisibleBounds, out var transformedVisibleBounds) ||
+            !softMask.Transform.TryInvert(out OfficeTransform inverseTransform)) return false;
+        var childVisibleBounds = inverseTransform.TransformRectangleBounds(
+            transformedVisibleBounds.Left,
+            transformedVisibleBounds.Top,
+            transformedVisibleBounds.Right - transformedVisibleBounds.Left,
+            transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
+        return ContainsNonInterpolatedImage(inner, childVisibleBounds);
+    }
+
+    private static bool ContainsVisibleNonInterpolatedImage(
+        OfficeDrawingTilingPattern pattern,
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        if (!parentVisibleBounds.HasValue) return ContainsNonInterpolatedImage(pattern.InnerTile);
+        var patternBounds = (
+            Left: pattern.Area.X,
+            Top: pattern.Area.Y,
+            Right: pattern.Area.X + pattern.Area.Width,
+            Bottom: pattern.Area.Y + pattern.Area.Height);
+        if (!TryIntersectBounds(patternBounds, parentVisibleBounds, out var visiblePatternBounds)) return false;
+
+        OfficeDrawing tile = pattern.InnerTile;
+        System.Collections.Generic.IReadOnlyList<OfficeTransform> transforms = pattern.GetTileTransforms(pattern.MaximumTileCount);
+        for (int index = 0; index < transforms.Count; index++) {
+            OfficeTransform transform = transforms[index];
+            var transformedTileBounds = transform.TransformRectangleBounds(0D, 0D, tile.Width, tile.Height);
+            if (!TryIntersectBounds(transformedTileBounds, visiblePatternBounds, out var transformedVisibleBounds) ||
+                !transform.TryInvert(out OfficeTransform inverseTransform)) continue;
+            var tileVisibleBounds = inverseTransform.TransformRectangleBounds(
+                transformedVisibleBounds.Left,
+                transformedVisibleBounds.Top,
+                transformedVisibleBounds.Right - transformedVisibleBounds.Left,
+                transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
+            if (ContainsNonInterpolatedImage(tile, tileVisibleBounds)) return true;
+        }
+
+        return false;
     }
 
     private static bool IntersectsVisibleBounds(

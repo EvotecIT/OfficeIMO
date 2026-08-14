@@ -207,7 +207,7 @@ public sealed partial class OfficeDrawing {
     }
 
     /// <summary>Adds an image using explicit scaling interpolation behavior.</summary>
-    public OfficeDrawing AddImage(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, string? alternativeText = null, double opacity = 1D) {
+    public OfficeDrawing AddImageWithInterpolation(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, string? alternativeText = null, double opacity = 1D) {
         return AddImageCore(bytes, contentType, projection, alternativeText, opacity, interpolate, allowOverflow: false);
     }
 
@@ -219,11 +219,11 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds an image clipped by a drawing-local clipping path.</summary>
     public OfficeDrawing AddClippedImage(byte[] bytes, string? contentType, OfficeImageProjection projection, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
-        return AddClippedImage(bytes, contentType, projection, true, clipX, clipY, clipPath, alternativeText, opacity);
+        return AddClippedImageWithInterpolation(bytes, contentType, projection, true, clipX, clipY, clipPath, alternativeText, opacity);
     }
 
     /// <summary>Adds an image with explicit scaling interpolation behavior, clipped by a drawing-local path.</summary>
-    public OfficeDrawing AddClippedImage(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
+    public OfficeDrawing AddClippedImageWithInterpolation(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
         if (clipPath == null) {
             throw new ArgumentNullException(nameof(clipPath));
         }
@@ -570,7 +570,7 @@ public sealed partial class OfficeDrawing {
             _images.Add(item);
             _elements.Add(item);
         } else {
-            AddImage(image.EncodedBytes, image.ContentType, projection, image.Interpolate, image.AlternativeText, image.Opacity);
+            AddImageWithInterpolation(image.EncodedBytes, image.ContentType, projection, image.Interpolate, image.AlternativeText, image.Opacity);
         }
     }
 

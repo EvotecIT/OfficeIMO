@@ -11,7 +11,7 @@ public partial class DrawingTests {
         raster.SetPixel(1, 0, OfficeColor.Blue);
         byte[] png = OfficePngWriter.Encode(raster);
         var drawing = new OfficeDrawing(1D, 1D);
-        drawing.AddImage(
+        drawing.AddImageWithInterpolation(
             png,
             "image/png",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D)),
@@ -27,7 +27,7 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeDrawingSvgExporter_ObservesCancellationDuringNearestNeighborVectorization() {
         var drawing = new OfficeDrawing(20D, 16D);
-        drawing.AddImage(
+        drawing.AddImageWithInterpolation(
             new byte[] { 1, 2, 3 },
             "image/x-test",
             new OfficeImageProjection(new OfficeImagePlacement(4D, 3D, 8D, 6D)),
@@ -46,7 +46,7 @@ public partial class DrawingTests {
     [Fact]
     public void OfficeDrawingSvgExporter_SkipsTransparentNearestNeighborImageBeforeDecoding() {
         var drawing = new OfficeDrawing(1D, 1D);
-        drawing.AddImage(
+        drawing.AddImageWithInterpolation(
             new byte[] { 1, 2, 3 },
             "image/x-test",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 1D, 1D)),
@@ -66,7 +66,7 @@ public partial class DrawingTests {
             for (int x = 1; x < raster.Width; x += 2) raster.SetPixel(x, y, OfficeColor.White);
         }
         var drawing = new OfficeDrawing(2D, 1000D);
-        drawing.AddImage(
+        drawing.AddImageWithInterpolation(
             new byte[] { 1 },
             "image/x-test",
             new OfficeImageProjection(
@@ -90,13 +90,13 @@ public partial class DrawingTests {
         raster.SetPixel(1, 0, OfficeColor.Blue);
         byte[] png = OfficePngWriter.Encode(raster);
         var nested = new OfficeDrawing(2D, 1D);
-        nested.AddImage(
+        nested.AddImageWithInterpolation(
             png,
             "image/png",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
             interpolate: false);
         var drawing = new OfficeDrawing(2D, 2D);
-        drawing.AddImage(
+        drawing.AddImageWithInterpolation(
             png,
             "image/png",
             new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),

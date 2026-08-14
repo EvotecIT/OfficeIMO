@@ -6,6 +6,7 @@ internal readonly partial struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
     internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
     private const int CurveFlatteningPointCount = 24;
+    private readonly bool _canServeAsExactPathClip;
 
     private PdfPageClipPath(
         double x,
@@ -16,7 +17,8 @@ internal readonly partial struct PdfPageClipPath {
         OfficeFillRule fillRule,
         IReadOnlyList<OfficePathCommand> commands,
         bool isExact = true,
-        bool containsTextClipping = false) {
+        bool containsTextClipping = false,
+        bool? canServeAsExactPathClip = null) {
         X = x;
         Y = y;
         Width = width;
@@ -26,6 +28,8 @@ internal readonly partial struct PdfPageClipPath {
         Commands = commands;
         IsExact = isExact;
         ContainsTextClipping = containsTextClipping;
+        _canServeAsExactPathClip = canServeAsExactPathClip ??
+            ComputeCanServeAsExactPathClip(isRectangle, isExact, commands);
     }
 
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
@@ -205,10 +209,15 @@ internal readonly partial struct PdfPageClipPath {
         return result.WithExactness(isExact);
     }
 
-    private static bool CanServeAsExactPathClip(PdfPageClipPath path) {
-        if (path.IsRectangle) return true;
-        if (!path.IsExact || ContainsCurve(path.Commands)) return false;
-        List<List<OfficePoint>> contours = FlattenPathContours(path.Commands);
+    private static bool CanServeAsExactPathClip(PdfPageClipPath path) => path._canServeAsExactPathClip;
+
+    private static bool ComputeCanServeAsExactPathClip(
+        bool isRectangle,
+        bool isExact,
+        IReadOnlyList<OfficePathCommand> commands) {
+        if (isRectangle) return true;
+        if (!isExact || ContainsCurve(commands)) return false;
+        List<List<OfficePoint>> contours = FlattenPathContours(commands);
         return contours.Count > 0 && AreAllConvexContours(contours, textClippingBudget: null) &&
             !HasOverlappingContourBounds(contours, textClippingBudget: null);
     }
@@ -854,7 +863,17 @@ internal readonly partial struct PdfPageClipPath {
     private PdfPageClipPath WithTextClipping(bool containsTextClipping) =>
         ContainsTextClipping == containsTextClipping
             ? this
-            : new PdfPageClipPath(X, Y, Width, Height, IsRectangle, FillRule, Commands, IsExact, containsTextClipping);
+            : new PdfPageClipPath(
+                X,
+                Y,
+                Width,
+                Height,
+                IsRectangle,
+                FillRule,
+                Commands,
+                IsExact,
+                containsTextClipping,
+                _canServeAsExactPathClip);
 
     internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) {
         if (IsRectangle) {
@@ -910,7 +929,17 @@ internal readonly partial struct PdfPageClipPath {
             }
         }
 
-        return new PdfPageClipPath(X - offsetX, Y - offsetY, Width, Height, false, FillRule, translated, IsExact, ContainsTextClipping);
+        return new PdfPageClipPath(
+            X - offsetX,
+            Y - offsetY,
+            Width,
+            Height,
+            false,
+            FillRule,
+            translated,
+            IsExact,
+            ContainsTextClipping,
+            _canServeAsExactPathClip);
     }
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {
