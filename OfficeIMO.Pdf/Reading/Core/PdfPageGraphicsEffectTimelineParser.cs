@@ -12,7 +12,8 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         double paintOrderOffset = 0D,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
@@ -67,17 +68,15 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                         }
                         break;
                     case "ri":
-                        string? renderingIntentName = operation.Operands.Count == 0
-                            ? null
-                            : operation.Operands[operation.Operands.Count - 1] as string;
-                        if (renderingIntentName is not null) {
+                        if (operation.Operands.Count == 1 && operation.Operands[0] is string renderingIntentName) {
                             ApplyState(state.WithRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName)), paintOrder, contentOrderKey);
                         }
                         break;
                 }
             },
             maxNestingDepth: maxNestingDepth,
-            maxOperands: maxOperands);
+            maxOperands: maxOperands,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount);
         return transitions.Count == 0
             ? Array.Empty<PdfPageDrawingEffectTransition>()
             : transitions.AsReadOnly();

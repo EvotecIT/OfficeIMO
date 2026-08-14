@@ -821,7 +821,8 @@ public sealed partial class PdfReadPage {
             paintOrderOffset,
             _limits.MaxContentOperations,
             _limits.MaxContentNestingDepth,
-            _limits.MaxContentOperands);
+            _limits.MaxContentOperands,
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         var local = new List<PdfPageDrawingEffectTransition>(parsed.Count);
         for (int transitionIndex = 0; transitionIndex < parsed.Count; transitionIndex++) {
             PdfPageDrawingEffectTransition transition = parsed[transitionIndex];

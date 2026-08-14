@@ -1661,6 +1661,25 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void GraphicsEffectTimelineFramesDirectIccInlineImageBeforeReadingIntentTransitions() {
+        const string embeddedOperators = " EI /AbsoluteColorimetric ri ";
+        string samples = embeddedOperators.PadRight(30, 'x');
+        string content =
+            "BI /W 10 /H 1 /BPC 8 /CS [/ICCBased 7 0 R] ID " + samples +
+            " EI /Perceptual ri";
+
+        PdfPageDrawingEffectTransition transition = Assert.Single(
+            PdfPageGraphicsEffectTimelineParser.Parse(
+                content,
+                graphicsStates: null,
+                initialEffect: PdfPageDrawingEffect.Default,
+                initialTransform: Matrix2D.Identity,
+                inlineImageArrayComponentCount: static _ => 3));
+
+        Assert.Equal(OfficeIccRenderingIntent.Perceptual, transition.Effect.RenderingIntent);
+    }
+
+    [Fact]
     public void RenderPage_PermitsIndexedAlternateForUnsupportedIccProfile() {
         byte[] pdf = BuildIccContentPdf(
             new byte[] { 0 },
