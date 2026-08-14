@@ -80,6 +80,7 @@ public sealed partial class ProvenanceDocumentContracts {
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "content.xml", "<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\"/>", CompressionLevel.Optimal);
                 WriteEntry(archive, manifestPath, CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/manifest.xml", manifestXml, CompressionLevel.Optimal);
             }

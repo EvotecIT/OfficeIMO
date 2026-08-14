@@ -77,6 +77,9 @@ public abstract partial class OdfDocument {
             .Where(entry => string.Equals(entry.FullName.Replace('\\', '/'), "META-INF/manifest.xml", StringComparison.Ordinal))
             .ToArray();
         if (manifestEntries.Length != 1) throw new InvalidDataException("OpenDocument package must contain exactly one 'META-INF/manifest.xml'.");
+        int contentEntryCount = archive.Entries.Count(entry =>
+            string.Equals(entry.FullName.Replace('\\', '/'), "content.xml", StringComparison.Ordinal));
+        if (contentEntryCount != 1) throw new InvalidDataException("OpenDocument package must contain exactly one 'content.xml'.");
 
         long maximumManifestBytes = Math.Min(options.MaxAssetBytes, options.MaxExpandedContainerBytes);
         byte[] manifestBytes;

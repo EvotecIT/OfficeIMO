@@ -682,7 +682,7 @@ public static partial class HtmlProvenance {
                     openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
                     break;
                 }
-                int declarationEnd = html.IndexOf('>', closingNameEnd);
+                int declarationEnd = FindStartTagEnd(html, closingNameEnd, out _);
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
             }
