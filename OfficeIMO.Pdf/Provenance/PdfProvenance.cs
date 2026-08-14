@@ -396,6 +396,11 @@ public static class PdfProvenance {
             catalog.Items.TryGetValue("DSS", out PdfObject? documentSecurityStore) ? documentSecurityStore : null,
             result,
             maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("Legal", out PdfObject? legal) ? legal : null,
+            result,
+            maximumContainerEntries);
         AddAcroFormFieldDictionaries(
             objects,
             catalog.Items.TryGetValue("AcroForm", out PdfObject? acroForm) ? acroForm : null,
