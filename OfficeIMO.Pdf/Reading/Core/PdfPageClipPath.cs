@@ -7,7 +7,15 @@ internal readonly struct PdfPageClipPath {
     internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
     private const int CurveFlatteningPointCount = 24;
 
-    private PdfPageClipPath(double x, double y, double width, double height, bool isRectangle, OfficeFillRule fillRule, IReadOnlyList<OfficePathCommand> commands) {
+    private PdfPageClipPath(
+        double x,
+        double y,
+        double width,
+        double height,
+        bool isRectangle,
+        OfficeFillRule fillRule,
+        IReadOnlyList<OfficePathCommand> commands,
+        bool containsTextClipping = false) {
         X = x;
         Y = y;
         Width = width;
@@ -15,6 +23,7 @@ internal readonly struct PdfPageClipPath {
         IsRectangle = isRectangle;
         FillRule = fillRule;
         Commands = commands;
+        ContainsTextClipping = containsTextClipping;
     }
 
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
@@ -32,27 +41,33 @@ internal readonly struct PdfPageClipPath {
         }
 
         PdfPageClipPath active = activeClipPath.Value;
+        bool containsTextClipping = active.ContainsTextClipping || clipPath.ContainsTextClipping;
+        PdfTextClippingBudget? effectiveBudget = containsTextClipping ? textClippingBudget : null;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
-                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(clipPath, active, intersection, textClippingBudget)
+                PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                    ? IntersectPathWithRectangle(clipPath, active, intersection, effectiveBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                return resolved.WithTextClipping(containsTextClipping);
             }
 
             if (clipPath.IsRectangle) {
-                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(active, clipPath, intersection, textClippingBudget)
+                PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                    ? IntersectPathWithRectangle(active, clipPath, intersection, effectiveBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+                return resolved.WithTextClipping(containsTextClipping);
             }
 
-            return IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
-                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget)
+            PdfPageClipPath pathResolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
+                ? IntersectPathWithPath(active, clipPath, pathIntersection, effectiveBudget)
                 : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+            return pathResolved.WithTextClipping(containsTextClipping);
         }
 
-        return IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
+        PdfPageClipPath rectangleResolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
             ? rectangleIntersection
             : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+        return rectangleResolved.WithTextClipping(containsTextClipping);
     }
 
     public static bool TryCombineTextClippingPaths(IReadOnlyList<PdfPageClipPath> paths, out PdfPageClipPath clipPath) {
@@ -60,7 +75,7 @@ internal readonly struct PdfPageClipPath {
         if (paths.Count == 0) return false;
         ThrowIfTextClippingPathBudgetExceeded(paths.Count - 1);
         if (paths.Count == 1) {
-            clipPath = paths[0];
+            clipPath = paths[0].WithTextClipping(true);
             return true;
         }
 
@@ -81,7 +96,12 @@ internal readonly struct PdfPageClipPath {
             commands.Add(OfficePathCommand.Close());
         }
 
-        return TryCreatePath(commands, OfficeFillRule.NonZero, out clipPath);
+        if (!TryCreatePath(commands, OfficeFillRule.NonZero, out clipPath)) {
+            return false;
+        }
+
+        clipPath = clipPath.WithTextClipping(true);
+        return true;
     }
 
     internal static void ThrowIfTextClippingPathBudgetExceeded(int currentCount) {
@@ -658,15 +678,28 @@ internal readonly struct PdfPageClipPath {
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
 
+    internal bool ContainsTextClipping { get; }
+
+    internal PdfPageClipPath AsTextClippingPath() => WithTextClipping(true);
+
     internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) {
         if (IsRectangle) {
-            return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands);
+            return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands, ContainsTextClipping);
         }
 
         List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(Commands, bounds);
-        return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
+        PdfPageClipPath clipped = clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(bounds.X, bounds.Y, 0D, 0D);
+        return clipped.WithTextClipping(ContainsTextClipping);
+    }
+
+    private PdfPageClipPath WithTextClipping(bool containsTextClipping) {
+        if (ContainsTextClipping == containsTextClipping) {
+            return this;
+        }
+
+        return new PdfPageClipPath(X, Y, Width, Height, IsRectangle, FillRule, Commands, containsTextClipping);
     }
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {

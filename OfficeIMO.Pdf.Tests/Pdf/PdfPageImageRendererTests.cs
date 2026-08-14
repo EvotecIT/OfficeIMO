@@ -657,6 +657,20 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_DoesNotDoubleChargeTextClipsAcrossParserPasses() {
+        int textClipCount = PdfPageClipPath.MaximumPendingTextClippingPaths / 2 + 1;
+        string textShows = string.Concat(Enumerable.Repeat("(A) Tj ", textClipCount));
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 4 Tr " + textShows + "ET",
+            "<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >>");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        OfficeDrawing drawing = document.Pages[0].ToDrawing();
+
+        Assert.NotNull(drawing);
+    }
+
+    [Fact]
     public void RenderPage_BoundsAggregateTextClipIntersectionWork() {
         const int runsPerObject = 1001;
         string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
@@ -698,6 +712,7 @@ public class PdfPageImageRendererTests {
             OfficePathCommand.LineTo(new OfficePoint(index, index % 2 == 0 ? -20D : 100D))));
         commands.Add(OfficePathCommand.Close());
         Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
+        path = path.AsTextClippingPath();
         PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, -20D, 300D, 120D);
         var budget = new PdfTextClippingBudget();
 
@@ -726,6 +741,7 @@ public class PdfPageImageRendererTests {
         }
         commands.Add(OfficePathCommand.Close());
         Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath path));
+        path = path.AsTextClippingPath();
         PdfPageClipPath rectangle = PdfPageClipPath.Rectangle(0D, 0D, 100D, 100D);
         var budget = new PdfTextClippingBudget();
 
@@ -750,6 +766,7 @@ public class PdfPageImageRendererTests {
         }
         commands.Add(OfficePathCommand.Close());
         Assert.True(PdfPageClipPath.TryCreatePath(commands, OfficeFillRule.NonZero, out PdfPageClipPath active));
+        active = active.AsTextClippingPath();
         Assert.True(PdfPageClipPath.TryCreatePath(new[] {
             OfficePathCommand.MoveTo(0D, 0D),
             OfficePathCommand.LineTo(100D, 0D),
@@ -774,6 +791,7 @@ public class PdfPageImageRendererTests {
             OfficePathCommand.LineTo(0D, 10000D),
             OfficePathCommand.Close()
         }, OfficeFillRule.NonZero, out PdfPageClipPath active));
+        active = active.AsTextClippingPath();
 
         const int clipVertices = 1500;
         var clipCommands = new List<OfficePathCommand>(clipVertices + 2);
@@ -842,7 +860,7 @@ public class PdfPageImageRendererTests {
     [Fact]
     public void VisualParser_ChargesLaterPathClipAgainstInheritedTextClip() {
         string content = BuildCurveHeavyPathClip();
-        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D);
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D).AsTextClippingPath();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfPageContentVisualParser.Parse(
@@ -865,7 +883,7 @@ public class PdfPageImageRendererTests {
     [Fact]
     public void FormInvocationParser_ChargesLaterPathClipAgainstInheritedTextClip() {
         string content = BuildCurveHeavyPathClip();
-        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D);
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D).AsTextClippingPath();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             TextContentParser.ExtractFormInvocations(
@@ -877,6 +895,51 @@ public class PdfPageImageRendererTests {
         Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
         Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
         Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void ParserPassesDoNotChargeOrdinaryClipWorkWithoutTextClipping() {
+        string content = "0 -20 100 120 re W n " + BuildCurveHeavyPathClip();
+
+        _ = TextContentParser.Parse(
+            content,
+            (_, bytes) => Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D,
+            pageHeight: 200D,
+            textClippingBudget: new PdfTextClippingBudget());
+        _ = PdfPageXObjectInvocationParser.Parse(
+            content,
+            Matrix2D.Identity,
+            200D,
+            graphicsStates: null,
+            colorSpaces: null,
+            textClippingBudget: new PdfTextClippingBudget());
+        _ = PdfPageContentVisualParser.Parse(
+            content,
+            100D,
+            200D,
+            graphicsStates: null,
+            colorSpaces: null,
+            shadings: null,
+            shadingPatterns: null,
+            tilingPatterns: null,
+            textClippingBudget: new PdfTextClippingBudget());
+        _ = TextContentParser.ExtractFormInvocations(
+            content,
+            pageHeight: 200D,
+            textClippingBudget: new PdfTextClippingBudget());
+    }
+
+    [Fact]
+    public void TextParserStopsChargingAfterRestoringPreTextClipState() {
+        string content = "q BT /F1 12 Tf 4 Tr (A) Tj ET Q 0 -20 100 120 re W n " + BuildCurveHeavyPathClip();
+
+        _ = TextContentParser.Parse(
+            content,
+            (_, bytes) => Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D,
+            pageHeight: 200D,
+            textClippingBudget: new PdfTextClippingBudget());
     }
 
     [Fact]
