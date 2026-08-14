@@ -228,8 +228,7 @@ internal static class HtmlRenderFontFaceLoader {
     }
 
     private static bool IsCssStyleElement(IElement styleElement) {
-        string type = (styleElement.GetAttribute("type") ?? string.Empty).Split(';')[0].Trim();
-        return type.Length == 0 || string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
+        return HtmlResourcePipeline.IsCssStyleElement(styleElement);
     }
 
     private static void ReportOnce(

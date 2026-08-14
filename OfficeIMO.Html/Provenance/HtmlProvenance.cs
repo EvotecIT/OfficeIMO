@@ -269,7 +269,7 @@ public static partial class HtmlProvenance {
             return;
         }
         int iframeIndex = 0;
-        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
+        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]").Where(IsHtmlIframe)) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
@@ -338,7 +338,7 @@ public static partial class HtmlProvenance {
             return;
         }
         int iframeIndex = 0;
-        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]")) {
+        foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]").Where(IsHtmlIframe)) {
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
@@ -444,11 +444,14 @@ public static partial class HtmlProvenance {
     }
 
     private static void ThrowIfNestedSrcDocRemains(IHtmlDocument document) {
-        if (document.QuerySelectorAll("iframe[srcdoc]").Any(iframe =>
+        if (document.QuerySelectorAll("iframe[srcdoc]").Where(IsHtmlIframe).Any(iframe =>
             !string.IsNullOrWhiteSpace(iframe.GetAttribute("srcdoc")))) {
             throw new InvalidDataException($"HTML iframe srcdoc nesting exceeds the supported depth of {HtmlConversionInputGuard.MaxSrcDocDepth}.");
         }
     }
+
+    private static bool IsHtmlIframe(IElement element) =>
+        string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
         document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]")
@@ -756,9 +759,6 @@ public static partial class HtmlProvenance {
                 index = markup + 1;
                 continue;
             }
-            if (++count > maximumEntries) {
-                throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
-            }
             int nameEnd = FindHtmlTagNameEnd(html, markup + 2);
             string tagName = html.Substring(markup + 1, nameEnd - markup - 1);
             int tagEnd = FindStartTagEnd(html, nameEnd, out bool selfClosing);
@@ -769,10 +769,19 @@ public static partial class HtmlProvenance {
                     openElements.RemoveAt(openElements.Count - 1);
                 }
             }
+            if (ShouldIgnoreStartTagInSelect(openElements, tagName)) {
+                index = tagEnd + 1;
+                continue;
+            }
+            if (++count > maximumEntries) {
+                throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
+            }
             HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
             bool childrenUseHtml = elementNamespace == HtmlPreflightNamespace.Html ||
                 IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
-            if (!selfClosing) openElements.Add(new HtmlPreflightElement(tagName, elementNamespace, childrenUseHtml));
+            if (!selfClosing && !(elementNamespace == HtmlPreflightNamespace.Html && IsHtmlVoidElement(tagName))) {
+                openElements.Add(new HtmlPreflightElement(tagName, elementNamespace, childrenUseHtml));
+            }
             index = tagEnd + 1;
             if (elementNamespace == HtmlPreflightNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
             if (elementNamespace == HtmlPreflightNamespace.Html && IsRawTextOrRcDataElement(tagName)) {
@@ -782,6 +791,66 @@ public static partial class HtmlProvenance {
             }
         }
     }
+
+    private static bool ShouldIgnoreStartTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
+        int selectIndex = -1;
+        for (int index = elements.Count - 1; index >= 0; index--) {
+            HtmlPreflightElement element = elements[index];
+            if (element.Namespace != HtmlPreflightNamespace.Html) continue;
+            if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!element.Name.Equals("select", StringComparison.OrdinalIgnoreCase)) continue;
+            selectIndex = index;
+            break;
+        }
+        if (selectIndex < 0) return false;
+
+        if (tagName.Equals("option", StringComparison.OrdinalIgnoreCase)) {
+            RemoveCurrentSelectChild(elements, "option");
+            return false;
+        }
+        if (tagName.Equals("optgroup", StringComparison.OrdinalIgnoreCase)) {
+            RemoveCurrentSelectChild(elements, "option");
+            RemoveCurrentSelectChild(elements, "optgroup");
+            return false;
+        }
+        if (tagName.Equals("hr", StringComparison.OrdinalIgnoreCase)) {
+            RemoveCurrentSelectChild(elements, "option");
+            RemoveCurrentSelectChild(elements, "optgroup");
+            return false;
+        }
+        if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+        if (tagName.Equals("input", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("keygen", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("textarea", StringComparison.OrdinalIgnoreCase)) {
+            elements.RemoveRange(selectIndex, elements.Count - selectIndex);
+            return false;
+        }
+        if (tagName.Equals("select", StringComparison.OrdinalIgnoreCase)) {
+            elements.RemoveRange(selectIndex, elements.Count - selectIndex);
+        }
+        return true;
+    }
+
+    private static void RemoveCurrentSelectChild(List<HtmlPreflightElement> elements, string name) {
+        if (elements.Count != 0 && elements[elements.Count - 1].Name.Equals(name, StringComparison.OrdinalIgnoreCase)) {
+            elements.RemoveAt(elements.Count - 1);
+        }
+    }
+
+    private static bool IsHtmlVoidElement(string tagName) => tagName.Equals("area", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("base", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("br", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("col", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("embed", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("hr", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("img", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("input", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("link", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("meta", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("track", StringComparison.OrdinalIgnoreCase) ||
+        tagName.Equals("wbr", StringComparison.OrdinalIgnoreCase);
 
     private static int FindHtmlTagNameEnd(string html, int start) {
         int index = start;

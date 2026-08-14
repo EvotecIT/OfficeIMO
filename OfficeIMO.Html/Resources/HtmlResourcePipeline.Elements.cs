@@ -438,6 +438,15 @@ public static partial class HtmlResourcePipeline {
 
 
     internal static bool IsCssStyleElement(IElement styleElement) {
+        bool supportsStylesheets = string.Equals(
+                styleElement.NamespaceUri,
+                "http://www.w3.org/1999/xhtml",
+                StringComparison.Ordinal) ||
+            string.Equals(
+                styleElement.NamespaceUri,
+                "http://www.w3.org/2000/svg",
+                StringComparison.Ordinal);
+        if (!supportsStylesheets) return false;
         string type = TrimHtmlAsciiWhitespace(styleElement.GetAttribute("type") ?? string.Empty);
         if (type.Length == 0) {
             return true;

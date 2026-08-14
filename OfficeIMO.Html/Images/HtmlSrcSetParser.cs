@@ -40,7 +40,7 @@ public static class HtmlSrcSetParser {
 
         string value = srcSet!;
         int index = 0;
-        int emittedCandidates = 0;
+        int parsedCandidates = 0;
         while (index < value.Length) {
             SkipWhitespaceAndCommas(value, ref index);
             if (index >= value.Length) {
@@ -63,11 +63,12 @@ public static class HtmlSrcSetParser {
             if (url.Length == 0) {
                 continue;
             }
+            parsedCandidates++;
+            bool reachedCandidateLimit = HasReachedCandidateLimit(parsedCandidates, maxCandidates);
 
             if (trailingCommaCount > 0) {
                 yield return new HtmlSrcSetCandidate(url, string.Empty, urlStart);
-                emittedCandidates++;
-                if (HasReachedCandidateLimit(emittedCandidates, maxCandidates)) {
+                if (reachedCandidateLimit) {
                     break;
                 }
 
@@ -93,11 +94,8 @@ public static class HtmlSrcSetParser {
 
             if (IsValidDescriptorList(descriptor)) {
                 yield return new HtmlSrcSetCandidate(url, descriptor, urlStart);
-                emittedCandidates++;
-                if (HasReachedCandidateLimit(emittedCandidates, maxCandidates)) {
-                    break;
-                }
             }
+            if (reachedCandidateLimit) break;
         }
     }
 

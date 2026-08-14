@@ -57,17 +57,7 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool IsCssStyleElement(IElement styleElement) {
-        string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
-        if (type.Length == 0) {
-            return true;
-        }
-
-        int parameterStart = type.IndexOf(';');
-        if (parameterStart >= 0) {
-            type = type.Substring(0, parameterStart).Trim();
-        }
-
-        return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
+        return HtmlResourcePipeline.IsCssStyleElement(styleElement);
     }
 
     private static void AddStyleRules(

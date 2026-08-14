@@ -86,11 +86,7 @@ internal static class HtmlCssRuleBlockScanner {
     }
 
     private static bool IsCssStyleElement(IElement styleElement) {
-        string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
-        int parameterStart = type.IndexOf(';');
-        if (parameterStart >= 0) type = type.Substring(0, parameterStart).Trim();
-        return type.Length == 0
-            || string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
+        return HtmlResourcePipeline.IsCssStyleElement(styleElement);
     }
 
     private static bool IsEscaped(string text, int index) {
