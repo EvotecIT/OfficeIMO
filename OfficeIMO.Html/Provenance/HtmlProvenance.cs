@@ -390,9 +390,11 @@ public static partial class HtmlProvenance {
         if (localName == "source" && !IsSupportedPictureSource(element)) yield break;
         if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
         if (localName is "img" or "source") {
-            foreach (string attributeName in EmbeddedImageSourceAttributes) {
-                string? source = element.GetAttribute(attributeName);
-                if (source != null) yield return CreateDirectUrlReference(attributeName, source);
+            if (localName == "img") {
+                foreach (string attributeName in EmbeddedImageSourceAttributes) {
+                    string? source = element.GetAttribute(attributeName);
+                    if (source != null) yield return CreateDirectUrlReference(attributeName, source);
+                }
             }
             foreach (string attributeName in EmbeddedImageSourceSetAttributes) {
                 string? sourceSet = element.GetAttribute(attributeName);
@@ -797,15 +799,40 @@ public static partial class HtmlProvenance {
             case "sub": case "sup": case "table": case "tt": case "u": case "ul": case "var":
                 return true;
             case "font":
-                string attributes = html.Substring(attributesStart, tagEnd - attributesStart);
-                return Regex.IsMatch(
-                    attributes,
-                    "(?:^|\\s)(?:color|face|size)(?:\\s|=|/|$)",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
-                    TimeSpan.FromMilliseconds(100));
+                return HasForeignContentFontBreakoutAttribute(html, attributesStart, tagEnd);
             default:
                 return false;
         }
+    }
+
+    private static bool HasForeignContentFontBreakoutAttribute(string html, int offset, int tagEnd) {
+        while (offset < tagEnd) {
+            while (offset < tagEnd && (IsAsciiWhitespace(html[offset]) || html[offset] == '/')) offset++;
+            int nameStart = offset;
+            while (offset < tagEnd && !IsAsciiWhitespace(html[offset]) && html[offset] is not '=' and not '/' and not '>') offset++;
+            if (offset == nameStart) break;
+            string name = html.Substring(nameStart, offset - nameStart);
+            if (name.Equals("color", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("face", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("size", StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+
+            while (offset < tagEnd && IsAsciiWhitespace(html[offset])) offset++;
+            if (offset >= tagEnd || html[offset] != '=') continue;
+            offset++;
+            while (offset < tagEnd && IsAsciiWhitespace(html[offset])) offset++;
+            if (offset >= tagEnd) break;
+            char quote = html[offset];
+            if (quote is '\'' or '"') {
+                offset++;
+                while (offset < tagEnd && html[offset] != quote) offset++;
+                if (offset < tagEnd) offset++;
+            } else {
+                while (offset < tagEnd && !IsAsciiWhitespace(html[offset]) && html[offset] != '>') offset++;
+            }
+        }
+        return false;
     }
 
     private enum HtmlPreflightNamespace { Html, Svg, MathMl }

@@ -95,6 +95,7 @@ public sealed partial class ProvenanceDocumentContracts {
             WriteWave33Entry(archive, "_rels/.rels",
                 "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
                 "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
+                "<Relationship Id=\"rApp\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
                 signatureRelationship + "</Relationships>");
             WriteWave33Entry(archive, "xl/workbook.bin", new byte[] { 0x83, 0x01, 0x00, 0x84, 0x01, 0x00 });
             WriteWave33Entry(archive, "META-INF/content_credential.c2pa", CreateManifestStore());

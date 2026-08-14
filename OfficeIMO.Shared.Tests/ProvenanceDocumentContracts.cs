@@ -899,6 +899,10 @@ public sealed partial class ProvenanceDocumentContracts {
 
             Uri appUri = PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative));
             PackagePart app = package.CreatePart(appUri, "application/vnd.openxmlformats-officedocument.extended-properties+xml", CompressionOption.Maximum);
+            package.CreateRelationship(
+                appUri,
+                TargetMode.Internal,
+                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties");
             using (var writer = new StreamWriter(app.GetStream(), new UTF8Encoding(false), 4096, leaveOpen: false)) {
                 writer.Write("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\">");
                 writer.Write(new string(' ', paddingCharacters));

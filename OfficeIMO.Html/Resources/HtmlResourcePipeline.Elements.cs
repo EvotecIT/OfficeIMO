@@ -154,11 +154,6 @@ public static partial class HtmlResourcePipeline {
                     && HasPictureSourceCandidate(element)
                     && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options)
                     && IsSupportedPictureSourceType(element.GetAttribute("type"))) {
-                    AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Image, element, "data-src", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Image, element, "data-original", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Image, element, "data-original-src", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Image, element, "data-lazy-src", baseUri, options);
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "srcset", baseUri, options);
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-srcset", baseUri, options);
                     AddSrcSet(manifest, HtmlResourceKind.Image, element, "data-original-srcset", baseUri, options);
@@ -267,12 +262,7 @@ public static partial class HtmlResourcePipeline {
         return HasNonEmptyAttribute(element, "srcset")
             || HasNonEmptyAttribute(element, "data-srcset")
             || HasNonEmptyAttribute(element, "data-original-srcset")
-            || HasNonEmptyAttribute(element, "data-lazy-srcset")
-            || HasNonEmptyAttribute(element, "src")
-            || HasNonEmptyAttribute(element, "data-src")
-            || HasNonEmptyAttribute(element, "data-original")
-            || HasNonEmptyAttribute(element, "data-original-src")
-            || HasNonEmptyAttribute(element, "data-lazy-src");
+            || HasNonEmptyAttribute(element, "data-lazy-srcset");
     }
 
     private static bool HasAllowedPictureSourceCandidate(IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
@@ -282,12 +272,6 @@ public static partial class HtmlResourcePipeline {
                 if (IsAllowedResourceCandidate(HtmlResourceKind.Image, candidate.Url, baseUri, resourcePolicy)) {
                     return true;
                 }
-            }
-        }
-
-        foreach (string attribute in new[] { "src", "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
-            if (IsAllowedResourceCandidate(HtmlResourceKind.Image, element.GetAttribute(attribute), baseUri, resourcePolicy)) {
-                return true;
             }
         }
 

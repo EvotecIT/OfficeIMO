@@ -151,8 +151,12 @@ public sealed partial class ProvenanceDocumentContracts {
         output.Write(original, 0, original.Length);
         output.Position = 0;
         using (Package package = Package.Open(output, FileMode.Open, FileAccess.ReadWrite)) {
+            const string extendedPropertiesRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
             foreach (PackageRelationship relationship in package.GetRelationshipsByType(
                 "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin").ToArray()) {
+                package.DeleteRelationship(relationship.Id);
+            }
+            foreach (PackageRelationship relationship in package.GetRelationshipsByType(extendedPropertiesRelationship).ToArray()) {
                 package.DeleteRelationship(relationship.Id);
             }
             foreach (string name in new[] { "/_xmlsignatures/sig1.xml", "/_xmlsignatures/origin.sigs", "/docProps/app.xml" }) {
@@ -170,7 +174,7 @@ public sealed partial class ProvenanceDocumentContracts {
             package.CreateRelationship(
                 customUri,
                 TargetMode.Internal,
-                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties");
+                extendedPropertiesRelationship);
         }
         return output.ToArray();
     }

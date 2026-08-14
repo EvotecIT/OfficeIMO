@@ -88,9 +88,7 @@ public partial class VisioDocument {
                 package.DeleteRelationship(relationship.Id);
             }
 
-            var appPropertiesUris = new HashSet<Uri> {
-                PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative))
-            };
+            var appPropertiesUris = new HashSet<Uri>();
             foreach (PackageRelationship relationship in package.GetRelationshipsByType(ExtendedPropertiesRelationship)) {
                 if (relationship.TargetMode != TargetMode.Internal) continue;
                 appPropertiesUris.Add(PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri));

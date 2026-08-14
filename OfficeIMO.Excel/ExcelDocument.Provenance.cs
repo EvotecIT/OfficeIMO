@@ -269,7 +269,7 @@ public partial class ExcelDocument {
     private static HashSet<string> DiscoverXlsbApplicationMetadataEntries(
         byte[] data,
         OfficeProvenanceOptions limits) {
-        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "docProps/app.xml" };
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         PackageContentTypes contentTypes = ReadPackageContentTypes(archive, limits);

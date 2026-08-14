@@ -84,6 +84,9 @@ public sealed partial class ProvenanceDocumentContracts {
         output.Position = 0;
         using (Package package = Package.Open(output, FileMode.Open, FileAccess.ReadWrite)) {
             const string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
+            foreach (PackageRelationship relationship in package.GetRelationshipsByType(relationshipType).ToArray()) {
+                package.DeleteRelationship(relationship.Id);
+            }
             Uri canonicalUri = PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative));
             if (package.PartExists(canonicalUri)) package.DeletePart(canonicalUri);
             Uri customUri = PackUriHelper.CreatePartUri(new Uri("/metadata/application.xml", UriKind.Relative));
