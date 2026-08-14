@@ -924,7 +924,16 @@ public sealed partial class PdfReadPage {
                 } else {
                     formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 }
-                Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
+                Matrix2D formTransform;
+                if (requireSupportedType3Content) {
+                    if (!TryReadFormMatrix(formDictionary, out Matrix2D authoredFormMatrix)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                    formTransform = Matrix2D.Multiply(invocation.Transform, authoredFormMatrix);
+                } else {
+                    formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
+                }
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 bool projectsType3TransparencyGroup = requireSupportedType3Content && formDictionary.Items.ContainsKey("Group");
                 if (projectsType3TransparencyGroup) {

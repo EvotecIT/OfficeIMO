@@ -341,7 +341,7 @@ public sealed partial class PdfReadPage {
             activeSoftMaskForms ??= new HashSet<PdfStream>();
             softMaskNestingDepth ??= new SoftMaskNestingDepth(depth);
             Type3SoftMaskValidationContext softMaskValidation =
-                type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
+                type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);

@@ -282,7 +282,7 @@ public sealed partial class PdfReadPage {
         // projection validation reject the cycle.
         if (!cache.ActiveSoftMaskTransparencyProofs.Add(softMask.Group)) return false;
         try {
-            Type3SoftMaskValidationContext validation = type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
+            Type3SoftMaskValidationContext validation = type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
             if (!TryResolveStrictResources(
                     softMask.Group.Dictionary,
                     parentResources,

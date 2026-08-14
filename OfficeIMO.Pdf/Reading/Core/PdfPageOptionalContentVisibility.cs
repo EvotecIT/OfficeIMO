@@ -353,8 +353,9 @@ internal sealed class PdfPageOptionalContentVisibility {
             optionalContent.Items.TryGetValue("D", out PdfObject? defaultConfigurationObject) ? defaultConfigurationObject : null,
             objects) as PdfDictionary;
         string? baseState = ReadName(defaultConfiguration, "BaseState", objects);
-        HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects);
-        HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects);
+        HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects, out bool invalidOnGroups);
+        HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects, out bool invalidOffGroups);
+        hasUnsupportedViewUsageApplications = invalidOnGroups || invalidOffGroups;
 
         for (int i = 0; i < groups.Items.Count; i++) {
             if (groups.Items[i] is not PdfReference reference) {
@@ -452,31 +453,37 @@ internal sealed class PdfPageOptionalContentVisibility {
         ResolveObject(application.Items.TryGetValue("Category", out PdfObject? value) ? value : null, objects) is PdfArray { Items.Count: 1 } names &&
         ResolveObject(names.Items[0], objects) is PdfName { Name: "View" };
 
-    private static HashSet<int> ReadReferenceSet(PdfDictionary? dictionary, string key, Dictionary<int, PdfIndirectObject> objects) {
+    private static HashSet<int> ReadReferenceSet(
+        PdfDictionary? dictionary,
+        string key,
+        Dictionary<int, PdfIndirectObject> objects,
+        out bool invalid) {
         var result = new HashSet<int>();
-        if (dictionary == null ||
-            ResolveObject(dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null, objects) is not PdfArray array) {
+        invalid = false;
+        if (dictionary == null || !dictionary.Items.TryGetValue(key, out PdfObject? value)) {
+            return result;
+        }
+        PdfObject? resolved = ResolveObject(value, objects);
+        if (resolved is PdfNull) {
+            return result;
+        }
+        if (resolved is not PdfArray array) {
+            invalid = true;
             return result;
         }
 
         for (int i = 0; i < array.Items.Count; i++) {
-            AddReferenceObjectNumbers(array.Items[i], objects, result);
+            if (array.Items[i] is not PdfReference reference ||
+                !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
+                ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||
+                ResolveObject(group.Items.TryGetValue("Type", out PdfObject? groupTypeObject) ? groupTypeObject : null, objects) is not PdfName { Name: "OCG" }) {
+                invalid = true;
+                continue;
+            }
+            result.Add(reference.ObjectNumber);
         }
 
         return result;
-    }
-
-    private static void AddReferenceObjectNumbers(PdfObject value, Dictionary<int, PdfIndirectObject> objects, HashSet<int> result) {
-        if (value is PdfReference reference) {
-            result.Add(reference.ObjectNumber);
-            return;
-        }
-
-        if (ResolveObject(value, objects) is PdfArray nested) {
-            for (int i = 0; i < nested.Items.Count; i++) {
-                AddReferenceObjectNumbers(nested.Items[i], objects, result);
-            }
-        }
     }
 
     private static string? ReadName(PdfDictionary? dictionary, string key, Dictionary<int, PdfIndirectObject> objects) {

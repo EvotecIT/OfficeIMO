@@ -291,6 +291,19 @@ public class PdfType3OptionalContentTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("/ON [10 1 R] /OFF []")]
+    [InlineData("/ON [] /OFF [10 1 R]")]
+    public void RenderPage_FailsClosedForMismatchedDefaultConfigurationGroupGeneration(string defaultConfigurationEntries) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            defaultConfigurationEntries: defaultConfigurationEntries);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private static byte[] BuildType3OptionalContentPdf(
         bool nestedForm,
         string? inlineMembershipDictionary = null,
@@ -301,7 +314,8 @@ public class PdfType3OptionalContentTests {
         string? secondaryVisibilityExpression = null,
         int indirectVisibilityChainLength = 0,
         string? resourceMembershipDictionary = null,
-        string hiddenGroupType = "/Type /OCG") {
+        string hiddenGroupType = "/Type /OCG",
+        string? defaultConfigurationEntries = null) {
         string hiddenProperty = inlineMembershipDictionary ?? (resourceMembershipDictionary is null ? "/Hidden" : "/Membership");
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -315,8 +329,10 @@ public class PdfType3OptionalContentTests {
                 ? "<< /Properties << /Membership 14 0 R >> >>"
                 : "<< /Properties << /Hidden 10 0 R >> >>";
         string glyphContent = nestedForm ? "500 0 d0 /Fm1 Do" : "500 0 d0 " + hiddenAndVisibleContent;
+        string defaultConfiguration = defaultConfigurationEntries ??
+            "/ON [" + (allGroupsOn ? "10 0 R " : string.Empty) + "11 0 R] /OFF [" + (allGroupsOn ? string.Empty : "10 0 R") + "]";
         var objects = new List<string> {
-            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R 11 0 R] /D << /ON [" + (allGroupsOn ? "10 0 R " : string.Empty) + "11 0 R] /OFF [" + (allGroupsOn ? string.Empty : "10 0 R") + "] >> >> >>\nendobj",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R 11 0 R] /D << " + defaultConfiguration + " >> >> >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj",
             StreamObject(4, "<<", "BT /FType3 18 Tf 20 100 Td (A) Tj ET"),

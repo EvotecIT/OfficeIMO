@@ -1368,6 +1368,27 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_SharesContentBudgetWithType3SoftMaskValidation() {
+        const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent = "500 0 d0 /GS1 gs 0 0 500 700 re f";
+        string maskContent = new string(' ', 96) + "0 0 500 700 re f";
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", glyphContent);
+        string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string mask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", maskContent);
+        byte[] pdf = BuildSingleStreamPdf(pageContent, "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, graphicsState, mask);
+        int aggregateContentBytes = pageContent.Length + glyphContent.Length + maskContent.Length;
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = aggregateContentBytes - 1 }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+        Assert.Equal(aggregateContentBytes - 1, exception.Limit);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotChargeSoftMaskValidationAgainstType3RenderingBudget() {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");

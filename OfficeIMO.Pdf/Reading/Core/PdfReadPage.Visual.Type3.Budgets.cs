@@ -22,11 +22,12 @@ public sealed partial class PdfReadPage {
         internal int FailureVersion => _failureVersion;
 
         internal Type3SoftMaskValidationContext GetOrCreateSoftMaskValidationContext(
-            PdfReadPage owner) =>
+            PdfReadPage owner,
+            PageContentBudget pageContentBudget) =>
             _softMaskValidationContext ??= new Type3SoftMaskValidationContext(
-                owner,
                 _maximum,
-                owner.CreateTextOutputBudget());
+                owner.CreateTextOutputBudget(),
+                pageContentBudget);
 
         internal void AttachSoftMaskValidationContext(Type3SoftMaskValidationContext context) =>
             _softMaskValidationContext = context;
@@ -38,14 +39,14 @@ public sealed partial class PdfReadPage {
 
     private sealed class Type3SoftMaskValidationContext {
         internal Type3SoftMaskValidationContext(
-            PdfReadPage owner,
             int maximumType3GlyphInvocations,
-            TextContentParser.TextOutputBudget textOutputBudget) {
-            PageContentBudget = new PageContentBudget(owner);
+            TextContentParser.TextOutputBudget textOutputBudget,
+            PageContentBudget pageContentBudget) {
+            PageContentBudget = pageContentBudget;
             Type3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
             Type3GlyphBudget.AttachSoftMaskValidationContext(this);
             TextOutputBudget = textOutputBudget;
-            TransparencyProofPageContentBudget = new PageContentBudget(owner);
+            TransparencyProofPageContentBudget = pageContentBudget;
             TransparencyProofType3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
             TransparencyProofType3GlyphBudget.AttachSoftMaskValidationContext(this);
         }

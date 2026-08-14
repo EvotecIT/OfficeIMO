@@ -37,7 +37,7 @@ public sealed partial class PdfReadPage {
         var glyphGroups = new List<(OfficeDrawing Drawing, OfficeTransform Transform, double PaintOrder, PdfContentOrderKey? ContentOrderKey, PdfPageDrawingEffect Effect)>();
         var extractedImageCache = new Dictionary<(int ObjectNumber, int DirectStreamIdentity, string ResourceName, OfficeColor MaskColor, PdfDictionary? ResourceContext), PdfExtractedImage>();
         Type3SoftMaskValidationContext softMaskValidation =
-            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
+            type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
         double nextPaintOrder = invocation.PaintOrder;
         double paintOrderLimit = invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.5D);
         for (int i = 0; i < invocation.Glyphs.Count; i++) {
@@ -379,7 +379,7 @@ public sealed partial class PdfReadPage {
 
     private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {
         return !imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) ||
-            ResolveEffectObject(interpolateObject) is PdfBoolean;
+            ResolveEffectObject(interpolateObject) is PdfBoolean or PdfNull;
     }
 
     private bool HasValidType3ImageMaskDeclaration(PdfDictionary imageDictionary) {

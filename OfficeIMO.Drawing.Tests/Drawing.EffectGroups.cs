@@ -110,6 +110,36 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
     }
 
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_PreservesNearestNeighborSamplingFromSoftMask(OfficeBlendMode blendMode) {
+        var source = new OfficeDrawing(2D, 1D);
+        OfficeShape red = OfficeShape.Rectangle(2D, 1D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        source.AddShape(red, 0D, 0D);
+
+        OfficeRasterImage maskPixels = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        maskPixels.SetPixel(0, 0, OfficeColor.Black);
+        maskPixels.SetPixel(1, 0, OfficeColor.White);
+        var maskDrawing = new OfficeDrawing(2D, 1D);
+        maskDrawing.AddImage(
+            OfficePngWriter.Encode(maskPixels),
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var mask = new OfficeDrawingSoftMask(maskDrawing, OfficeSoftMaskMode.Luminosity);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Scale(2D, 1D), blendMode, mask);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 0));
+    }
+
     [Fact]
     public void OfficeDrawingEffectGroup_AppliesAffineRotation() {
         var inner = new OfficeDrawing(10D, 20D);
