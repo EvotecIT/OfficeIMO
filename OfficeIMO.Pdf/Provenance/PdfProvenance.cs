@@ -478,14 +478,15 @@ public static class PdfProvenance {
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
                 }
-                if (string.Equals(activeStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+                string? streamSubtype = GetResolvedName(objects, activeStream.Dictionary, "Subtype");
+                if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal)) {
                     AddStructuralGraphDictionaries(
                         objects,
                         activeStream.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyGroup) ? transparencyGroup : null,
                         result,
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
-                } else if (string.Equals(activeStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)) {
+                } else if (string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
                     AddStructuralGraphDictionaries(
                         objects,
                         activeStream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) ? colorSpace : null,
@@ -496,7 +497,7 @@ public static class PdfProvenance {
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
-            if (dictionary.Get<PdfName>("Type")?.Name == "EmbeddedFile") {
+            if (string.Equals(GetResolvedName(objects, dictionary, "Type"), "EmbeddedFile", StringComparison.Ordinal)) {
                 AddResolvedDictionary(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null, result);
             }
         }
@@ -793,7 +794,7 @@ public static class PdfProvenance {
         while (pending.Count > 0) {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
             if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
-            string? type = dictionary.Get<PdfName>("Type")?.Name;
+            string? type = GetResolvedName(objects, dictionary, "Type");
             PdfArray? kids = PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) as PdfArray;
             if (type == "Pages" || kids != null) {
                 if (kids != null) {
@@ -812,7 +813,7 @@ public static class PdfProvenance {
                     structuralObjectNumbers.Add(annotationReference.ObjectNumber);
                 }
                 if (PdfObjectLookup.Resolve(objects, annotationValue) is not PdfDictionary annotation ||
-                    !string.Equals(annotation.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) ||
+                    !string.Equals(GetResolvedName(objects, annotation, "Subtype"), "FileAttachment", StringComparison.Ordinal) ||
                     !annotation.Items.TryGetValue("FS", out PdfObject? fileSpecification) || fileSpecification is not PdfReference reference ||
                     !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                     !IsFileSpecificationValue(objects, indirect.Value)) continue;
@@ -852,7 +853,15 @@ public static class PdfProvenance {
         PdfExtractedAttachment attachment) =>
         objects.TryGetValue(attachment.EmbeddedFileObjectNumber, out PdfIndirectObject? embeddedFile) &&
         embeddedFile.Value is PdfStream stream &&
-        string.Equals(stream.Dictionary.Get<PdfName>("Type")?.Name, "EmbeddedFile", StringComparison.Ordinal);
+        string.Equals(GetResolvedName(objects, stream.Dictionary, "Type"), "EmbeddedFile", StringComparison.Ordinal);
+
+    private static string? GetResolvedName(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key) =>
+        PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null) is PdfName name
+            ? name.Name
+            : null;
 
     private static HashSet<int> CollectPageTreeObjectNumbers(PdfReadDocument document, int maximumContainerEntries) {
         var result = new HashSet<int>(document.Pages.Select(static page => page.ObjectNumber));

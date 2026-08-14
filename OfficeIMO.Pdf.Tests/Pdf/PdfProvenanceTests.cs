@@ -283,7 +283,11 @@ public sealed partial class PdfProvenanceTests {
             return security.InfoObjectNumber;
         });
 
-        OfficeProvenanceReport report = PdfProvenance.Inspect(deeplyLinked);
+        OfficeProvenanceReport report = PdfProvenance.Inspect(
+            deeplyLinked,
+            readOptions: new PdfReadOptions {
+                Limits = new PdfReadLimits { MaxObjectParsingTime = TimeSpan.FromMinutes(2) }
+            });
 
         Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
     }
