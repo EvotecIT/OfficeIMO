@@ -434,18 +434,29 @@ public static partial class HtmlResourcePipeline {
 
 
     internal static bool IsCssStyleElement(IElement styleElement) {
-        string type = (styleElement.GetAttribute("type") ?? string.Empty).Trim();
+        string type = TrimHtmlAsciiWhitespace(styleElement.GetAttribute("type") ?? string.Empty);
         if (type.Length == 0) {
             return true;
         }
 
         int parameterStart = type.IndexOf(';');
         if (parameterStart >= 0) {
-            type = type.Substring(0, parameterStart).Trim();
+            type = TrimHtmlAsciiWhitespace(type.Substring(0, parameterStart));
         }
 
         return string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
     }
+
+    private static string TrimHtmlAsciiWhitespace(string value) {
+        int start = 0;
+        while (start < value.Length && IsHtmlAsciiWhitespace(value[start])) start++;
+        int end = value.Length;
+        while (end > start && IsHtmlAsciiWhitespace(value[end - 1])) end--;
+        return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
+    }
+
+    private static bool IsHtmlAsciiWhitespace(char value) =>
+        value is '\t' or '\n' or '\f' or '\r' or ' ';
 
     private static bool IsSupportedPictureSourceType(string? type) {
         return HtmlPictureSourceSupport.IsSupportedConversionContentType(type);

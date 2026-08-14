@@ -423,6 +423,9 @@ The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` o
 Inspect C2PA and AI-specific IPTC metadata in the package and its supported embedded images, then remove only the selected carriers:
 
 ```csharp
+using OfficeIMO.Provenance;
+using OfficeIMO.Word;
+
 OfficeProvenanceReport report = WordDocument.InspectProvenance("input.docx");
 OfficeProvenanceRemovalResult result = WordDocument.RemoveProvenance("input.docx", "clean.docx");
 ```

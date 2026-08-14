@@ -72,14 +72,36 @@ public static class MarkdownProvenance {
     }
 
     private static string DecodeFileText(byte[] data, out Encoding encoding, out bool hadPreamble) {
-        using var stream = new MemoryStream(data, writable: false);
-        using var reader = new StreamReader(stream, new UTF8Encoding(false), detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: false);
-        string text = reader.ReadToEnd();
-        encoding = reader.CurrentEncoding;
-        byte[] preamble = encoding.GetPreamble();
-        hadPreamble = preamble.Length != 0 && data.Length >= preamble.Length &&
-            preamble.SequenceEqual(data.Take(preamble.Length));
-        return text;
+        Encoding[] candidates = {
+            new UTF32Encoding(bigEndian: true, byteOrderMark: true, throwOnInvalidCharacters: true),
+            new UTF32Encoding(bigEndian: false, byteOrderMark: true, throwOnInvalidCharacters: true),
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: true, throwOnInvalidBytes: true),
+            new UnicodeEncoding(bigEndian: true, byteOrderMark: true, throwOnInvalidBytes: true),
+            new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true)
+        };
+        encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+        int offset = 0;
+        foreach (Encoding candidate in candidates) {
+            byte[] preamble = candidate.GetPreamble();
+            if (!StartsWith(data, preamble)) continue;
+            encoding = candidate;
+            offset = preamble.Length;
+            break;
+        }
+        hadPreamble = offset != 0;
+        try {
+            return encoding.GetString(data, offset, data.Length - offset);
+        } catch (DecoderFallbackException exception) {
+            throw new InvalidDataException("The Markdown document contains invalid encoded text.", exception);
+        }
+    }
+
+    private static bool StartsWith(byte[] data, byte[] prefix) {
+        if (prefix.Length == 0 || data.Length < prefix.Length) return false;
+        for (int index = 0; index < prefix.Length; index++) {
+            if (data[index] != prefix[index]) return false;
+        }
+        return true;
     }
 
     private static byte[] EncodeFileText(string text, Encoding encoding, bool includePreamble, long maximumBytes) {

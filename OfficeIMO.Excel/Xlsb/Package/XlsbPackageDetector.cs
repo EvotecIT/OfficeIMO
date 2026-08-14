@@ -80,25 +80,31 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
             string expectedPartName = "/" + workbookPartName.TrimStart('/');
-            string? contentType = document
+            string?[] overrides = document
                 .Descendants(XName.Get("Override", PackageContentTypesNamespace))
                 .Where(element => string.Equals(
                     NormalizeContentTypePartName((string?)element.Attribute("PartName")),
                     expectedPartName,
                     StringComparison.OrdinalIgnoreCase))
                 .Select(element => (string?)element.Attribute("ContentType"))
-                .FirstOrDefault();
+                .Take(2)
+                .ToArray();
+            if (overrides.Length > 1) return false;
+            string? contentType = overrides.SingleOrDefault();
 
             if (string.IsNullOrWhiteSpace(contentType)) {
                 string extension = Path.GetExtension(workbookPartName).TrimStart('.');
-                contentType = document
+                string?[] defaults = document
                     .Descendants(XName.Get("Default", PackageContentTypesNamespace))
                     .Where(element => string.Equals(
                         (string?)element.Attribute("Extension"),
                         extension,
                         StringComparison.OrdinalIgnoreCase))
                     .Select(element => (string?)element.Attribute("ContentType"))
-                    .FirstOrDefault();
+                    .Take(2)
+                    .ToArray();
+                if (defaults.Length > 1) return false;
+                contentType = defaults.SingleOrDefault();
             }
 
             return string.Equals(
@@ -124,12 +130,14 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
-            XElement? relationship = document
+            XElement[] relationships = document
                 .Descendants(XName.Get("Relationship", PackageRelationshipsNamespace))
-                .FirstOrDefault(element =>
+                .Where(element =>
                     string.Equals((string?)element.Attribute("Type"), OfficeDocumentRelationship, StringComparison.Ordinal)
-                    && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase));
-            return (string?)relationship?.Attribute("Target");
+                    && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase))
+                .Take(2)
+                .ToArray();
+            return relationships.Length == 1 ? (string?)relationships[0].Attribute("Target") : null;
         }
 
         private static string NormalizePackageTarget(string target) {
