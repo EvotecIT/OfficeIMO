@@ -175,6 +175,7 @@ public static class PdfProvenance {
             document.Objects,
             catalog,
             PdfSyntax.TryReadFirstReference(document.TrailerRaw, "Info"),
+            document.Security.EncryptObjectNumber,
             reachableObjectNumbers,
             pageTreeObjectNumbers,
             new HashSet<int>(document.Pages.Select(static page => page.ObjectNumber)),
@@ -297,12 +298,17 @@ public static class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary catalog,
         PdfReference? activeInfoReference,
+        int? activeEncryptObjectNumber,
         HashSet<int> reachableObjectNumbers,
         HashSet<int> pageTreeObjectNumbers,
         HashSet<int> activePageObjectNumbers,
         int maximumContainerEntries) {
         var result = new HashSet<PdfObject>();
         AddResolvedDictionary(objects, activeInfoReference, result);
+        if (activeEncryptObjectNumber.HasValue &&
+            objects.TryGetValue(activeEncryptObjectNumber.Value, out PdfIndirectObject? activeEncryption)) {
+            AddResolvedDictionary(objects, activeEncryption.Value, result);
+        }
         foreach (int objectNumber in pageTreeObjectNumbers) {
             if (objects.TryGetValue(objectNumber, out PdfIndirectObject? pageTreeObject)) {
                 AddResolvedDictionary(objects, pageTreeObject.Value, result);
@@ -363,6 +369,11 @@ public static class PdfProvenance {
         AddStructuralGraphDictionaries(
             objects,
             catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntents) ? outputIntents : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("DSS", out PdfObject? documentSecurityStore) ? documentSecurityStore : null,
             result,
             maximumContainerEntries);
         AddAcroFormFieldDictionaries(
@@ -629,10 +640,16 @@ public static class PdfProvenance {
         HashSet<int> reachableObjectNumbers,
         HashSet<PdfObject> result,
         int maximumContainerEntries) {
+        var structuralVisited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             if (!IsFileSpecificationValue(objects, item.Value) || item.Value is not PdfDictionary fileSpecification) continue;
             foreach (PdfObject child in fileSpecification.Items.Values) {
-                AddStructuralGraphDictionaries(objects, child, result, maximumContainerEntries);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    child,
+                    result,
+                    maximumContainerEntries,
+                    sharedVisited: structuralVisited);
             }
         }
     }

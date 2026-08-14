@@ -35,19 +35,22 @@ internal sealed class PdfDecodedStreamBudget {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumRequestedBytes, cached.Bytes.Length);
             }
             if (!requireSupportedFilters || cached.RequiredValidated) return cached.Bytes;
-            long replacementAllowance = _maximumTotal - _used + cached.Bytes.LongLength;
-            int replacementMaximum = (int)Math.Min(
+            long revalidationRemaining = _maximumTotal - _used;
+            if (revalidationRemaining <= 0) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _used + 1);
+            }
+            int revalidationMaximum = (int)Math.Min(
                 _maximumPerStream,
-                Math.Min(maximumRequestedBytes, Math.Min(replacementAllowance, int.MaxValue)));
+                Math.Min(maximumRequestedBytes, Math.Min(revalidationRemaining, int.MaxValue)));
             byte[] required;
             try {
-                required = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, replacementMaximum);
+                required = Filters.StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, revalidationMaximum);
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
-                replacementAllowance < Math.Min(_maximumPerStream, (long)maximumRequestedBytes)) {
+                revalidationRemaining < Math.Min(_maximumPerStream, (long)maximumRequestedBytes)) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _maximumTotal + 1);
             }
-            long revisedUsed = checked(_used - cached.Bytes.LongLength + required.LongLength);
+            long revisedUsed = checked(_used + required.LongLength);
             if (revisedUsed > _maximumTotal) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, revisedUsed);
             }
