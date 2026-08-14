@@ -697,6 +697,17 @@ public class DrawingSvgReaderSecurityTests {
         }
     }
 
+    [Theory]
+    [InlineData("stroke-width='5e307'")]
+    [InlineData("stroke-width='1e307' stroke-linejoin='miter' stroke-miterlimit='20'")]
+    public void SvgSafetyPredicateFailsClosedWhenStrokeExpansionOverflows(string strokeAttributes) {
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<rect x='1' y='1' width='1' height='1' fill='none' stroke='black' "
+            + strokeAttributes + "/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg)));
+    }
+
     [Fact]
     public void SvgSafetyPredicateChargesNestedSvgViewportTransforms() {
         Assert.True(IsSafe(1, "x='0' y='0' width='1024' height='1024' viewBox='100 0 1 1'", "x='100'"));

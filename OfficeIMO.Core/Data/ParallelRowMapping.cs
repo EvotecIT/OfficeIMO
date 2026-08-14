@@ -50,29 +50,7 @@ public static class ParallelRowMappingExtensions {
     internal static bool TryCreateIndependentSnapshotPlan(
         IDataRecord reader,
         out bool[] cloneColumns) {
-        return TryCreateIndependentSnapshotPlan(
-            reader,
-            int.MaxValue,
-            out cloneColumns,
-            out _);
-    }
-
-    internal static bool TryCreateIndependentSnapshotPlan(
-        IDataRecord reader,
-        int maximumFieldCount,
-        out bool[] cloneColumns,
-        out bool fieldLimitExceeded) {
         int fieldCount = reader.FieldCount;
-        cloneColumns = Array.Empty<bool>();
-        fieldLimitExceeded = false;
-        if (fieldCount > maximumFieldCount) {
-            for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
-                if (!TryGetIndependentFieldType(reader, ordinal, out _)) return false;
-            }
-            fieldLimitExceeded = true;
-            return true;
-        }
-
         cloneColumns = new bool[fieldCount];
         for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
             if (!TryGetIndependentFieldType(reader, ordinal, out Type fieldType)) return false;

@@ -4,7 +4,8 @@ namespace OfficeIMO.Pdf;
 
 internal readonly partial struct PdfPageClipPath {
     internal const int MaximumPendingTextClippingPaths = 4096;
-    internal const long MaximumTextClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumClippingIntersectionWork = 1_000_000L;
+    internal const long MaximumTextClippingIntersectionWork = MaximumClippingIntersectionWork;
     private const int CurveFlatteningPointCount = 24;
     private readonly bool _canServeAsExactPathClip;
 
@@ -48,11 +49,10 @@ internal readonly partial struct PdfPageClipPath {
 
         PdfPageClipPath active = activeClipPath.Value;
         bool containsTextClipping = active.ContainsTextClipping || clipPath.ContainsTextClipping;
-        PdfTextClippingBudget? effectiveBudget = containsTextClipping ? textClippingBudget : null;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
                 PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(clipPath, active, intersection, effectiveBudget)
+                    ? IntersectPathWithRectangle(clipPath, active, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
                 return resolved
                     .WithExactness(resolved.IsExact && active.IsExact && clipPath.IsExact)
@@ -61,7 +61,7 @@ internal readonly partial struct PdfPageClipPath {
 
             if (clipPath.IsRectangle) {
                 PdfPageClipPath resolved = IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
-                    ? IntersectPathWithRectangle(active, clipPath, intersection, effectiveBudget)
+                    ? IntersectPathWithRectangle(active, clipPath, intersection, textClippingBudget)
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
                 return resolved
                     .WithExactness(resolved.IsExact && active.IsExact && clipPath.IsExact)
@@ -75,8 +75,8 @@ internal readonly partial struct PdfPageClipPath {
             }
 
             PdfPageClipPath pathResult = CanServeAsExactPathClip(clipPath) || !CanServeAsExactPathClip(active)
-                ? IntersectPathWithPath(active, clipPath, pathIntersection, effectiveBudget)
-                : IntersectPathWithPath(clipPath, active, pathIntersection, effectiveBudget);
+                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget)
+                : IntersectPathWithPath(clipPath, active, pathIntersection, textClippingBudget);
             return pathResult
                 .WithExactness(pathResult.IsExact && active.IsExact && clipPath.IsExact)
                 .WithTextClipping(containsTextClipping);

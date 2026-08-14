@@ -101,8 +101,8 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
-    public void HtmlToPdf_LongPasswordUsesOneMaskGlyphPerValueCodeUnit() {
-        string password = new string('s', 40);
+    public void HtmlToPdf_PasswordSerializesOnlyTheMaskedAppearance() {
+        const string password = "OfficeIMO-secret-2026";
         string html = "<input id='secret' name='secret' type='password' value='" + password + "' style='width:400px'>";
         var options = new HtmlPdfSaveOptions {
             PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
@@ -113,7 +113,10 @@ public sealed class HtmlPdfTests {
         string raw = Encoding.ASCII.GetString(pdf);
 
         Assert.True(field.IsPassword);
-        Assert.Equal(password, field.Value);
+        Assert.Equal(string.Empty, field.Value);
+        Assert.DoesNotContain(password, raw, StringComparison.Ordinal);
+        string passwordHex = BitConverter.ToString(Encoding.UTF8.GetBytes(password)).Replace("-", string.Empty);
+        Assert.DoesNotContain(passwordHex, raw, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", raw, StringComparison.Ordinal);
     }
 
