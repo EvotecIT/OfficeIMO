@@ -41,7 +41,9 @@ public sealed partial class ProvenanceCoreContracts {
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, manifest.Length, instance: 1, sequence: 1),
             CreateJpegSegment(0xE1, Join(xmpHeader, CreateXmpPacket())),
-            new byte[] { 0xFF, 0xD9 });
+            CreateMinimalJpegFrame(),
+            CreateMinimalJpegScan(),
+            new byte[] { 0, 0xFF, 0xD9 });
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");

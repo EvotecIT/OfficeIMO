@@ -37,14 +37,15 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
-        Action<byte[], OfficeProvenanceOptions>? validatePackage = null) {
+        Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
+        bool removeOpcManifestReferences = true) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
         string fullInputPath = Path.GetFullPath(inputPath);
         byte[] data;
         using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
-        OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options, stripSignatures, hasSignatures, validatePackage);
+        OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options, stripSignatures, hasSignatures, validatePackage, removeOpcManifestReferences);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), result.ToArray());
         return result;
     }
@@ -55,17 +56,18 @@ internal static class OfficeProvenancePackageMutation {
         OfficeProvenanceRemovalOptions? options,
         Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
-        Action<byte[], OfficeProvenanceOptions>? validatePackage = null) {
+        Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
+        bool removeOpcManifestReferences = true) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
         options ??= new OfficeProvenanceRemovalOptions();
         validatePackage?.Invoke(data, options.Limits);
         if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
-            return OfficeProvenanceRemover.Remove(data, fileName, options);
+            return OfficeProvenanceRemover.RemoveZipPackage(data, fileName, options, removeOpcManifestReferences);
         }
 
         OfficeProvenanceRemovalOptions previewOptions = Clone(options, OfficeSignatureMutationPolicy.PreserveSignatureMarkup);
-        OfficeProvenanceRemovalResult preview = OfficeProvenanceRemover.Remove(data, fileName, previewOptions);
+        OfficeProvenanceRemovalResult preview = OfficeProvenanceRemover.RemoveZipPackage(data, fileName, previewOptions, removeOpcManifestReferences);
         if (!preview.WasChanged) return preview;
 
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options.Limits);
@@ -87,7 +89,7 @@ internal static class OfficeProvenancePackageMutation {
         if (hasSignatures?.Invoke(stripped.Data, options) ?? OfficeProvenanceZip.HasPackageSignature(stripped.Data, options)) {
             throw new InvalidOperationException("The owning package adapter left signature evidence in the rewritten document.");
         }
-        OfficeProvenanceRemovalResult final = OfficeProvenanceRemover.Remove(stripped.Data, fileName, previewOptions);
+        OfficeProvenanceRemovalResult final = OfficeProvenanceRemover.RemoveZipPackage(stripped.Data, fileName, previewOptions, removeOpcManifestReferences);
         return new OfficeProvenanceRemovalResult(
             final.ToArray(),
             preview.Before,

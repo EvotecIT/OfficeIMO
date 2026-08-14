@@ -113,7 +113,8 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes,
-        out bool reserialized) {
+        out bool reserialized,
+        bool removeOpcManifestReferences = true) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
@@ -179,7 +180,7 @@ internal static class OfficeProvenanceZip {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
         }
 
-        if (removable.Count != 0 && removable.Count == occurrence &&
+        if (removeOpcManifestReferences && removable.Count != 0 && removable.Count == occurrence &&
             entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
             RemoveOpcManifestReferences(input, entryMetadata, embeddedRewrites, options.Limits, ref inspectionBytes);
         }

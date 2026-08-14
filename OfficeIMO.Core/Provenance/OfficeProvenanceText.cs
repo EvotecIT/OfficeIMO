@@ -67,9 +67,8 @@ internal static class OfficeProvenanceText {
         var candidates = new List<(int Offset, RemovalRange Range, OfficeProvenanceChange Change)>();
         StructuredBlock[] structuredBlocks = FindStructuredBlocks(
             data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries).ToArray();
-        TextWrapper[] wrappers = options.RemoveC2paManifests
-            ? FindWrappers(data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true).ToArray()
-            : Array.Empty<TextWrapper>();
+        TextWrapper[] wrappers = FindWrappers(
+            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true).ToArray();
         bool carrierSetIsValid = structuredBlocks.Length + wrappers.Length <= 1;
         foreach (StructuredBlock block in structuredBlocks) {
             bool requested = block.IsExternal ? options.RemoveExternalC2paReferences : options.RemoveC2paManifests;

@@ -129,11 +129,12 @@ internal static class OfficeProvenanceGif {
         xmpApplicationCount = 0;
         validStructure = false;
         int entryCount = 0;
+        bool foundImage = false;
         while (offset < data.Length) {
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
             byte introducer = data[offset++];
             if (introducer == 0x3B) {
-                validStructure = offset == data.Length;
+                validStructure = offset == data.Length && foundImage;
                 return count;
             }
             if (introducer == 0x2C) {
@@ -148,6 +149,7 @@ internal static class OfficeProvenanceGif {
                 if (offset >= data.Length) throw new InvalidDataException("GIF image data is truncated.");
                 offset++;
                 offset = SkipSubBlocks(data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries, out _);
+                foundImage = true;
                 continue;
             }
             if (introducer != 0x21 || offset >= data.Length) throw new InvalidDataException("GIF contains an unsupported or truncated block.");

@@ -33,6 +33,7 @@ internal static class OfficeProvenanceJpegXmp {
         var result = new OfficeProvenanceJpegXmpResult();
         var standards = new List<StandardPacket>();
         var extensions = new List<ExtendedChunk>();
+        int recognizableExtendedCandidateCount = 0;
         int offset = start;
         int markerCount = 1; // SOI was consumed by the owning image walker.
         while (offset < data.Length && OfficeProvenanceJpeg.TryReadMarker(
@@ -47,9 +48,12 @@ internal static class OfficeProvenanceJpegXmp {
                 Buffer.BlockCopy(data, payloadOffset + StandardHeader.Length, packet, 0, packetLength);
                 standards.Add(new StandardPacket(offset, packet));
                 result.SegmentStarts.Add(offset);
-            } else if (marker == 0xE1 && TryReadExtendedChunk(data, offset, payloadOffset, payloadLength, out ExtendedChunk? chunk)) {
-                extensions.Add(chunk!);
+            } else if (marker == 0xE1 && Matches(data, payloadOffset, payloadLength, ExtendedHeader)) {
+                recognizableExtendedCandidateCount++;
                 result.SegmentStarts.Add(offset);
+                if (TryReadExtendedChunk(data, offset, payloadOffset, payloadLength, out ExtendedChunk? chunk)) {
+                    extensions.Add(chunk!);
+                }
             }
             offset = segmentEnd;
         }
@@ -76,7 +80,13 @@ internal static class OfficeProvenanceJpegXmp {
                 starts.Add(standard.SegmentStart);
             }
         }
-        bool standardSetIsStructurallyValid = standards.Count <= 1 && referenceCount <= 1;
+        bool extendedSetIsStructurallyValid = recognizableExtendedCandidateCount == extensions.Count &&
+            extensionIndex.Count == references.Count &&
+            extensionIndex.Keys.All(references.ContainsKey) &&
+            references.Keys.All(guid => orderedExtensions.TryGetValue(guid, out ExtendedChunk[]? chunks) &&
+                TryAssemble(chunks, options.MaxAssetBytes, out byte[] packet) &&
+                string.Equals(ComputeGuid(packet), guid, StringComparison.OrdinalIgnoreCase));
+        bool standardSetIsStructurallyValid = standards.Count <= 1 && referenceCount <= 1 && extendedSetIsStructurallyValid;
         foreach (StandardPacket standard in standards) {
             string location = $"JPEG[{imageIndex}]/APP1-XMP@{standard.SegmentStart}";
             if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location, standardSetIsStructurallyValid);

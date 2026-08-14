@@ -13,7 +13,7 @@ OfficeIMO separates bounded structural inspection and selective removal from opt
 | TIFF / BigTIFF | Primary-IFD C2PA tag | XMP tag 700 | Preserves overlapping IFD, pixel, strip, tile, JPEG, and shared-value storage |
 | SVG | `c2pa:manifest` text in SVG metadata | Metadata-scoped `x:xmpmeta` or direct RDF/IPTC scope | Rewrites bounded XML only when the selected carrier is structurally unambiguous |
 | ZIP / OPC image packages | Native `META-INF/content_credential.c2pa` plus supported embedded images | Supported embedded-image XMP | Generic removal blocks signed packages; document owners must explicitly handle signature invalidation |
-| Structured text | Delimited manifest block or `data:application/c2pa` line | Inline XMP | Preserves surrounding text and source ordering |
+| Structured text | Delimited manifest block or `data:application/c2pa` line | Not applicable | Preserves surrounding text and source ordering |
 | Variation-selector text | Encoded C2PA wrapper | Not applicable | Removes only complete, bounded wrappers |
 
 `RequireStructurallyValidCarrier` defaults to `true`. Turning it off permits best-effort removal from malformed carriers and should be reserved for explicitly destructive cleanup workflows.

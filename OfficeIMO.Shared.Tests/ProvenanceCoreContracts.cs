@@ -13,7 +13,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] unrelated = CreateJpegSegment(0xEB, Encoding.ASCII.GetBytes("not-c2pa"));
         byte[] first = CreateJpegApp11(manifest, 0, 40, instance: 7, sequence: 1);
         byte[] second = CreateJpegApp11(manifest, 40, manifest.Length - 40, instance: 7, sequence: 2);
-        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, unrelated, first, second, new byte[] { 0xFF, 0xD9 });
+        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, unrelated, first, second, CreateMinimalJpegFrame(), CreateMinimalJpegScan(), new byte[] { 0, 0xFF, 0xD9 });
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
@@ -21,7 +21,7 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Single(report.Evidence);
         Assert.True(report.Evidence[0].IsStructurallyValid);
         Assert.Equal(manifest.Length, report.Evidence[0].PayloadLength);
-        Assert.Equal(Join(new byte[] { 0xFF, 0xD8 }, unrelated, new byte[] { 0xFF, 0xD9 }), result.ToArray());
+        Assert.Equal(Join(new byte[] { 0xFF, 0xD8 }, unrelated, CreateMinimalJpegFrame(), CreateMinimalJpegScan(), new byte[] { 0, 0xFF, 0xD9 }), result.ToArray());
         Assert.Empty(result.After.Evidence);
         Assert.False(result.WasReserialized);
     }
@@ -83,7 +83,9 @@ public sealed partial class ProvenanceCoreContracts {
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, 50, instance: 9, sequence: 1),
             CreateJpegApp11(manifest, 50, manifest.Length - 50, instance: 9, sequence: 2),
-            new byte[] { 0xFF, 0xD9 });
+            CreateMinimalJpegFrame(),
+            CreateMinimalJpegScan(),
+            new byte[] { 0, 0xFF, 0xD9 });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
 
@@ -116,7 +118,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void PngRemovesCabxAndPreservesEveryOtherChunkByteForByte() {
         byte[] manifest = CreateManifestStore();
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
-        byte[] ihdr = CreatePngChunk("IHDR", new byte[13]);
+        byte[] ihdr = CreatePngChunk("IHDR", CreateValidPngHeader());
         byte[] cabx = CreatePngChunk("caBX", manifest);
         byte[] text = CreatePngChunk("tEXt", Encoding.ASCII.GetBytes("keep-this"));
         byte[] imageData = CreatePngChunk("IDAT", Array.Empty<byte>());
@@ -163,7 +165,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         byte[] png = Join(
             header,
-            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("IDAT", Array.Empty<byte>()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
@@ -177,12 +179,13 @@ public sealed partial class ProvenanceCoreContracts {
 
     [Fact]
     public void WebpRemovesC2paChunkAndRecomputesRiffLength() {
+        byte[] extendedHeader = CreateVp8xChunk(advertiseXmp: false);
         byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
         byte[] c2pa = CreateRiffChunk("C2PA", CreateManifestStore());
-        byte[] webp = CreateWebp(keep, c2pa);
+        byte[] webp = CreateWebp(extendedHeader, keep, c2pa);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");
-        byte[] expected = CreateWebp(keep);
+        byte[] expected = CreateWebp(extendedHeader, keep);
 
         Assert.Equal(expected, result.ToArray());
         Assert.Equal(expected.Length - 8, BitConverter.ToInt32(expected, 4));
@@ -242,10 +245,11 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] jpeg = Join(
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, manifest.Length, instance: 1, sequence: 1),
-            CreateJpegSegment(0xDA, new byte[] { 1, 2 }),
+            CreateMinimalJpegFrame(),
+            CreateMinimalJpegScan(),
             new byte[] { 0x11 },
             CreateJpegSegment(0xC4, new byte[] { 0, 1 }),
-            CreateJpegSegment(0xDA, new byte[] { 3, 4 }),
+            CreateMinimalJpegScan(),
             new byte[] { 0x22, 0xFF, 0xD9 });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "progressive.jpg");
@@ -271,11 +275,11 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] manifest = CreateManifestStore();
         byte[] exact = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, manifest);
         byte[] other = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 1 }, Encoding.ASCII.GetBytes("keep"));
-        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, exact, new byte[] { 0x3B });
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, exact, CreateMinimalGifImage(), new byte[] { 0x3B });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif");
 
-        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, new byte[] { 0x3B }), result.ToArray());
+        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
         Assert.Single(result.Changes);
     }
 
@@ -283,14 +287,14 @@ public sealed partial class ProvenanceCoreContracts {
     public void GifAppliesTheManifestLimitOnlyToTheC2paApplicationExtension() {
         byte[] unrelated = CreateGifApplication("OTHERAPP", new byte[] { 1, 0, 0 }, new byte[512]);
         byte[] c2pa = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, CreateManifestStore());
-        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, c2pa, new byte[] { 0x3B });
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, c2pa, CreateMinimalGifImage(), new byte[] { 0x3B });
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = gif.Length + 1L;
         options.Limits.MaxManifestBytes = 512;
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif", options);
 
-        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, new byte[] { 0x3B }), result.ToArray());
+        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
         Assert.Empty(result.After.Evidence);
     }
 
@@ -475,7 +479,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         byte[] image = Join(
             header,
-            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("IDAT", Array.Empty<byte>()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
@@ -498,7 +502,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void ZipInspectsAndSanitizesExtensionlessImagesByBoundedContentSniffing() {
         byte[] image = Join(
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
-            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("IDAT", Array.Empty<byte>()),
             CreatePngChunk("IEND", Array.Empty<byte>()));

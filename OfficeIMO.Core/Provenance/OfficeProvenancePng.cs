@@ -127,7 +127,7 @@ internal static class OfficeProvenancePng {
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
-                    HasValidCrc(data, offset, payloadLength);
+                    HasValidCrc(data, offset, payloadLength) && IsValidHeader(data, offset + 8);
             }
             bool isImageData = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IDAT");
             if (isImageData) {
@@ -146,6 +146,24 @@ internal static class OfficeProvenancePng {
         validStructure = headerCount == 1 && validLeadingHeader && foundImageData && imageDataIsContiguous &&
             validEnd && allChunksHaveValidCrc;
         return c2paCount;
+    }
+
+    private static bool IsValidHeader(byte[] data, int payloadOffset) {
+        uint width = OfficeProvenanceBinary.ReadUInt32(data, payloadOffset, littleEndian: false);
+        uint height = OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false);
+        byte bitDepth = data[payloadOffset + 8];
+        byte colorType = data[payloadOffset + 9];
+        bool validBitDepth = colorType switch {
+            0 => bitDepth is 1 or 2 or 4 or 8 or 16,
+            2 => bitDepth is 8 or 16,
+            3 => bitDepth is 1 or 2 or 4 or 8,
+            4 or 6 => bitDepth is 8 or 16,
+            _ => false
+        };
+        return width != 0 && height != 0 && validBitDepth &&
+            data[payloadOffset + 10] == 0 &&
+            data[payloadOffset + 11] == 0 &&
+            data[payloadOffset + 12] is 0 or 1;
     }
 
     private static bool HasXmpKeyword(byte[] data, int payloadOffset, int payloadLength) {

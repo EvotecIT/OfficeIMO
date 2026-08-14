@@ -132,7 +132,17 @@ public static class OfficeProvenanceInspector {
             if (commentEnd < 0) return false;
             offset = commentEnd + 3;
         }
-        return MatchesAsciiIgnoreCase(data, offset, "<!doctype html") || MatchesAsciiIgnoreCase(data, offset, "<html");
+        return MatchesHtmlTokenWithBoundary(data, offset, "<!doctype html", allowSelfClosing: false) ||
+            MatchesHtmlTokenWithBoundary(data, offset, "<html", allowSelfClosing: true);
+    }
+
+    private static bool MatchesHtmlTokenWithBoundary(byte[] data, int offset, string token, bool allowSelfClosing) {
+        if (!MatchesAsciiIgnoreCase(data, offset, token)) return false;
+        int boundary = offset + token.Length;
+        if (boundary >= data.Length) return false;
+        byte value = data[boundary];
+        return value is 0x09 or 0x0A or 0x0C or 0x0D or 0x20 or (byte)'>' ||
+            allowSelfClosing && value == (byte)'/';
     }
 
     private static int FindAscii(byte[] data, int offset, string expected) {
@@ -223,12 +233,28 @@ public static class OfficeProvenanceRemover {
         return RemoveCore(data, fileName, options, inspectionOptions, OfficeProvenanceAssetFormat.StructuredText);
     }
 
+    internal static OfficeProvenanceRemovalResult RemoveZipPackage(
+        byte[] data,
+        string? fileName,
+        OfficeProvenanceRemovalOptions options,
+        bool removeOpcManifestReferences) {
+        OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
+        return RemoveCore(
+            data,
+            fileName,
+            options,
+            inspectionOptions,
+            forcedFormat: null,
+            removeOpcManifestReferences: removeOpcManifestReferences);
+    }
+
     private static OfficeProvenanceRemovalResult RemoveCore(
         byte[] data,
         string? fileName,
         OfficeProvenanceRemovalOptions options,
         OfficeProvenanceOptions inspectionOptions,
-        OfficeProvenanceAssetFormat? forcedFormat) {
+        OfficeProvenanceAssetFormat? forcedFormat,
+        bool removeOpcManifestReferences = true) {
         OfficeProvenanceReport before = forcedFormat.HasValue
             ? OfficeProvenanceInspector.InspectStructuredText(data, inspectionOptions)
             : OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);
@@ -255,7 +281,7 @@ public static class OfficeProvenanceRemover {
                 output = OfficeProvenanceSvg.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.ZipPackage:
-                output = OfficeProvenanceZip.Remove(data, options, changes, out reserialized);
+                output = OfficeProvenanceZip.Remove(data, options, changes, out reserialized, removeOpcManifestReferences);
                 break;
             case OfficeProvenanceAssetFormat.StructuredText:
             case OfficeProvenanceAssetFormat.UnstructuredText:

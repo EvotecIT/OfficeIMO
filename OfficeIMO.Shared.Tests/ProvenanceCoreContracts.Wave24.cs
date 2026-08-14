@@ -126,7 +126,7 @@ public sealed partial class ProvenanceCoreContracts {
 
     private static byte[] CreatePngWithC2paManifest(byte[] manifest) => Join(
         new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
-        CreatePngChunk("IHDR", new byte[13]),
+        CreatePngChunk("IHDR", CreateValidPngHeader()),
         CreatePngChunk("caBX", manifest),
         CreatePngChunk("IDAT", Array.Empty<byte>()),
         CreatePngChunk("IEND", Array.Empty<byte>()));

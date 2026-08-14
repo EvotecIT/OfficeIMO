@@ -46,7 +46,7 @@ internal static class OfficeProvenanceJpeg {
             int offset = imageStart + 2;
             OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
                 data, offset, imageIndex, options, context, removalOptions, changes);
-            bool hasDuplicateC2paSequences = CountC2paSequences(data, offset, options) > 1;
+            bool hasDuplicateC2paSequences = CountC2paSequences(data, offset, options, out bool hasImageFrameAndScan) > 1;
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
@@ -79,7 +79,7 @@ internal static class OfficeProvenanceJpeg {
 
                 if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
                     out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
-                    structurallyValid &= !hasDuplicateC2paSequences;
+                    structurallyValid &= !hasDuplicateC2paSequences && hasImageFrameAndScan;
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
                         OfficeProvenanceCarrierKind.C2paManifest,
@@ -106,16 +106,31 @@ internal static class OfficeProvenanceJpeg {
         return reserialized;
     }
 
-    private static int CountC2paSequences(byte[] data, int offset, OfficeProvenanceOptions options) {
+    private static int CountC2paSequences(
+        byte[] data,
+        int offset,
+        OfficeProvenanceOptions options,
+        out bool hasImageFrameAndScan) {
         int count = 0;
         int markers = 0;
+        bool hasValidFrame = false;
+        hasImageFrameAndScan = false;
         while (offset < data.Length) {
             if (!TryReadMarker(data, offset, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
                 throw new InvalidDataException("JPEG contains an invalid marker sequence.");
             }
             ReserveMarker(ref markers, options.MaxContainerEntries);
             if (marker == 0xD8) throw new InvalidDataException("JPEG contains a nested start-of-image marker.");
-            if (marker == 0xD9 || marker == 0xDA) return count;
+            if (marker == 0xD9) return count;
+            if (marker == 0xDA) {
+                int scanMarkers = markers;
+                _ = FindEnd(data, offset, ref scanMarkers, options.MaxContainerEntries);
+                hasImageFrameAndScan = hasValidFrame && IsValidStartOfScan(data, payloadOffset, payloadLength);
+                return count;
+            }
+            if (IsStartOfFrame(marker)) {
+                hasValidFrame |= IsValidStartOfFrame(data, payloadOffset, payloadLength);
+            }
             if (marker == 0xEB && IsC2paSequenceStart(data, payloadOffset, payloadLength)) {
                 count++;
                 if (TryGetC2paSequence(data, offset, payloadOffset, payloadLength, options, ref markers,
@@ -129,6 +144,24 @@ internal static class OfficeProvenanceJpeg {
             }
         }
         throw new InvalidDataException("JPEG does not contain an end marker.");
+    }
+
+    private static bool IsStartOfFrame(byte marker) => marker is
+        0xC0 or 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7 or
+        0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF;
+
+    private static bool IsValidStartOfFrame(byte[] data, int payloadOffset, int payloadLength) {
+        if (payloadLength < 9) return false;
+        int components = data[payloadOffset + 5];
+        ushort height = OfficeProvenanceBinary.ReadUInt16(data, payloadOffset + 1, littleEndian: false);
+        ushort width = OfficeProvenanceBinary.ReadUInt16(data, payloadOffset + 3, littleEndian: false);
+        return components > 0 && payloadLength == 6 + 3 * components && width != 0 && height != 0;
+    }
+
+    private static bool IsValidStartOfScan(byte[] data, int payloadOffset, int payloadLength) {
+        if (payloadLength < 6) return false;
+        int components = data[payloadOffset];
+        return components > 0 && payloadLength == 1 + 2 * components + 3;
     }
 
     private static bool IsC2paSequenceStart(byte[] data, int payloadOffset, int payloadLength) =>
