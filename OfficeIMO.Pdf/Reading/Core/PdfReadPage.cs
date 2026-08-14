@@ -30,6 +30,7 @@ public sealed partial class PdfReadPage {
         PdfFontResourceCache fontResourceCache,
         Action? demandTextExtraction = null,
         Action<string>? demandContentExtraction = null,
+        bool includeArtifactText = false,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
         ObjectNumber = objectNumber;
         _pageDict = pageDict;
@@ -493,8 +494,7 @@ public sealed partial class PdfReadPage {
                      content,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands,
-                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
+                     maxOperands: _limits.MaxContentOperands)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -550,7 +550,10 @@ public sealed partial class PdfReadPage {
         bool includeArtifactText = false,
         int contentNestingDepth = 0,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null) {
@@ -574,8 +577,10 @@ public sealed partial class PdfReadPage {
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        bool ResolveMarkedContentMcid(string propertyName) =>
+            MarkedContentPropertyHasMcid(resources, propertyName);
 
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         spans.AddRange(TextContentParser.Parse(
             content,
             DecodeWithFont,
@@ -607,7 +612,11 @@ public sealed partial class PdfReadPage {
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
             textOutputBudget: textOutputBudget,
+            textClippingBudget: textClippingBudget,
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
+            contentOrderPrefix: contentOrderPrefix,
+            contentOrderOffset: contentOrderOffset,
+            initialUnsupportedEffect: initialUnsupportedTextEffect,
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
@@ -635,11 +644,11 @@ public sealed partial class PdfReadPage {
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget,
                      initialRenderingIntent: initialRenderingIntent,
                      initialFillColorSelection: initialFillColorSelection,
                      initialStrokeColorSelection: initialStrokeColorSelection,
-                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -684,7 +693,10 @@ public sealed partial class PdfReadPage {
                     includeArtifactText,
                     contentNestingDepth + 1,
                     textOutputBudget,
+                    textClippingBudget,
                     pageContentBudget,
+                    formOrderPrefix,
+                    -formContentOffset,
                     invocation.RenderingIntent,
                     invocation.FillColorSelection,
                     invocation.StrokeColorSelection);
@@ -705,7 +717,6 @@ public sealed partial class PdfReadPage {
         OfficeColor? initialFillColor = null,
         PdfPageColorSpace initialFillColorSpace = default,
         double? initialFillOpacity = null,
-        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
@@ -714,11 +725,17 @@ public sealed partial class PdfReadPage {
         bool initialHasUnsupportedBlendMode = false,
         bool initialHasSoftMask = false,
         bool initialHasAuthoredRenderingIntent = false,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? initialFillColorSelection = null,
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
-        PdfPaintColorSelection? initialFillColorSelection = null) {
+        PdfContentOrderKey? contentOrderPrefix = null,
+        bool skipTransparencyGroupForms = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -734,12 +751,18 @@ public sealed partial class PdfReadPage {
                       paintOrderScale,
                       paintOrderOffset,
                       initialClipPath,
-                      maxOperations: _limits.MaxContentOperations,
-                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                      maxOperands: _limits.MaxContentOperands,
-                      initialRenderingIntent: initialRenderingIntent,
-                      initialFillColorSelection: initialFillColorSelection,
-                      outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
+                     maxOperations: _limits.MaxContentOperations,
+                     maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxOperands: _limits.MaxContentOperands,
+                     initialBlendMode: initialBlendMode,
+                     initialHasUnsupportedBlendMode: initialHasUnsupportedBlendMode,
+                     initialHasSoftMask: initialHasSoftMask,
+                     initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent,
+                     initialRenderingIntent: initialRenderingIntent,
+                     initialFillColorSelection: initialFillColorSelection,
+                     initialStrokeColorSelection: initialStrokeColorSelection,
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                     textClippingBudget: textClippingBudget)) {
             Matrix2D invocationTransform = invocation.Transform;
             PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (invocation.InlineImage != null) {
@@ -755,12 +778,36 @@ public sealed partial class PdfReadPage {
                     invocation.InlineImage.Stream,
                     resources,
                     invocation.PaintOrder,
-                    invocation.RenderingIntent));
+                    fillPattern: invocation.FillPattern,
+                    effectiveResources: resources,
+                    blendMode: invocation.BlendMode,
+                    hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
+                    hasSoftMask: invocation.HasSoftMask,
+                    hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                    renderingIntent: invocation.RenderingIntent);
+                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
             if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity, paintOrder: invocation.PaintOrder, renderingIntent: invocation.RenderingIntent));
+                PdfImagePlacement placement = BuildImagePlacement(
+                    pageNumber,
+                    invocation.Name,
+                    imageObjectNumber,
+                    directStreamIdentity,
+                    invocationTransform,
+                    invocation.ClipPath,
+                    invocation.FillColor,
+                    invocation.FillOpacity,
+                    paintOrder: invocation.PaintOrder,
+                    fillPattern: invocation.FillPattern,
+                    effectiveResources: resources,
+                    blendMode: invocation.BlendMode,
+                    hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
+                    hasSoftMask: invocation.HasSoftMask,
+                    hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                    renderingIntent: invocation.RenderingIntent);
+                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
@@ -793,7 +840,6 @@ public sealed partial class PdfReadPage {
                     invocation.FillColor,
                     invocation.FillColorSpace,
                     invocation.FillOpacity,
-                    invocation.RenderingIntent,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
@@ -801,9 +847,14 @@ public sealed partial class PdfReadPage {
                     initialHasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     initialHasSoftMask: invocation.HasSoftMask,
                     initialHasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                    initialRenderingIntent: invocation.RenderingIntent,
+                    initialFillColorSelection: invocation.FillColorSelection,
+                    initialStrokeColorSelection: invocation.StrokeColorSelection,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget,
-                    initialFillColorSelection: invocation.FillColorSelection);
+                    contentOrderPrefix: invocationOrder,
+                    skipTransparencyGroupForms: skipTransparencyGroupForms);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -895,6 +946,12 @@ public sealed partial class PdfReadPage {
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
+        PdfPagePatternSelection? fillPattern = null,
+        PdfDictionary? effectiveResources = null,
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal,
+        bool hasUnsupportedBlendMode = false,
+        bool hasSoftMask = false,
+        bool hasAuthoredRenderingIntent = false,
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
@@ -926,7 +983,13 @@ public sealed partial class PdfReadPage {
             inlineImageStream,
             inlineImageResources,
             paintOrder,
-            renderingIntent);
+            fillPattern: fillPattern,
+            effectiveResources: effectiveResources,
+            blendMode: blendMode,
+            hasUnsupportedBlendMode: hasUnsupportedBlendMode,
+            hasSoftMask: hasSoftMask,
+            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent,
+            renderingIntent: renderingIntent);
     }
 
     private byte[]? GetMarkedContentActualTextBytes(PdfDictionary? resources, string propertyName) {

@@ -6,21 +6,26 @@ public sealed partial class PdfReadPage {
     internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics() {
         var diagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
+        if (outputIntentColorTransform != null) {
+            if (!outputIntentColorTransform.IsSupported) {
+                AddRenderDiagnostic(
+                    diagnostics,
+                    seen,
+                    PdfRenderCapabilities.UnsupportedIccOutputIntentId,
+                    outputIntentColorTransform.Subject);
+            } else if (_hasOutputIntentCompositionInteraction?.Value == true) {
+                AddRenderDiagnostic(
+                    diagnostics,
+                    seen,
+                    PdfRenderCapabilities.OutputIntentTransparencyId,
+                    outputIntentColorTransform.Subject);
+            }
+        }
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
-        if (_outputIntentColorTransform != null && !_outputIntentColorTransform.IsSupported) {
-            AddRenderDiagnostic(
-                diagnostics,
-                seen,
-                PdfRenderCapabilities.UnsupportedIccOutputIntentId,
-                _outputIntentColorTransform.Subject);
-        } else if (_outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction?.Value == true) {
-            AddRenderDiagnostic(
-                diagnostics,
-                seen,
-                PdfRenderCapabilities.OutputIntentTransparencyId,
-                _outputIntentColorTransform.Subject);
-        }
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        var textClippingBudget = new PdfTextClippingBudget();
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         CollectRenderCapabilityDiagnostics(
             GetContentStreamContent(pageContentBudget),
@@ -58,8 +63,10 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         PdfPageClipPath? initialClipPath = null) {
         EnsureContentNestingBudget(depth);
-        var invokedColorSpaces = new HashSet<string>(StringComparer.Ordinal);
-        var invokedXObjects = new HashSet<string>(StringComparer.Ordinal);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources, invokedResources.ColorSpaces);
+        HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources, invokedResources.ColorSpaces);
+        var invokedXObjects = new List<string>();
         var invokedFonts = new HashSet<string>(StringComparer.Ordinal);
         var invokedShadings = new HashSet<string>(StringComparer.Ordinal);
         var invokedPatterns = new HashSet<string>(StringComparer.Ordinal);
@@ -85,26 +92,24 @@ public sealed partial class PdfReadPage {
             if ((operation.Name == "cs" || operation.Name == "CS") &&
                 operation.Operands.Count > 0 &&
                 operation.Operands[operation.Operands.Count - 1] is string colorSpaceName) {
-                invokedColorSpaces.Add(colorSpaceName);
+                if (unsupportedColorSpaces.Contains(colorSpaceName)) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, colorSpaceName);
+                } else if (approximatedIccColorSpaces.Contains(colorSpaceName)) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, colorSpaceName);
+                }
             }
             if (operation.InlineImage is PdfContentInlineImage inlineImage) {
-                if (inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) &&
-                    colorSpaceObject is PdfName inlineColorSpaceName) {
-                    invokedColorSpaces.Add(inlineColorSpaceName.Name);
-                }
                 CollectImageColorSpaceCapabilityDiagnostic(
-                    new PdfStream(inlineImage.Dictionary, inlineImage.Data),
+                    inlineImage.Dictionary,
                     resources,
                     diagnostics,
                     seen,
-                    "inline-image");
+                    "inline-image",
+                    new PdfStream(inlineImage.Dictionary, inlineImage.Data));
             }
         },
-        inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
         maxNestingDepth: _limits.MaxContentNestingDepth,
         maxOperands: _limits.MaxContentOperands);
-
-        CollectColorSpaceCapabilityDiagnostics(resources, invokedColorSpaces, diagnostics, seen);
 
         if (resources == null) return;
         if (invokedShadings.Count > 0 || invokedPatterns.Count > 0) {
@@ -165,6 +170,7 @@ public sealed partial class PdfReadPage {
     private static string? GetOperatorCapabilityId(string op) {
         switch (op) {
             case "M": return PdfRenderCapabilities.MiterLimitId;
+            case "ri": return null;
             case "i": return PdfRenderCapabilities.FlatnessId;
             case "MP":
             case "DP": return PdfRenderCapabilities.MarkedPointId;
@@ -197,10 +203,11 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
-        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
+        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> discoveredXObjects = PdfPageXObjectInvocationParser.Parse(
             content,
@@ -295,7 +302,11 @@ public sealed partial class PdfReadPage {
                             activeStreams,
                             diagnostics,
                             seen,
-                            contentNestingDepth + 1)) {
+                            contentNestingDepth + 1,
+                            initialHasAuthoredRenderingIntent: glyph.HasAuthoredRenderingIntent,
+                            initialRenderingIntent: glyph.RenderingIntent,
+                            initialFillColorSelection: glyph.FillColorSelection,
+                            initialStrokeColorSelection: glyph.StrokeColorSelection)) {
                         failures.Add(glyph.Font.ResourceName);
                         supported = false;
                     }
@@ -344,7 +355,11 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream>? activeSoftMaskForms = null,
         double? projectionPageWidth = null,
         double? projectionPageHeight = null,
-        bool requireIsolatedGroupSemantics = false) {
+        bool requireIsolatedGroupSemantics = false,
+        bool initialHasAuthoredRenderingIntent = false,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? initialFillColorSelection = null,
+        PdfPaintColorSelection? initialStrokeColorSelection = null) {
         EnsureContentNestingBudget(depth);
         if (softMaskNestingDepth != null) {
             softMaskNestingDepth.Maximum = Math.Max(softMaskNestingDepth.Maximum, depth);
@@ -454,7 +469,12 @@ public sealed partial class PdfReadPage {
                         type3GlyphBudget,
                         depth + 1),
                 pageWidth: surfaceWidth,
-                textClippingBudget: textClippingBudget);
+                textClippingBudget: textClippingBudget,
+                initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent,
+                initialRenderingIntent: initialRenderingIntent,
+                initialFillColorSelection: initialFillColorSelection,
+                initialStrokeColorSelection: initialStrokeColorSelection,
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform);
             if (invokedPatternNames.Count > 0 && softMaskNestingDepth != null) {
                 softMaskNestingDepth.Cacheable = false;
             }
@@ -620,7 +640,11 @@ public sealed partial class PdfReadPage {
                                          activeSoftMaskGroups,
                                          activeSoftMaskForms,
                                          surfaceWidth,
-                                         surfaceHeight)) {
+                                         surfaceHeight,
+                                         initialHasAuthoredRenderingIntent: glyph.HasAuthoredRenderingIntent,
+                                         initialRenderingIntent: glyph.RenderingIntent,
+                                         initialFillColorSelection: glyph.FillColorSelection,
+                                         initialStrokeColorSelection: glyph.StrokeColorSelection)) {
                                      supported = false;
                                  }
                              }
@@ -730,7 +754,12 @@ public sealed partial class PdfReadPage {
                              }
                          },
                          pageWidth: surfaceWidth,
-                         textClippingBudget: textClippingBudget)) {
+                         textClippingBudget: textClippingBudget,
+                         initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent,
+                         initialRenderingIntent: initialRenderingIntent,
+                         initialFillColorSelection: initialFillColorSelection,
+                         initialStrokeColorSelection: initialStrokeColorSelection,
+                         outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
                 PdfPageDrawingEffect invocationEffect = ResolveDrawingEffect(
                     drawingEffects,
                     invocation.PaintOrder);
@@ -863,7 +892,11 @@ public sealed partial class PdfReadPage {
                         activeSoftMaskForms,
                         formSurfaceWidth,
                         formSurfaceHeight,
-                        requireIsolatedGroupSemantics: isTransparencyGroup)) supported = false;
+                        requireIsolatedGroupSemantics: isTransparencyGroup,
+                        initialHasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                        initialRenderingIntent: invocation.RenderingIntent,
+                        initialFillColorSelection: invocation.FillColorSelection,
+                        initialStrokeColorSelection: invocation.StrokeColorSelection)) supported = false;
             }
             return supported;
         } catch (Exception exception) when (IsRecoverableType3ProjectionFailure(exception)) {
@@ -913,7 +946,14 @@ public sealed partial class PdfReadPage {
                 invocation.FillOpacity,
                 invocation.InlineImage.Stream,
                 resources,
-                invocation.PaintOrder);
+                invocation.PaintOrder,
+                fillPattern: invocation.FillPattern,
+                effectiveResources: resources,
+                blendMode: invocation.BlendMode,
+                hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
+                hasSoftMask: invocation.HasSoftMask,
+                hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                renderingIntent: invocation.RenderingIntent);
         } else {
             if (!TryGetImageXObject(resources, invocation.Name, out int objectNumber, out int directStreamIdentity)) return false;
             PdfDictionary? xObjects = ResolveDictionary(resources?.Items.TryGetValue("XObject", out PdfObject? xObjectValue) == true ? xObjectValue : null);
@@ -929,7 +969,14 @@ public sealed partial class PdfReadPage {
                 invocation.ClipPath,
                 invocation.FillColor,
                 invocation.FillOpacity,
-                paintOrder: invocation.PaintOrder);
+                paintOrder: invocation.PaintOrder,
+                fillPattern: invocation.FillPattern,
+                effectiveResources: resources,
+                blendMode: invocation.BlendMode,
+                hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
+                hasSoftMask: invocation.HasSoftMask,
+                hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
+                renderingIntent: invocation.RenderingIntent);
         }
 
         if (IsInvisibleImagePlacement(
@@ -964,7 +1011,13 @@ public sealed partial class PdfReadPage {
         if (requiresOptionalCodec) {
             AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, invocation.Name);
         }
-        CollectImageColorSpaceCapabilityDiagnostic(imageDictionary, resources, diagnostics, seen, invocation.Name);
+        CollectImageColorSpaceCapabilityDiagnostic(
+            imageDictionary,
+            resources,
+            diagnostics,
+            seen,
+            invocation.Name,
+            invocation.InlineImage?.Stream);
         if (image == null || !IsSupportedType3Image(placement, image, resources) || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
         if (!requireImageMask && image.IsImageMask && inheritedFillPattern.HasValue) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
@@ -1011,23 +1064,33 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void CollectColorSpaceCapabilityDiagnostics(
-        PdfDictionary? resources,
-        HashSet<string> invokedNames,
-        List<PdfRenderCapabilityDiagnostic> diagnostics,
-        HashSet<string> seen) {
-        if (resources == null || invokedNames.Count == 0) return;
-        PdfDictionary? colorSpaces = ResolveDictionary(
-            resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
-        if (colorSpaces == null) return;
-        foreach (string name in invokedNames) {
-            if (!colorSpaces.Items.TryGetValue(name, out PdfObject? colorSpaceObject)) continue;
-            if (!TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.ColorSpaceId, name);
-            } else if (colorSpace.UsesIccApproximation) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.IccColorSpaceId, name);
+    private HashSet<string> GetUnsupportedColorSpaceResourceNames(PdfDictionary? resources, HashSet<string>? invokedNames = null) {
+        var unsupported = new HashSet<string>(StringComparer.Ordinal);
+        if (resources == null) return unsupported;
+        PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
+        if (colorSpaces == null) return unsupported;
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
+            if (!TryReadColorSpaceResource(entry.Value, out _)) {
+                unsupported.Add(entry.Key);
             }
         }
+
+        return unsupported;
+    }
+
+    private HashSet<string> GetApproximatedIccColorSpaceResourceNames(PdfDictionary? resources, HashSet<string>? invokedNames = null) {
+        var approximated = new HashSet<string>(StringComparer.Ordinal);
+        if (resources == null) return approximated;
+        PdfDictionary? colorSpaces = ResolveDictionary(resources.Items.TryGetValue("ColorSpace", out PdfObject? value) ? value : null);
+        if (colorSpaces == null) return approximated;
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
+            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace) && colorSpace.UsesIccApproximation) {
+                approximated.Add(entry.Key);
+            }
+        }
+        return approximated;
     }
 
     private void CollectShadingCapabilityDiagnostics(
@@ -1235,11 +1298,12 @@ public sealed partial class PdfReadPage {
             string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                 CollectImageColorSpaceCapabilityDiagnostic(
-                    stream,
+                    stream.Dictionary,
                     resources,
                     diagnostics,
                     seen,
-                    entry.Key);
+                    entry.Key,
+                    stream);
                 if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
                 continue;
             }
@@ -1329,21 +1393,25 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectImageColorSpaceCapabilityDiagnostic(
-        PdfStream image,
+        PdfDictionary image,
         PdfDictionary? resources,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
-        string imageName) {
-        if (!image.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
+        string imageName,
+        PdfStream? imageStream = null) {
+        if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
         }
 
-        if (ResourceResolver.CanProjectImageColorSpace(
-                image,
+        bool canProject = imageStream != null
+            ? ResourceResolver.CanProjectImageColorSpace(
+                imageStream,
                 resources,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
-                EffectiveOutputIntentColorTransform)) {
+                EffectiveOutputIntentColorTransform)
+            : ResourceResolver.CanProjectImageColorSpace(image, resources, _objects);
+        if (canProject) {
             PdfObject? diagnosticColorSpace = colorSpaceObject;
             if (ResolveObject(colorSpaceObject) is PdfName resourceName) {
                 PdfDictionary? colorSpaces = ResolveDictionary(resources?.Items.TryGetValue("ColorSpace", out PdfObject? value) == true ? value : null);

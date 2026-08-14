@@ -191,6 +191,18 @@ internal sealed class PdfImageColorSpaceNormalization {
         PdfObject? colorSpaceObj,
         string colorSpaceName,
         Dictionary<int, PdfIndirectObject> objects,
+        out PdfImageColorSpaceNormalization normalization) =>
+        TryResolve(
+            colorSpaceObj,
+            colorSpaceName,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out normalization);
+
+    internal static bool TryResolve(
+        PdfObject? colorSpaceObj,
+        string colorSpaceName,
+        Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         out PdfImageColorSpaceNormalization normalization) =>
         TryResolve(

@@ -11,19 +11,8 @@ internal static partial class ResourceResolver {
         return GetFontsForResources(dict, objects);
     }
 
-    public static Dictionary<string, PdfFontResource> GetFontsForResources(PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects) {
-        var fonts = new Dictionary<string, PdfFontResource>(System.StringComparer.Ordinal);
-        if (resources is null) return fonts;
-        if (!resources.Items.TryGetValue("Font", out var fontDictObj)) return fonts;
-        var fontDict = ResolveDict(fontDictObj, objects);
-        if (fontDict is null) return fonts;
-        foreach (var kv in fontDict.Items) {
-            var fontVal = ResolveDict(kv.Value, objects);
-            if (fontVal is null) continue;
-            fonts[kv.Key] = CreateFontResource(kv.Key, fontVal, objects);
-        }
-        return fonts;
-    }
+    public static Dictionary<string, PdfFontResource> GetFontsForResources(PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects) =>
+        GetFontsForResources(resources, objects, fontFactory: null);
 
     internal static PdfFontResourceSet CreateFontResourceSet(
         PdfDictionary resources,
@@ -1184,7 +1173,11 @@ internal static partial class ResourceResolver {
             directStreamIdentity,
             isImageMask,
             imageMaskColor ?? OfficeColor.Black,
-            inheritedRenderingIntent);
+            inheritedRenderingIntent,
+            hasExplicitDecode: stream.Dictionary.Items.ContainsKey("Decode"),
+            hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
+            interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
+                ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true });
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {

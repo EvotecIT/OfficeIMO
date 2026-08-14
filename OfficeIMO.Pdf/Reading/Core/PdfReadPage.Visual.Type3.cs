@@ -210,6 +210,10 @@ public sealed partial class PdfReadPage {
                     0D,
                     1D,
                     initialClipPath: glyph.ClipPath,
+                    initialHasAuthoredRenderingIntent: glyph.HasAuthoredRenderingIntent,
+                    initialRenderingIntent: glyph.RenderingIntent,
+                    initialFillColorSelection: glyph.FillColorSelection,
+                    initialStrokeColorSelection: glyph.StrokeColorSelection,
                     contentNestingDepth: contentNestingDepth,
                     pageContentBudget: pageContentBudget,
                     contentOrderPrefix: glyphOrderPrefix,
@@ -861,6 +865,11 @@ public sealed partial class PdfReadPage {
             return Type3PatternImageMaskDrawingResult.Invisible;
         }
         if (!TryCreateInheritedTilingPatternPaint(selection, pageHeight, null, out tilingPaint)) {
+            return Type3PatternImageMaskDrawingResult.Unsupported;
+        }
+        if (selection.Value.ShadingPattern is PdfPageShadingPatternResource shadingPattern &&
+            !shadingPattern.SupportsExactType3Projection) {
+            shadingPreparationFailed = true;
             return Type3PatternImageMaskDrawingResult.Unsupported;
         }
 

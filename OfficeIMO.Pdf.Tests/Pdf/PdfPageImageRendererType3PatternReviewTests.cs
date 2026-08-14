@@ -880,14 +880,19 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_FailsClosedForUnhandledDirectShadingInsideType3PatternTile() {
+    public void RenderPage_ProjectsDirectShadingDomainInsideType3PatternTile() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Shading << /Sh1 8 0 R >> >>", "/Sh1 sh");
         string shading = "8 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Domain [0.25 0.75] /Coords [0 0 10 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, shading);
 
-        AssertType3FallsBackWithoutNativeShapes(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Contains(drawing.Elements, element => element is OfficeDrawingGroup);
     }
 
     [Fact]

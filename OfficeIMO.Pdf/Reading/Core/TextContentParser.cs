@@ -58,11 +58,15 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public OfficeBlendMode BlendMode { get; }
+        public bool HasSoftMask { get; }
+        public bool HasUnsupportedEffect { get; }
+        public bool FillColorResolved { get; }
         public OfficeIccRenderingIntent RenderingIntent { get; }
         public PdfPaintColorSelection? FillColorSelection { get; }
         public PdfPaintColorSelection? StrokeColorSelection { get; }
 
-        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath, OfficeIccRenderingIntent renderingIntent, PdfPaintColorSelection? fillColorSelection, PdfPaintColorSelection? strokeColorSelection) {
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath, OfficeBlendMode blendMode = OfficeBlendMode.Normal, bool hasSoftMask = false, bool hasUnsupportedEffect = false, bool fillColorResolved = true, OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric, PdfPaintColorSelection? fillColorSelection = null, PdfPaintColorSelection? strokeColorSelection = null) {
             Ctm = ctm;
             Font = font;
             Size = size;
@@ -79,6 +83,10 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            BlendMode = blendMode;
+            HasSoftMask = hasSoftMask;
+            HasUnsupportedEffect = hasUnsupportedEffect;
+            FillColorResolved = fillColorResolved;
             RenderingIntent = renderingIntent;
             FillColorSelection = fillColorSelection;
             StrokeColorSelection = strokeColorSelection;
@@ -203,6 +211,9 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public int SourceOperatorIndex { get; }
+        public bool HasUnsupportedEffect { get; }
+        public bool FillColorResolved { get; }
         public OfficeIccRenderingIntent RenderingIntent { get; }
         public PdfPaintColorSelection? FillColorSelection { get; }
         public PdfPaintColorSelection? StrokeColorSelection { get; }
@@ -219,6 +230,9 @@ internal static class TextContentParser {
             double? strokeOpacity = null,
             int textRenderingMode = 0,
             PdfPageClipPath? clipPath = null,
+            int sourceOperatorIndex = 0,
+            bool hasUnsupportedEffect = false,
+            bool fillColorResolved = true,
             OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
             PdfPaintColorSelection? fillColorSelection = null,
             PdfPaintColorSelection? strokeColorSelection = null) {
@@ -233,6 +247,9 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            SourceOperatorIndex = sourceOperatorIndex;
+            HasUnsupportedEffect = hasUnsupportedEffect;
+            FillColorResolved = fillColorResolved;
             RenderingIntent = renderingIntent;
             FillColorSelection = fillColorSelection;
             StrokeColorSelection = strokeColorSelection;
@@ -271,7 +288,11 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0,
+        bool initialUnsupportedEffect = false,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
@@ -303,37 +324,29 @@ internal static class TextContentParser {
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
+        OfficeBlendMode blendMode = OfficeBlendMode.Normal;
+        bool hasSoftMask = false;
+        bool hasUnsupportedEffect = initialUnsupportedEffect;
+        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         OfficeIccRenderingIntent renderingIntent = initialRenderingIntent;
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
-        if (!initialFillColor.HasValue &&
-            fillColorSelection == null &&
-            outputIntentColorTransform != null &&
-            PdfPaintColorSelection.TryCreateDefaultBlack(
-                initialRenderingIntent,
-                outputIntentColorTransform,
-                out fillColorSelection,
-                out OfficeColor defaultFillColor)) {
+        if (fillColorSelection != null && fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor)) {
+            fillColor = selectedFillColor;
+            fillColorSpace = fillColorSelection.ColorSpace;
+        } else if (!initialFillColor.HasValue && outputIntentColorTransform != null &&
+            PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out fillColorSelection, out OfficeColor defaultFillColor)) {
             fillColor = defaultFillColor;
             fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
         }
-        if (!initialStrokeColor.HasValue &&
-            strokeColorSelection == null &&
-            outputIntentColorTransform != null &&
-            PdfPaintColorSelection.TryCreateDefaultBlack(
-                initialRenderingIntent,
-                outputIntentColorTransform,
-                out strokeColorSelection,
-                out OfficeColor defaultStrokeColor)) {
+        if (strokeColorSelection != null && strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor)) {
+            strokeColor = selectedStrokeColor;
+            strokeColorSpace = strokeColorSelection.ColorSpace;
+        } else if (!initialStrokeColor.HasValue && outputIntentColorTransform != null &&
+            PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out strokeColorSelection, out OfficeColor defaultStrokeColor)) {
             strokeColor = defaultStrokeColor;
             strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
         }
-        OfficeColor effectiveInitialFillColor = fillColor;
-        PdfPageColorSpace effectiveInitialFillColorSpace = fillColorSpace;
-        OfficeColor effectiveInitialStrokeColor = strokeColor;
-        PdfPageColorSpace effectiveInitialStrokeColorSpace = strokeColorSpace;
-        PdfPaintColorSelection? effectiveInitialFillColorSelection = fillColorSelection;
-        PdfPaintColorSelection? effectiveInitialStrokeColorSelection = strokeColorSelection;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         var pendingTextClipPaths = new List<PdfPageClipPath>();
         Matrix2D textMatrix = Matrix2D.Identity;
@@ -390,7 +403,7 @@ internal static class TextContentParser {
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1])); args.Clear(); } break;
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, renderingIntent, fillColorSelection, strokeColorSelection));
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection));
                     args.Clear();
                     break;
                 case "Q":
@@ -412,22 +425,30 @@ internal static class TextContentParser {
                         strokeOpacity = state.StrokeOpacity;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
+                        blendMode = state.BlendMode;
+                        hasSoftMask = state.HasSoftMask;
+                        hasUnsupportedEffect = state.HasUnsupportedEffect;
+                        fillColorResolved = state.FillColorResolved;
                         renderingIntent = state.RenderingIntent;
                         fillColorSelection = state.FillColorSelection;
                         strokeColorSelection = state.StrokeColorSelection;
                     } else {
                         ctm = Matrix2D.Identity;
-                        fillColor = effectiveInitialFillColor;
-                        fillColorSpace = effectiveInitialFillColorSpace;
-                        strokeColor = effectiveInitialStrokeColor;
-                        strokeColorSpace = effectiveInitialStrokeColorSpace;
-                        fillOpacity = initialFillOpacity;
-                        strokeOpacity = initialStrokeOpacity;
-                        textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
-                        clipPath = initialClipPath;
+                        fillColor = OfficeColor.Black;
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        strokeColor = OfficeColor.Black;
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        fillOpacity = null;
+                        strokeOpacity = null;
+                        textRenderingMode = 0;
+                        clipPath = null;
+                        blendMode = OfficeBlendMode.Normal;
+                        hasSoftMask = false;
+                        hasUnsupportedEffect = initialUnsupportedEffect;
+                        fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                         renderingIntent = initialRenderingIntent;
-                        fillColorSelection = effectiveInitialFillColorSelection;
-                        strokeColorSelection = effectiveInitialStrokeColorSelection;
+                        fillColorSelection = initialFillColorSelection;
+                        strokeColorSelection = initialStrokeColorSelection;
                     }
                     args.Clear();
                     break;
@@ -535,80 +556,81 @@ internal static class TextContentParser {
 
                     args.Clear();
                     break;
-                case "ri":
-                    if (args.Count >= 1) {
-                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[args.Count - 1])));
-                    }
-
-                    args.Clear();
-                    break;
                 case "cs":
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
-                        fillColorSpace = parsedColorSpace;
                         fillColorSelection = null;
+                        fillColorSpace = parsedColorSpace;
+                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();
                     break;
                 case "CS":
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
-                        strokeColorSpace = parsedStrokeColorSpace;
                         strokeColorSelection = null;
+                        strokeColorSpace = parsedStrokeColorSpace;
                     }
 
                     args.Clear();
                     break;
                 case "rg":
-                    if (args.Count >= 3) {
-                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceRgb);
+                    if (args.Count >= 3 && TryApplyFillColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbFill)) {
+                        fillColor = rgbFill;
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
                     break;
                 case "RG":
-                    if (args.Count >= 3) {
-                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceRgb);
+                    if (args.Count >= 3 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbStroke)) {
+                        strokeColor = rgbStroke;
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceRgb;
                     }
 
                     args.Clear();
                     break;
                 case "g":
-                    if (args.Count >= 1) {
-                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceGray);
+                    if (args.Count >= 1 && TryApplyFillColor(PdfPageColorSpaceKind.DeviceGray, out OfficeColor grayFill)) {
+                        fillColor = grayFill;
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
                     break;
                 case "G":
-                    if (args.Count >= 1) {
-                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceGray);
+                    if (args.Count >= 1 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceGray, out OfficeColor grayStroke)) {
+                        strokeColor = grayStroke;
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
                     }
 
                     args.Clear();
                     break;
                 case "k":
-                    if (args.Count >= 4) {
-                        SetDirectFillColor(PdfPageColorSpaceKind.DeviceCmyk);
+                    if (args.Count >= 4 && TryApplyFillColor(PdfPageColorSpaceKind.DeviceCmyk, out OfficeColor cmykFill)) {
+                        fillColor = cmykFill;
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
                     break;
                 case "K":
-                    if (args.Count >= 4) {
-                        SetDirectStrokeColor(PdfPageColorSpaceKind.DeviceCmyk);
+                    if (args.Count >= 4 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceCmyk, out OfficeColor cmykStroke)) {
+                        strokeColor = cmykStroke;
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
                     }
 
                     args.Clear();
                     break;
                 case "sc":
                 case "scn":
-                    if (PdfPaintColorSelection.TryCreate(
-                            args,
-                            fillColorSpace,
-                            renderingIntent,
-                            out fillColorSelection,
-                            out OfficeColor parsedFillColor,
-                            outputIntentColorTransform)) {
+                    fillColorResolved = TryApplyFillColor(fillColorSpace, out OfficeColor parsedFillColor);
+                    if (fillColorResolved) {
                         fillColor = parsedFillColor;
                     }
 
@@ -616,16 +638,14 @@ internal static class TextContentParser {
                     break;
                 case "SC":
                 case "SCN":
-                    if (PdfPaintColorSelection.TryCreate(
-                            args,
-                            strokeColorSpace,
-                            renderingIntent,
-                            out strokeColorSelection,
-                            out OfficeColor parsedStrokeColor,
-                            outputIntentColorTransform)) {
+                    if (TryApplyStrokeColor(strokeColorSpace, out OfficeColor parsedStrokeColor)) {
                         strokeColor = parsedStrokeColor;
                     }
 
+                    args.Clear();
+                    break;
+                case "ri":
+                    if (args.Count == 1) ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[0])));
                     args.Clear();
                     break;
                 case "BI":
@@ -667,10 +687,8 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        },
-        inlineImageComponentCount: name => ResolveInlineImageComponentCount(colorSpaces, name),
-        maxNestingDepth: maxNestingDepth,
-        maxOperands: maxOperands);
+        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
+        ApplyPendingTextClippingPath();
         return spans;
 
         // Helpers
@@ -1080,18 +1098,27 @@ internal static class TextContentParser {
             if (graphicsStates != null && graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
                 fillOpacity = resource.FillOpacity ?? fillOpacity;
                 strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
-                if (resource.RenderingIntent.HasValue) {
-                    ApplyRenderingIntent(resource.RenderingIntent.Value);
+                blendMode = resource.BlendMode ?? blendMode;
+                if (resource.SoftMaskEnabled.HasValue) {
+                    hasSoftMask = resource.SoftMaskEnabled == true && resource.SoftMask != null;
                 }
+                hasUnsupportedEffect = hasUnsupportedEffect ||
+                    resource.HasUnsupportedBlendMode ||
+                    resource.HasUnsupportedSoftMask ||
+                    resource.HasUnsupportedTextRestampEffect;
+                if (resource.RenderingIntent.HasValue) ApplyRenderingIntent(resource.RenderingIntent.Value);
             }
         }
         void ApplyRenderingIntent(OfficeIccRenderingIntent intent) {
             renderingIntent = intent;
-            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor convertedFill)) {
-                fillColor = convertedFill;
+            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor selectedFill)) {
+                fillColor = selectedFill;
+                fillColorSpace = fillColorSelection.ColorSpace;
+                fillColorResolved = true;
             }
-            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor convertedStroke)) {
-                strokeColor = convertedStroke;
+            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor selectedStroke)) {
+                strokeColor = selectedStroke;
+                strokeColorSpace = strokeColorSelection.ColorSpace;
             }
         }
         OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
@@ -1102,35 +1129,10 @@ internal static class TextContentParser {
 
             return OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * Clamp01(opacity.Value)));
         }
-        void SetDirectFillColor(PdfPageColorSpace colorSpace) {
-            fillColorSelection = null;
-            if (PdfPaintColorSelection.TryCreate(
-                    args,
-                    colorSpace,
-                    renderingIntent,
-                    out PdfPaintColorSelection? selection,
-                    out OfficeColor color,
-                    outputIntentColorTransform)) {
-                fillColorSelection = selection;
-                fillColor = color;
-                fillColorSpace = colorSpace;
-            }
-        }
-        void SetDirectStrokeColor(PdfPageColorSpace colorSpace) {
-            strokeColorSelection = null;
-            if (PdfPaintColorSelection.TryCreate(
-                    args,
-                    colorSpace,
-                    renderingIntent,
-                    out PdfPaintColorSelection? selection,
-                    out OfficeColor color,
-                    outputIntentColorTransform)) {
-                strokeColorSelection = selection;
-                strokeColor = color;
-                strokeColorSpace = colorSpace;
-            }
-        }
-        static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+        bool TryApplyFillColor(PdfPageColorSpace colorSpace, out OfficeColor color) =>
+            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out fillColorSelection, out color, outputIntentColorTransform);
+        bool TryApplyStrokeColor(PdfPageColorSpace colorSpace, out OfficeColor color) =>
+            PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out strokeColorSelection, out color, outputIntentColorTransform);
         bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":
@@ -1163,6 +1165,7 @@ internal static class TextContentParser {
                     return false;
             }
         }
+        static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
         static int ReadTextRenderingMode(double value) {
             int mode = (int)Math.Round(value);
             return mode < 0 || mode > 7 ? 0 : mode;
@@ -1235,13 +1238,6 @@ internal static class TextContentParser {
     private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
         string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
 
-    private static int ResolveInlineImageComponentCount(
-        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
-        string colorSpaceName) =>
-        colorSpaces != null && colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)
-            ? colorSpace.ComponentCount
-            : 1;
-
     public static List<FormInvocation> ExtractFormInvocations(
         string content,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
@@ -1264,11 +1260,12 @@ internal static class TextContentParser {
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        PdfTextClippingBudget? textClippingBudget = null,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
-        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        System.Func<string, int>? inlineImageComponentCount = null) {
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
+        textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1279,37 +1276,17 @@ internal static class TextContentParser {
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
+        bool hasUnsupportedEffect = initialUnsupportedEffect;
+        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         OfficeIccRenderingIntent renderingIntent = initialRenderingIntent;
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
-        if (!initialFillColor.HasValue &&
-            fillColorSelection == null &&
-            outputIntentColorTransform != null &&
-            PdfPaintColorSelection.TryCreateDefaultBlack(
-                initialRenderingIntent,
-                outputIntentColorTransform,
-                out fillColorSelection,
-                out OfficeColor defaultFillColor)) {
-            fillColor = defaultFillColor;
-            fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
-        }
-        if (!initialStrokeColor.HasValue &&
-            strokeColorSelection == null &&
-            outputIntentColorTransform != null &&
-            PdfPaintColorSelection.TryCreateDefaultBlack(
-                initialRenderingIntent,
-                outputIntentColorTransform,
-                out strokeColorSelection,
-                out OfficeColor defaultStrokeColor)) {
-            strokeColor = defaultStrokeColor;
-            strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
-        }
+        if (fillColorSelection != null && fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor)) fillColor = selectedFillColor;
+        if (strokeColorSelection != null && strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor)) strokeColor = selectedStrokeColor;
         OfficeColor effectiveInitialFillColor = fillColor;
         PdfPageColorSpace effectiveInitialFillColorSpace = fillColorSpace;
         OfficeColor effectiveInitialStrokeColor = strokeColor;
         PdfPageColorSpace effectiveInitialStrokeColorSpace = strokeColorSpace;
-        PdfPaintColorSelection? effectiveInitialFillColorSelection = fillColorSelection;
-        PdfPaintColorSelection? effectiveInitialStrokeColorSelection = strokeColorSelection;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         var gstack = new Stack<TextGraphicsState>();
         var hiddenContentStack = new Stack<bool>();
@@ -1324,7 +1301,7 @@ internal static class TextContentParser {
             if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             switch (op) {
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, renderingIntent, fillColorSelection, strokeColorSelection));
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection));
                     args.Clear();
                     break;
                 case "Q":
@@ -1339,6 +1316,8 @@ internal static class TextContentParser {
                         strokeOpacity = state.StrokeOpacity;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
+                        hasUnsupportedEffect = state.HasUnsupportedEffect;
+                        fillColorResolved = state.FillColorResolved;
                         renderingIntent = state.RenderingIntent;
                         fillColorSelection = state.FillColorSelection;
                         strokeColorSelection = state.StrokeColorSelection;
@@ -1352,9 +1331,11 @@ internal static class TextContentParser {
                         strokeOpacity = initialStrokeOpacity;
                         textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
                         clipPath = initialClipPath;
+                        hasUnsupportedEffect = initialUnsupportedEffect;
+                        fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                         renderingIntent = initialRenderingIntent;
-                        fillColorSelection = effectiveInitialFillColorSelection;
-                        strokeColorSelection = effectiveInitialStrokeColorSelection;
+                        fillColorSelection = initialFillColorSelection;
+                        strokeColorSelection = initialStrokeColorSelection;
                     }
 
                     args.Clear();
@@ -1476,16 +1457,17 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "ri":
-                    if (args.Count >= 1) {
-                        ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[args.Count - 1])));
-                    }
-
+                    if (args.Count >= 1) ApplyRenderingIntent(PdfRenderingIntentResolver.FromName(ToName(args[args.Count - 1])));
                     args.Clear();
                     break;
                 case "cs":
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
+                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                         fillColorSelection = null;
+                    } else {
+                        fillColorSpace = PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = false;
                     }
 
                     args.Clear();
@@ -1501,6 +1483,7 @@ internal static class TextContentParser {
                 case "rg":
                     if (args.Count >= 3) {
                         SetDirectFillColor(PdfPageColorSpaceKind.DeviceRgb);
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1515,6 +1498,7 @@ internal static class TextContentParser {
                 case "g":
                     if (args.Count >= 1) {
                         SetDirectFillColor(PdfPageColorSpaceKind.DeviceGray);
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1529,6 +1513,7 @@ internal static class TextContentParser {
                 case "k":
                     if (args.Count >= 4) {
                         SetDirectFillColor(PdfPageColorSpaceKind.DeviceCmyk);
+                        fillColorResolved = true;
                     }
 
                     args.Clear();
@@ -1542,29 +1527,14 @@ internal static class TextContentParser {
                     break;
                 case "sc":
                 case "scn":
-                    if (PdfPaintColorSelection.TryCreate(
-                            args,
-                            fillColorSpace,
-                            renderingIntent,
-                            out fillColorSelection,
-                            out OfficeColor parsedFillColor,
-                            outputIntentColorTransform)) {
-                        fillColor = parsedFillColor;
-                    }
+                    fillColorResolved = PdfPaintColorSelection.TryCreate(args, fillColorSpace, renderingIntent, out fillColorSelection, out OfficeColor parsedFillColor, outputIntentColorTransform);
+                    if (fillColorResolved) fillColor = parsedFillColor;
 
                     args.Clear();
                     break;
                 case "SC":
                 case "SCN":
-                    if (PdfPaintColorSelection.TryCreate(
-                            args,
-                            strokeColorSpace,
-                            renderingIntent,
-                            out strokeColorSelection,
-                            out OfficeColor parsedStrokeColor,
-                            outputIntentColorTransform)) {
-                        strokeColor = parsedStrokeColor;
-                    }
+                    if (PdfPaintColorSelection.TryCreate(args, strokeColorSpace, renderingIntent, out strokeColorSelection, out OfficeColor parsedStrokeColor, outputIntentColorTransform)) strokeColor = parsedStrokeColor;
 
                     args.Clear();
                     break;
@@ -1579,7 +1549,24 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, renderingIntent, fillColorSelection, strokeColorSelection));
+                            invocations.Add(new FormInvocation(
+                                name,
+                                ctm,
+                                paintOrder,
+                                fillColor,
+                                fillColorSpace,
+                                strokeColor,
+                                strokeColorSpace,
+                                fillOpacity,
+                                strokeOpacity,
+                                textRenderingMode,
+                                clipPath,
+                                operation.OperatorOffset,
+                                hasUnsupportedEffect || HasUnsupportedRestampContent(),
+                                fillColorResolved,
+                                renderingIntent,
+                                fillColorSelection,
+                                strokeColorSelection));
                         }
                     }
                     args.Clear();
@@ -1613,10 +1600,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        },
-        inlineImageComponentCount: inlineImageComponentCount ?? (name => ResolveInlineImageComponentCount(colorSpaces, name)),
-        maxNestingDepth: maxNestingDepth,
-        maxOperands: maxOperands);
+        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands);
 
         return invocations;
 
@@ -1663,30 +1647,24 @@ internal static class TextContentParser {
 
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
-            if (resource.RenderingIntent.HasValue) {
-                ApplyRenderingIntent(resource.RenderingIntent.Value);
-            }
+            hasUnsupportedEffect = hasUnsupportedEffect ||
+                resource.HasUnsupportedBlendMode ||
+                resource.HasUnsupportedSoftMask ||
+                resource.HasUnsupportedTextRestampEffect ||
+                resource.BlendMode is OfficeBlendMode mode && mode != OfficeBlendMode.Normal ||
+                resource.SoftMask != null;
+            if (resource.RenderingIntent.HasValue) ApplyRenderingIntent(resource.RenderingIntent.Value);
         }
 
         void ApplyRenderingIntent(OfficeIccRenderingIntent intent) {
             renderingIntent = intent;
-            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor convertedFill)) {
-                fillColor = convertedFill;
-            }
-            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor convertedStroke)) {
-                strokeColor = convertedStroke;
-            }
+            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor convertedFill)) fillColor = convertedFill;
+            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor convertedStroke)) strokeColor = convertedStroke;
         }
 
         void SetDirectFillColor(PdfPageColorSpace colorSpace) {
             fillColorSelection = null;
-            if (PdfPaintColorSelection.TryCreate(
-                    args,
-                    colorSpace,
-                    renderingIntent,
-                    out PdfPaintColorSelection? selection,
-                    out OfficeColor color,
-                    outputIntentColorTransform)) {
+            if (PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out PdfPaintColorSelection? selection, out OfficeColor color, outputIntentColorTransform)) {
                 fillColorSelection = selection;
                 fillColor = color;
                 fillColorSpace = colorSpace;
@@ -1695,13 +1673,7 @@ internal static class TextContentParser {
 
         void SetDirectStrokeColor(PdfPageColorSpace colorSpace) {
             strokeColorSelection = null;
-            if (PdfPaintColorSelection.TryCreate(
-                    args,
-                    colorSpace,
-                    renderingIntent,
-                    out PdfPaintColorSelection? selection,
-                    out OfficeColor color,
-                    outputIntentColorTransform)) {
+            if (PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out PdfPaintColorSelection? selection, out OfficeColor color, outputIntentColorTransform)) {
                 strokeColorSelection = selection;
                 strokeColor = color;
                 strokeColorSpace = colorSpace;

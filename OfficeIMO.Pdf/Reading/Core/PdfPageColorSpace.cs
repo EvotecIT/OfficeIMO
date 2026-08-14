@@ -36,6 +36,8 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    public bool HasPatternBaseColorSpace => Kind == PdfPageColorSpaceKind.Pattern && _custom?.Alternate != null;
+
     internal bool RequiresColorManagedGradientSampling =>
         _custom is not null ||
         _calRgb is not null ||

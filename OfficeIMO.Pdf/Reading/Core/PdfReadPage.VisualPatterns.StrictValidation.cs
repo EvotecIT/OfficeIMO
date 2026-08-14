@@ -62,6 +62,9 @@ public sealed partial class PdfReadPage {
                     case "G": case "g": case "RG": case "rg": case "K": case "k":
                         if (rejectColorOperators) malformed = true;
                         break;
+                    case "ri":
+                        malformed = true;
+                        break;
                     case "Do":
                         if (operation.HasInvalidOperands || operation.Operands.Count != 1 || operation.Operands[0] is not string xObjectName) {
                             malformed = true;

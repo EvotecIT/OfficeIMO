@@ -12,8 +12,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         double paintOrderOffset = 0D,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
-        Func<string, int>? inlineImageComponentCount = null) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
@@ -72,14 +71,11 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                             ? null
                             : operation.Operands[operation.Operands.Count - 1] as string;
                         if (renderingIntentName is not null) {
-                            ApplyState(
-                                state.WithRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName)),
-                                paintOrder);
+                            ApplyState(state.WithRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName)), paintOrder, contentOrderKey);
                         }
                         break;
                 }
             },
-            inlineImageComponentCount: inlineImageComponentCount,
             maxNestingDepth: maxNestingDepth,
             maxOperands: maxOperands);
         return transitions.Count == 0
@@ -110,5 +106,9 @@ internal static class PdfPageGraphicsEffectTimelineParser {
     private static bool SameEffect(PdfPageDrawingEffect left, PdfPageDrawingEffect right) =>
         left.BlendMode == right.BlendMode &&
         ReferenceEquals(left.SoftMask, right.SoftMask) &&
-        left.RenderingIntent == right.RenderingIntent;
+        left.HasBlendMode == right.HasBlendMode &&
+        left.HasSoftMask == right.HasSoftMask &&
+        Nullable.Equals(left.SoftMaskTransform, right.SoftMaskTransform) &&
+        left.RenderingIntent == right.RenderingIntent &&
+        left.HasRenderingIntent == right.HasRenderingIntent;
 }

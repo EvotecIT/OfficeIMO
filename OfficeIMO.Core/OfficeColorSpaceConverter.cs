@@ -52,20 +52,35 @@ public static class OfficeColorSpaceConverter {
 
     /// <summary>Converts CIE L*a*b* using an explicit XYZ reference white to sRGB.</summary>
     public static OfficeColor FromLab(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ) {
-        ConvertLabToXyz(lightness, a, b, whiteX, whiteY, whiteZ, out double x, out double y, out double z);
-        return FromXyz(x, y, z, whiteX, whiteY, whiteZ);
+        return FromLabCore(lightness, a, b, whiteX, whiteY, whiteZ, clampAxes: true);
     }
 
-    internal static void ConvertLabToXyz(
-        double lightness,
-        double a,
-        double b,
-        double whiteX,
-        double whiteY,
-        double whiteZ,
-        out double x,
-        out double y,
-        out double z) {
+    private static OfficeColor FromLabCore(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, bool clampAxes) {
+        ToLinearSrgbFromLabCore(lightness, a, b, whiteX, whiteY, whiteZ, clampAxes, out double red, out double green, out double blue);
+        return FromLinearSrgb(red, green, blue);
+    }
+
+    private static void ToLinearSrgbFromLabCore(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, bool clampAxes, out double red, out double green, out double blue) {
+        ValidateWhitePoint(whiteX, whiteY, whiteZ);
+        double l = Clamp(lightness, 0D, 100D);
+        double fy = (l + 16D) / 116D;
+        double resolvedA = clampAxes ? Clamp(a, -128D, 127D) : a;
+        double resolvedB = clampAxes ? Clamp(b, -128D, 127D) : b;
+        double fx = fy + (resolvedA / 500D);
+        double fz = fy - (resolvedB / 200D);
+        ToLinearSrgbFromXyz(
+            whiteX * InverseLabPivot(fx),
+            whiteY * InverseLabPivot(fy),
+            whiteZ * InverseLabPivot(fz),
+            whiteX,
+            whiteY,
+            whiteZ,
+            out red,
+            out green,
+            out blue);
+    }
+
+    internal static void ConvertLabToXyz(double lightness, double a, double b, double whiteX, double whiteY, double whiteZ, out double x, out double y, out double z) {
         ValidateWhitePoint(whiteX, whiteY, whiteZ);
         double l = Clamp(lightness, 0D, 100D);
         double fy = (l + 16D) / 116D;
@@ -127,16 +142,7 @@ public static class OfficeColorSpaceConverter {
         blue = (0.0556434D * x) - (0.2040259D * y) + (1.0572252D * z);
     }
 
-    internal static void ConvertRgbToXyz(
-        double red,
-        double green,
-        double blue,
-        double targetWhiteX,
-        double targetWhiteY,
-        double targetWhiteZ,
-        out double x,
-        out double y,
-        out double z) {
+    internal static void ConvertRgbToXyz(double red, double green, double blue, double targetWhiteX, double targetWhiteY, double targetWhiteZ, out double x, out double y, out double z) {
         ValidateWhitePoint(targetWhiteX, targetWhiteY, targetWhiteZ);
         double linearRed = FromSrgb(Clamp01(red));
         double linearGreen = FromSrgb(Clamp01(green));
@@ -151,16 +157,7 @@ public static class OfficeColorSpaceConverter {
         AdaptWhitePoint(ref x, ref y, ref z, whiteX, whiteY, whiteZ, D65X, D65Y, D65Z);
     }
 
-    private static void AdaptWhitePoint(
-        ref double x,
-        ref double y,
-        ref double z,
-        double sourceWhiteX,
-        double sourceWhiteY,
-        double sourceWhiteZ,
-        double targetWhiteX,
-        double targetWhiteY,
-        double targetWhiteZ) {
+    private static void AdaptWhitePoint(ref double x, ref double y, ref double z, double sourceWhiteX, double sourceWhiteY, double sourceWhiteZ, double targetWhiteX, double targetWhiteY, double targetWhiteZ) {
         if (NearlyEqual(sourceWhiteX, targetWhiteX) && NearlyEqual(sourceWhiteY, targetWhiteY) && NearlyEqual(sourceWhiteZ, targetWhiteZ)) return;
         double sourceL = (0.8951D * sourceWhiteX) + (0.2664D * sourceWhiteY) - (0.1614D * sourceWhiteZ);
         double sourceM = (-0.7502D * sourceWhiteX) + (1.7135D * sourceWhiteY) + (0.0367D * sourceWhiteZ);
@@ -184,9 +181,7 @@ public static class OfficeColorSpaceConverter {
         double value = linear <= 0.0031308D ? 12.92D * linear : (1.055D * Math.Pow(Math.Max(0D, linear), 1D / 2.4D)) - 0.055D;
         return ToByte(value);
     }
-    private static double FromSrgb(double value) => value <= 0.04045D
-        ? value / 12.92D
-        : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
+    private static double FromSrgb(double value) => value <= 0.04045D ? value / 12.92D : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
     private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
     private static double Component(IReadOnlyList<double>? values, int index, double fallback) => values != null && index < values.Count ? values[index] : fallback;
     private static double Clamp01(double value) => Clamp(value, 0D, 1D);

@@ -117,7 +117,8 @@ public sealed partial class PdfReadPage {
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
-        var softMasks = new Dictionary<(PdfPageSoftMaskResource Resource, OfficeIccRenderingIntent RenderingIntent), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
+        var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < pageElements.Count; i++) {
             PdfPageDrawingElement element = pageElements[i].WithEffect(
                 pageElements[i].Effect.OverlayOn(ResolveDrawingEffect(
@@ -224,7 +225,8 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         PdfPageDrawingElement element,
-        Dictionary<(PdfPageSoftMaskResource Resource, OfficeIccRenderingIntent RenderingIntent), OfficeDrawingSoftMask> softMasks,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask> softMasks,
+        HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
@@ -257,6 +259,7 @@ public sealed partial class PdfReadPage {
                         Matrix2D.Multiply(parentDrawingFlip, softMaskTransform)));
                 groupSoftMask = GetOrCreateSoftMask(
                     element.Effect.SoftMask,
+                    element.Effect.RenderingIntent,
                     element.GroupDrawing.Width,
                     element.GroupDrawing.Height,
                     localSoftMaskTransform,
@@ -286,10 +289,14 @@ public sealed partial class PdfReadPage {
                 element.Effect.RenderingIntent,
                 drawing.Width,
                 drawing.Height,
-                pageTransform,
+                element.Effect.SoftMaskTransform ?? pageTransform,
                 softMasks,
+                activeSoftMasks,
                 textOutputBudget,
-                pageContentBudget);
+                pageContentBudget,
+                type3GlyphBudget,
+                invocationTextClippingBudget,
+                patternTextClippingBudget);
         drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
     }
 
@@ -541,8 +548,10 @@ public sealed partial class PdfReadPage {
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
-        var tilingPatternResourceCache =
-            new Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent), Lazy<PdfPageTilingPatternResource?>>();
+        var activeType3Glyphs = new HashSet<PdfStream>();
+        renderedType3PaintOrders ??= new RenderedType3TextTracker();
+        type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        var tilingPatternResourceCache = new TilingPatternResourceCache();
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(
@@ -599,21 +608,119 @@ public sealed partial class PdfReadPage {
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
-        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
-        PdfPaintColorSelection? initialFillColorSelection = null,
-        PdfPaintColorSelection? initialStrokeColorSelection = null,
         int contentNestingDepth = 0,
         bool includeTilingPatterns = true,
         bool retainPrimitiveData = true,
-        Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent), Lazy<PdfPageTilingPatternResource?>>? tilingPatternResourceCache = null,
+        bool requireSupportedType3Content = false,
+        bool allowSupportedType3Patterns = false,
+        bool allowSupportedType3TransparencyGroups = false,
+        bool requireNestedType3Uncolored = false,
+        Action<string>? unrenderedPatternVisitor = null,
+        Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
+        Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        Action<PdfPageGraphicsStateResource, Matrix2D, OfficeColor, OfficeColor, bool, bool, int>? graphicsStateVisitor = null,
+        TilingPatternResourceCache? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PdfTextClippingBudget? invocationTextClippingBudget = null,
         PdfTextClippingBudget? patternTextClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
-        PdfContentOrderKey? contentOrderPrefix = null) {
+        PdfContentOrderKey? contentOrderPrefix = null,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? initialFillColorSelection = null,
+        PdfPaintColorSelection? initialStrokeColorSelection = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        invocationTextClippingBudget ??= new PdfTextClippingBudget();
+        patternTextClippingBudget ??= new PdfTextClippingBudget();
+        activeType3Glyphs ??= new HashSet<PdfStream>();
+        renderedType3PaintOrders ??= new RenderedType3TextTracker();
+        type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        Dictionary<string, Func<byte[], double>> widthProviders = resources == null
+            ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
+            : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
+        Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces);
+        var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
+        var invokedPatternIntents = new HashSet<(string Name, OfficeIccRenderingIntent Intent)>();
+        var type3PaintChannelCache = new Type3PaintChannelCache();
+        var activeType3PaintChannelStreams = new HashSet<PdfStream>();
+        if (includeTilingPatterns) {
+            _ = PdfPageXObjectInvocationParser.Parse(
+                content,
+                baseTransform,
+                pageHeight,
+                GetGraphicsStateResources(resources),
+                colorSpaceResources,
+                GetOptionalContentVisibility(resources),
+                paintOrderBase: paintOrderBase,
+                paintOrderScale: paintOrderScale,
+                paintOrderOffset: paintOrderOffset,
+                initialClipPath: initialClipPath,
+                initialFillColor: initialFillColor,
+                initialFillColorSpace: initialFillColorSpace,
+                initialFillOpacity: initialFillOpacity,
+                initialStrokeColor: initialStrokeColor,
+                initialStrokeColorSpace: initialStrokeColorSpace,
+                initialStrokeOpacity: initialStrokeOpacity,
+                initialStrokeWidth: initialStrokeWidth,
+                initialStrokeDashStyle: initialStrokeDashStyle,
+                initialStrokeLineCap: initialStrokeLineCap,
+                initialStrokeLineJoin: initialStrokeLineJoin,
+                maxOperations: _limits.MaxContentOperations,
+                maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxOperands: _limits.MaxContentOperands,
+                fonts: fonts,
+                fontWidthProviders: widthProviders,
+                patternInvocationVisitor: name => invokedPatternNames.Add(name),
+                patternInvocationWithIntentVisitor: (name, intent) => invokedPatternIntents.Add((name, intent)),
+                patternBaseColorSpaces: patternBaseColorSpaces,
+                initialFillPattern: initialFillPattern,
+                initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
+                initialStrokePattern: initialStrokePattern,
+                initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                    glyph,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams,
+                    pageContentBudget,
+                    type3GlyphBudget),
+                xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
+                    resources,
+                    name,
+                    paintState,
+                    pageWidth,
+                    pageHeight,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams,
+                    pageContentBudget,
+                    type3GlyphBudget),
+                pageWidth: pageWidth,
+                textClippingBudget: patternTextClippingBudget,
+                initialRenderingIntent: initialRenderingIntent,
+                initialFillColorSelection: initialFillColorSelection,
+                initialStrokeColorSelection: initialStrokeColorSelection,
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform);
+        }
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(resources, invokedResources.Patterns);
+        Dictionary<string, PdfPageShadingResource> shadingResources = GetShadingResources(resources, invokedResources.Shadings);
+        Dictionary<string, PdfPageTilingPatternResource>? tilingPatternResources = includeTilingPatterns
+            ? GetTilingPatternResources(
+                resources,
+                invokedPatternNames,
+                tilingPatternResourceCache,
+                textOutputBudget,
+                pageContentBudget,
+                type3GlyphBudget,
+                requireSupportedType3Content,
+                contentNestingDepth,
+                allowNestedPatternContent: allowSupportedType3Patterns,
+                invocationTextClippingBudget: invocationTextClippingBudget,
+                patternTextClippingBudget: patternTextClippingBudget,
+                invokedPatternIntents: invokedPatternIntents)
+            : null;
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
             ? primitiveVisitor
@@ -623,12 +730,10 @@ public sealed partial class PdfReadPage {
             pageWidth,
             pageHeight,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources, invokedResources.ColorSpaces),
-            GetShadingResources(resources, invokedResources.Shadings),
-            GetShadingPatternResources(resources, invokedResources.Patterns),
-            includeTilingPatterns
-                ? GetTilingPatternResources(resources, invokedResources.Patterns, tilingPatternResourceCache, textOutputBudget, pageContentBudget)
-                : null,
+            colorSpaceResources,
+            shadingResources,
+            shadingPatternResources,
+            tilingPatternResources,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -645,11 +750,34 @@ public sealed partial class PdfReadPage {
             initialStrokeLineCap,
             initialStrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
-            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces),
+            patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
-            primitiveVisitor: primitiveVisitor,
+            primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
+            scaleStrokeWidthWithTransform: requireSupportedType3Content,
+            unsupportedShadingTransformVisitor: requireSupportedType3Content
+                ? type3GlyphBudget.RecordFailure
+                : null,
+            requireExactType3ShadingProjection: requireSupportedType3Content,
+            authoredShadingInvocationVisitor: requireSupportedType3Content
+                ? name => {
+                    if (requireNestedType3Uncolored ||
+                        !shadingResources.TryGetValue(name, out PdfPageShadingResource shading) ||
+                        !shading.SupportsExactType3Projection) {
+                        type3GlyphBudget.RecordFailure();
+                    }
+                }
+                : null,
+            unrenderedShadingVisitor: requireSupportedType3Content
+                ? _ => type3GlyphBudget.RecordFailure()
+                : null,
+            unsupportedOperatorVisitor: requireSupportedType3Content
+                ? _ => type3GlyphBudget.RecordFailure()
+                : null,
+            initialFillPattern: initialFillPattern,
+            initialStrokePattern: initialStrokePattern,
+            textClippingBudget: invocationTextClippingBudget,
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
@@ -660,7 +788,7 @@ public sealed partial class PdfReadPage {
                      baseTransform,
                      pageHeight,
                      GetGraphicsStateResources(resources),
-                     GetColorSpaceResources(resources, invokedResources.ColorSpaces),
+                     colorSpaceResources,
                       GetOptionalContentVisibility(resources),
                       paintOrderBase: paintOrderBase,
                       paintOrderScale: paintOrderScale,
@@ -676,13 +804,127 @@ public sealed partial class PdfReadPage {
                       initialStrokeDashStyle: initialStrokeDashStyle,
                       initialStrokeLineCap: initialStrokeLineCap,
                       initialStrokeLineJoin: initialStrokeLineJoin,
-                      maxOperations: _limits.MaxContentOperations,
-                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                      maxOperands: _limits.MaxContentOperands,
                       initialRenderingIntent: initialRenderingIntent,
                       initialFillColorSelection: initialFillColorSelection,
                       initialStrokeColorSelection: initialStrokeColorSelection,
-                      outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
+                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                      maxOperations: _limits.MaxContentOperations,
+                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                      maxOperands: _limits.MaxContentOperands,
+                      fonts: fonts,
+                      fontWidthProviders: widthProviders,
+                      type3TextVisitor: invocation => {
+                          if (requireNestedType3Uncolored) {
+                              for (int glyphIndex = 0; glyphIndex < invocation.Glyphs.Count; glyphIndex++) {
+                                  if (invocation.Glyphs[glyphIndex].Font.Type3 is not PdfType3FontResource nestedType3 ||
+                                      !nestedType3.IsUncolored) {
+                                      type3GlyphBudget.RecordFailure();
+                                      return false;
+                                  }
+                              }
+                          }
+                          int glyphContentNestingDepth = activeType3Glyphs.Count == 0
+                              ? contentNestingDepth + 1
+                              : contentNestingDepth;
+                          bool rendered = RenderType3TextInvocation(
+                              invocation,
+                              pageWidth,
+                              pageHeight,
+                              primitiveVisitor,
+                              activeForms,
+                              activeType3Glyphs,
+                              type3GlyphBudget,
+                              paintOrderScale,
+                              includeTilingPatterns,
+                              retainPrimitiveData,
+                              tilingPatternResourceCache,
+                              textOutputBudget,
+                              invocationTextClippingBudget,
+                              patternTextClippingBudget,
+                              pageContentBudget,
+                              glyphContentNestingDepth,
+                              type3ImageVisitor,
+                              type3PrimitiveVisitor,
+                              type3GroupVisitor,
+                              contentOrderPrefix?.Append(invocation.SourceOperatorIndex));
+                          if (!rendered) type3GlyphBudget.RecordFailure();
+                          return rendered;
+                      },
+                      renderedType3PaintOrders: renderedType3PaintOrders,
+                      type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
+                      unsupportedTextVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedGraphicsEffectVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      unsupportedColorVisitor: requireSupportedType3Content ? type3GlyphBudget.RecordFailure : null,
+                      patternInvocationVisitor: requireSupportedType3Content || unrenderedPatternVisitor != null
+                          ? name => {
+                              unrenderedPatternVisitor?.Invoke(name);
+                              if ((initialFillPattern.HasValue && string.Equals(initialFillPattern.Value.Name, name, StringComparison.Ordinal)) ||
+                                  (initialStrokePattern.HasValue && string.Equals(initialStrokePattern.Value.Name, name, StringComparison.Ordinal))) {
+                                  return;
+                              }
+                              if (!allowSupportedType3Patterns ||
+                                  !(shadingPatternResources.ContainsKey(name) || tilingPatternResources?.ContainsKey(name) == true)) {
+                                  if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
+                              }
+                          }
+                          : null,
+                      authoredPatternInvocationVisitor: requireNestedType3Uncolored
+                          ? _ => type3GlyphBudget.RecordFailure()
+                          : null,
+                      graphicsStateVisitor: graphicsStateVisitor == null
+                          ? null
+                          : (state, stateTransform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                              graphicsStateVisitor(
+                                  state,
+                                  stateTransform,
+                                  fillColor,
+                                  strokeColor,
+                                  hasFillPattern,
+                                  hasStrokePattern,
+                                  contentNestingDepth),
+                      allowSupportedGraphicsEffects: requireSupportedType3Content,
+                      patternBaseColorSpaces: patternBaseColorSpaces,
+                      initialFillPattern: initialFillPattern,
+                      initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
+                      initialStrokePattern: initialStrokePattern,
+                      initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
+                      tilingPatterns: tilingPatternResources,
+                      shadingPatterns: shadingPatternResources,
+                      type3PaintChannelResolver: glyph => ResolveType3PaintChannels(
+                          glyph,
+                          type3PaintChannelCache,
+                          activeType3PaintChannelStreams,
+                          pageContentBudget,
+                          type3GlyphBudget),
+                      xObjectPaintChannelResolver: (name, paintState) => ResolveXObjectPaintChannels(
+                          resources,
+                          name,
+                          paintState,
+                          pageWidth,
+                          pageHeight,
+                          type3PaintChannelCache,
+                          activeType3PaintChannelStreams,
+                          pageContentBudget,
+                          type3GlyphBudget),
+                      softMaskVisibilityResolver: (softMask, transform, fillColor, strokeColor, hasFillPattern, hasStrokePattern) =>
+                          LuminositySoftMaskDependsOnInheritedPaint(softMask, fillColor, strokeColor, hasFillPattern, hasStrokePattern, pageContentBudget) ||
+                          !IsSoftMaskEntirelyTransparent(
+                              softMask,
+                              transform,
+                              resources,
+                              pageWidth,
+                              pageHeight,
+                              type3PaintChannelCache,
+                              activeType3PaintChannelStreams,
+                              pageContentBudget,
+                              type3GlyphBudget,
+                              contentNestingDepth + 1),
+                      invalidPatternSelectionVisitor: requireSupportedType3Content
+                          ? type3GlyphBudget.RecordFailure
+                          : null,
+                      pageWidth: pageWidth,
+                      contentOrderPrefix: contentOrderPrefix,
+                      textClippingBudget: invocationTextClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -844,9 +1086,6 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
-                    initialRenderingIntent: invocation.RenderingIntent,
-                    initialFillColorSelection: invocation.FillColorSelection,
-                    initialStrokeColorSelection: invocation.StrokeColorSelection,
                     contentNestingDepth: contentNestingDepth + 1,
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
@@ -864,17 +1103,20 @@ public sealed partial class PdfReadPage {
                     invocationTextClippingBudget: invocationTextClippingBudget,
                     patternTextClippingBudget: patternTextClippingBudget,
                     pageContentBudget: pageContentBudget,
-                    contentOrderPrefix: formOrderPrefix);
+                    contentOrderPrefix: formOrderPrefix,
+                    initialRenderingIntent: invocation.RenderingIntent,
+                    initialFillColorSelection: invocation.FillColorSelection,
+                    initialStrokeColorSelection: invocation.StrokeColorSelection);
             } finally {
                 activeForms.Remove(formStream);
             }
         }
     }
 
-    private Dictionary<string, Lazy<PdfPageShadingResource?>> GetShadingResources(
+    private Dictionary<string, PdfPageShadingResource> GetShadingResources(
         PdfDictionary? resources,
-        HashSet<string> invokedNames) {
-        var result = new Dictionary<string, Lazy<PdfPageShadingResource?>>(StringComparer.Ordinal);
+        HashSet<string>? invokedNames = null) {
+        var result = new Dictionary<string, PdfPageShadingResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
             return result;
@@ -886,24 +1128,22 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in shadings.Items) {
-            if (!invokedNames.Contains(entry.Key)) continue;
+            if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
             foreach (OfficeIccRenderingIntent renderingIntent in PdfRenderingIntentResolver.All) {
-                PdfObject value = entry.Value;
-                result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] =
-                    new Lazy<PdfPageShadingResource?>(() =>
-                        TryReadShading(value, out PdfPageShadingResource shading, renderingIntent)
-                            ? shading
-                            : null);
+                if (TryReadShading(entry.Value, out PdfPageShadingResource shading, renderingIntent)) {
+                    result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = shading;
+                    if (renderingIntent == OfficeIccRenderingIntent.RelativeColorimetric) result[entry.Key] = shading;
+                }
             }
         }
 
         return result;
     }
 
-    private Dictionary<string, Lazy<PdfPageShadingPatternResource?>> GetShadingPatternResources(
+    private Dictionary<string, PdfPageShadingPatternResource> GetShadingPatternResources(
         PdfDictionary? resources,
-        HashSet<string> invokedNames) {
-        var result = new Dictionary<string, Lazy<PdfPageShadingPatternResource?>>(StringComparer.Ordinal);
+        HashSet<string>? invokedNames = null) {
+        var result = new Dictionary<string, PdfPageShadingPatternResource>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("Pattern", out PdfObject? patternObject)) {
             return result;
@@ -915,14 +1155,19 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
-            if (!invokedNames.Contains(entry.Key)) continue;
+            if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
+            bool added = false;
             foreach (OfficeIccRenderingIntent renderingIntent in PdfRenderingIntentResolver.All) {
-                PdfObject value = entry.Value;
-                result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] =
-                    new Lazy<PdfPageShadingPatternResource?>(() =>
-                        TryReadShadingPattern(value, out PdfPageShadingPatternResource pattern, renderingIntent)
-                            ? pattern
-                            : null);
+                if (!TryReadShadingPattern(entry.Value, out PdfPageShadingPatternResource pattern, renderingIntent)) continue;
+                result[PdfRenderingIntentResolver.BuildResourceKey(entry.Key, renderingIntent)] = pattern;
+                if (renderingIntent == OfficeIccRenderingIntent.RelativeColorimetric) result[entry.Key] = pattern;
+                added = true;
+            }
+            if (!added && TryReadInteger(
+                ResolveDictionary(entry.Value)?.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) == true
+                    ? patternTypeObject
+                    : null) == 2) {
+                result[entry.Key] = PdfPageShadingPatternResource.Unsupported;
             }
         }
 
@@ -977,6 +1222,20 @@ public sealed partial class PdfReadPage {
             ReadMatrixNumber(matrix, 5, 0D));
     }
 
+    private bool TryReadStrictPatternMatrix(PdfObject? matrixObject, out Matrix2D matrix) {
+        matrix = Matrix2D.Identity;
+        if (ResolveEffectObject(matrixObject) is PdfNull) return true;
+        PdfArray? values = ResolveArray(matrixObject);
+        if (values == null || values.Items.Count != 6) return false;
+        var components = new double[6];
+        for (int index = 0; index < components.Length; index++) {
+            if (ResolveObject(values.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) return false;
+            components[index] = number.Value;
+        }
+        matrix = new Matrix2D(components[0], components[1], components[2], components[3], components[4], components[5]);
+        return IsUsableTilingPatternMatrix(matrix);
+    }
+
     private bool TryReadShading(
         PdfObject? value,
         out PdfPageShadingResource shading,
@@ -1002,10 +1261,28 @@ public sealed partial class PdfReadPage {
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
             !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
 
-        IReadOnlyList<double> shadingDomain = dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject)
-            ? ReadNumberArray(shadingDomainObject)
-            : new[] { 0D, 1D };
-        if (shadingDomain.Count != 2 || !IsFinite(shadingDomain[0]) || !IsFinite(shadingDomain[1]) || shadingDomain[0] == shadingDomain[1]) return false;
+        bool exactColorInterpolation =
+            colorSpace.Kind is PdfPageColorSpaceKind.DeviceGray or PdfPageColorSpaceKind.DeviceRgb &&
+            !colorSpace.UsesIccApproximation;
+        bool hasShadingBoundingBox = dictionary.Items.TryGetValue("BBox", out PdfObject? shadingBoxObject) &&
+            ResolveObject(shadingBoxObject) is not PdfNull;
+
+        double[] shadingDomain = { 0D, 1D };
+        if (dictionary.Items.TryGetValue("Domain", out PdfObject? shadingDomainObject) &&
+            ResolveObject(shadingDomainObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(shadingDomainObject, 2, out shadingDomain) ||
+             !IsFinite(shadingDomain[0]) || !IsFinite(shadingDomain[1]) ||
+             shadingDomain[0] == shadingDomain[1])) return false;
+
+        bool extendsBothEnds = false;
+        if (dictionary.Items.TryGetValue("Extend", out PdfObject? extendObject) &&
+            ResolveObject(extendObject) is not PdfNull) {
+            PdfArray? extend = ResolveArray(extendObject);
+            if (extend == null || extend.Items.Count != 2 ||
+                ResolveObject(extend.Items[0]) is not PdfBoolean extendStart ||
+                ResolveObject(extend.Items[1]) is not PdfBoolean extendEnd) return false;
+            extendsBothEnds = extendStart.Value && extendEnd.Value;
+        }
 
         PdfObject? functionObject = dictionary.Items.TryGetValue("Function", out PdfObject? authoredFunction) ? authoredFunction : null;
         if (!TryReadShadingStops(functionObject, colorSpace, shadingDomain[0], shadingDomain[1], renderingIntent, out IReadOnlyList<OfficeGradientStop> stops)) {
@@ -1047,6 +1324,111 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
+    private bool TryReadExactFiniteNumberArray(PdfObject? value, int expectedCount, out double[] values) {
+        values = Array.Empty<double>();
+        if (expectedCount <= 0 || ResolveObject(value) is not PdfArray array || array.Items.Count != expectedCount) return false;
+        values = new double[expectedCount];
+        for (int index = 0; index < expectedCount; index++) {
+            if (ResolveObject(array.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) {
+                values = Array.Empty<double>();
+                return false;
+            }
+            values[index] = number.Value;
+        }
+        return true;
+    }
+
+    private bool HasExactType3FunctionComponentRange(PdfObject? functionObject, int componentCount) {
+        PdfObject? resolved = ResolveObject(functionObject);
+        if (resolved is PdfArray functionArray) {
+            if (functionArray.Items.Count != 1) return false;
+            resolved = ResolveObject(functionArray.Items[0]);
+        }
+        if (resolved is not PdfDictionary function) return false;
+
+        int? functionType = TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null);
+        if (functionType == 2) {
+            return TryReadExactType2FunctionComponents(function, componentCount, reversed: false, out _, out _);
+        }
+
+        if (functionType != 3 ||
+            !function.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
+            ResolveArray(functionsObject) is not PdfArray functions ||
+            functions.Items.Count < 2 ||
+            functions.Items.Count > 32) return false;
+        if (!function.Items.TryGetValue("Domain", out PdfObject? stitchedDomainObject) ||
+            !TryReadExactFiniteNumberArray(stitchedDomainObject, 2, out double[] stitchedDomain) ||
+            !IsCanonicalUnitIntervals(stitchedDomain, 1) ||
+            !function.Items.TryGetValue("Bounds", out PdfObject? boundsObject) ||
+            !TryReadExactFiniteNumberArray(boundsObject, functions.Items.Count - 1, out double[] bounds) ||
+            !function.Items.TryGetValue("Encode", out PdfObject? encodeObject) ||
+            !TryReadExactFiniteNumberArray(encodeObject, functions.Items.Count * 2, out double[] encode) ||
+            !HasCanonicalFunctionEncode(encode, functions.Items.Count) ||
+            function.Items.TryGetValue("Range", out PdfObject? stitchedRangeObject) &&
+            ResolveObject(stitchedRangeObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(stitchedRangeObject, componentCount * 2, out double[] stitchedRange) ||
+             !IsCanonicalUnitIntervals(stitchedRange, componentCount))) return false;
+        if (bounds.Any(value => value <= stitchedDomain[0] || value >= stitchedDomain[1])) return false;
+        for (int index = 1; index < bounds.Length; index++) if (bounds[index] <= bounds[index - 1]) return false;
+        double[]? previousEnd = null;
+        for (int index = 0; index < functions.Items.Count; index++) {
+            PdfDictionary? child = ResolveFunctionDictionary(functions.Items[index]);
+            if (child == null ||
+                !TryReadExactType2FunctionComponents(
+                    child,
+                    componentCount,
+                    IsFunctionReversed(encode, index),
+                    out double[] start,
+                    out double[] end) ||
+                previousEnd != null && !previousEnd.SequenceEqual(start)) return false;
+            previousEnd = end;
+        }
+        return true;
+    }
+
+    private bool TryReadExactType2FunctionComponents(
+        PdfDictionary function,
+        int componentCount,
+        bool reversed,
+        out double[] start,
+        out double[] end) {
+        start = Array.Empty<double>();
+        end = Array.Empty<double>();
+        if (TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null) != 2 ||
+            !function.Items.TryGetValue("Domain", out PdfObject? domainObject) ||
+            !TryReadExactFiniteNumberArray(domainObject, 2, out double[] domain) ||
+            !IsCanonicalUnitIntervals(domain, 1) ||
+            !function.Items.TryGetValue("N", out PdfObject? exponentObject) ||
+            ResolveObject(exponentObject) is not PdfNumber { Value: 1D } ||
+            function.Items.TryGetValue("Range", out PdfObject? rangeObject) &&
+            ResolveObject(rangeObject) is not PdfNull &&
+            (!TryReadExactFiniteNumberArray(rangeObject, componentCount * 2, out double[] range) ||
+             !IsCanonicalUnitIntervals(range, componentCount))) return false;
+
+        double[] c0;
+        if (function.Items.TryGetValue("C0", out PdfObject? c0Object) && ResolveObject(c0Object) is not PdfNull) {
+            if (!TryReadExactFiniteNumberArray(c0Object, componentCount, out c0)) return false;
+        } else {
+            c0 = new[] { 0D };
+        }
+        double[] c1;
+        if (function.Items.TryGetValue("C1", out PdfObject? c1Object) && ResolveObject(c1Object) is not PdfNull) {
+            if (!TryReadExactFiniteNumberArray(c1Object, componentCount, out c1)) return false;
+        } else {
+            c1 = new[] { 1D };
+        }
+        if (c0.Length != componentCount || c1.Length != componentCount ||
+            !c0.All(IsByteRepresentableComponent) || !c1.All(IsByteRepresentableComponent)) return false;
+        start = reversed ? c1 : c0;
+        end = reversed ? c0 : c1;
+        return true;
+    }
+
+    private static bool IsUnitComponent(double value) => IsFinite(value) && value >= 0D && value <= 1D;
+
+    private static bool IsByteRepresentableComponent(double value) =>
+        IsUnitComponent(value) && (value * 255D) == Math.Round(value * 255D);
+
     private bool TryReadShadingStops(
         PdfObject? functionObject,
         PdfPageColorSpace colorSpace,
@@ -1065,14 +1447,10 @@ public sealed partial class PdfReadPage {
         var inputs = new SortedSet<double> { domainStart, domainEnd };
         var discontinuities = new HashSet<double>(function.Discontinuities);
         foreach (double functionBoundary in function.Domain) {
-            if (TryGetShadingOffset(functionBoundary, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) {
-                inputs.Add(functionBoundary);
-            }
+            if (TryGetShadingOffset(functionBoundary, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) inputs.Add(functionBoundary);
         }
         foreach (double breakpoint in function.Breakpoints) {
-            if (TryGetShadingOffset(breakpoint, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) {
-                inputs.Add(breakpoint);
-            }
+            if (TryGetShadingOffset(breakpoint, domainStart, domainEnd, out double offset) && offset > 0D && offset < 1D) inputs.Add(breakpoint);
         }
 
         var result = new List<OfficeGradientStop>(inputs.Count * 2);
@@ -1083,38 +1461,60 @@ public sealed partial class PdfReadPage {
             double boundedOffset = Clamp01(offset);
             if (discontinuities.Contains(input)) {
                 if (boundedOffset == 0D) {
-                    if (!TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out OfficeColor endpointColor)) return false;
+                    if (!TryEvaluateStitchingLeftBoundaryColor(functionObject, input, colorSpace, renderingIntent, out OfficeColor endpointColor) &&
+                        !TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out endpointColor)) return false;
                     AddShadingStop(result, boundedOffset, endpointColor);
                 } else {
                     double previousInput = NextRepresentableToward(input, domainStart);
                     if (!TryEvaluateShadingColor(function, previousInput, colorSpace, renderingIntent, out OfficeColor previousColor)) return false;
                     AddShadingStop(result, boundedOffset, previousColor);
                 }
-
-                double followingInput = boundedOffset < 1D
-                    ? NextRepresentableToward(input, domainEnd)
-                    : input;
+                double followingInput = boundedOffset < 1D ? NextRepresentableToward(input, domainEnd) : input;
                 if (!TryEvaluateShadingColor(function, followingInput, colorSpace, renderingIntent, out OfficeColor followingColor)) return false;
                 AddShadingStop(result, boundedOffset, followingColor);
                 continue;
             }
-
             if (!TryEvaluateShadingColor(function, input, colorSpace, renderingIntent, out OfficeColor color)) return false;
             AddShadingStop(result, boundedOffset, color);
         }
 
         if (result.Count < 2) return false;
         if (colorSpace.RequiresColorManagedGradientSampling &&
-            !TryRefineColorManagedShadingStops(
-                function,
-                colorSpace,
-                domainStart,
-                domainEnd,
-                renderingIntent,
-                result,
-                out result)) return false;
+            !TryRefineColorManagedShadingStops(function, colorSpace, domainStart, domainEnd, renderingIntent, result, out result)) return false;
         stops = result.AsReadOnly();
         return true;
+    }
+
+    private bool TryEvaluateStitchingLeftBoundaryColor(
+        PdfObject? functionObject,
+        double input,
+        PdfPageColorSpace colorSpace,
+        OfficeIccRenderingIntent renderingIntent,
+        out OfficeColor color) {
+        color = OfficeColor.Black;
+        PdfDictionary? stitching = ResolveFunctionDictionary(functionObject);
+        if (stitching == null ||
+            TryReadInteger(stitching.Items.TryGetValue("FunctionType", out PdfObject? typeObject) ? typeObject : null) != 3 ||
+            !stitching.Items.TryGetValue("Functions", out PdfObject? functionsObject) ||
+            ResolveArray(functionsObject) is not PdfArray functions ||
+            !stitching.Items.TryGetValue("Bounds", out PdfObject? boundsObject) ||
+            !TryReadExactFiniteNumberArray(boundsObject, functions.Items.Count - 1, out double[] bounds) ||
+            !stitching.Items.TryGetValue("Encode", out PdfObject? encodeObject) ||
+            !TryReadExactFiniteNumberArray(encodeObject, functions.Items.Count * 2, out double[] encode)) return false;
+        int boundaryIndex = Array.IndexOf(bounds, input);
+        if (boundaryIndex < 0 || boundaryIndex >= functions.Items.Count) return false;
+        if (!PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+                functions.Items[boundaryIndex],
+                colorSpace.ComponentCount,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                out PdfColorFunction child)) return false;
+        return TryEvaluateShadingColor(
+            child,
+            encode[(boundaryIndex * 2) + 1],
+            colorSpace,
+            renderingIntent,
+            out color);
     }
 
     private bool TryRefineColorManagedShadingStops(
@@ -1155,7 +1555,6 @@ public sealed partial class PdfReadPage {
                 }
                 return false;
             }
-
             double quarterOffset = startOffset + (endOffset - startOffset) * 0.25D;
             double midpointOffset = startOffset + (endOffset - startOffset) * 0.5D;
             double threeQuarterOffset = startOffset + (endOffset - startOffset) * 0.75D;
@@ -1176,17 +1575,12 @@ public sealed partial class PdfReadPage {
         for (int index = 1; index < source.Count; index++) {
             OfficeGradientStop previous = source[index - 1];
             OfficeGradientStop current = source[index];
-            if (!AppendAdaptive(previous.Offset, previous.Color, current.Offset, current.Color, depth: 0)) return false;
+            if (!AppendAdaptive(previous.Offset, previous.Color, current.Offset, current.Color, 0)) return false;
         }
         return true;
     }
 
-    private bool TryEvaluateShadingColor(
-        PdfColorFunction function,
-        double input,
-        PdfPageColorSpace colorSpace,
-        OfficeIccRenderingIntent renderingIntent,
-        out OfficeColor color) {
+    private bool TryEvaluateShadingColor(PdfColorFunction function, double input, PdfPageColorSpace colorSpace, OfficeIccRenderingIntent renderingIntent, out OfficeColor color) {
         color = OfficeColor.Black;
         double[]? components = function.Evaluate(new[] { input });
         if (components == null || !colorSpace.TryConvertColor(components, renderingIntent, out color)) return false;
@@ -1210,6 +1604,56 @@ public sealed partial class PdfReadPage {
     private static void AddShadingStop(List<OfficeGradientStop> stops, double offset, OfficeColor color) {
         if (stops.Count > 0 && stops[stops.Count - 1].Offset == offset && stops[stops.Count - 1].Color == color) return;
         stops.Add(new OfficeGradientStop(offset, color));
+    }
+
+    private static bool HasValidFunctionIntervals(double[] values, int count) {
+        if (values.Length != count * 2) return false;
+        for (int index = 0; index < count; index++) {
+            double minimum = values[index * 2];
+            double maximum = values[index * 2 + 1];
+            if (!IsFinite(minimum) || !IsFinite(maximum) || maximum <= minimum) return false;
+        }
+        return true;
+    }
+
+    private static bool IsCanonicalUnitIntervals(double[] values, int count) {
+        if (!HasValidFunctionIntervals(values, count)) return false;
+        for (int index = 0; index < count; index++) {
+            if (values[index * 2] != 0D || values[(index * 2) + 1] != 1D) return false;
+        }
+        return true;
+    }
+
+    private static bool HasCanonicalFunctionEncode(double[] values, int count) {
+        if (!HasFiniteFunctionPairs(values, count)) return false;
+        for (int index = 0; index < count; index++) {
+            double first = values[index * 2];
+            double second = values[(index * 2) + 1];
+            bool forward = first == 0D && second == 1D;
+            bool reverse = first == 1D && second == 0D;
+            if (!forward && !reverse) return false;
+        }
+        return true;
+    }
+
+    private static bool HasFiniteFunctionPairs(double[] values, int count) {
+        if (values.Length != count * 2) return false;
+        for (int index = 0; index < values.Length; index++) if (!IsFinite(values[index])) return false;
+        return true;
+    }
+
+    private static bool IsFunctionReversed(double[] encode, int functionIndex) {
+        int offset = functionIndex * 2;
+        return encode.Length > offset + 1 && encode[offset] > encode[offset + 1];
+    }
+
+    private PdfDictionary? ResolveFunctionDictionary(PdfObject? functionObject) {
+        PdfObject? resolved = ResolveObject(functionObject);
+        if (resolved is PdfArray array && array.Items.Count > 0) {
+            resolved = ResolveObject(array.Items[0]);
+        }
+
+        return resolved is PdfDictionary dictionary ? dictionary : null;
     }
 
     private static byte ToColorByte(double value) =>
@@ -1242,31 +1686,90 @@ public sealed partial class PdfReadPage {
             OfficeStrokeDashStyle? strokeDashStyle = ReadStrokeDashStyle(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
-            OfficeIccRenderingIntent? renderingIntent = PdfRenderingIntentResolver.TryRead(state, "RI", _objects, out OfficeIccRenderingIntent parsedRenderingIntent)
-                ? parsedRenderingIntent
-                : (OfficeIccRenderingIntent?)null;
             OfficeBlendMode? blendMode = ReadBlendMode(state);
-            bool hasSoftMask = state.Items.ContainsKey("SMask");
-            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
-            if (fillOpacity.HasValue ||
-                strokeOpacity.HasValue ||
-                strokeWidth.HasValue ||
-                strokeDashStyle.HasValue ||
-                strokeLineCap.HasValue ||
-                strokeLineJoin.HasValue ||
-                renderingIntent.HasValue ||
-                blendMode.HasValue ||
-                hasSoftMask) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, renderingIntent, blendMode, hasSoftMask, softMask);
-            }
+            bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
+            bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
+                ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
+            bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
+                "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask")) ||
+                hasUnsupportedType ||
+                HasInvalidStrictNumber(state, "ca", static value => value >= 0D && value <= 1D) ||
+                HasInvalidStrictNumber(state, "CA", static value => value >= 0D && value <= 1D) ||
+                HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||
+                HasInvalidStrictInteger(state, "LC", 0, 2) ||
+                HasInvalidStrictInteger(state, "LJ", 0, 2) ||
+                !HasExactlyRepresentableStrokeDash(state);
+            bool? softMaskEnabled = ReadSoftMaskEnabled(state);
+            PdfPageSoftMaskResource? softMask = softMaskEnabled == true ? ReadSoftMask(state, resources) : null;
+            bool unsupportedSoftMask = softMaskEnabled == true && softMask == null;
+            bool unsupportedTextRestampEffect = HasUnsupportedTextRestampEffect(state);
+            OfficeIccRenderingIntent? renderingIntent = PdfRenderingIntentResolver.TryRead(
+                state,
+                "RI",
+                _objects,
+                out OfficeIccRenderingIntent resolvedRenderingIntent)
+                ? resolvedRenderingIntent
+                : (OfficeIccRenderingIntent?)null;
+            result[entry.Key] = new PdfPageGraphicsStateResource(
+                fillOpacity,
+                strokeOpacity,
+                strokeWidth,
+                strokeDashStyle,
+                strokeLineCap,
+                strokeLineJoin,
+                renderingIntent: renderingIntent,
+                blendMode: blendMode,
+                softMaskEnabled: softMaskEnabled,
+                softMask: softMask,
+                hasUnsupportedSoftMask: unsupportedSoftMask,
+                hasUnsupportedBlendMode: hasUnsupportedBlendMode,
+                hasUnsupportedEntries: hasUnsupportedEntries,
+                hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect);
         }
 
         return result;
     }
 
+    private bool HasInvalidStrictNumber(PdfDictionary dictionary, string key, Func<double, bool> isValid) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return false;
+        return resolved is not PdfNumber number || !IsFinite(number.Value) || !isValid(number.Value);
+    }
+
+    private bool HasInvalidStrictInteger(PdfDictionary dictionary, string key, int minimum, int maximum) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return false;
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return false;
+        if (resolved is not PdfNumber number ||
+            !IsFinite(number.Value) ||
+            number.Value != Math.Truncate(number.Value)) return true;
+        return number.Value < minimum || number.Value > maximum;
+    }
+
+    private bool HasExactlyRepresentableStrokeDash(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("D", out PdfObject? value)) return true;
+        PdfObject? resolved = ResolveEffectObject(value);
+        if (resolved is PdfNull) return true;
+        if (resolved is not PdfArray dash || dash.Items.Count != 2 ||
+            ResolveEffectObject(dash.Items[0]) is not PdfArray dashArray ||
+            ResolveEffectObject(dash.Items[1]) is not PdfNumber phase ||
+            !IsFinite(phase.Value) || phase.Value != 0D) return false;
+
+        IReadOnlyList<double> values = ReadNumberArray(dashArray);
+        if (values.Count != dashArray.Items.Count || values.Any(static item => !IsFinite(item) || item < 0D)) return false;
+        return values.Count == 0;
+    }
+
+    private static bool HasUnsupportedTextRestampEffect(PdfDictionary state) {
+        string[] keys = { "op", "OPM", "RI", "Font", "BG", "BG2", "UCR", "UCR2", "TR", "TR2", "HT", "FL", "SM", "SA", "AIS", "TK" };
+        for (int index = 0; index < keys.Length; index++) if (state.Items.ContainsKey(keys[index])) return true;
+        return false;
+    }
+
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(
         PdfDictionary? resources,
-        HashSet<string> invokedNames) {
+        HashSet<string>? invokedNames = null) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject)) {
@@ -1283,8 +1786,8 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (invokedNames.Contains(entry.Key) &&
-                TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
+            if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
+            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
         }
@@ -1294,7 +1797,7 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(
         PdfDictionary? resources,
-        HashSet<string> invokedNames) {
+        HashSet<string>? invokedNames = null) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
@@ -1307,7 +1810,7 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (!invokedNames.Contains(entry.Key) ||
+            if (invokedNames != null && !invokedNames.Contains(entry.Key) ||
                 ResolveObject(entry.Value) is not PdfArray array ||
                 array.Items.Count < 2 ||
                 ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
@@ -1354,32 +1857,30 @@ public sealed partial class PdfReadPage {
         if (name is "DeviceRGB" or "RGB" or "CalRGB" or "Lab") return 3;
         if (name is "DeviceCMYK" or "CMYK") return 4;
         if (name is "DeviceGray" or "G") return 1;
-        PdfObject? colorSpaceDictionary = resources?.Items.TryGetValue("ColorSpace", out PdfObject? declaration) == true
-            ? ResolveColorSpaceDeclaration(declaration)
-            : null;
-        PdfDictionary? colorSpaces = colorSpaceDictionary as PdfDictionary;
+        PdfDictionary? colorSpaces = ResolveDictionary(
+            resources?.Items.TryGetValue("ColorSpace", out PdfObject? declaration) == true ? declaration : null);
         if (colorSpaces == null || !colorSpaces.Items.TryGetValue(name, out PdfObject? value)) return 1;
-        PdfObject? resolved = ResolveColorSpaceDeclaration(value);
+        PdfObject? resolved = ResolveObject(value);
         if (resolved is PdfName directName) return GetDeclaredColorSpaceComponentCount(null, directName.Name);
         if (resolved is not PdfArray { Items.Count: > 0 } array ||
-            ResolveColorSpaceDeclaration(array.Items[0]) is not PdfName kind) return 1;
+            ResolveObject(array.Items[0]) is not PdfName kind) return 1;
         if (kind.Name is "DeviceRGB" or "RGB" or "CalRGB" or "Lab") return 3;
         if (kind.Name is "DeviceCMYK" or "CMYK") return 4;
         if (kind.Name is "Indexed" or "I" or "Separation") return 1;
         if (kind.Name is "DeviceN" or "NChannel") {
-            return array.Items.Count > 1 && ResolveColorSpaceDeclaration(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 0
+            return array.Items.Count > 1 && ResolveObject(array.Items[1]) is PdfArray colorants && colorants.Items.Count > 0
                 ? colorants.Items.Count
                 : 1;
         }
         if (kind.Name is "ICCBased" or "ICC" && array.Items.Count > 1) {
-            PdfObject? profile = ResolveColorSpaceDeclaration(array.Items[1]);
+            PdfObject? profile = ResolveObject(array.Items[1]);
             PdfDictionary? dictionary = profile switch {
                 PdfStream stream => stream.Dictionary,
                 PdfDictionary direct => direct,
                 _ => null
             };
             PdfObject? componentCount = dictionary?.Items.TryGetValue("N", out PdfObject? declaredCount) == true
-                ? ResolveColorSpaceDeclaration(declaredCount)
+                ? ResolveObject(declaredCount)
                 : null;
             int? count = componentCount is PdfNumber number &&
                 number.Value >= int.MinValue && number.Value <= int.MaxValue &&
@@ -1668,7 +2169,7 @@ public sealed partial class PdfReadPage {
             OverlayDrawingEffects(elements, appearanceEffects);
 
             SortDrawingElements(elements);
-            var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+            var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
             var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
@@ -2387,7 +2888,6 @@ public sealed partial class PdfReadPage {
             if (string.Equals(image.ResourceName, placement.ResourceName, StringComparison.Ordinal) &&
                 image.ObjectNumber == placement.ObjectNumber &&
                 image.DirectStreamIdentity == placement.DirectStreamIdentity &&
-                (image.IsImageMask || image.RenderingIntent == placement.RenderingIntent) &&
                 (!image.IsImageMask || image.ImageMaskColor.Equals(placement.ImageMaskColor))) {
                 return image;
             }

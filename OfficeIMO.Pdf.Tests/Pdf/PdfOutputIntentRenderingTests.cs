@@ -10,6 +10,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOutputIntentRenderingTests {
+    [Fact]
+    public void DrawingEffect_ExplicitRelativeIntentOverridesInheritedPerceptualIntent() {
+        PdfPageDrawingEffect inherited = PdfPageDrawingEffect.Default
+            .WithRenderingIntent(OfficeIccRenderingIntent.Perceptual);
+        PdfPageDrawingEffect local = PdfPageDrawingEffect.Default
+            .WithRenderingIntent(OfficeIccRenderingIntent.RelativeColorimetric);
+
+        PdfPageDrawingEffect actual = local.OverlayOn(inherited);
+
+        Assert.Equal(OfficeIccRenderingIntent.RelativeColorimetric, actual.RenderingIntent);
+        Assert.True(actual.HasRenderingIntent);
+    }
+
     [Theory]
     [InlineData("Perceptual")]
     [InlineData("RelativeColorimetric")]

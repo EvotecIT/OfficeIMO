@@ -545,13 +545,7 @@ internal static partial class PdfRedactionApplier {
         if (!string.Equals(extracted.TransparencyMaskKind, "explicit-mask-image", StringComparison.Ordinal) ||
             !imageStream.Dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
             PdfObjectLookup.Resolve(objects, maskObject) is not PdfStream maskStream ||
-            !PdfImageMaskNormalizer.TryBuildPngFile(
-                width,
-                height,
-                maskStream,
-                objects,
-                options.MaximumDecodedImageBytes,
-                out byte[] maskPng) ||
+            !PdfImageMaskNormalizer.TryBuildPngFile(width, height, maskStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out byte[] maskPng) ||
             !OfficeRasterImageDecoder.TryDecode(maskPng, out OfficeRasterImage? maskRaster) ||
             maskRaster is null ||
             maskRaster.Width != width ||
@@ -627,11 +621,7 @@ internal static partial class PdfRedactionApplier {
             return true;
         }
 
-        if (!PdfObjectLookup.TryResolveReferenceChain(objects, softMaskObject, out PdfObject? resolvedSoftMask)) {
-            return false;
-        }
-        if (resolvedSoftMask is PdfNull ||
-            resolvedSoftMask is PdfName softMaskName &&
+        if (PdfObjectLookup.Resolve(objects, softMaskObject) is PdfName softMaskName &&
             string.Equals(softMaskName.Name, "None", StringComparison.Ordinal)) {
             return true;
         }

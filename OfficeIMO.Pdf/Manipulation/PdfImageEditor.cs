@@ -265,10 +265,11 @@ internal static partial class PdfImageEditor {
             placement.InlineImageStream,
             placement.InlineImageResources,
             placement.PaintOrder,
-            placement.BlendMode,
-            placement.HasUnsupportedBlendMode,
-            placement.HasSoftMask,
-            placement.HasAuthoredRenderingIntent);
+            renderingIntent: placement.RenderingIntent,
+            blendMode: placement.BlendMode,
+            hasUnsupportedBlendMode: placement.HasUnsupportedBlendMode,
+            hasSoftMask: placement.HasSoftMask,
+            hasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent);
 
     private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= CoordinateTolerance;
 

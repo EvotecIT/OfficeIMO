@@ -364,7 +364,7 @@ public sealed partial class PdfReadPage {
             cache.BlackLuminosityForms[cacheKey] = false;
             return false;
         }
-        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         Type3SoftMaskValidationContext validation =
             type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
         OfficeDrawing drawing = CreateFormDrawing(
@@ -373,6 +373,7 @@ public sealed partial class PdfReadPage {
             pageWidth,
             pageHeight,
             transform,
+            OfficeIccRenderingIntent.RelativeColorimetric,
             softMasks,
             new HashSet<PdfStream>(),
             CreateTextOutputBudget(),

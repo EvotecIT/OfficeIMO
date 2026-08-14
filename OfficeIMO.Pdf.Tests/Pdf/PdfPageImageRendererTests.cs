@@ -846,17 +846,14 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_DiagnosesUnsupportedColorSpaceInsideType3RasterGlyph() {
+    public void RenderPage_ProjectsSupportedSeparationColorSpaceInsideType3RasterGlyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 8 0 R] >> /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
         string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CsSpot /BitsPerComponent 8", "x");
         string function = "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, image, function);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsSpot");
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        AssertType3RendersOneNativeImage(pdf);
     }
 
     [Fact]

@@ -91,7 +91,11 @@ internal readonly struct PdfPageType3GlyphInvocation {
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
-        OfficeStrokeLineJoin? strokeLineJoin) {
+        OfficeStrokeLineJoin? strokeLineJoin,
+        bool hasAuthoredRenderingIntent = false,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? fillColorSelection = null,
+        PdfPaintColorSelection? strokeColorSelection = null) {
         Font = font;
         CharacterCode = characterCode;
         Transform = transform;
@@ -112,6 +116,10 @@ internal readonly struct PdfPageType3GlyphInvocation {
         StrokeDashStyle = strokeDashStyle;
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
+        RenderingIntent = renderingIntent;
+        FillColorSelection = fillColorSelection;
+        StrokeColorSelection = strokeColorSelection;
     }
 
     internal PdfFontResource Font { get; }
@@ -134,4 +142,8 @@ internal readonly struct PdfPageType3GlyphInvocation {
     internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
     internal OfficeStrokeLineCap? StrokeLineCap { get; }
     internal OfficeStrokeLineJoin? StrokeLineJoin { get; }
+    internal bool HasAuthoredRenderingIntent { get; }
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
+    internal PdfPaintColorSelection? FillColorSelection { get; }
+    internal PdfPaintColorSelection? StrokeColorSelection { get; }
 }
