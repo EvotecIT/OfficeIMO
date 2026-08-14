@@ -661,7 +661,7 @@ public sealed partial class ProvenanceCoreContracts {
     }
 
     [Fact]
-    public void StructuredTextResynchronizesAtANewerStandaloneBeginDelimiter() {
+    public void StructuredTextNestedStandaloneBeginDelimitersInvalidateAllCandidates() {
         string validBlock = "-----BEGIN C2PA MANIFEST-----\n" +
             "data:application/c2pa;base64," + Convert.ToBase64String(CreateManifestStore()) + "\n" +
             "-----END C2PA MANIFEST-----\n";
@@ -670,21 +670,25 @@ public sealed partial class ProvenanceCoreContracts {
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(text, "fixture.md");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(text, "fixture.md");
 
-        Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
-        Assert.Equal("-----BEGIN C2PA MANIFEST-----\nstale\nafter\n", Encoding.UTF8.GetString(result.ToArray()));
-        Assert.Empty(result.After.Evidence);
+        Assert.Equal(2, report.Evidence.Count);
+        Assert.All(report.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.False(result.WasChanged);
+        Assert.Equal(text, result.ToArray());
     }
 
     [Fact]
-    public void StructuredTextResynchronizesAcrossManyStandaloneBeginDelimiters() {
+    public void StructuredTextBoundsAndInvalidatesManyNestedBeginDelimiters() {
         string text = string.Concat(Enumerable.Repeat("-----BEGIN C2PA MANIFEST-----\n", 4096)) +
             "https://example.test/final.c2pa\n-----END C2PA MANIFEST-----\n";
 
-        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(Encoding.UTF8.GetBytes(text), "fixture.txt");
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            Encoding.UTF8.GetBytes(text),
+            "fixture.txt",
+            new OfficeProvenanceOptions { MaxCarriers = 4096 });
 
-        OfficeProvenanceEvidence evidence = Assert.Single(report.Evidence);
-        Assert.True(evidence.IsStructurallyValid);
-        Assert.Equal("https://example.test/final.c2pa", evidence.Value);
+        Assert.Equal(4096, report.Evidence.Count);
+        Assert.All(report.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.Contains(report.Evidence, evidence => evidence.Value == "https://example.test/final.c2pa");
     }
 
     [Fact]

@@ -126,6 +126,9 @@ internal static class OfficeProvenanceText {
             if (end < 0) yield break;
             int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart);
             if (newerBegin >= 0 && newerBegin < end) {
+                int nestedLineStart = FindLineStart(data, begin);
+                int nestedLineEnd = FindLineEndIncludingTerminator(data, begin + BeginDelimiter.Length);
+                yield return new StructuredBlock(begin, nestedLineStart, nestedLineEnd, false, false, 0L, null);
                 pendingEnd = end;
                 search = newerBegin;
                 continue;

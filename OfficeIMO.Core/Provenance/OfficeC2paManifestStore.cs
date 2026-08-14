@@ -336,7 +336,7 @@ internal static class OfficeC2paManifestStore {
         label = string.Empty;
         if (togglesOffset < 0 || togglesOffset >= descriptionEnd || descriptionEnd > data.Length) return false;
         byte toggles = data[togglesOffset];
-        if ((toggles & 0xE0) != 0 || (toggles & 0x03) != 0x03) return false;
+        if ((toggles & 0xF0) != 0 || (toggles & 0x03) != 0x03) return false;
         int labelOffset = togglesOffset + 1;
         if (labelOffset >= descriptionEnd || data[labelOffset] == 0) return false;
         int terminator = Array.IndexOf(data, (byte)0, labelOffset, descriptionEnd - labelOffset);

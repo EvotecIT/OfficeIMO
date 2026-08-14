@@ -327,7 +327,7 @@ internal static class OfficeProvenanceTiff {
             for (int index = 0; index < count; index++) {
                 int entryOffset = entriesOffset + index * entrySize;
                 ushort tag = OfficeProvenanceBinary.ReadUInt16(data, entryOffset, littleEndian);
-                if (index != 0 && tag < previousTag) tagsAreSorted = false;
+                if (index != 0 && tag <= previousTag) tagsAreSorted = false;
                 previousTag = tag;
                 ushort type = OfficeProvenanceBinary.ReadUInt16(data, entryOffset + 2, littleEndian);
                 ulong valueCount = bigTiff
