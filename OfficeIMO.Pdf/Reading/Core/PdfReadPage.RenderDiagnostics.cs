@@ -119,7 +119,7 @@ public sealed partial class PdfReadPage {
                 GetVisualPageSize().Width,
                 GetVisualPageSize().Height,
                 GetGraphicsStateResources(resources),
-                GetColorSpaceResources(resources),
+                GetColorSpaceResources(resources, pageContentBudget: pageContentBudget),
                 GetShadingResources(resources),
                 GetShadingPatternResources(resources),
                 tilingPatterns: null,
@@ -127,7 +127,7 @@ public sealed partial class PdfReadPage {
                 initialFillColorSpace: initialFillColorSpace,
                 initialStrokeColorSpace: initialStrokeColorSpace,
                 maxOperations: _limits.MaxContentOperations,
-                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, pageContentBudget: pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: static _ => { },
@@ -208,8 +208,8 @@ public sealed partial class PdfReadPage {
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces);
-        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces);
+        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         IReadOnlyList<PdfPageXObjectInvocation> discoveredXObjects = PdfPageXObjectInvocationParser.Parse(
             content,
@@ -398,8 +398,8 @@ public sealed partial class PdfReadPage {
                     textClippingBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
-            Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
+            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, pageContentBudget: pageContentBudget);
+            Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, pageContentBudget: pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects = PdfPageGraphicsEffectTimelineParser.Parse(
                 content,

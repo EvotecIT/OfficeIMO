@@ -86,7 +86,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
         function = null!;
         if (!TryResolveObject(value, objects, out PdfObject? resolved)) return false;
         if (resolved is not PdfArray functions) {
-            return TryCreateFunction(resolved, 1, outputCount, objects, maxDecodedStreamBytes, out function);
+            return TryCreateFunction(resolved, 1, outputCount, objects, maxDecodedStreamBytes, out function) &&
+                !function.HasUnboundedDiscontinuities;
         }
         if (functions.Items.Count != outputCount || outputCount < 1) return false;
 
@@ -111,6 +112,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     ref remainingCalculatorValidationWork,
                     out components[index])) return false;
         }
+        if (components.Any(static component => component.HasUnboundedDiscontinuities)) return false;
 
         double[] domain = {
             components.Min(static component => component.Domain[0]),
@@ -148,7 +150,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             (values, output, outputOffset) => EvaluateFunctionArray(values, output, outputOffset, components),
             breakpoints,
             discontinuities,
-            evaluationCost: SumEvaluationCost(components));
+            evaluationCost: SumEvaluationCost(components),
+            requiresAdaptiveShadingSampling: components.Any(static component => component.RequiresAdaptiveShadingSampling));
         return true;
     }
 
@@ -314,7 +317,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 range,
                 evaluator,
                 breakpoints,
-                evaluationCost: cubicEvaluationCost);
+                evaluationCost: cubicEvaluationCost,
+                requiresAdaptiveShadingSampling: order != 1 || sizes.Any(static size => size > MaxSuggestedSampleBreakpoints));
             return true;
         } catch (OverflowException) {
             return false;
@@ -346,7 +350,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             domain,
             range,
             (values, output, outputOffset) => EvaluateType2(values, output, outputOffset, c0, c1, exponent),
-            exponent == 1D ? domain : CreateUniformBreakpoints(domain, 65));
+            exponent == 1D ? domain : CreateUniformBreakpoints(domain, 65),
+            requiresAdaptiveShadingSampling: exponent != 1D);
         return true;
     }
 
@@ -428,7 +433,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 values[0], output, outputOffset, domain, bounds, encode, children),
             breakpoints,
             discontinuities,
-            evaluationCost: children.Max(static child => child.EvaluationCost));
+            evaluationCost: children.Max(static child => child.EvaluationCost),
+            requiresAdaptiveShadingSampling: children.Any(static child => child.RequiresAdaptiveShadingSampling),
+            hasUnboundedDiscontinuities: children.Any(static child => child.HasUnboundedDiscontinuities));
         return true;
     }
     private static bool EvaluateType2(

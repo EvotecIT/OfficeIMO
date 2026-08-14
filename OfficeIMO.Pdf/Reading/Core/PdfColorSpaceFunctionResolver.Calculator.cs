@@ -90,7 +90,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 program.TryEvaluate(values, output, outputOffset, outputCount),
             breakpoints,
             discontinuities,
-            evaluationCost: program.MaximumEvaluationWork);
+            evaluationCost: program.MaximumEvaluationWork,
+            requiresAdaptiveShadingSampling: inputCount != 1 || !program.HasOneInputAffineOutput(outputCount),
+            hasUnboundedDiscontinuities: program.HasUnboundedDiscontinuities);
         return true;
     }
 }

@@ -19,7 +19,7 @@ public sealed partial class PdfReadPage {
             1D,
             1D,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
+            GetColorSpaceResources(resources, pageContentBudget: pageContentBudget),
             null,
             null,
             null,

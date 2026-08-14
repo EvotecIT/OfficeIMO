@@ -18,13 +18,17 @@ internal sealed class PdfColorFunction {
         PdfColorFunctionEvaluator evaluateCore,
         IReadOnlyList<double>? breakpoints = null,
         IReadOnlyList<double>? discontinuities = null,
-        int evaluationCost = 0) {
+        int evaluationCost = 0,
+        bool requiresAdaptiveShadingSampling = false,
+        bool hasUnboundedDiscontinuities = false) {
         InputCount = inputCount;
         OutputCount = outputCount;
         _domain = (double[])domain.Clone();
         _range = range == null ? null : (double[])range.Clone();
         _evaluateCore = evaluateCore;
         EvaluationCost = Math.Max(0, evaluationCost);
+        RequiresAdaptiveShadingSampling = requiresAdaptiveShadingSampling;
+        HasUnboundedDiscontinuities = hasUnboundedDiscontinuities;
 
         double[] points = breakpoints == null
             ? Array.Empty<double>()
@@ -42,6 +46,10 @@ internal sealed class PdfColorFunction {
 
     /// <summary>Worst-case bounded work units for one non-trivial evaluation; zero for constant-cost functions.</summary>
     internal int EvaluationCost { get; }
+
+    internal bool RequiresAdaptiveShadingSampling { get; }
+
+    internal bool HasUnboundedDiscontinuities { get; }
 
     internal IReadOnlyList<double> Domain => _domain;
 

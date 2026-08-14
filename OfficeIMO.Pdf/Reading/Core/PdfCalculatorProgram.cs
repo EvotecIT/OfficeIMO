@@ -19,12 +19,14 @@ internal sealed partial class PdfCalculatorProgram {
         Instruction[] instructions,
         double[] numericConstants,
         bool hasConditional,
+        bool hasUnboundedDiscontinuities,
         int instructionCount,
         int maximumEvaluationWork,
         int sourceLength) {
         _instructions = instructions;
         _numericConstants = numericConstants;
         HasConditional = hasConditional;
+        HasUnboundedDiscontinuities = hasUnboundedDiscontinuities;
         InstructionCount = instructionCount;
         MaximumEvaluationWork = maximumEvaluationWork;
         RetainedBytes = checked(sourceLength + instructionCount * 64L);
@@ -39,6 +41,8 @@ internal sealed partial class PdfCalculatorProgram {
     internal IReadOnlyList<double> NumericConstants => _numericConstants;
 
     internal bool HasConditional { get; }
+
+    internal bool HasUnboundedDiscontinuities { get; }
 
     internal static bool TryParse(byte[] source, out PdfCalculatorProgram program) {
         program = null!;
@@ -186,6 +190,7 @@ internal sealed partial class PdfCalculatorProgram {
         private int _position;
         private int _instructionCount;
         private bool _hasConditional;
+        private bool _hasUnboundedDiscontinuities;
 
         internal Parser(byte[] source) {
             _source = source;
@@ -201,6 +206,7 @@ internal sealed partial class PdfCalculatorProgram {
                 instructions,
                 _numericConstants.Distinct().OrderBy(static value => value).ToArray(),
                 _hasConditional,
+                _hasUnboundedDiscontinuities,
                 _instructionCount,
                 maximumSteps,
                 _source.Length);
@@ -239,6 +245,9 @@ internal sealed partial class PdfCalculatorProgram {
                 } else if (token.Kind != TokenKind.Word || !TryCreateInstruction(token.Text!, out instruction)) {
                     return false;
                 } else {
+                    if (instruction.Kind == InstructionKind.Operator && IsUnboundedDiscontinuityOperator(instruction.Operator)) {
+                        _hasUnboundedDiscontinuities = true;
+                    }
                     instructionSteps = GetEvaluationWork(instruction);
                 }
 
@@ -257,6 +266,11 @@ internal sealed partial class PdfCalculatorProgram {
                 _ => 1
             };
         }
+
+        private static bool IsUnboundedDiscontinuityOperator(CalculatorOperator calculatorOperator) =>
+            calculatorOperator is CalculatorOperator.Ceiling or CalculatorOperator.Cvi or
+                CalculatorOperator.Floor or CalculatorOperator.Idiv or CalculatorOperator.Mod or
+                CalculatorOperator.Round or CalculatorOperator.Truncate;
 
         private bool TryCreateInstruction(string token, out Instruction instruction) {
             instruction = default;

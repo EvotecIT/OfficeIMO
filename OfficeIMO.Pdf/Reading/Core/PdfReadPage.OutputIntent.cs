@@ -139,7 +139,7 @@ public sealed partial class PdfReadPage {
             Matrix2D.Identity,
             GetVisualPageSize().Height,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
+            GetColorSpaceResources(resources, pageContentBudget: budget),
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,

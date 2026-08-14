@@ -389,6 +389,6 @@ public sealed partial class PdfColorFunctionTests {
         Assert.InRange(cubicQuarter.Color.R, 190, 192);
         Assert.Equal(0, cubicQuarter.Color.G);
         Assert.Equal(0, cubicQuarter.Color.B);
-        Assert.InRange(gradient.Stops.Count, 12, 15);
+        Assert.InRange(gradient.Stops.Count, 16, 64);
     }
 }

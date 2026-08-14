@@ -23,6 +23,21 @@ internal sealed partial class PdfCalculatorProgram {
         return true;
     }
 
+    internal bool HasOneInputAffineOutput(int outputCount) {
+        if (HasConditional || outputCount < 1) return false;
+        var initial = new SymbolicStack();
+        initial.Values.Add(SymbolicValue.Affine(1D, 0D));
+        if (!TryAnalyzeInstructions(
+                _instructions,
+                new List<SymbolicStack> { initial },
+                new HashSet<double>(),
+                out List<SymbolicStack> outputStates) ||
+            outputStates.Count != 1 ||
+            outputStates[0].Values.Count != outputCount) return false;
+        return outputStates[0].Values.All(static value =>
+            value.Kind == SymbolicValueKind.Numeric && value.IsAffine && value.IsFinite);
+    }
+
     private static bool TryAnalyzeInstructions(
         Instruction[] instructions,
         List<SymbolicStack> inputStates,

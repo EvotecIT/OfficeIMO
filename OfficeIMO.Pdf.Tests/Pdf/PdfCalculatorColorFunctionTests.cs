@@ -122,6 +122,23 @@ public sealed partial class PdfColorFunctionTests {
         Assert.Contains(0.5D, function.Discontinuities);
     }
 
+    [Theory]
+    [InlineData("{ dup dup }", false)]
+    [InlineData("{ 360 mul sin dup dup }", true)]
+    public void Type4_ClassifiesAdaptiveShadingSamplingWithoutLosingTheAffineFastPath(
+        string program,
+        bool expected) {
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            CalculatorFunction(1, 3, program),
+            1,
+            3,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out PdfColorFunction function));
+
+        Assert.Equal(expected, function.RequiresAdaptiveShadingSampling);
+    }
+
     [Fact]
     public void Type4_RejectsConditionalThresholdThatCannotBeBounded() {
         PdfStream calculator = CalculatorFunction(1, 1, "{ dup 360 mul sin 0 lt { pop 0 } { pop 1 } ifelse }");

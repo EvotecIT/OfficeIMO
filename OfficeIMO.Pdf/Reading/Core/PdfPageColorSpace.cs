@@ -123,8 +123,12 @@ internal readonly struct PdfPageColorSpace {
         PdfPageColorSpaceKind kind,
         int componentCount,
         PdfPageColorSpace alternate,
-        PdfColorSpaceTintTransform transform) =>
-        new PdfPageColorSpace(kind, new PdfPageCustomColorSpace(componentCount, alternate, transform));
+        PdfColorSpaceTintTransform transform,
+        int evaluationCost,
+        Func<int, bool>? evaluationBudget) =>
+        new PdfPageColorSpace(
+            kind,
+            new PdfPageCustomColorSpace(componentCount, alternate, transform, evaluationCost, evaluationBudget));
 
     public static PdfPageColorSpace Pattern(PdfPageColorSpace baseColorSpace) =>
         new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern, new PdfPageCustomColorSpace(baseColorSpace));
@@ -296,10 +300,14 @@ internal readonly struct PdfPageColorSpace {
         public PdfPageCustomColorSpace(
             int componentCount,
             PdfPageColorSpace alternate,
-            PdfColorSpaceTintTransform transform) {
+            PdfColorSpaceTintTransform transform,
+            int evaluationCost,
+            Func<int, bool>? evaluationBudget) {
             ComponentCount = componentCount;
             Alternate = alternate;
-            Transform = transform;
+            Transform = (components, output) =>
+                (evaluationCost <= 0 || evaluationBudget == null || evaluationBudget(evaluationCost)) &&
+                transform(components, output);
             UsesIccApproximation = alternate.UsesIccApproximation;
         }
 

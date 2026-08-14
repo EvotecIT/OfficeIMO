@@ -6,7 +6,11 @@ public sealed partial class PdfReadPage {
     private const int MaxColorSpaceNesting = 8;
     private const int MaxDeviceNComponents = 32;
 
-    private bool TryReadExtendedColorSpaceResource(PdfObject? value, int depth, out PdfPageColorSpace colorSpace) {
+    private bool TryReadExtendedColorSpaceResource(
+        PdfObject? value,
+        int depth,
+        Func<int, bool>? evaluationBudget,
+        out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (depth > MaxColorSpaceNesting) return false;
 
@@ -23,22 +27,22 @@ public sealed partial class PdfReadPage {
         switch (arrayName.Name) {
             case "Pattern":
                 if (array.Items.Count != 2 ||
-                    !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, out PdfPageColorSpace patternBase) ||
+                    !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, evaluationBudget, out PdfPageColorSpace patternBase) ||
                     patternBase.Kind == PdfPageColorSpaceKind.Pattern) return false;
                 colorSpace = PdfPageColorSpace.Pattern(patternBase);
                 return true;
             case "ICCBased":
-                return TryReadIccColorSpace(array, depth, out colorSpace);
+                return TryReadIccColorSpace(array, depth, evaluationBudget, out colorSpace);
             case "Indexed":
             case "I":
-                return TryReadIndexedColorSpace(array, depth, out colorSpace);
+                return TryReadIndexedColorSpace(array, depth, evaluationBudget, out colorSpace);
             case "Separation":
-                return TryReadAlternateColorSpace(array, PdfPageColorSpaceKind.Separation, 1, depth, out colorSpace);
+                return TryReadAlternateColorSpace(array, PdfPageColorSpaceKind.Separation, 1, depth, evaluationBudget, out colorSpace);
             case "DeviceN":
             case "NChannel":
                 int componentCount = TryReadDeviceNComponentCount(array);
                 return componentCount > 0 &&
-                    TryReadAlternateColorSpace(array, PdfPageColorSpaceKind.DeviceN, componentCount, depth, out colorSpace);
+                    TryReadAlternateColorSpace(array, PdfPageColorSpaceKind.DeviceN, componentCount, depth, evaluationBudget, out colorSpace);
             case "CalRGB":
                 return array.Items.Count > 1 &&
                     ResolveColorSpaceDeclaration(array.Items[1]) is PdfDictionary calibration &&
@@ -56,7 +60,11 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private bool TryReadIccColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
+    private bool TryReadIccColorSpace(
+        PdfArray array,
+        int depth,
+        Func<int, bool>? evaluationBudget,
+        out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 2) return false;
         PdfObject? resolvedProfile = ResolveColorSpaceDeclaration(array.Items[1]);
@@ -102,7 +110,7 @@ public sealed partial class PdfReadPage {
             PdfObject? resolvedAlternate = ResolveColorSpaceDeclaration(alternateObject);
             if (resolvedAlternate == null) return false;
             if (resolvedAlternate is not PdfNull) {
-                if (!TryReadExtendedColorSpaceResource(resolvedAlternate, depth + 1, out PdfPageColorSpace alternate) ||
+                if (!TryReadExtendedColorSpaceResource(resolvedAlternate, depth + 1, evaluationBudget, out PdfPageColorSpace alternate) ||
                     alternate.Kind == PdfPageColorSpaceKind.Pattern ||
                     alternate.ComponentCount != components) {
                     return false;
@@ -168,10 +176,14 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool TryReadIndexedColorSpace(PdfArray array, int depth, out PdfPageColorSpace colorSpace) {
+    private bool TryReadIndexedColorSpace(
+        PdfArray array,
+        int depth,
+        Func<int, bool>? evaluationBudget,
+        out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 4 ||
-            !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, out PdfPageColorSpace baseColorSpace) ||
+            !TryReadExtendedColorSpaceResource(array.Items[1], depth + 1, evaluationBudget, out PdfPageColorSpace baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
             TryReadInteger(array.Items[2]) is not int highValue ||
             highValue < 0 || highValue > 255) {
@@ -209,13 +221,14 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpaceKind kind,
         int componentCount,
         int depth,
+        Func<int, bool>? evaluationBudget,
         out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (array.Items.Count < 4 || componentCount < 1 || componentCount > MaxDeviceNComponents ||
             (kind == PdfPageColorSpaceKind.Separation &&
              (ResolveColorSpaceDeclaration(array.Items[1]) is not PdfName colorant ||
               string.Equals(colorant.Name, "None", StringComparison.Ordinal))) ||
-            !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, out PdfPageColorSpace alternate) ||
+            !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, evaluationBudget, out PdfPageColorSpace alternate) ||
             alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
             !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
                 array.Items[3],
@@ -223,11 +236,18 @@ public sealed partial class PdfReadPage {
                 alternate.ComponentCount,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
-                out PdfColorSpaceTintTransform transform)) {
+                out PdfColorSpaceTintTransform transform,
+                out int evaluationCost)) {
             return false;
         }
 
-        colorSpace = PdfPageColorSpace.Alternate(kind, componentCount, alternate, transform);
+        colorSpace = PdfPageColorSpace.Alternate(
+            kind,
+            componentCount,
+            alternate,
+            transform,
+            evaluationCost,
+            evaluationBudget);
         return true;
     }
 

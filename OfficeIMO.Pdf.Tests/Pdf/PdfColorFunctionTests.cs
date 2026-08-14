@@ -694,6 +694,54 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void RenderPage_AdaptivelyRefinesNonlinearDeviceRgbCalculatorShading() {
+        const string program = "{ 45720 mul sin dup dup }";
+        byte[] pdf = BuildSinglePagePdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function 6 0 R /Extend [true true] >>\nendobj",
+            CalculatorStreamObject(6, program));
+
+        OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
+
+        Assert.True(gradient.Stops.Count > 128);
+        Assert.Contains(gradient.Stops, static stop => stop.Color.R > 0);
+    }
+
+    [Fact]
+    public void RenderPage_RejectsCalculatorShadingWithUnboundedRoundingDiscontinuities() {
+        const string program = "{ 4 mul floor 4 div dup dup }";
+        byte[] pdf = BuildSinglePagePdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function 6 0 R /Extend [true true] >>\nendobj",
+            CalculatorStreamObject(6, program));
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.DoesNotContain(page.ToDrawing().Shapes, static item => item.Shape.FillGradient != null);
+        Assert.Contains(
+            page.GetRenderCapabilityDiagnostics(),
+            static diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+    }
+
+    [Fact]
+    public void RenderPage_BoundsCalculatorTintEvaluationAcrossContentPaint() {
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup }";
+        byte[] pdf = BuildSinglePagePdf(
+            "/Spot cs 0.5 scn 20 20 100 100 re f",
+            "<< /ColorSpace << /Spot [/Separation /Brand /DeviceRGB 5 0 R] >> >>",
+            CalculatorStreamObject(5, program));
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 100 }
+        }).Pages[0];
+
+        OfficeShape shape = Assert.Single(page.ToDrawing().Shapes).Shape;
+
+        Assert.Equal(OfficeColor.Black, shape.FillColor);
+    }
+
+    [Fact]
     public void RenderPage_PreservesClippedFunctionDomainPlateausInShading() {
         byte[] pdf = BuildSinglePagePdf(
             "/Sh1 sh",
@@ -866,6 +914,10 @@ public sealed partial class PdfColorFunctionTests {
                " /BitsPerSample " + bitsPerSample + orderEntry + " /Filter /ASCIIHexDecode /Length " + asciiHexSamples.Length + " >>\nstream\n" +
                asciiHexSamples + "\nendstream\nendobj";
     }
+
+    private static string CalculatorStreamObject(int objectNumber, string program) =>
+        objectNumber + " 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1] /Length " +
+        Encoding.ASCII.GetByteCount(program) + " >>\nstream\n" + program + "\nendstream\nendobj";
 
     private static byte[] BuildSinglePagePdf(string content, string resources, params string[] extraObjects) {
         content = content.TrimEnd('\r', '\n');

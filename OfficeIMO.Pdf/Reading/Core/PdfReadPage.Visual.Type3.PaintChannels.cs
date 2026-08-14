@@ -85,7 +85,7 @@ public sealed partial class PdfReadPage {
                 form.Dictionary);
             Matrix2D formTransform = Matrix2D.Multiply(invocationState.Transform, authoredFormMatrix);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
+            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, pageContentBudget: pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
                 content,
@@ -116,7 +116,7 @@ public sealed partial class PdfReadPage {
                 initialStrokeLineCap: invocationState.StrokeLineCap,
                 initialStrokeLineJoin: invocationState.StrokeLineJoin,
                 maxOperations: _limits.MaxContentOperations,
-                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, pageContentBudget: pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {

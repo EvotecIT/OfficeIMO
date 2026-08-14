@@ -641,8 +641,8 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-        Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces);
-        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces);
+        Dictionary<string, PdfPageColorSpace> colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
         var invokedPatternIntents = new HashSet<(string Name, OfficeIccRenderingIntent Intent)>();
         var type3PaintChannelCache = new Type3PaintChannelCache();
@@ -1264,7 +1264,10 @@ public sealed partial class PdfReadPage {
         }
 
         if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) ||
-            !TryReadColorSpaceResource(colorSpaceObject, out PdfPageColorSpace colorSpace)) return false;
+            !TryReadColorSpaceResource(
+                colorSpaceObject,
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                out PdfPageColorSpace colorSpace)) return false;
 
         bool exactColorInterpolation =
             colorSpace.Kind is PdfPageColorSpaceKind.DeviceGray or PdfPageColorSpaceKind.DeviceRgb &&
@@ -1486,8 +1489,8 @@ public sealed partial class PdfReadPage {
         }
 
         if (result.Count < 2) return false;
-        if (colorSpace.RequiresColorManagedGradientSampling &&
-            !TryRefineColorManagedShadingStops(function, colorSpace, domainStart, domainEnd, renderingIntent, pageContentBudget, result, out result)) return false;
+        if ((colorSpace.RequiresColorManagedGradientSampling || function.RequiresAdaptiveShadingSampling) &&
+            !TryRefineShadingStops(function, colorSpace, domainStart, domainEnd, renderingIntent, pageContentBudget, result, out result)) return false;
         stops = result.AsReadOnly();
         return true;
     }
@@ -1526,7 +1529,7 @@ public sealed partial class PdfReadPage {
             out color);
     }
 
-    private bool TryRefineColorManagedShadingStops(
+    private bool TryRefineShadingStops(
         PdfColorFunction function,
         PdfPageColorSpace colorSpace,
         double domainStart,
@@ -1795,7 +1798,8 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(
         PdfDictionary? resources,
-        HashSet<string>? invokedNames = null) {
+        HashSet<string>? invokedNames = null,
+        PageContentBudget? pageContentBudget = null) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject)) {
@@ -1813,7 +1817,10 @@ public sealed partial class PdfReadPage {
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
             if (invokedNames != null && !invokedNames.Contains(entry.Key)) continue;
-            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
+            if (TryReadColorSpaceResource(
+                    entry.Value,
+                    pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
         }
@@ -1823,7 +1830,8 @@ public sealed partial class PdfReadPage {
 
     private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(
         PdfDictionary? resources,
-        HashSet<string>? invokedNames = null) {
+        HashSet<string>? invokedNames = null,
+        PageContentBudget? pageContentBudget = null) {
         var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
@@ -1840,7 +1848,10 @@ public sealed partial class PdfReadPage {
                 ResolveObject(entry.Value) is not PdfArray array ||
                 array.Items.Count < 2 ||
                 ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
-                !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpace baseColorSpace) ||
+                !TryReadColorSpaceResource(
+                    array.Items[1],
+                    pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    out PdfPageColorSpace baseColorSpace) ||
                 baseColorSpace == PdfPageColorSpaceKind.Pattern) {
                 continue;
             }
@@ -1929,9 +1940,14 @@ public sealed partial class PdfReadPage {
         internal HashSet<string> Shadings { get; } = new HashSet<string>(StringComparer.Ordinal);
     }
 
-    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) {
-        return TryReadExtendedColorSpaceResource(value, 0, out colorSpace);
-    }
+    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) =>
+        TryReadColorSpaceResource(value, evaluationBudget: null, out colorSpace);
+
+    private bool TryReadColorSpaceResource(
+        PdfObject? value,
+        Func<int, bool>? evaluationBudget,
+        out PdfPageColorSpace colorSpace) =>
+        TryReadExtendedColorSpaceResource(value, 0, evaluationBudget, out colorSpace);
 
     private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
