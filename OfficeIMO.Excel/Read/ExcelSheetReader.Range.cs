@@ -483,23 +483,21 @@ namespace OfficeIMO.Excel {
             var policy = _opt.Execution;
             var decided = mode ?? policy.Mode;
             int workload = checked((int)cellCount);
-            if (decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic) {
-                if (CanUseAutomaticXmlReadFastPath(policy)) {
-                    if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
-                        || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
-                        return result;
-                    }
-                }
+            bool automaticDecision = decided == OfficeIMO.Excel.ExcelExecutionMode.Automatic;
+            if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
+                || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
+                policy.ReportDecision("ReadRange", workload, OfficeIMO.Excel.ExcelExecutionMode.Sequential);
 
+                return result;
+            }
+
+            if (automaticDecision) {
                 decided = policy.Decide("ReadRange", workload);
+            } else {
+                policy.ReportDecision("ReadRange", workload, decided);
             }
 
             if (decided == OfficeIMO.Excel.ExcelExecutionMode.Sequential) {
-                if ((ShouldAttemptUtf8Range(r1, r2) && RangeReachesDeclaredWorksheetEnd(r2) && TryFillRangeUtf8Fast(result, r1, c1, r2, c2, ct))
-                    || TryFillRangeXmlFast(result, r1, c1, r2, c2, ct)) {
-                    return result;
-                }
-
                 FillRangeSequential(result, r1, c1, r2, c2, ct);
                 return result;
             }

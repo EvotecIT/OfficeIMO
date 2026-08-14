@@ -131,6 +131,11 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder ClipPath(OfficeFillRule fillRule) {
+        _sb.Append(fillRule == OfficeFillRule.EvenOdd ? " W*" : " W");
+        return this;
+    }
+
     public ContentStreamBuilder TransformMatrix(double a, double b, double c, double d, double e, double f) {
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')
@@ -220,6 +225,15 @@ internal sealed class ContentStreamBuilder {
 
     public ContentStreamBuilder TextRise(double rise) {
         _sb.Append(F(rise)).Append(" Ts\n");
+        return this;
+    }
+
+    public ContentStreamBuilder TextRenderingMode(int mode) {
+        if (mode < 0 || mode > 7) {
+            throw new ArgumentOutOfRangeException(nameof(mode), "PDF text rendering mode must be between 0 and 7.");
+        }
+
+        _sb.Append(mode.ToString(CultureInfo.InvariantCulture)).Append(" Tr\n");
         return this;
     }
 

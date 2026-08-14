@@ -159,7 +159,7 @@ internal static partial class CsvDataProjectionConverter
         out DateTime dateTime)
     {
         if (dateTimeFormats is { Count: > 0 } &&
-            DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out dateTime))
+            DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out dateTime))
         {
             return true;
         }
@@ -171,7 +171,7 @@ internal static partial class CsvDataProjectionConverter
             return true;
         }
 
-        return DateTime.TryParse(text, culture, DateTimeStyles.None, out dateTime);
+        return DateTime.TryParse(text, culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
 
     internal static bool TryParseInvariantDecimal(ReadOnlySpan<char> text, out decimal value)
@@ -241,19 +241,57 @@ internal static partial class CsvDataProjectionConverter
             return false;
         }
 
-        value = new decimal(significand);
-        if (fractionalDigits != 0)
-        {
-            value /= InvariantDecimalPowers[fractionalDigits];
-        }
-
-        if (negative) value = -value;
+        value = new decimal(
+            unchecked((int)(uint)significand),
+            unchecked((int)(uint)(significand >> 32)),
+            0,
+            negative,
+            (byte)fractionalDigits);
         return true;
     }
 
     private static bool TryParseDefaultInvariantDateTime(ReadOnlySpan<char> text, out DateTime dateTime)
     {
         dateTime = default;
+        // This is the round-trip format emitted by CsvSaveOptions for UTC and
+        // unspecified DateTime values. Offset-bearing local values deliberately
+        // retain the framework fallback so RoundtripKind semantics stay authoritative.
+        if ((text.Length == 27 || text.Length == 28) &&
+            text[4] == '-' &&
+            text[7] == '-' &&
+            text[10] == 'T' &&
+            text[13] == ':' &&
+            text[16] == ':' &&
+            text[19] == '.' &&
+            (text.Length == 27 || text[27] == 'Z') &&
+            TryParseFourDigits(text, 0, out var roundTripYear) &&
+            TryParseTwoDigits(text, 5, out var roundTripMonth) &&
+            TryParseTwoDigits(text, 8, out var roundTripDay) &&
+            TryParseTwoDigits(text, 11, out var roundTripHour) &&
+            TryParseTwoDigits(text, 14, out var roundTripMinute) &&
+            TryParseTwoDigits(text, 17, out var roundTripSecond) &&
+            TryParseSevenDigits(text, 20, out var fractionalTicks))
+        {
+            try
+            {
+                var kind = text.Length == 28 ? DateTimeKind.Utc : DateTimeKind.Unspecified;
+                dateTime = new DateTime(
+                    roundTripYear,
+                    roundTripMonth,
+                    roundTripDay,
+                    roundTripHour,
+                    roundTripMinute,
+                    roundTripSecond,
+                    kind).AddTicks(fractionalTicks);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                dateTime = default;
+                return false;
+            }
+        }
+
         if (text.Length == 10 &&
             text[4] == '-' &&
             text[7] == '-' &&
@@ -323,6 +361,24 @@ internal static partial class CsvDataProjectionConverter
             var digit = text[offset + i] - '0';
             if ((uint)digit > 9)
             {
+                return false;
+            }
+
+            value = (value * 10) + digit;
+        }
+
+        return true;
+    }
+
+    private static bool TryParseSevenDigits(ReadOnlySpan<char> text, int offset, out long value)
+    {
+        value = 0;
+        for (var index = 0; index < 7; index++)
+        {
+            var digit = text[offset + index] - '0';
+            if ((uint)digit > 9)
+            {
+                value = 0;
                 return false;
             }
 

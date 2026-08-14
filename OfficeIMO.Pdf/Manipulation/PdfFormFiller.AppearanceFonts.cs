@@ -266,8 +266,9 @@ internal static partial class PdfFormFiller {
         return true;
     }
 
-    private sealed class TextAppearanceFontPlan {
+    internal sealed class TextAppearanceFontPlan {
         private readonly Action<Dictionary<int, PdfIndirectObject>, TextAppearanceFontPlan>? _materialize;
+        private bool _isMaterialized;
 
         public TextAppearanceFontPlan(
             string fontResourceName,
@@ -299,7 +300,9 @@ internal static partial class PdfFormFiller {
         public Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? EncodeTextSegments { get; }
 
         public void Materialize(Dictionary<int, PdfIndirectObject> objects) {
+            if (_isMaterialized) return;
             _materialize?.Invoke(objects, this);
+            _isMaterialized = true;
         }
     }
 }

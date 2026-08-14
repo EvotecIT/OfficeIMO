@@ -58,6 +58,30 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        internal ExcelSheet? GetOrCreateDeferredDirectTabularSheet(string worksheetName) {
+            if (string.IsNullOrEmpty(worksheetName)) throw new ArgumentException("Worksheet name is required.", nameof(worksheetName));
+
+            return Locking.ExecuteWrite(EnsureLock(), () => {
+                List<ExcelSheet> sheets = GetSheetsForLockedOperation();
+                if (sheets.Count != 0) {
+                    return sheets.Count == 1
+                        && string.Equals(sheets[0].Name, worksheetName, StringComparison.Ordinal)
+                        ? sheets[0]
+                        : null;
+                }
+
+                if (!HasDeferredDirectDataSetImport) {
+                    return null;
+                }
+
+                EnsureSheetCacheInitialized(_lock);
+                var sheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, worksheetName);
+                _sheetCacheDirty = true;
+                _cachedSheets = null;
+                return sheet;
+            });
+        }
+
         internal void RenameWorksheet(ExcelSheet sheet, string worksheetName, ExcelSheetNameValidationMode validationMode) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 

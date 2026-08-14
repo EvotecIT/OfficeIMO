@@ -38,6 +38,27 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGeneratedContent_ContainerQueriesSeeTheOriginatingElementContainer() {
+        const string html = """
+            <style>
+              .card { container-type:inline-size; width:160px; }
+              .outer { container-type:inline-size; width:80px; }
+              @container (width > 100px) { .card::before { content:"ContainerBefore"; color:red; } }
+            </style>
+            <section class="outer"><div class="card">Body</div></section>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 240D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderText generated = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Source == "div.card::before");
+        Assert.Equal("ContainerBefore", generated.Text);
+        Assert.Equal(OfficeColor.Red, generated.Color);
+    }
+
+    [Fact]
     public void HtmlGeneratedContent_UsesCascadeSpecificityImportantAndLegacyPseudoSyntax() {
         const string html = """
             <style>
@@ -198,7 +219,7 @@ public sealed partial class HtmlRenderingTests {
             <style>
               .declaration { --bad-counter:chapter 1 2; counter-reset:var(--bad-counter); }
               .declaration::before { content:counter(chapter) " "; }
-              .style { --bad-content:counter(chapter, symbols("*")); }
+              .style { --bad-content:counter(chapter, symbols(additive "*")); }
               .style::before { content:var(--bad-content); }
             </style>
             <p class="declaration">DeclarationFallback</p><p class="style">StyleFallback</p>
@@ -211,6 +232,77 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.declaration::before" && text.Text == "0 ");
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.style::before");
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported, out _));
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_HonorsAuthoredOverridesOfPredefinedCounterStyles() {
+        const string html = """
+            <style>
+              @counter-style decimal { system:cyclic; symbols:"X"; }
+              body { counter-reset:item; }
+              p::before { counter-increment:item; content:counter(item, decimal) " "; }
+            </style>
+            <p>Body</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p::before" && text.Text == "X ");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_FormatsSymbolsFunctionsThroughTheSharedCounterOwner() {
+        const string html = """
+            <style>
+              body { counter-reset:item 4; }
+              .cyclic { --marker:counter(item, symbols(cyclic "①" "②" "③")) " "; }
+              .numeric { --marker:counter(item, symbols(numeric "0" "1")) " "; }
+              .alphabetic { --marker:counter(item, symbols(alphabetic "A" "B")) " "; }
+              .symbolic { --marker:counter(item, symbols("*" "†")) " "; }
+              p::before { counter-increment:item; content:var(--marker); }
+            </style>
+            <p class="cyclic">Cyclic</p><p class="numeric">Numeric</p>
+            <p class="alphabetic">Alphabetic</p><p class="symbolic">Symbolic</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        string text = rendered.Text;
+
+        Assert.Contains("② ", text, StringComparison.Ordinal);
+        Assert.Contains("110 ", text, StringComparison.Ordinal);
+        Assert.Contains("AAA ", text, StringComparison.Ordinal);
+        Assert.Contains("†††† ", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGeneratedContent_FormatsNamedAdditiveStylesAndRangeFallbacks() {
+        const string html = """
+            <style>
+              @counter-style tally {
+                system:additive;
+                additive-symbols:5 "V", 1 "I";
+                range:1 9;
+                fallback:decimal;
+              }
+              body { counter-reset:item 6 overflow 10; }
+              .tally::before { counter-increment:item; content:counter(item, tally) " "; }
+              .fallback::before { counter-increment:overflow; content:counter(overflow, tally) " "; }
+            </style>
+            <p class="tally">Tally</p><p class="fallback">Fallback</p>
+            """;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "p.tally::before" && text.Text == "VII ");
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Source == "p.fallback::before" && text.Text == "11 ");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
     }
 
     [Fact]

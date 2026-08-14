@@ -14,7 +14,7 @@ The machine-readable [`pdf-conversion-scenarios.json`](pdf-conversion-scenarios.
 
 ## Public workflow
 
-- `PdfDocument.Create(pdf => ...)` is the normal authoring entry point. `Compose(...)` appends through the same closed builder model; flow authoring is not duplicated on the root document.
+- `PdfDocument.Create(pdf => ...)` is the normal authoring entry point. `Compose(...)` appends through the same closed builder model; flow authoring is not duplicated on the root document. Incremental hosts can use `compose.Settings(...)` for the document-owned `PdfOptions` snapshot and `compose.Defaults(...)` for top-level page defaults without introducing a page boundary.
 - `PdfDocument.Open(...)` is the normal read, inspect, and processing entry point.
 - `PdfDocument.Read`, `Pages`, `Forms`, `Attachments`, `Bookmarks`, `Annotations`, `Stamp`, `Security`, `Redactions`, `Optimization`, and `Proof` expose focused workflow surfaces.
 - `PdfDocument.Preflight(...)` provides non-throwing readiness and security evidence before a workflow is selected.
@@ -74,7 +74,7 @@ readback, and loss-aware format adapters. The remaining gap is mostly depth and
 producer fidelity rather than a missing second API for the same operation.
 
 The highest-value open areas are tracked in [ROADMAP.md](ROADMAP.md): difficult
-Type 3 and color/pattern/transparency rendering, broader native Office layout,
+remaining difficult Type 3 programs and color/pattern/transparency rendering, broader native Office layout,
 externally proven standards and producer corpora, stronger hybrid editable
 PDF-to-Office reconstruction, and optional provider packages for capabilities
 that should not become core runtime dependencies. Browser JavaScript, TeX

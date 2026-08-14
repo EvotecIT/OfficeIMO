@@ -4,10 +4,12 @@ internal static partial class PdfFormFiller {
     private readonly struct ChoiceFillValue {
         public string ExportValue { get; }
         public string DisplayValue { get; }
+        public int? OptionIndex { get; }
 
-        public ChoiceFillValue(string exportValue, string displayValue) {
+        public ChoiceFillValue(string exportValue, string displayValue, int? optionIndex) {
             ExportValue = exportValue;
             DisplayValue = displayValue;
+            OptionIndex = optionIndex;
         }
     }
 
@@ -38,7 +40,7 @@ internal static partial class PdfFormFiller {
                     pairExportValue is not null &&
                     TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
                     pairDisplayText is not null) {
-                    var choice = new ChoiceFillValue(pairExportValue, pairDisplayText);
+                    var choice = new ChoiceFillValue(pairExportValue, pairDisplayText, i);
                     AddIfMissing(byExportValue, pairExportValue, choice);
                     AddIfMissing(displayByExportValue, pairExportValue, pairDisplayText);
                     AddIfMissing(byDisplayValue, pairDisplayText, choice);
@@ -48,7 +50,7 @@ internal static partial class PdfFormFiller {
                 if (optionObject is not null &&
                     TryReadOptionText(objects, optionObject, out string? singleValue) &&
                     singleValue is not null) {
-                    var choice = new ChoiceFillValue(singleValue, singleValue);
+                    var choice = new ChoiceFillValue(singleValue, singleValue, i);
                     AddIfMissing(byExportValue, singleValue, choice);
                     AddIfMissing(displayByExportValue, singleValue, singleValue);
                 }
@@ -171,11 +173,24 @@ internal static partial class PdfFormFiller {
 
         for (int i = 0; i < values.Count; i++) {
             resolved.Add(optionLookup is null
-                ? new ChoiceFillValue(values[i], values[i])
+                ? new ChoiceFillValue(values[i], values[i], null)
                 : ResolveChoiceFillValue(optionLookup, isEditableChoice, values[i]));
         }
 
         return resolved;
+    }
+
+    private static bool TryResolveChoiceOption(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray? options,
+        string value,
+        out ChoiceFillValue fillValue) {
+        if (options is not null && options.Items.Count > 0) {
+            return ChoiceOptionLookup.Create(objects, options).TryResolveFillValue(value, out fillValue);
+        }
+
+        fillValue = default;
+        return false;
     }
 
     private static ChoiceFillValue ResolveChoiceFillValue(ChoiceOptionLookup optionLookup, bool isEditableChoice, string value) {
@@ -184,7 +199,7 @@ internal static partial class PdfFormFiller {
         }
 
         if (isEditableChoice) {
-            return new ChoiceFillValue(value, value);
+            return new ChoiceFillValue(value, value, null);
         }
 
         throw new ArgumentException("PDF choice field value does not match an available option: " + value, nameof(value));

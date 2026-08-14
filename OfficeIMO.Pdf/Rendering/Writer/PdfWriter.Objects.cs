@@ -129,6 +129,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.HashSet<PdfNamedFontFace> UsedNamedFonts { get; } = new();
             public int? StructParentIndex { get; set; }
             public int NextMarkedContentId { get; set; }
+            public int NextInlineImageTokenId { get; set; }
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
@@ -138,6 +139,9 @@ internal static partial class PdfWriter {
 
         public void Dispose() => _contentStore.Dispose();
     }
+
+    private static string AllocateInlineImageDrawToken(LayoutResult.Page page) =>
+        "\n%OIMO_INLINE_IMAGE_" + (++page.NextInlineImageTokenId).ToString("D6", System.Globalization.CultureInfo.InvariantCulture) + "\n";
 
     private sealed class LinkAnnotation {
         public double X1 { get; set; }
@@ -200,16 +204,65 @@ internal static partial class PdfWriter {
         public FormFieldAnnotationKind Kind { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
+        public string? AppearanceValue { get; set; }
+        public PdfFormFieldStyle? AppearanceStyle { get; set; }
         public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
         public double FontSize { get; set; }
         public bool IsChecked { get; set; }
         public string CheckedValueName { get; set; } = "Yes";
+        public string ExportValue { get; set; } = string.Empty;
         public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
+        public string[] ExportValues { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<PdfFormFieldOption> ChoiceOptions { get; set; } = Array.Empty<PdfFormFieldOption>();
+        public IReadOnlyList<int> SelectedIndices { get; set; } = Array.Empty<int>();
         public double ButtonSize { get; set; }
         public double ButtonGap { get; set; }
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
+        public int? StructureParentElementIndex { get; set; }
+        public System.Collections.Generic.List<RadioButtonWidgetAnnotation> RadioWidgets { get; } = new();
+    }
+
+    private static string ResolveChoiceAppearanceValue(FormFieldAnnotation field) {
+        IReadOnlyList<string> selectedValues = field.Values.Count > 0 ? field.Values : new[] { field.Value };
+        if (field.ChoiceOptions.Count == 0) return string.Join(", ", selectedValues);
+        if (field.SelectedIndices.Count == selectedValues.Count && field.SelectedIndices.Count > 0) {
+            return string.Join(", ", field.SelectedIndices.Select(index =>
+                index >= 0 && index < field.ChoiceOptions.Count ? field.ChoiceOptions[index].DisplayText : selectedValues[0]));
+        }
+        return string.Join(", ", selectedValues.Select(value =>
+            field.ChoiceOptions.FirstOrDefault(option => string.Equals(option.ExportValue, value, StringComparison.Ordinal))?.DisplayText ?? value));
+    }
+
+    private sealed class RadioButtonWidgetAnnotation {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string Option { get; set; } = string.Empty;
+        public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public int? StructureParentElementIndex { get; set; }
+    }
+
+    private sealed class PositionedRadioButtonSerializationPlan {
+        public int ParentFieldId { get; set; }
+        public string Value { get; set; } = "Off";
+        public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public System.Collections.Generic.List<string> Options { get; } = new();
+        public System.Collections.Generic.List<string> ExportValues { get; } = new();
+        public System.Collections.Generic.List<int> WidgetObjectIds { get; } = new();
+    }
+
+    private static System.Collections.Generic.Dictionary<string, string> ResolvePositionedRadioButtonValues(
+        IEnumerable<FormFieldAnnotation> fields) {
+        var values = new System.Collections.Generic.Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (FormFieldAnnotation field in fields) {
+            if (field.Kind != FormFieldAnnotationKind.RadioButtonGroup || field.RadioWidgets.Count == 0) continue;
+            if (!values.ContainsKey(field.Name)) values[field.Name] = "Off";
+            if (!string.Equals(field.Value, "Off", StringComparison.Ordinal)) values[field.Name] = field.Value;
+        }
+        return values;
     }
 
     private sealed class AnnotationStructureReference {
@@ -223,6 +276,46 @@ internal static partial class PdfWriter {
         CheckBox,
         Choice,
         RadioButtonGroup
+    }
+
+    private static void CoalescePositionedRadioButtonFields(System.Collections.Generic.List<FormFieldAnnotation> fields) {
+        var groups = new System.Collections.Generic.Dictionary<string, FormFieldAnnotation>(StringComparer.Ordinal);
+        for (int index = 0; index < fields.Count; index++) {
+            FormFieldAnnotation candidate = fields[index];
+            if (candidate.Kind != FormFieldAnnotationKind.RadioButtonGroup || candidate.RadioWidgets.Count == 0) continue;
+            if (!groups.TryGetValue(candidate.Name, out FormFieldAnnotation? group)) {
+                groups[candidate.Name] = candidate;
+                continue;
+            }
+
+            ValidateCompatibleRadioFieldStyle(group.Style, candidate.Style, candidate.Name);
+            RadioButtonWidgetAnnotation next = candidate.RadioWidgets[0];
+            string option = candidate.Options[0];
+            if (group.Options.Contains(option, StringComparer.Ordinal)) {
+                throw new ArgumentException("Canvas radio button options must be unique within one field name.");
+            }
+            group.Options = group.Options.Concat(candidate.Options).ToArray();
+            group.ExportValues = group.ExportValues.Concat(candidate.ExportValues).ToArray();
+            group.RadioWidgets.Add(next);
+            if (candidate.Style.IsRequired) group.Style.IsRequired = true;
+            if (!string.Equals(candidate.Value, "Off", StringComparison.Ordinal)) group.Value = candidate.Value;
+            group.X1 = Math.Min(group.X1, candidate.X1);
+            group.Y1 = Math.Min(group.Y1, candidate.Y1);
+            group.X2 = Math.Max(group.X2, candidate.X2);
+            group.Y2 = Math.Max(group.Y2, candidate.Y2);
+            fields.RemoveAt(index);
+            index--;
+        }
+    }
+
+    private static void ValidateCompatibleRadioFieldStyle(PdfFormFieldStyle established, PdfFormFieldStyle candidate, string fieldName) {
+        if (established.IsReadOnly == candidate.IsReadOnly
+            && established.IsNoExport == candidate.IsNoExport) {
+            return;
+        }
+
+        throw new ArgumentException(
+            "Canvas radio widgets sharing field name '" + fieldName + "' must use consistent read-only and no-export settings.");
     }
 
     private sealed class PageBookmark {
@@ -316,6 +409,12 @@ internal static partial class PdfWriter {
         public string? GraphicsStateName { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
+        public double BoundsLeft { get; set; }
+        public double BoundsBottom { get; set; }
+        public double BoundsRight { get; set; }
+        public double BoundsTop { get; set; }
+        public int? StructParentIndex { get; set; }
+        public System.Collections.Generic.List<int> MarkedContentIds { get; } = new();
     }
 
     private sealed class OutlineNode {
@@ -335,6 +434,10 @@ internal static partial class PdfWriter {
         public double Y { get; set; }
         public double W { get; set; }
         public double H { get; set; }
+        public double? EffectiveX { get; set; }
+        public double? EffectiveY { get; set; }
+        public double? EffectiveW { get; set; }
+        public double? EffectiveH { get; set; }
         public OfficeClipPath? ClipPath { get; set; }
         public double ClipX { get; set; }
         public double ClipY { get; set; }
@@ -345,11 +448,14 @@ internal static partial class PdfWriter {
         public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
+        public double? RotationCenterX { get; set; }
+        public double? RotationCenterY { get; set; }
         public bool HorizontalFlip { get; set; }
         public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
         public bool SuppressAccessibilityWrapper { get; set; }
+        public int? StructureParentElementIndex { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }

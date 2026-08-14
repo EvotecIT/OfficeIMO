@@ -27,6 +27,19 @@ public static partial class OfficeDrawingRasterRenderer {
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a finite positive number.");
         }
+        if (options.MaximumRasterPixels <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaximumRasterPixels), "Maximum raster pixels must be positive.");
+        }
+
+        _ = OfficeRasterExportPlanner.Resolve(
+            drawing.Width,
+            drawing.Height,
+            OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions {
+                Scale = scale,
+                MaximumRasterPixels = options.MaximumRasterPixels,
+                RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            });
 
         int width = Math.Max(1, (int)Math.Ceiling(drawing.Width * scale));
         int height = Math.Max(1, (int)Math.Ceiling(drawing.Height * scale));
@@ -40,7 +53,7 @@ public static partial class OfficeDrawingRasterRenderer {
             diagnosticSink: options.DiagnosticSink,
             diagnosticSource: options.DiagnosticSource,
             cancellationToken: options.CancellationToken);
-        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec, options.CancellationToken);
+        RenderElements(canvas, drawing.Elements, scale, options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken);
 
         return image;
     }
@@ -50,6 +63,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IEnumerable<OfficeDrawingElement> elements,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDrawingElement element in elements) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -60,15 +74,15 @@ public static partial class OfficeDrawingRasterRenderer {
             } else if (element is OfficeDrawingRichText richText) {
                 RenderRichText(canvas, richText, scale);
             } else if (element is OfficeDrawingImage drawingImage) {
-                RenderImage(canvas, drawingImage, scale, imageCodec, cancellationToken);
+                RenderImage(canvas, drawingImage, scale, imageCodec, maximumRasterPixels, cancellationToken);
             } else if (element is OfficeDrawingImagePattern imagePattern) {
-                RenderImagePattern(canvas, imagePattern, scale, imageCodec, cancellationToken);
+                RenderImagePattern(canvas, imagePattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
             } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, cancellationToken);
+                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
             } else if (element is OfficeDrawingGroup drawingGroup) {
-                RenderGroup(canvas, drawingGroup, scale, imageCodec, cancellationToken);
+                RenderGroup(canvas, drawingGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                RenderEffectGroup(canvas, effectGroup, scale, imageCodec, cancellationToken);
+                RenderEffectGroup(canvas, effectGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
             }
         }
     }
@@ -87,6 +101,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingGroup drawingGroup,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
@@ -100,7 +115,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 translated.AddDrawingForClippedRendering(drawingGroup.InnerDrawing, contentX, contentY, null);
             }
 
-            RenderElements(canvas, translated.Elements, scale, imageCodec, cancellationToken);
+            RenderElements(canvas, translated.Elements, scale, imageCodec, maximumRasterPixels, cancellationToken);
         }
     }
 
@@ -416,6 +431,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingImage drawingImage,
         double scale,
         IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,
@@ -427,6 +443,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.TextShapingLanguage,
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
+                maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) &&
             image != null) {
@@ -434,7 +451,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 image = ApplyImageOpacity(image, drawingImage.Opacity);
             }
 
-            canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
+            canvas.DrawImage(image, drawingImage.Projection.Scale(scale), drawingImage.Interpolate);
         }
     }
 
@@ -448,9 +465,10 @@ public static partial class OfficeDrawingRasterRenderer {
         string? textShapingLanguage,
         ICollection<OfficeImageExportDiagnostic>? diagnosticSink,
         string? diagnosticSource,
+        long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
-        if (OfficeRasterImageDecoder.TryDecode(bytes, out image) && image != null) return true;
+        if (OfficeRasterImageDecoder.TryDecode(bytes, maximumRasterPixels, out image) && image != null) return true;
         if (IsSvg(bytes, contentType) &&
             OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
             vector != null &&
@@ -465,11 +483,17 @@ public static partial class OfficeDrawingRasterRenderer {
                 TextShapingLanguage = textShapingLanguage,
                 DiagnosticSink = diagnosticSink,
                 DiagnosticSource = diagnosticSource,
+                MaximumRasterPixels = maximumRasterPixels,
                 CancellationToken = cancellationToken
             });
             return true;
         }
-        return imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) && image != null;
+        if (imageCodec == null ||
+            !imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) ||
+            image == null) return false;
+        if (OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) return true;
+        image = null;
+        return false;
     }
 
     private static bool IsSvg(byte[] bytes, string? contentType) =>
@@ -1343,49 +1367,46 @@ public static partial class OfficeDrawingRasterRenderer {
                  (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0)));
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
-        OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);
-        if (shadow.BlurRadius <= 0D) {
-            return new[] { coreShadow };
-        }
-
-        const int layers = 4;
-        var shadowShapes = new List<OfficeDrawingShape>(layers + 1);
         double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        for (int i = layers; i >= 1; i--) {
-            double factor = i / (double)layers;
-            double opacity = shadow.Opacity * (0.04D + (layers - i + 1) * 0.05D);
-            shadowShapes.Add(CreateShadowShape(
-                drawingShape,
-                shadow,
-                hasStroke: true,
-                hasFill: hasFill,
-                strokeWidth: Math.Max(1D, baseStrokeWidth + shadow.BlurRadius * 2D * factor),
-                opacity: opacity));
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            shadow.Opacity,
+            shadow.BlurRadius,
+            baseStrokeWidth,
+            hasFill,
+            hasStroke,
+            OfficeShadowLayerPlanner.CanExpand(shape));
+        var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int index = 0; index < layers.Count; index++) {
+            OfficeShadowLayer layer = layers[index];
+            shadowShapes.Add(CreateShadowShape(drawingShape, shadow, layer));
         }
-
-        shadowShapes.Add(coreShadow);
         return shadowShapes;
     }
 
-    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, bool hasStroke, bool hasFill, double strokeWidth, double opacity) {
+    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        OfficeShape shadowShape = shape.Clone();
+        OfficeShape shadowShape = layer.Expansion > 0D
+            ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+            : shape.Clone();
         shadowShape.Shadow = null;
         shadowShape.Glow = null;
         shadowShape.FillGradient = null;
         shadowShape.FillRadialGradient = null;
-        shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
-        shadowShape.FillOpacity = opacity;
-        shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.FillColor = layer.HasFill || !layer.HasStroke ? shadow.Color : null;
+        shadowShape.FillOpacity = layer.Opacity;
+        shadowShape.StrokeColor = layer.HasStroke ? shadow.Color : null;
         shadowShape.StrokeGradient = null;
         shadowShape.StrokeRadialGradient = null;
-        shadowShape.StrokeWidth = strokeWidth;
+        shadowShape.StrokeWidth = layer.StrokeWidth;
         shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
         shadowShape.StrokeStartMarker = null;
         shadowShape.StrokeEndMarker = null;
-        shadowShape.StrokeOpacity = opacity;
+        shadowShape.StrokeOpacity = layer.Opacity;
 
-        return CreateOffsetEffectShape(shadowShape, drawingShape.X + shadow.OffsetX, drawingShape.Y + shadow.OffsetY);
+        return CreateOffsetEffectShape(
+            shadowShape,
+            drawingShape.X + shadow.OffsetX - layer.Expansion,
+            drawingShape.Y + shadow.OffsetY - layer.Expansion);
     }
 
     private static OfficeDrawingShape CreateOffsetEffectShape(OfficeShape shape, double x, double y) {

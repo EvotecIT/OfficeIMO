@@ -16,7 +16,19 @@
       "operation": "verify",
       "siteConfig": "./site.json",
       "warmupRequests": 1,
-      "allowStatuses": "HIT,REVALIDATED,EXPIRED,STALE,DYNAMIC",
+      "paths": [
+        "/",
+        "/api/",
+        "/api/word/",
+        "/api/word/index.json",
+        "/agents.json",
+        "/.well-known/api-catalog",
+        "/apps/officeimo-converter/",
+        "/apps/officeimo-converter/converter.css"
+      ],
+      "discoverAssetsFrom": "/apps/officeimo-converter/",
+      "assetPathPatterns": "/apps/officeimo-converter/_framework/blazor.webassembly.*.js",
+      "allowStatuses": "HIT,REVALIDATED,EXPIRED,STALE",
       "reportPath": "./_reports/cloudflare-cache.json",
       "summaryPath": "./_reports/cloudflare-cache.md"
     }

@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly double[] _numbers;
         private readonly bool[] _booleans;
         private readonly string?[] _strings;
+        private readonly Type[] _columnTypes;
+        private readonly List<LegacyXlsBufferedRow>? _schemaRows;
         private readonly int _firstColumn;
         private readonly int _firstDataRow;
         private readonly int _lastDataRow;
@@ -34,6 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _bufferedWorksheetEndOffset;
         private int _position;
         private int _nextRow;
+        private int _schemaRowIndex;
         private int _recordsSinceCancellationCheck;
         private bool _hasCurrentRow;
         private bool _closed;
@@ -101,6 +104,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 _numbers = new double[fieldCount];
                 _booleans = new bool[fieldCount];
                 _strings = new string?[fieldCount];
+                _columnTypes = CreateObjectColumnTypes(fieldCount);
+                _schemaRows = _options.InferSchema
+                    ? BufferSchemaRows()
+                    : null;
             } catch {
                 if (bufferedRowOffsets != null) {
                     ArrayPool<int>.Shared.Return(bufferedRowOffsets);
@@ -121,6 +128,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ThrowIfClosed();
             _cancellationToken.ThrowIfCancellationRequested();
             _hasCurrentRow = false;
+            if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                _hasCurrentRow = true;
+                return true;
+            }
+
+            return ReadSourceRow();
+        }
+
+        private bool ReadSourceRow() {
             if (_nextRow < 0 || _nextRow > _lastDataRow) return false;
 
             Array.Clear(_kinds, 0, _kinds.Length);

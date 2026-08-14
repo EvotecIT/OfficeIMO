@@ -57,7 +57,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -73,6 +73,7 @@ public sealed class PdfFormField {
         DefaultAppearance = defaultAppearance;
         Quadding = quadding;
         Options = options ?? Array.Empty<PdfFormFieldOption>();
+        SelectedIndices = selectedIndices ?? Array.Empty<int>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
     }
 
@@ -181,14 +182,19 @@ public sealed class PdfFormField {
     /// <summary>True when at least one choice option was readable.</summary>
     public bool HasOptions => Options.Count > 0;
 
-    /// <summary>Readable choice options whose export value matches the field value list.</summary>
+    /// <summary>Zero-based selected choice-option indices from /I, when readable.</summary>
+    public IReadOnlyList<int> SelectedIndices { get; }
+
+    /// <summary>Readable choice options identified by /I or, when absent, whose export value matches the field value list.</summary>
     public IReadOnlyList<PdfFormFieldOption> SelectedOptions {
         get {
             if (_selectedOptions is not null) {
                 return _selectedOptions;
             }
 
-            _selectedOptions = GetMatchingOptions(Values, Options);
+            _selectedOptions = TryGetIndexedOptions(SelectedIndices, Values, Options, out IReadOnlyList<PdfFormFieldOption>? indexedOptions)
+                ? indexedOptions
+                : GetMatchingOptions(Values, Options);
             return _selectedOptions;
         }
     }
@@ -295,6 +301,25 @@ public sealed class PdfFormField {
     /// <summary>True when at least one widget annotation was associated with this field.</summary>
     public bool HasWidgets => Widgets.Count > 0;
 
+    /// <summary>First readable JavaScript source attached to one of this field's widgets, when present.</summary>
+    public string? JavaScript {
+        get {
+            for (int widgetIndex = 0; widgetIndex < Widgets.Count; widgetIndex++) {
+                IReadOnlyList<PdfFormWidgetAction> actions = Widgets[widgetIndex].Actions;
+                for (int actionIndex = 0; actionIndex < actions.Count; actionIndex++) {
+                    if (actions[actionIndex].JavaScript is not null) {
+                        return actions[actionIndex].JavaScript;
+                    }
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>True when at least one widget exposes a readable JavaScript action.</summary>
+    public bool HasJavaScript => JavaScript is not null;
+
     /// <summary>Distinct one-based page numbers where this field has readable widget annotations.</summary>
     public IReadOnlyList<int> PageNumbers {
         get {
@@ -392,15 +417,37 @@ public sealed class PdfFormField {
 
         return selected.Count == 0 ? Array.Empty<PdfFormFieldOption>() : selected.AsReadOnly();
     }
+
+    private static bool TryGetIndexedOptions(IReadOnlyList<int> indices, IReadOnlyList<string> values, IReadOnlyList<PdfFormFieldOption> options, out IReadOnlyList<PdfFormFieldOption> selectedOptions) {
+        selectedOptions = Array.Empty<PdfFormFieldOption>();
+        if (indices.Count == 0 || indices.Count != values.Count || options.Count == 0) {
+            return false;
+        }
+
+        var selected = new List<PdfFormFieldOption>(indices.Count);
+        for (int i = 0; i < indices.Count; i++) {
+            int optionIndex = indices[i];
+            if (optionIndex < 0 || optionIndex >= options.Count ||
+                !string.Equals(options[optionIndex].ExportValue, values[i], StringComparison.Ordinal)) {
+                return false;
+            }
+
+            selected.Add(options[optionIndex]);
+        }
+
+        selectedOptions = selected.AsReadOnly();
+        return true;
+    }
 }
 
 /// <summary>
-/// Simple AcroForm choice option read from a field /Opt array.
+/// AcroForm choice option used by generation and read from a field /Opt array.
 /// </summary>
 public sealed class PdfFormFieldOption {
-    internal PdfFormFieldOption(string exportValue, string displayText) {
-        ExportValue = exportValue;
-        DisplayText = displayText;
+    /// <summary>Creates one choice option with separate export and display values.</summary>
+    public PdfFormFieldOption(string exportValue, string displayText) {
+        ExportValue = exportValue ?? throw new ArgumentNullException(nameof(exportValue));
+        DisplayText = displayText ?? throw new ArgumentNullException(nameof(displayText));
     }
 
     /// <summary>Export value used by the form field.</summary>
@@ -428,7 +475,7 @@ public sealed class PdfFormWidget {
     private const int ToggleNoViewFlag = 256;
     private const int LockedContentsFlag = 512;
 
-    internal PdfFormWidget(int? objectNumber, string? fieldName, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null) {
+    internal PdfFormWidget(int? objectNumber, string? fieldName, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null, IReadOnlyList<PdfFormWidgetAction>? actions = null) {
         ObjectNumber = objectNumber;
         FieldName = fieldName;
         PageNumber = pageNumber;
@@ -439,6 +486,9 @@ public sealed class PdfFormWidget {
         AppearanceState = appearanceState;
         Flags = flags;
         NormalAppearanceStates = normalAppearanceStates ?? Array.Empty<string>();
+        Actions = actions is null || actions.Count == 0
+            ? Array.Empty<PdfFormWidgetAction>()
+            : Array.AsReadOnly(actions.ToArray());
     }
 
     /// <summary>Indirect object number for the widget annotation, when known.</summary>
@@ -513,6 +563,31 @@ public sealed class PdfFormWidget {
     /// <summary>True when at least one normal appearance state was readable.</summary>
     public bool HasNormalAppearanceStates => NormalAppearanceStates.Count > 0;
 
+    /// <summary>Primary and additional actions attached to this widget.</summary>
+    public IReadOnlyList<PdfFormWidgetAction> Actions { get; }
+
+    /// <summary>Number of readable primary and additional widget actions.</summary>
+    public int ActionCount => Actions.Count;
+
+    /// <summary>True when at least one primary or additional action is attached to this widget.</summary>
+    public bool HasActions => Actions.Count > 0;
+
+    /// <summary>First readable JavaScript source attached to this widget, when present.</summary>
+    public string? JavaScript {
+        get {
+            for (int i = 0; i < Actions.Count; i++) {
+                if (Actions[i].JavaScript is not null) {
+                    return Actions[i].JavaScript;
+                }
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>True when the widget exposes a readable JavaScript action.</summary>
+    public bool HasJavaScript => JavaScript is not null;
+
     /// <summary>Returns true when the widget exposes a matching normal appearance state name.</summary>
     public bool HasNormalAppearanceState(string state) {
         if (string.IsNullOrEmpty(state)) {
@@ -531,4 +606,38 @@ public sealed class PdfFormWidget {
     private bool HasFlag(int flag) {
         return Flags.HasValue && (Flags.Value & flag) != 0;
     }
+}
+
+/// <summary>Action metadata and safe JavaScript source read from an AcroForm widget.</summary>
+public sealed class PdfFormWidgetAction {
+    internal PdfFormWidgetAction(string triggerName, string actionType, string? javaScript, string? uri, string? payloadFingerprint = null, long javaScriptSourceBytes = 0L) {
+        TriggerName = triggerName;
+        ActionType = actionType;
+        JavaScript = javaScript;
+        Uri = uri;
+        PayloadFingerprint = payloadFingerprint;
+        JavaScriptSourceBytes = javaScriptSourceBytes;
+    }
+
+    /// <summary>PDF action path rooted at A for the primary activation action or an /AA key such as U, D, Fo, or Bl. Chained actions append .Next and an optional array index.</summary>
+    public string TriggerName { get; }
+
+    /// <summary>Action type from the action dictionary /S entry.</summary>
+    public string ActionType { get; }
+
+    /// <summary>Decoded source for a JavaScript action, or null for another action type or unreadable source.</summary>
+    public string? JavaScript { get; }
+
+    /// <summary>Decoded target for a URI action, or null for another action type or unreadable target.</summary>
+    public string? Uri { get; }
+
+    internal string? PayloadFingerprint { get; }
+
+    internal long JavaScriptSourceBytes { get; }
+
+    /// <summary>True when this is the widget's primary /A activation action.</summary>
+    public bool IsPrimary => string.Equals(TriggerName, "A", StringComparison.Ordinal);
+
+    /// <summary>True when this action is a JavaScript action.</summary>
+    public bool IsJavaScript => string.Equals(ActionType, "JavaScript", StringComparison.Ordinal);
 }

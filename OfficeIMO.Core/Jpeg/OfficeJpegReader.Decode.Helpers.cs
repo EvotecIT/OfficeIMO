@@ -714,43 +714,6 @@ internal static partial class OfficeJpegReader {
         return data.Length;
     }
 
-    private static bool TryReadExifOrientation(OfficeByteView data, out int orientation) {
-        orientation = 1;
-        if (data.Length < 6) return false;
-        if (data[0] != (byte)'E' || data[1] != (byte)'x' || data[2] != (byte)'i' || data[3] != (byte)'f' || data[4] != 0 || data[5] != 0) {
-            return false;
-        }
-
-        var tiff = data.Slice(6);
-        if (tiff.Length < 8) return false;
-        var little = tiff[0] == (byte)'I' && tiff[1] == (byte)'I';
-        var big = tiff[0] == (byte)'M' && tiff[1] == (byte)'M';
-        if (!little && !big) return false;
-        if (ReadUInt16(tiff, 2, little) != 0x2A) return false;
-        var ifdOffset = ReadUInt32(tiff, 4, little);
-        if (ifdOffset > (uint)(tiff.Length - 2)) return false;
-        var ifd = tiff.Slice((int)ifdOffset);
-        var count = ReadUInt16(ifd, 0, little);
-        var entriesOffset = 2;
-        for (var i = 0; i < count; i++) {
-            var entryOffset = entriesOffset + i * 12;
-            if (entryOffset + 12 > ifd.Length) break;
-            var tag = ReadUInt16(ifd, entryOffset, little);
-            if (tag != 0x0112) continue;
-            var type = ReadUInt16(ifd, entryOffset + 2, little);
-            var entryCount = ReadUInt32(ifd, entryOffset + 4, little);
-            if (type != 3 || entryCount != 1) break;
-            var value = ReadUInt16(ifd, entryOffset + 8, little);
-            if (value is >= 1 and <= 8) {
-                orientation = value;
-                return true;
-            }
-            break;
-        }
-
-        return false;
-    }
-
     private static bool TryReadAdobeTransform(OfficeByteView data, out int transform) {
         transform = 0;
         if (data.Length < 12) return false;
@@ -759,24 +722,6 @@ internal static partial class OfficeJpegReader {
         }
         transform = data[11];
         return true;
-    }
-
-    private static ushort ReadUInt16(OfficeByteView data, int offset, bool little) {
-        return little
-            ? (ushort)(data[offset] | (data[offset + 1] << 8))
-            : (ushort)((data[offset] << 8) | data[offset + 1]);
-    }
-
-    private static uint ReadUInt32(OfficeByteView data, int offset, bool little) {
-        return little
-            ? (uint)(data[offset]
-                     | (data[offset + 1] << 8)
-                     | (data[offset + 2] << 16)
-                     | (data[offset + 3] << 24))
-            : (uint)((data[offset] << 24)
-                     | (data[offset + 1] << 16)
-                     | (data[offset + 2] << 8)
-                     | data[offset + 3]);
     }
 
     private static byte[] ApplyOrientation(byte[] rgba, ref int width, ref int height, int orientation) {

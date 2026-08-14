@@ -3,6 +3,20 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
+    /// <summary>Updates the generated document settings owned by this document.</summary>
+    internal void ConfigureSettings(System.Action<PdfOptions> configure) {
+        Guard.NotNull(configure, nameof(configure));
+        EnsureGeneratedDocument();
+        configure(_options);
+    }
+
+    /// <summary>Updates document-wide page defaults through the canonical page builder.</summary>
+    internal void ConfigureDefaults(System.Action<PdfPageCompose> configure) {
+        Guard.NotNull(configure, nameof(configure));
+        EnsureGeneratedDocument();
+        configure(new PdfPageCompose(this, _options));
+    }
+
     /// <summary>Adds a level-1 heading.</summary>
     internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));

@@ -300,10 +300,14 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetTableModel(columns, GetBufferedRowsForReuse());
             }
 
-            internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct) {
+            internal static DirectDataSetTableModel Snapshot(DataTable table, CancellationToken ct, bool eagerValueSnapshot = false) {
                 var columns = CreateColumns(table);
                 if (columns.Length == 8) {
-                    return new DirectDataSetTableModel(columns, SnapshotEightColumnRows(table, ct));
+                    return new DirectDataSetTableModel(columns, SnapshotEightColumnRows(table, columns, ct, eagerValueSnapshot));
+                }
+
+                if (eagerValueSnapshot && RequiresEagerValueSnapshot(columns)) {
+                    return new DirectDataSetTableModel(columns, SnapshotRowsWithEagerValues(table, columns.Length, ct));
                 }
 
                 var rows = new object?[table.Rows.Count][];
@@ -326,9 +330,123 @@ namespace OfficeIMO.Excel {
                 return new DirectDataSetTableModel(columns, rows);
             }
 
-            private static object?[][] SnapshotEightColumnRows(DataTable table, CancellationToken ct) {
+            private static bool RequiresEagerValueSnapshot(DirectDataSetColumnModel[] columns) {
+                for (int i = 0; i < columns.Length; i++) {
+                    if (RequiresEagerValueSnapshot(columns[i].DataType)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private static bool RequiresEagerValueSnapshot(Type type)
+                => type == typeof(string)
+                    || (type != typeof(bool)
+                        && type != typeof(DateTime)
+                        && type != typeof(DateTimeOffset)
+                        && type != typeof(TimeSpan)
+                        && type != typeof(double)
+                        && type != typeof(float)
+                        && type != typeof(decimal)
+                        && type != typeof(sbyte)
+                        && type != typeof(byte)
+                        && type != typeof(short)
+                        && type != typeof(ushort)
+                        && type != typeof(int)
+                        && type != typeof(uint)
+                        && type != typeof(long)
+                        && type != typeof(ulong)
+#if NET6_0_OR_GREATER
+                        && type != typeof(DateOnly)
+                        && type != typeof(TimeOnly)
+#endif
+                    );
+
+            private static object?[][] SnapshotRowsWithEagerValues(DataTable table, int columnCount, CancellationToken ct) {
                 var rows = new object?[table.Rows.Count][];
                 bool canCancel = ct.CanBeCanceled;
+                for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    DataRow row = table.Rows[rowIndex];
+                    var values = new object?[columnCount];
+                    for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
+                        values[columnIndex] = SnapshotValueForEagerWrite(row[columnIndex]);
+                    }
+
+                    rows[rowIndex] = values;
+                }
+
+                return rows;
+            }
+
+            private static object? SnapshotValueForEagerWrite(object? value) {
+                switch (value) {
+                    case null:
+                    case DBNull:
+                        return null;
+                    case DirectFormulaCellValue:
+                    case DirectTypedCellValue:
+                    case bool:
+                    case DateTime:
+                    case DateTimeOffset:
+                    case TimeSpan:
+                    case double:
+                    case float:
+                    case decimal:
+                    case sbyte:
+                    case byte:
+                    case short:
+                    case ushort:
+                    case int:
+                    case uint:
+                    case long:
+                    case ulong:
+#if NET6_0_OR_GREATER
+                    case DateOnly:
+                    case TimeOnly:
+#endif
+                        return value;
+                    case string text:
+                        try {
+                            CoerceValueHelper.ValidateSharedStringLength(text, nameof(value));
+                            return text;
+                        } catch (Exception exception) {
+                            throw new DirectTabularValueSnapshotException(exception);
+                        }
+                    default:
+                        try {
+                            string text = value.ToString() ?? string.Empty;
+                            CoerceValueHelper.ValidateSharedStringLength(text, nameof(value));
+                            return text;
+                        } catch (Exception exception) {
+                            throw new DirectTabularValueSnapshotException(exception);
+                        }
+                }
+            }
+
+            private static object?[][] SnapshotEightColumnRows(
+                DataTable table,
+                DirectDataSetColumnModel[] columns,
+                CancellationToken ct,
+                bool eagerValueSnapshot) {
+                var rows = new object?[table.Rows.Count][];
+                bool canCancel = ct.CanBeCanceled;
+                bool eager0 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[0].DataType);
+                bool eager1 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[1].DataType);
+                bool eager2 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[2].DataType);
+                bool eager3 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[3].DataType);
+                bool eager4 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[4].DataType);
+                bool eager5 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[5].DataType);
+                bool eager6 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[6].DataType);
+                bool eager7 = eagerValueSnapshot && RequiresEagerValueSnapshot(columns[7].DataType);
                 for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
                     if (canCancel) {
                         ct.ThrowIfCancellationRequested();
@@ -343,6 +461,14 @@ namespace OfficeIMO.Excel {
                     object? value5 = row[5];
                     object? value6 = row[6];
                     object? value7 = row[7];
+                    if (eager0) value0 = SnapshotValueForEagerWrite(value0);
+                    if (eager1) value1 = SnapshotValueForEagerWrite(value1);
+                    if (eager2) value2 = SnapshotValueForEagerWrite(value2);
+                    if (eager3) value3 = SnapshotValueForEagerWrite(value3);
+                    if (eager4) value4 = SnapshotValueForEagerWrite(value4);
+                    if (eager5) value5 = SnapshotValueForEagerWrite(value5);
+                    if (eager6) value6 = SnapshotValueForEagerWrite(value6);
+                    if (eager7) value7 = SnapshotValueForEagerWrite(value7);
                     rows[rowIndex] = new object?[] {
                         value0 == DBNull.Value ? null : value0,
                         value1 == DBNull.Value ? null : value1,

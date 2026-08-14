@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentHeight += spanner.Height;
         }
 
-        double boxHeight = ResolveBoxHeight(contentHeight, style);
+        double boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();

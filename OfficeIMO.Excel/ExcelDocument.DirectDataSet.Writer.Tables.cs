@@ -7,7 +7,10 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
-            private static void WriteTable(ZipArchive archive, DirectDataSetSheetModel sheet) {
+            private static void WriteTable(
+                ZipArchive archive,
+                DirectDataSetSheetModel sheet,
+                string? range = null) {
                 int columnCount = sheet.Table.ColumnCount;
                 var builder = new StringBuilder(512 + (columnCount * 72));
                 string sheetIndexText = InvariantNumberText.Get(sheet.Index);
@@ -19,13 +22,13 @@ namespace OfficeIMO.Excel {
                 builder.Append("\" displayName=\"");
                 AppendEscaped(builder, sheet.TableName!);
                 builder.Append("\" ref=\"");
-                AppendEscaped(builder, sheet.Range);
+                AppendEscaped(builder, range ?? sheet.Range);
                 builder.Append("\" headerRowCount=\"");
                 builder.Append(sheet.IncludeHeaders ? "1" : "0");
                 builder.Append("\" totalsRowShown=\"0\">");
                 if (sheet.IncludeAutoFilter && sheet.IncludeHeaders) {
                     builder.Append("<autoFilter ref=\"");
-                    AppendEscaped(builder, sheet.Range);
+                    AppendEscaped(builder, range ?? sheet.Range);
                     builder.Append("\"/>");
                 }
 

@@ -4,7 +4,7 @@
     <PackageId>OfficeIMO.OpenDocument.Odt.Pdf</PackageId>
     <AssemblyName>OfficeIMO.OpenDocument.Odt.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.OpenDocument.Odt.Pdf</AssemblyTitle>
-    <VersionPrefix>3.2.1</VersionPrefix>
+    <VersionPrefix>3.2.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

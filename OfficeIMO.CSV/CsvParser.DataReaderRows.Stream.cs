@@ -12,9 +12,9 @@ internal static partial class CsvParser
     /// Pull-based row source over the existing bounded streaming parser. Field spans point at
     /// the reusable line buffer and are materialized only when a caller requests a string.
     /// </summary>
-    internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderTextRowSource, ICsvDataReaderPositionSource
+    internal sealed class CsvStreamDataReaderRowSource : ICsvDataReaderHeaderRowSource, ICsvDataReaderPositionSource
     {
-        private const int LargeDataReaderBufferSize = 512 * 1024;
+        private const int LargeDataReaderBufferSize = 128 * 1024;
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvLoadOptions _options;
@@ -25,13 +25,18 @@ internal static partial class CsvParser
         private readonly Queue<CsvLine> _pendingLines = new();
         private readonly List<string> _quotedFields = new(32);
         private CsvDataReaderStreamRowVisitor _visitor;
-        private int _lineNumber = 1;
+        private readonly int _physicalLineOffset;
+        private int _lineNumber;
         private int _emittedRecordCount;
         private int? _currentPhysicalLineNumber;
         private int? _currentPhysicalEndLineNumber;
         private bool _disposed;
 
-        internal CsvStreamDataReaderRowSource(TextReader reader, CsvLoadOptions options)
+        internal CsvStreamDataReaderRowSource(
+            TextReader reader,
+            CsvLoadOptions options,
+            int initialEmittedRecordCount = 0,
+            int physicalLineOffset = 0)
         {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -41,9 +46,14 @@ internal static partial class CsvParser
             _allowEmpty = options.AllowEmptyLines;
             _lineReader = new CsvLineReader(reader, options.CancellationToken);
             _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
+            _emittedRecordCount = initialEmittedRecordCount;
+            _physicalLineOffset = physicalLineOffset;
+            _lineNumber = physicalLineOffset + 1;
         }
 
         internal int FieldCount => _visitor.FieldCount;
+
+        int ICsvDataReaderHeaderRowSource.FieldCount => _visitor.FieldCount;
 
         int? ICsvDataReaderPositionSource.CurrentPhysicalLineNumber => _currentPhysicalLineNumber;
 
@@ -59,6 +69,9 @@ internal static partial class CsvParser
             _visitor.SetSourceColumnCount(sourceColumnCount);
         }
 
+        void ICsvDataReaderHeaderRowSource.SetSourceColumnCount(int sourceColumnCount) =>
+            SetSourceColumnCount(sourceColumnCount);
+
         public bool Read()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
@@ -71,7 +84,7 @@ internal static partial class CsvParser
                 bool recordStartedFromPendingLine = _pendingLines.Count > 0;
                 int recordStartLineNumber = recordStartedFromPendingLine
                     ? _pendingLines.Peek().PhysicalLineNumber
-                    : _lineReader.PhysicalLineSeparatorsConsumed + 1;
+                    : _physicalLineOffset + _lineReader.PhysicalLineSeparatorsConsumed + 1;
                 string? fastLine = null;
                 string lineSeparator;
                 CsvLineReadResult readResult;
@@ -217,12 +230,16 @@ internal static partial class CsvParser
                 recordStartLineNumber,
                 recordStartedFromPendingLine
                     ? _lineNumber - 1
-                    : Math.Max(_lineNumber - 1, _lineReader.PhysicalLineSeparatorsConsumed));
+                    : Math.Max(
+                        _lineNumber - 1,
+                        _physicalLineOffset + _lineReader.PhysicalLineSeparatorsConsumed));
 
         public ReadOnlySpan<char> GetSpan(int ordinal) => _visitor.GetSpan(ordinal);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public string GetString(int ordinal) => _visitor.GetString(ordinal);
+
+        public bool IsMissing(int ordinal) => _visitor.IsMissing(ordinal);
 
         public bool IsNull(int ordinal, string? nullValue) =>
             nullValue is not null

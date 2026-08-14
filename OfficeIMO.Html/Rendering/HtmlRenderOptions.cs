@@ -51,6 +51,15 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Default line-height multiplier.</summary>
     public double DefaultLineHeight { get; set; } = 1.2D;
 
+    /// <summary>Optional caller-owned dictionary or algorithm used by CSS <c>hyphens:auto</c>.</summary>
+    public OfficeTextHyphenationCallback? TextHyphenationCallback { get; set; }
+
+    /// <summary>Uses or clears a shared immutable hyphenation lexicon for CSS <c>hyphens:auto</c>.</summary>
+    public HtmlRenderOptions UseTextHyphenationLexicon(OfficeTextHyphenationLexicon? lexicon) {
+        TextHyphenationCallback = lexicon?.AsCallback();
+        return this;
+    }
+
     /// <summary>Deterministic device and user-preference values exposed to CSS media queries.</summary>
     public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();
 
@@ -135,6 +144,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
     public int MaxGradientStops { get; set; } = 64;
 
+    /// <summary>Uniform vector quality segments used when expanding one conic gradient.</summary>
+    public int ConicGradientQualitySegments { get; set; } = 360;
+
     /// <summary>Maximum explicit or implicit tracks accepted on either grid axis.</summary>
     public int MaxGridTracks { get; set; } = 256;
 
@@ -180,6 +192,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.DefaultFontFamily = DefaultFontFamily;
         target.DefaultFontSize = DefaultFontSize;
         target.DefaultLineHeight = DefaultLineHeight;
+        target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();
         target._additionalStylesheets.AddRange(_additionalStylesheets);
@@ -205,6 +218,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
         target.MaxBoxShadowLayers = MaxBoxShadowLayers;
         target.MaxGradientStops = MaxGradientStops;
+        target.ConicGradientQualitySegments = ConicGradientQualitySegments;
         target.MaxGridTracks = MaxGridTracks;
         target.MaxColumnCount = MaxColumnCount;
         target.MaxTableRows = MaxTableRows;
@@ -273,6 +287,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxGradientStops < 2) {
             throw new ArgumentOutOfRangeException(nameof(MaxGradientStops), "Maximum gradient stop count must be at least two.");
+        }
+        if (ConicGradientQualitySegments < 12 || ConicGradientQualitySegments > 4096) {
+            throw new ArgumentOutOfRangeException(nameof(ConicGradientQualitySegments), "Conic gradient quality must be between 12 and 4096 segments.");
         }
         if (MaxGridTracks <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxGridTracks), "Maximum grid track count must be positive.");

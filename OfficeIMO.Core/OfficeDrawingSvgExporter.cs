@@ -113,7 +113,9 @@ public static partial class OfficeDrawingSvgExporter {
         string idPrefix,
         ref int gradientId,
         ref int clipPathId,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        SvgTilingExpansionBudget tilingExpansionBudget,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         for (int i = 0; i < elements.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             switch (elements[i]) {
@@ -154,25 +156,25 @@ public static partial class OfficeDrawingSvgExporter {
                     string? imageClipPathId = drawingImage.Projection.HasCrop
                         ? idPrefix + "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
-                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec);
+                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
-                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingGroup drawingGroup:
-                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendGroup(sb, drawingGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
-                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+                    AppendEffectGroup(sb, effectGroup, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                     break;
             }
         }
     }
 
-    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken) {
+    private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         string groupClipPathId = idPrefix + "officeimo-group-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
         AppendClipPathDefinition(sb, groupClipPathId, drawingGroup.ClipPath);
         string transform = BuildGroupTransformAttribute(drawingGroup);
@@ -188,7 +190,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append(Format(drawingGroup.ContentOffsetY))
                 .Append(")\">");
         }
-        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken);
+        AppendElements(sb, drawingGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         if (hasContentOffset) sb.Append("</g>");
         sb.Append("</g>");
     }
@@ -304,49 +306,46 @@ public static partial class OfficeDrawingSvgExporter {
                  (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0)));
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
-        OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);
-        if (shadow.BlurRadius <= 0D) {
-            return new[] { coreShadow };
-        }
-
-        const int layers = 4;
-        var shadowShapes = new List<OfficeDrawingShape>(layers + 1);
         double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        for (int i = layers; i >= 1; i--) {
-            double factor = i / (double)layers;
-            double opacity = shadow.Opacity * (0.04D + (layers - i + 1) * 0.05D);
-            shadowShapes.Add(CreateShadowShape(
-                drawingShape,
-                shadow,
-                hasStroke: true,
-                hasFill: hasFill,
-                strokeWidth: Math.Max(1D, baseStrokeWidth + shadow.BlurRadius * 2D * factor),
-                opacity: opacity));
+        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+            shadow.Opacity,
+            shadow.BlurRadius,
+            baseStrokeWidth,
+            hasFill,
+            hasStroke,
+            OfficeShadowLayerPlanner.CanExpand(shape));
+        var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int index = 0; index < layers.Count; index++) {
+            OfficeShadowLayer layer = layers[index];
+            shadowShapes.Add(CreateShadowShape(drawingShape, shadow, layer));
         }
-
-        shadowShapes.Add(coreShadow);
         return shadowShapes;
     }
 
-    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, bool hasStroke, bool hasFill, double strokeWidth, double opacity) {
+    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {
         OfficeShape shape = drawingShape.Shape;
-        var shadowShape = shape.Clone();
+        OfficeShape shadowShape = layer.Expansion > 0D
+            ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+            : shape.Clone();
         shadowShape.Shadow = null;
         shadowShape.Glow = null;
         shadowShape.FillGradient = null;
         shadowShape.FillRadialGradient = null;
-        shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
-        shadowShape.FillOpacity = opacity;
-        shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.FillColor = layer.HasFill || !layer.HasStroke ? shadow.Color : null;
+        shadowShape.FillOpacity = layer.Opacity;
+        shadowShape.StrokeColor = layer.HasStroke ? shadow.Color : null;
         shadowShape.StrokeGradient = null;
         shadowShape.StrokeRadialGradient = null;
-        shadowShape.StrokeWidth = strokeWidth;
+        shadowShape.StrokeWidth = layer.StrokeWidth;
         shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
         shadowShape.StrokeStartMarker = null;
         shadowShape.StrokeEndMarker = null;
-        shadowShape.StrokeOpacity = opacity;
+        shadowShape.StrokeOpacity = layer.Opacity;
 
-        return CreateOffsetEffectShape(shadowShape, drawingShape.X + shadow.OffsetX, drawingShape.Y + shadow.OffsetY);
+        return CreateOffsetEffectShape(
+            shadowShape,
+            drawingShape.X + shadow.OffsetX - layer.Expansion,
+            drawingShape.Y + shadow.OffsetY - layer.Expansion);
     }
 
     private static OfficeDrawingShape CreateOffsetEffectShape(OfficeShape shape, double x, double y) {
@@ -363,10 +362,27 @@ public static partial class OfficeDrawingSvgExporter {
         return new OfficeDrawingShape(shape, clampedX, clampedY);
     }
 
-    private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId, IOfficeRasterImageCodec? imageCodec) {
+    private static void AppendImage(
+        StringBuilder sb,
+        OfficeDrawingImage drawingImage,
+        string? clipPathId,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+        if (drawingImage.Opacity == 0D) return;
         byte[] bytes = drawingImage.EncodedBytes;
-        if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out string dataUri)) {
-            return;
+        string dataUri = string.Empty;
+        OfficeRasterImage? nearestNeighborRaster = null;
+        if (drawingImage.Interpolate) {
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out dataUri)) {
+                return;
+            }
+        } else if (!OfficeRasterImageDecoder.TryDecode(bytes, out nearestNeighborRaster) || nearestNeighborRaster == null) {
+            if (imageCodec == null ||
+                !imageCodec.TryDecode((byte[])bytes.Clone(), drawingImage.ContentType, out nearestNeighborRaster) ||
+                nearestNeighborRaster == null) {
+                throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
+            }
         }
 
         if (drawingImage.Opacity < 1D) {
@@ -375,13 +391,17 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append('>');
         }
 
-        OfficeSvgImageRenderer.AppendImage(
+        OfficeSvgImageRenderer.AppendImageWithSampling(
             sb,
             dataUri,
             drawingImage.Projection,
+            drawingImage.Interpolate,
+            nearestNeighborRaster,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
-            "none");
+            "none",
+            cancellationToken,
+            nearestNeighborRectangleBudget);
         if (drawingImage.Opacity < 1D) {
             sb.Append("</g>");
         }

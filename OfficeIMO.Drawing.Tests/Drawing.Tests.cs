@@ -352,6 +352,35 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingImage_DefaultLiteralCallsRemainSourceCompatible() {
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(2D, 3D, 4D, 5D));
+        var image = new OfficeDrawingImage(OnePixelPng, "image/png", projection, default);
+        var drawing = new OfficeDrawing(20D, 20D);
+
+        drawing.AddImage(OnePixelPng, "image/png", projection, default);
+
+        Assert.Null(image.AlternativeText);
+        Assert.True(image.Interpolate);
+        Assert.Null(Assert.Single(drawing.Images).AlternativeText);
+    }
+
+    [Fact]
+    public void OfficeDrawingPreservesNestedImageInterpolation() {
+        var child = new OfficeDrawing(20D, 20D);
+        child.AddImageWithInterpolation(
+            OnePixelPng,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(2D, 3D, 4D, 5D)),
+            interpolate: false);
+
+        var target = new OfficeDrawing(40D, 40D);
+        target.AddDrawing(child, 6D, 7D);
+
+        OfficeDrawingImage image = Assert.Single(target.Images);
+        Assert.False(image.Interpolate);
+    }
+
+    [Fact]
     public void OfficeDrawingPreservesNestedGroupTransformsWhenParentTransformIsApplied() {
         var child = new OfficeDrawing(20D, 20D);
         child.AddShape(OfficeShape.Rectangle(10D, 10D), 2D, 2D);

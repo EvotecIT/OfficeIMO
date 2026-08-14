@@ -47,6 +47,7 @@ new CsvDocument()
 - Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
 - Provides forward-only `DbDataReader` access for large files without presenting a streaming document as an editable model.
+- Provides ordered, bounded parallel projection for data readers and a span-backed transient-record path for decoded text on .NET 8 and later.
 - Includes validated cross-library benchmark lanes with operating-system and run-mode provenance.
 
 ## Performance without giving up the document model
@@ -210,6 +211,69 @@ The factory receives the current `IDataRecord`; its typed getters use the CSV
 reader's configured culture and schema conversions. The same overload is
 available on `DbDataReader` and does not require `T : new()`.
 
+### Ordered parallel mapping
+
+Use `RowsAsParallel<T>()` when row conversion is substantial enough to repay
+worker scheduling. One producer reads the forward-only source, workers receive
+independent bounded batches, and results retain source order.
+`MaxDegreeOfParallelism` bounds concurrent batches. Leave `BatchSize` unset for
+the source's tuned bounded default; set it only when an application needs an
+explicit throughput-versus-working-set tradeoff:
+
+```csharp
+using OfficeIMO.Data;
+using System.Data.Common;
+
+using DbDataReader reader = CsvDocument.OpenDataReader("people.csv");
+Person[] people = reader.RowsAsParallel<Person>(
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    },
+    cancellationToken).ToArray();
+```
+
+The automatic, explicit `RowMapper<T>`, and `Func<IDataRecord, T>` projection
+shapes all have parallel overloads. Automatic and explicit mapping snapshot
+ordinary readers on the calling thread and map those bounded snapshots on
+workers. Factory mapping also snapshots ordinary readers when their field
+types are safe to copy, so its factory can run concurrently; readers with
+provider-owned or mutable field values keep their native calling-thread
+behavior. A degree of one always uses the corresponding sequential mapping
+contract. Concurrent factories must not mutate unprotected shared state or
+retain the transient `IDataRecord`.
+
+On .NET 8 and later, decoded text can use the lower-overhead transient-record
+API. The builder resolves headers once; its returned factory receives
+span-backed fields directly from bounded parser batches:
+
+```csharp
+Person[] people = CsvDocument.ReadTextRowsAsParallel<Person>(
+    csvText,
+    header => {
+        int id = header.GetOrdinal("Id");
+        int name = header.GetOrdinal("Name");
+        int age = header.GetOrdinal("Age");
+        return row => new Person {
+            Id = row.GetInt32(id),
+            Name = row.GetString(name),
+            Age = row.GetInt32(age)
+        };
+    },
+    parallelOptions: new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    },
+    cancellationToken: cancellationToken).ToArray();
+```
+
+`CsvRecord`, and every span returned by it, is valid only during that factory
+call. Do not retain either one. Use `CsvRecord.IsMissing(ordinal)` when a short
+source row omitted a field and `CsvRecord.IsNull(ordinal)` when a present field
+matches `CsvLoadOptions.NullValue`; an omitted field is deliberately not also
+reported as null. The path falls back to correct sequential record access when
+selected CSV options or a record shape cannot use the span-batch parser.
+Parallel execution uses more working memory and thread-pool work; small or
+cheap rows may be faster through the ordinary sequential API.
+
 On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `RowsAs<T>`, `GetFieldValue<T>`, and `CsvColumnBuilder.AsDateOnly()` /
 `AsTimeOnly()`. Default schema inference remains `DateTime`, so moving between
@@ -270,6 +334,38 @@ using var reader = CsvDocument.OpenDataReader(
 var table = new DataTable();
 table.Load(reader);
 ```
+
+For a large typed import, enable bounded parallel projection on the reader.
+Parsing remains single-owner, completed batches are returned in source order,
+and the caller still consumes one `DbDataReader`, so the same reader can be
+passed to `SqlBulkCopy` or another provider bulk-copy API:
+
+```csharp
+var schema = new CsvSchemaBuilder()
+    .Column("Id").AsInt32()
+    .Column("Amount").AsType(typeof(decimal))
+    .Column("CreatedUtc").AsDateTime()
+    .Done()
+    .Build();
+
+using var reader = CsvDocument.OpenDataReader(
+    "large.csv",
+    readerOptions: new CsvDataReaderOptions {
+        Schema = schema,
+        ParallelProcessing = new CsvDataReaderParallelOptions {
+            MaxDegreeOfParallelism = 4,
+            BatchSize = 4096
+        }
+    });
+```
+
+Parallel processing is opt-in and targets typed value conversion. String-only
+readers keep their lower-overhead sequential fast path. The defaults use at
+most four workers and bounded batches; tune either setting only with a
+representative workload because more workers can be slower on multi-domain or
+hybrid CPUs. Custom schema converters may run concurrently in this mode and
+must be thread-safe; keep the reader sequential when a converter depends on
+mutable single-threaded state.
 
 `OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
 materialized document is required; 3.1 no longer exposes a load-mode switch.
@@ -429,6 +525,42 @@ CsvDocument.WriteDataReader("summary.csv.gz", reader, new CsvSaveOptions {
     CompressionType = CsvCompressionType.Auto
 });
 ```
+
+For large database exports with CPU-heavy quoting or value formatting, opt in
+to ordered parallel formatting. The source reader is still consumed by one
+thread; detached row batches are formatted concurrently and committed in the
+original order:
+
+```csharp
+using var reader = command.ExecuteReader();
+CsvDocument.WriteDataReaderParallel(
+    "summary.csv.gz",
+    reader,
+    new CsvSaveOptions { CompressionType = CsvCompressionType.Auto },
+    new CsvWriteParallelOptions {
+        MaxDegreeOfParallelism = 4,
+        BatchSize = 4096,
+        MaximumBufferedCellsPerBatch = 1_048_576
+    },
+    cancellationToken);
+```
+
+The parallel writer keeps at most two batches in memory. Its effective row
+count per batch is the smaller of `BatchSize` and
+`MaximumBufferedCellsPerBatch / reader.FieldCount`. On the multi-worker path,
+every request whose schema is wider than the cell budget is rejected before
+field-type inspection, snapshot planning, or output mutation. Readers within
+that width whose values require provider-owned access continue through the
+sequential fallback and do not allocate parallel batches. An explicit or
+environment-derived single-worker configuration delegates directly to
+`WriteDataReader`, so the parallel batch-width limit does not apply. Raise the
+cell budget only for a trusted schema whose working set the application can
+afford; otherwise select fewer fields or use sequential `WriteDataReader`. Custom
+values and format providers used during parallel formatting must support
+concurrent read-only access. For small or simply formatted exports,
+`WriteDataReader` avoids the thread-pool and batch-buffering overhead and may be
+faster; measure the real row shape on the target machine before choosing the
+parallel path.
 
 When the caller already has projected arrays, pass the shared schema once. The
 writer validates every row width without repeating column-name validation:

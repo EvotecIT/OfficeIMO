@@ -28,6 +28,7 @@ internal sealed partial class CsvLineReader : IDisposable
     private int _position;
     private int _length;
     private bool _endOfReader;
+    private bool _skipLineFeedAfterCarriageReturn;
 
     internal char[] Buffer => _buffer;
 
@@ -253,7 +254,7 @@ internal sealed partial class CsvLineReader : IDisposable
         }
         else
         {
-            ConsumeLineSeparator(_buffer[newlineIndex], out separator);
+            ConsumeLineSeparator(_buffer[newlineIndex], out separator, deferLineFeedRead: true);
         }
 
         return CsvLineReadResult.UnquotedRecord;
@@ -796,7 +797,7 @@ internal sealed partial class CsvLineReader : IDisposable
                     out var firstFieldLength);
                 isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
                 _position = newlineIndex;
-                ConsumeLineSeparator(_buffer[newlineIndex], out separator);
+                ConsumeLineSeparator(_buffer[newlineIndex], out separator, deferLineFeedRead: true);
                 readResult = CsvLineReadResult.UnquotedRecord;
                 return true;
             }
@@ -880,12 +881,19 @@ internal sealed partial class CsvLineReader : IDisposable
         return line;
     }
 
-    private void ConsumeLineSeparator(char newline, out string separator)
+    private void ConsumeLineSeparator(char newline, out string separator, bool deferLineFeedRead = false)
     {
         _position++;
         PhysicalLineSeparatorsConsumed++;
         if (newline == '\r')
         {
+            if (deferLineFeedRead && _position >= _length && !_endOfReader)
+            {
+                _skipLineFeedAfterCarriageReturn = true;
+                separator = "\r";
+                return;
+            }
+
             separator = ConsumeLineFeedAfterCarriageReturn() ? "\r\n" : "\r";
         }
         else
@@ -923,26 +931,40 @@ internal sealed partial class CsvLineReader : IDisposable
     private bool EnsureBuffered()
     {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (_position < _length)
+        while (true)
         {
-            return true;
-        }
+            if (_position < _length)
+            {
+                if (_skipLineFeedAfterCarriageReturn)
+                {
+                    _skipLineFeedAfterCarriageReturn = false;
+                    if (_buffer[_position] == '\n')
+                    {
+                        _position++;
+                        if (_position >= _length)
+                        {
+                            continue;
+                        }
+                    }
+                }
 
-        if (_endOfReader)
-        {
-            return false;
-        }
+                return true;
+            }
 
-        _length = _reader.Read(_buffer, 0, Math.Min(MaximumReadRequestSize, _buffer.Length));
-        _cancellationToken.ThrowIfCancellationRequested();
-        _position = 0;
-        if (_length > 0)
-        {
-            return true;
-        }
+            if (_endOfReader)
+            {
+                _skipLineFeedAfterCarriageReturn = false;
+                return false;
+            }
 
-        _endOfReader = true;
-        return false;
+            _length = _reader.Read(_buffer, 0, Math.Min(MaximumReadRequestSize, _buffer.Length));
+            _cancellationToken.ThrowIfCancellationRequested();
+            _position = 0;
+            if (_length == 0)
+            {
+                _endOfReader = true;
+            }
+        }
     }
 
 #if NET8_0_OR_GREATER

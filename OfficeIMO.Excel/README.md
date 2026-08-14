@@ -166,14 +166,15 @@ while (reader.Read()) {
 ```
 
 `ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
-XLSX, XLSM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
+XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
 additional worksheets through `NextResult()`. Select one worksheet with
 `SheetName` or the zero-based `SheetIndex`, and select an explicit range with
 `A1Range`. `CurrentSheetName` and `CurrentSheetIndex` identify the active workbook sheet;
 `CurrentResultIndex` identifies its position in the selected results. Legacy XLS is projected through
 the package's existing first-party reader; use `ExcelDocument.Load` when the
-workbook must be inspected, edited, or saved again. CSV uses the parallel
-`CsvDocument.OpenDataReader` API from the separate `OfficeIMO.CSV` package.
+workbook must be inspected, edited, or saved again. CSV provides the same typed
+and ordered-parallel row-mapping contracts through the separate
+`OfficeIMO.CSV` package.
 
 On .NET 8 and later, request `DateOnly` or `TimeOnly` explicitly through
 `GetFieldValue<T>` or `RowsAs<T>`. Inferred Excel date/time columns remain
@@ -182,6 +183,55 @@ reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
 `DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
+
+### Choose automatic or ordered parallel reads
+
+Use `RowsAsParallel<T>()` on the public forward-only reader when typed conversion
+is substantial enough to repay parallel scheduling. Workbook parsing stays
+single-owner while independent row snapshots are mapped concurrently and
+returned in source order:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+    "sales.xlsx",
+    new ExcelReadOptions {
+        SheetName = "Data",
+        A1Range = "A1:D50001",
+        InferSchema = true
+    });
+
+SalesRow[] rows = reader.RowsAsParallel<SalesRow>(
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    }).ToArray();
+```
+
+For an `ExcelSheet`, use the explicit ordered-parallel projection API. It
+supports automatic property mapping, an AOT-friendly `RowMapper<T>`, or an
+`IDataRecord` factory:
+
+```csharp
+using OfficeIMO.Data;
+
+using var document = ExcelDocument.Load("sales.xlsx");
+SalesRow[] rows = document["Data"].RowsAsParallel<SalesRow>(
+    "A1:D50001",
+    new ParallelRowMappingOptions {
+        MaxDegreeOfParallelism = 8
+    }).ToArray();
+```
+
+Both public surfaces preserve source order and bound in-flight work. The
+forward-only form applies to every format supported by `OpenDataReader`; the
+`ExcelSheet` form projects an already loaded editable workbook and enables the
+bounded schema inference required for safe snapshots. Set `InferSchema = true`
+on a directly opened reader as shown above. A degree of one, or a schema with
+provider-owned object/mutable fields, uses the sequential mapping contract.
+Parsing and decompression are not claimed to run in parallel, and small or cheap
+rows can still be faster sequentially.
 
 ### Append to an existing table
 
@@ -673,6 +723,34 @@ document.Compose("Report", composer => {
     composer.Finish(autoFitColumns: true);
 });
 
+document.Save();
+```
+
+When rows already have a fixed schema, pass a `DataTable` directly. This keeps
+its column order and avoids generic object flattening. Fixed-schema tables allow
+up to 5,000,000 cells by default, including the header row. Set `MaxRows`,
+`MaxColumns`, or `MaxCells` in the configuration callback when a report needs a
+different bounded limit. Excel's worksheet row and column limits still apply;
+select or split data that exceeds them.
+
+```csharp
+using System.Data;
+using OfficeIMO.Excel;
+
+var rows = new DataTable("Members");
+rows.Columns.Add("Enabled", typeof(bool));
+rows.Columns.Add("AD State", typeof(string));
+rows.Rows.Add(true, "Enabled");
+rows.Rows.Add(false, "Disabled");
+
+using var document = ExcelDocument.Create("members.xlsx");
+document.Compose("Members", composer => {
+    composer.TableFrom(
+        rows,
+        title: "Members",
+        configure: options => options.Columns = new[] { "Enabled", "AD State" });
+    composer.Finish(autoFitColumns: true);
+});
 document.Save();
 ```
 

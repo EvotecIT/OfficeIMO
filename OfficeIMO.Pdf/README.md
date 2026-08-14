@@ -78,6 +78,69 @@ enforces the same `PdfReadOptions` limits before buffering, snapshots caller
 input once, and reuses one parsed document across read, inspection, preflight,
 diagnostic, optimization, signature, and compliance operations.
 
+### Read and edit named document JavaScript
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument document = PdfDocument.Open("input.pdf");
+
+foreach (PdfJavaScript script in document.JavaScript.List()) {
+    Console.WriteLine(script.Name);
+}
+
+PdfJavaScriptEditResult edited = document.JavaScript.Edit(scripts => scripts
+    .AddOrReplace("Initialize", "this.zoom = 100;")
+    .Remove("Obsolete"));
+
+File.WriteAllBytes("output.pdf", edited.ToBytes());
+```
+
+Script names use exact, case-sensitive matching. Editing preserves untouched
+name-tree entries and action data, then reads the saved artifact back before
+returning it. Per-script, script-count, and aggregate-byte limits come from
+`PdfReadOptions.Limits`. Document JavaScript is active content: the default
+sanitizer removes it, and full-rewrite edits are blocked for encrypted or signed
+inputs rather than weakening their security or revision contracts.
+
+### Add interactive fields to an existing PDF
+
+```csharp
+PdfAcroFormEditResult edited = PdfDocument.Open("input.pdf").Forms.Edit(form => form
+    .Create(new PdfFormFieldCreateOptions {
+        Name = "customer.notes",
+        Kind = PdfFormFieldCreationKind.Text,
+        PageNumber = 1,
+        X = 72,
+        Y = 560,
+        Width = 240,
+        Height = 60,
+        Style = new PdfFormFieldStyle { IsMultiline = true }
+    })
+    .Create(new PdfFormFieldCreateOptions {
+        Name = "calculate",
+        Kind = PdfFormFieldCreationKind.PushButton,
+        PageNumber = 1,
+        X = 72,
+        Y = 520,
+        Width = 100,
+        Height = 24,
+        Caption = "Calculate",
+        JavaScript = "this.getField('total').value = 42;"
+    }));
+
+File.WriteAllBytes("form.pdf", edited.ToBytes());
+```
+
+The same transaction creates text fields, check boxes, combo or list choices,
+radio-button groups, push buttons, and empty signature fields. Generated widget
+appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,
+typed `PdfFormWidgetAction` data and is never executed by OfficeIMO.Pdf. Form
+edits and fills preserve eligible actions owned by form widgets. Unrelated
+catalog, page, outline, or annotation active content remains a rewrite blocker.
+Flattening removes actions owned by the fields being flattened, while the
+sanitizer removes forbidden actions without discarding the remaining form tree.
+
 For a single health and capability view:
 
 ```csharp
@@ -369,6 +432,19 @@ IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
 ```
 
+Text extraction excludes PDF artifact marked content by default, which is the
+logical-text behavior expected for decorative headers, footers, and chart
+labels. Opt into visual text when those marked artifacts are part of the
+required payload:
+
+```csharp
+PdfDocument visualTextPdf = PdfDocument.Open("spreadsheet-export.pdf", new PdfReadOptions {
+    IncludeArtifactText = true
+});
+
+IReadOnlyList<string> visualTextByPage = visualTextPdf.Read.TextByPage();
+```
+
 ### Split and extract pages
 
 ```csharp
@@ -517,6 +593,74 @@ Canvas stamping is intentionally visual-only. Text, rich tables, images,
 shapes, drawings, clipping, and effects are supported. Interactive links and
 annotations, named destinations, forms, and document outlines use their
 dedicated editors so their behavior is not silently flattened or discarded.
+
+### Search and edit existing page text
+
+Text editing coordinates use PDF points from the page bottom-left. Inspect a
+region when the UI needs the existing text and its detected style, then replace
+or move it through the same text-removal and stamping owners used by redaction
+and existing-page stamps:
+
+```csharp
+PdfDocument document = PdfDocument.Open("contract.pdf");
+var region = new PdfPageRegion(pageNumber: 1, x: 72, y: 640, width: 260, height: 28);
+
+PdfRegionText current = document.Text.Inspect(region);
+Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
+
+PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
+    Color = PdfColor.FromRgb(25, 110, 55)
+});
+
+edited.Document.Text.Add(
+        new PdfPageRegion(1, 72, 600, 240, 24),
+        "Reviewed by Legal",
+        new PdfTextEditOptions { Font = PdfStandardFont.HelveticaBold, FontSize = 11 })
+    .Document
+    .Save("contract-edited.pdf");
+```
+
+`Text.Find(...)` supports case and whole-word filters over visible, unclipped
+text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
+keeps wide same-baseline runs such as columns independent. Edits fail closed
+when an atomic PDF text object would require invisible or clipped text to be
+recreated without its original rendering state.
+Replacement uses the closest standard PDF font unless the caller selects one;
+`PdfTextEditResult.Warnings` reports source-font substitutions that can change
+metrics or letterforms.
+
+### Find and edit existing page images
+
+Image placement coordinates also use PDF points from the page bottom-left.
+Discover placements through the editor, then remove, replace, or move one exact
+invocation without deleting overlapping text, paths, annotations, or unrelated
+images:
+
+```csharp
+PdfDocument document = PdfDocument.Open("contract.pdf");
+PdfImagePlacement logo = document.Images.Find(
+    new PdfPageRegion(pageNumber: 1, x: 36, y: 720, width: 180, height: 60)).Single();
+
+PdfImageEditResult updated = document.Images.Replace(
+    logo,
+    File.ReadAllBytes("new-logo.png"),
+    new PdfImageEditOptions { Layer = PdfImageEditLayer.AboveExistingContent });
+
+PdfImagePlacement replacement = updated.Document.Images.Find(
+    new PdfPageRegion(1, 36, 720, 180, 60)).Single();
+
+updated.Document.Images.Move(replacement, deltaX: 12, deltaY: -8)
+    .Document
+    .Save("contract-with-new-logo.pdf");
+```
+
+`Images.Add(...)` fits a new image to a page region. Replacement and movement
+preserve position, size, and rotation when the source transform is portable;
+callers explicitly choose whether rewritten content is above or behind existing
+page content. The editor fails closed for ambiguous placements and for source
+clipping, opacity, skew/reflection, unresolved transparency, image-mask, raw
+payload, or inline-image semantics that cannot be reproduced safely. Exact
+XObject removal remains available for rotated and skewed placements.
 
 ### Fill and flatten a PDF form
 
@@ -755,7 +899,7 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. Type 3 glyph programs, unsupported content-paint color spaces, difficult producer-specific preservation, broader transparency/pattern edge cases, and genuinely forward-only layout remain deeper current-state areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.
 
 For the current capability inventory, ownership boundaries, premium conversion
 contract, and remaining general engine work, read

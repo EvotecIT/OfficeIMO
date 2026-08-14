@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Data;
 
@@ -38,6 +39,25 @@ public enum DataMappingErrorValuePolicy {
 public interface IDataReaderMappingErrorMetadata {
     /// <summary>Gets how source values are represented in typed-mapping failures.</summary>
     DataMappingErrorValuePolicy MappingErrorValuePolicy { get; }
+}
+
+internal interface IDataReaderFastMappingValues {
+    bool HasOnlyNonNullFastValues { get; }
+}
+
+internal interface IDataReaderParallelBatchSource {
+    bool CanReadParallelBatches { get; }
+
+    int PreferredParallelBatchSize { get; }
+
+    bool TryReadParallelBatch(
+        int preferredBatchSize,
+        CancellationToken cancellationToken,
+        out DbDataReader? batchReader);
+}
+
+internal interface IDataReaderParallelBatchInfo {
+    int ParallelBatchRowCount { get; }
 }
 
 /// <summary>Supplies additional column aliases for a model property.</summary>
@@ -123,9 +143,28 @@ public static class DataReaderMappingExtensions {
             out bool requireAllColumnsMapped,
             out DataMappingErrorValuePolicy errorValuePolicy);
         AutomaticRowMappingPlan<T> plan = AutomaticRowMappingPlan<T>.Create(GetHeaders(reader), requireAllColumnsMapped);
+        Func<DbDataReader, T>? fastMap = plan.GetFastReaderMap(reader, typeConverter);
+        if (fastMap is not null) {
+            while (reader.Read()) {
+                T row;
+                try {
+                    row = fastMap(reader);
+                } catch (AutomaticRowMappingPlan<T>.TypedReaderValueException) {
+                    row = plan.MapReaderRowSlow(
+                        reader,
+                        culture,
+                        dateTimeFormats,
+                        typeConverter,
+                        errorValuePolicy);
+                }
+                yield return row;
+            }
+            yield break;
+        }
+
         while (reader.Read()) {
-            yield return plan.MapRow(
-                index => NormalizeDatabaseNull(reader.GetValue(index)),
+            yield return plan.MapReaderRow(
+                reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
@@ -149,8 +188,8 @@ public static class DataReaderMappingExtensions {
             out _,
             out DataMappingErrorValuePolicy errorValuePolicy);
         while (reader.Read()) {
-            yield return plan.MapRow(
-                index => NormalizeDatabaseNull(reader.GetValue(index)),
+            yield return plan.MapReaderRow(
+                reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
@@ -168,7 +207,7 @@ public static class DataReaderMappingExtensions {
         }
     }
 
-    private static string[] GetHeaders(DbDataReader reader) {
+    internal static string[] GetHeaders(DbDataReader reader) {
         var headers = new string[reader.FieldCount];
         for (int index = 0; index < headers.Length; index++) {
             headers[index] = reader.GetName(index);
@@ -176,10 +215,7 @@ public static class DataReaderMappingExtensions {
         return headers;
     }
 
-    private static object? NormalizeDatabaseNull(object? value) =>
-        ReferenceEquals(value, DBNull.Value) ? null : value;
-
-    private static void GetConversionOptions(
+    internal static void GetConversionOptions(
         DbDataReader reader,
         out CultureInfo culture,
         out IReadOnlyList<string>? dateTimeFormats,
@@ -213,6 +249,15 @@ internal interface IRowMappingEntry<T> {
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
         DataMappingErrorValuePolicy errorValuePolicy);
+
+    T ApplyReader(
+        T instance,
+        DbDataReader reader,
+        int ordinal,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy);
 }
 
 internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
@@ -235,6 +280,85 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
         TValue? value = DataValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats, typeConverter, errorValuePolicy);
         return _assign(instance, value!);
     }
+
+    public T ApplyReader(
+        T instance,
+        DbDataReader reader,
+        int ordinal,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
+        DataMappingErrorValuePolicy errorValuePolicy) {
+        if (typeConverter is null &&
+            reader is IDataReaderFastMappingValues &&
+            !reader.IsDBNull(ordinal) &&
+            DataReaderTypedValueAccessor<TValue>.TryRead(reader, ordinal, out TValue? value)) {
+            return _assign(instance, value!);
+        }
+
+        object? rawValue = reader.GetValue(ordinal);
+        return Apply(
+            instance,
+            ReferenceEquals(rawValue, DBNull.Value) ? null : rawValue,
+            culture,
+            dateTimeFormats,
+            typeConverter,
+            errorValuePolicy);
+    }
+}
+
+internal static class DataReaderTypedValueAccessor<T> {
+    private static readonly Func<DbDataReader, int, T>? Reader = CreateReader();
+
+    internal static bool TryRead(DbDataReader reader, int ordinal, out T? value) {
+        if (Reader is null) {
+            value = default;
+            return false;
+        }
+
+        try {
+            value = Reader(reader, ordinal);
+            return true;
+        } catch (InvalidCastException) {
+            value = default;
+            return false;
+        } catch (FormatException) {
+            value = default;
+            return false;
+        } catch (OverflowException) {
+            value = default;
+            return false;
+        }
+    }
+
+    private static Func<DbDataReader, int, T>? CreateReader() {
+        if (typeof(T) == typeof(string)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, string>)ReadString;
+        if (typeof(T) == typeof(bool)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, bool>)ReadBoolean;
+        if (typeof(T) == typeof(byte)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, byte>)ReadByte;
+        if (typeof(T) == typeof(char)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, char>)ReadChar;
+        if (typeof(T) == typeof(DateTime)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, DateTime>)ReadDateTime;
+        if (typeof(T) == typeof(decimal)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, decimal>)ReadDecimal;
+        if (typeof(T) == typeof(double)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, double>)ReadDouble;
+        if (typeof(T) == typeof(float)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, float>)ReadFloat;
+        if (typeof(T) == typeof(Guid)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, Guid>)ReadGuid;
+        if (typeof(T) == typeof(short)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, short>)ReadInt16;
+        if (typeof(T) == typeof(int)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, int>)ReadInt32;
+        if (typeof(T) == typeof(long)) return (Func<DbDataReader, int, T>)(object)(Func<DbDataReader, int, long>)ReadInt64;
+        return null;
+    }
+
+    private static string ReadString(DbDataReader reader, int ordinal) => reader.GetString(ordinal);
+    private static bool ReadBoolean(DbDataReader reader, int ordinal) => reader.GetBoolean(ordinal);
+    private static byte ReadByte(DbDataReader reader, int ordinal) => reader.GetByte(ordinal);
+    private static char ReadChar(DbDataReader reader, int ordinal) => reader.GetChar(ordinal);
+    private static DateTime ReadDateTime(DbDataReader reader, int ordinal) => reader.GetDateTime(ordinal);
+    private static decimal ReadDecimal(DbDataReader reader, int ordinal) => reader.GetDecimal(ordinal);
+    private static double ReadDouble(DbDataReader reader, int ordinal) => reader.GetDouble(ordinal);
+    private static float ReadFloat(DbDataReader reader, int ordinal) => reader.GetFloat(ordinal);
+    private static Guid ReadGuid(DbDataReader reader, int ordinal) => reader.GetGuid(ordinal);
+    private static short ReadInt16(DbDataReader reader, int ordinal) => reader.GetInt16(ordinal);
+    private static int ReadInt32(DbDataReader reader, int ordinal) => reader.GetInt32(ordinal);
+    private static long ReadInt64(DbDataReader reader, int ordinal) => reader.GetInt64(ordinal);
 }
 
 internal static class DataValueConverter {
@@ -365,8 +489,8 @@ internal static class DataValueConverter {
             else if (targetType == typeof(decimal) && decimal.TryParse(text, NumberStyles.Any, culture, out decimal decimalValue)) result = decimalValue;
             else if (targetType == typeof(float) && float.TryParse(text, NumberStyles.Any, culture, out float floatValue)) result = floatValue;
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
-                     DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateTime formattedDateTime)) result = formattedDateTime;
-            else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.None);
+                     DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out DateTime formattedDateTime)) result = formattedDateTime;
+            else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.RoundtripKind);
 #if NET6_0_OR_GREATER
             else if (targetType == typeof(DateOnly) && dateTimeFormats is { Count: > 0 } &&
                      DateOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateOnly formattedDateOnly)) result = formattedDateOnly;

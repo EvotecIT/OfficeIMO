@@ -18,9 +18,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<InlinePaintSegment> ResolveInlinePaintSegments(InlineSegment segment, double x) {
+        if (!segment.BidiResolved
+            && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
+            if (!OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
+                return ResolveSpacedPaintSegments(segment, x);
+            }
+        }
+        if (segment.BidiResolved
+            && (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D)) {
+            return ResolveSpacedPaintSegments(segment, x);
+        }
         if (segment.BidiResolved ||
             !OfficeTextElements.ContainsRightToLeft(segment.Text) && !OfficeTextElements.ContainsBidiControl(segment.Text)) {
-            return new[] { new InlinePaintSegment(segment.Text, x, segment.Width, 0) };
+            return new[] { new InlinePaintSegment(segment.Text, x, Math.Max(0.01D, segment.Width), segment.Width, 0) };
         }
 
         var result = new List<InlinePaintSegment>();
@@ -29,13 +39,50 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlineDirectionalGroup group in groups) {
             double groupX = cursor;
             if (group.RightToLeft) {
-                AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style.Font);
+                AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
+            } else if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D) {
+                result.AddRange(ResolveSpacedPaintSegments(
+                    new InlineSegment(group.Text, group.Width, segment.Run, group.Text),
+                    groupX,
+                    group.LogicalOrder));
             } else {
-                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.LogicalOrder));
+                result.Add(new InlinePaintSegment(group.Text, groupX, Math.Max(0.01D, group.Width), group.Width, group.LogicalOrder));
             }
             cursor += group.Width;
         }
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
+    }
+
+    private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x, int? logicalOrder = null) {
+        var result = new List<InlinePaintSegment>();
+        double cursor = x;
+        IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
+        if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
+            for (int index = 0; index < elements.Count; index++) {
+                string element = elements[index];
+                double glyphWidth = MeasureText(element, segment.Run.Style.Font);
+                double advance = glyphWidth
+                    + segment.Run.Style.LetterSpacing
+                    + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
+                result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? index));
+                cursor += advance;
+            }
+            return result;
+        }
+
+        int start = 0;
+        while (start < elements.Count) {
+            bool whitespace = IsWhitespaceToken(elements[start]);
+            int end = start + 1;
+            while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
+            string text = string.Concat(elements.Skip(start).Take(end - start));
+            double glyphWidth = MeasureText(text, segment.Run.Style.Font);
+            double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
+            result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? start));
+            cursor += advance;
+            start = end;
+        }
+        return result;
     }
 
     private IReadOnlyList<InlineDirectionalGroup> ResolveDirectionalGroups(InlineSegment segment) {
@@ -47,7 +94,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             groups.Add(new InlineDirectionalGroup(
                 run.Text,
                 run.Direction == OfficeTextDirection.RightToLeft,
-                MeasureText(run.Text, segment.Run.Style.Font),
+                MeasureInlineText(run.Text, segment.Run.Style),
                 run.LogicalOrder));
         }
         return groups;
@@ -154,7 +201,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 segmentWidth,
                 sources[ordered[start].SourceSegmentIndex].Run,
                 logicalText,
-                bidiResolved: true));
+                bidiResolved: true,
+                logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
             start = end;
         }
         return result.AsReadOnly();
@@ -173,40 +221,46 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return text.ToString();
     }
 
-    private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, OfficeFontInfo font) {
+    private void AppendRightToLeftPaintSegments(List<InlinePaintSegment> result, InlineDirectionalGroup group, double x, HtmlRenderBoxStyle style) {
         IReadOnlyList<string> elements = OfficeTextElements.Enumerate(group.Text).ToList();
         bool hasContextualWidths = _fonts.TryMeasureTextElements(
             group.Text,
             elements,
-            font.Size,
-            font.FamilyName,
-            font.Style,
+            style.Font.Size,
+            style.Font.FamilyName,
+            style.Font.Style,
             out IReadOnlyList<double> contextualWidths);
         double right = x + group.Width;
         for (int index = 0; index < elements.Count; index++) {
             CheckCancellation();
             string element = elements[index];
-            double advance = hasContextualWidths ? contextualWidths[index] : MeasureText(element, font);
+            double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font))
+                + style.LetterSpacing
+                + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
             right -= advance;
+            double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, style.Font);
             result.Add(new InlinePaintSegment(
                 OfficeBidiTextResolver.MirrorText(element),
                 right,
-                Math.Max(0.01D, advance),
+                Math.Max(0.01D, glyphWidth),
+                advance,
                 group.LogicalOrder));
         }
     }
 
     private readonly struct InlinePaintSegment {
-        internal InlinePaintSegment(string text, double x, double width, int logicalOrder) {
+        internal InlinePaintSegment(string text, double x, double width, double advance, int logicalOrder) {
             Text = text;
             X = x;
             Width = width;
+            Advance = advance;
             LogicalOrder = logicalOrder;
         }
 
         internal string Text { get; }
         internal double X { get; }
         internal double Width { get; }
+        internal double Advance { get; }
         internal int LogicalOrder { get; }
     }
 

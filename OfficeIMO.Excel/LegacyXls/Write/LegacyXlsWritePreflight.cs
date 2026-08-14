@@ -79,6 +79,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return;
             }
 
+            if (!LegacyXlsCommentWriter.SupportsCommentDrawingSheetIndex(sheetIndex)
+                && worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<Comment>().Any() == true) {
+                ThrowUnsupported(sheet, "comments beyond the BIFF8 drawing identifier limit");
+            }
+
             if (!SupportsWorksheetSingletonElements(worksheet, out string? singletonElementReason)) {
                 ThrowUnsupported(sheet, singletonElementReason ?? "worksheet singleton elements");
             }
@@ -203,7 +208,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return true;
         }
 
-        private static bool SupportsWorkbookPackageParts(WorkbookPart workbookPart, out string? reason) {
+        internal static bool SupportsWorkbookPackageParts(WorkbookPart workbookPart, out string? reason) {
             reason = null;
             if (workbookPart.VbaProjectPart != null) {
                 reason = "VBA projects or macros";

@@ -2,6 +2,7 @@ using OfficeIMO.Excel.Benchmarks;
 using OfficeIMO.Benchmarks;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
@@ -18,70 +19,118 @@ bool comparePairedXlsb = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-xlsb-paired", StringComparison.OrdinalIgnoreCase);
 bool comparePairedXls = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-xls-paired", StringComparison.OrdinalIgnoreCase);
+bool profileOfficeIMODataReaderWrite = args.Length > 0 &&
+    string.Equals(args[0], "--profile-datareader-write-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileLargeXlsxDataReaderWrite = args.Length > 0 &&
+    string.Equals(args[0], "--profile-datareader-write-largexlsx", StringComparison.OrdinalIgnoreCase);
+bool profileSpreadCheetahDataReaderWrite = args.Length > 0 &&
+    string.Equals(args[0], "--profile-datareader-write-spreadcheetah", StringComparison.OrdinalIgnoreCase);
+bool comparePairedDataReaderWrite = args.Length > 0 &&
+    string.Equals(args[0], "--compare-datareader-write-paired", StringComparison.OrdinalIgnoreCase);
+bool comparePairedDataTableExecution = args.Length > 0 &&
+    string.Equals(args[0], "--compare-datatable-execution-paired", StringComparison.OrdinalIgnoreCase);
+
+if (comparePairedDataTableExecution) {
+    ExcelDataTableExecutionPairedRunner.Run(args);
+    return;
+}
 
 if (comparePairedXlsb || comparePairedXls) {
+    ExcelLegacyReadPairedRunner.Run(args, useXlsb: comparePairedXlsb);
+    return;
+}
+
+if (comparePairedDataReaderWrite) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
         ? parsedIterations
-        : 20;
+        : 40;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+    string affinity = ApplyProcessAffinity(args, argumentIndex: 2);
+    string priority = ApplyProcessPriority(args, argumentIndex: 3);
+    const int warmupIterations = 12;
+
+    var benchmark = new ExcelDataReaderWriteBenchmarks { RowCount = 25_000 };
+    benchmark.SetupOfficeIMOAndSpreadCheetah();
+    for (int index = 0; index < warmupIterations; index++) {
+        benchmark.OfficeIMO();
+        benchmark.SpreadCheetah();
+    }
+
+    var officeSamples = new double[iterations];
+    var spreadSamples = new double[iterations];
+    var pairedRatios = new double[iterations];
+    for (int index = 0; index < iterations; index++) {
+        double officeFirst;
+        double officeSecond;
+        double spreadFirst;
+        double spreadSecond;
+        if ((index & 1) == 0) {
+            officeFirst = MeasureWriteMilliseconds(benchmark.OfficeIMO);
+            spreadFirst = MeasureWriteMilliseconds(benchmark.SpreadCheetah);
+            spreadSecond = MeasureWriteMilliseconds(benchmark.SpreadCheetah);
+            officeSecond = MeasureWriteMilliseconds(benchmark.OfficeIMO);
+        } else {
+            spreadFirst = MeasureWriteMilliseconds(benchmark.SpreadCheetah);
+            officeFirst = MeasureWriteMilliseconds(benchmark.OfficeIMO);
+            officeSecond = MeasureWriteMilliseconds(benchmark.OfficeIMO);
+            spreadSecond = MeasureWriteMilliseconds(benchmark.SpreadCheetah);
+        }
+
+        officeSamples[index] = (officeFirst + officeSecond) / 2d;
+        spreadSamples[index] = (spreadFirst + spreadSecond) / 2d;
+        pairedRatios[index] = officeSamples[index] / spreadSamples[index];
+    }
+
+    double officeMedian = Median(officeSamples);
+    double spreadMedian = Median(spreadSamples);
+    double ratioMedian = Median(pairedRatios);
+    Console.WriteLine(
+        $"Paired compact DataReader write ({warmupIterations} warmups, {iterations} ABBA samples, affinity {affinity}, priority {priority}): " +
+        $"OfficeIMO median {officeMedian:F3} ms, SpreadCheetah median {spreadMedian:F3} ms, " +
+        $"ratio of medians {officeMedian / spreadMedian:F4}, paired ratio median {ratioMedian:F4} " +
+        $"(P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4}).");
+    return;
+}
+
+if (profileOfficeIMODataReaderWrite || profileLargeXlsxDataReaderWrite || profileSpreadCheetahDataReaderWrite) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 100;
     if (iterations <= 0) {
         throw new ArgumentOutOfRangeException(nameof(iterations));
     }
     ApplyProcessAffinity(args, argumentIndex: 2);
-    const int warmupIterations = 10;
-    string affinity = args.Length > 2 ? args[2] : "unchanged";
 
-    Func<ExcelReadObservation> runOfficeIMO;
-    Func<ExcelReadObservation> runSylvan;
-    string format;
-    if (comparePairedXlsb) {
-        var benchmark = new MarkPflug65KXlsbBenchmarks();
-        benchmark.Setup();
-        runOfficeIMO = benchmark.OfficeIMO;
-        runSylvan = benchmark.Sylvan;
-        format = "XLSB";
+    var benchmark = new ExcelDataReaderWriteBenchmarks { RowCount = 25_000 };
+    if (profileOfficeIMODataReaderWrite) {
+        benchmark.SetupOfficeIMO();
+    } else if (profileLargeXlsxDataReaderWrite) {
+        benchmark.SetupLargeXlsx();
     } else {
-        var benchmark = new MarkPflug65KXlsBenchmarks();
-        benchmark.Setup();
-        runOfficeIMO = benchmark.OfficeIMO;
-        runSylvan = benchmark.Sylvan;
-        format = "XLS";
+        benchmark.SetupSpreadCheetah();
     }
-    for (int index = 0; index < warmupIterations; index++) {
-        runOfficeIMO();
-        runSylvan();
+    Func<int> write = profileOfficeIMODataReaderWrite
+        ? benchmark.OfficeIMO
+        : profileLargeXlsxDataReaderWrite ? benchmark.LargeXlsx : benchmark.SpreadCheetah;
+    string implementation = profileOfficeIMODataReaderWrite
+        ? "OfficeIMO"
+        : profileLargeXlsxDataReaderWrite ? "LargeXlsx" : "SpreadCheetah";
+    for (int index = 0; index < 3; index++) {
+        write();
     }
 
-    var officeSamples = new double[iterations];
-    var sylvanSamples = new double[iterations];
-    var pairedRatios = new double[iterations];
+    int outputBytes = 0;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
     for (int index = 0; index < iterations; index++) {
-        ExcelReadObservation officeObservation;
-        ExcelReadObservation sylvanObservation;
-        if ((index & 1) == 0) {
-            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
-            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
-        } else {
-            sylvanSamples[index] = MeasureMilliseconds(runSylvan, out sylvanObservation);
-            officeSamples[index] = MeasureMilliseconds(runOfficeIMO, out officeObservation);
-        }
-
-        if (officeObservation != sylvanObservation) {
-            throw new InvalidDataException(
-                $"Paired {format} sample {index} produced different observations: OfficeIMO={officeObservation}; Sylvan={sylvanObservation}.");
-        }
-        pairedRatios[index] = officeSamples[index] / sylvanSamples[index];
+        outputBytes = write();
     }
+    stopwatch.Stop();
 
-    double officeMedian = Median(officeSamples);
-    double sylvanMedian = Median(sylvanSamples);
-    double pairedRatioMedian = Median(pairedRatios);
-    double pairedRatioP25 = Percentile(pairedRatios, 0.25d);
-    double pairedRatioP75 = Percentile(pairedRatios, 0.75d);
     Console.WriteLine(
-        $"Paired {format} comparison ({warmupIterations} warmups, {iterations} alternating samples, affinity {affinity}): " +
-        $"OfficeIMO median {officeMedian:F3} ms, Sylvan median {sylvanMedian:F3} ms, " +
-        $"ratio of medians {officeMedian / sylvanMedian:F4}, paired ratio median {pairedRatioMedian:F4} " +
-        $"(P25 {pairedRatioP25:F4}, P75 {pairedRatioP75:F4}).");
+        $"Profiled {implementation} compact DataReader write {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
+        $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration); last package {outputBytes:N0} bytes.");
     return;
 }
 
@@ -162,12 +211,14 @@ if (IsCommand(args, "--profile-read", "profile-read", "read-profile")) {
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelReadProfileRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelReadProfileRunner.DefaultMeasuredIterations;
+    string? processorAffinity = ApplyProcessAffinityOption(args);
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelReadProfileRunner.WriteProfile(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.read-profile", rowCount),
         rowCount,
         warmupIterations,
-        measuredIterations);
+        measuredIterations,
+        processorAffinity);
     Console.WriteLine($"Excel read profile written to '{outputPath}'.");
     return;
 }
@@ -210,6 +261,8 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     string[] libraryFilters = ParseOptionValues(args, "--library", "--libraries");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
+    string? processorAffinity = ApplyProcessAffinityOption(args);
+    string? processPriority = ApplyProcessPriorityOption(args);
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelLibraryComparisonRunner.WriteComparison(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.library-comparison", rowCount),
@@ -218,7 +271,9 @@ if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
         scenarioFilters,
         warmupIterations,
         measuredIterations,
-        libraryFilters);
+        libraryFilters,
+        processorAffinity,
+        processPriority);
     Console.WriteLine($"Excel library comparison written to '{outputPath}'.");
     return;
 }
@@ -401,8 +456,25 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     return;
 }
 
-var benchmarkConfig = DefaultConfig.Instance.AddExporter(JsonExporter.Full);
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, benchmarkConfig);
+var (priorityArgs, benchmarkPriority) = ExtractBenchmarkPriority(args);
+if (benchmarkPriority != null) {
+    BenchmarkProcessorAffinity.ApplyPriority(benchmarkPriority);
+}
+var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(priorityArgs);
+var benchmarkConfig = ManualConfig
+    .Create(DefaultConfig.Instance)
+    .AddExporter(JsonExporter.Full);
+for (int index = 0; index < affinityMasks.Length; index++) {
+    IntPtr affinity = affinityMasks[index];
+    Job job = Job.Default
+        .WithAffinity(affinity)
+        .WithId($"Affinity-{BenchmarkProcessorAffinity.Format(affinity)}");
+    if (benchmarkPriority != null) {
+        job = job.WithEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY", benchmarkPriority);
+    }
+    benchmarkConfig.AddJob(job);
+}
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(benchmarkArgs, benchmarkConfig);
 
 static void WriteUsage() {
     Console.WriteLine("OfficeIMO.Excel benchmark helpers");
@@ -410,10 +482,17 @@ static void WriteUsage() {
     Console.WriteLine("Commands:");
     Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
     Console.WriteLine("  write-profile [output] [--rows N]");
-    Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
+    Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N] [--affinity mask]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
-    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N] [--affinity mask] [--priority High]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
+    Console.WriteLine("  --profile-datareader-write-officeimo [iterations] [affinity-mask]");
+    Console.WriteLine("  --profile-datareader-write-largexlsx [iterations] [affinity-mask]");
+    Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
+    Console.WriteLine("  --compare-datareader-write-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-markpflug65k-xlsb-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
     Console.WriteLine();
@@ -590,6 +669,65 @@ static int? ParsePositiveOption(string[] args, params string[] optionNames) {
     return null;
 }
 
+static string? ApplyProcessAffinityOption(string[] args) {
+    string? value = ParseOptionValue(args, "--affinity", "--processor-affinity");
+    return value is null ? null : BenchmarkProcessorAffinity.Apply(value);
+}
+
+static string? ApplyProcessPriorityOption(string[] args) {
+    string? value = ParseOptionValue(args, "--priority");
+    return value is null ? null : BenchmarkProcessorAffinity.ApplyPriority(value);
+}
+
+static (string[] Arguments, IntPtr[] Masks) ExtractAffinityMasks(string[] arguments) {
+    int optionIndex = Array.FindIndex(
+        arguments,
+        static argument => string.Equals(argument, "--affinityMasks", StringComparison.OrdinalIgnoreCase));
+    if (optionIndex < 0) {
+        return (arguments, Array.Empty<IntPtr>());
+    }
+    if (optionIndex + 1 >= arguments.Length) {
+        throw new ArgumentException("--affinityMasks requires a comma-separated list of positive processor-affinity masks.");
+    }
+
+    IntPtr[] masks = BenchmarkProcessorAffinity.ParseList(arguments[optionIndex + 1]);
+    var forwarded = new string[arguments.Length - 2];
+    if (optionIndex > 0) {
+        Array.Copy(arguments, 0, forwarded, 0, optionIndex);
+    }
+    if (optionIndex + 2 < arguments.Length) {
+        Array.Copy(
+            arguments,
+            optionIndex + 2,
+            forwarded,
+            optionIndex,
+            arguments.Length - optionIndex - 2);
+    }
+    return (forwarded, masks);
+}
+
+static (string[] Arguments, string? Priority) ExtractBenchmarkPriority(string[] arguments) {
+    int optionIndex = Array.FindIndex(
+        arguments,
+        static argument => string.Equals(argument, "--priority", StringComparison.OrdinalIgnoreCase));
+    if (optionIndex < 0) {
+        return (arguments, null);
+    }
+    if (optionIndex + 1 >= arguments.Length) {
+        throw new ArgumentException("--priority requires Idle, BelowNormal, Normal, AboveNormal, or High.");
+    }
+
+    string priority = arguments[optionIndex + 1];
+    var forwarded = new string[arguments.Length - 2];
+    if (optionIndex > 0) {
+        Array.Copy(arguments, 0, forwarded, 0, optionIndex);
+    }
+    if (optionIndex + 2 < arguments.Length) {
+        Array.Copy(arguments, optionIndex + 2, forwarded, optionIndex, arguments.Length - optionIndex - 2);
+    }
+    return (forwarded, priority);
+}
+
 static bool HasSwitch(string[] args, string optionName)
     => args.Any(arg => string.Equals(arg, optionName, StringComparison.OrdinalIgnoreCase));
 
@@ -617,7 +755,10 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--rows", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--row-count", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--row-set", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase);
+       || string.Equals(option, "--row-counts", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--affinity", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--processor-affinity", StringComparison.OrdinalIgnoreCase)
+       || string.Equals(option, "--priority", StringComparison.OrdinalIgnoreCase);
 
 static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenarioFilters) {
     if (scenarioFilters.Count == 0) {
@@ -656,6 +797,7 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-insertobjects-autofitcolumnsfor-direct",
         "write-insertobjects-partial-autofitcolumnsfor-direct",
         "write-insertobjects-flat-dictionaries-direct",
+        "write-flat-dictionaries-direct-package",
         "write-insertobjects-legacy-dictionaries-direct",
         "write-powershell-mixed-objects-direct",
         "write-powershell-psobject-mixed-direct",
@@ -720,27 +862,24 @@ static string[] GetAntiCheatScenarios()
         "realworld-report-post-mutation"
     ];
 
-static double MeasureMilliseconds(
-    Func<ExcelReadObservation> operation,
-    out ExcelReadObservation observation) {
-    long started = System.Diagnostics.Stopwatch.GetTimestamp();
-    observation = operation();
-    return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+static string ApplyProcessAffinity(string[] arguments, int argumentIndex)
+    => arguments.Length <= argumentIndex
+        ? "unchanged"
+        : BenchmarkProcessorAffinity.Apply(arguments[argumentIndex]);
+
+static string ApplyProcessPriority(string[] arguments, int argumentIndex) {
+    if (arguments.Length <= argumentIndex ||
+        string.Equals(arguments[argumentIndex], "unchanged", StringComparison.OrdinalIgnoreCase)) {
+        return System.Diagnostics.Process.GetCurrentProcess().PriorityClass.ToString();
+    }
+
+    return BenchmarkProcessorAffinity.ApplyPriority(arguments[argumentIndex]);
 }
 
-static void ApplyProcessAffinity(string[] arguments, int argumentIndex) {
-    if (arguments.Length <= argumentIndex
-        || !long.TryParse(arguments[argumentIndex], out long affinityMask)) {
-        return;
-    }
-    if (!OperatingSystem.IsWindows()) {
-        throw new PlatformNotSupportedException("Processor-affinity comparison is available only on Windows.");
-    }
-    if (affinityMask <= 0) {
-        throw new ArgumentOutOfRangeException(nameof(affinityMask));
-    }
-
-    System.Diagnostics.Process.GetCurrentProcess().ProcessorAffinity = checked((nint)affinityMask);
+static double MeasureWriteMilliseconds(Func<int> operation) {
+    long started = System.Diagnostics.Stopwatch.GetTimestamp();
+    _ = operation();
+    return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 }
 
 static double Median(double[] samples) {

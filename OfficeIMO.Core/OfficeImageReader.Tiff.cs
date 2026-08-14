@@ -46,6 +46,7 @@ public static partial class OfficeImageReader {
         bool hasDpiX = false;
         bool hasDpiY = false;
         int unit = 2;
+        int orientation = 1;
 
         for (int i = 0; i < entryCount; i++) {
             int entry = ifdOffset + 2 + (i * 12);
@@ -62,10 +63,11 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadClassicTiffRational(data, valueOrOffset, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
+            } else if (tag == 274) orientation = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
+            else if (tag == 296) unit = ReadClassicTiffScalar(type, count, valueOrOffset, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, out info);
+        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
     }
 
     private static bool TryReadBigTiff(byte[] data, bool littleEndian, out OfficeImageInfo info) {
@@ -104,6 +106,7 @@ public static partial class OfficeImageReader {
         bool hasDpiX = false;
         bool hasDpiY = false;
         int unit = 2;
+        int orientation = 1;
 
         for (int i = 0; i < entryCount; i++) {
             int entry = ifdOffset + 8 + (i * 20);
@@ -119,10 +122,11 @@ public static partial class OfficeImageReader {
             } else if (tag == 283 && TryReadBigTiffRational(data, entry + 12, type, count, littleEndian, out double parsedDpiY)) {
                 dpiY = parsedDpiY;
                 hasDpiY = true;
-            } else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
+            } else if (tag == 274) orientation = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
+            else if (tag == 296) unit = ReadBigTiffScalar(data, entry + 12, type, count, littleEndian);
         }
 
-        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, out info);
+        return CompleteTiffInfo(width, height, dpiX, dpiY, hasDpiX, hasDpiY, unit, orientation, out info);
     }
 
     private static bool CompleteTiffInfo(
@@ -133,6 +137,7 @@ public static partial class OfficeImageReader {
         bool hasDpiX,
         bool hasDpiY,
         int unit,
+        int orientation,
         out OfficeImageInfo info) {
         switch (unit) {
             case 2:
@@ -147,6 +152,11 @@ public static partial class OfficeImageReader {
                 dpiX = 96.0;
                 dpiY = 96.0;
                 break;
+        }
+
+        if (orientation >= 5 && orientation <= 8) {
+            (width, height) = (height, width);
+            (dpiX, dpiY) = (dpiY, dpiX);
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Tiff, width, height, dpiX, dpiY);

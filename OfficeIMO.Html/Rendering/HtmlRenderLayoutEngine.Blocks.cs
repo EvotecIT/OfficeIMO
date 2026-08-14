@@ -4,8 +4,23 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(IElement container, double width, HtmlRenderBoxStyle parentStyle, int depth) =>
-        BuildChildBlocks(container, container.ChildNodes, width, parentStyle, depth, includeGeneratedBefore: true, includeGeneratedAfter: true);
+    private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
+        IElement container,
+        double width,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) =>
+        BuildChildBlocks(
+            container,
+            container.ChildNodes,
+            width,
+            parentStyle,
+            depth,
+            includeGeneratedBefore: true,
+            includeGeneratedAfter: true,
+            continuationTarget,
+            continuationLogicalCharacters);
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildChildBlocks(
         IElement container,
@@ -14,15 +29,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         bool includeGeneratedBefore,
-        bool includeGeneratedAfter) {
+        bool includeGeneratedAfter,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) {
         EnsureDepth(depth, container);
         var blocks = new List<HtmlRenderFlowBlock>();
-        if (includeGeneratedBefore) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
+        IElement? continuationChild = FindDirectChildContaining(container, continuationTarget);
+        bool seekingContinuation = continuationChild != null;
+        if (includeGeneratedBefore && !seekingContinuation) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.Before, width, parentStyle);
         double flowHeight = blocks.Sum(block => block.Height);
         var adjoiningMargins = new AdjoiningMarginState();
         var inlineNodes = new List<INode>();
         foreach (INode node in nodes) {
             CheckCancellation();
+            if (seekingContinuation) {
+                if (node is not IElement candidate || !ReferenceEquals(candidate, continuationChild)) continue;
+                seekingContinuation = false;
+            }
             if (node is IElement element) {
                 if (ShouldSkipElement(element)) {
                     continue;
@@ -35,9 +58,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
-                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(element, width, childStyle, depth + 1)) {
+                    bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
+                    foreach (HtmlRenderFlowBlock flattenedBlock in BuildChildBlocks(
+                        element,
+                        width,
+                        childStyle,
+                        depth + 1,
+                        carriesContinuation ? continuationTarget : null,
+                        carriesContinuation ? continuationLogicalCharacters : 0)) {
                         blocks.Add(flattenedBlock);
                         flowHeight += flattenedBlock.Height;
+                    }
+                    if (carriesContinuation) {
+                        continuationTarget = null;
+                        continuationLogicalCharacters = 0;
                     }
 
                     adjoiningMargins.Clear();
@@ -71,7 +105,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
-                    HtmlRenderFlowBlock childBlock = LayoutElement(element, width, childStyle, parentStyle, depth + 1);
+                    bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
+                    HtmlRenderFlowBlock childBlock = LayoutElement(
+                        element,
+                        width,
+                        childStyle,
+                        parentStyle,
+                        depth + 1,
+                        carriesContinuation ? continuationTarget : null,
+                        carriesContinuation ? continuationLogicalCharacters : 0);
+                    if (carriesContinuation) {
+                        continuationTarget = null;
+                        continuationLogicalCharacters = 0;
+                    }
                     double marginAdjustment = 0D;
                     if (childBlock.HasCollapsibleMargins && adjoiningMargins.Count > 0) {
                         adjoiningMargins.Add(childBlock.CollapsibleMarginTop);
@@ -118,6 +164,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (trailingInlineHeight > 0D) adjoiningMargins.Clear();
         if (includeGeneratedAfter) AddGeneratedContentBlock(blocks, container, HtmlPseudoElementKind.After, width, parentStyle);
         return blocks;
+    }
+
+    private static IElement? FindDirectChildContaining(IElement container, IElement? target) {
+        if (target == null || ReferenceEquals(container, target)) return null;
+        IElement? current = target;
+        while (current?.ParentElement != null && !ReferenceEquals(current.ParentElement, container)) {
+            current = current.ParentElement;
+        }
+        return current?.ParentElement != null && ReferenceEquals(current.ParentElement, container) ? current : null;
+    }
+
+    private static bool ContainsElementOrSelf(IElement candidate, IElement? target) {
+        for (IElement? current = target; current != null; current = current.ParentElement) {
+            if (ReferenceEquals(candidate, current)) return true;
+        }
+        return false;
     }
 
     private static double CollapseVerticalMargins(double first, double second) {
@@ -175,30 +237,50 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
+    private HtmlRenderFlowBlock LayoutElement(
+        IElement element,
+        double containingWidth,
+        HtmlRenderBoxStyle style,
+        HtmlRenderBoxStyle parentStyle,
+        int depth,
+        IElement? continuationTarget = null,
+        int continuationLogicalCharacters = 0) {
+        IElement? root = _document.Body ?? _document.DocumentElement;
+        bool tracksPageViewport = _options.Mode == HtmlRenderMode.Paged
+            && depth == 1
+            && ReferenceEquals(element.ParentElement, root);
+        HtmlRenderFlowBlock StampViewport(HtmlRenderFlowBlock block) =>
+            tracksPageViewport
+                ? block.WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height)
+                : block;
         EnsureDepth(depth, element);
         ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+        bool continuesThisBox = continuationTarget != null
+            && ContainsElementOrSelf(element, continuationTarget)
+            && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
+        if (continuesThisBox) style = SuppressContinuationStartDecorations(style);
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (tag == "img") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (IsFormControlElement(tag)) return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutFormControl(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (tag == "table") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (tag == "hr") return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
-        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock flexBlock)) {
+        if (tag == "img") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(mathBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutFormControl(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth, continuationTarget), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
             flexBlock = ApplyElementSemantics(flexBlock, element);
-            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+            return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
             gridBlock = ApplyElementSemantics(gridBlock, element);
-            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+            return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
         if (TryLayoutMultiColumnContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock columnsBlock)) {
             columnsBlock = ApplyElementSemantics(columnsBlock, element);
-            return AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element);
+            return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
@@ -207,15 +289,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var contentVisuals = new List<HtmlRenderVisual>();
         var childPaintLayers = new List<FlowPaintLayer>();
         var contentBreakOffsets = new List<double>();
+        var forcedBreaks = new List<HtmlRenderForcedBreak>();
         var lineBreakOffsets = new List<double>();
         var lineBreakGroups = new List<HtmlRenderLineBreakGroup>();
         var continuationGroups = new List<HtmlRenderContinuationGroup>();
         var trailingGroups = new List<HtmlRenderTrailingGroup>();
         var runningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+        var continuationBreakProgress = new List<HtmlInlineBreakProgress>();
+        HtmlInlineLayout? inlineLayout = null;
         double contentHeight = 0D;
         bool usesBlockFormatting = HasBlockChildren(element, contentWidth, style, depth);
+        IElement? descendantContinuationTarget = continuationTarget != null && !ReferenceEquals(element, continuationTarget)
+            ? continuationTarget
+            : null;
         List<HtmlRenderFlowBlock> children = usesBlockFormatting
-            ? BuildChildBlocks(element, contentWidth, style, depth).ToList()
+            ? BuildChildBlocks(
+                element,
+                contentWidth,
+                style,
+                depth,
+                descendantContinuationTarget,
+                descendantContinuationTarget == null ? 0 : continuationLogicalCharacters).ToList()
             : new List<HtmlRenderFlowBlock>();
 
         if (children.Count > 0 && CanCollapseParentMargin(style, top: true) && children[0].HasCollapsibleMargins) {
@@ -241,11 +335,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
 
         if (usesBlockFormatting) {
-            foreach (HtmlRenderFlowBlock child in children) {
+            string? childPageName = children.Count > 0 ? children[0].PageName : null;
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                HtmlRenderFlowBlock child = children[childIndex];
                 double childStart = contentHeight;
+                if (childIndex > 0 && !string.Equals(childPageName, child.PageName, StringComparison.Ordinal)) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, HtmlPageBreakTarget.Page, child.PageName, changesPageName: true));
+                }
+                childPageName = child.PageName;
+                if (child.BreakBefore != HtmlPageBreakTarget.None) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(childStart, child.BreakBefore));
+                }
+                foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) {
+                    forcedBreaks.Add(forcedBreak.Translate(childStart));
+                }
+                if (childIndex > 0 && child.OwnerElement != null) {
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(childStart, 0, child.OwnerElement));
+                }
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
 
                 contentHeight += child.Height;
+                if (child.BreakAfter != HtmlPageBreakTarget.None) {
+                    forcedBreaks.Add(new HtmlRenderForcedBreak(contentHeight, child.BreakAfter));
+                }
                 foreach (double offset in child.BreakOffsets) {
                     contentBreakOffsets.Add(childStart + offset);
                 }
@@ -264,13 +376,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlCssRunningStringAssignment assignment in child.RunningStringAssignments) {
                     runningStringAssignments.Add(assignment.Translate(childStart));
                 }
+                foreach (HtmlInlineBreakProgress progress in child.InlineBreakProgress) {
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(
+                        childStart + progress.Offset,
+                        progress.LogicalCharacters,
+                        progress.OwnerElement));
+                }
 
                 contentBreakOffsets.Add(contentHeight);
             }
             AppendFlowPaintLayers(contentVisuals, childPaintLayers);
         } else {
             string? prefix = tag == "li" ? ResolveListPrefix(element, style) : null;
-            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element);
+            int inlineSkipLogicalCharacters = ReferenceEquals(element, continuationTarget)
+                ? continuationLogicalCharacters
+                : 0;
+            HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, contentWidth, style, depth, prefix, element, inlineSkipLogicalCharacters);
+            inlineLayout = inline;
             contentVisuals.AddRange(inline.Visuals);
             contentHeight = inline.Height;
             contentBreakOffsets.AddRange(inline.BreakOffsets);
@@ -283,7 +405,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool zeroHeightCollapsible = CanUseZeroHeightForMarginCollapse(style, parentStyle, contentHeight);
-        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, style);
+        double boxHeight = zeroHeightCollapsible ? 0D : ResolveBoxHeight(contentHeight, boxWidth, style);
         double unclampedOuterHeight = style.MarginTop + boxHeight + style.MarginBottom;
         double outerHeight = unclampedOuterHeight;
         if (outerHeight <= 0D) outerHeight = 0.01D;
@@ -340,7 +462,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentYForBreaks,
                 group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
         string? pageName = style.PageName;
-        if (pageName == null && children.Count > 0 && children.All(child => string.Equals(child.PageName, children[0].PageName, StringComparison.OrdinalIgnoreCase))) {
+        if (pageName == null && children.Count > 0) {
             pageName = children[0].PageName;
         }
 
@@ -364,10 +486,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runningStringAssignments: runningStringAssignments
                 .Select(assignment => assignment.Translate(contentYForBreaks))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset),
+            inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement)),
+            inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
+            supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
+                || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
+            forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)));
         block = ApplyElementSemantics(block, element);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
-        return AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough);
+        return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough));
+    }
+
+    private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {
+        HtmlRenderBoxStyle continuation = style.Clone();
+        continuation.MarginTop = 0D;
+        continuation.PaddingTop = 0D;
+        continuation.Borders = new HtmlRenderBorderEdges(
+            continuation.Borders.Top.WithWidth(0D),
+            continuation.Borders.Right,
+            continuation.Borders.Bottom,
+            continuation.Borders.Left);
+        continuation.BreakBefore = HtmlPageBreakTarget.None;
+        continuation.StringSet = string.Empty;
+        return continuation;
     }
 
     private HtmlRenderFlowBlock AttachElementMargins(HtmlRenderFlowBlock block, HtmlRenderBoxStyle style, IElement element, bool collapsesThrough = false) {
@@ -428,7 +570,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentHeight) {
         if (style.Display != "block" || style.OverflowX != "visible" || style.OverflowY != "visible") return false;
         if (style.BorderTopWidth > 0D || style.BorderBottomWidth > 0D || style.PaddingTop > 0D || style.PaddingBottom > 0D) return false;
-        if (style.ExplicitHeight.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
+        if (style.ExplicitHeight.HasValue || style.AspectRatio.HasValue || style.MinHeight.HasValue && style.MinHeight.Value > 0D) return false;
         if (usesBlockFormatting) return children.Count == 0 || children.All(child => child.CollapsesThrough);
         return contentVisuals.Count == 0 && contentHeight <= 0.0001D;
     }
@@ -445,6 +587,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && style.PaddingTop <= 0D
         && style.PaddingBottom <= 0D
         && !style.ExplicitHeight.HasValue
+        && !style.AspectRatio.HasValue
         && (!style.MinHeight.HasValue || style.MinHeight.Value <= 0D);
 
     private double FlushInlineNodes(ICollection<HtmlRenderFlowBlock> blocks, List<INode> nodes, double width, HtmlRenderBoxStyle style, IElement sourceElement, int depth) {
@@ -507,16 +650,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveBoxWidth(double availableWidth, HtmlRenderBoxStyle style) {
         double width = style.ExplicitWidth ?? (style.BorderBox ? availableWidth : Math.Max(1D, availableWidth - style.HorizontalInsets));
         if (!style.BorderBox) width += style.HorizontalInsets;
-        if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
+        if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         return Math.Max(1D, Math.Min(width, availableWidth));
     }
 
-    private static double ResolveBoxHeight(double contentHeight, HtmlRenderBoxStyle style) {
-        double height = style.ExplicitHeight ?? contentHeight;
-        if (!style.BorderBox || !style.ExplicitHeight.HasValue) height += style.VerticalInsets;
-        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
+    private static double ResolveBoxHeight(double contentHeight, double boxWidth, HtmlRenderBoxStyle style) {
+        double height;
+        bool usesAspectRatio = !style.ExplicitHeight.HasValue && style.AspectRatio.HasValue;
+        if (style.ExplicitHeight.HasValue) {
+            height = style.ExplicitHeight.Value;
+        } else if (style.AspectRatio.HasValue) {
+            double ratioWidth = style.BorderBox
+                ? boxWidth
+                : Math.Max(0D, boxWidth - style.HorizontalInsets);
+            height = ratioWidth / style.AspectRatio.Value;
+        } else {
+            height = contentHeight;
+        }
+        if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
+        if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         return Math.Max(0.01D, height);
     }
 
@@ -546,13 +700,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _options.MaxLayoutDepth);
     }
 
-    private static string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
+    private string? ResolveListPrefix(IElement element, HtmlRenderBoxStyle style) {
         if (string.Equals(style.ListStyleType, "none", StringComparison.OrdinalIgnoreCase)) return null;
         IElement? parent = element.ParentElement;
         if (parent == null) return "• ";
-        if (!string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase)) return "• ";
-        return HtmlListSemantics.TryResolveOrdinal(element, out int ordinal)
-            ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + ". "
-            : "1. ";
+        bool ordered = string.Equals(parent.TagName, "ol", StringComparison.OrdinalIgnoreCase);
+        string listStyle = style.ListStyleType.Length == 0 ? ordered ? "decimal" : "disc" : style.ListStyleType;
+        int ordinal = HtmlListSemantics.TryResolveOrdinal(element, out int resolvedOrdinal) ? resolvedOrdinal : 1;
+        if (_counterStyles.TryFormatMarker(ordinal, listStyle, out string customMarker, out bool customMarkerLimited)) {
+            if (customMarkerLimited) ReportCounterRepresentationLimit(element, listStyle);
+            return customMarker.Length == 0 ? null : customMarker;
+        }
+        if (!HtmlCounterStyleFormatter.TryFormat(ordinal, listStyle, out string marker, out bool markerLimited)) {
+            marker = ordered ? ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) : "•";
+        }
+        if (markerLimited) ReportCounterRepresentationLimit(element, listStyle);
+        if (marker.Length == 0) return null;
+        return marker + HtmlCounterStyleFormatter.MarkerSuffix(markerLimited ? "decimal" : listStyle);
+    }
+
+    private void ReportCounterRepresentationLimit(IElement element, string style) {
+        AddUnsupported(
+            HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded,
+            "A CSS counter representation exceeded the managed rendering budget and used a decimal fallback.",
+            element,
+            "list-style-type=" + style,
+            OfficeConversionLossKind.Approximation);
     }
 }

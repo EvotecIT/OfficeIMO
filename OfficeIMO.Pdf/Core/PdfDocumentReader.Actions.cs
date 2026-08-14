@@ -4,6 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Fluent active-action readback operations for a <see cref="PdfDocument"/>.
 /// </summary>
 public sealed partial class PdfDocumentReader {
+    /// <summary>Reads named document-level JavaScript actions and their exact source text.</summary>
+    public IReadOnlyList<PdfJavaScript> JavaScripts(PdfReadOptions? readOptions = null) =>
+        ReadDocument(readOptions).JavaScripts;
+
+    /// <summary>Attempts to read named document-level JavaScript actions, returning diagnostics when blocked or failed.</summary>
+    public PdfOperationResult<IReadOnlyList<PdfJavaScript>> TryJavaScripts(PdfReadOptions? options = null) =>
+        _document.TryOperation("Read document JavaScript", PdfPreflightCapability.ReadLogicalObjects, () => JavaScripts(options), ResolveReadOptions(options));
+
     /// <summary>
     /// Reads catalog-level actions discovered from supported catalog slots and name trees.
     /// </summary>

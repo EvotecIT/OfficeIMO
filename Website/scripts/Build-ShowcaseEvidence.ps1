@@ -103,6 +103,7 @@ if (-not $SkipGeneration -and -not $ManifestOnly) {
         '--powerpoint-design-brief',
         '--pdf-showcase',
         '--html-invoice',
+        '--html-renderer-gallery',
         '--excel-report-workflow',
         '--onenote',
         '--visio-premium',
@@ -168,21 +169,49 @@ $artifacts = @(
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.pdf')
         destination = 'html/invoice.pdf'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'PDF generated directly from the same parsed HTML and options object as the image outputs.'
+        evidence = 'Three-page searchable purchase report with wrapped rows, repeated table headers, page counters, and one totals block.'
     },
     [ordered]@{
         id = 'html-png-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.png')
         destination = 'html/invoice.png'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'PNG generated directly from the same parsed HTML and options object as the PDF.'
+        evidence = 'First-page PNG generated from the same parsed HTML and options object as the multi-page PDF.'
     },
     [ordered]@{
         id = 'html-svg-output'
         source = (Join-Path $documentsRoot 'HtmlInvoiceShowcase.svg')
         destination = 'html/invoice.svg'
         generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-invoice"
-        evidence = 'SVG generated directly from the same parsed HTML and options object as the PDF.'
+        evidence = 'First-page SVG generated from the same parsed HTML and options object as the multi-page PDF.'
+    },
+    [ordered]@{
+        id = 'html-renderer-gallery-source'
+        source = (Join-Path $documentsRoot 'HtmlManagedRendererGallery.html')
+        destination = 'html/managed-renderer-gallery.source.txt'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-renderer-gallery"
+        evidence = 'Authored HTML and CSS source used for every managed renderer gallery output.'
+    },
+    [ordered]@{
+        id = 'html-renderer-gallery-pdf'
+        source = (Join-Path $documentsRoot 'HtmlManagedRendererGallery.pdf')
+        destination = 'html/managed-renderer-gallery.pdf'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-renderer-gallery"
+        evidence = 'Searchable managed PDF with native AcroForm controls and page-margin content.'
+    },
+    [ordered]@{
+        id = 'html-renderer-gallery-png'
+        source = (Join-Path $documentsRoot 'HtmlManagedRendererGallery.png')
+        destination = 'html/managed-renderer-gallery.png'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-renderer-gallery"
+        evidence = 'Deterministic first-page PNG generated from the same managed scene as the PDF.'
+    },
+    [ordered]@{
+        id = 'html-renderer-gallery-svg'
+        source = (Join-Path $documentsRoot 'HtmlManagedRendererGallery.svg')
+        destination = 'html/managed-renderer-gallery.svg'
+        generator = "dotnet run --project OfficeIMO.Examples -f $Framework -- --html-renderer-gallery"
+        evidence = 'Vector SVG generated from the shared backend-neutral scene.'
     },
     [ordered]@{
         id = 'word-workflow-source'

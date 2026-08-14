@@ -1,18 +1,30 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private IReadOnlyList<PdfCatalogAction> ExtractCatalogActions() {
+    private IReadOnlyList<PdfCatalogAction> ExtractCatalogActions(out IReadOnlyList<PdfJavaScript> javaScripts) {
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null) {
+            javaScripts = Array.Empty<PdfJavaScript>();
             return Array.Empty<PdfCatalogAction>();
         }
 
         var result = new List<PdfCatalogAction>();
+        var scripts = new List<PdfJavaScript>();
         if (catalog.Items.TryGetValue("Names", out var namesObject) &&
             ResolveDict(namesObject) is PdfDictionary namesDictionary &&
             namesDictionary.Items.TryGetValue("JavaScript", out var javaScriptNameTree)) {
             int traversedNameTreeNodes = 0;
-            AddCatalogActionsFromNameTree(javaScriptNameTree, result, new HashSet<int>(), 0, ref traversedNameTreeNodes);
+            int discoveredJavaScripts = 0;
+            long totalJavaScriptBytes = 0L;
+            AddCatalogActionsFromNameTree(
+                javaScriptNameTree,
+                result,
+                scripts,
+                new HashSet<(int ObjectNumber, int Generation)>(),
+                0,
+                ref traversedNameTreeNodes,
+                ref discoveredJavaScripts,
+                ref totalJavaScriptBytes);
         }
 
         if (catalog.Items.TryGetValue("OpenAction", out var openAction)) {
@@ -26,18 +38,24 @@ public sealed partial class PdfReadDocument {
             }
         }
 
+        javaScripts = scripts.Count == 0
+            ? Array.Empty<PdfJavaScript>()
+            : scripts.OrderBy(static script => script.Name, StringComparer.Ordinal).ToList().AsReadOnly();
         return result.Count == 0 ? Array.Empty<PdfCatalogAction>() : result.AsReadOnly();
     }
 
     private void AddCatalogActionsFromNameTree(
         PdfObject treeObject,
         List<PdfCatalogAction> result,
-        HashSet<int> visitedReferences,
+        List<PdfJavaScript> scripts,
+        HashSet<(int ObjectNumber, int Generation)> visitedReferences,
         int depth,
-        ref int traversedNodes) {
+        ref int traversedNodes,
+        ref int discoveredJavaScripts,
+        ref long totalJavaScriptBytes) {
         EnsureNameTreeBudget(depth, traversedNodes);
         if (treeObject is PdfReference reference) {
-            if (visitedReferences.Contains(reference.ObjectNumber)) {
+            if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation))) {
                 return;
             }
 
@@ -46,7 +64,6 @@ public sealed partial class PdfReadDocument {
                 return;
             }
 
-            visitedReferences.Add(reference.ObjectNumber);
             treeObject = indirect.Value;
         }
 
@@ -57,8 +74,20 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Names", out var actionNamesObject) &&
             ResolveArray(actionNamesObject) is PdfArray actionNames) {
             for (int i = 0; i + 1 < actionNames.Items.Count; i += 2) {
+                discoveredJavaScripts++;
+                if (discoveredJavaScripts > _options.Limits.MaxJavaScripts) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScripts, _options.Limits.MaxJavaScripts, discoveredJavaScripts);
+                }
                 if (TryReadCatalogActionName(actionNames.Items[i], out string? name)) {
                     AddCatalogAction(name!, "Names/JavaScript", null, actionNames.Items[i + 1], result, new HashSet<int>());
+                    bool hasReadableSource = TryReadJavaScriptSource(actionNames.Items[i + 1], out string? script, out long sourceBytes);
+                    totalJavaScriptBytes = checked(totalJavaScriptBytes + sourceBytes);
+                    if (totalJavaScriptBytes > _options.Limits.MaxTotalJavaScriptBytes) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.JavaScriptBytes, _options.Limits.MaxTotalJavaScriptBytes, totalJavaScriptBytes);
+                    }
+                    if (hasReadableSource) {
+                        scripts.Add(new PdfJavaScript(name!, script!));
+                    }
                 }
             }
         }
@@ -66,16 +95,65 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddCatalogActionsFromNameTree(kid, result, visitedReferences, depth + 1, ref traversedNodes);
+                AddCatalogActionsFromNameTree(
+                    kid,
+                    result,
+                    scripts,
+                    visitedReferences,
+                    depth + 1,
+                    ref traversedNodes,
+                    ref discoveredJavaScripts,
+                    ref totalJavaScriptBytes);
             }
         }
+    }
+
+    private bool TryReadJavaScriptSource(PdfObject actionObject, out string? script, out long sourceBytes) {
+        if (ResolveObject(actionObject) is not PdfDictionary action ||
+            !TryReadCatalogActionType(action, out string? actionType) ||
+            !string.Equals(actionType, "JavaScript", StringComparison.Ordinal) ||
+            !action.Items.TryGetValue("JS", out PdfObject? sourceObject)) {
+            script = null;
+            sourceBytes = 0L;
+            return false;
+        }
+
+        PdfObject? source = ResolveObject(sourceObject);
+        if (source is PdfStringObj text) {
+            int byteCount = text.RawBytes.Length;
+            int maximumBytes = Math.Min(_options.Limits.MaxJavaScriptBytes, _options.Limits.MaxDecodedStreamBytes);
+            if (byteCount > maximumBytes) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, maximumBytes, byteCount);
+            }
+            sourceBytes = byteCount;
+            return PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out script!);
+        }
+
+        if (source is PdfStream stream) {
+            try {
+                byte[] decoded = Filters.StreamDecoder.DecodeRequired(
+                    stream.Dictionary,
+                    stream.Data,
+                    _objects,
+                    Math.Min(_options.Limits.MaxJavaScriptBytes, _options.Limits.MaxDecodedStreamBytes));
+                sourceBytes = decoded.LongLength;
+                return PdfJavaScriptStringEncoding.TryDecode(decoded, out script!);
+            } catch (InvalidDataException) {
+                script = null;
+                sourceBytes = 0L;
+                return false;
+            }
+        }
+
+        script = null;
+        sourceBytes = 0L;
+        return false;
     }
 
     private bool TryReadCatalogActionName(PdfObject obj, out string? name) {
         switch (ResolveObject(obj)) {
             case PdfStringObj text:
-                name = text.Value;
-                return !string.IsNullOrEmpty(name);
+                return PdfJavaScriptStringEncoding.TryDecode(text.RawBytes, out name!) && !string.IsNullOrEmpty(name);
             case PdfName pdfName:
                 name = pdfName.Name;
                 return !string.IsNullOrEmpty(name);
@@ -108,9 +186,9 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
-        if (TryReadCatalogActionType(dictionary, out string? actionType) &&
-            IsActiveCatalogActionType(actionType!)) {
-            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction));
+        if (TryReadCatalogActionType(dictionary, out string? actionType)) {
+            string? uri = string.Equals(actionType, "URI", StringComparison.Ordinal) ? TryReadText(dictionary, "URI") : null;
+            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction, uri, PdfActionPayloadFingerprint.Create(dictionary, _objects, _options.Limits)));
         }
 
         if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
@@ -175,18 +253,4 @@ public sealed partial class PdfReadDocument {
         return false;
     }
 
-    private static bool IsActiveCatalogActionType(string actionType) {
-        switch (actionType) {
-            case "JavaScript":
-            case "Launch":
-            case "SubmitForm":
-            case "ImportData":
-            case "Movie":
-            case "Rendition":
-            case "RichMedia":
-                return true;
-            default:
-                return false;
-        }
-    }
 }

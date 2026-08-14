@@ -143,7 +143,8 @@ internal static partial class PdfRedactionPlanner {
                     null,
                     null,
                     placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
-                    placement.ResourceName));
+                    placement.ResourceName,
+                    placement));
 
                 findings.Add(new PdfDiagnosticFinding(
                     PdfDiagnosticSeverity.Warning,

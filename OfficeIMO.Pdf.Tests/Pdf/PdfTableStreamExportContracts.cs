@@ -10,6 +10,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
+[Collection(PdfAnalysisPerformanceCollection.Name)]
 public class PdfTableStreamExportContracts {
     [Fact]
     public void WordTableExport_WritesToNonSeekableDestination() {
@@ -618,4 +619,9 @@ public class PdfTableStreamExportContracts {
             base.Dispose(disposing);
         }
     }
+}
+
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class PdfAnalysisPerformanceCollection {
+    public const string Name = "PDF analysis performance contracts";
 }

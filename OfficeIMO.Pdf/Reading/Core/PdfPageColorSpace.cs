@@ -124,6 +124,9 @@ internal readonly struct PdfPageColorSpace {
         PdfColorSpaceTintTransform transform) =>
         new PdfPageColorSpace(kind, new PdfPageCustomColorSpace(componentCount, alternate, transform));
 
+    public static PdfPageColorSpace Pattern(PdfPageColorSpace baseColorSpace) =>
+        new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern, new PdfPageCustomColorSpace(baseColorSpace));
+
     public OfficeColor ConvertCalRgb(double red, double green, double blue) {
         PdfPageCalRgbParameters parameters = _calRgb ?? PdfPageCalRgbParameters.Default;
         return OfficeColorSpaceConverter.FromCalibratedRgb(
@@ -296,6 +299,12 @@ internal readonly struct PdfPageColorSpace {
             Alternate = alternate;
             Transform = transform;
             UsesIccApproximation = alternate.UsesIccApproximation;
+        }
+
+        public PdfPageCustomColorSpace(PdfPageColorSpace patternBaseColorSpace) {
+            ComponentCount = patternBaseColorSpace.ComponentCount;
+            Alternate = patternBaseColorSpace;
+            UsesIccApproximation = patternBaseColorSpace.UsesIccApproximation;
         }
 
         public int ComponentCount { get; }

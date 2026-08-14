@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfPageShadingResource {
-    public PdfPageShadingResource(double x0, double y0, double x1, double y1, OfficeColor startColor, OfficeColor endColor) {
+    public PdfPageShadingResource(double x0, double y0, double x1, double y1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) {
         IsRadial = false;
         X0 = x0;
         Y0 = y0;
@@ -12,9 +12,10 @@ internal readonly struct PdfPageShadingResource {
         Y1 = y1;
         R1 = 0D;
         Stops = new[] { new OfficeGradientStop(0D, startColor), new OfficeGradientStop(1D, endColor) };
+        SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double x1, double y1, IReadOnlyList<OfficeGradientStop> stops) {
+    public PdfPageShadingResource(double x0, double y0, double x1, double y1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) {
         IsRadial = false;
         X0 = x0;
         Y0 = y0;
@@ -23,9 +24,10 @@ internal readonly struct PdfPageShadingResource {
         Y1 = y1;
         R1 = 0D;
         Stops = SnapshotStops(stops);
+        SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, OfficeColor startColor, OfficeColor endColor) {
+    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, OfficeColor startColor, OfficeColor endColor, bool supportsExactType3Projection = true) {
         IsRadial = true;
         X0 = x0;
         Y0 = y0;
@@ -34,9 +36,10 @@ internal readonly struct PdfPageShadingResource {
         Y1 = y1;
         R1 = r1;
         Stops = new[] { new OfficeGradientStop(0D, startColor), new OfficeGradientStop(1D, endColor) };
+        SupportsExactType3Projection = supportsExactType3Projection;
     }
 
-    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, IReadOnlyList<OfficeGradientStop> stops) {
+    public PdfPageShadingResource(double x0, double y0, double r0, double x1, double y1, double r1, IReadOnlyList<OfficeGradientStop> stops, bool supportsExactType3Projection = true) {
         IsRadial = true;
         X0 = x0;
         Y0 = y0;
@@ -45,9 +48,12 @@ internal readonly struct PdfPageShadingResource {
         Y1 = y1;
         R1 = r1;
         Stops = SnapshotStops(stops);
+        SupportsExactType3Projection = supportsExactType3Projection;
     }
 
     public bool IsRadial { get; }
+
+    public bool SupportsExactType3Projection { get; }
 
     public double X0 { get; }
 

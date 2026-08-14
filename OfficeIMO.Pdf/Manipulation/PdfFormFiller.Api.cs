@@ -36,13 +36,14 @@ internal static partial class PdfFormFiller {
     internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
         FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null) {
-        return FillFieldsCore(pdf, fieldValues, options, readOptions: null, requireMutationPlan: false);
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false);
     }
 
     private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
+        RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions, fieldNames: fieldValues.Keys);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
@@ -71,6 +72,15 @@ internal static partial class PdfFormFiller {
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(options?.KeepNeedAppearances == true);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
+    }
+
+    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfReadOptions? readOptions) {
+        IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, readOptions).FormFieldsByName;
+        foreach (string fieldName in fieldNames) {
+            if (fields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
+                throw new ArgumentException("Push-button fields do not have a fillable value: " + fieldName, nameof(fieldNames));
+            }
+        }
     }
 
     /// <summary>
@@ -313,10 +323,12 @@ internal static partial class PdfFormFiller {
             removableObjects.Add(acroFormReference.ObjectNumber);
         }
 
+        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
         foreach (int objectNumber in removableObjects) {
             objects.Remove(objectNumber);
         }
 
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
@@ -330,8 +342,8 @@ internal static partial class PdfFormFiller {
     internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
         FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: false);
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false);
     }
 
     private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
@@ -392,7 +404,9 @@ internal static partial class PdfFormFiller {
             if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);
         }
 
+        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
         foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 

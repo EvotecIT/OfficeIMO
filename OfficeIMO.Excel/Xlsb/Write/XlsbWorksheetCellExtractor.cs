@@ -4,6 +4,7 @@ using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Projection;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
     /// <summary>Creates the bounded cell mutation plan used by the preservation-aware XLSB rewriter.</summary>

@@ -3,6 +3,103 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    internal bool WouldAppendingTextChangeVisibleStacking(IReadOnlyList<PdfTextSpan> sourceSpans, IReadOnlyList<PdfAppendedTextBounds>? appendedBounds = null) {
+        if (sourceSpans.Count == 0) return false;
+        if (HasUnboundedUnsupportedPaint()) return true;
+        (double Width, double Height) size = GetVisualPageSize();
+        Matrix2D pageTransform = GetVisualPageTransform();
+        var textOutputBudget = CreateTextOutputBudget();
+        var pageContentBudget = new PageContentBudget(this);
+        var targetOrders = new HashSet<double>(sourceSpans.Select(static span => span.PaintOrder));
+        var targetBounds = new List<(double Left, double Top, double Right, double Bottom, double PaintOrder)>();
+        IReadOnlyList<PdfTextSpan> textSpans = GetVisualTextSpans(size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        if (appendedBounds != null) {
+            for (int index = 0; index < appendedBounds.Count; index++) {
+                PdfAppendedTextBounds bounds = appendedBounds[index];
+                PdfVisualBounds visual = TransformBoundsToVisual(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
+                targetBounds.Add((visual.Left, visual.Top, visual.Right, visual.Bottom, bounds.PaintOrder));
+            }
+        } else {
+            for (int index = 0; index < textSpans.Count; index++) {
+                PdfTextSpan span = textSpans[index];
+                if (!targetOrders.Contains(span.PaintOrder)) continue;
+                var bounds = GetTextVisualBounds(span, size.Height);
+                targetBounds.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, span.PaintOrder));
+            }
+        }
+        var laterBounds = new List<(double Left, double Top, double Right, double Bottom, double PaintOrder)>();
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        for (int index = 0; index < primitives.Count; index++) {
+            PdfPageVisualPrimitive primitive = primitives[index];
+            laterBounds.Add((primitive.X, primitive.Y, primitive.X + Math.Max(0.1D, primitive.Width), primitive.Y + Math.Max(0.1D, primitive.Height), primitive.PaintOrder));
+        }
+        for (int index = 0; index < textSpans.Count; index++) {
+            PdfTextSpan span = textSpans[index];
+            var bounds = GetTextVisualBounds(span, size.Height);
+            laterBounds.Add((bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, span.PaintOrder));
+        }
+        IReadOnlyList<PdfImagePlacement> images = GetVisualImagePlacements(size.Height, pageTransform, pageContentBudget);
+        for (int index = 0; index < images.Count; index++) {
+            PdfImagePlacement image = images[index];
+            laterBounds.Add((image.X, image.Y, image.X + Math.Max(0.1D, image.Width), image.Y + Math.Max(0.1D, image.Height), image.PaintOrder));
+        }
+        for (int targetIndex = 0; targetIndex < targetBounds.Count; targetIndex++) {
+            var target = targetBounds[targetIndex];
+            for (int elementIndex = 0; elementIndex < laterBounds.Count; elementIndex++) {
+                var later = laterBounds[elementIndex];
+                if (later.PaintOrder <= target.PaintOrder || targetOrders.Contains(later.PaintOrder)) continue;
+                if (later.Left < target.Right && later.Right > target.Left && later.Top < target.Bottom && later.Bottom > target.Top) return true;
+            }
+        }
+        return false;
+    }
+
+    private static (double Left, double Top, double Right, double Bottom) GetTextVisualBounds(PdfTextSpan span, double pageHeight) {
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        double ux = Math.Cos(radians);
+        double uy = Math.Sin(radians);
+        double nx = -uy;
+        double ny = ux;
+        double advance = Math.Max(0.1D, Math.Abs(span.Advance));
+        double restampFontSize = span.RestampFontSize > 0D && !double.IsNaN(span.RestampFontSize) && !double.IsInfinity(span.RestampFontSize)
+            ? span.RestampFontSize
+            : span.FontSize;
+        double fontSize = Math.Max(0.1D, restampFontSize);
+        double[] x = {
+            span.X - (nx * fontSize * 0.25D),
+            span.X + (ux * advance) - (nx * fontSize * 0.25D),
+            span.X + (nx * fontSize * 0.8D),
+            span.X + (ux * advance) + (nx * fontSize * 0.8D)
+        };
+        double[] y = {
+            span.Y - (ny * fontSize * 0.25D),
+            span.Y + (uy * advance) - (ny * fontSize * 0.25D),
+            span.Y + (ny * fontSize * 0.8D),
+            span.Y + (uy * advance) + (ny * fontSize * 0.8D)
+        };
+        return (x.Min(), pageHeight - y.Max(), x.Max(), pageHeight - y.Min());
+    }
+
+    private bool HasUnboundedUnsupportedPaint() => GetRenderCapabilityDiagnostics().Any(static diagnostic =>
+        diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId ||
+        diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
+
+    internal readonly struct PdfAppendedTextBounds {
+        internal PdfAppendedTextBounds(double left, double bottom, double right, double top, double paintOrder) {
+            Left = left;
+            Bottom = bottom;
+            Right = right;
+            Top = top;
+            PaintOrder = paintOrder;
+        }
+
+        internal double Left { get; }
+        internal double Bottom { get; }
+        internal double Right { get; }
+        internal double Top { get; }
+        internal double PaintOrder { get; }
+    }
+
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>
@@ -13,17 +110,24 @@ public sealed partial class PdfReadPage {
         var drawing = new OfficeDrawing(size.Width, size.Height);
         var textOutputBudget = CreateTextOutputBudget();
         var pageContentBudget = new PageContentBudget(this);
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
+        var invocationTextClippingBudget = new PdfTextClippingBudget();
+        var patternTextClippingBudget = new PdfTextClippingBudget();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
-        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<(PdfPageSoftMaskResource Resource, OfficeIccRenderingIntent RenderingIntent), OfficeDrawingSoftMask>();
         for (int i = 0; i < pageElements.Count; i++) {
-            PdfPageDrawingElement element = pageElements[i].WithEffect(ResolveDrawingEffect(effects, pageElements[i].PaintOrder));
-            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, textOutputBudget, pageContentBudget);
+            PdfPageDrawingElement element = pageElements[i].WithEffect(
+                pageElements[i].Effect.OverlayOn(ResolveDrawingEffect(
+                    effects,
+                    pageElements[i].PaintOrder,
+                    contentOrderKey: pageElements[i].ContentOrderKey)));
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
 
-        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget);
+        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
 
         return drawing;
     }
@@ -58,15 +162,33 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         var elements = new List<PdfPageDrawingElement>();
-        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(pageWidth, pageHeight, pageTransform, textOutputBudget, pageContentBudget);
+        var renderedType3PaintOrders = new RenderedType3TextTracker();
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(
+            pageWidth,
+            pageHeight,
+            pageTransform,
+            textOutputBudget,
+            pageContentBudget,
+            renderedType3PaintOrders,
+            type3GlyphBudget,
+            invocationTextClippingBudget,
+            patternTextClippingBudget,
+            (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
+            (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
+                PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)));
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
 
         IReadOnlyList<PdfTextSpan> spans = GetVisualTextSpans(pageHeight, pageTransform, textOutputBudget, pageContentBudget);
         for (int i = 0; i < spans.Count; i++) {
+            if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
         }
 
@@ -88,6 +210,10 @@ public sealed partial class PdfReadPage {
 
     private static void SortDrawingElements(List<PdfPageDrawingElement> elements) {
         elements.Sort(static (left, right) => {
+            if (left.ContentOrderKey != null && right.ContentOrderKey != null) {
+                int contentOrder = left.ContentOrderKey.CompareTo(right.ContentOrderKey);
+                if (contentOrder != 0) return contentOrder;
+            }
             int order = left.PaintOrder.CompareTo(right.PaintOrder);
             return order != 0 ? order : left.Sequence.CompareTo(right.Sequence);
         });
@@ -100,14 +226,58 @@ public sealed partial class PdfReadPage {
         PdfPageDrawingElement element,
         Dictionary<(PdfPageSoftMaskResource Resource, OfficeIccRenderingIntent RenderingIntent), OfficeDrawingSoftMask> softMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         if (element.Effect.IsDefault) {
-            AddDrawingElementCore(drawing, pageHeight, element);
+            AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget);
+            return;
+        }
+
+        if (element.Kind == PdfPageDrawingElementKind.Group &&
+            element.GroupDrawing != null &&
+            element.GroupTransform.TryInvert(out OfficeTransform inverseGroupTransform)) {
+            OfficeDrawingSoftMask? groupSoftMask = null;
+            if (element.Effect.SoftMask != null) {
+                Matrix2D softMaskTransform = element.Effect.SoftMaskTransform ?? pageTransform;
+                var inverseGroupMatrix = new Matrix2D(
+                    inverseGroupTransform.M11,
+                    inverseGroupTransform.M12,
+                    inverseGroupTransform.M21,
+                    inverseGroupTransform.M22,
+                    inverseGroupTransform.OffsetX,
+                    inverseGroupTransform.OffsetY);
+                var parentDrawingFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, drawing.Height);
+                var groupDrawingFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, element.GroupDrawing.Height);
+                Matrix2D localSoftMaskTransform = Matrix2D.Multiply(
+                    groupDrawingFlip,
+                    Matrix2D.Multiply(
+                        inverseGroupMatrix,
+                        Matrix2D.Multiply(parentDrawingFlip, softMaskTransform)));
+                groupSoftMask = GetOrCreateSoftMask(
+                    element.Effect.SoftMask,
+                    element.GroupDrawing.Width,
+                    element.GroupDrawing.Height,
+                    localSoftMaskTransform,
+                    softMasks,
+                    activeSoftMasks,
+                    textOutputBudget,
+                    pageContentBudget,
+                    type3GlyphBudget,
+                    invocationTextClippingBudget,
+                    patternTextClippingBudget);
+            }
+            drawing.AddEffectDrawing(
+                element.GroupDrawing,
+                element.GroupTransform,
+                element.Effect.BlendMode,
+                groupSoftMask);
             return;
         }
 
         var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
-        AddDrawingElementCore(isolated, pageHeight, element);
+        AddDrawingElementCore(isolated, pageHeight, element, invocationTextClippingBudget);
         if (isolated.Elements.Count == 0) return;
         OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
             ? null
@@ -123,10 +293,14 @@ public sealed partial class PdfReadPage {
         drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
     }
 
-    private static void AddDrawingElementCore(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
+    private static void AddDrawingElementCore(
+        OfficeDrawing drawing,
+        double pageHeight,
+        PdfPageDrawingElement element,
+        PdfTextClippingBudget textClippingBudget) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
-                AddVisualPrimitive(drawing, element.Primitive);
+                AddVisualPrimitive(drawing, element.Primitive, textClippingBudget);
                 break;
             case PdfPageDrawingElementKind.Text:
                 AddTextSpan(drawing, pageHeight, element.TextSpan!);
@@ -134,12 +308,18 @@ public sealed partial class PdfReadPage {
             case PdfPageDrawingElementKind.Image:
                 AddImagePlacement(drawing, pageHeight, element.ImagePlacement!, element.Image!);
                 break;
+            case PdfPageDrawingElementKind.Group:
+                drawing.AddEffectDrawing(element.GroupDrawing!, element.GroupTransform);
+                break;
         }
     }
 
-    private static void AddVisualPrimitive(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+    private static void AddVisualPrimitive(
+        OfficeDrawing drawing,
+        PdfPageVisualPrimitive primitive,
+        PdfTextClippingBudget textClippingBudget) {
         if (primitive.FillTilingPattern != null) {
-            AddTilingPatternFill(drawing, primitive);
+            AddTilingPatternFill(drawing, primitive, textClippingBudget);
         }
 
         bool hasOrdinaryFill = primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null;
@@ -156,7 +336,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D) {
-            AddTilingPatternStroke(drawing, primitive);
+            AddTilingPatternStroke(drawing, primitive, textClippingBudget);
         }
     }
 
@@ -348,7 +528,14 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        RenderedType3TextTracker? renderedType3PaintOrders = null,
+        Type3GlyphBudget? type3GlyphBudget = null,
+        PdfTextClippingBudget? invocationTextClippingBudget = null,
+        PdfTextClippingBudget? patternTextClippingBudget = null,
+        Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
+        Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
@@ -366,9 +553,18 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 primitives.Add,
                 activeForms,
+                activeType3Glyphs: activeType3Glyphs,
+                renderedType3PaintOrders: renderedType3PaintOrders,
+                type3GlyphBudget: type3GlyphBudget,
+                type3ImageVisitor: type3ImageVisitor,
+                type3PrimitiveVisitor: type3PrimitiveVisitor,
+                type3GroupVisitor: type3GroupVisitor,
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                invocationTextClippingBudget: invocationTextClippingBudget,
+                patternTextClippingBudget: patternTextClippingBudget,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
@@ -382,15 +578,22 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Action<PdfPageVisualPrimitive> primitiveVisitor,
         HashSet<PdfStream> activeForms,
+        HashSet<PdfStream>? activeType3Glyphs = null,
+        RenderedType3TextTracker? renderedType3PaintOrders = null,
+        Type3GlyphBudget? type3GlyphBudget = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
         PdfPageColorSpace initialFillColorSpace = default,
+        PdfPagePatternSelection? initialFillPattern = null,
+        PdfPageColorSpace? initialFillPatternBaseColorSpace = null,
         double? initialFillOpacity = null,
         OfficeColor? initialStrokeColor = null,
         PdfPageColorSpace initialStrokeColorSpace = default,
+        PdfPagePatternSelection? initialStrokePattern = null,
+        PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
@@ -404,11 +607,17 @@ public sealed partial class PdfReadPage {
         bool retainPrimitiveData = true,
         Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent), Lazy<PdfPageTilingPatternResource?>>? tilingPatternResourceCache = null,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PdfTextClippingBudget? invocationTextClippingBudget = null,
+        PdfTextClippingBudget? patternTextClippingBudget = null,
+        PageContentBudget? pageContentBudget = null,
+        PdfContentOrderKey? contentOrderPrefix = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
+        Action<PdfPageVisualPrimitive> currentPrimitiveVisitor = contentOrderPrefix == null
+            ? primitiveVisitor
+            : primitive => primitiveVisitor(primitive.WithContentOrderKey(contentOrderPrefix.Append(primitive.SourceOperatorIndex - transformedContentOffset)));
         _ = PdfPageContentVisualParser.Parse(
             transformedContent,
             pageWidth,
@@ -475,18 +684,138 @@ public sealed partial class PdfReadPage {
                       initialStrokeColorSelection: initialStrokeColorSelection,
                       outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
+                if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
+                    type3GlyphBudget.RecordFailure();
+                }
+                continue;
+            }
+
+            if (requireSupportedType3Content &&
+                ResolveXObjectPaintChannels(
+                    resources,
+                    invocation.Name,
+                    invocation.PaintState,
+                    pageWidth,
+                    pageHeight,
+                    type3PaintChannelCache,
+                    activeType3PaintChannelStreams,
+                    pageContentBudget,
+                    type3GlyphBudget) == PdfType3PaintChannels.None) {
+                continue;
+            }
+
+            if (requireSupportedType3Content &&
+                formStream.Dictionary.Items.TryGetValue("OC", out PdfObject? formOptionalContentObject) &&
+                ResolveEffectObject(formOptionalContentObject) is not PdfNull) {
+                type3GlyphBudget.RecordFailure();
+                continue;
+            }
+
+            if (requireSupportedType3Content &&
+                ResolveEffectObject(formStream.Dictionary.Items.TryGetValue("Type", out PdfObject? formTypeObject) ? formTypeObject : null) is not PdfName { Name: "XObject" }) {
+                type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             if (!activeForms.Add(formStream)) {
+                if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                 continue;
             }
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
-                PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
-                Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
-                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDictionary);
+                bool isType3TransparencyGroup = false;
+                if (requireSupportedType3Content &&
+                    !TryClassifyType3TransparencyGroup(formDictionary, out isType3TransparencyGroup)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
+                if (requireSupportedType3Content &&
+                    !isType3TransparencyGroup &&
+                    !TryReadExactType3FormBox(formDictionary, out _)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
+                PdfDictionary? formResources;
+                if (requireSupportedType3Content) {
+                    if (!TryResolveStrictResources(formDictionary, resources, out formResources)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                } else {
+                    formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
+                }
+                Matrix2D formTransform;
+                if (requireSupportedType3Content) {
+                    if (!TryReadFormMatrix(formDictionary, out Matrix2D authoredFormMatrix)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                    formTransform = Matrix2D.Multiply(invocation.Transform, authoredFormMatrix);
+                } else {
+                    formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
+                }
+                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
+                bool projectsType3TransparencyGroup = requireSupportedType3Content && isType3TransparencyGroup;
+                if (projectsType3TransparencyGroup) {
+                    if ((invocation.FillOpacity ?? 1D) <= 0D) {
+                        continue;
+                    }
+                    Type3TransparencyGroupDrawingResult boundsResult = TryGetVisibleType3TransparencyGroupBounds(
+                        formDictionary,
+                        formTransform,
+                        invocation.ClipPath,
+                        pageWidth,
+                        pageHeight,
+                        type3GlyphBudget.VisibilityGeometryBudget,
+                        out _);
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) {
+                        continue;
+                    }
+                    if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported ||
+                        !allowSupportedType3TransparencyGroups ||
+                        type3GroupVisitor == null ||
+                        !IsSupportedType3TransparencyGroup(formDictionary)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                }
+                string decodedFormContent = PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream));
+                string formContent = WrapFormContentWithBoundingBoxClip(decodedFormContent, formDictionary);
+                if (projectsType3TransparencyGroup) {
+                    Type3TransparencyGroupDrawingResult groupResult = TryCreateType3TransparencyGroupDrawing(
+                            decodedFormContent,
+                            formDictionary,
+                            formResources,
+                            formTransform,
+                            pageWidth,
+                            pageHeight,
+                            invocation,
+                            activeForms,
+                            activeType3Glyphs,
+                            renderedType3PaintOrders,
+                              type3GlyphBudget,
+                              paintOrderScale,
+                              includeTilingPatterns,
+                              retainPrimitiveData,
+                              requireNestedType3Uncolored,
+                            tilingPatternResourceCache,
+                            textOutputBudget,
+                            pageContentBudget,
+                            invocationTextClippingBudget,
+                            patternTextClippingBudget,
+                            contentNestingDepth,
+                            formOrderPrefix,
+                            out OfficeDrawing? groupDrawing,
+                            out OfficeTransform groupTransform);
+                    if (groupResult == Type3TransparencyGroupDrawingResult.Unsupported) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                    if (groupResult == Type3TransparencyGroupDrawingResult.Invisible) continue;
+                    type3GroupVisitor!(groupDrawing, groupTransform, invocation.PaintOrder, formOrderPrefix, PdfPageDrawingEffect.Default);
+                    continue;
+                }
                 CollectVisualPrimitivesAndForms(
                     formContent,
                     formResources,
@@ -495,14 +824,21 @@ public sealed partial class PdfReadPage {
                     pageHeight,
                     primitiveVisitor,
                     activeForms,
+                    activeType3Glyphs,
+                    renderedType3PaintOrders,
+                    type3GlyphBudget,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     initialFillColor: invocation.FillColor,
                     initialFillColorSpace: invocation.FillColorSpace,
+                    initialFillPattern: invocation.FillPattern,
+                    initialFillPatternBaseColorSpace: invocation.FillPatternBaseColorSpace,
                     initialFillOpacity: invocation.FillOpacity,
                     initialStrokeColor: invocation.StrokeColor,
                     initialStrokeColorSpace: invocation.StrokeColorSpace,
+                    initialStrokePattern: invocation.StrokePattern,
+                    initialStrokePatternBaseColorSpace: invocation.StrokePatternBaseColorSpace,
                     initialStrokeOpacity: invocation.StrokeOpacity,
                     initialStrokeWidth: invocation.StrokeWidth,
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
@@ -514,9 +850,21 @@ public sealed partial class PdfReadPage {
                     contentNestingDepth: contentNestingDepth + 1,
                     includeTilingPatterns: includeTilingPatterns,
                     retainPrimitiveData: retainPrimitiveData,
+                    requireSupportedType3Content: requireSupportedType3Content,
+                    allowSupportedType3Patterns: allowSupportedType3Patterns,
+                    allowSupportedType3TransparencyGroups: allowSupportedType3TransparencyGroups,
+                    requireNestedType3Uncolored: requireNestedType3Uncolored,
+                    unrenderedPatternVisitor: unrenderedPatternVisitor,
+                    type3ImageVisitor: type3ImageVisitor,
+                    type3PrimitiveVisitor: type3PrimitiveVisitor,
+                    type3GroupVisitor: type3GroupVisitor,
+                    graphicsStateVisitor: graphicsStateVisitor,
                     tilingPatternResourceCache: tilingPatternResourceCache,
                     textOutputBudget: textOutputBudget,
-                    pageContentBudget: pageContentBudget);
+                    invocationTextClippingBudget: invocationTextClippingBudget,
+                    patternTextClippingBudget: patternTextClippingBudget,
+                    pageContentBudget: pageContentBudget,
+                    contentOrderPrefix: formOrderPrefix);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -588,17 +936,30 @@ public sealed partial class PdfReadPage {
         pattern = default;
         PdfDictionary? dictionary = ResolveDictionary(value);
         if (dictionary == null ||
+            ResolveEffectObject(dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "Pattern" } ||
             TryReadInteger(dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ? patternTypeObject : null) != 2 ||
+            HasUnsupportedShadingPatternGraphicsState(dictionary) ||
             !dictionary.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
             !TryReadShading(shadingObject, out PdfPageShadingResource shading, renderingIntent)) {
             return false;
         }
 
-        Matrix2D matrix = dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
-            ? ReadPatternMatrix(matrixObject)
-            : Matrix2D.Identity;
-        pattern = new PdfPageShadingPatternResource(shading, matrix);
+        bool hasExactMatrix = true;
+        Matrix2D matrix;
+        if (dictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            matrix = ReadPatternMatrix(matrixObject);
+            hasExactMatrix = TryReadStrictPatternMatrix(matrixObject, out _);
+        } else {
+            matrix = Matrix2D.Identity;
+        }
+        pattern = new PdfPageShadingPatternResource(shading, matrix, hasExactMatrix);
         return true;
+    }
+
+    private bool HasUnsupportedShadingPatternGraphicsState(PdfDictionary pattern) {
+        if (!pattern.Items.TryGetValue("ExtGState", out PdfObject? value)) return false;
+        PdfObject? resolved = ResolveEffectObject(value);
+        return resolved is not PdfNull && resolved is not PdfDictionary { Items.Count: 0 };
     }
 
     private Matrix2D ReadPatternMatrix(PdfObject? matrixObject) {
@@ -629,6 +990,10 @@ public sealed partial class PdfReadPage {
 
         int? shadingType = TryReadInteger(dictionary.Items.TryGetValue("ShadingType", out PdfObject? shadingTypeObject) ? shadingTypeObject : null);
         IReadOnlyList<double> coords = ReadNumberArray(coordsObject);
+        bool hasExactCoordinates = TryReadExactFiniteNumberArray(
+            coordsObject,
+            shadingType == 2 ? 4 : shadingType == 3 ? 6 : 0,
+            out _);
         if ((shadingType == 2 && coords.Count < 4) ||
             (shadingType == 3 && coords.Count < 6)) {
             return false;
@@ -646,14 +1011,36 @@ public sealed partial class PdfReadPage {
         if (!TryReadShadingStops(functionObject, colorSpace, shadingDomain[0], shadingDomain[1], renderingIntent, out IReadOnlyList<OfficeGradientStop> stops)) {
             return false;
         }
+        exactColorInterpolation &= HasExactType3FunctionComponentRange(functionObject, colorSpace.ComponentCount);
 
         if (shadingType == 2) {
-            shading = new PdfPageShadingResource(coords[0], coords[1], coords[2], coords[3], stops);
+            bool exactAxialFamily = hasExactCoordinates;
+            shading = new PdfPageShadingResource(
+                coords[0],
+                coords[1],
+                coords[2],
+                coords[3],
+                stops,
+                exactColorInterpolation && exactAxialFamily && !hasShadingBoundingBox && extendsBothEnds);
             return true;
         }
 
         if (shadingType == 3) {
-            shading = new PdfPageShadingResource(coords[0], coords[1], Math.Max(0D, coords[2]), coords[3], coords[4], Math.Max(0D, coords[5]), stops);
+            bool exactRadialFamily = hasExactCoordinates &&
+                coords[2] >= 0D &&
+                coords[5] >= 0D &&
+                coords[0].Equals(coords[3]) &&
+                coords[1].Equals(coords[4]) &&
+                coords[5] > coords[2];
+            shading = new PdfPageShadingResource(
+                coords[0],
+                coords[1],
+                Math.Max(0D, coords[2]),
+                coords[3],
+                coords[4],
+                Math.Max(0D, coords[5]),
+                stops,
+                exactColorInterpolation && !hasShadingBoundingBox && extendsBothEnds && exactRadialFamily);
             return true;
         }
 
@@ -1154,7 +1541,10 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
-        PageContentBudget pageContentBudget) {
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject)) {
             return;
         }
@@ -1188,6 +1578,7 @@ public sealed partial class PdfReadPage {
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
             var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
+            var renderedType3PaintOrders = new RenderedType3TextTracker();
             CollectVisualPrimitivesAndForms(
                 appearanceContent,
                 appearanceResources,
@@ -1196,8 +1587,17 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 primitives.Add,
                 activeForms,
+                renderedType3PaintOrders: renderedType3PaintOrders,
+                type3GlyphBudget: type3GlyphBudget,
+                allowSupportedType3TransparencyGroups: true,
+                type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+                type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
+                type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                invocationTextClippingBudget: invocationTextClippingBudget,
+                patternTextClippingBudget: patternTextClippingBudget,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
                 elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
@@ -1221,13 +1621,27 @@ public sealed partial class PdfReadPage {
                 paintOrderOffset: -transformedAppearanceContentOffset,
                 useLogicalTextFilters: false,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                textClippingBudget: invocationTextClippingBudget,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                contentOrderOffset: -transformedAppearanceContentOffset);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
+                if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder, textSpans[textIndex].ContentOrderKey)) continue;
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }
 
             var imagePlacements = new List<PdfImagePlacement>();
-            CollectImagePlacementsAndForms(appearanceContent, appearanceResources, 0, appearanceTransform, pageHeight, imagePlacements, activeForms, pageContentBudget: pageContentBudget);
+            CollectImagePlacementsAndForms(
+                appearanceContent,
+                appearanceResources,
+                0,
+                appearanceTransform,
+                pageHeight,
+                imagePlacements,
+                activeForms,
+                textClippingBudget: invocationTextClippingBudget,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
             if (imagePlacements.Count > 0) {
                 IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
@@ -1238,10 +1652,26 @@ public sealed partial class PdfReadPage {
                     }
                 }
             }
+            var appearanceEffects = new List<PdfPageDrawingEffectTransition>();
+            CollectGraphicsEffectTransitions(
+                appearanceContent,
+                appearanceResources,
+                appearanceTransform,
+                pageHeight,
+                appearanceEffects,
+                new HashSet<PdfStream>(),
+                PdfPageDrawingEffect.Default,
+                textClippingBudget: invocationTextClippingBudget,
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
+            SortGraphicsEffectTransitions(appearanceEffects);
+            OverlayDrawingEffects(elements, appearanceEffects);
 
             SortDrawingElements(elements);
+            var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+            var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                AddDrawingElementCore(drawing, pageHeight, elements[elementIndex]);
+                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
             }
         }
     }
@@ -1409,7 +1839,9 @@ public sealed partial class PdfReadPage {
                 paintOrderOffset: -transformedContentOffset,
                 useLogicalTextFilters: false,
                 textOutputBudget: textOutputBudget,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                contentOrderOffset: -transformedContentOffset);
         }
 
         return spans.Count == 0 ? Array.Empty<PdfTextSpan>() : spans.AsReadOnly();
@@ -1647,7 +2079,8 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 placements,
                 activeForms,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
@@ -1670,7 +2103,13 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        if (!TryCreateImageProjection(placement, pageHeight, drawing.Width, drawing.Height, out OfficeImageProjection projection)) {
+        if (!TryCreateImageProjection(
+                placement,
+                pageHeight,
+                drawing.Width,
+                drawing.Height,
+                out OfficeImageProjection projection,
+                allowAxisAlignedFallback: !placement.RequireExactProjection)) {
             return;
         }
 
@@ -1678,7 +2117,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        drawing.AddImage(image.Bytes, image.MimeType, projection, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
@@ -1716,7 +2155,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        drawing.AddClippedImage(image.Bytes, image.MimeType, projection, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        drawing.AddClippedImageWithInterpolation(image.Bytes, image.MimeType, projection, image.Interpolate, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
         return true;
     }
 
@@ -1755,10 +2194,21 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool TryCreateImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
-        if (!IsPlainAxisAlignedImagePlacement(placement) &&
-            TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
-            return true;
+    private static bool TryCreateImageProjection(
+        PdfImagePlacement placement,
+        double pageHeight,
+        double drawingWidth,
+        double drawingHeight,
+        out OfficeImageProjection projection,
+        bool allowAxisAlignedFallback = true) {
+        bool isPlainAxisAligned = allowAxisAlignedFallback
+            ? IsPlainAxisAlignedImagePlacement(placement)
+            : IsExactlyPlainAxisAlignedImagePlacement(placement);
+        if (!isPlainAxisAligned) {
+            if (TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection, requireExactOrthogonality: !allowAxisAlignedFallback)) {
+                return true;
+            }
+            if (!allowAxisAlignedFallback) return false;
         }
 
         double imageX = placement.X;
@@ -1784,10 +2234,16 @@ public sealed partial class PdfReadPage {
                 return false;
             }
 
-            if (NearlyEqual(visibleLeft, imageX) &&
-                NearlyEqual(visibleTop, imageY) &&
-                NearlyEqual(pageVisibleWidth, placement.Width) &&
-                NearlyEqual(pageVisibleHeight, placement.Height)) {
+            bool isEffectivelyUncropped = allowAxisAlignedFallback
+                ? NearlyEqual(visibleLeft, imageX) &&
+                  NearlyEqual(visibleTop, imageY) &&
+                  NearlyEqual(pageVisibleWidth, placement.Width) &&
+                  NearlyEqual(pageVisibleHeight, placement.Height)
+                : visibleLeft == imageX &&
+                  visibleTop == imageY &&
+                  pageVisibleWidth == placement.Width &&
+                  pageVisibleHeight == placement.Height;
+            if (isEffectivelyUncropped) {
                 // Normalize sub-point producer rounding at the page boundary. Keeping
                 // the original near-equal coordinates can place a valid full-page
                 // image microscopically outside the Drawing contract.
@@ -1838,7 +2294,13 @@ public sealed partial class PdfReadPage {
         placement.A >= 0D &&
         placement.D >= 0D;
 
-    private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
+    private static bool IsExactlyPlainAxisAlignedImagePlacement(PdfImagePlacement placement) =>
+        placement.B == 0D &&
+        placement.C == 0D &&
+        placement.A >= 0D &&
+        placement.D >= 0D;
+
+    private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection, bool requireExactOrthogonality = false) {
         projection = default;
         double m11 = placement.A;
         double m12 = -placement.B;
@@ -1853,7 +2315,7 @@ public sealed partial class PdfReadPage {
         }
 
         double dot = (m11 * m21) + (m12 * m22);
-        if (!NearlyEqual(dot, 0D)) {
+        if (requireExactOrthogonality ? dot != 0D : !NearlyEqual(dot, 0D)) {
             return false;
         }
 
@@ -1934,6 +2396,16 @@ public sealed partial class PdfReadPage {
         return null;
     }
 
+    private PdfExtractedImage? GetImageForPlacement(
+        PdfDictionary? fallbackResources,
+        PdfImagePlacement placement,
+        bool colorizeImageMasks) {
+        PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
+        return FindImage(
+            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks),
+            placement);
+    }
+
     private static bool HasPositiveArea(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
         width > 0D &&
         height > 0D &&
@@ -1969,7 +2441,8 @@ public sealed partial class PdfReadPage {
     private enum PdfPageDrawingElementKind {
         Primitive,
         Text,
-        Image
+        Image,
+        Group
     }
 
     private readonly struct PdfPageDrawingElement {
@@ -1981,6 +2454,9 @@ public sealed partial class PdfReadPage {
             PdfTextSpan? textSpan,
             PdfImagePlacement? imagePlacement,
             PdfExtractedImage? image,
+            OfficeDrawing? groupDrawing,
+            OfficeTransform groupTransform,
+            PdfContentOrderKey? groupContentOrderKey,
             PdfPageDrawingEffect effect) {
             Kind = kind;
             PaintOrder = paintOrder;
@@ -1989,17 +2465,26 @@ public sealed partial class PdfReadPage {
             TextSpan = textSpan;
             ImagePlacement = imagePlacement;
             Image = image;
+            GroupDrawing = groupDrawing;
+            GroupTransform = groupTransform;
+            GroupContentOrderKey = groupContentOrderKey;
             Effect = effect;
         }
 
         public static PdfPageDrawingElement FromPrimitive(PdfPageVisualPrimitive primitive, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromText(PdfTextSpan textSpan, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromImage(PdfImagePlacement imagePlacement, PdfExtractedImage image, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, PdfPageDrawingEffect.Default);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, null, OfficeTransform.Identity, null, PdfPageDrawingEffect.Default);
+
+        public static PdfPageDrawingElement FromGroup(OfficeDrawing groupDrawing, double paintOrder, PdfContentOrderKey? contentOrderKey, int sequence) =>
+            FromGroup(groupDrawing, OfficeTransform.Identity, paintOrder, contentOrderKey, sequence);
+
+        public static PdfPageDrawingElement FromGroup(OfficeDrawing groupDrawing, OfficeTransform transform, double paintOrder, PdfContentOrderKey? contentOrderKey, int sequence) =>
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Group, paintOrder, sequence, default, null, null, null, groupDrawing, transform, contentOrderKey, PdfPageDrawingEffect.Default);
 
         public PdfPageDrawingElementKind Kind { get; }
 
@@ -2015,9 +2500,24 @@ public sealed partial class PdfReadPage {
 
         public PdfExtractedImage? Image { get; }
 
+        public OfficeDrawing? GroupDrawing { get; }
+
+        public OfficeTransform GroupTransform { get; }
+
+        private PdfContentOrderKey? GroupContentOrderKey { get; }
+
         public PdfPageDrawingEffect Effect { get; }
 
+        internal PdfContentOrderKey? ContentOrderKey => Kind switch {
+            PdfPageDrawingElementKind.Primitive => Primitive.ContentOrderKey,
+            PdfPageDrawingElementKind.Text => TextSpan?.ContentOrderKey,
+            PdfPageDrawingElementKind.Image => ImagePlacement?.ContentOrderKey,
+            PdfPageDrawingElementKind.Group => GroupContentOrderKey,
+            _ => null
+        };
+
         public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
-            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, effect);
+            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, GroupDrawing, GroupTransform, GroupContentOrderKey, effect);
     }
+
 }

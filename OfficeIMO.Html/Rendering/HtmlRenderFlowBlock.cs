@@ -30,7 +30,13 @@ internal sealed class HtmlRenderFlowBlock {
         IElement? ownerElement = null,
         bool collapsesThrough = false,
         double? unclampedHeight = null,
-        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null) {
+        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
+        IEnumerable<HtmlInlineBreakProgress>? inlineBreakProgress = null,
+        int inlineContinuationStart = 0,
+        bool supportsInlineContinuationReflow = false,
+        IEnumerable<HtmlRenderForcedBreak>? forcedBreaks = null,
+        double layoutViewportWidth = double.NaN,
+        double layoutViewportHeight = double.NaN) {
         Width = width;
         Height = height;
         UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
@@ -49,10 +55,22 @@ internal sealed class HtmlRenderFlowBlock {
         }
 
         BreakOffsets = offsets.ToList().AsReadOnly();
+        ForcedBreaks = new List<HtmlRenderForcedBreak>(forcedBreaks ?? Array.Empty<HtmlRenderForcedBreak>())
+            .Where(item => item.Target != HtmlPageBreakTarget.None
+                && !double.IsNaN(item.Offset)
+                && !double.IsInfinity(item.Offset)
+                && item.Offset >= -0.0001D
+                && item.Offset <= height + 0.0001D)
+            .OrderBy(item => item.Offset)
+            .ToList()
+            .AsReadOnly();
         var lineOffsets = new SortedSet<double>();
+        bool hasImplicitFinalLine = false;
         if (lineBreakOffsets != null) {
             foreach (double offset in lineBreakOffsets) {
-                if (offset > 0D && offset < height && !double.IsNaN(offset) && !double.IsInfinity(offset)) lineOffsets.Add(offset);
+                if (offset <= 0D || double.IsNaN(offset) || double.IsInfinity(offset)) continue;
+                if (offset < height - 0.0001D) lineOffsets.Add(offset);
+                else if (offset <= height + 0.0001D) hasImplicitFinalLine = true;
             }
         }
 
@@ -61,7 +79,7 @@ internal sealed class HtmlRenderFlowBlock {
         int resolvedWidows = Math.Max(1, widows);
         var groups = new List<HtmlRenderLineBreakGroup>();
         if (lineBreakGroups != null) groups.AddRange(lineBreakGroups);
-        if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(resolvedLineOffsets, resolvedOrphans, resolvedWidows));
+        if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(resolvedLineOffsets, resolvedOrphans, resolvedWidows, hasImplicitFinalLine));
         LineBreakGroups = groups.AsReadOnly();
         IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals ?? Array.Empty<HtmlRenderVisual>()).AsReadOnly();
         double repeatedHeight = Math.Max(0D, continuationHeight);
@@ -82,6 +100,11 @@ internal sealed class HtmlRenderFlowBlock {
         OwnerElement = ownerElement;
         CollapsesThrough = collapsesThrough;
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
+        InlineBreakProgress = new List<HtmlInlineBreakProgress>(inlineBreakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
+        InlineContinuationStart = Math.Max(0, inlineContinuationStart);
+        SupportsInlineContinuationReflow = supportsInlineContinuationReflow;
+        LayoutViewportWidth = layoutViewportWidth;
+        LayoutViewportHeight = layoutViewportHeight;
     }
 
     internal double Width { get; }
@@ -93,6 +116,7 @@ internal sealed class HtmlRenderFlowBlock {
     internal bool AvoidBreakInside { get; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
+    internal IReadOnlyList<HtmlRenderForcedBreak> ForcedBreaks { get; }
     internal IReadOnlyList<HtmlRenderLineBreakGroup> LineBreakGroups { get; }
     internal IReadOnlyList<HtmlRenderContinuationGroup> ContinuationGroups { get; }
     internal IReadOnlyList<HtmlRenderTrailingGroup> TrailingGroups { get; }
@@ -105,6 +129,41 @@ internal sealed class HtmlRenderFlowBlock {
     internal IElement? OwnerElement { get; }
     internal bool CollapsesThrough { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
+    internal IReadOnlyList<HtmlInlineBreakProgress> InlineBreakProgress { get; }
+    internal int InlineContinuationStart { get; }
+    internal bool SupportsInlineContinuationReflow { get; }
+    internal double LayoutViewportWidth { get; }
+    internal double LayoutViewportHeight { get; }
+
+    internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
+        new HtmlRenderFlowBlock(
+            Width,
+            Height,
+            Visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: UnclampedHeight,
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: width,
+            layoutViewportHeight: height);
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -128,7 +187,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
         new HtmlRenderFlowBlock(
@@ -152,7 +217,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(
@@ -176,7 +247,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -203,7 +280,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
-            runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)));
+            runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement)),
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)),
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement, bool collapsesThrough = false) =>
@@ -228,7 +311,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: ownerElement,
             collapsesThrough: collapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: RunningStringAssignments);
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
         new HtmlRenderFlowBlock(
@@ -252,7 +341,13 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: UnclampedHeight,
-            runningStringAssignments: assignments);
+            runningStringAssignments: assignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -279,8 +374,30 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
-            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D));
+            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D),
+            inlineBreakProgress: InlineBreakProgress.Where(progress => progress.Offset <= adjustedHeight + 0.0001D),
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks.Where(item => item.Offset <= adjustedHeight + 0.0001D),
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight);
     }
+}
+
+internal sealed class HtmlRenderForcedBreak {
+    internal HtmlRenderForcedBreak(double offset, HtmlPageBreakTarget target, string? pageName = null, bool changesPageName = false) {
+        Offset = offset;
+        Target = target;
+        PageName = pageName;
+        ChangesPageName = changesPageName;
+    }
+
+    internal double Offset { get; }
+    internal HtmlPageBreakTarget Target { get; }
+    internal string? PageName { get; }
+    internal bool ChangesPageName { get; }
+
+    internal HtmlRenderForcedBreak Translate(double offset) => new HtmlRenderForcedBreak(Offset + offset, Target, PageName, ChangesPageName);
 }
 
 internal sealed class HtmlRenderContinuationGroup {
@@ -351,18 +468,20 @@ internal sealed class HtmlRenderTrailingGroup {
 }
 
 internal sealed class HtmlRenderLineBreakGroup {
-    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows) {
+    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows, bool hasImplicitFinalLine = false) {
         Offsets = new SortedSet<double>(offsets).ToList().AsReadOnly();
         Orphans = Math.Max(1, orphans);
         Widows = Math.Max(1, widows);
+        HasImplicitFinalLine = hasImplicitFinalLine;
     }
 
     internal IReadOnlyList<double> Offsets { get; }
     internal int Orphans { get; }
     internal int Widows { get; }
+    internal bool HasImplicitFinalLine { get; }
 
     internal HtmlRenderLineBreakGroup Translate(double offset) =>
-        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows);
+        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows, HasImplicitFinalLine);
 }
 
 internal sealed class HtmlInlineRun {
@@ -408,7 +527,8 @@ internal sealed class HtmlInlineRun {
         double paintOffsetX = 0D,
         double paintOffsetY = 0D,
         IElement? ownerElement = null,
-        bool isReplacedImage = false) {
+        bool isReplacedImage = false,
+        double? atomicBaseline = null) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         LogicalText = string.Empty;
@@ -419,6 +539,7 @@ internal sealed class HtmlInlineRun {
         PaintOffsetY = paintOffsetY;
         OwnerElement = ownerElement;
         IsReplacedImage = isReplacedImage;
+        AtomicBaseline = atomicBaseline;
         SemanticRole = style.SemanticRole;
     }
 
@@ -455,6 +576,7 @@ internal sealed class HtmlInlineRun {
     internal IElement? PositionedMarkerElement { get; }
     internal IElement? RunningStringElement { get; }
     internal bool IsReplacedImage { get; }
+    internal double? AtomicBaseline { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal string FloatSide { get; } = "none";
@@ -473,16 +595,34 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlRenderVisual> visuals,
         double height,
         IEnumerable<double>? breakOffsets = null,
-        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null) {
+        IEnumerable<HtmlCssRunningStringAssignment>? runningStringAssignments = null,
+        IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
+        bool supportsContinuationReflow = false) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
         RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
+        BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
+        SupportsContinuationReflow = supportsContinuationReflow;
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
+    internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
+    internal bool SupportsContinuationReflow { get; }
+}
+
+internal readonly struct HtmlInlineBreakProgress {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null) {
+        Offset = offset;
+        LogicalCharacters = logicalCharacters;
+        OwnerElement = ownerElement;
+    }
+
+    internal double Offset { get; }
+    internal int LogicalCharacters { get; }
+    internal IElement? OwnerElement { get; }
 }

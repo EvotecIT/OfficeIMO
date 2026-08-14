@@ -99,14 +99,18 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRender_ValidatesAndClonesTheBackgroundPaintLimits() {
-        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7, MaxGradientStops = 9 };
+        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7, MaxGradientStops = 9, ConicGradientQualitySegments = 96 };
 
         Assert.Equal(7, options.Clone().MaxBackgroundImageLayers);
         Assert.Equal(9, options.Clone().MaxGradientStops);
+        Assert.Equal(96, options.Clone().ConicGradientQualitySegments);
         options.MaxBackgroundImageLayers = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
         options.MaxBackgroundImageLayers = 7;
         options.MaxGradientStops = 1;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
+        options.MaxGradientStops = 9;
+        options.ConicGradientQualitySegments = 11;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
     }
 
@@ -143,6 +147,16 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlBackgroundColorAlpha_FlowsThroughThePdfDrawingAdapter() {
+        const string html = "<div style='width:80px;height:40px;background:rgba(255,255,255,.2)'>Alpha</div>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
+        string rawPdf = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Type /ExtGState /ca 0.2 /CA 1", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlSvgBackgroundRepeat_UsesSharedVectorTilesAcrossPngSvgAndSearchablePdf() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
             + "<rect width='5' height='10' fill='red'/><rect x='5' width='5' height='10' fill='blue'/></svg>";
@@ -174,7 +188,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(19, 9));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(9, 19));
         Assert.DoesNotContain("data:image/svg+xml", svg, StringComparison.Ordinal);
-        Assert.True(CountBackgroundOccurrences(svg, "<rect") >= 16);
+        Assert.Equal(1, CountBackgroundOccurrences(svg, "<g id=\"officeimo-pattern-tile-"));
+        Assert.True(CountBackgroundOccurrences(svg, "<use href=\"#officeimo-pattern-tile-") >= 4);
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Red);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
@@ -269,7 +284,7 @@ public sealed partial class HtmlRenderingTests {
         string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
         string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
         string green = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 255, 0));
-        string html = "<div style=\"width:40px;height:40px;background-image:conic-gradient(red,blue),url('data:image/png;base64,"
+        string html = "<div style=\"width:40px;height:40px;background-image:mesh-gradient(red,blue),url('data:image/png;base64,"
             + red
             + "'),url('data:image/png;base64,"
             + blue

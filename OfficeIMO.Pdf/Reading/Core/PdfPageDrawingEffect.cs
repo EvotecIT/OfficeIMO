@@ -35,12 +35,22 @@ internal readonly struct PdfPageDrawingEffect {
 }
 
 internal readonly struct PdfPageDrawingEffectTransition {
-    public PdfPageDrawingEffectTransition(double paintOrder, PdfPageDrawingEffect effect) {
+    public PdfPageDrawingEffectTransition(
+        double paintOrder,
+        PdfPageDrawingEffect effect,
+        PdfContentOrderKey? contentOrderKey = null,
+        int contentNestingDepth = 0) {
         PaintOrder = paintOrder;
         Effect = effect;
+        ContentOrderKey = contentOrderKey;
+        ContentNestingDepth = contentNestingDepth;
     }
 
     public double PaintOrder { get; }
 
     public PdfPageDrawingEffect Effect { get; }
+
+    internal PdfContentOrderKey? ContentOrderKey { get; }
+
+    internal int ContentNestingDepth { get; }
 }

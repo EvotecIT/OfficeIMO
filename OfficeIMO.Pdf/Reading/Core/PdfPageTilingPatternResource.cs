@@ -10,7 +10,9 @@ internal sealed class PdfPageTilingPatternResource {
         Matrix2D matrix,
         double boundingBoxX,
         double boundingBoxTop,
-        bool uncolored) {
+        bool uncolored,
+        bool consumesInheritedLineState,
+        bool hasMalformedStrictInvocation) {
         Tile = tile;
         HorizontalStep = horizontalStep;
         VerticalStep = verticalStep;
@@ -18,6 +20,8 @@ internal sealed class PdfPageTilingPatternResource {
         BoundingBoxX = boundingBoxX;
         BoundingBoxTop = boundingBoxTop;
         Uncolored = uncolored;
+        ConsumesInheritedLineState = consumesInheritedLineState;
+        HasMalformedStrictInvocation = hasMalformedStrictInvocation;
     }
 
     public OfficeDrawing Tile { get; }
@@ -27,6 +31,8 @@ internal sealed class PdfPageTilingPatternResource {
     public double BoundingBoxX { get; }
     public double BoundingBoxTop { get; }
     public bool Uncolored { get; }
+    public bool ConsumesInheritedLineState { get; }
+    public bool HasMalformedStrictInvocation { get; }
 }
 
 internal sealed class PdfPageTilingPatternPaint {

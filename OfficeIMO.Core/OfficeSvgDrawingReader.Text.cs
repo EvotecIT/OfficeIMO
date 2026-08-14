@@ -22,7 +22,7 @@ public static partial class OfficeSvgDrawingReader {
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
         AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY,
-            drawing.Width, drawing.Height, runs, 0, ref cursor, ref unsupported);
+            drawing.Width, drawing.Height, runs, 0D, 0D, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
         foreach (SvgTextRun run in runs) AddTextRun(drawing, run, ref unsupported);
@@ -40,6 +40,8 @@ public static partial class OfficeSvgDrawingReader {
         double viewportWidth,
         double viewportHeight,
         ICollection<SvgTextRun> runs,
+        double inheritedBaselineShift,
+        double inheritedOwnBaselineShift,
         int depth,
         ref SvgTextCursor cursor,
         ref int unsupported) {
@@ -66,6 +68,12 @@ public static partial class OfficeSvgDrawingReader {
             else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
             else unsupported++;
         }
+        double ownBaselineShift = ResolveOwnBaselineShift(
+            element,
+            style.FontSize,
+            style.LineHeight.Resolve(style.FontSize),
+            inheritedOwnBaselineShift);
+        double baselineShift = inheritedBaselineShift + ownBaselineShift;
         ApplyTextPosition(element, viewX, viewY, viewportWidth, viewportHeight, ref cursor, ref unsupported);
         int firstRun = runs.Count;
         double lengthOrigin = cursor.X;
@@ -81,7 +89,8 @@ public static partial class OfficeSvgDrawingReader {
                 if (text.Length == 0) continue;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
-                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline);
+                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline)
+                    - baselineShift;
                 runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform));
                 cursor.X += width;
                 cursor.HasText = true;
@@ -89,13 +98,38 @@ public static partial class OfficeSvgDrawingReader {
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
                 AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY,
-                    viewportWidth, viewportHeight, runs, depth + 1, ref cursor, ref unsupported);
+                    viewportWidth, viewportHeight, runs, baselineShift, ownBaselineShift, depth + 1, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }
         }
         if (adjustGlyphs) ApplyTextLengthAdjustment(runs, firstRun, lengthOrigin, authoredLength, ref cursor, ref unsupported);
     }
+
+    private static double ResolveOwnBaselineShift(
+        XElement element,
+        double fontSize,
+        double lineHeight,
+        double inheritedOwnBaselineShift) {
+        string? value = element.Attribute("baseline-shift")?.Value;
+        string? styleText = element.Attribute("style")?.Value;
+        if (!string.IsNullOrWhiteSpace(styleText)
+            && TryResolveInlineProperty(styleText!.Split(';'), "baseline-shift", IsValidBaselineShiftValue, out string? inlineValue, out _)) {
+            value = inlineValue;
+        }
+        if (string.IsNullOrWhiteSpace(value)) return 0D;
+        string normalized = value!.Trim();
+        if (normalized.Equals("inherit", StringComparison.OrdinalIgnoreCase)) return inheritedOwnBaselineShift;
+        if (normalized.Equals("initial", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("unset", StringComparison.OrdinalIgnoreCase)) return 0D;
+        return TryParseBaselineShift(normalized, out SvgBaselineShift shift) ? shift.Resolve(fontSize, lineHeight) : 0D;
+    }
+
+    private static bool IsValidBaselineShiftValue(string value) =>
+        value.Equals("inherit", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("initial", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("unset", StringComparison.OrdinalIgnoreCase)
+        || TryParseBaselineShift(value, out _);
 
     private static bool TryReadTextLengthAdjustment(XElement element, out double textLength, ref int unsupported) {
         textLength = 0D;
@@ -246,13 +280,16 @@ public static partial class OfficeSvgDrawingReader {
         double y = run.Baseline - run.FontSize;
         double width = run.Width;
         double height = run.FontSize * 1.25D;
-        if (x < 0D || y < 0D || x >= drawing.Width || y >= drawing.Height) {
+        if (x + width <= 0D || y + height <= 0D || x >= drawing.Width || y >= drawing.Height) {
             unsupported++;
             return;
         }
-        width = Math.Min(width, drawing.Width - x);
-        height = Math.Min(height, drawing.Height - y);
-        if (width <= 0D || height <= 0D) return;
+        bool requiresViewportClip = x < 0D || y < 0D;
+        if (!requiresViewportClip) {
+            width = Math.Min(width, drawing.Width - x);
+            height = Math.Min(height, drawing.Height - y);
+            if (width <= 0D || height <= 0D) return;
+        }
 
         OfficeColor baseColor = run.Style.Fill.Value;
         double opacity = Math.Max(0D, Math.Min(1D, run.Style.FillOpacity * run.Style.Opacity));
@@ -262,7 +299,23 @@ public static partial class OfficeSvgDrawingReader {
         OfficeDrawing target = usesEffect ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         try {
             double naturalWidth = width / run.GlyphScale;
-            target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+            if (requiresViewportClip) {
+                target.AddClippedText(
+                    run.Text,
+                    x,
+                    y,
+                    naturalWidth,
+                    height,
+                    0D,
+                    0D,
+                    OfficeClipPath.Rectangle(drawing.Width, drawing.Height),
+                    font,
+                    color,
+                    OfficeTextAlignment.Left,
+                    height);
+            } else {
+                target.AddText(run.Text, x, y, naturalWidth, height, font, color, OfficeTextAlignment.Left, height);
+            }
             if (!ReferenceEquals(target, drawing)) {
                 OfficeTransform effect = run.GlyphScale.Equals(1D)
                     ? run.Transform

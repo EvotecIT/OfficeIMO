@@ -13,4 +13,271 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "9. ", "First", "12. ", "Second", "13. ", "Third" },
             rendered.Text.Split('\n'));
     }
+
+    [Theory]
+    [InlineData("upper-roman", "IV. ")]
+    [InlineData("lower-alpha", "d. ")]
+    [InlineData("lower-greek", "δ. ")]
+    [InlineData("decimal-leading-zero", "04. ")]
+    [InlineData("cjk-decimal", "四、")]
+    [InlineData("hiragana", "え、")]
+    [InlineData("hiragana-iroha", "に、")]
+    [InlineData("katakana", "エ、")]
+    [InlineData("katakana-iroha", "ニ、")]
+    public void HtmlRendering_FormatsStandardOrderedListCounterStyles(string style, string marker) {
+        string html = "<ol start='4' style='list-style-type:" + style + "'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("cjk-decimal", 204, "二〇四、")]
+    [InlineData("full-width", 204, "２０４. ")]
+    [InlineData("cjk-heavenly-stem", 10, "癸、")]
+    [InlineData("cjk-earthly-branch", 12, "亥、")]
+    public void HtmlRendering_FormatsBoundedEastAsianCounterStyles(string style, int start, string marker) {
+        string html = "<ol start='" + start + "' style='list-style-type:" + style + "'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("japanese-informal", 10, "十、")]
+    [InlineData("japanese-formal", 101, "壱百壱、")]
+    [InlineData("korean-hangul-formal", 6001, "육천일, ")]
+    [InlineData("korean-hanja-informal", 101, "百一, ")]
+    [InlineData("korean-hanja-formal", 11, "壹拾壹, ")]
+    [InlineData("simp-chinese-informal", 101, "一百零一、")]
+    [InlineData("simp-chinese-formal", 6001, "陆仟零壹、")]
+    [InlineData("trad-chinese-informal", 10, "十、")]
+    [InlineData("trad-chinese-formal", 99, "玖拾玖、")]
+    [InlineData("cjk-ideographic", 6001, "六千零一、")]
+    public void HtmlRendering_FormatsLonghandEastAsianCounterStyles(string style, int start, string marker) {
+        string html = "<ol start='" + start + "' style='list-style-type:" + style + "'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("japanese-informal", -11, "マイナス十一")]
+    [InlineData("korean-hangul-formal", -11, "마이너스 일십일")]
+    [InlineData("simp-chinese-formal", -101, "负壹佰零壹")]
+    [InlineData("trad-chinese-formal", -101, "負壹佰零壹")]
+    [InlineData("japanese-formal", 10000, "一〇〇〇〇")]
+    public void HtmlRendering_FormatsLonghandEastAsianRepresentations(string style, int value, string expected) {
+        Assert.True(HtmlCounterStyleFormatter.TryFormat(value, style, out string formatted));
+        Assert.Equal(expected, formatted);
+    }
+
+    [Theory]
+    [InlineData("circle", "◦ ")]
+    [InlineData("square", "▪ ")]
+    [InlineData("'→'", "→ ")]
+    public void HtmlRendering_FormatsUnorderedAndQuotedListMarkers(string style, string marker) {
+        string html = "<ul style=\"list-style-type:" + style + "\"><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("disc", "• ")]
+    [InlineData("'→'", "→ ")]
+    public void HtmlRendering_OrderedListsUseTheSuffixOfAnExplicitBulletLikeStyle(string style, string marker) {
+        string html = "<ol style=\"list-style-type:" + style + "\"><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { marker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_IncrementsNumericMarkersOnUnorderedLists() {
+        const string html = "<ul style='list-style-type:decimal'><li>First</li><li>Second</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "1. ", "First", "2. ", "Second" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_AdditiveCounterStyleFallsBackForNegativeAutomaticRange() {
+        const string html = "<style>@counter-style tally{system:additive;additive-symbols:1 'I';fallback:decimal}</style><ol start='-1' style='list-style-type:tally'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "-1. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_CounterFallbackUsesTheEffectiveStylesAffixes() {
+        const string html = "<style>"
+            + "@counter-style base{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';prefix:'<';suffix:'> '}"
+            + "@counter-style builtin-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:decimal}"
+            + "@counter-style custom-fallback{system:fixed;symbols:'I';prefix:'[';suffix:'] ';fallback:base}"
+            + "@counter-style bullet-fallback{system:fixed;symbols:'I';fallback:disc}"
+            + "</style><ol start='2' style='list-style-type:builtin-fallback'><li>Built in</li></ol>"
+            + "<ol start='2' style='list-style-type:custom-fallback'><li>Custom</li></ol>"
+            + "<ol start='2' style='list-style-type:bullet-fallback'><li>Bullet</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "2. ", "Built in", "<2> ", "Custom", "• ", "Bullet" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_FormatsAuthorDefinedCounterStyleMarkers() {
+        const string html = """
+            <style>
+              @counter-style binary {
+                system:numeric;
+                symbols:"0" "1";
+                pad:4 "0";
+                prefix:"[";
+                suffix:"] ";
+              }
+              ol { list-style-type:binary; }
+            </style>
+            <ol start="3"><li>Item</li></ol>
+            """;
+
+        var options = new HtmlRenderOptions();
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        HtmlCounterStyleRegistry registry = HtmlCounterStyleRegistry.Parse(document, options);
+        Assert.True(registry.TryFormatMarker(3, "binary", out string directMarker));
+        Assert.Equal("[0011] ", directMarker);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(new[] { "[0011] ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("cyclic 2")]
+    [InlineData("numeric 2")]
+    [InlineData("alphabetic 2")]
+    [InlineData("symbolic 2")]
+    [InlineData("additive 2")]
+    [InlineData("fixed nope")]
+    [InlineData("fixed 2 3")]
+    public void HtmlRendering_InvalidCounterStyleSystemArityUsesInitialSymbolicSystem(string system) {
+        string html = "<style>@counter-style marks{system:" + system + ";symbols:'X' 'Y';additive-symbols:1 'I'}</style>"
+            + "<ol start='3' style='list-style-type:marks'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "XX. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("pad:bogus")]
+    [InlineData("range:bogus")]
+    [InlineData("negative:one two three")]
+    [InlineData("prefix:one two")]
+    [InlineData("suffix:one two")]
+    [InlineData("additive-symbols:bogus")]
+    [InlineData("system:bogus")]
+    public void HtmlRendering_InvalidOptionalCounterStyleDescriptorsUseTheirInitialValues(string descriptor) {
+        string html = "<style>@counter-style marks{system:cyclic;symbols:'X';" + descriptor + "}</style>"
+            + "<ol style='list-style-type:marks'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_InvalidLaterCounterDescriptorRetainsEarlierValidValue() {
+        const string html = "<style>@counter-style marks{system:cyclic;symbols:'A';symbols:'';suffix:') ';suffix:bogus two}</style><ol style='list-style-type:marks'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "A) ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_CounterStylePaddingIncludesNegativeAffixes() {
+        const string html = "<style>@counter-style signed{system:numeric;symbols:'0' '1' '2' '3' '4' '5' '6' '7' '8' '9';negative:'-';pad:3 '0';suffix:' '}</style><ol start='-1' style='list-style-type:signed'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "-01 ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_PreservesAuthorCounterStyleIdentifierCasing() {
+        const string html = "<style>@counter-style MyStyle{system:cyclic;symbols:'X'}</style><ul style='list-style-type:MyStyle'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X. ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_IgnoresCommentsBeforeCounterStyleDescriptors() {
+        const string html = "<style>@counter-style marks{/* mode */system:cyclic;/* glyph */symbols:'X';/* ending */suffix:') '}</style><ul style='list-style-type:marks'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X) ", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_AllowsEmptyCounterStyleAffixes() {
+        const string html = "<style>@counter-style marks{system:cyclic;symbols:'X';prefix:'';suffix:'';negative:'' ''}</style><ul style='list-style-type:marks'><li>Item</li></ul>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { "X", "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Fact]
+    public void HtmlRendering_AppliesCounterStyleConditionalRulesForTheActiveMedia() {
+        const string html = """
+            <style>
+              @media screen { @counter-style screen-only { system:cyclic; symbols:"S"; } }
+              @media print { @counter-style print-only { system:cyclic; symbols:"P"; } }
+            </style>
+            """;
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+
+        HtmlCounterStyleRegistry registry = HtmlCounterStyleRegistry.Parse(document, options);
+
+        Assert.True(registry.TryFormat(1, "print-only", out string printed));
+        Assert.Equal("P", printed);
+        Assert.False(registry.TryFormat(1, "screen-only", out _));
+    }
+
+    [Theory]
+    [InlineData("@counter-style mark{system:cyclic;symbols:'U'}@layer themed{@counter-style mark{system:cyclic;symbols:'L'}}", "U. ")]
+    [InlineData("@layer override,base;@layer base{@counter-style mark{system:cyclic;symbols:'B'}}@layer override{@counter-style mark{system:cyclic;symbols:'O'}}", "B. ")]
+    [InlineData("@layer outer{@counter-style mark{system:cyclic;symbols:'D'}@layer child{@counter-style mark{system:cyclic;symbols:'C'}}}", "D. ")]
+    public void HtmlRendering_CounterStylesHonorCascadeLayerPrecedence(string css, string expectedMarker) {
+        string html = "<style>" + css + "</style><ol style='list-style-type:mark'><li>Item</li></ol>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(new[] { expectedMarker, "Item" }, rendered.Text.Split('\n'));
+    }
+
+    [Theory]
+    [InlineData("<ol start='2147483647' style='list-style-type:symbols(symbolic &quot;x&quot;)'><li>Item</li></ol>")]
+    [InlineData("<style>@counter-style huge{system:symbolic;symbols:'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]
+    [InlineData("<style>@counter-style huge{system:additive;additive-symbols:1 'x'}</style><ol start='2147483647' style='list-style-type:huge'><li>Item</li></ol>")]
+    public void HtmlRendering_BoundsExpandedCounterRepresentationsAndUsesDecimalFallback(string html) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+
+        Assert.Equal(new[] { "2147483647. ", "Item" }, rendered.Text.Split('\n'));
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.CounterRepresentationLimitExceeded);
+    }
+
 }

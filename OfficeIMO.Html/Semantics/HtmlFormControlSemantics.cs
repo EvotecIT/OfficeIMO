@@ -263,7 +263,8 @@ internal static class HtmlFormControlSemantics {
 
     internal static int GetSelectDisplaySize(IElement select) {
         if (select.HasAttribute("size")
-            && HtmlIntegerSemantics.TryParseNonNegativeInteger(select.GetAttribute("size"), out int size)) {
+            && HtmlIntegerSemantics.TryParseNonNegativeInteger(select.GetAttribute("size"), out int size)
+            && size > 0) {
             return size;
         }
         return select.HasAttribute("multiple") ? 4 : 1;
@@ -280,7 +281,7 @@ internal static class HtmlFormControlSemantics {
         return false;
     }
 
-    private static string GetOptionValue(IElement option) =>
+    internal static string GetOptionValue(IElement option) =>
         option.GetAttribute("value") ?? GetDefaultValue("option", null, option.TextContent ?? string.Empty);
 
     internal static string GetRangeValue(string? value, string? minimum, string? maximum, string? step = null) =>

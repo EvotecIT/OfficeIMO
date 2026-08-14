@@ -172,6 +172,38 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void TiffAxisSwappingOrientationAlsoSwapsPhysicalResolution() {
+        var image = new OfficeRasterImage(2, 1, OfficeColor.Red);
+        byte[] tiff = OfficeTiffCodec.Encode(image, new OfficeTiffEncodeOptions {
+            DpiX = 300D,
+            DpiY = 150D
+        });
+        int orientationEntry = FindClassicTiffEntry(tiff, 274);
+        WriteLittleEndian(tiff, orientationEntry + 8, 6);
+
+        OfficeImageInfo oriented = OfficeImageReader.Identify(tiff);
+        Assert.Equal((1, 2), (oriented.Width, oriented.Height));
+        Assert.Equal(150D, oriented.DpiX, 3);
+        Assert.Equal(300D, oriented.DpiY, 3);
+
+        Assert.True(OfficeImagePngConverter.TryConvertToPng(tiff, out byte[] png));
+        OfficeImageInfo converted = OfficeImageReader.Identify(png);
+        Assert.Equal((1, 2), (converted.Width, converted.Height));
+        Assert.InRange(converted.DpiX, 149.98D, 150.02D);
+        Assert.InRange(converted.DpiY, 299.98D, 300.02D);
+
+        Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(tiff, true, out _, out OfficeImageInfo? normalized));
+        Assert.Equal((1, 2), (normalized!.Width, normalized.Height));
+        Assert.InRange(normalized.DpiX, 149.98D, 150.02D);
+        Assert.InRange(normalized.DpiY, 299.98D, 300.02D);
+
+        Assert.True(OfficeImageOrientationNormalizer.TryNormalizeToPng(tiff, false, out _, out OfficeImageInfo? ignored));
+        Assert.Equal((2, 1), (ignored!.Width, ignored.Height));
+        Assert.InRange(ignored.DpiX, 299.98D, 300.02D);
+        Assert.InRange(ignored.DpiY, 149.98D, 150.02D);
+    }
+
+    [Fact]
     public void SharedRasterDecoderRepaintsOfficeImoLiteralLosslessWebp() {
         OfficeRasterImage expected = CreateSampleImage();
         byte[] encoded = OfficeWebpCodec.Encode(expected);
@@ -346,6 +378,17 @@ public sealed class DrawingRasterEncodingTests {
         bytes[offset + 1] << 8 |
         bytes[offset + 2] << 16 |
         bytes[offset + 3] << 24;
+
+    private static int FindClassicTiffEntry(byte[] bytes, int expectedTag) {
+        int ifdOffset = ReadLittleEndian(bytes, 4);
+        int entryCount = bytes[ifdOffset] | bytes[ifdOffset + 1] << 8;
+        for (int index = 0; index < entryCount; index++) {
+            int entryOffset = ifdOffset + 2 + index * 12;
+            int tag = bytes[entryOffset] | bytes[entryOffset + 1] << 8;
+            if (tag == expectedTag) return entryOffset;
+        }
+        throw new InvalidOperationException("TIFF entry was not found.");
+    }
 
     private static void WriteLittleEndian(byte[] bytes, int offset, int value) {
         bytes[offset] = (byte)value;

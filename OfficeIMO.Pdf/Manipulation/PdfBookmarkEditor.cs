@@ -14,7 +14,8 @@ public sealed class PdfBookmarkValidationIssue {
 /// <summary>Existing-document bookmark edit result.</summary>
 public sealed class PdfBookmarkEditResult {
     private readonly byte[] _pdf;
-    internal PdfBookmarkEditResult(byte[] pdf, PdfMutationPlan plan, IReadOnlyList<PdfOutlineItem> outlines) { _pdf = (byte[])pdf.Clone(); MutationPlan = plan; Outlines = outlines; }
+    private readonly PdfReadOptions _readOptions;
+    internal PdfBookmarkEditResult(byte[] pdf, PdfMutationPlan plan, IReadOnlyList<PdfOutlineItem> outlines, PdfReadOptions readOptions) { _pdf = (byte[])pdf.Clone(); _readOptions = readOptions; MutationPlan = plan; Outlines = outlines; }
     /// <summary>Shared full-rewrite mutation plan.</summary>
     public PdfMutationPlan MutationPlan { get; }
     /// <summary>Bookmarks read back from the saved artifact.</summary>
@@ -22,7 +23,7 @@ public sealed class PdfBookmarkEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
 }
 
 /// <summary>Adds, removes, renames, moves, nests, retargets, and rebuilds existing-document bookmarks.</summary>
@@ -37,8 +38,8 @@ internal static class PdfBookmarkEditor {
         return EditCore(pdf, edit, readOptions, allowBrokenSourceDestinations: false);
     }
 
-    internal static PdfBookmarkEditResult EditAllowingBrokenSourceDestinations(byte[] pdf, Action<PdfBookmarkEditSession> edit) {
-        return EditCore(pdf, edit, readOptions: null, allowBrokenSourceDestinations: true);
+    internal static PdfBookmarkEditResult EditAllowingBrokenSourceDestinations(byte[] pdf, Action<PdfBookmarkEditSession> edit, PdfReadOptions? readOptions = null) {
+        return EditCore(pdf, edit, readOptions, allowBrokenSourceDestinations: true);
     }
 
     private static PdfBookmarkEditResult EditCore(byte[] pdf, Action<PdfBookmarkEditSession> edit, PdfReadOptions? readOptions, bool allowBrokenSourceDestinations) {
@@ -49,9 +50,12 @@ internal static class PdfBookmarkEditor {
         if (!allowBrokenSourceDestinations && sourceIssues.Count > 0) throw new InvalidOperationException("PDF bookmark editing requires broken destinations to be repaired or removed first: " + string.Join(" ", sourceIssues.Select(static issue => issue.Message)));
         var session = new PdfBookmarkEditSession(logical); edit(session); IReadOnlyList<PdfBookmarkNode> target = session.Snapshot();
         byte[] output = PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => { RewriteOutlines(objects, security, read, target); return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null; });
-        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output).Outlines;
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            PdfReadOptions.Resolve(readOptions),
+            output.LongLength);
+        IReadOnlyList<PdfOutlineItem> actual = PdfReadDocument.Open(output, outputReadOptions).Outlines;
         if (!Matches(target, actual)) throw new InvalidOperationException("PDF bookmark post-save validation failed; the artifact was not returned.");
-        return new PdfBookmarkEditResult(output, plan, actual);
+        return new PdfBookmarkEditResult(output, plan, actual, outputReadOptions);
     }
 
     private static void RewriteOutlines(Dictionary<int, PdfIndirectObject> objects, PdfDocumentSecurityInfo security, PdfReadDocument document, IReadOnlyList<PdfBookmarkNode> roots) {

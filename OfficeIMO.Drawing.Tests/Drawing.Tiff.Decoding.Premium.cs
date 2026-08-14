@@ -66,6 +66,32 @@ public sealed class DrawingPremiumTiffDecodingTests {
             image!.GetPixels());
     }
 
+    [Theory]
+    [InlineData(5, true)]
+    [InlineData(6, true)]
+    [InlineData(7, false)]
+    [InlineData(8, false)]
+    public void TiffDecoder_AppliesAxisSwappingOrientations(int orientation, bool redFirst) {
+        byte[] tiff = CreateTiff(
+            width: 2,
+            height: 1,
+            photometric: 2,
+            samples: 3,
+            pixels: new byte[] {
+                255, 0, 0,
+                0, 255, 0
+            },
+            orientation: orientation);
+
+        Assert.True(OfficeImageOrientationNormalizer.TryRead(tiff, out OfficeImageOrientation identified));
+        Assert.Equal((OfficeImageOrientation)orientation, identified);
+        Assert.True(OfficeTiffCodec.TryDecode(tiff, out OfficeRasterImage? image));
+        Assert.NotNull(image);
+        Assert.Equal((1, 2), (image!.Width, image.Height));
+        Assert.Equal(redFirst ? OfficeColor.Red : OfficeColor.Lime, image.GetPixel(0, 0));
+        Assert.Equal(redFirst ? OfficeColor.Lime : OfficeColor.Red, image.GetPixel(0, 1));
+    }
+
     [Fact]
     public void TiffDecoder_DecodesDeflateDeviceCmykPixels() {
         byte[] tiff = CreateTiff(
@@ -167,7 +193,8 @@ public sealed class DrawingPremiumTiffDecodingTests {
         int[]? colorMap = null,
         bool includeSamplesPerPixel = true,
         int? inkSet = null,
-        bool rawDeflate = false) {
+        bool rawDeflate = false,
+        int? orientation = null) {
         byte[] predicted = pixels.ToArray();
         if (predictor == 2) {
             int rowBytes = width * samples;
@@ -184,7 +211,8 @@ public sealed class DrawingPremiumTiffDecodingTests {
         int entryCount =
             (colorMap == null ? 10 : 11) -
             (includeSamplesPerPixel ? 0 : 1) +
-            (inkSet.HasValue ? 1 : 0);
+            (inkSet.HasValue ? 1 : 0) +
+            (orientation.HasValue ? 1 : 0);
         const int ifdOffset = 8;
         int dataOffset = ifdOffset + 2 + (entryCount * 12) + 4;
         int bitsOffset = samples > 2 ? dataOffset : 0;
@@ -213,6 +241,9 @@ public sealed class DrawingPremiumTiffDecodingTests {
         WriteEntry(output, ref entry, 259, 3, 1, rawDeflate ? 32946 : (int)OfficeTiffCompression.Deflate);
         WriteEntry(output, ref entry, 262, 3, 1, photometric);
         WriteEntry(output, ref entry, 273, 4, 1, stripOffset);
+        if (orientation.HasValue) {
+            WriteEntry(output, ref entry, 274, 3, 1, orientation.Value);
+        }
         if (includeSamplesPerPixel) {
             WriteEntry(output, ref entry, 277, 3, 1, samples);
         }

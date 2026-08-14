@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory)]
     [string] $FeedPath,
 
-    [string] $Version = '3.2.0',
+    [string] $Version = '3.2.1',
 
     [switch] $KeepWorkingDirectory
 )
@@ -117,6 +117,7 @@ try {
 
     $expectedDirectDependencies = @{
         'OfficeIMO.Html' = @('OfficeIMO.Core')
+        'OfficeIMO.Html.Pdf.Browser' = @('OfficeIMO.Core', 'OfficeIMO.Pdf')
         'OfficeIMO.Html.Rtf' = @('OfficeIMO.Core', 'OfficeIMO.Html', 'OfficeIMO.Rtf')
         'OfficeIMO.Mhtml' = @('OfficeIMO.Core', 'OfficeIMO.Email', 'OfficeIMO.Html')
         'OfficeIMO.Email.Image' = @('OfficeIMO.Core', 'OfficeIMO.Email', 'OfficeIMO.Html', 'OfficeIMO.Html.Rtf')

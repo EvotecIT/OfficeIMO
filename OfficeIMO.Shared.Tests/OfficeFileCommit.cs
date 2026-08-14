@@ -59,6 +59,49 @@ namespace OfficeIMO.Shared.Tests {
         }
 
         [Fact]
+        public async Task WriteAllBytesAsync_AcceptsAStagingPathAsItsTarget() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, "artifact.xlsx");
+            string stagingPath = OfficeFileCommit.CreateStagingPath(destination);
+            byte[] payload = { 1, 2, 3, 4 };
+
+            try {
+                Assert.False(Path.GetFileName(stagingPath).StartsWith("..", StringComparison.Ordinal));
+                Assert.True(Path.GetFileName(stagingPath).Length <= 50);
+
+                await OfficeFileCommit.WriteAllBytesAsync(stagingPath, payload);
+
+                Assert.Equal(payload, File.ReadAllBytes(stagingPath));
+                Assert.DoesNotContain(
+                    Directory.GetFiles(root),
+                    path => Path.GetFileName(path).StartsWith("..", StringComparison.Ordinal));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void LongDestinationNameUsesCompactClaimPath() {
+#if NETFRAMEWORK
+            // .NET Framework does not opt into Windows long-path handling for this test host.
+            return;
+#else
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string destination = Path.Combine(root, new string('a', 240) + ".bin");
+            byte[] payload = { 1, 2, 3, 4 };
+
+            try {
+                string stagingPath = OfficeFileCommit.StageAllBytes(destination, payload);
+
+                Assert.True(OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, destination));
+                Assert.Equal(payload, File.ReadAllBytes(destination));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+#endif
+        }
+
+        [Fact]
         public void StagedBytesCanRetryAfterDestinationCollisionWithoutBeingRewritten() {
             string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             string occupiedPath = Path.Combine(root, "artifact.bin");

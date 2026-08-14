@@ -12,19 +12,22 @@ public sealed partial class PdfReadPage {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
     private readonly PdfReadLimits _limits;
+    private readonly PdfFontResourceCache _fontResourceCache;
+    private readonly bool _includeArtifactText;
     private readonly Action? _demandTextExtraction;
     private readonly Action<string>? _demandContentExtraction;
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly Lazy<bool>? _hasOutputIntentCompositionInteraction;
 
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
-        : this(objectNumber, pageDict, objects, new PdfReadLimits()) { }
+        : this(objectNumber, pageDict, objects, new PdfReadLimits(), new PdfFontResourceCache()) { }
 
     internal PdfReadPage(
         int objectNumber,
         PdfDictionary pageDict,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
+        PdfFontResourceCache fontResourceCache,
         Action? demandTextExtraction = null,
         Action<string>? demandContentExtraction = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
@@ -32,6 +35,8 @@ public sealed partial class PdfReadPage {
         _pageDict = pageDict;
         _objects = objects;
         _limits = limits;
+        _fontResourceCache = fontResourceCache;
+        _includeArtifactText = includeArtifactText;
         _maxDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         _demandTextExtraction = demandTextExtraction;
         _demandContentExtraction = demandContentExtraction;
@@ -118,12 +123,17 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
+        return GetTextSpans(_includeArtifactText);
+    }
+
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(bool includeArtifactText) {
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        var pageDecoders = ResourceResolver.GetBudgetedFontDecoders(_pageDict, _objects);
-        var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
-        var pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
+        PdfFontResourceSet pageFontResources = _fontResourceCache.GetOrCreate(pageResources, _objects);
+        Dictionary<string, Func<byte[], int, string>> pageDecoders = pageFontResources.Decoders;
+        Dictionary<string, Func<byte[], double>> pageWidthProviders = pageFontResources.WidthProviders;
+        Dictionary<string, PdfFontResource> pageFonts = pageFontResources.Fonts;
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetPageSize().Height;
         var pageContentBudget = new PageContentBudget(this);
@@ -139,10 +149,16 @@ public sealed partial class PdfReadPage {
                 spans,
                 activeForms,
                 pageHeight,
+                includeArtifactText: includeArtifactText,
                 pageContentBudget: pageContentBudget);
         }
 
         return spans;
+    }
+
+    internal (double X, double Y) GetPageBoundaryOrigin() {
+        PdfPageBox box = GetPageBoundaryBox();
+        return (box.Left, box.Bottom);
     }
 
     /// <summary>Reads simple URI, named-destination, direct-destination, named-action, and remote GoTo link annotations from this page.</summary>
@@ -408,8 +424,9 @@ public sealed partial class PdfReadPage {
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this);
-        var content = new System.Text.StringBuilder();
-        bool canInspectFormInvocations = true;
+        bool mayContainForms = MayContainFormXObjects(pageResources);
+        System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
+        bool canInspectFormInvocations = mayContainForms;
         foreach (var stream in GetContentStreamObjects()) {
             AddUnsupportedFilters(stream, unsupported);
             if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
@@ -417,14 +434,51 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            content.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)));
+            byte[] decoded = pageContentBudget.Decode(stream);
+            if (content is not null) {
+                content.Append(PdfEncoding.Latin1GetString(decoded));
+            }
         }
 
-        if (canInspectFormInvocations && content.Length > 0) {
+        if (canInspectFormInvocations && content is { Length: > 0 }) {
             CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms, pageContentBudget);
         }
 
         return unsupported;
+    }
+
+    private bool MayContainFormXObjects(PdfDictionary? resources) {
+        if (resources is null || !resources.Items.TryGetValue("XObject", out var xObjectValue)) {
+            return false;
+        }
+
+        var xObjects = ResolveDictionary(xObjectValue);
+        if (xObjects is null) {
+            return true;
+        }
+
+        foreach (var value in xObjects.Items.Values) {
+            PdfStream? stream;
+            if (value is PdfReference reference) {
+                if (!PdfObjectLookup.TryGet(_objects, reference, out var indirectObject) ||
+                    indirectObject.Value is not PdfStream referencedStream) {
+                    return true;
+                }
+
+                stream = referencedStream;
+            } else if (value is PdfStream directStream) {
+                stream = directStream;
+            } else {
+                return true;
+            }
+
+            string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
+            if (subtype is null || string.Equals(subtype, "Form", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void CollectUnsupportedFormFilters(
@@ -491,7 +545,9 @@ public sealed partial class PdfReadPage {
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
+        bool initialUnsupportedTextEffect = false,
         bool useLogicalTextFilters = true,
+        bool includeArtifactText = false,
         int contentNestingDepth = 0,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -503,6 +559,7 @@ public sealed partial class PdfReadPage {
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
+        textClippingBudget ??= new PdfTextClippingBudget();
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
             decoders.TryGetValue(fontRes, out var dec)
                 ? dec(bytes, maximumCharacters)
@@ -524,6 +581,7 @@ public sealed partial class PdfReadPage {
             DecodeWithFont,
             SumWidth1000,
             actualTextForProperty: ResolveActualTextProperty,
+            hasMcidForProperty: ResolveMarkedContentMcid,
             graphicsStates: GetGraphicsStateResources(resources),
             colorSpaces: GetColorSpaceResources(resources, invokedResources.ColorSpaces),
             baseFontForResource: ResolveBaseFont,
@@ -542,6 +600,7 @@ public sealed partial class PdfReadPage {
             initialTextRenderingMode: initialTextRenderingMode,
             initialClipPath: initialClipPath,
             useLogicalTextFilters: useLogicalTextFilters,
+            includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
@@ -571,6 +630,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeOpacity,
                      initialTextRenderingMode,
                      initialClipPath,
+                     initialUnsupportedTextEffect,
+                     hasMcidForProperty: ResolveMarkedContentMcid,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands,
@@ -590,11 +651,13 @@ public sealed partial class PdfReadPage {
             try {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                var formDecoders = MergeDecoders(decoders, ResourceResolver.GetBudgetedFontDecodersForForm(formDict, _objects));
-                var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
-                var formFonts = MergeFonts(fonts, ResourceResolver.GetFontsForResources(formResources, _objects));
+                PdfFontResourceSet formFontResources = _fontResourceCache.GetOrCreate(formResources, _objects);
+                var formDecoders = MergeDecoders(decoders, formFontResources.Decoders);
+                var formWidths = MergeWidthProviders(widthProviders, formFontResources.WidthProviders);
+                var formFonts = MergeFonts(fonts, formFontResources.Fonts);
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
+                PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
 
                 CollectTextAndForms(
                     formContent,
@@ -616,7 +679,9 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
+                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved || HasTransparencyGroupForTextEditing(formDict),
                     useLogicalTextFilters,
+                    includeArtifactText,
                     contentNestingDepth + 1,
                     textOutputBudget,
                     pageContentBudget,
@@ -645,6 +710,10 @@ public sealed partial class PdfReadPage {
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
+        OfficeBlendMode initialBlendMode = OfficeBlendMode.Normal,
+        bool initialHasUnsupportedBlendMode = false,
+        bool initialHasSoftMask = false,
+        bool initialHasAuthoredRenderingIntent = false,
         int contentNestingDepth = 0,
         PageContentBudget? pageContentBudget = null,
         PdfPaintColorSelection? initialFillColorSelection = null) {
@@ -672,8 +741,9 @@ public sealed partial class PdfReadPage {
                       initialFillColorSelection: initialFillColorSelection,
                       outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
             Matrix2D invocationTransform = invocation.Transform;
+            PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (invocation.InlineImage != null) {
-                placements.Add(BuildImagePlacement(
+                PdfImagePlacement placement = BuildImagePlacement(
                     pageNumber,
                     invocation.InlineImage.ResourceName,
                     0,
@@ -695,6 +765,11 @@ public sealed partial class PdfReadPage {
             }
 
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+                continue;
+            }
+
+            if (skipTransparencyGroupForms &&
+                (!TryClassifyType3TransparencyGroup(formStream.Dictionary, out bool isTransparencyGroup) || isTransparencyGroup)) {
                 continue;
             }
 
@@ -722,6 +797,10 @@ public sealed partial class PdfReadPage {
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
+                    initialBlendMode: invocation.BlendMode,
+                    initialHasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
+                    initialHasSoftMask: invocation.HasSoftMask,
+                    initialHasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
                     contentNestingDepth: contentNestingDepth + 1,
                     pageContentBudget: pageContentBudget,
                     initialFillColorSelection: invocation.FillColorSelection);
@@ -771,8 +850,13 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity) {
+        return TryGetImageXObject(resources, name, out objectNumber, out directStreamIdentity, out _);
+    }
+
+    private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream) {
         objectNumber = 0;
         directStreamIdentity = 0;
+        imageStream = null;
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             return false;
         }
@@ -790,11 +874,13 @@ public sealed partial class PdfReadPage {
             stream = referencedStream;
         } else if (imageObj is PdfStream directStream) {
             stream = directStream;
-            directStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(directStream);
+            directStreamIdentity = PdfDirectStreamIdentity.Compute(directStream);
         }
 
-        return stream is not null &&
+        bool isImage = stream is not null &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal);
+        if (isImage) imageStream = stream;
+        return isImage;
     }
 
     private static PdfImagePlacement BuildImagePlacement(
@@ -865,8 +951,16 @@ public sealed partial class PdfReadPage {
         return actualText.RawBytes;
     }
 
+    private bool MarkedContentPropertyHasMcid(PdfDictionary? resources, string propertyName) {
+        if (resources is null || !resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject)) return false;
+        PdfDictionary? properties = ResolveDictionary(propertiesObject);
+        return properties is not null &&
+            properties.Items.TryGetValue(propertyName, out PdfObject? propertyObject) &&
+            ResolveDictionary(propertyObject)?.Items.ContainsKey("MCID") == true;
+    }
+
     private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
-        PdfPageOptionalContentVisibility.Create(resources, _objects);
+        PdfPageOptionalContentVisibility.Create(resources, _objects, _limits.MaxContentNestingDepth);
 
     private static Dictionary<string, Func<byte[], int, string>> MergeDecoders(
         Dictionary<string, Func<byte[], int, string>> parent,
@@ -950,23 +1044,27 @@ public sealed partial class PdfReadPage {
         return prefix + content + " Q";
     }
 
-    private static Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
-        if (formDict is null ||
-            !formDict.Items.TryGetValue("Matrix", out var matrixObj) ||
-            matrixObj is not PdfArray arr ||
-            arr.Items.Count < 6) {
-            return invocationTransform;
+    private Matrix2D ApplyFormMatrix(Matrix2D invocationTransform, PdfDictionary? formDict) {
+        return TryReadFormMatrix(formDict, out Matrix2D formMatrix)
+            ? Matrix2D.Multiply(invocationTransform, formMatrix)
+            : invocationTransform;
+    }
+
+    private bool TryReadFormMatrix(PdfDictionary? formDict, out Matrix2D formMatrix) {
+        formMatrix = Matrix2D.Identity;
+        if (formDict is null || !formDict.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) return true;
+        PdfObject? resolvedMatrix = ResolveEffectObject(matrixObject);
+        if (resolvedMatrix is PdfNull) return true;
+        if (resolvedMatrix is not PdfArray array || array.Items.Count != 6) return false;
+        var values = new double[6];
+        for (int index = 0; index < values.Length; index++) {
+            if (ResolveEffectObject(array.Items[index]) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) return false;
+            values[index] = number.Value;
         }
-
-        var formMatrix = new Matrix2D(
-            (arr.Items[0] as PdfNumber)?.Value ?? 1,
-            (arr.Items[1] as PdfNumber)?.Value ?? 0,
-            (arr.Items[2] as PdfNumber)?.Value ?? 0,
-            (arr.Items[3] as PdfNumber)?.Value ?? 1,
-            (arr.Items[4] as PdfNumber)?.Value ?? 0,
-            (arr.Items[5] as PdfNumber)?.Value ?? 0);
-
-        return Matrix2D.Multiply(invocationTransform, formMatrix);
+        formMatrix = new Matrix2D(values[0], values[1], values[2], values[3], values[4], values[5]);
+        return true;
     }
 
     private PdfObject? GetInheritedValue(string key) {
@@ -1006,6 +1104,29 @@ public sealed partial class PdfReadPage {
 
     private PdfObject? ResolveObject(PdfObject? obj) {
         return PdfObjectLookup.Resolve(_objects, obj);
+    }
+
+    private bool HasTransparencyGroupForTextEditing(PdfDictionary formDictionary) {
+        if (!formDictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ||
+            ResolveTextEditingObjectChain(groupObject) is not PdfDictionary group ||
+            !group.Items.TryGetValue("S", out PdfObject? subtypeObject)) {
+            return false;
+        }
+        return ResolveTextEditingObjectChain(subtypeObject) is PdfName subtype &&
+            string.Equals(subtype.Name, "Transparency", StringComparison.Ordinal);
+    }
+
+    private PdfObject? ResolveTextEditingObjectChain(PdfObject? value) {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        int maximumDepth = Math.Max(1, _limits.MaxObjectNestingDepth);
+        for (int depth = 0; depth < maximumDepth && value is PdfReference reference; depth++) {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) ||
+                !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject? indirect)) {
+                return null;
+            }
+            value = indirect.Value;
+        }
+        return value is PdfReference ? null : value;
     }
 
     private PdfArray? ResolveArray(PdfObject? obj) {

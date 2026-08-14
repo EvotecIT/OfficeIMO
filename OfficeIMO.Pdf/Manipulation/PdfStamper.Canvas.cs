@@ -67,7 +67,7 @@ internal static partial class PdfStamper {
     private static void RejectNonVisualCanvasItems(IReadOnlyList<PdfCanvasItem> items) {
         for (int i = 0; i < items.Count; i++) {
             PdfCanvasItem item = items[i];
-            if (item is PdfCanvasTextAnnotationItem || item is PdfCanvasFreeTextAnnotationItem || item is PdfCanvasHighlightAnnotationItem) {
+            if (item is PdfCanvasTextAnnotationItem || item is PdfCanvasFreeTextAnnotationItem || item is PdfCanvasHighlightAnnotationItem || item is PdfCanvasFormFieldItem) {
                 throw new NotSupportedException("Existing-page canvas stamping accepts visual content only. Use the annotation editor for interactive annotations.");
             }
 

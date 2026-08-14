@@ -28,11 +28,14 @@ public sealed partial class PdfDocument {
         _blockScopes.Push(_blocks.Add);
         Pages = new PdfDocumentPages(this);
         Read = new PdfDocumentReader(this);
+        Text = new PdfDocumentTextEditor(this);
+        Images = new PdfDocumentImageEditor(this);
         Stamp = new PdfDocumentStamper(this);
         Forms = new PdfDocumentForms(this);
         Attachments = new PdfDocumentAttachments(this);
         Bookmarks = new PdfDocumentBookmarks(this);
         Annotations = new PdfDocumentAnnotations(this);
+        JavaScript = new PdfDocumentJavaScript(this);
         Security = new PdfDocumentSecurity(this);
         Redactions = new PdfDocumentRedactions(this);
         Optimization = new PdfDocumentOptimization(this);
@@ -80,6 +83,13 @@ public sealed partial class PdfDocument {
     internal static PdfDocument OpenOwned(byte[] pdf, PdfReadOptions? readOptions = null) =>
         new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
 
+    /// <summary>Opens an internally owned artifact together with its already validated canonical parse.</summary>
+    internal static PdfDocument OpenOwned(
+        byte[] pdf,
+        PdfReadOptions? readOptions,
+        PdfReadDocument readDocument) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions, readDocument));
+
     /// <summary>
     /// Opens an existing PDF from a bounded file snapshot.
     /// </summary>
@@ -124,6 +134,12 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfDocumentReader Read { get; }
 
+    /// <summary>Existing-page text search and editing operations.</summary>
+    public PdfDocumentTextEditor Text { get; }
+
+    /// <summary>Existing-page image placement discovery and editing operations.</summary>
+    public PdfDocumentImageEditor Images { get; }
+
     /// <summary>Existing-document embedded and associated file editing operations.</summary>
     public PdfDocumentAttachments Attachments { get; }
 
@@ -132,6 +148,9 @@ public sealed partial class PdfDocument {
 
     /// <summary>Existing-document annotation editing operations.</summary>
     public PdfDocumentAnnotations Annotations { get; }
+
+    /// <summary>Explicit active-content operations for named document-level JavaScript.</summary>
+    public PdfDocumentJavaScript JavaScript { get; }
 
     /// <summary>Password encryption and digital-signature operations for this PDF.</summary>
     public PdfDocumentSecurity Security { get; }
@@ -244,6 +263,12 @@ public sealed partial class PdfDocument {
         return PdfReadDocument.Open(RenderBytesCore(), options);
     }
 
+    /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory() {
+        PdfDocumentSource? source = _source;
+        return source is null ? null : () => source.Read();
+    }
+
     /// <summary>
     /// Captures one byte snapshot and its canonical parse for a compound read operation.
     /// Generated documents are rendered once for the complete operation.
@@ -318,6 +343,52 @@ public sealed partial class PdfDocument {
             readOptions ?? ReadOptions,
             pdf.LongLength);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
+        return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName);
+    }
+
+    /// <summary>
+    /// Adopts an internal operation result after reading it back and verifying the expected page count.
+    /// The validated parse becomes the output document's canonical parse.
+    /// </summary>
+    internal PdfDocument WithBytesKnownPageCount(
+        byte[] inputBytes,
+        PdfArtifactSnapshot input,
+        byte[] pdf,
+        int outputPageCount,
+        PdfReadOptions? readOptions = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
+        Guard.NotNull(inputBytes, nameof(inputBytes));
+        Guard.NotNull(input, nameof(input));
+        Guard.NotNull(pdf, nameof(pdf));
+#if NET8_0_OR_GREATER
+        ArgumentOutOfRangeException.ThrowIfNegative(outputPageCount);
+#else
+        if (outputPageCount < 0) {
+            throw new ArgumentOutOfRangeException(nameof(outputPageCount));
+        }
+#endif
+
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            readOptions ?? ReadOptions,
+            pdf.LongLength);
+        PdfReadDocument readback = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        int actualPageCount = readback.Pages.Count;
+        if (actualPageCount != outputPageCount) {
+            throw new InvalidOperationException("PDF operation post-save validation failed: output page count did not match the planned page count.");
+        }
+
+        PdfArtifactSnapshot output = PdfArtifactSnapshot.CaptureKnownPageCount(pdf, actualPageCount);
+        return WithBytes(inputBytes, input, pdf, output, effectiveReadOptions, operationName, readback);
+    }
+
+    private PdfDocument WithBytes(
+        byte[] inputBytes,
+        PdfArtifactSnapshot input,
+        byte[] pdf,
+        PdfArtifactSnapshot output,
+        PdfReadOptions effectiveReadOptions,
+        string operationName,
+        PdfReadDocument? readDocument = null) {
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);
         PdfMutationExecutionMode executionMode = IsAppendOnly(inputBytes, pdf)
             ? PdfMutationExecutionMode.AppendOnly
@@ -331,7 +402,9 @@ public sealed partial class PdfDocument {
             duration: null,
             mutationOperation,
             executionMode);
-        var source = PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions);
+        var source = readDocument is null
+            ? PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions)
+            : PdfDocumentSource.FromOwnedBytes(pdf, effectiveReadOptions, readDocument);
         return new PdfDocument(source, _pipeline.Append(step));
     }
 

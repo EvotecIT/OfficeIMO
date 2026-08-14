@@ -20,5 +20,15 @@ internal struct Matrix2D {
             m1.A * m2.E + m1.C * m2.F + m1.E,
             m1.B * m2.E + m1.D * m2.F + m1.F);
     }
-}
 
+    internal bool IsConformalStrokeTransform() {
+        double firstLengthSquared = (A * A) + (B * B);
+        double secondLengthSquared = (C * C) + (D * D);
+        if (firstLengthSquared <= 0D || secondLengthSquared <= 0D ||
+            double.IsNaN(firstLengthSquared) || double.IsNaN(secondLengthSquared) ||
+            double.IsInfinity(firstLengthSquared) || double.IsInfinity(secondLengthSquared)) return false;
+
+        double dot = (A * C) + (B * D);
+        return firstLengthSquared == secondLengthSquared && dot == 0D;
+    }
+}

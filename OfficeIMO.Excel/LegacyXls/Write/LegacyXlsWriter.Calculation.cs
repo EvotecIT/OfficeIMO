@@ -2,47 +2,40 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
-        private static void WriteCalculationSettingsRecords(Stream stream, ExcelDocument document) {
+        private static void WriteWorkbookCalculationSettingsRecords(Stream stream, ExcelDocument document) {
             CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
-            if (properties == null) {
-                return;
+            WriteRecord(stream, 0x000e, BuildUInt16Payload(
+                properties?.FullPrecision?.Value == false ? (ushort)0 : (ushort)1));
+        }
+
+        private static void WriteWorksheetCalculationSettingsRecords(Stream stream, ExcelDocument document) {
+            CalculationProperties? properties = document.WorkbookRoot.GetFirstChild<CalculationProperties>();
+
+            WriteRecord(stream, 0x000d, BuildInt16Payload(
+                properties?.CalculationMode?.Value is CalculateModeValues mode
+                    ? ToBiffCalculationMode(mode)
+                    : (short)1));
+
+            uint iterationCount = properties?.IterateCount?.Value ?? 100U;
+            if (iterationCount > short.MaxValue) {
+                throw new NotSupportedException("Native XLS saving supports calculation iteration counts up to 32,767.");
             }
+            WriteRecord(stream, 0x000c, BuildInt16Payload(checked((short)iterationCount)));
 
-            if (properties.CalculationMode?.Value is CalculateModeValues mode) {
-                WriteRecord(stream, 0x000d, BuildInt16Payload(ToBiffCalculationMode(mode)));
+            WriteRecord(stream, 0x000f, BuildUInt16Payload(
+                properties?.ReferenceMode?.Value == ReferenceModeValues.R1C1 ? (ushort)0 : (ushort)1));
+
+            WriteRecord(stream, 0x0011, BuildUInt16Payload(
+                properties?.Iterate?.Value == true ? (ushort)1 : (ushort)0));
+
+            double iterateDelta = properties?.IterateDelta?.Value ?? 0.001d;
+            if (double.IsNaN(iterateDelta) || double.IsInfinity(iterateDelta) || iterateDelta < 0d) {
+                throw new NotSupportedException("Native XLS saving requires a non-negative finite calculation iteration delta.");
             }
+            WriteRecord(stream, 0x0010, BuildDoublePayload(iterateDelta));
 
-            if (properties.IterateCount?.Value is uint iterationCount) {
-                if (iterationCount > short.MaxValue) {
-                    throw new NotSupportedException("Native XLS saving supports calculation iteration counts up to 32,767.");
-                }
-
-                WriteRecord(stream, 0x000c, BuildInt16Payload(checked((short)iterationCount)));
-            }
-
-            if (properties.FullPrecision?.Value is bool fullPrecision) {
-                WriteRecord(stream, 0x000e, BuildUInt16Payload(fullPrecision ? (ushort)1 : (ushort)0));
-            }
-
-            if (properties.ReferenceMode?.Value is ReferenceModeValues referenceMode) {
-                WriteRecord(stream, 0x000f, BuildUInt16Payload(referenceMode == ReferenceModeValues.R1C1 ? (ushort)0 : (ushort)1));
-            }
-
-            if (properties.IterateDelta?.Value is double iterateDelta) {
-                if (double.IsNaN(iterateDelta) || double.IsInfinity(iterateDelta) || iterateDelta < 0d) {
-                    throw new NotSupportedException("Native XLS saving requires a non-negative finite calculation iteration delta.");
-                }
-
-                WriteRecord(stream, 0x0010, BuildDoublePayload(iterateDelta));
-            }
-
-            if (properties.Iterate?.Value is bool iterate) {
-                WriteRecord(stream, 0x0011, BuildUInt16Payload(iterate ? (ushort)1 : (ushort)0));
-            }
-
-            if (properties.CalculationOnSave?.Value is bool calculationOnSave) {
-                WriteRecord(stream, 0x005f, BuildUInt16Payload(calculationOnSave ? (ushort)1 : (ushort)0));
-            }
+            WriteRecord(stream, 0x005f, BuildUInt16Payload(
+                properties?.CalculationOnSave?.Value == false ? (ushort)0 : (ushort)1));
         }
 
         private static void WriteWorksheetCalculationRecords(Stream stream, ExcelSheet sheet) {

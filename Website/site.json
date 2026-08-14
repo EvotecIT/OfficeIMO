@@ -198,6 +198,9 @@
     "Robots": true,
     "SecurityHeaders": {
       "Enabled": true,
+      "Hsts": false,
+      "XFrameOptionsValue": "SAMEORIGIN",
+      "PermissionsPolicy": true,
       "ContentSecurityPolicyValue": "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; frame-src 'self' blob:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
     },
     "ContentSignals": {
@@ -282,6 +285,12 @@
     "WebMcp": false,
     "MarkdownNegotiation": true
   },
+  "Cloudflare": {
+    "Cache": {
+      "EdgeTtlSeconds": 604800
+    },
+    "PurgeMode": "hostname"
+  },
   "EditLinks": {
     "Enabled": true,
     "Template": "https://github.com/EvotecIT/OfficeIMO/edit/master/{path}",
@@ -344,7 +353,8 @@
     "CacheHeaders": {
       "Enabled": true,
       "OutputPath": "_headers",
-      "HtmlCacheControl": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800"
+      "HtmlCacheControl": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+      "ImmutablePaths": []
     }
   },
   "Prism": {
@@ -373,7 +383,7 @@
     "Enabled": true,
     "MapFiles": ["data/xrefmap.json"],
     "WarnOnMissing": true,
-    "EmitMap": true,
+    "EmitMap": false,
     "MaxWarnings": 25
   },
   "Navigation": {

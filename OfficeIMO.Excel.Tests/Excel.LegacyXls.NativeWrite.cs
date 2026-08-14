@@ -2873,13 +2873,13 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(workbook.Protection);
                 Assert.False(workbook.Protection!.IsProtected);
                 Assert.Equal("CAFE", workbook.Protection.LegacyPasswordHash);
-                Assert.Null(workbook.WindowsLocked);
+                Assert.False(workbook.WindowsLocked);
 
                 DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection projectedProtection = result.Document.WorkbookRoot
                     .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection>()!;
                 Assert.Equal("CAFE", projectedProtection.WorkbookPassword!.Value);
-                Assert.Null(projectedProtection.LockStructure);
-                Assert.Null(projectedProtection.LockWindows);
+                Assert.False(projectedProtection.LockStructure!.Value);
+                Assert.False(projectedProtection.LockWindows!.Value);
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -3480,6 +3480,9 @@ namespace OfficeIMO.Tests {
                     document.Save(xlsOutputPath);
                 }
 
+                AssertWorkbookOpensViaExcelComWhenAvailable(
+                    xlsOutputPath,
+                    "The XLS workbook with multiple comments failed to open in desktop Excel.");
                 LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(xlsOutputPath);
                 result.EnsureNoImportErrors();
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
@@ -3489,9 +3492,13 @@ namespace OfficeIMO.Tests {
                 byte[] drawingGroupPayload = Assert.Single(GetBiffRecordPayloads(xlsOutputPath, 0x00eb));
                 Assert.True(drawingGroupPayload.Length > 8);
                 IReadOnlyList<byte[]> drawingPayloads = GetBiffRecordPayloads(xlsOutputPath, 0x00ec);
-                Assert.Equal(2, drawingPayloads.Count);
-                Assert.All(drawingPayloads, payload => AssertCommentDrawingInfo(payload, expectedShapeCount: 2, expectedLastShapeId: 1026));
-                AssertBiffRecordOccursBefore(xlsOutputPath, 0x00eb, 0x0085);
+                Assert.Equal(4, drawingPayloads.Count);
+                AssertCommentDrawingInfo(drawingPayloads[0], expectedShapeCount: 3, expectedLastShapeId: 1026);
+                Assert.Equal(8, drawingPayloads[1].Length);
+                Assert.True(drawingPayloads[2].Length > 8);
+                Assert.Equal(8, drawingPayloads[3].Length);
+                AssertBiffRecordOccursBefore(xlsOutputPath, 0x0085, 0x00eb);
+                AssertBiffRecordOccursBefore(xlsOutputPath, 0x00eb, 0x00fc);
 
                 LegacyXlsComment firstLegacyComment = Assert.Single(legacySheet.Comments, comment => comment.Row == 1 && comment.Column == 1);
                 Assert.Equal("Review this cell", firstLegacyComment.Text);
@@ -4204,6 +4211,68 @@ namespace OfficeIMO.Tests {
             }
 
             return payloads;
+        }
+
+        private static void AssertBiffIndexMatchesDimensions(
+            byte[] xlsBytes,
+            uint expectedDataFirstRow,
+            uint expectedDataRowAfterLast,
+            uint expectedDimensionFirstRow,
+            uint expectedDimensionRowAfterLast) {
+            byte[] workbookStream = ReadCompoundStream(xlsBytes, "Workbook");
+            byte[]? indexPayload = null;
+            byte[]? dimensionsPayload = null;
+            int defaultColumnWidthOffset = -1;
+            var dbCellOffsets = new List<int>();
+            int bofCount = 0;
+            bool inFirstWorksheet = false;
+
+            int offset = 0;
+            while (offset + 4 <= workbookStream.Length) {
+                ushort type = ReadUInt16(workbookStream, offset);
+                ushort length = ReadUInt16(workbookStream, offset + 2);
+                int payloadOffset = offset + 4;
+                Assert.True(payloadOffset + length <= workbookStream.Length);
+
+                if (type == 0x0809) {
+                    bofCount++;
+                    inFirstWorksheet = bofCount == 2;
+                } else if (inFirstWorksheet && type == 0x000a) {
+                    break;
+                } else if (inFirstWorksheet) {
+                    if (type == 0x020b) {
+                        indexPayload = new byte[length];
+                        Buffer.BlockCopy(workbookStream, payloadOffset, indexPayload, 0, length);
+                    } else if (type == 0x0055) {
+                        defaultColumnWidthOffset = offset;
+                    } else if (type == 0x0200) {
+                        dimensionsPayload = new byte[length];
+                        Buffer.BlockCopy(workbookStream, payloadOffset, dimensionsPayload, 0, length);
+                    } else if (type == 0x00d7) {
+                        dbCellOffsets.Add(offset);
+                    }
+                }
+
+                offset = payloadOffset + length;
+            }
+
+            Assert.NotNull(indexPayload);
+            Assert.NotNull(dimensionsPayload);
+            Assert.True(defaultColumnWidthOffset >= 0, "The worksheet DefColWidth record was not found.");
+            Assert.Equal(expectedDataFirstRow, ReadUInt32(indexPayload!, 4));
+            Assert.Equal(expectedDataRowAfterLast, ReadUInt32(indexPayload!, 8));
+            Assert.Equal((uint)defaultColumnWidthOffset, ReadUInt32(indexPayload!, 12));
+            Assert.Equal(expectedDimensionFirstRow, ReadUInt32(dimensionsPayload!, 0));
+            Assert.Equal(expectedDimensionRowAfterLast, ReadUInt32(dimensionsPayload!, 4));
+
+            int expectedRowBlockCount = expectedDimensionRowAfterLast <= expectedDimensionFirstRow
+                ? 0
+                : checked((int)((expectedDimensionRowAfterLast - expectedDimensionFirstRow + 31U) / 32U));
+            Assert.Equal(expectedRowBlockCount, dbCellOffsets.Count);
+            Assert.Equal(16 + (expectedRowBlockCount * 4), indexPayload!.Length);
+            for (int index = 0; index < dbCellOffsets.Count; index++) {
+                Assert.Equal((uint)dbCellOffsets[index], ReadUInt32(indexPayload, 16 + (index * 4)));
+            }
         }
 
         private static void AssertBiffRecordOccursBefore(string xlsPath, ushort beforeRecordType, ushort afterRecordType) {

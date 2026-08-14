@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
@@ -521,24 +522,29 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddNodeRecord(VisioGraphNodeRecord record) {
             if (record == null) throw new ArgumentNullException(nameof(record));
+            string nodeId = RequireId(record.Id, nameof(record.Id), "Node id");
             if (record.Stencil != null) {
-                StencilNode(record.Id, record.Text, record.Stencil);
+                StencilNode(nodeId, record.Text, record.Stencil);
             } else if (record.StencilCatalog != null && record.StencilQueries.Count > 0) {
-                StencilNode(record.Id, record.Text, record.StencilCatalog, record.StencilQueries.ToArray());
+                StencilNode(nodeId, record.Text, record.StencilCatalog, record.StencilQueries.ToArray());
             } else {
-                Node(record.Id, record.Text, record.Kind);
+                Node(nodeId, record.Text, record.Kind);
             }
 
+            NodeItem node = GetKnownNode(nodeId, nameof(record.Id));
+            node.FillColor = record.FillColor;
+            node.LineColor = record.LineColor;
+
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
-                NodeShapeData(record.Id, item.Key, item.Value);
+                NodeShapeData(nodeId, item.Key, item.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
-                NodeHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+                NodeHyperlink(nodeId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
             }
 
             if (record.IsRoot) {
-                Root(record.Id);
+                Root(nodeId);
             }
         }
 
@@ -548,6 +554,14 @@ namespace OfficeIMO.Visio.Diagrams {
                 ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
+            if (record.BeginArrow.HasValue || record.EndArrow.HasValue || record.LineStyle.HasValue || record.LineColor.HasValue) {
+                EdgeStyle(edgeId, style => {
+                    if (record.BeginArrow.HasValue) style.BeginArrow = record.BeginArrow;
+                    if (record.EndArrow.HasValue) style.EndArrow = record.EndArrow;
+                    if (record.LineStyle.HasValue) style.LinePattern = OfficeStrokeDashStyleMapper.ToVisioLinePattern(record.LineStyle.Value);
+                    if (record.LineColor.HasValue) style.LineColor = record.LineColor.Value;
+                });
+            }
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
                 EdgeShapeData(edgeId, item.Key, item.Value);
             }
@@ -559,14 +573,18 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddClusterRecord(VisioGraphClusterRecord record) {
             if (record == null) throw new ArgumentNullException(nameof(record));
+            string clusterId = RequireId(record.Id, nameof(record.Id), "Cluster id");
             IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
-            Cluster(record.Id, record.Text, nodeIds.ToArray());
+            Cluster(clusterId, record.Text, nodeIds.ToArray());
+            ZoneItem zone = GetKnownZone(clusterId, nameof(record.Id));
+            zone.FillColor = record.FillColor;
+            zone.LineColor = record.LineColor;
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
-                ZoneShapeData(record.Id, item.Key, item.Value);
+                ZoneShapeData(clusterId, item.Key, item.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
-                ZoneHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+                ZoneHyperlink(clusterId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
             }
         }
 

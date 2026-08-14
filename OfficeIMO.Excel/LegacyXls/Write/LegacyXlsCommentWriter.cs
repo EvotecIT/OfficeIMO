@@ -7,6 +7,16 @@ using System.Xml.Linq;
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static class LegacyXlsCommentWriter {
         private const int BiffMaxRecordDataLength = 8224;
+        private const int CommentShapeContainerPayloadLength = 126;
+        private const int CommentShapeContainerLength = 8 + CommentShapeContainerPayloadLength;
+        private const int MaximumCommentsPerDrawing = 1023;
+        private const int MaximumDrawingIdentifier = 0x0ffe;
+
+        internal static bool SupportsCommentCount(int commentCount) =>
+            commentCount >= 0 && commentCount <= MaximumCommentsPerDrawing;
+
+        internal static bool SupportsCommentDrawingSheetIndex(int zeroBasedSheetIndex) =>
+            zeroBasedSheetIndex >= 0 && zeroBasedSheetIndex < MaximumDrawingIdentifier;
 
         internal static bool SupportsWorksheetComments(ExcelSheet sheet, LegacyXlsFontTable fontTable, out string? reason) {
             reason = null;
@@ -15,61 +25,116 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return false;
             }
 
-            foreach (CommentInfo comment in GetWorksheetComments(sheet, fontTable, out reason)) {
+            int declaredCommentCount = sheet.WorksheetPart.WorksheetCommentsPart?
+                .Comments?
+                .CommentList?
+                .Elements<Comment>()
+                .Count() ?? 0;
+            if (!SupportsCommentCount(declaredCommentCount)) {
+                reason = "comment counts outside BIFF8 limits";
+                return false;
+            }
+
+            IReadOnlyList<CommentInfo> comments = GetWorksheetComments(sheet, fontTable, out reason);
+            if (reason != null) {
+                return false;
+            }
+
+            if (!SupportsCommentCount(comments.Count)) {
+                reason = "comment counts outside BIFF8 limits";
+                return false;
+            }
+
+            foreach (CommentInfo comment in comments) {
                 if (!SupportsComment(comment, out reason)) {
                     return false;
                 }
             }
 
-            return reason == null;
+            return true;
         }
 
-        internal static IReadOnlyList<CommentRecordSet> CreateCommentRecordSets(ExcelSheet sheet, LegacyXlsFontTable fontTable) {
+        internal static IReadOnlyList<CommentRecordSet> CreateCommentRecordSets(
+            ExcelSheet sheet,
+            LegacyXlsFontTable fontTable,
+            ushort drawingId) {
             string? reason;
             var records = new List<CommentRecordSet>();
             CommentInfo[] comments = GetWorksheetComments(sheet, fontTable, out reason)
                 .Where(comment => SupportsComment(comment, out _))
                 .ToArray();
             int shapeCount = comments.Length;
-            uint lastShapeId = checked(0x00000400U + (uint)shapeCount);
+            uint shapeIdBase = checked((uint)drawingId << 10);
+            uint lastShapeId = checked(shapeIdBase + (uint)shapeCount);
             ushort objectId = 1;
             foreach (CommentInfo comment in comments) {
-                records.Add(BuildCommentRecordSet(comment, objectId, shapeCount, lastShapeId));
+                records.Add(BuildCommentRecordSet(
+                    comment,
+                    objectId,
+                    drawingId,
+                    shapeIdBase,
+                    shapeCount,
+                    lastShapeId,
+                    objectId == 1));
                 objectId++;
             }
 
             return records;
         }
 
-        internal static int CountCommentRecordSets(IEnumerable<ExcelSheet> sheets, LegacyXlsFontTable fontTable) {
-            int count = 0;
-            foreach (ExcelSheet sheet in sheets) {
+        internal static byte[] BuildWorkbookDrawingGroupPayload(
+            IReadOnlyList<ExcelSheet> sheets,
+            LegacyXlsFontTable fontTable) {
+            var drawingGroups = new List<DrawingGroupInfo>();
+            for (int index = 0; index < sheets.Count; index++) {
+                ExcelSheet sheet = sheets[index];
                 string? reason;
+                int count = 0;
                 foreach (CommentInfo comment in GetWorksheetComments(sheet, fontTable, out reason)) {
                     if (SupportsComment(comment, out _)) {
                         count++;
                     }
                 }
+
+                if (count != 0) {
+                    drawingGroups.Add(new DrawingGroupInfo(checked((ushort)(index + 1)), count));
+                }
             }
 
-            return count;
-        }
-
-        internal static byte[] BuildWorkbookDrawingGroupPayload(int shapeCount) {
-            if (shapeCount <= 0) {
+            if (drawingGroups.Count == 0) {
                 return Array.Empty<byte>();
             }
 
+            DrawingGroupInfo lastDrawingGroup = drawingGroups[drawingGroups.Count - 1];
+            uint maxShapeId = checked(((uint)lastDrawingGroup.DrawingId << 10) + (uint)lastDrawingGroup.CommentCount + 1U);
+            uint savedShapeCount = checked((uint)drawingGroups.Sum(group => group.CommentCount + 1));
             using var drawingGroup = new MemoryStream();
-            WriteUInt32(drawingGroup, checked((uint)(0x00000400 + shapeCount + 1)));
-            WriteUInt32(drawingGroup, 1);
-            WriteUInt32(drawingGroup, checked((uint)shapeCount));
-            WriteUInt32(drawingGroup, 1);
-            WriteUInt32(drawingGroup, 1);
-            WriteUInt32(drawingGroup, checked((uint)(shapeCount + 1)));
+            WriteUInt32(drawingGroup, maxShapeId);
+            WriteUInt32(drawingGroup, checked((uint)drawingGroups.Count + 1U));
+            WriteUInt32(drawingGroup, savedShapeCount);
+            WriteUInt32(drawingGroup, checked((uint)drawingGroups.Count));
+            foreach (DrawingGroupInfo group in drawingGroups) {
+                WriteUInt32(drawingGroup, group.DrawingId);
+                WriteUInt32(drawingGroup, checked((uint)group.CommentCount + 1U));
+            }
 
             byte[] drawingGroupBlock = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, drawingGroup.ToArray());
-            return BuildOfficeArtRecord(0xf000, instance: 0, version: 0x0f, drawingGroupBlock);
+            byte[] drawingProperties = BuildOfficeArtRecord(0xf00b, instance: 3, version: 0x03, [
+                0xbf, 0x00, 0x08, 0x00, 0x08, 0x00,
+                0x81, 0x01, 0x41, 0x00, 0x00, 0x08,
+                0xc0, 0x01, 0x40, 0x00, 0x00, 0x08
+            ]);
+            byte[] splitMenuColors = BuildOfficeArtRecord(0xf11e, instance: 4, version: 0x00, [
+                0x0d, 0x00, 0x00, 0x08,
+                0x0c, 0x00, 0x00, 0x08,
+                0x17, 0x00, 0x00, 0x08,
+                0xf7, 0x00, 0x00, 0x10
+            ]);
+            return BuildOfficeArtRecord(
+                0xf000,
+                instance: 0,
+                version: 0x0f,
+                Combine(drawingGroupBlock, drawingProperties, splitMenuColors));
         }
 
         private static IReadOnlyList<CommentInfo> GetWorksheetComments(ExcelSheet sheet, LegacyXlsFontTable fontTable, out string? reason) {
@@ -694,11 +759,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return new CommentAnchor(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7]);
         }
 
-        private static CommentRecordSet BuildCommentRecordSet(CommentInfo comment, ushort objectId, int shapeCount, uint lastShapeId) {
+        private static CommentRecordSet BuildCommentRecordSet(
+            CommentInfo comment,
+            ushort objectId,
+            ushort drawingId,
+            uint shapeIdBase,
+            int shapeCount,
+            uint lastShapeId,
+            bool firstShape) {
             CommentAnchor anchor = ClampAnchor(comment.Anchor ?? GetDefaultAnchor(comment.Row, comment.Column), comment.Row, comment.Column);
             return new CommentRecordSet(
-                BuildDrawingPayload(anchor, objectId, shapeCount, lastShapeId),
+                BuildDrawingPayload(comment, anchor, objectId, drawingId, shapeIdBase, shapeCount, lastShapeId, firstShape),
                 BuildObjectPayload(objectId),
+                BuildOfficeArtRecord(0xf00d, instance: 0, version: 0x00, Array.Empty<byte>()),
                 BuildTextObjectPayload(comment.Text, comment.FormattingRuns.Count),
                 BuildStringContinuePayload(comment.Text),
                 BuildFormattingContinuePayload(checked((ushort)comment.Text.Length), comment.FormattingRuns),
@@ -750,13 +823,78 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return value;
         }
 
-        private static byte[] BuildDrawingPayload(CommentAnchor anchor, ushort objectId, int shapeCount, uint lastShapeId) {
-            byte[] drawingInfo = BuildOfficeArtRecord(0xf008, instance: 1, version: 0x00, BuildDrawingInfoPayload(shapeCount, lastShapeId));
-            byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x00ca, version: 0x02, BuildShapePayload(0x00000400U + objectId, 0x00000a00));
-            byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 2, version: 0x03, Array.Empty<byte>());
+        private static byte[] BuildDrawingPayload(
+            CommentInfo comment,
+            CommentAnchor anchor,
+            ushort objectId,
+            ushort drawingId,
+            uint shapeIdBase,
+            int shapeCount,
+            uint lastShapeId,
+            bool firstShape) {
+            byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x00ca, version: 0x02, BuildShapePayload(shapeIdBase + objectId, 0x00000a00));
+            byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 10, version: 0x03, BuildCommentShapeProperties(comment, objectId));
             byte[] clientAnchor = BuildOfficeArtRecord(0xf010, instance: 0, version: 0x00, BuildClientAnchorPayload(anchor));
-            byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, Combine(shape, shapeProperties, clientAnchor));
-            return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, Combine(drawingInfo, shapeContainer));
+            byte[] clientData = BuildOfficeArtRecord(0xf011, instance: 0, version: 0x00, Array.Empty<byte>());
+            byte[] partialShapeContainer = Combine(
+                BuildOfficeArtHeader(0xf004, instance: 0, version: 0x0f, CommentShapeContainerPayloadLength),
+                shape,
+                shapeProperties,
+                clientAnchor,
+                clientData);
+            if (!firstShape) {
+                return partialShapeContainer;
+            }
+
+            byte[] drawingInfo = BuildOfficeArtRecord(0xf008, instance: drawingId, version: 0x00, BuildDrawingInfoPayload(shapeCount, lastShapeId));
+            byte[] groupShape = BuildGroupShapeContainer(shapeIdBase);
+            int shapeGroupPayloadLength = checked(groupShape.Length + (shapeCount * CommentShapeContainerLength));
+            int drawingPayloadLength = checked(drawingInfo.Length + 8 + shapeGroupPayloadLength);
+            return Combine(
+                BuildOfficeArtHeader(0xf002, instance: 0, version: 0x0f, drawingPayloadLength),
+                drawingInfo,
+                BuildOfficeArtHeader(0xf003, instance: 0, version: 0x0f, shapeGroupPayloadLength),
+                groupShape,
+                partialShapeContainer);
+        }
+
+        private static byte[] BuildGroupShapeContainer(uint shapeIdBase) {
+            byte[] groupBounds = BuildOfficeArtRecord(0xf009, instance: 0, version: 0x01, new byte[16]);
+            byte[] groupShape = BuildOfficeArtRecord(0xf00a, instance: 0, version: 0x02, BuildShapePayload(shapeIdBase, 0x00000005));
+            return BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, Combine(groupBounds, groupShape));
+        }
+
+        private static byte[] BuildCommentShapeProperties(CommentInfo comment, ushort objectId) {
+            using var stream = new MemoryStream();
+            WriteOfficeArtProperty(stream, 0x0080, BuildCommentTextId(comment.Text, objectId));
+            WriteOfficeArtProperty(stream, 0x0085, 0);
+            WriteOfficeArtProperty(stream, 0x0087, 0);
+            WriteOfficeArtProperty(stream, 0x0181, 0x08000050);
+            WriteOfficeArtProperty(stream, 0x01bf, 0x00010000);
+            WriteOfficeArtProperty(stream, 0x01c0, 0x08000040);
+            WriteOfficeArtProperty(stream, 0x01cb, 0x00002535);
+            WriteOfficeArtProperty(stream, 0x01ce, 0);
+            WriteOfficeArtProperty(stream, 0x01ff, 0x00080008);
+            WriteOfficeArtProperty(stream, 0x03bf, comment.Visible ? 0x000a0000U : 0x010a0002U);
+            return stream.ToArray();
+        }
+
+        private static uint BuildCommentTextId(string text, ushort objectId) {
+            const uint OffsetBasis = 2166136261;
+            const uint Prime = 16777619;
+            uint hash = OffsetBasis;
+            unchecked {
+                foreach (char character in text) {
+                    hash = (hash ^ character) * Prime;
+                }
+                hash = (hash ^ objectId) * Prime;
+            }
+            return hash == 0 ? objectId : hash;
+        }
+
+        private static void WriteOfficeArtProperty(Stream stream, ushort propertyId, uint value) {
+            WriteUInt16(stream, propertyId);
+            WriteUInt32(stream, value);
         }
 
         private static byte[] BuildObjectPayload(ushort objectId) {
@@ -786,6 +924,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt32(stream, 0);
             WriteUInt16(stream, checked((ushort)text.Length));
             WriteUInt16(stream, checked((ushort)((formattingRunCount + 1) * 8)));
+            WriteUInt16(stream, 0);
             WriteUInt16(stream, 0);
             return stream.ToArray();
         }
@@ -840,7 +979,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private static byte[] BuildDrawingInfoPayload(int shapeCount, uint lastShapeId) {
             using var stream = new MemoryStream();
-            WriteUInt32(stream, checked((uint)shapeCount));
+            WriteUInt32(stream, checked((uint)(shapeCount + 1)));
             WriteUInt32(stream, lastShapeId);
             return stream.ToArray();
         }
@@ -867,11 +1006,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] BuildOfficeArtRecord(ushort recordType, ushort instance, byte version, byte[] payload) {
+            return Combine(BuildOfficeArtHeader(recordType, instance, version, payload.Length), payload);
+        }
+
+        private static byte[] BuildOfficeArtHeader(ushort recordType, ushort instance, byte version, int payloadLength) {
             using var stream = new MemoryStream();
             WriteUInt16(stream, checked((ushort)((instance << 4) | (version & 0x0f))));
             WriteUInt16(stream, recordType);
-            WriteUInt32(stream, checked((uint)payload.Length));
-            stream.Write(payload, 0, payload.Length);
+            WriteUInt32(stream, checked((uint)payloadLength));
             return stream.ToArray();
         }
 
@@ -920,9 +1062,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal readonly struct CommentRecordSet {
-            internal CommentRecordSet(byte[] drawingPayload, byte[] objectPayload, byte[] textObjectPayload, byte[] textPayload, byte[] formattingPayload, byte[] notePayload) {
+            internal CommentRecordSet(byte[] drawingPayload, byte[] objectPayload, byte[] textboxPayload, byte[] textObjectPayload, byte[] textPayload, byte[] formattingPayload, byte[] notePayload) {
                 DrawingPayload = drawingPayload;
                 ObjectPayload = objectPayload;
+                TextboxPayload = textboxPayload;
                 TextObjectPayload = textObjectPayload;
                 TextPayload = textPayload;
                 FormattingPayload = formattingPayload;
@@ -931,6 +1074,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             internal byte[] DrawingPayload { get; }
             internal byte[] ObjectPayload { get; }
+            internal byte[] TextboxPayload { get; }
             internal byte[] TextObjectPayload { get; }
             internal byte[] TextPayload { get; }
             internal byte[] FormattingPayload { get; }
@@ -965,6 +1109,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             internal ushort StartCharacter { get; }
             internal ushort FontIndex { get; }
+        }
+
+        private readonly struct DrawingGroupInfo {
+            internal DrawingGroupInfo(ushort drawingId, int commentCount) {
+                DrawingId = drawingId;
+                CommentCount = commentCount;
+            }
+
+            internal ushort DrawingId { get; }
+            internal int CommentCount { get; }
         }
 
         private readonly struct CommentShapeInfo {

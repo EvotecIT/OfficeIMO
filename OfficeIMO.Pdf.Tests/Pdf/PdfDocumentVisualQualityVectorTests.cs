@@ -193,6 +193,30 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersColorChannelAlphaAsExtGStateOpacity() {
+        var shape = OfficeShape.Rectangle(90, 24);
+        shape.FillColor = OfficeColor.FromRgba(255, 255, 255, 51);
+        shape.StrokeColor = OfficeColor.FromRgba(70, 130, 180, 153);
+        shape.StrokeWidth = 1.5;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("<< /Type /ExtGState /ca 0.2 /CA 0.6 >>", content);
+        Assert.Contains("/ExtGState << /GS1 ", content);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedClipPathBeforePainting() {
         var shape = OfficeShape.Rectangle(90, 40);
         shape.FillColor = OfficeColor.WhiteSmoke;
@@ -489,10 +513,14 @@ public partial class PdfDocumentVisualQualityTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.True(content.Split(new[] { "/Type /ExtGState" }, StringSplitOptions.None).Length - 1 >= 5);
-        Assert.Contains("/ca 0.251 /CA 0.251", content, StringComparison.Ordinal);
-        Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
-        Assert.Contains("8 w", content, StringComparison.Ordinal);
+        double[] shadowOpacities = Regex.Matches(content, @"/Type /ExtGState /ca (?<opacity>0(?:\.\d+)?) /CA \k<opacity>")
+            .Cast<Match>()
+            .Select(match => double.Parse(match.Groups["opacity"].Value, CultureInfo.InvariantCulture))
+            .ToArray();
+        Assert.Contains(shadowOpacities, opacity => opacity > 0D && opacity < 0.02D);
+        Assert.Contains(shadowOpacities, opacity => opacity > 0.1D && opacity < 1D);
+        Assert.All(shadowOpacities, opacity => Assert.InRange(opacity, 0D, 0.999999D));
+        Assert.True(content.Split(new[] { "1 0 0 rg" }, StringSplitOptions.None).Length - 1 >= 6);
     }
 
     [Fact]
@@ -716,6 +744,55 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("120 145 l", content);
         Assert.Contains("160 115 l", content);
         Assert.Contains("h B", content);
+    }
+
+    [Fact]
+    public void VectorDrawing_RendersScaledEffectGroupAsReadablePdfPage() {
+        var panel = OfficeShape.Rectangle(200, 80);
+        panel.FillColor = OfficeColor.WhiteSmoke;
+        panel.StrokeColor = OfficeColor.SteelBlue;
+        panel.StrokeWidth = 2D;
+
+        var source = new OfficeDrawing(200, 80)
+            .AddShape(panel, 0D, 0D)
+            .AddText("ScaledDrawing", 12D, 18D, 140D, 24D, font: new OfficeFontInfo("Helvetica", 14D))
+            .AddImage(
+                PdfPngTestImages.CreateRgbPng(2, 2),
+                "image/png",
+                new OfficeImageProjection(new OfficeImagePlacement(164D, 16D, 24D, 24D)),
+                alternativeText: "Status mark",
+                opacity: 0.75D);
+        var scaled = new OfficeDrawing(100, 40)
+            .AddEffectDrawing(source, OfficeTransform.Scale(0.5D, 0.5D));
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180D,
+                PageHeight = 120D,
+                MarginLeft = 20D,
+                MarginRight = 20D,
+                MarginTop = 20D,
+                MarginBottom = 20D,
+                CompressContentStreams = false
+            })
+            .Drawing(scaled, align: PdfAlign.Center)
+            .ToBytes();
+
+        PdfReadDocument readback = PdfReadDocument.Open(bytes);
+        string raw = Encoding.ASCII.GetString(bytes);
+        using PdfPigDocument parsed = PdfPigDocument.Open(new MemoryStream(bytes));
+        var scaledLetters = parsed.GetPage(1).Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .ToList();
+
+        Assert.Single(readback.Pages);
+        Assert.Contains("ScaledDrawing", readback.ExtractText(), StringComparison.Ordinal);
+        Assert.NotEmpty(scaledLetters);
+        Assert.All(scaledLetters, letter => {
+            Assert.InRange(letter.StartBaseLine.X, 0D, 180D);
+            Assert.InRange(letter.StartBaseLine.Y, 0D, 120D);
+        });
+        Assert.Contains("/Group << /S /Transparency /I true /K false >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
     }
 
     [Fact]

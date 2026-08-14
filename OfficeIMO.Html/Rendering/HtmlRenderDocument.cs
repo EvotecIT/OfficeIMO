@@ -80,7 +80,8 @@ public sealed class HtmlRenderDocument {
             ? pathClipGroup.Visuals
         : visual is HtmlRenderEffectGroup effectGroup ? effectGroup.Visuals
         : visual is HtmlRenderSemanticGroup semanticGroup ? semanticGroup.Visuals
-        : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals : null;
+        : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals
+        : visual is HtmlRenderFormField formField ? formField.Visuals : null;
 
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();

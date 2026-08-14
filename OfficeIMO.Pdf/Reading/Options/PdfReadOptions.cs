@@ -27,6 +27,11 @@ public sealed class PdfReadOptions {
     public bool UseWinAnsiFallback { get; init; } = true;
     /// <summary>Adjust X position using TJ kerning values (thousandths of font size). Default: true.</summary>
     public bool AdjustKerningFromTJ { get; init; } = true;
+    /// <summary>
+    /// Includes text inside PDF artifact marked-content sequences, such as page headers, footers,
+    /// and chart decorations. Default: false, which returns logical document text.
+    /// </summary>
+    public bool IncludeArtifactText { get; init; }
 
     internal static PdfReadOptions Resolve(PdfReadOptions? options) {
         PdfReadOptions effective = options ?? Default;
@@ -44,7 +49,37 @@ public sealed class PdfReadOptions {
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
             UseWinAnsiFallback = effective.UseWinAnsiFallback,
-            AdjustKerningFromTJ = effective.AdjustKerningFromTJ
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
+    internal static PdfReadOptions WithPassword(PdfReadOptions? options, string? password) {
+        PdfReadOptions effective = Resolve(options);
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits,
+            Password = password,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
+    internal static PdfReadOptions WithArtifactText(PdfReadOptions? options) {
+        PdfReadOptions effective = Resolve(options);
+        if (effective.IncludeArtifactText) return effective;
+        return new PdfReadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits,
+            Password = effective.Password,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = true
         };
     }
 }

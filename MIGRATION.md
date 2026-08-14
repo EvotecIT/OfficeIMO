@@ -13,7 +13,25 @@ OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIM
 
 Direct `ObjectFlattener.Flatten`, `GetPaths`, and `ResolvePaths` calls and object-backed Excel and PowerPoint tables now default to at most 16,384 projected columns. Object tables additionally default to at most 1,000,000 cells, including the header row. Set `ObjectFlattenerOptions.MaxColumns` or `MaxCells` explicitly when a trusted workflow needs a different application-level limit. Excel output remains constrained by worksheet dimensions. The object and explicit-binding `PowerPointSlide.AddTable` overloads apply stricter format-safety ceilings of 1,024 columns and 100,000 cells; split larger trusted datasets into multiple tables.
 
+`SheetComposer.TableFrom(DataTable)` previously allowed a fixed-schema table to proceed up to Excel's worksheet dimensions without applying `MaxRows` or `MaxCells`. It now defaults to at most 5,000,000 cells, including the header row, and validates both limits before writing worksheet content. Existing trusted reports above that size must set an explicit bounded override, for example `configure: options => options.MaxCells = requiredCellCount`. The separate Excel worksheet row and column limits cannot be raised.
+
+`Ignore` and `ExcludeProperties` rules for a fixed-schema `DataTable` now remove every case-insensitive column variant. In a schema containing both `Name` and `name`, a rule for either spelling no longer retains the other variant, and an ambiguously cased rule no longer throws. To retain one case-distinct column, omit the ambiguous filter and select the exact desired columns with `Columns`, or rename the source columns so their identities are unambiguous.
+
 The aggregate Reader now limits MHT/MHTML input to 64 MiB by default through `OfficeDocumentReaderBuilderMhtmlExtensions.DefaultMaxInputBytes`. Applications can lower or raise that limit by passing `new ReaderOptions { MaxInputBytes = ... }` to the read operation after registering `AddMhtmlHandler()`; use a larger value only for trusted archives with an application-owned resource policy.
+
+## OfficeIMO 3.2: bounded CSV multi-worker schemas
+
+`CsvRowWriter.WriteDataReaderParallel` now rejects a multi-worker export before inspecting values, planning snapshots, falling back to sequential formatting, or creating output when `reader.FieldCount` exceeds `ParallelRowMappingOptions.MaximumBufferedCellsPerBatch`. Older versions could route provider-owned field types to a sequential fallback after accepting an over-wide schema. Existing trusted exports can project fewer columns or raise `MaximumBufferedCellsPerBatch` to an application-owned bound that the process can afford. To retain direct sequential behavior without the parallel batch-width contract, call `WriteDataReader` instead. Configuring one worker already delegates directly to `WriteDataReader` and remains unchanged.
+
+## OfficeIMO 3.2: password values in HTML-to-PDF forms
+
+HTML password controls converted to PDF forms no longer serialize their authored value into the PDF field value or default value. The generated initial appearance still contains the configured mask characters, but reading or exporting the PDF form now returns an empty password value. Applications that previously recovered the authored value from the generated PDF must store the secret outside the document and reapply it only through an application-controlled workflow; a generated PDF form is no longer a secret-storage mechanism.
+
+## OfficeIMO 3.2: bounded SVG raster fallback
+
+`OfficeVisualSvgPolicy.RasterizeWhenNeeded` now validates the complete rendered SVG expansion before calling the ChartForgeX rasterizer. Valid SVG can therefore throw `InvalidOperationException` when local clip, mask, filter, marker, pattern, or gradient references come from a stylesheet that the safety traversal cannot account for precisely. The same conservative rejection applies when an inline CSS custom property hides one of those local references. The predicate also caps aggregate projected paint and filter work at 256 viewport repaints, so many overlapping full-viewport shapes or expensive blur, morphology, convolution, and turbulence parameters fail before rasterization. Raising `MaximumSvgElements` does not bypass these checks.
+
+For trusted generated SVG, replace stylesheet-backed local references with equivalent presentation attributes or inline declarations so each rendered reference can be charged directly. Applications accepting external SVG should handle the exception as an unsupported or over-complex input. Use `PreserveVector` when retaining the partial Office drawing is acceptable, or `RequireVector` when unsupported vector content must fail without raster fallback.
 
 ## OfficeIMO 3.2: bounded Visio shape-data projection
 
@@ -41,6 +59,12 @@ Word/RTF result conversions now validate and inventory images across the documen
 Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Each conversion validates at most 256 image payloads, 128 MiB of aggregate encoded image data, and 100 million aggregate raster pixels; later images are omitted and reported once a ceiling is reached. Split larger trusted documents before conversion when every image must be retained. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
 
 Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
+
+## OfficeIMO 3.2: bounded PDF text clipping
+
+PDF reading now accepts at most 4,096 text-show clipping paths across one page content tree, including repeated and nested Form XObjects reached through Type 3 glyph programs. The limit counts one path for each non-empty shown-string run from `Tj`, `'`, `"`, and each string entry in a `TJ` array, not individual glyphs. Older versions reset the count at each text object or parser traversal and could perform unbounded path intersections across consecutive objects and repeated forms; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` when the aggregate path ceiling is exceeded, `PdfReadLimitKind.TextClippingIntersectionWork` when text-derived clipping exceeds the fixed page work budget, or `PdfReadLimitKind.ClippingIntersectionWork` when ordinary clipping exceeds the same aggregate budget. Disjoint clip bounds and conservative overlapping-contour fallbacks are handled before polygon-intersection work is charged. These safety ceilings are not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle these exceptions as unsupported or over-complex input. Trusted producers must simplify clipping paths, simplify clipping text, or reduce consecutive clipping-mode text objects before OfficeIMO reads the file.
+
+Type 3 glyph programs now enter `MaxContentNestingDepth` one level below the content stream that invokes the glyph. A glyph invoked at the previous depth boundary can therefore throw `PdfReadLimitException` where older versions rendered it at the enclosing depth. Applications using a deliberately low custom nesting limit should raise it by the required trusted glyph depth or handle the exception as an over-complex PDF; the default remains the recommended limit for untrusted input.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 
@@ -559,6 +583,12 @@ inferred dates based on the target framework. Set
 `CsvLoadOptions.MappingErrorValuePolicy` or
 `ExcelReadOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
 must omit source values and custom-converter details.
+
+Shared typed-row conversion now parses `DateTime` text with
+`DateTimeStyles.RoundtripKind`. ISO 8601 round-trip values therefore preserve
+their encoded UTC, local, or unspecified `DateTime.Kind` instead of being parsed
+with the previous `DateTimeStyles.None` behavior. Consumers that intentionally
+discard zone-kind information should normalize the mapped value explicitly.
 
 The low-level `CsvFile` compression helper is no longer public. Use
 `CsvDocument.Load`, `OpenDataReader`, `Save`, `WriteDataReader`, or caller-owned

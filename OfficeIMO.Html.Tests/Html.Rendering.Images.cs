@@ -11,6 +11,116 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlImages_ImageOrientationIsConsistentAcrossManagedSceneAndCssOverride() {
+        var source = new OfficeRasterImage(2, 1);
+        source.SetPixel(0, 0, OfficeColor.Red);
+        source.SetPixel(1, 0, OfficeColor.Blue);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions {
+            Quality = 100,
+            Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(exif: CreateHtmlExifOrientation(6))
+        });
+        string data = Convert.ToBase64String(jpeg);
+        string html = "<body style='margin:0'>"
+            + $"<img id='from-image' src='data:image/jpeg;base64,{data}' style='display:block'>"
+            + $"<img id='none' src='data:image/jpeg;base64,{data}' style='display:block;image-orientation:none'>"
+            + $"<img id='density' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:2dppx'>"
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 20D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderImage oriented = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#from-image");
+        HtmlRenderImage raw = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#none");
+        HtmlRenderImage density = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#density");
+
+        Assert.Equal("image/png", oriented.ContentType);
+        Assert.Equal(1D, oriented.Width, 3);
+        Assert.Equal(2D, oriented.Height, 3);
+        Assert.Equal(2D, raw.Width, 3);
+        Assert.Equal(1D, raw.Height, 3);
+        Assert.Equal(0.5D, density.Width, 3);
+        Assert.Equal(1D, density.Height, 3);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(image-orientation:from-image)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(image-orientation:none)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:192dpi)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:2dppx)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:2x)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-orientation:90deg)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:snap)"));
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlImages_DefaultResolutionUsesOneCssPixelPerImagePixel() {
+        var source = new OfficeRasterImage(300, 1);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions { DpiX = 300D, DpiY = 300D });
+        string data = Convert.ToBase64String(jpeg);
+        string html = "<body style='margin:0'>"
+            + $"<img id='default' src='data:image/jpeg;base64,{data}' style='display:block'>"
+            + $"<img id='metadata' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:from-image'>"
+            + $"<img id='explicit' src='data:image/jpeg;base64,{data}' style='display:block;image-resolution:2dppx'>"
+            + "</body>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        IReadOnlyList<HtmlRenderImage> images = HtmlRenderTestDriver.Render(html, options).Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
+
+        Assert.Equal(300D, Assert.Single(images, image => image.Source == "img#default").Width, 3);
+        Assert.Equal(96D, Assert.Single(images, image => image.Source == "img#metadata").Width, 3);
+        Assert.Equal(150D, Assert.Single(images, image => image.Source == "img#explicit").Width, 3);
+    }
+
+    [Theory]
+    [InlineData("bogus")]
+    [InlineData("0dpi")]
+    public void HtmlImages_InvalidExplicitResolutionIsDiscardedToInitialOneDppx(string resolution) {
+        var source = new OfficeRasterImage(300, 1);
+        byte[] jpeg = OfficeJpegCodec.Encode(source, new OfficeJpegEncodeOptions { DpiX = 300D, DpiY = 300D });
+        string html = "<body style='margin:0'><img id='invalid' src='data:image/jpeg;base64,"
+            + Convert.ToBase64String(jpeg) + "' style='display:block;image-resolution:" + resolution + "'></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 320D,
+            ViewportHeight = 20D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(300D, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>()).Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ReplacedElementValueUnsupported);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:" + resolution + ")"));
+    }
+
+    [Fact]
+    public void HtmlImages_InvalidMetadataDeclarationsRetainInheritedComputedValues() {
+        const string html = "<div style='image-orientation:none;image-resolution:300dpi'>"
+            + "<img style='image-orientation:banana;image-resolution:banana'></div>";
+        var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
+        IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
+        AngleSharp.Dom.IElement image = document.QuerySelector("img")!;
+        HtmlComputedStyle imageStyle = computed[image];
+        var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions());
+        HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 320D);
+        HtmlRenderBoxStyle resolved = resolver.Resolve(image, 320D, parent);
+
+        Assert.Equal("none", imageStyle.GetValue("image-orientation"));
+        Assert.Equal("300dpi", imageStyle.GetValue("image-resolution"));
+        Assert.False(resolved.ApplyEmbeddedImageOrientation);
+        Assert.Equal(300D, resolved.ImageResolutionDpi);
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-orientation:banana)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(image-resolution:banana)"));
+    }
+
+    [Fact]
     public void HtmlImages_SvgPartialIntrinsicDimensionsUseViewBoxRatioInSharedLayout() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' width='200' viewBox='0 0 100 50'><rect width='100' height='50' fill='red'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
@@ -23,12 +133,12 @@ public sealed partial class HtmlRenderingTests {
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
-        HtmlRenderDrawing image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
+        HtmlRenderDrawing image = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderDrawing>(), item => item.Source == "img#svg-image");
         string exportedSvg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(200D, image.Width, 3);
         Assert.Equal(100D, image.Height, 3);
-        Assert.Single(image.Drawing.Shapes);
+        Assert.Single(EnumerateDrawingElements(image.Drawing).OfType<OfficeDrawingShape>());
         Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
@@ -96,11 +206,21 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
         byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        var pdfOptions = new HtmlPdfSaveOptions(options);
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions);
+        byte[] pdf = pdfResult.ToBytes();
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(
+            PdfCore.PdfPageImageRenderer.RenderPage(pdf),
+            background: OfficeColor.White);
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.Contains("mix-blend-mode:multiply", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<mask id=", exportedSvg, StringComparison.Ordinal);
         Assert.Equal(new byte[] { 137, 80, 78, 71 }, png.Take(4));
+        Assert.True(pdfRaster.GetPixel(20, 15).B < 40);
+        Assert.True(pdfRaster.GetPixel(60, 15).B > 180);
+        Assert.Contains(pdfResult.Report.Warnings, warning => warning.Code == "HtmlPdfDrawingEffectRasterized");
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
     }
 
     [Fact]
@@ -221,7 +341,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlImages_SvgUnsupportedFeaturesAreDiagnosedWhilePrimitivesRemain() {
+    public void HtmlImages_SvgPartiallyVisibleTextIsClippedWithoutAnUnsupportedDiagnostic() {
         const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><text x='1' y='10'>Pending</text></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img id='partial-svg' src='data:image/svg+xml;base64," + data + "'>";
@@ -233,9 +353,7 @@ public sealed partial class HtmlRenderingTests {
         });
 
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.Equal("img#partial-svg", diagnostic.Source);
-        Assert.Contains("features=1", diagnostic.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         Assert.Contains(HtmlRenderDiagnosticCodes.SvgContentUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.SvgContentUnsupported, out _));
     }
@@ -394,6 +512,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlImages_ObjectPositionResolvesContainerUnitsAgainstTheActiveQueryContainer() {
+        string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
+        string html = $"<div style='container-type:size;width:200px;height:120px'>"
+            + $"<img id='positioned' src='data:image/png;base64,{data}' style='display:block;width:100px;height:100px;object-fit:none;object-position:10cqw 10cqh'>"
+            + "</div>";
+
+        HtmlRenderImage image = Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 1000D,
+            ViewportHeight = 800D,
+            Margins = HtmlRenderMargins.All(0D)
+        }).Pages[0].Visuals.OfType<HtmlRenderImage>(), visual => visual.Source == "img#positioned");
+
+        Assert.Equal(20D, image.X, 3);
+        Assert.Equal(12D, image.Y, 3);
+    }
+
+    [Fact]
     public void HtmlImages_IntrinsicSizingFeedsFlexAndFloatPlanning() {
         string data = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(20, 10));
         string html = $"<div style='display:flex;width:100px'><img id='flex-image' src='data:image/png;base64,{data}'><div id='flex-after' style='width:20px;height:10px;background:#0000ff'></div></div>"
@@ -418,6 +553,47 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, flexConstrainedAfter.X, 3);
         Assert.Equal(20D, floatImage.Width, 3);
         Assert.Equal(20D, floatText.X, 3);
+    }
+
+    [Fact]
+    public void HtmlImages_OrientedTiffPremeasurementMatchesRenderedGeometryAcrossLayoutOwners() {
+        byte[] tiff = CreateHtmlTiffWithOrientation(20, 10, 6);
+        string data = Convert.ToBase64String(tiff);
+        string source = "data:image/tiff;base64," + data;
+        string referenceSource = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(10, 20));
+        string html = $"<div style='display:flex;width:100px'><img id='flex-tiff' src='{source}'><div id='flex-after' style='width:10px;height:10px;background:blue'></div></div>"
+            + $"<div style='display:flex;width:100px'><img id='raw-tiff' src='{source}' style='image-orientation:none'><div id='raw-after' style='width:10px;height:10px;background:blue'></div></div>"
+            + $"<div style='display:grid;grid-template-columns:max-content 10px;width:100px'><img id='grid-tiff' src='{source}'><div id='grid-after' style='height:10px;background:blue'></div></div>"
+            + $"<table style='border-collapse:collapse;width:20px;margin:0'><tr><td style='padding:0'><img id='table-tiff' src='{source}'></td><td style='padding:0'><div id='table-after' style='width:10px;height:10px;background:blue'></div></td></tr></table>"
+            + $"<table style='border-collapse:collapse;width:20px;margin:0'><tr><td style='padding:0'><img id='table-reference' src='{referenceSource}'></td><td style='padding:0'><div id='table-reference-after' style='width:10px;height:10px;background:blue'></div></td></tr></table>"
+            + $"<div style='width:100px;font-size:8px;line-height:10px'><img id='float-tiff' src='{source}' style='float:left'><span>TiffFloatText</span></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 100D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages[0].Visuals;
+        HtmlRenderImage flex = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#flex-tiff");
+        HtmlRenderImage raw = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#raw-tiff");
+        HtmlRenderImage grid = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#grid-tiff");
+        HtmlRenderImage table = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#table-tiff");
+        HtmlRenderImage tableReference = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#table-reference");
+        HtmlRenderImage floated = Assert.Single(visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#float-tiff");
+
+        Assert.All(new[] { flex, grid, table, floated }, image => {
+            Assert.Equal(10D, image.Width, 3);
+            Assert.Equal(20D, image.Height, 3);
+        });
+        Assert.Equal(20D, raw.Width, 3);
+        Assert.Equal(10D, raw.Height, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#flex-after").X, 3);
+        Assert.Equal(20D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#raw-after").X, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-after").X, 3);
+        HtmlRenderShape tableAfter = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#table-after");
+        HtmlRenderShape tableReferenceAfter = Assert.Single(visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#table-reference-after");
+        Assert.Equal(tableReferenceAfter.X - tableReference.X, tableAfter.X - table.X, 3);
+        Assert.Equal(10D, Assert.Single(visuals.OfType<HtmlRenderText>(), text => text.Text == "TiffFloatText").X, 3);
     }
 
     [Fact]
@@ -666,6 +842,41 @@ public sealed partial class HtmlRenderingTests {
             image = new OfficeRasterImage(10, 4, OfficeColor.Purple);
             return true;
         }
+    }
+
+    private static byte[] CreateHtmlExifOrientation(ushort orientation) => new byte[] {
+        (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+        0x01, 0x00,
+        0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+        (byte)orientation, (byte)(orientation >> 8), 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00
+    };
+
+    private static byte[] CreateHtmlTiffWithOrientation(int width, int height, ushort orientation) {
+        byte[] tiff = OfficeTiffCodec.Encode(new OfficeRasterImage(width, height, OfficeColor.Red));
+        bool littleEndian = tiff[0] == (byte)'I';
+        int ifdOffset = littleEndian
+            ? BitConverter.ToInt32(tiff, 4)
+            : (tiff[4] << 24) | (tiff[5] << 16) | (tiff[6] << 8) | tiff[7];
+        int entryCount = littleEndian
+            ? BitConverter.ToUInt16(tiff, ifdOffset)
+            : (tiff[ifdOffset] << 8) | tiff[ifdOffset + 1];
+        for (int index = 0; index < entryCount; index++) {
+            int entry = ifdOffset + 2 + index * 12;
+            int tag = littleEndian
+                ? BitConverter.ToUInt16(tiff, entry)
+                : (tiff[entry] << 8) | tiff[entry + 1];
+            if (tag != 274) continue;
+            if (littleEndian) {
+                tiff[entry + 8] = (byte)orientation;
+                tiff[entry + 9] = (byte)(orientation >> 8);
+            } else {
+                tiff[entry + 8] = (byte)(orientation >> 8);
+                tiff[entry + 9] = (byte)orientation;
+            }
+            return tiff;
+        }
+        throw new InvalidOperationException("Encoded TIFF did not contain an orientation entry.");
     }
 
     private sealed class SlowFallbackCodec : IOfficeRasterImageCodec {

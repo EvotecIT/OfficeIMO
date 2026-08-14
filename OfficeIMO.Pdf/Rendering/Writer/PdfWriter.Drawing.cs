@@ -622,7 +622,7 @@ internal static partial class PdfWriter {
                 break;
             case OfficeIMO.Drawing.OfficeClipPathKind.Path:
                 AppendPathCommands(content, clipPath.Commands, x, y, shapeHeight);
-                content.ClipPath().EndPath();
+                content.ClipPath(clipPath.FillRule).EndPath();
                 break;
         }
     }
@@ -644,7 +644,7 @@ internal static partial class PdfWriter {
                 break;
             case OfficeIMO.Drawing.OfficeClipPathKind.Path:
                 AppendLocalPathCommands(content, clipPath.Commands);
-                content.ClipPath().EndPath();
+                content.ClipPath(clipPath.FillRule).EndPath();
                 break;
         }
     }

@@ -19,6 +19,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (!TryParseNumberList(symbol.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
             || viewBox.Count != 4
@@ -49,27 +50,36 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
         AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1],
             maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-            ref visited, ref pathCommands, ref unsupported);
+            ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
 
-        OfficeTransform viewportTransform;
-        if (alignment == SvgAspectAlignment.None) {
-            viewportTransform = OfficeTransform.Scale(width / viewBox[2], height / viewBox[3]);
-        } else {
-            double scale = slice
-                ? Math.Max(width / viewBox[2], height / viewBox[3])
-                : Math.Min(width / viewBox[2], height / viewBox[3]);
-            double remainingX = width - (viewBox[2] * scale);
-            double remainingY = height - (viewBox[3] * scale);
-            ResolveAlignmentFactors(alignment, out double alignX, out double alignY);
-            viewportTransform = OfficeTransform.Scale(scale, scale)
-                .Then(OfficeTransform.Translate(remainingX * alignX, remainingY * alignY));
-        }
+        OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice);
 
         var viewport = new OfficeDrawing(width, height);
         viewport.AddEffectDrawing(scene, viewportTransform);
         var clipped = new OfficeDrawing(width, height);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
         drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x, y).Then(inheritedTransform));
+    }
+
+    private static OfficeTransform ResolveViewportTransform(
+        double viewWidth,
+        double viewHeight,
+        double viewportWidth,
+        double viewportHeight,
+        SvgAspectAlignment alignment,
+        bool slice) {
+        if (alignment == SvgAspectAlignment.None) {
+            return OfficeTransform.Scale(viewportWidth / viewWidth, viewportHeight / viewHeight);
+        }
+
+        double scale = slice
+            ? Math.Max(viewportWidth / viewWidth, viewportHeight / viewHeight)
+            : Math.Min(viewportWidth / viewWidth, viewportHeight / viewHeight);
+        double remainingX = viewportWidth - (viewWidth * scale);
+        double remainingY = viewportHeight - (viewHeight * scale);
+        ResolveAlignmentFactors(alignment, out double alignX, out double alignY);
+        return OfficeTransform.Scale(scale, scale)
+            .Then(OfficeTransform.Translate(remainingX * alignX, remainingY * alignY));
     }
 
     private static bool TrySymbolLength(XElement use, XElement symbol, string name, double fallback, out double value) {

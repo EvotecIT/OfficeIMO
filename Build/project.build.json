@@ -8,6 +8,7 @@
     "OfficeIMO.AsciiDoc.Markdown": "3.2.X",
     "OfficeIMO.AsciiDoc.Pdf": "3.2.X",
     "OfficeIMO.CSV": "3.2.X",
+    "OfficeIMO.ChartForgeX": "3.2.X",
     "OfficeIMO.Confluence": "3.2.X",
     "OfficeIMO.Core": "3.2.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.2.X",
@@ -28,6 +29,7 @@
     "OfficeIMO.GoogleWorkspace.Sync": "3.2.X",
     "OfficeIMO.Html": "3.2.X",
     "OfficeIMO.Html.Pdf": "3.2.X",
+    "OfficeIMO.Html.Pdf.Browser": "3.2.X",
     "OfficeIMO.Html.Rtf": "3.2.X",
     "OfficeIMO.Latex": "3.2.X",
     "OfficeIMO.Latex.Markdown": "3.2.X",
@@ -97,6 +99,18 @@
     "OfficeIMO.Word.Rtf": "3.2.X",
     "OfficeIMO.Zip": "3.2.X"
   },
+  "VersionBindings": [
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/.mcp.json",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/README.md",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    }
+  ],
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
   "AlignPackageVersions": true,

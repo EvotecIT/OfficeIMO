@@ -10,7 +10,7 @@ NativeAOT is useful for small command-line tools, containerized document workers
 
 ## What works as a native executable
 
-OfficeIMO accounts for all production projects instead of choosing five attractive packages. The current matrix validates **96 of 97 production projects** in NativeAOT: **94 libraries are fully rooted** across the main native host and a dedicated `OfficeIMO.Security` host, the optional Google APIs adapter runs a bounded token-store workflow, and the production CLI tool publishes and starts natively. The remaining project is the WPF/WebView2 renderer, which uses managed Windows deployment because the .NET SDK rejects trimming for WPF executables.
+OfficeIMO accounts for all production projects instead of choosing five attractive packages. The current matrix validates **97 of 99 production projects** in NativeAOT: **95 libraries are fully rooted** across the main native host and a dedicated `OfficeIMO.Security` host, the optional Google APIs adapter runs a bounded token-store workflow, and the production CLI tool publishes and starts natively. Two optional integrations use managed deployment: the Chromium browser-PDF bridge runs cross-platform through HtmlTinkerX and Playwright, while the WPF/WebView2 renderer stays on Windows because the .NET SDK rejects trimming for WPF executables.
 
 That project-level matrix is reinforced by eight customer workflow applications, all of which currently pass on both Windows and Linux:
 
@@ -46,6 +46,7 @@ An AOT document worker does not need a browser, cloud SDK, or OCR engine unless 
 
 - The dependency-light Google Workspace clients are included in the fully rooted graph. The optional `Google.Apis` credential package has a bounded native token-store test; live OAuth remains part of the consumer's provider graph.
 - Tesseract and process-based OCR execute an external program even when the OfficeIMO host is native.
+- The optional Chromium browser-PDF bridge uses HtmlTinkerX and Playwright through the managed cross-platform runtime. It is not presented as NativeAOT-compatible.
 - WPF/WebView2 uses managed Windows deployment and is not presented as NativeAOT-compatible while WPF trimming is rejected by the .NET SDK.
 
 Keeping those boundaries explicit makes a small native Word, Excel, PowerPoint, Markdown, CSV, Reader, or PDF tool practical without pretending every third-party runtime is compiled into the same binary.

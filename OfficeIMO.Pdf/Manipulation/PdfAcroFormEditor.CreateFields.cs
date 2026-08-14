@@ -1,0 +1,385 @@
+namespace OfficeIMO.Pdf;
+
+internal static partial class PdfAcroFormEditor {
+    private const int FieldFlagReadOnly = 1;
+    private const int FieldFlagRequired = 2;
+    private const int FieldFlagNoExport = 4;
+    private const int FieldFlagMultiline = 4096;
+    private const int FieldFlagPassword = 8192;
+    private const int FieldFlagNoToggleToOff = 16384;
+    private const int FieldFlagRadio = 32768;
+    private const int FieldFlagPushButton = 65536;
+    private const int FieldFlagCombo = 131072;
+    private const int FieldFlagEdit = 262144;
+    private const int FieldFlagSort = 524288;
+    private const int FieldFlagFileSelect = 1048576;
+    private const int FieldFlagMultiSelect = 2097152;
+    private const int FieldFlagDoNotSpellCheck = 4194304;
+    private const int FieldFlagDoNotScroll = 8388608;
+    private const int FieldFlagComb = 16777216;
+    private const int FieldFlagRichTextOrRadiosInUnison = 33554432;
+    private const int FieldFlagCommitOnSelectionChange = 67108864;
+
+    private static string EnsureAcroFormAppearanceDefaults(Dictionary<int, PdfIndirectObject> objects, PdfDictionary acroForm) {
+        PdfDictionary resources = acroForm.Items.TryGetValue("DR", out PdfObject? resourcesObject) && ResolveDictionary(objects, resourcesObject) is PdfDictionary existingResources
+            ? existingResources
+            : new PdfDictionary();
+        PdfDictionary fonts = resources.Items.TryGetValue("Font", out PdfObject? fontsObject) && ResolveDictionary(objects, fontsObject) is PdfDictionary existingFonts
+            ? existingFonts
+            : new PdfDictionary();
+        string fontName = "Helv";
+        if (fonts.Items.TryGetValue(fontName, out PdfObject? existingFont) && !IsHelveticaFontResource(objects, existingFont)) {
+            int suffix = 1;
+            while (true) {
+                fontName = "Helv" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                suffix++;
+                if (!fonts.Items.TryGetValue(fontName, out existingFont) || IsHelveticaFontResource(objects, existingFont)) break;
+            }
+        }
+        if (!fonts.Items.ContainsKey(fontName)) {
+            var helvetica = new PdfDictionary();
+            helvetica.Items["Type"] = new PdfName("Font");
+            helvetica.Items["Subtype"] = new PdfName("Type1");
+            helvetica.Items["BaseFont"] = new PdfName("Helvetica");
+            helvetica.Items["Encoding"] = new PdfName("WinAnsiEncoding");
+            fonts.Items[fontName] = helvetica;
+        }
+        resources.Items["Font"] = fonts;
+        acroForm.Items["DR"] = resources;
+        if (!acroForm.Items.ContainsKey("DA")) acroForm.Items["DA"] = new PdfStringObj("/" + fontName + " 10 Tf 0 g", true);
+        return fontName;
+    }
+
+    private static bool IsHelveticaFontResource(Dictionary<int, PdfIndirectObject> objects, PdfObject fontObject) =>
+        ResolveDictionary(objects, fontObject) is PdfDictionary font &&
+        string.Equals(ReadName(font, "Subtype"), "Type1", StringComparison.Ordinal) &&
+        string.Equals(ReadName(font, "BaseFont"), "Helvetica", StringComparison.Ordinal) &&
+        IsWinAnsiFontEncoding(objects, font);
+
+    private static bool IsWinAnsiFontEncoding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary font) {
+        if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return false;
+        PdfObject? encoding = PdfObjectLookup.Resolve(objects, encodingObject);
+        if (encoding is PdfName name) return string.Equals(name.Name, "WinAnsiEncoding", StringComparison.Ordinal);
+        return encoding is PdfDictionary dictionary &&
+            string.Equals(ReadName(dictionary, "BaseEncoding"), "WinAnsiEncoding", StringComparison.Ordinal) &&
+            (!dictionary.Items.TryGetValue("Differences", out PdfObject? differences) || PdfObjectLookup.Resolve(objects, differences) is PdfNull);
+    }
+
+    private static void ApplyCreateRadioButtonGroup(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfArray fieldOwner,
+        PdfReference? parentReference,
+        string partialName,
+        int[] pages,
+        PdfFormFieldCreateOptions options,
+        byte[]? encodedJavaScript,
+        string appearanceFontName,
+        Dictionary<string, string> refillValues,
+        PdfFormFillerOptions? appearanceOptions,
+        PdfReadLimits limits,
+        ref int nextObjectNumber) {
+        PdfDictionary page = RequirePage(objects, pages, options.PageNumber);
+        int optionCount = options.ChoiceOptions.Count;
+        if (optionCount > limits.MaxFormFields) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, limits.MaxFormFields, optionCount);
+        }
+        PdfArray existingAnnotations = EnsureAnnotationArray(objects, page);
+        long finalAnnotationCount = (long)existingAnnotations.Items.Count + optionCount;
+        if (finalAnnotationCount > limits.MaxAnnotationsPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.AnnotationsPerPage, limits.MaxAnnotationsPerPage, finalAnnotationCount);
+        }
+        long minimumFinalObjectCount = (long)objects.Count + 1L + (optionCount * 3L);
+        if (minimumFinalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, minimumFinalObjectCount);
+        }
+        int parentObjectNumber = nextObjectNumber++;
+        string selectedValue = ResolveInitialValue(options);
+        var parent = new PdfDictionary();
+        parent.Items["FT"] = new PdfName("Btn");
+        parent.Items["T"] = new PdfStringObj(partialName, true);
+        if (parentReference is not null) parent.Items["Parent"] = parentReference;
+        parent.Items["Ff"] = new PdfNumber(GetCreateFieldFlags(options));
+        parent.Items["V"] = new PdfName(selectedValue);
+        if (options.DefaultValue is not null) parent.Items["DV"] = new PdfName(options.DefaultValue);
+        ApplyCreateFieldStyle(parent, options, appearanceFontName, includeWidgetStyle: false);
+
+        var kids = new PdfArray();
+        parent.Items["Kids"] = kids;
+        objects[parentObjectNumber] = new PdfIndirectObject(parentObjectNumber, 0, parent);
+        fieldOwner.Items.Add(new PdfReference(parentObjectNumber, 0));
+
+        PdfArray annotations = existingAnnotations;
+        int fontPlanObjectNumberStart = nextObjectNumber;
+        PdfFormFiller.TextAppearanceFontPlan? sharedLabelFontPlan = PdfFormFiller.CreateAuthoredSharedTextAppearanceFontPlan(
+            objects,
+            acroForm,
+            page,
+            options.ChoiceOptions,
+            appearanceOptions,
+            options.Name,
+            ref nextObjectNumber,
+            materialize: false);
+        long plannedFontObjectCount = nextObjectNumber - fontPlanObjectNumberStart;
+        long finalObjectCount = (long)objects.Count + plannedFontObjectCount + (optionCount * 3L);
+        if (finalObjectCount > limits.MaxIndirectObjects) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.IndirectObjects, limits.MaxIndirectObjects, finalObjectCount);
+        }
+        sharedLabelFontPlan?.Materialize(objects);
+        double top = options.Y + options.Height;
+        for (int i = 0; i < options.ChoiceOptions.Count; i++) {
+            string option = options.ChoiceOptions[i];
+            double widgetTop = top - i * (options.RadioButtonSize + options.RadioButtonGap);
+            double widgetBottom = widgetTop - options.RadioButtonSize;
+            int widgetObjectNumber = nextObjectNumber++;
+            var widget = new PdfDictionary();
+            widget.Items["Type"] = new PdfName("Annot");
+            widget.Items["Subtype"] = new PdfName("Widget");
+            widget.Items["Parent"] = new PdfReference(parentObjectNumber, 0);
+            widget.Items["Rect"] = CreateRectangle(options.X, widgetBottom, options.X + options.Width, widgetTop);
+            widget.Items["P"] = CreateReference(objects, pages[options.PageNumber - 1]);
+            widget.Items["F"] = new PdfNumber(options.WidgetFlags);
+            widget.Items["DA"] = new PdfStringObj(BuildDefaultAppearance(appearanceFontName, options.FontSize, (options.Style ?? new PdfFormFieldStyle()).TextColor), true);
+            widget.Items["AS"] = new PdfName(string.Equals(option, selectedValue, StringComparison.Ordinal) ? option : "Off");
+            PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+            ApplyWidgetVisualStyle(widget, style, option);
+            int offAppearanceObjectNumber = nextObjectNumber++;
+            objects[offAppearanceObjectNumber] = new PdfIndirectObject(
+                offAppearanceObjectNumber,
+                0,
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: false, appearanceOptions, sharedLabelFontPlan, ref nextObjectNumber));
+            int selectedAppearanceObjectNumber = nextObjectNumber++;
+            objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(
+                selectedAppearanceObjectNumber,
+                0,
+                PdfFormFiller.CreateAuthoredLabeledRadioWidgetAppearance(objects, acroForm, page, widget, option, options.Width, options.RadioButtonSize, style, options.FontSize, options.Name, selected: true, appearanceOptions, sharedLabelFontPlan, ref nextObjectNumber));
+            var normalAppearances = new PdfDictionary();
+            normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
+            normalAppearances.Items[option] = new PdfReference(selectedAppearanceObjectNumber, 0);
+            var appearances = new PdfDictionary();
+            appearances.Items["N"] = normalAppearances;
+            widget.Items["AP"] = appearances;
+            ApplyWidgetJavaScript(widget, options.JavaScript, usePrimaryAction: false, encodedJavaScript);
+            objects[widgetObjectNumber] = new PdfIndirectObject(widgetObjectNumber, 0, widget);
+            var widgetReference = new PdfReference(widgetObjectNumber, 0);
+            kids.Items.Add(widgetReference);
+            annotations.Items.Add(widgetReference);
+        }
+
+        refillValues[options.Name] = selectedValue;
+    }
+
+    private static void AddPushButtonAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        PdfDictionary widget,
+        PdfFormFieldCreateOptions options,
+        PdfFormFillerOptions? appearanceOptions,
+        ref int nextObjectNumber) {
+        PdfFormFieldStyle style = CreateButtonCaptionStyle(options.Style);
+        style.TextAlignment = PdfFormFieldTextAlignment.Center;
+        PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
+            objects,
+            acroForm,
+            page,
+            widget,
+            options.Caption,
+            options.Width,
+            options.Height,
+            style,
+            options.FontSize,
+            options.Name,
+            appearanceOptions,
+            ref nextObjectNumber);
+        int appearanceObjectNumber = nextObjectNumber++;
+        objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+        widget.Items["AP"] = appearances;
+    }
+
+    private static void AddTextWidgetAppearance(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary acroForm,
+        PdfDictionary page,
+        PdfDictionary widget,
+        PdfFormFieldCreateOptions options,
+        string value,
+        PdfFormFillerOptions? appearanceOptions,
+        ref int nextObjectNumber) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        PdfStream appearance = PdfFormFiller.CreateAuthoredTextWidgetAppearance(
+            objects,
+            acroForm,
+            page,
+            widget,
+            value,
+            options.Width,
+            options.Height,
+            style,
+            options.FontSize,
+            options.Name,
+            appearanceOptions,
+            ref nextObjectNumber);
+        int appearanceObjectNumber = nextObjectNumber++;
+        objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, appearance);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
+        widget.Items["AP"] = appearances;
+    }
+
+    private static void AddCheckBoxAppearances(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary widget,
+        PdfFormFieldCreateOptions options,
+        ref int nextObjectNumber) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        int offAppearanceObjectNumber = nextObjectNumber++;
+        int selectedAppearanceObjectNumber = nextObjectNumber++;
+        objects[offAppearanceObjectNumber] = new PdfIndirectObject(
+            offAppearanceObjectNumber,
+            0,
+            PdfFormFiller.CreateAuthoredButtonWidgetAppearance(options.Width, options.Height, selected: false, isRadioButton: false, style));
+        objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(
+            selectedAppearanceObjectNumber,
+            0,
+            PdfFormFiller.CreateAuthoredButtonWidgetAppearance(options.Width, options.Height, selected: true, isRadioButton: false, style));
+        var normalAppearances = new PdfDictionary();
+        normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
+        normalAppearances.Items[options.CheckedValueName] = new PdfReference(selectedAppearanceObjectNumber, 0);
+        var appearances = new PdfDictionary();
+        appearances.Items["N"] = normalAppearances;
+        widget.Items["AP"] = appearances;
+    }
+
+    private static void ApplyCreateFieldStyle(PdfDictionary field, PdfFormFieldCreateOptions options, string appearanceFontName, bool includeWidgetStyle) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        if (!string.IsNullOrWhiteSpace(style.AlternateName)) field.Items["TU"] = new PdfStringObj(style.AlternateName!, true);
+        if (!string.IsNullOrWhiteSpace(style.MappingName)) field.Items["TM"] = new PdfStringObj(style.MappingName!, true);
+        if (options.Kind == PdfFormFieldCreationKind.Text && style.MaxLength.HasValue) field.Items["MaxLen"] = new PdfNumber(style.MaxLength.Value);
+        if ((options.Kind == PdfFormFieldCreationKind.Text || options.Kind == PdfFormFieldCreationKind.Choice) && style.TextAlignment.HasValue) {
+            field.Items["Q"] = new PdfNumber(GetQuadding(style.TextAlignment.Value));
+        }
+        if (options.Kind == PdfFormFieldCreationKind.Text || options.Kind == PdfFormFieldCreationKind.Choice ||
+            options.Kind == PdfFormFieldCreationKind.PushButton || options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            field.Items["DA"] = new PdfStringObj(BuildDefaultAppearance(appearanceFontName, options.FontSize, style.TextColor), true);
+        }
+        if (includeWidgetStyle) ApplyWidgetVisualStyle(field, style, options.Kind == PdfFormFieldCreationKind.PushButton ? options.Caption : null);
+    }
+
+    private static void ApplyWidgetVisualStyle(PdfDictionary widget, PdfFormFieldStyle style, string? caption) {
+        var characteristics = new PdfDictionary();
+        if (style.BackgroundColor.HasValue) characteristics.Items["BG"] = CreateColorArray(style.BackgroundColor.Value);
+        if (style.BorderColor.HasValue) characteristics.Items["BC"] = CreateColorArray(style.BorderColor.Value);
+        if (!string.IsNullOrEmpty(caption)) characteristics.Items["CA"] = new PdfStringObj(caption!, true);
+        if (characteristics.Items.Count > 0) widget.Items["MK"] = characteristics;
+
+        var border = new PdfDictionary();
+        border.Items["W"] = new PdfNumber(style.BorderWidth);
+        border.Items["S"] = new PdfName(GetBorderStyleName(style.BorderStyle));
+        if (style.BorderDashPattern is not null && style.BorderDashPattern.Count > 0) {
+            var dash = new PdfArray();
+            for (int i = 0; i < style.BorderDashPattern.Count; i++) dash.Items.Add(new PdfNumber(style.BorderDashPattern[i]));
+            border.Items["D"] = dash;
+        }
+        widget.Items["BS"] = border;
+    }
+
+    private static void ApplyWidgetJavaScript(PdfDictionary widget, string? javaScript, bool usePrimaryAction, byte[]? preencodedSource = null) {
+        if (javaScript is null) return;
+        byte[] encodedSource = preencodedSource ?? PdfJavaScriptStringEncoding.EncodeUnicode(javaScript, nameof(javaScript));
+        var action = new PdfDictionary();
+        action.Items["S"] = new PdfName("JavaScript");
+        action.Items["JS"] = new PdfStringObj(encodedSource, useTextStringEncoding: true);
+        if (usePrimaryAction) {
+            widget.Items["A"] = action;
+            return;
+        }
+
+        PdfDictionary additional = widget.Items.TryGetValue("AA", out PdfObject? value) && value is PdfDictionary existing
+            ? existing
+            : new PdfDictionary();
+        additional.Items["U"] = action;
+        widget.Items["AA"] = additional;
+    }
+
+    private static int GetCreateFieldFlags(PdfFormFieldCreateOptions options) {
+        PdfFormFieldStyle style = options.Style ?? new PdfFormFieldStyle();
+        int flags = options.FieldFlags;
+        if (style.IsReadOnly) flags |= FieldFlagReadOnly;
+        if (style.IsRequired) flags |= FieldFlagRequired;
+        if (style.IsNoExport) flags |= FieldFlagNoExport;
+        if (options.Kind == PdfFormFieldCreationKind.Text) {
+            if (style.IsMultiline) flags |= FieldFlagMultiline;
+            if (style.IsPassword) flags |= FieldFlagPassword;
+            if (style.IsFileSelect) flags |= FieldFlagFileSelect;
+            if (style.DoesNotSpellCheck) flags |= FieldFlagDoNotSpellCheck;
+            if (style.DoesNotScroll) flags |= FieldFlagDoNotScroll;
+            if (style.IsComb) flags |= FieldFlagComb;
+        } else if (options.Kind == PdfFormFieldCreationKind.Choice) {
+            if (options.IsComboBox) flags |= FieldFlagCombo;
+            if (style.IsEditableChoice) flags |= FieldFlagEdit;
+            if (style.IsSortedChoice) flags |= FieldFlagSort;
+            if (style.DoesNotSpellCheck) flags |= FieldFlagDoNotSpellCheck;
+            if (style.CommitsOnSelectionChange) flags |= FieldFlagCommitOnSelectionChange;
+        } else if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup) {
+            flags |= FieldFlagNoToggleToOff | FieldFlagRadio;
+        } else if (options.Kind == PdfFormFieldCreationKind.PushButton) {
+            flags |= FieldFlagPushButton;
+        }
+        return flags;
+    }
+
+    private static string ResolveInitialValue(PdfFormFieldCreateOptions options) {
+        if (options.Kind == PdfFormFieldCreationKind.RadioButtonGroup && string.IsNullOrEmpty(options.Value)) {
+            return options.ChoiceOptions[0];
+        }
+        return options.Value;
+    }
+
+    internal static PdfFormFieldStyle CreateButtonCaptionStyle(PdfFormFieldStyle? source) {
+        PdfFormFieldStyle style = source?.Clone() ?? new PdfFormFieldStyle();
+        style.IsMultiline = false;
+        style.IsPassword = false;
+        style.IsFileSelect = false;
+        style.IsComb = false;
+        style.MaxLength = null;
+        return style;
+    }
+
+    private static bool IsChoiceComboBox(PdfFormFieldCreateOptions options) =>
+        options.IsComboBox || (options.FieldFlags & FieldFlagCombo) != 0;
+
+    private static bool IsEditableChoice(PdfFormFieldCreateOptions options) =>
+        options.Style?.IsEditableChoice == true || (options.FieldFlags & FieldFlagEdit) != 0;
+
+    private static PdfArray CreateColorArray(PdfColor color) => CreateNumberArray(color.R, color.G, color.B);
+
+    private static PdfArray CreateNumberArray(params double[] values) {
+        var array = new PdfArray();
+        for (int i = 0; i < values.Length; i++) array.Items.Add(new PdfNumber(values[i]));
+        return array;
+    }
+
+    private static string BuildDefaultAppearance(string fontResourceName, double fontSize, PdfColor textColor) =>
+        "/" + PdfSyntaxEscaper.Name(fontResourceName) + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf " +
+        textColor.R.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
+        textColor.G.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
+        textColor.B.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " rg";
+
+    private static string GetBorderStyleName(PdfFormFieldBorderStyle style) => style switch {
+        PdfFormFieldBorderStyle.Dashed => "D",
+        PdfFormFieldBorderStyle.Beveled => "B",
+        PdfFormFieldBorderStyle.Inset => "I",
+        PdfFormFieldBorderStyle.Underline => "U",
+        _ => "S"
+    };
+
+    private static int GetQuadding(PdfFormFieldTextAlignment alignment) => alignment switch {
+        PdfFormFieldTextAlignment.Left => 0,
+        PdfFormFieldTextAlignment.Center => 1,
+        PdfFormFieldTextAlignment.Right => 2,
+        _ => throw new ArgumentOutOfRangeException(nameof(alignment), alignment, "Form field alignment must be Left, Center, or Right.")
+    };
+}

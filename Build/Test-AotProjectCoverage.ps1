@@ -41,7 +41,13 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Html.Pdf.Browser'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
+        classification = 'managed-windows'
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'
     }
 )
@@ -49,8 +55,8 @@ $managedOnly = @(
 if ($dedicatedRootedLibraries.Count -ne 1 -or $dedicatedRootedLibraries[0] -ne 'OfficeIMO.Security') {
     throw "The optional security NativeAOT host must root exactly OfficeIMO.Security; found $($dedicatedRootedLibraries -join ', ')."
 }
-if ($fullyRootedLibraries.Count -ne 94) {
-    throw "Expected 94 fully rooted production libraries across the ordinary and optional-security hosts, found $($fullyRootedLibraries.Count)."
+if ($fullyRootedLibraries.Count -ne 95) {
+    throw "Expected 95 fully rooted production libraries across the ordinary and optional-security hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."
@@ -93,10 +99,13 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-executable'
         $nativeValidated = $true
         $evidence = [string] ($nativeTools | Where-Object name -EQ $name).evidence
-    } else {
-        $classification = 'managed-windows'
+    } elseif ($name -in $managedOnly.name) {
+        $managedEntry = @($managedOnly | Where-Object name -EQ $name)[0]
+        $classification = [string] $managedEntry.classification
         $nativeValidated = $false
-        $evidence = [string] ($managedOnly | Where-Object name -EQ $name).evidence
+        $evidence = [string] $managedEntry.evidence
+    } else {
+        throw "Production project '$name' has no NativeAOT classification."
     }
 
     [ordered]@{
@@ -117,12 +126,14 @@ $matrix = [ordered]@{
         fullyRootedLibraryCount = $fullyRootedLibraries.Count
         boundedWorkflowLibraryCount = $boundedLibraries.Count
         nativeExecutableCount = $nativeTools.Count
-        managedWindowsProjectCount = $managedOnly.Count
+        managedCrossPlatformProjectCount = @($managedOnly | Where-Object classification -EQ 'managed-cross-platform').Count
+        managedWindowsProjectCount = @($managedOnly | Where-Object classification -EQ 'managed-windows').Count
     }
     definitions = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
         nativeBoundedWorkflow = 'A customer-facing workflow publishes and runs natively, but the complete optional third-party dependency surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
+        managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'
     }
     components = @($components)
@@ -141,6 +152,7 @@ if (-not [string]::IsNullOrWhiteSpace($JsonOutputPath)) {
     FullyRootedLibraryCount = $matrix.summary.fullyRootedLibraryCount
     BoundedWorkflowLibraryCount = $matrix.summary.boundedWorkflowLibraryCount
     NativeExecutableCount = $matrix.summary.nativeExecutableCount
+    ManagedCrossPlatformProjectCount = $matrix.summary.managedCrossPlatformProjectCount
     ManagedWindowsProjectCount = $matrix.summary.managedWindowsProjectCount
     Status = 'passed'
 }

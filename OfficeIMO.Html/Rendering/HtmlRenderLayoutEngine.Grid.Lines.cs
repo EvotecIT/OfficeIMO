@@ -3,11 +3,40 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyDictionary<string, int> ParseGridLineNames(string value) {
+    private IReadOnlyDictionary<string, int> ParseGridLineNames(
+        string value,
+        int? subgridLineCount = null,
+        IReadOnlyDictionary<string, int>? inheritedSubgridNames = null) {
         var names = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (subgridLineCount.HasValue && IsSubgridTrackList(value)) {
+            if (inheritedSubgridNames != null) {
+                foreach (KeyValuePair<string, int> pair in inheritedSubgridNames) {
+                    if (pair.Value >= 0 && pair.Value < subgridLineCount.Value) names[pair.Key] = pair.Value;
+                }
+            }
+            AddSubgridLineNames(value, subgridLineCount.Value, names);
+            return names;
+        }
         int line = 0;
         AddGridLineNames(value, ref line, names);
         return names;
+    }
+
+    private static void AddSubgridLineNames(string value, int lineCount, IDictionary<string, int> names) {
+        int cursor = "subgrid".Length;
+        int line = 0;
+        while (cursor < value.Length && line < lineCount) {
+            while (cursor < value.Length && char.IsWhiteSpace(value[cursor])) cursor++;
+            if (cursor >= value.Length || value[cursor] != '[') break;
+            int close = value.IndexOf(']', cursor + 1);
+            if (close < 0) break;
+            string content = value.Substring(cursor + 1, close - cursor - 1).Trim().ToLowerInvariant();
+            foreach (string name in content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)) {
+                if (!names.ContainsKey(name)) names[name] = line;
+            }
+            line++;
+            cursor = close + 1;
+        }
     }
 
     private static void AddGridLineNames(string value, ref int line, IDictionary<string, int> names) {

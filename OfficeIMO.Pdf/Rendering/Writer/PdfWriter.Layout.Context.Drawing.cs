@@ -33,8 +33,12 @@ internal static partial class PdfWriter {
         private string? EnsureOpacityState(OfficeIMO.Drawing.OfficeShape shape) {
             bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
             bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-            double fillOpacity = hasFill ? shape.FillOpacity ?? 1D : 1D;
-            double strokeOpacity = hasStroke ? shape.StrokeOpacity ?? 1D : 1D;
+            double fillColorOpacity = shape.FillGradient == null && shape.FillRadialGradient == null && shape.FillColor.HasValue
+                ? shape.FillColor.Value.A / 255D
+                : 1D;
+            double strokeColorOpacity = shape.StrokeColor.HasValue ? shape.StrokeColor.Value.A / 255D : 1D;
+            double fillOpacity = hasFill ? (shape.FillOpacity ?? 1D) * fillColorOpacity : 1D;
+            double strokeOpacity = hasStroke ? (shape.StrokeOpacity ?? 1D) * strokeColorOpacity : 1D;
             return EnsureGraphicsState(fillOpacity, strokeOpacity);
         }
 
@@ -64,23 +68,28 @@ internal static partial class PdfWriter {
             double shadowX = xShape + shadow.OffsetX;
             double shadowBottomY = bottomY - shadow.OffsetY;
             ResolveShadowGeometry(shape, out bool hasFill, out bool hasStroke);
-            if (shadow.BlurRadius > 0D) {
-                const int layers = 4;
-                for (int index = layers; index >= 1; index--) {
-                    double factor = index / (double)layers;
-                    double opacity = coreOpacity * (0.04D + (layers - index + 1) * 0.05D);
-                    DrawShapeShadowLayerAt(
-                        shape,
-                        shadowColor,
-                        shadowX,
-                        shadowBottomY,
-                        Math.Max(1D, Math.Max(0D, shape.StrokeWidth) + shadow.BlurRadius * 2D * factor),
-                        opacity,
-                        hasFill,
-                        hasStroke: true);
-                }
+            IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+                coreOpacity,
+                shadow.BlurRadius,
+                shape.StrokeWidth,
+                hasFill,
+                hasStroke,
+                OfficeShadowLayerPlanner.CanExpand(shape));
+            for (int index = 0; index < layers.Count; index++) {
+                OfficeShadowLayer layer = layers[index];
+                OfficeShape layerShape = layer.Expansion > 0D
+                    ? OfficeShadowLayerPlanner.CreateExpandedShape(shape, layer.Expansion)
+                    : shape;
+                DrawShapeShadowLayerAt(
+                    layerShape,
+                    shadowColor,
+                    shadowX - layer.Expansion,
+                    shadowBottomY - layer.Expansion,
+                    layer.StrokeWidth,
+                    layer.Opacity,
+                    layer.HasFill,
+                    layer.HasStroke);
             }
-            DrawShapeShadowLayerAt(shape, shadowColor, shadowX, shadowBottomY, Math.Max(0D, shape.StrokeWidth), coreOpacity, hasFill, hasStroke);
             pageDirty = true;
         }
 
@@ -172,19 +181,152 @@ internal static partial class PdfWriter {
         private int? DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
             bool markedContent;
-            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            for (int i = 0; i < block.Drawing.Elements.Count; i++) {
-                if (block.Drawing.Elements[i] is OfficeDrawingShape shape) {
-                    double xShape = xDrawing + shape.X;
-                    double bottomY = topY - shape.Y - shape.Shape.Height;
+            int? structElementIndex = AppendDrawingMarkedContentBegin(
+                style,
+                out markedContent,
+                recordDrawingEvidence: !ChildImagesOwnDrawingAccessibility(block.Drawing, style));
+            bool previousSuppressAccessibilityWrappers = _suppressCanvasAccessibilityWrappers;
+            if (markedContent || style.Decorative) {
+                _suppressCanvasAccessibilityWrappers = true;
+            }
+            try {
+                DrawDrawingElements(block.Drawing, xDrawing, topY);
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousSuppressAccessibilityWrappers;
+                AppendDrawingMarkedContentEnd(markedContent);
+            }
+            return structElementIndex;
+        }
+
+        private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY) {
+            for (int i = 0; i < drawing.Elements.Count; i++) {
+                if (drawing.Elements[i] is OfficeDrawingShape shape) {
+                    double xShape = originX + shape.X;
+                    double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
-                } else if (block.Drawing.Elements[i] is OfficeDrawingText text) {
-                    DrawDrawingTextAt(text, xDrawing + text.X, topY - text.Y);
+                } else if (drawing.Elements[i] is OfficeDrawingText text) {
+                    DrawDrawingTextAt(text, originX + text.X, originTopY - text.Y);
+                } else if (drawing.Elements[i] is OfficeDrawingImage image) {
+                    DrawDrawingImageAt(image, originX, originTopY);
+                } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
+                    DrawDrawingGroupAt(group, originX, originTopY);
+                } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
+                    if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
+                        throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
+                    }
+
+                    OfficeTransform pageTransform = ToTopLeftPageTransform(effectGroup.Transform, originX, originTopY);
+                    RenderEffectGroup(
+                        pageTransform,
+                        effectGroup.Opacity,
+                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY));
+                } else {
+                    throw new NotSupportedException(
+                        "OfficeIMO.Pdf does not yet support drawing elements of type " +
+                        drawing.Elements[i].GetType().Name + ".");
                 }
             }
+        }
 
-            AppendDrawingMarkedContentEnd(markedContent);
-            return structElementIndex;
+        private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY) {
+            void DrawGroupContent() {
+                double clipX = originX + group.X;
+                double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
+                new ContentStreamBuilder(sb).SaveState();
+                AppendClipPath(sb, group.ClipPath, clipX, clipBottomY, group.ClipPath.Height);
+                DrawDrawingElements(
+                    group.InnerDrawing,
+                    clipX + group.ContentOffsetX,
+                    originTopY - group.Y - group.ContentOffsetY);
+                new ContentStreamBuilder(sb).RestoreState();
+            }
+
+            if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+                OfficeTransform pageTransform = ToTopLeftPageTransform(
+                    group.FrameTransform.Value.CreateDestinationTransform(),
+                    originX,
+                    originTopY);
+                RenderEffectGroup(pageTransform, 1D, DrawGroupContent);
+            } else {
+                DrawGroupContent();
+            }
+        }
+
+        private OfficeTransform ToTopLeftPageTransform(OfficeTransform localTransform, double originX, double originTopY) {
+            double pageTopY = currentOpts.PageHeight - originTopY;
+            return OfficeTransform
+                .Translate(-originX, -pageTopY)
+                .Then(localTransform)
+                .Then(OfficeTransform.Translate(originX, pageTopY));
+        }
+
+        private void DrawDrawingImageAt(OfficeDrawingImage image, double originX, double originTopY) {
+            OfficeImageProjection projection = image.Projection;
+            PdfDocument.PreparedImage prepared = PrepareDrawingImage(image);
+            var imageStyle = new PdfImageStyle {
+                Fit = OfficeImageFit.Stretch,
+                RotationAngle = -projection.RotationDegrees,
+                AlternativeText = image.AlternativeText
+            };
+            if (projection.HasCrop) {
+                imageStyle.SourceCrop = new PdfImageSourceCrop(
+                    projection.SourceCrop.Left,
+                    projection.SourceCrop.Top,
+                    projection.SourceCrop.Right,
+                    projection.SourceCrop.Bottom);
+            }
+
+            double targetX = originX + projection.X;
+            double targetBottomY = originTopY - projection.Y - projection.Height;
+            var block = new ImageBlock(
+                prepared.Data,
+                projection.Width,
+                projection.Height,
+                prepared.Info,
+                imageStyle,
+                useDataSnapshot: true);
+            PageImage pageImage = CreatePageImage(
+                block,
+                imageStyle,
+                targetX,
+                targetBottomY,
+                projection.Width,
+                projection.Height);
+            pageImage.Opacity = image.Opacity;
+            pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
+            pageImage.HorizontalFlip = projection.FlipHorizontal;
+            pageImage.VerticalFlip = projection.FlipVertical;
+            pageImage.RotationCenterX = originX + projection.RotationCenterX;
+            pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
+            pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
+            pageImage.StructureParentElementIndex = _canvasStructureParentElementIndex;
+            currentPage!.Images.Add(pageImage);
+            pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
+            sb.Append(pageImage.InlineDrawToken);
+
+            pageDirty = true;
+        }
+
+        private static PdfDocument.PreparedImage PrepareDrawingImage(OfficeDrawingImage image) {
+            bool isSvg = OfficeImageInfo.FromMimeType(image.ContentType) == OfficeImageFormat.Svg ||
+                (OfficeImageReader.TryIdentifyByContent(image.EncodedBytes, null, out OfficeImageInfo imageInfo) && imageInfo.Format == OfficeImageFormat.Svg);
+            if (!isSvg) return PdfDocument.PrepareImageBytes(image.EncodedBytes);
+
+            if (!OfficeSvgDrawingReader.TryRead(image.EncodedBytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) ||
+                vector == null || unsupportedFeatureCount != 0) {
+                throw new NotSupportedException("OfficeIMO.Pdf cannot rasterize this SVG drawing image because it contains unsupported SVG features.");
+            }
+
+            const double maximumRasterPixels = 16_000_000D;
+            double desiredScale = Math.Max(
+                1D,
+                Math.Max(image.Projection.Width / vector.Width, image.Projection.Height / vector.Height));
+            double safeScale = Math.Sqrt(maximumRasterPixels / Math.Max(1D, vector.Width * vector.Height));
+            byte[] png = OfficeDrawingRasterRenderer.ToPng(
+                vector,
+                Math.Min(desiredScale, safeScale),
+                OfficeColor.Transparent);
+            return PdfDocument.PrepareImageBytes(png);
         }
 
         private void DrawDrawingTextAt(OfficeDrawingText text, double x, double topY) {
@@ -208,7 +350,8 @@ internal static partial class PdfWriter {
                     fontFamily: text.Font.FamilyName)
             };
             var block = new RichParagraphBlock(runs, MapDrawingTextAlignment(text.Alignment), color);
-            var wrap = WrapRichRunsCore(runs, text.Width, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            double wrapWidth = text.WrapText ? text.Width : 1_000_000_000D;
+            var wrap = WrapRichRunsCore(runs, wrapWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count == 0) {
                 return;
             }
@@ -256,7 +399,25 @@ internal static partial class PdfWriter {
             return PdfAlign.Left;
         }
 
-        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent) {
+        private static bool ChildImagesOwnDrawingAccessibility(OfficeDrawing drawing, PdfDrawingStyle style) {
+            if (style.Decorative || !string.IsNullOrWhiteSpace(style.AlternativeText) || drawing.Elements.Count == 0) return false;
+            for (int i = 0; i < drawing.Elements.Count; i++) {
+                OfficeDrawingElement element = drawing.Elements[i];
+                if (element is OfficeDrawingImage image) {
+                    if (string.IsNullOrWhiteSpace(image.AlternativeText)) return false;
+                } else if (element is OfficeDrawingGroup group) {
+                    if (!ChildImagesOwnDrawingAccessibility(group.InnerDrawing, style)) return false;
+                } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                    if (!ChildImagesOwnDrawingAccessibility(effectGroup.InnerDrawing, style)) return false;
+                } else {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent, bool recordDrawingEvidence = true) {
             EnsurePage();
 
             if (_suppressCanvasAccessibilityWrappers) {
@@ -264,7 +425,9 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
+            if (recordDrawingEvidence) {
+                currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
+            }
 
             if (style.Decorative) {
                 AppendArtifactBegin(sb, emitGeneratedStructure);

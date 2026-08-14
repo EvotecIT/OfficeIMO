@@ -28,8 +28,11 @@ internal static class PdfAttachmentEditor {
                 objects, security, targetEntries, retainedOriginalNames);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
-        IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target);
-        ValidateAttachmentGraph(output, target.Length, readOptions);
+        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
+            PdfReadOptions.Resolve(readOptions),
+            output.LongLength);
+        IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target, outputReadOptions);
+        ValidateAttachmentGraph(output, target.Length, outputReadOptions);
         if (validations.Any(static validation => !validation.IsValid)) throw new InvalidOperationException("PDF attachment post-save validation failed; the artifact was not returned.");
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
@@ -38,7 +41,7 @@ internal static class PdfAttachmentEditor {
             PreserveRevisionStructure = false
         };
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, output, preservationOptions);
-        return new PdfAttachmentEditResult(output, plan, preservation, validations);
+        return new PdfAttachmentEditResult(output, plan, preservation, validations, outputReadOptions);
     }
 
     /// <summary>Adds one attachment.</summary>
@@ -376,8 +379,8 @@ internal static class PdfAttachmentEditor {
         return dictionary;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target) {
-        IReadOnlyList<PdfExtractedAttachment> actual = PdfAttachmentExtractor.ExtractAttachments(pdf);
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target, PdfReadOptions readOptions) {
+        IReadOnlyList<PdfExtractedAttachment> actual = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
         var unmatched = actual.ToList();
         var result = new List<PdfAttachmentValidation>(target.Length);
         foreach (PdfEmbeddedFile expected in target) {

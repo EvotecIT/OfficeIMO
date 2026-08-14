@@ -21,6 +21,18 @@ public class RichParagraphWrappingHyphenationTests {
     }
 
     [Fact]
+    public void PdfHyphenationDictionary_IsAThinSurfaceOverTheSharedTextLexiconContract() {
+        string[] entries = { "ty-pog-ra-phy", "de-ter-min-is-tic" };
+        var shared = new OfficeIMO.Drawing.OfficeTextHyphenationLexicon(entries, minimumPrefixLength: 1, minimumSuffixLength: 1);
+        var pdf = new PdfHyphenationLexicon(entries, minimumPrefixLength: 1, minimumSuffixLength: 1);
+
+        Assert.Equal(shared.Count, pdf.Count);
+        Assert.Equal(shared.BreakMarker, pdf.BreakMarker);
+        Assert.Equal(shared.GetBreakpoints("TYPOGRAPHY"), pdf.GetBreakpoints("TYPOGRAPHY"));
+        Assert.Equal(shared.GetBreakpoints("deterministic"), pdf.GetBreakpoints("deterministic"));
+    }
+
+    [Fact]
     public void GeneratedText_UsesFirstPartyHyphenationDictionary() {
         var dictionary = new PdfHyphenationLexicon(new[] { "typog-ra-phy-mile-stone" });
 

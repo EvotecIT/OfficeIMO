@@ -10,6 +10,7 @@ public sealed partial class PdfReadDocument {
     private readonly PdfReadOptions _options;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
+    private readonly PdfFontResourceCache _fontResourceCache = new();
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
@@ -17,12 +18,15 @@ public sealed partial class PdfReadDocument {
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
     private readonly IReadOnlyList<PdfCatalogAction> _catalogActions;
+    private readonly IReadOnlyList<PdfJavaScript> _javaScripts;
     private readonly IReadOnlyList<PdfAttachmentInfo> _attachments;
     private readonly PdfTaggedContentInfo? _taggedContent;
     private readonly PdfOptionalContentProperties? _optionalContent;
     private readonly PdfDocumentOpenAction? _openAction;
     private readonly PdfPortfolioInfo? _portfolio;
     private readonly IReadOnlyList<PdfFormField> _formFields;
+    private readonly int _formWidgetJavaScriptCount;
+    private readonly long _formWidgetJavaScriptBytes;
     private readonly string? _acroFormDefaultAppearance;
     private readonly int? _acroFormQuadding;
     private readonly bool? _acroFormNeedAppearances;
@@ -33,6 +37,8 @@ public sealed partial class PdfReadDocument {
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
     internal PdfReadOptions ReadOptions => _options;
+    internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
+    internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
 
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
@@ -51,7 +57,7 @@ public sealed partial class PdfReadDocument {
         _metadata = ExtractMetadata();
         _pageLabels = ExtractPageLabels();
         _namedDestinations = ExtractNamedDestinations();
-        _catalogActions = ExtractCatalogActions();
+        _catalogActions = ExtractCatalogActions(out _javaScripts);
         _attachments = ExtractAttachmentInfos();
         _outputIntents = ExtractOutputIntents();
         _xmpMetadata = ExtractXmpMetadata();
@@ -64,7 +70,7 @@ public sealed partial class PdfReadDocument {
         _acroFormDefaultAppearance = ExtractAcroFormText("DA");
         _acroFormQuadding = ExtractAcroFormInteger("Q");
         _acroFormXfa = ExtractAcroFormXfaInfo();
-        _formFields = ExtractFormFields();
+        _formFields = ExtractFormFields(out _formWidgetJavaScriptCount, out _formWidgetJavaScriptBytes);
         _acroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         _acroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
         CatalogPageMode = ExtractCatalogName("PageMode");
@@ -90,6 +96,9 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Catalog-level actions discovered from supported name trees.</summary>
     public IReadOnlyList<PdfCatalogAction> CatalogActions => ReadLogicalContent(_catalogActions);
+
+    /// <summary>Named document-level JavaScript actions discovered from the catalog name tree.</summary>
+    public IReadOnlyList<PdfJavaScript> JavaScripts => ReadLogicalContent(_javaScripts);
 
     /// <summary>Simple document open action discovered from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction => ReadLogicalContent(_openAction);
@@ -143,6 +152,7 @@ public sealed partial class PdfReadDocument {
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
     internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;
+    internal IReadOnlyList<PdfJavaScript> UncheckedJavaScripts => _javaScripts;
     internal IReadOnlyList<PdfAttachmentInfo> UncheckedAttachments => _attachments;
     internal PdfTaggedContentInfo? UncheckedTaggedContent => _taggedContent;
     internal PdfOptionalContentProperties? UncheckedOptionalContent => _optionalContent;

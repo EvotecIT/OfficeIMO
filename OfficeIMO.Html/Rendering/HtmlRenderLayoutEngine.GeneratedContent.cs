@@ -55,7 +55,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : null;
         var run = new HtmlInlineRun(ApplyTextTransform(content, style.TextTransform), style, link, source, ownerElement: element);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
-        double boxHeight = ResolveBoxHeight(inline.Height, style);
+        double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         bool paintsBlockBox = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item";
