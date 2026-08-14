@@ -38,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
                 style.ContainerUnitHeight ?? double.NaN,
+                style,
                 out clipPath,
                 out string clipDetail)) {
             _diagnostics.Add(
@@ -166,6 +167,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
                 style.ContainerUnitWidth ?? double.NaN,
                 style.ContainerUnitHeight ?? double.NaN,
+                style,
                 out clipPath,
                 out string clipDetail)) {
             _diagnostics.Add(

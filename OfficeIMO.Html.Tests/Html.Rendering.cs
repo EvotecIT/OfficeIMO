@@ -1674,6 +1674,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("ChapterAlpha", string.Concat(secondPageText), StringComparison.Ordinal);
         Assert.Contains("ChapterBeta", string.Concat(secondPageText), StringComparison.Ordinal);
         Assert.DoesNotContain("ChapterBeta", string.Concat(firstPageText), StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Alpha", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Beta", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("First body", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Second body", rendered.Text, StringComparison.Ordinal);
         Assert.Empty(rendered.Headings);
         Assert.All(
             rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
@@ -1696,6 +1700,38 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Chapter Beta", pdfText, StringComparison.Ordinal);
         Assert.Contains("First body", pdfText, StringComparison.Ordinal);
         Assert.Contains("Second body", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRenderDocument_TextExcludesArtifactsNestedInsideLogicalTextGroups() {
+        var font = new OfficeFontInfo("Arial", 10D);
+        var logicalText = new HtmlRenderLogicalTextGroup(
+            "Before Decorative After",
+            0D,
+            0D,
+            100D,
+            12D,
+            new HtmlRenderVisual[] {
+                new HtmlRenderText("Before ", 0D, 0D, 30D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 0),
+                new HtmlRenderSemanticGroup(
+                    HtmlRenderSemanticGroupRole.Artifact,
+                    30D,
+                    0D,
+                    40D,
+                    12D,
+                    new[] { new HtmlRenderText("Decorative ", 30D, 0D, 40D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 0) },
+                    1,
+                    "decorative"),
+                new HtmlRenderText("After", 70D, 0D, 30D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 2)
+            },
+            0,
+            "logical");
+        var rendered = new HtmlRenderDocument(
+            HtmlRenderMode.Continuous,
+            new[] { new HtmlRenderPage(1, 100D, 100D, new[] { logicalText }) },
+            new HtmlDiagnosticReport());
+
+        Assert.Equal("Before After", rendered.Text);
     }
 
     [Fact]
@@ -1725,6 +1761,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(
             rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
             text => text.Text.Contains("Nested Chapter", StringComparison.Ordinal) && text.SemanticRole != "page-margin");
+        Assert.DoesNotContain("Nested Chapter", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Before", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
         Assert.All(
             rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
             group => Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, group.Role));

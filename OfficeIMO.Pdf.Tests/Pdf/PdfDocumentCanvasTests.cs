@@ -1458,13 +1458,25 @@ public class PdfDocumentCanvasTests {
                 .FreeTextAnnotation("Visible free text", 40D, 25D, 15D, 10D)
                 .FreeTextAnnotation("Hidden free text", 85D, 75D, 15D, 10D)
                 .HighlightAnnotation("Visible highlight", 25D, 45D, 15D, 8D)
-                .HighlightAnnotation("Hidden highlight", 90D, 65D, 15D, 8D)))
+                .HighlightAnnotation("Hidden highlight", 90D, 65D, 15D, 8D)
+                .Image(CreateMinimalRgbPng(), 50D, 40D, 40D, 30D, linkUri: "https://example.com/partial")))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         Assert.Equal("Visible text", Assert.Single(info.GetAnnotationsBySubtype("Text")).Contents);
         Assert.Equal("Visible free text", Assert.Single(info.GetAnnotationsBySubtype("FreeText")).Contents);
         Assert.Equal("Visible highlight", Assert.Single(info.GetAnnotationsBySubtype("Highlight")).Contents);
+        PdfLinkAnnotation link = Assert.Single(info.GetLinkAnnotationsByUri("https://example.com/partial"));
+        Assert.True(link.Width < 40D || link.Height < 30D);
+        Assert.True(link.Width > 0D && link.Height > 0D);
+        const double clipBottomY = 60D;
+        foreach (double pageX in new[] { link.X1, link.X2 }) {
+            foreach (double pageY in new[] { link.Y1, link.Y2 }) {
+                double localX = pageX - 20D;
+                double localY = 80D - (pageY - clipBottomY);
+                Assert.True(localX / 100D + localY / 80D <= 1.001D);
+            }
+        }
     }
 
     [Fact]

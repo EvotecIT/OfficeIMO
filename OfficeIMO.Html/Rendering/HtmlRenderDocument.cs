@@ -65,8 +65,16 @@ public sealed class HtmlRenderDocument {
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
+                continue;
+            }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                yield return logicalTextGroup.Text;
+                if (!ContainsArtifactVisual(logicalTextGroup.Visuals)) {
+                    yield return logicalTextGroup.Text;
+                } else {
+                    string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
+                    if (visibleText.Length > 0) yield return visibleText;
+                }
                 continue;
             }
             if (visual is HtmlRenderText text) {
@@ -78,6 +86,15 @@ public sealed class HtmlRenderDocument {
             if (children == null) continue;
             foreach (string textValue in EnumerateLogicalText(children)) yield return textValue;
         }
+    }
+
+    private static bool ContainsArtifactVisual(IEnumerable<HtmlRenderVisual> visuals) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) return true;
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            if (children != null && ContainsArtifactVisual(children)) return true;
+        }
+        return false;
     }
 
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {

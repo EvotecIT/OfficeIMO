@@ -356,6 +356,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlClipPath_GeometryBoxesResolveShapePercentagesAndOrigins() {
+        const string shared = "width:40px;height:20px;padding:10px;border:2px solid black;margin:5px;background:red;";
+        string html = "<div id='content' style='" + shared + "clip-path:inset(0) content-box'></div>"
+            + "<div id='padding' style='" + shared + "clip-path:padding-box inset(0)'></div>"
+            + "<div id='border' style='" + shared + "clip-path:inset(0) border-box'></div>"
+            + "<div id='margin' style='" + shared + "clip-path:margin-box'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderPathClipGroup>()
+            .ToList();
+
+        HtmlRenderPathClipGroup content = Assert.Single(clips, group => group.Source == "div#content");
+        HtmlRenderPathClipGroup padding = Assert.Single(clips, group => group.Source == "div#padding");
+        HtmlRenderPathClipGroup border = Assert.Single(clips, group => group.Source == "div#border");
+        HtmlRenderPathClipGroup margin = Assert.Single(clips, group => group.Source == "div#margin");
+        Assert.Equal((17D, 40D, 20D), (content.X, content.Width, content.Height));
+        Assert.Equal((7D, 60D, 40D), (padding.X, padding.Width, padding.Height));
+        Assert.Equal((5D, 64D, 44D), (border.X, border.Width, border.Height));
+        Assert.Equal((0D, 74D, 54D), (margin.X, margin.Width, margin.Height));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(40%) content-box)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:padding-box inset(8px))"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:margin-box)"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:content-box inset(0) padding-box)"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlClipPath_EmptyBasicShapesRemainValidEmptyClipsAcrossArtifacts() {
         const string html = "<div id='inset-empty' style='width:20px;height:20px;margin:0;background:red;clip-path:inset(60%);font-size:8px'>InsetMarker</div>"
             + "<div id='circle-empty' style='width:20px;height:20px;margin:0;background:blue;clip-path:circle(0)'>CircleMarker</div>"

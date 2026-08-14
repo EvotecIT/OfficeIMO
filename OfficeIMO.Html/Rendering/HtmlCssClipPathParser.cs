@@ -6,7 +6,7 @@ internal static class HtmlCssClipPathParser {
     private const double CircleBezierKappa = 0.5522847498307936D;
 
     internal static bool IsSupportedSyntax(string? value) =>
-        TryResolve(value, 100D, 100D, 16D, 16D, 100D, 100D, double.NaN, double.NaN, out _, out _);
+        TryResolve(value, 100D, 100D, 16D, 16D, 100D, 100D, double.NaN, double.NaN, null, out _, out _);
 
     internal static bool TryResolve(
         string? value,
@@ -18,6 +18,7 @@ internal static class HtmlCssClipPathParser {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
+        HtmlRenderBoxStyle? style,
         out HtmlCssResolvedClipPath? resolved,
         out string detail) {
         resolved = null;
@@ -25,18 +26,31 @@ internal static class HtmlCssClipPathParser {
         string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value!.Trim().ToLowerInvariant();
         if (normalized == "none") return true;
 
-        if (!TryGetFunction(normalized, out string function, out string arguments)) {
+        if (!TryGetClipPathParts(normalized, out string function, out string arguments, out string geometryBox)) {
             detail = "clip-path=" + normalized;
             return false;
         }
 
+        ResolveReferenceBox(geometryBox, boxWidth, boxHeight, style, out double referenceX, out double referenceY, out double referenceWidth, out double referenceHeight);
+        if (referenceWidth <= 0.0001D || referenceHeight <= 0.0001D) {
+            resolved = HtmlCssResolvedClipPath.Empty;
+            return true;
+        }
+        if (function.Length == 0) {
+            resolved = new HtmlCssResolvedClipPath(referenceX, referenceY, OfficeClipPath.Rectangle(referenceWidth, referenceHeight));
+            return true;
+        }
+
         bool success = function switch {
-            "inset" => TryInset(arguments, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "circle" => TryCircle(arguments, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "ellipse" => TryEllipse(arguments, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
-            "polygon" => TryPolygon(arguments, boxWidth, boxHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
+            "inset" => TryInset(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
+            "circle" => TryCircle(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
+            "ellipse" => TryEllipse(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
+            "polygon" => TryPolygon(arguments, referenceWidth, referenceHeight, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out resolved),
             _ => false
         };
+        if (success && resolved != null && resolved.ClipPath.Kind != OfficeClipPathKind.Empty && (referenceX != 0D || referenceY != 0D)) {
+            resolved = new HtmlCssResolvedClipPath(referenceX + resolved.X, referenceY + resolved.Y, resolved.ClipPath);
+        }
         if (!success) detail = "clip-path=" + normalized;
         return success;
     }
@@ -322,16 +336,77 @@ internal static class HtmlCssClipPathParser {
     private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
         HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length);
 
-    private static bool TryGetFunction(string value, out string name, out string arguments) {
+    private static bool TryGetClipPathParts(string value, out string name, out string arguments, out string geometryBox) {
         name = string.Empty;
         arguments = string.Empty;
+        geometryBox = "border-box";
         int open = value.IndexOf('(');
-        if (open <= 0 || HtmlRenderCssValues.FindMatchingParenthesis(value, open) != value.Length - 1) return false;
-        name = value.Substring(0, open).Trim();
-        arguments = value.Substring(open + 1, value.Length - open - 2).Trim();
+        if (open < 0) {
+            if (!IsGeometryBox(value)) return false;
+            geometryBox = value;
+            return true;
+        }
+        if (open == 0) return false;
+        int close = HtmlRenderCssValues.FindMatchingParenthesis(value, open);
+        if (close < 0) return false;
+
+        IReadOnlyList<string> prefix = HtmlRenderCssValues.SplitWhitespace(value.Substring(0, open));
+        if (prefix.Count < 1 || prefix.Count > 2) return false;
+        name = prefix[prefix.Count - 1];
+        bool hasPrefixBox = prefix.Count == 2;
+        if (hasPrefixBox && !IsGeometryBox(prefix[0])) return false;
+
+        string suffixValue = value.Substring(close + 1).Trim();
+        IReadOnlyList<string> suffix = suffixValue.Length == 0
+            ? Array.Empty<string>()
+            : HtmlRenderCssValues.SplitWhitespace(suffixValue);
+        if (suffix.Count > 1 || hasPrefixBox && suffix.Count > 0 || suffix.Count == 1 && !IsGeometryBox(suffix[0])) return false;
+        if (hasPrefixBox) geometryBox = prefix[0];
+        else if (suffix.Count == 1) geometryBox = suffix[0];
+
+        arguments = value.Substring(open + 1, close - open - 1).Trim();
         return arguments.Length > 0
             || name == "circle"
             || name == "ellipse";
+    }
+
+    private static bool IsGeometryBox(string value) =>
+        value == "margin-box"
+        || value == "border-box"
+        || value == "padding-box"
+        || value == "content-box";
+
+    private static void ResolveReferenceBox(
+        string geometryBox,
+        double boxWidth,
+        double boxHeight,
+        HtmlRenderBoxStyle? style,
+        out double x,
+        out double y,
+        out double width,
+        out double height) {
+        x = y = 0D;
+        width = boxWidth;
+        height = boxHeight;
+        if (style == null || geometryBox == "border-box") return;
+        if (geometryBox == "margin-box") {
+            x = -style.MarginLeft;
+            y = -style.MarginTop;
+            width += style.MarginLeft + style.MarginRight;
+            height += style.MarginTop + style.MarginBottom;
+            return;
+        }
+
+        x = style.BorderLeftWidth;
+        y = style.BorderTopWidth;
+        width -= style.BorderLeftWidth + style.BorderRightWidth;
+        height -= style.BorderTopWidth + style.BorderBottomWidth;
+        if (geometryBox == "padding-box") return;
+
+        x += style.PaddingLeft;
+        y += style.PaddingTop;
+        width -= style.PaddingLeft + style.PaddingRight;
+        height -= style.PaddingTop + style.PaddingBottom;
     }
 
     private static void ExpandFour(double[] values, out double top, out double right, out double bottom, out double left) {

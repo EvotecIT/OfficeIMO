@@ -686,7 +686,7 @@ internal static partial class PdfWriter {
                 double y1 = System.Math.Max(annotation.Y1, clipBottomY);
                 double x2 = System.Math.Min(annotation.X2, clipRight);
                 double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !CanvasClipIntersectsAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, x1, y1, x2, y2)) {
+                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
                     annotations.RemoveAt(i);
                     continue;
                 }
@@ -707,7 +707,7 @@ internal static partial class PdfWriter {
                 double y1 = System.Math.Max(annotation.Y1, clipBottomY);
                 double x2 = System.Math.Min(annotation.X2, clipRight);
                 double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !CanvasClipIntersectsAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, x1, y1, x2, y2)) {
+                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
                     annotations.RemoveAt(i);
                     continue;
                 }
@@ -728,7 +728,7 @@ internal static partial class PdfWriter {
                 double y1 = System.Math.Max(annotation.Y1, clipBottomY);
                 double x2 = System.Math.Min(annotation.X2, clipRight);
                 double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !CanvasClipIntersectsAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, x1, y1, x2, y2)) {
+                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
                     annotations.RemoveAt(i);
                     continue;
                 }
@@ -749,7 +749,7 @@ internal static partial class PdfWriter {
                 double y1 = System.Math.Max(annotation.Y1, clipBottomY);
                 double x2 = System.Math.Min(annotation.X2, clipRight);
                 double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !CanvasClipIntersectsAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, x1, y1, x2, y2)) {
+                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
                     annotations.RemoveAt(i);
                     continue;
                 }
