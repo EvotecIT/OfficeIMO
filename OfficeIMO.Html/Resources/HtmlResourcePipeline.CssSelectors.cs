@@ -412,18 +412,59 @@ public static partial class HtmlResourcePipeline {
     private static string StripStatefulPseudoClasses(string selector) {
         var result = new StringBuilder(selector.Length);
         for (int i = 0; i < selector.Length; i++) {
-            if (selector[i] == ':'
-                && (i + 1 >= selector.Length || selector[i + 1] != ':')
-                && TryReadPseudoClassName(selector, i + 1, out string pseudoClassName, out int nameEnd)
-                && IsStatefulPseudoClass(pseudoClassName)) {
-                i = nameEnd - 1;
-                continue;
+            if (selector[i] == ':' && (i + 1 >= selector.Length || selector[i + 1] != ':') &&
+                TryReadPseudoClassName(selector, i + 1, out string pseudoClassName, out int nameEnd)) {
+                if (IsStatefulPseudoClass(pseudoClassName)) {
+                    i = nameEnd - 1;
+                    continue;
+                }
+                if (nameEnd < selector.Length && selector[nameEnd] == '(' && IsSelectorListPseudoClass(pseudoClassName) &&
+                    TryFindMatchingParenthesis(selector, nameEnd, out int closingParenthesis) &&
+                    ContainsStatefulPseudoClass(selector, nameEnd + 1, closingParenthesis)) {
+                    i = closingParenthesis;
+                    continue;
+                }
             }
 
             result.Append(selector[i]);
         }
 
         return result.ToString();
+    }
+
+    private static bool IsSelectorListPseudoClass(string name) =>
+        name.Equals("is", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("not", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("where", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("has", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ContainsStatefulPseudoClass(string selector, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (selector[i] == ':' && (i + 1 >= end || selector[i + 1] != ':') &&
+                TryReadPseudoClassName(selector, i + 1, out string name, out _) && IsStatefulPseudoClass(name)) return true;
+        }
+        return false;
+    }
+
+    private static bool TryFindMatchingParenthesis(string selector, int opening, out int closing) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = opening; i < selector.Length; i++) {
+            char current = selector[i];
+            if (quote != '\0') {
+                if (current == '\\') i++;
+                else if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') quote = current;
+            else if (current == '(') depth++;
+            else if (current == ')' && --depth == 0) {
+                closing = i;
+                return true;
+            }
+        }
+        closing = -1;
+        return false;
     }
 
     private static bool TryReadPseudoClassName(string selector, int start, out string name, out int end) {

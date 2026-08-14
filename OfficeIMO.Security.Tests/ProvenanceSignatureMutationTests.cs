@@ -105,9 +105,10 @@ public sealed class ProvenanceSignatureMutationTests {
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] imageHeader = { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 };
         return Join(
             header,
-            CreatePngChunk("IHDR", new byte[13]),
+            CreatePngChunk("IHDR", imageHeader),
             CreatePngChunk("caBX", manifest),
             CreatePngChunk("IDAT", Array.Empty<byte>()),
             CreatePngChunk("IEND", Array.Empty<byte>()));

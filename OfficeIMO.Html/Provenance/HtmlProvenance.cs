@@ -520,12 +520,10 @@ public static partial class HtmlProvenance {
         HtmlResourcePipeline.IsApplicableProvenanceMedia(element);
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
-        int searchOffset = 0;
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {
-            int start = sourceSet.IndexOf(candidate.Url, searchOffset, StringComparison.Ordinal);
-            if (start < 0) continue;
+            int start = candidate.UrlStart;
+            if (start < 0 || start > sourceSet.Length - candidate.Url.Length) continue;
             yield return new EmbeddedImageReference(attributeName, candidate.Url, start, candidate.Url.Length);
-            searchOffset = start + candidate.Url.Length;
         }
     }
 

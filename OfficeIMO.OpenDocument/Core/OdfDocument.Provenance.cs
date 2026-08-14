@@ -44,7 +44,14 @@ public abstract partial class OdfDocument {
         ValidatePackage(packageBytes, options.Limits);
         bool hadManifest = OfficeProvenanceZip.HasEntry(packageBytes, path => path == ProvenanceManifestPath);
         OfficeProvenanceRemovalResult result = OfficeProvenancePackageMutation.Remove(
-            packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
+            packageBytes,
+            fileName,
+            options,
+            StripPackageSignatures,
+            HasPackageSignatures,
+            ValidatePackage,
+            removeOpcManifestReferences: false,
+            validateOpcMetadata: false);
         byte[] output = result.ToArray();
         if (!hadManifest || OfficeProvenanceZip.HasEntry(output, path => path == ProvenanceManifestPath)) return result;
         OfficeProvenanceSignatureStripResult cleaned = OfficeProvenanceZip.RemoveEntries(
