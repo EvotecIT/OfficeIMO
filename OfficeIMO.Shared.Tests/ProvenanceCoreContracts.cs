@@ -189,18 +189,13 @@ public sealed partial class ProvenanceCoreContracts {
     }
 
     [Fact]
-    public void WebpRiffLengthExcludesPreservedSuffixAfterRemoval() {
+    public void WebpRejectsBytesBeyondTheDeclaredRiffBoundary() {
         byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
         byte[] suffix = Encoding.ASCII.GetBytes("suffix");
         byte[] webp = Join(CreateWebp(keep, CreateRiffChunk("C2PA", CreateManifestStore())), suffix);
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");
-        byte[] expectedContainer = CreateWebp(keep);
-        byte[] output = result.ToArray();
-
-        Assert.Equal(Join(expectedContainer, suffix), output);
-        Assert.Equal(expectedContainer.Length - 8, BitConverter.ToInt32(output, 4));
-        Assert.Empty(result.After.Evidence);
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(webp, "fixture.webp"));
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceRemover.Remove(webp, "fixture.webp"));
     }
 
     [Fact]

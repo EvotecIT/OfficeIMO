@@ -35,7 +35,7 @@ internal static class OfficeProvenanceRiff {
             !OfficeProvenanceBinary.MatchesAscii(data, 8, "WEBP")) throw new InvalidDataException("WebP RIFF header is invalid.");
         uint riffSize = OfficeProvenanceBinary.ReadUInt32(data, 4, littleEndian: true);
         long declaredEndValue = 8L + riffSize;
-        if (declaredEndValue < 12 || declaredEndValue > data.Length) throw new InvalidDataException("RIFF size exceeds the asset bounds.");
+        if (declaredEndValue < 12 || declaredEndValue != data.Length) throw new InvalidDataException("RIFF size does not match the asset bounds.");
         int declaredEnd = (int)declaredEndValue;
         int c2paChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "C2PA");
         int xmpChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "XMP ");

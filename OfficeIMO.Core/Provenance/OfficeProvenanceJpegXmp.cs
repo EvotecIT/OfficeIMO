@@ -67,14 +67,19 @@ internal static class OfficeProvenanceJpegXmp {
             pair => pair.Value.OrderBy(item => item.Offset).ToArray(),
             StringComparer.OrdinalIgnoreCase);
         var currentPackets = standards.ToDictionary(item => item.SegmentStart, item => item.Packet);
-        bool standardSetIsStructurallyValid = standards.Count <= 1;
+        int referenceCount = 0;
         foreach (StandardPacket standard in standards) {
-            string location = $"JPEG[{imageIndex}]/APP1-XMP@{standard.SegmentStart}";
-            if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location, standardSetIsStructurallyValid);
-            foreach (string guid in GetExtendedGuids(standard.Packet, options)) {
+            string[] guids = GetExtendedGuids(standard.Packet, options).ToArray();
+            referenceCount = checked(referenceCount + guids.Length);
+            foreach (string guid in guids) {
                 if (!references.TryGetValue(guid, out List<int>? starts)) references.Add(guid, starts = new List<int>());
                 starts.Add(standard.SegmentStart);
             }
+        }
+        bool standardSetIsStructurallyValid = standards.Count <= 1 && referenceCount <= 1;
+        foreach (StandardPacket standard in standards) {
+            string location = $"JPEG[{imageIndex}]/APP1-XMP@{standard.SegmentStart}";
+            if (context != null) OfficeProvenanceXmp.Inspect(standard.Packet, options, context, location, standardSetIsStructurallyValid);
             if (removalOptions != null && changes != null &&
                 OfficeProvenanceXmp.TryRemoveAiDeclarations(standard.Packet, removalOptions, location, changes, out byte[] cleaned,
                     standardSetIsStructurallyValid)) {

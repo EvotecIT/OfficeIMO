@@ -198,7 +198,11 @@ internal static class OfficeProvenanceZip {
             outputEntries.Add(CreateWriteEntry(entry, entryMetadata[entry], rewritten));
         }
         reserialized = true;
-        return OfficeProvenanceZipWriter.Write(outputEntries, options.Limits.MaxExpandedContainerBytes, ReadArchiveComment(data));
+        long remainingExpandedBytes = options.Limits.MaxExpandedContainerBytes - inspectionBytes;
+        if (remainingExpandedBytes <= 0 && outputEntries.Any(entry => entry.ExpectedLength > 0)) {
+            throw new InvalidDataException("ZIP rewrite exceeds the configured expanded-byte limit.");
+        }
+        return OfficeProvenanceZipWriter.Write(outputEntries, Math.Max(1, remainingExpandedBytes), ReadArchiveComment(data));
     }
 
     private static int CountManifestEntries(
@@ -789,8 +793,9 @@ internal static class OfficeProvenanceZip {
                 throw new InvalidDataException("A package part exceeds the configured asset limit.");
             }
             using Stream source = entry.Open();
-            MemoryStream? metadata = entryName.Equals("_rels/.rels", StringComparison.Ordinal) ||
-                entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)
+            bool isRelationships = entryName.Equals("_rels/.rels", StringComparison.Ordinal) ||
+                entryName.EndsWith(".rels", StringComparison.Ordinal) && entryName.Contains("/_rels/");
+            MemoryStream? metadata = isRelationships || entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)
                 ? new MemoryStream(entry.Length > int.MaxValue ? 0 : (int)entry.Length)
                 : null;
             long entryBytes = 0;
@@ -811,9 +816,11 @@ internal static class OfficeProvenanceZip {
                     if (entryName.Equals("_rels/.rels", StringComparison.Ordinal)) {
                         if (rootRelationships != null) throw new InvalidDataException("The OPC package contains duplicate root relationships parts.");
                         rootRelationships = xml;
-                    } else {
+                    } else if (entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)) {
                         if (contentTypes != null) throw new InvalidDataException("The OPC package contains duplicate content-types parts.");
                         contentTypes = xml;
+                    } else {
+                        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "OPC relationships");
                     }
                 }
             } finally {

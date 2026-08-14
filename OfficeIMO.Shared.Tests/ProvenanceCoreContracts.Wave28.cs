@@ -24,7 +24,7 @@ public sealed partial class ProvenanceCoreContracts {
     }
 
     [Fact]
-    public void TextCarriersReportEvidenceAndChangesInSourceOrder() {
+    public void CompetingTextCarriersReportEvidenceInSourceOrderAndArePreserved() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
         byte[] structured = Encoding.UTF8.GetBytes(
             "\n-----BEGIN C2PA MANIFEST-----\n" +
@@ -38,9 +38,10 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Equal(2, report.Evidence.Count);
         Assert.Contains("C2PATextManifestWrapper", report.Evidence[0].Location, StringComparison.Ordinal);
         Assert.Contains("Text/C2PA@", report.Evidence[1].Location, StringComparison.Ordinal);
-        Assert.Equal(2, result.Changes.Count);
-        Assert.Contains("C2PATextManifestWrapper", result.Changes[0].Location, StringComparison.Ordinal);
-        Assert.Contains("Text/C2PA@", result.Changes[1].Location, StringComparison.Ordinal);
+        Assert.All(report.Evidence, evidence => Assert.False(evidence.IsStructurallyValid));
+        Assert.Empty(result.Changes);
+        Assert.False(result.WasChanged);
+        Assert.Equal(text, result.ToArray());
     }
 
     [Fact]

@@ -11,7 +11,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] package = CreateCompressedZip(("media/extensionless", image));
         var inspectionOptions = new OfficeProvenanceOptions { MaxExpandedContainerBytes = image.Length };
         var removalOptions = new OfficeProvenanceRemovalOptions();
-        removalOptions.Limits.MaxExpandedContainerBytes = image.Length;
+        removalOptions.Limits.MaxExpandedContainerBytes = image.Length * 2L;
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(package, "package.zip", inspectionOptions);
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(package, "package.zip", removalOptions);
