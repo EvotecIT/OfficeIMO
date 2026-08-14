@@ -88,6 +88,12 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OverflowClipMarginValueUnsupported = "HtmlRenderOverflowClipMarginValueUnsupported";
     /// <summary>A CSS transform or transform-origin value used the identity fallback.</summary>
     public const string TransformValueUnsupported = "HtmlRenderTransformValueUnsupported";
+    /// <summary>A CSS clip-path value used no clipping because it could not be represented.</summary>
+    public const string ClipPathValueUnsupported = "HtmlRenderClipPathValueUnsupported";
+    /// <summary>A PDF semantic tag override was invalid and automatic HTML semantics were used.</summary>
+    public const string PdfSemanticTagUnsupported = "HtmlRenderPdfSemanticTagUnsupported";
+    /// <summary>A CSS bookmark value was invalid and automatic heading navigation was used.</summary>
+    public const string BookmarkValueUnsupported = "HtmlRenderBookmarkValueUnsupported";
     /// <summary>A form control inside a transformed or translucent paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
@@ -142,7 +148,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string OutlinePaintValueUnsupported = "HtmlRenderOutlinePaintValueUnsupported";
     /// <summary>A sticky-positioned element was captured at its stable static document position.</summary>
     public const string PositionStickyStatic = "HtmlRenderPositionStickyStatic";
-    /// <summary>A positioned element declared stacking behavior that is not active yet.</summary>
+    /// <summary>A z-index declaration used auto because its value was neither auto nor an integer.</summary>
     public const string PositionZIndexPending = "HtmlRenderPositionZIndexPending";
     /// <summary>A complex page selector could not be applied per page.</summary>
     public const string PageSelectorPending = "HtmlRenderPageSelectorPending";
@@ -182,7 +188,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string StylesheetImportCycle = "HtmlRenderStylesheetImportCycle";
     /// <summary>Stylesheet imports exceeded the configured recursion depth.</summary>
     public const string StylesheetImportDepthExceeded = "HtmlRenderStylesheetImportDepthExceeded";
-    /// <summary>A resolved stylesheet referenced URL resources that are not active in the current paint model.</summary>
+    /// <summary>Legacy diagnostic retained for source compatibility; stylesheet URL resources are active.</summary>
     public const string StylesheetUrlResourcesPending = "HtmlRenderStylesheetUrlResourcesPending";
     /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
     public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
@@ -234,6 +240,9 @@ public static class HtmlRenderDiagnosticCodes {
         OverflowScrollSnapshot,
         OverflowValueUnsupported,
         TransformValueUnsupported,
+        ClipPathValueUnsupported,
+        PdfSemanticTagUnsupported,
+        BookmarkValueUnsupported,
         FormFieldTransformStaticFallback,
         FormFieldZeroMaximumLengthStaticFallback,
         FormFieldInitialValueExceedsMaximumLengthStaticFallback,

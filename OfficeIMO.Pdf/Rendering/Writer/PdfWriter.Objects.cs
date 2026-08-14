@@ -322,6 +322,7 @@ internal static partial class PdfWriter {
         public int Level { get; set; }
         public string Title { get; set; } = string.Empty;
         public double Y { get; set; }
+        public PdfOutlineState OutlineState { get; set; }
     }
 
     private sealed class PageNamedDestination {
@@ -423,6 +424,7 @@ internal static partial class PdfWriter {
         public int PageIndex { get; set; }
         public double Y { get; set; }
         public string Title { get; set; } = string.Empty;
+        public PdfOutlineState OutlineState { get; set; }
         public OutlineNode? Parent { get; set; }
         public System.Collections.Generic.List<OutlineNode> Children { get; } = new();
     }

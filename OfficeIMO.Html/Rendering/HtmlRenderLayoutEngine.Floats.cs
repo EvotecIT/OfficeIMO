@@ -120,6 +120,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 continue;
             }
+            if (run.RunningElementAssignment != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                continue;
+            }
             if (run.PositionedMarkerElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 previousWasCollapsibleSpace = false;
@@ -280,6 +284,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (InlineSegment segment in range) {
                     if (!line.HasFlowContent
                         && segment.Run.RunningStringElement == null
+                        && segment.Run.RunningElementAssignment == null
                         && IsWhitespaceToken(segment.Text)
                         && !segment.Run.Style.PreserveWhitespace) {
                         continue;
@@ -291,7 +296,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
             InlineSegment segment = line.Segments[index];
-            if (segment.Run.RunningStringElement != null) continue;
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
             return IsWhitespaceToken(segment.Text) && !segment.Run.Style.PreserveWhitespace;
         }
         return false;
@@ -343,7 +348,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double lineHeight,
         double requiredWidth) {
         InlineSegment[] runningStringMarkers = line.Segments
-            .Where(segment => segment.Run.RunningStringElement != null)
+            .Where(segment => segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null)
             .ToArray();
         double next = context.NextBottomAfter(y);
         while (next > y + 0.0001D) {
@@ -436,6 +441,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         segment.Run.RunningStringElement,
                         segment.Run.Style,
                         lineY));
+                } else if (segment.Run.RunningElementAssignment != null) {
+                    runningStringAssignments.Add(segment.Run.RunningElementAssignment.Translate(lineY));
                 } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
@@ -453,7 +460,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
                                 translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
                             }
-                            AddInlineOwnedVisual(visuals, ownedVisuals, translated, segment.Run.OwnerElement, formattingContainer);
+                            AddInlineOwnedVisual(visuals, ownedVisuals, ApplyInlineElementSemantics(translated, segment.Run), segment.Run.OwnerElement, formattingContainer);
+                        }
+                        if (segment.Run.SemanticNodeId.HasValue
+                            && !string.IsNullOrWhiteSpace(segment.Run.BookmarkAnchorText)
+                            && !ContainsBookmarkAnchor(atomic.Visuals, segment.Run.SemanticNodeId.Value)) {
+                            AddInlineOwnedVisual(
+                                visuals,
+                                ownedVisuals,
+                                new HtmlRenderBookmarkAnchor(
+                                    segment.Run.SemanticNodeId.Value,
+                                    segment.Run.BookmarkAnchorText!,
+                                    x + segment.Run.PaintOffsetX,
+                                    atomicY + segment.Run.PaintOffsetY,
+                                    Math.Max(0.01D, segment.Width),
+                                    Math.Max(0.01D, atomic.Height),
+                                    visuals.Count,
+                                    segment.Run.Source),
+                                segment.Run.OwnerElement,
+                                formattingContainer);
                         }
                         if (segment.Run.LinkUri != null) {
                             OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
@@ -463,7 +488,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
                                 linkVisual = linkVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
                             }
-                            AddInlineOwnedVisual(visuals, ownedVisuals, linkVisual, segment.Run.OwnerElement, formattingContainer);
+                            AddInlineOwnedVisual(visuals, ownedVisuals, ApplyInlineElementSemantics(linkVisual, segment.Run), segment.Run.OwnerElement, formattingContainer);
                         }
                     }
                 } else if (segment.Text.Length > 0) {
@@ -518,7 +543,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     AddInlineOwnedVisual(
                         visuals,
                         ownedVisuals,
-                        textVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
+                        ApplyInlineElementSemantics(textVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count), segment.Run),
                         segment.Run.OwnerElement,
                         formattingContainer);
                 }

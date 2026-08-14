@@ -29,6 +29,23 @@ File.WriteAllBytes("status.png", png);
 
 The renderer supports continuous or paged layout and PNG, JPEG, TIFF, SVG, and WebP output. Apply output-pixel and source-resource limits before accepting arbitrary uploads.
 
+## Require the declared static contract
+
+Use strict fidelity when diagnosed simplification must stop conversion:
+
+```csharp
+var options = new HtmlRenderOptions {
+    ViewportWidth = 720,
+    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+};
+
+var result = source.ExportImage(
+    OfficeImageExportFormat.Png,
+    options);
+```
+
+The managed renderer covers the catalogued static subsets for flex and grid (including column and row subgrid), stacking, basic-shape clipping, paged fragmentation, running strings and elements, SVG, tagged-PDF roles, and bookmarks. JavaScript, animation timelines, live scroll state, and other browser execution stay outside this path. The [generated support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.html-support-matrix.md) lists supported subsets and each diagnosed fallback separately.
+
 ## Choose a destination adapter
 
 | Destination | Package |
@@ -68,6 +85,8 @@ byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 ```
 
 PDF writer settings are snapshotted through `PdfOptions`; HTML layout and safety settings remain on the shared `HtmlRenderOptions` base type.
+
+Paged PDF output supports `@page` margin boxes, `counter(page)`, `counter(pages)`, `position:running(name)`, `content:element(name)`, CSS bookmark controls, and `-officeimo-pdf-tag-type`. Repeated margin content is emitted as a PDF artifact so decorative headers and footers do not pollute the structure tree.
 
 ## Control resources
 

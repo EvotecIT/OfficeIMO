@@ -142,6 +142,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyGrid(computed, style);
         ApplyTable(computed, style);
         ApplyBreaks(computed, style);
+        ApplyPdfSemanticTag(computed.GetValue("-officeimo-pdf-tag-type"), style);
+        ApplyBookmark(computed, style);
         style.StringSet = computed.GetValue("string-set").Trim();
         return style;
     }
@@ -673,6 +675,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         style.TransformOrigin = NormalizeCssValue(computed.GetValue("transform-origin"), "50% 50%");
+        style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
         if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _options.DefaultFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
             style.UnsupportedBoxShadow = boxShadow;
@@ -1115,6 +1118,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
         if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
         style.ColumnGapWasSpecified = !string.IsNullOrWhiteSpace(column) && !string.Equals(column.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
+        style.RowGapWasSpecified = !string.IsNullOrWhiteSpace(row) && !string.Equals(row.Trim(), "normal", StringComparison.OrdinalIgnoreCase);
         style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
         style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
         if (rowUnsupported) style.UnsupportedRowGap = row.Trim();

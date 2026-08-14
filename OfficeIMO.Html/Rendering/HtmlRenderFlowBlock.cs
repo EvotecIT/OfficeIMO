@@ -486,6 +486,18 @@ internal sealed class HtmlRenderLineBreakGroup {
 
 internal sealed class HtmlInlineRun {
     internal HtmlInlineRun(
+        HtmlCssRunningStringAssignment runningElementAssignment,
+        HtmlRenderBoxStyle style,
+        string source) {
+        RunningElementAssignment = runningElementAssignment;
+        Text = string.Empty;
+        LogicalText = string.Empty;
+        Style = style;
+        Source = source;
+        SemanticRole = style.SemanticRole;
+    }
+
+    internal HtmlInlineRun(
         IElement runningStringElement,
         HtmlRenderBoxStyle style,
         string source) {
@@ -575,18 +587,28 @@ internal sealed class HtmlInlineRun {
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
     internal IElement? RunningStringElement { get; }
+    internal HtmlCssRunningStringAssignment? RunningElementAssignment { get; }
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
+    internal HtmlRenderSemanticGroupRole? InlineSemanticGroupRole { get; private set; }
+    internal string? InlineSemanticGroupKey { get; private set; }
+    internal string? BookmarkAnchorText { get; private set; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
 
-    internal void AssignSemanticNode(string role, int nodeId) {
+    internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null) {
         SemanticNodeId = nodeId;
+        BookmarkAnchorText = bookmarkAnchorText;
         if (!SemanticRole.StartsWith("generated-", StringComparison.Ordinal)) {
             SemanticRole = role;
         }
+    }
+
+    internal void AssignInlineSemanticGroup(HtmlRenderSemanticGroupRole role, string structureElementKey) {
+        InlineSemanticGroupRole = role;
+        InlineSemanticGroupKey = structureElementKey;
     }
 }
 

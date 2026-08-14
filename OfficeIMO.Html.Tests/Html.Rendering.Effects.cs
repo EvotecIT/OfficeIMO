@@ -254,4 +254,68 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(transform-origin:left top 2px)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(opacity:opaque)"));
     }
+
+    [Fact]
+    public void HtmlClipPath_BasicShapesShareOneVectorSceneAcrossRasterAndSvg() {
+        const string html = "<div id='polygon' style='width:20px;height:20px;margin:0;background:red;clip-path:polygon(0 0,100% 0,0 100%)'></div>"
+            + "<div id='inset' style='width:20px;height:20px;margin:0;background:blue;clip-path:inset(2px 3px 4px 5px round 2px)'></div>"
+            + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(40% at 50% 50%)'></div>"
+            + "<div id='ellipse' style='width:20px;height:20px;margin:0;background:purple;clip-path:ellipse(40% 25% at center)'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 90D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Visuals)
+            .OfType<HtmlRenderPathClipGroup>()
+            .Where(group => group.Source != null && group.Source.StartsWith("div#", StringComparison.Ordinal))
+            .ToList();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal(4, clips.Count);
+        HtmlRenderPathClipGroup inset = Assert.Single(clips, group => group.Source == "div#inset");
+        Assert.Equal(5D, inset.X, 3);
+        Assert.Equal(22D, inset.Y, 3);
+        Assert.Equal(12D, inset.Width, 3);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(3, 3));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(18, 18));
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(8, 25));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(2, 25));
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("<path", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlClipPath_PreservesSearchablePdfAndTruthfullyRejectsUnsupportedGeometry() {
+        const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(120D / HtmlRenderOptions.CssPixelsPerInch, 50D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(supported).ToPdf(options);
+        string extracted = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        Assert.Contains("ClipPathPdfMarker", extracted, StringComparison.Ordinal);
+
+        HtmlRenderDocument fallback = HtmlRenderTestDriver.Render("<div style='clip-path:url(#missing)'>Fallback</div>");
+        HtmlDiagnostic diagnostic = Assert.Single(fallback.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.True(fallback.HasLoss);
+        Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
+            "<div style='clip-path:path(\"M 0 0 L 1 1\")'>Fallback</div>",
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+        Assert.Contains(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, out _));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,100% 0,0 100%))"));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:url(#shape))"));
+    }
 }

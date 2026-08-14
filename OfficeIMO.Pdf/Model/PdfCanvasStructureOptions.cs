@@ -7,6 +7,8 @@ public sealed class PdfCanvasStructureOptions {
     private int _columnSpan = 1;
     private int _rowSpan = 1;
 
+    internal string? StructureElementKey { get; set; }
+
     /// <summary>Alternative text associated with the structure container.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -43,7 +45,8 @@ public sealed class PdfCanvasStructureOptions {
         AlternativeText = AlternativeText,
         HeaderScope = HeaderScope,
         ColumnSpan = ColumnSpan,
-        RowSpan = RowSpan
+        RowSpan = RowSpan,
+        StructureElementKey = StructureElementKey
     };
 
     private static int ValidateSpan(int value, string parameterName) {

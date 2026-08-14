@@ -88,6 +88,79 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RowSubgridInheritsResolvedParentTracksGapAndLineNames() {
+        const string html = """
+            <div style="display:grid;width:100px;grid-template-columns:100px;grid-template-rows:[top] 30px [middle] 50px [bottom];row-gap:10px">
+              <div style="display:grid;grid-row:top / bottom;grid-template-rows:subgrid">
+                <span id="row-subgrid-a" style="grid-row:top / middle;background:#ff0000">A</span>
+                <span id="row-subgrid-b" style="grid-row:middle / bottom;background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#row-subgrid-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#row-subgrid-b");
+
+        Assert.Equal(0D, first.Y, 3);
+        Assert.Equal(30D, first.Height, 3);
+        Assert.Equal(40D, second.Y, 3);
+        Assert.Equal(50D, second.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_RowSubgridCentersAuthoredGapAndInsetsOnInheritedLines() {
+        const string html = """
+            <div style="display:grid;width:100px;grid-template-rows:40px 60px;row-gap:10px">
+              <div style="display:grid;grid-row:1 / span 2;grid-template-rows:subgrid;row-gap:20px;padding-top:4px;padding-bottom:6px;border-top:2px solid black;border-bottom:3px solid black">
+                <span id="inset-row-a" style="background:#ff0000">A</span>
+                <span id="inset-row-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#inset-row-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#inset-row-b");
+
+        Assert.Equal(6D, first.Y, 3);
+        Assert.Equal(29D, first.Height, 3);
+        Assert.Equal(55D, second.Y, 3);
+        Assert.Equal(46D, second.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_PlacesDefiniteRowAutomaticColumnBeforeFullyAutomaticSiblings() {
+        const string html = """
+            <style>.cell{padding:7px;background:#eeeeee;border:1px solid #999}.badge{padding:7px;background:#00ff00}</style>
+            <div style="display:grid;width:729px;grid-template-columns:1fr 1fr;grid-template-rows:34px 52px;gap:8px">
+              <div style="display:grid;grid-row:1/3;grid-template-rows:subgrid;row-gap:inherit">
+                <div id="row-auto-a" class="cell">Inherited row A</div>
+                <div id="row-auto-b" class="cell">Inherited row B</div>
+              </div>
+              <div id="automatic-a" class="badge">Clipped vector badge</div>
+              <div id="automatic-b" class="cell">Named page evidence</div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 230D);
+        HtmlRenderShape first = FindGridShape(rendered, "div#row-auto-a");
+        HtmlRenderShape second = FindGridShape(rendered, "div#row-auto-b");
+        HtmlRenderShape automaticFirst = FindGridShape(rendered, "div#automatic-a");
+        HtmlRenderShape automaticSecond = FindGridShape(rendered, "div#automatic-b");
+
+        Assert.Equal(0D, first.X, 3);
+        Assert.Equal(0D, second.X, 3);
+        Assert.True(automaticFirst.X > first.X);
+        Assert.Equal(automaticFirst.X, automaticSecond.X, 3);
+        Assert.Equal(0D, automaticFirst.Y, 3);
+        Assert.True(automaticSecond.Y > automaticFirst.Y);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_ColumnSubgridFitsInheritedTracksInsideItsEdgeInsets() {
         const string html = """
             <div style="display:grid;width:210px;grid-template-columns:60px 140px;column-gap:10px">

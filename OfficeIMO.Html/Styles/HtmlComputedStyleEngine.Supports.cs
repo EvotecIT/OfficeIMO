@@ -179,6 +179,23 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
+        if (string.Equals(propertyName, "clip-path", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssClipPathParser.IsSupportedSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "-officeimo-pdf-tag-type", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderStyleResolver.IsSupportedPdfTagType(normalized);
+        }
+        if (string.Equals(propertyName, "bookmark-level", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "none"
+                || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int level)
+                && level >= 1 && level <= 64;
+        }
+        if (string.Equals(propertyName, "bookmark-state", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "open" || normalized == "closed";
+        }
+        if (string.Equals(propertyName, "bookmark-label", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "content(text)" || IsQuotedCssString(value.Trim());
+        }
         if (string.Equals(propertyName, "border-radius", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBorderRadiusParser.IsSupportedShorthandSyntax(normalized);
         }
@@ -277,6 +294,9 @@ public static partial class HtmlComputedStyleEngine {
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "position":
+                return IsKnownKeyword(normalized, "static", "relative", "absolute", "fixed", "sticky")
+                    || HtmlCssRunningElementParser.TryParsePosition(value, out _);
             case "container-type":
                 return IsKnownKeyword(normalized, "normal", "size", "inline-size");
             case "container-name":
@@ -351,6 +371,9 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool IsCssWideKeyword(string value) =>
         IsKnownKeyword(value, "inherit", "initial", "revert", "revert-layer", "unset");
+
+    private static bool IsQuotedCssString(string value) =>
+        value.Length >= 2 && (value[0] == '\'' || value[0] == '"') && value[value.Length - 1] == value[0];
 
     private static bool IsSupportedHyphenateCharacterSyntax(string value) {
         if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return true;

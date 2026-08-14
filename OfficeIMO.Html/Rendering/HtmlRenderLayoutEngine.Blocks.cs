@@ -55,6 +55,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (childStyle.Display == "none") {
                     continue;
                 }
+                if (HtmlCssRunningElementParser.TryParsePosition(childStyle.Position, out string runningElementName)) {
+                    double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
+                    flowHeight += inlineHeight;
+                    if (inlineHeight > 0D) adjoiningMargins.Clear();
+                    HtmlRenderBoxStyle captureStyle = childStyle.Clone();
+                    captureStyle.Position = "static";
+                    captureStyle.ZIndex = "auto";
+                    HtmlRenderFlowBlock snapshot = LayoutElement(element, width, captureStyle, parentStyle, depth + 1);
+                    int snapshotId = ++_nextRunningElementSnapshotId;
+                    _runningElementSnapshots[snapshotId] = new HtmlCssRunningElementSnapshot(snapshot, element, parentStyle, depth + 1);
+                    blocks.Add(new HtmlRenderFlowBlock(
+                        width,
+                        0D,
+                        Array.Empty<HtmlRenderVisual>(),
+                        HtmlPageBreakTarget.None,
+                        HtmlPageBreakTarget.None,
+                        false,
+                        HtmlRenderStyleResolver.DescribeSource(element),
+                        runningStringAssignments: new[] {
+                            new HtmlCssRunningStringAssignment(
+                                HtmlCssRunningElementKeys.ForName(runningElementName),
+                                HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
+                                0D)
+                        },
+                        layoutViewportWidth: ActiveSurfaceWidth,
+                        layoutViewportHeight: _activePageGeometry.Height));
+                    adjoiningMargins.Clear();
+                    continue;
+                }
                 if (childStyle.Display == "contents" && HasBlockChildren(element, width, childStyle, depth + 1)) {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
@@ -265,21 +294,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        if (tag == "img") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutImage(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(mathBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutFormControl(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutTable(element, containingWidth, style, depth, continuationTarget), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(LayoutHorizontalRule(element, containingWidth, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "img") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
-            flexBlock = ApplyElementSemantics(flexBlock, element);
+            flexBlock = ApplyElementSemantics(flexBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
         if (style.Display == "grid" && TryLayoutGridContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock gridBlock)) {
-            gridBlock = ApplyElementSemantics(gridBlock, element);
+            gridBlock = ApplyElementSemantics(gridBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(gridBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
         if (TryLayoutMultiColumnContainer(element, containingWidth, style, depth, out HtmlRenderFlowBlock columnsBlock)) {
-            columnsBlock = ApplyElementSemantics(columnsBlock, element);
+            columnsBlock = ApplyElementSemantics(columnsBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(columnsBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
 
@@ -493,7 +522,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)));
-        block = ApplyElementSemantics(block, element);
+        block = ApplyElementSemantics(block, element, style);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element), style, element, collapsesThrough));
     }

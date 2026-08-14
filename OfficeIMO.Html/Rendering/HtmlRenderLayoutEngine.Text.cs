@@ -35,7 +35,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         runs = ApplyScopedFontFallbacks(runs);
 
-        if (formattingContainer != null && HtmlRenderHeading.TryGetLevel(parentStyle.SemanticRole, out _)) {
+        if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
             foreach (HtmlInlineRun run in runs) run.AssignSemanticNode(parentStyle.SemanticRole, semanticNodeId);
         }
@@ -117,9 +117,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
+        RegisterInlineSemanticControls(element, style);
         string? link = inheritedLink;
         if (tag == "a") {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
+        }
+        if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
+            HtmlRenderBoxStyle captureStyle = style.Clone();
+            captureStyle.Position = "static";
+            captureStyle.ZIndex = "auto";
+            HtmlRenderFlowBlock snapshot = LayoutElement(element, width, captureStyle, inheritedStyle, depth + 1);
+            int snapshotId = ++_nextRunningElementSnapshotId;
+            _runningElementSnapshots[snapshotId] = new HtmlCssRunningElementSnapshot(snapshot, element, inheritedStyle, depth + 1);
+            runs.Add(new HtmlInlineRun(
+                new HtmlCssRunningStringAssignment(
+                    HtmlCssRunningElementKeys.ForName(runningElementName),
+                    HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
+                    0D),
+                style,
+                HtmlRenderStyleResolver.DescribeSource(element)));
+            return;
         }
         if ((style.Position == "relative" || style.Position == "sticky") && style.ZIndex != "auto") {
             _inlineStackingElements.Add(element);
@@ -153,7 +170,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double outerWidth = ResolveFormControlOuterWidth(element, style, width);
             HtmlRenderFlowBlock control = LayoutFormControl(element, outerWidth, style);
             control = ApplyElementPaintEffects(control, style, outerWidth, element, out _);
-            runs.Add(new HtmlInlineRun(
+            var controlRun = new HtmlInlineRun(
                 control,
                 style,
                 link,
@@ -161,7 +178,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 inheritedPaintOffsetX + controlOffsetX,
                 inheritedPaintOffsetY + controlOffsetY,
                 element,
-                isReplacedImage: true));
+                isReplacedImage: true);
+            int controlNodeId = GetSemanticNodeId(element);
+            if (ShouldAssignNavigationNode(style)) {
+                controlRun.AssignSemanticNode(style.SemanticRole, controlNodeId, ResolveBookmarkAnchorText(element, style));
+            }
+            AssignInlineSemanticGroup(controlRun, style, controlNodeId);
+            runs.Add(controlRun);
             return;
         }
 
@@ -191,7 +214,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
         double paintOffsetY = inheritedPaintOffsetY + elementPaintOffsetY;
 
-        List<HtmlInlineRun>? semanticRuns = HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
+        List<HtmlInlineRun>? semanticRuns = ShouldCollectSemanticInlineRuns(style)
             ? new List<HtmlInlineRun>()
             : null;
         ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
@@ -215,6 +238,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AppendSemanticInlineRuns(element, style, semanticRuns, runs);
     }
 
+    private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>
+        HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
+        || style.BookmarkLevelSpecified
+        || style.BookmarkLabel != null
+        || style.BookmarkState != HtmlRenderBookmarkState.Default;
+
+    private static bool ShouldCollectSemanticInlineRuns(HtmlRenderBoxStyle style) =>
+        ShouldAssignNavigationNode(style)
+        || style.SemanticArtifact
+        || style.SemanticGroupRoleOverride.HasValue;
+
     private void AppendSemanticInlineRuns(
         IElement element,
         HtmlRenderBoxStyle style,
@@ -222,10 +256,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlInlineRun> destination) {
         if (semanticRuns == null) return;
         int nodeId = GetSemanticNodeId(element);
+        string bookmarkAnchorText = ResolveBookmarkAnchorText(element, style);
         foreach (HtmlInlineRun run in semanticRuns) {
-            run.AssignSemanticNode(style.SemanticRole, nodeId);
+            if (ShouldAssignNavigationNode(style)) run.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
+            AssignInlineSemanticGroup(run, style, nodeId);
             destination.Add(run);
         }
+    }
+
+    private static void AssignInlineSemanticGroup(HtmlInlineRun run, HtmlRenderBoxStyle style, int semanticNodeId) {
+        string structureElementKey = "html-inline:" + semanticNodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (style.SemanticArtifact) run.AssignInlineSemanticGroup(HtmlRenderSemanticGroupRole.Artifact, structureElementKey);
+        else if (style.SemanticGroupRoleOverride.HasValue) run.AssignInlineSemanticGroup(style.SemanticGroupRoleOverride.Value, structureElementKey);
     }
 
     private void ReportUnsupportedBidi(IText textNode, HtmlRenderBoxStyle style) {
@@ -234,6 +276,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool joiningScript = OfficeTextElements.ContainsJoiningScript(textNode.Data)
             && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(textNode.Data);
         if (!joiningScript) return;
+        IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
+            textNode.Data,
+            style.Font.FamilyName,
+            style.Font.Style);
+        bool allUnsupportedRunsShaped = true;
+        foreach (OfficeFontFallbackRun fallback in fallbackRuns) {
+            if (!OfficeTextElements.ContainsJoiningScript(fallback.Text)
+                || OfficeArabicTextShaper.CanShapeAllJoiningCharacters(fallback.Text)) continue;
+            HtmlRenderBoxStyle fallbackStyle = style.Clone();
+            fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
+            if (!TryShapeWithConfiguredProvider(fallback.Text, fallbackStyle)) {
+                allUnsupportedRunsShaped = false;
+                break;
+            }
+        }
+        if (allUnsupportedRunsShaped) return;
         _reportedBidiElements.Add(element);
         _diagnostics.Add(
             ComponentName,
@@ -242,6 +300,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlDiagnosticSeverity.Warning,
             HtmlRenderStyleResolver.DescribeSource(element),
             "joining-script");
+    }
+
+    private bool TryShapeWithConfiguredProvider(string text, HtmlRenderBoxStyle style) {
+        IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
+        if (provider == null) return false;
+
+        OfficeTrueTypeFont? font = _fonts.ResolveForText(
+            text,
+            style.Font.FamilyName,
+            style.Font.Style,
+            out OfficeFontStyle _);
+        if (font == null) return false;
+
+        _cancellationToken.ThrowIfCancellationRequested();
+        string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
+        OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
+            logicalText,
+            font.DisplayName ?? style.Font.FamilyName,
+            font.FontDataForShaping,
+            isOpenTypeCff: false,
+            font.UnitsPerEm,
+            OfficeTextElements.ResolveBaseDirection(logicalText),
+            _options.TextShapingLanguage,
+            _cancellationToken,
+            font.CollectionIndex,
+            cloneFontData: false));
+        if (result == null) return false;
+
+        _ = font.CreateShapedTextRun(logicalText, result);
+        return true;
     }
 
     private HtmlInlineLayout LayoutInlineRuns(
@@ -258,6 +346,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             run.AtomicBlock == null
             && run.PositionedMarkerElement == null
             && run.RunningStringElement == null
+            && run.RunningElementAssignment == null
             && run.Text.IndexOf('\u2028') < 0
             && run.Text.IndexOf('\n') < 0
             && run.Text.IndexOf('\r') < 0);
@@ -286,6 +375,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 noWrapRangeStartedAfterContent = line.HasFlowContent;
             }
             if (run.RunningStringElement != null) {
+                line.Add(new InlineSegment(string.Empty, 0D, run));
+                continue;
+            }
+            if (run.RunningElementAssignment != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
                 continue;
             }
@@ -1045,7 +1138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
             InlineSegment segment = line.Segments[index];
-            if (segment.Run.RunningStringElement != null) continue;
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
             if (!IsWhitespaceToken(segment.Text)) break;
             if (segment.Run.Style.BreakSpaces) break;
             line.RemoveAt(index);
@@ -1067,6 +1160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (InlineSegment segment in range) {
                 if (!line.HasFlowContent
                     && segment.Run.RunningStringElement == null
+                    && segment.Run.RunningElementAssignment == null
                     && IsWhitespaceToken(segment.Text)
                     && !segment.Run.Style.PreserveWhitespace) {
                     continue;
@@ -1077,7 +1171,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
             InlineSegment segment = line.Segments[index];
-            if (segment.Run.RunningStringElement != null) continue;
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
             return IsWhitespaceToken(segment.Text) && !segment.Run.Style.PreserveWhitespace;
         }
         return false;
@@ -1111,11 +1205,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void Add(InlineSegment segment) {
             Segments.Add(segment);
             Width += segment.Width;
-            if (segment.Run.RunningStringElement == null) _flowContentCount++;
+            if (segment.Run.RunningStringElement == null && segment.Run.RunningElementAssignment == null) _flowContentCount++;
         }
 
         internal void RemoveAt(int index) {
-            if (Segments[index].Run.RunningStringElement == null) _flowContentCount--;
+            if (Segments[index].Run.RunningStringElement == null && Segments[index].Run.RunningElementAssignment == null) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
         }

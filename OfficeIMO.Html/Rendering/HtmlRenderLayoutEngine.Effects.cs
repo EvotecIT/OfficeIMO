@@ -23,11 +23,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool hasTransform = style.Transform != "none";
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
+        HtmlCssResolvedClipPath? clipPath = null;
+        bool hasClipPath = style.ClipPath != "none";
+        if (hasClipPath && !HtmlCssClipPathParser.TryResolve(
+                style.ClipPath,
+                boxWidth,
+                boxHeight,
+                style.Font.Size,
+                _options.DefaultFontSize,
+                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
+                _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
+                style.ContainerUnitWidth ?? double.NaN,
+                style.ContainerUnitHeight ?? double.NaN,
+                out clipPath,
+                out string clipDetail)) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.ClipPathValueUnsupported,
+                "A CSS clip-path value used no clipping.",
+                HtmlDiagnosticSeverity.Warning,
+                source,
+                clipDetail,
+                OfficeConversionLossKind.Omission);
+            hasClipPath = false;
+        }
         OfficeTransform transform = OfficeTransform.Identity;
         if (hasTransform) {
-            double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-            double boxWidth = ResolveBoxWidth(availableWidth, style);
-            double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
             if (!HtmlCssTransformParser.TryParse(
                     style.Transform,
                     style.TransformOrigin,
@@ -56,13 +80,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         bool hasOpacity = style.OpacityWasSpecified && style.UnsupportedOpacity.Length == 0 && style.Opacity < 1D;
-        createsStackingContext = hasTransform || hasOpacity;
+        createsStackingContext = hasTransform || hasOpacity || hasClipPath;
         if (!createsStackingContext || block.Visuals.Count == 0) return block;
-        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity
+        IReadOnlyList<HtmlRenderVisual> effectVisuals = hasTransform || hasOpacity || hasClipPath
             ? ReplaceDescendantFormFieldsForPaintEffect(
                 block.Visuals,
-                hasTransform ? "ancestor-transform=" + source : "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                hasTransform ? "ancestor-transform=" + source
+                    : hasOpacity ? "ancestor-opacity=" + style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    : "ancestor-clip-path=" + style.ClipPath)
             : block.Visuals;
+        if (clipPath != null) {
+            effectVisuals = new[] {
+                new HtmlRenderPathClipGroup(
+                    style.MarginLeft + clipPath.X,
+                    style.MarginTop + clipPath.Y,
+                    clipPath.ClipPath,
+                    effectVisuals,
+                    0,
+                    source)
+            };
+        }
+        if (!hasTransform && !hasOpacity) return block.WithVisuals(effectVisuals);
         var group = new HtmlRenderEffectGroup(
             0D,
             0D,
@@ -102,10 +140,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportUnsupportedInlinePaintEffects(IElement element, HtmlRenderBoxStyle style) {
         bool transform = style.Transform != "none";
         bool opacity = style.OpacityWasSpecified && (style.Opacity < 1D || style.UnsupportedOpacity.Length > 0);
-        if (!transform && !opacity) return;
-        var details = new List<string>(2);
+        bool clipPath = style.ClipPath != "none";
+        if (!transform && !opacity && !clipPath) return;
+        var details = new List<string>(3);
         if (transform) details.Add("transform=" + style.Transform);
         if (opacity) details.Add("opacity=" + (style.UnsupportedOpacity.Length > 0 ? style.UnsupportedOpacity : style.Opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        if (clipPath) details.Add("clip-path=" + style.ClipPath);
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported,

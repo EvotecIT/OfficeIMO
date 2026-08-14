@@ -266,7 +266,32 @@ internal static class HtmlRenderingCorpus {
             new[] { "Multilingual Summary", "שלום 123", "سلام 456", "Zażółć", "Příliš žluťoučký", "Έγγραφο" },
             minimumVisualCount: 28,
             minimumHeadingCount: 3,
-            forbiddenDiagnosticCodes: new[] { "GridLayoutPending" })
+            forbiddenDiagnosticCodes: new[] { "GridLayoutPending" }),
+        new HtmlRenderingCorpusCase(
+            "static-standards-showcase",
+            HtmlRenderMode.Paged,
+            """
+            <style>
+              @page{margin:44px 32px 38px;@top-center{content:element(doc-header,first)}@bottom-right{content:"Page " counter(page) " / " counter(pages)}}
+              body{margin:0;font:12px/1.4 Arial,sans-serif;color:#172033}.running{position:running(doc-header);margin:0;padding:4px;border-bottom:1px solid #315b8a;color:#315b8a}
+              section{break-after:page;-officeimo-pdf-tag-type:Sect}section:last-child{break-after:auto}h1{bookmark-level:1;bookmark-state:open}h2{bookmark-level:2}
+              .matrix{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:34px 52px;gap:8px}.sub{display:grid;grid-column:1;grid-row:1/3;grid-template-rows:subgrid;row-gap:inherit}
+              .cell{padding:7px;background:linear-gradient(135deg,#edf4ff,#fff);border:1px solid #b9c9dc}.badge{clip-path:polygon(0 0,100% 0,88% 100%,0 100%);background:#315b8a;color:white;padding:7px}
+              svg{width:150px;height:62px}path{fill:none;stroke:#2a7a58;stroke-width:4}
+            </style>
+            <header class="running">Managed static standards · vector output</header>
+            <section><h1>Static standards packet</h1><p>Deterministic page one content remains searchable and tagged.</p>
+              <div class="matrix"><div id="static-subgrid" class="sub"><div id="static-row-a" class="cell">Inherited row A</div><div id="static-row-b" class="cell">Inherited row B</div></div><div id="static-badge" class="badge">Clipped vector badge</div><div id="static-evidence" class="cell">Named page evidence</div></div>
+              <svg viewBox="0 0 150 62" role="img" aria-label="Vector trend"><path d="M5 52 L42 31 L79 40 L113 15 L145 7"/></svg>
+            </section>
+            <section><h2>Second-page evidence</h2><p>Running elements, counters, outlines, and artifact tagging remain deterministic.</p></section>
+            """,
+            new[] { "Static standards packet", "Inherited row A", "Clipped vector badge", "Second-page evidence", "artifact tagging" },
+            expectedPageCount: 2,
+            minimumVisualCount: 2,
+            minimumHeadingCount: 2,
+            forbiddenDiagnosticCodes: new[] { "HtmlRenderGridLayoutPending", "HtmlRenderClipPathValueUnsupported", "HtmlRenderPositioningModeUnsupported" },
+            requireNoLoss: true)
     };
 }
 
@@ -285,7 +310,8 @@ internal sealed class HtmlRenderingCorpusCase {
         int minimumVisualCount = 2,
         int minimumHeadingCount = 1,
         IReadOnlyList<string>? forbiddenDiagnosticCodes = null,
-        IReadOnlyList<string>? requiredVisualSources = null) {
+        IReadOnlyList<string>? requiredVisualSources = null,
+        bool requireNoLoss = false) {
         Id = id;
         Mode = mode;
         Html = html;
@@ -297,6 +323,7 @@ internal sealed class HtmlRenderingCorpusCase {
         MinimumHeadingCount = minimumHeadingCount;
         ForbiddenDiagnosticCodes = forbiddenDiagnosticCodes ?? Array.Empty<string>();
         RequiredVisualSources = requiredVisualSources ?? Array.Empty<string>();
+        RequireNoLoss = requireNoLoss;
     }
 
     internal string Id { get; }
@@ -310,6 +337,7 @@ internal sealed class HtmlRenderingCorpusCase {
     internal int MinimumHeadingCount { get; }
     internal IReadOnlyList<string> ForbiddenDiagnosticCodes { get; }
     internal IReadOnlyList<string> RequiredVisualSources { get; }
+    internal bool RequireNoLoss { get; }
     internal double ExpectedSurfaceWidth => Mode == HtmlRenderMode.Paged ? 8.27D * HtmlRenderOptions.CssPixelsPerInch : 640D;
 
     internal HtmlRenderOptions CreateOptions() => new HtmlRenderOptions {
@@ -319,6 +347,7 @@ internal sealed class HtmlRenderingCorpusCase {
         Margins = HtmlRenderMargins.All(40D),
         Scale = 0.5D,
         BackgroundColor = OfficeColor.White,
-        UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
+        FidelityPolicy = RequireNoLoss ? HtmlRenderFidelityPolicy.RequireNoLoss : HtmlRenderFidelityPolicy.AllowDiagnosedLoss
     };
 }

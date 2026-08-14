@@ -12,7 +12,7 @@ public sealed class HtmlRenderDocument {
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
     private readonly HtmlDiagnosticReport _diagnosticReport;
 
-    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null) {
+    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null) {
         Mode = mode;
         _pages = new List<HtmlRenderPage>(pages ?? throw new ArgumentNullException(nameof(pages))).AsReadOnly();
         if (_pages.Count == 0) {
@@ -22,7 +22,7 @@ public sealed class HtmlRenderDocument {
         _diagnosticReport = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
-        _headings = BuildHeadings(_pages).AsReadOnly();
+        _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
 
     /// <summary>Layout mode used to produce the result.</summary>
@@ -33,6 +33,21 @@ public sealed class HtmlRenderDocument {
 
     /// <summary>Diagnostics emitted while parsing, laying out, and preparing paint operations.</summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnosticReport.Diagnostics;
+
+    /// <summary>
+    /// Whether rendering reported an approximation, omission, or failure. Renderer warnings are
+    /// deliberately treated as loss unless they are informational diagnostics.
+    /// </summary>
+    public bool HasLoss => _diagnosticReport.Any(static diagnostic =>
+        diagnostic.LossKind != OfficeConversionLossKind.None
+        || diagnostic.Severity == HtmlDiagnosticSeverity.Warning
+        || diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+
+    /// <summary>Throws with the complete structured report when the render was not lossless.</summary>
+    public HtmlRenderDocument RequireNoLoss() {
+        if (HasLoss) throw new HtmlConversionException(Diagnostics);
+        return this;
+    }
 
     internal HtmlDiagnosticReport DiagnosticReport => _diagnosticReport;
 
@@ -83,11 +98,20 @@ public sealed class HtmlRenderDocument {
         : visual is HtmlRenderLogicalTextGroup logicalTextGroup ? logicalTextGroup.Visuals
         : visual is HtmlRenderFormField formField ? formField.Visuals : null;
 
-    private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages) {
+    private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)>();
         foreach (HtmlRenderPage page in pages) {
+            foreach (HtmlRenderBookmarkAnchor anchor in EnumerateVisuals(page.Scene).OfType<HtmlRenderBookmarkAnchor>()) {
+                if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
+                fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, anchor.X, anchor.Y, anchor.PaintOrder));
+            }
             foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene)) {
-                if (!text.SemanticNodeId.HasValue || !HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level)) continue;
+                if (!text.SemanticNodeId.HasValue) continue;
+                bool automatic = HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level);
+                if (bookmarks != null && bookmarks.TryGetValue(text.SemanticNodeId.Value, out HtmlRenderBookmarkDefinition? definition)) {
+                    if (definition.Suppressed) continue;
+                    level = definition.Level;
+                } else if (!automatic) continue;
                 fragments.Add((text.SemanticNodeId.Value, level, text.Text, page.PageNumber, text.X, text.Y, text.PaintOrder));
             }
         }
@@ -101,7 +125,10 @@ public sealed class HtmlRenderDocument {
             var first = ordered[0];
             string headingText = string.Concat(ordered.Select(item => item.Text)).Trim();
             if (headingText.Length == 0) continue;
-            headings.Add(new HtmlRenderHeading(first.NodeId, first.Level, headingText, first.PageNumber, first.X, first.Y));
+            HtmlRenderBookmarkDefinition? definition = null;
+            bookmarks?.TryGetValue(first.NodeId, out definition);
+            string label = string.IsNullOrWhiteSpace(definition?.Label) ? headingText : definition!.Label!;
+            headings.Add(new HtmlRenderHeading(first.NodeId, first.Level, label, first.PageNumber, first.X, first.Y, definition?.State ?? HtmlRenderBookmarkState.Default));
         }
 
         return headings;

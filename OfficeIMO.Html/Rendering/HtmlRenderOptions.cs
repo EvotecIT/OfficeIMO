@@ -27,6 +27,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Continuous or paged layout mode.</summary>
     public HtmlRenderMode Mode { get; set; } = HtmlRenderMode.Continuous;
 
+    /// <summary>
+    /// Determines whether diagnosed approximations, omissions, or failures may be returned.
+    /// Strict rendering rejects every warning or error after collecting the complete diagnostic report.
+    /// </summary>
+    public HtmlRenderFidelityPolicy FidelityPolicy { get; set; } = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
+
     /// <summary>Viewport width for continuous rendering, in CSS pixels.</summary>
     public double ViewportWidth { get; set; } = 816D;
 
@@ -184,6 +190,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     protected internal T CopyTo<T>(T target) where T : HtmlRenderOptions {
         CopyImageExportOptionsTo(target);
         target.Mode = Mode;
+        target.FidelityPolicy = FidelityPolicy;
         target.ViewportWidth = ViewportWidth;
         target.ViewportHeight = ViewportHeight;
         target.PageSize = PageSize;
@@ -237,6 +244,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     internal void Validate() {
         ValidateImageExportOptions();
+        if (FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+            && FidelityPolicy != HtmlRenderFidelityPolicy.RequireNoLoss) {
+            throw new ArgumentOutOfRangeException(nameof(FidelityPolicy));
+        }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (ViewportHeight.HasValue) {
             ValidatePositive(ViewportHeight.Value, nameof(ViewportHeight));

@@ -39,6 +39,52 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(incident.Select(fragment => Math.Round(fragment.Y, 3)).Distinct());
     }
 
+    [Fact]
+    public void HtmlRenderingCorpus_StaticStandardsGridUsesTwoAuthoredColumns() {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == "static-standards-showcase");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
+        HtmlRenderText firstRow = Assert.Single(
+            rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).OfType<HtmlRenderText>(),
+            text => text.Text == "Inherited row A");
+        HtmlRenderText badge = Assert.Single(
+            rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).OfType<HtmlRenderText>(),
+            text => text.Text == "Clipped vector badge");
+        HtmlRenderText evidence = Assert.Single(
+            rendered.Pages.SelectMany(page => EnumerateCorpusVisuals(page.Scene)).OfType<HtmlRenderText>(),
+            text => text.Text == "Named page evidence");
+
+        Assert.True(firstRow.X < badge.X);
+        Assert.InRange(Math.Abs(badge.X - evidence.X), 0D, 2D);
+    }
+
+    [Fact]
+    public void HtmlRenderingCorpus_StaticStandardsRunningHeaderPaintsOnEveryRasterPage() {
+        HtmlRenderingCorpusCase scenario = HtmlRenderingCorpus.All.Single(item => item.Id == "static-standards-showcase");
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, scenario.CreateOptions());
+
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            OfficeDrawing drawing = page.CreateDrawing();
+            OfficeDrawingText header = Assert.Single(
+                drawing.Elements.OfType<OfficeDrawingText>(),
+                text => text.Text.Contains("Managed static standards", StringComparison.Ordinal));
+            OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, 1D, OfficeColor.White);
+            int coloredPixels = 0;
+            int left = Math.Max(0, (int)Math.Floor(header.X - 5D));
+            int top = Math.Max(0, (int)Math.Floor(header.Y - 5D));
+            int right = Math.Min(image.Width - 1, (int)Math.Ceiling(header.X + header.Width + 5D));
+            int bottom = Math.Min(image.Height - 1, (int)Math.Ceiling(header.Y + header.Height + 5D));
+            for (int y = top; y <= bottom; y++) {
+                for (int x = left; x <= right; x++) {
+                    OfficeColor pixel = image.GetPixel(x, y);
+                    if (pixel.B > pixel.R + 20 && pixel.B > pixel.G + 5) coloredPixels++;
+                }
+            }
+
+            Assert.True(coloredPixels > 20, $"Page {page.PageNumber} running header produced only {coloredPixels} blue raster pixels.");
+        }
+    }
+
     [Theory]
     [MemberData(nameof(HtmlRenderingCorpusScenarioIds))]
     public void HtmlRenderingCorpus_ProvesSharedSceneImageAndSearchablePdf(string scenarioId) {
@@ -102,6 +148,32 @@ public sealed partial class HtmlRenderingTests {
             }
         }
         if (scenario.LinkUri != null) Assert.Contains(scenario.LinkUri, pdfInfo.LinkUris);
+
+        WriteStaticStandardsReviewArtifacts(scenario, rendered, pdf);
+    }
+
+    private static void WriteStaticStandardsReviewArtifacts(
+        HtmlRenderingCorpusCase scenario,
+        HtmlRenderDocument rendered,
+        byte[] pdf) {
+        string? directory = Environment.GetEnvironmentVariable("OFFICEIMO_HTML_STANDARDS_ARTIFACT_DIR");
+        if (scenario.Id != "static-standards-showcase" || string.IsNullOrWhiteSpace(directory)) return;
+
+        Directory.CreateDirectory(directory);
+        File.WriteAllBytes(Path.Combine(directory, "static-standards.pdf"), pdf);
+        for (int pageIndex = 0; pageIndex < rendered.Pages.Count; pageIndex++) {
+            OfficeDrawing pageDrawing = rendered.Pages[pageIndex].CreateDrawing();
+            byte[] pagePng = OfficeDrawingRasterRenderer.ToPng(
+                pageDrawing,
+                1D,
+                OfficeColor.White);
+            File.WriteAllBytes(
+                Path.Combine(directory, "static-standards-page-" + (pageIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"),
+                pagePng);
+            File.WriteAllText(
+                Path.Combine(directory, "static-standards-page-" + (pageIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".svg"),
+                OfficeDrawingSvgExporter.ToSvg(pageDrawing, 1D));
+        }
     }
 
     private static string NormalizeCorpusWhitespace(string value) {

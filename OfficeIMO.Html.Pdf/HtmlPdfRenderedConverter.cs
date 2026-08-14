@@ -168,7 +168,11 @@ internal static partial class HtmlPdfRenderedConverter {
     private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, CancellationToken cancellationToken) {
         foreach (HtmlRenderHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel);
+            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel, heading.BookmarkState switch {
+                HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
+                HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
+                _ => PdfCore.PdfOutlineState.Default
+            });
         }
     }
 
@@ -309,10 +313,20 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip) {
         if (!group.Visuals.Any(ContainsPaintableVisual)) return;
+        if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
+            canvas.Artifact(nested => {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan: true, activeClip: activeClip);
+                }
+            });
+            return;
+        }
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
-            HeaderScope = MapTableHeaderScope(group.HeaderScope)
+            HeaderScope = MapTableHeaderScope(group.HeaderScope),
+            StructureElementKey = group.StructureElementKey
         };
         bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
@@ -324,6 +338,7 @@ internal static partial class HtmlPdfRenderedConverter {
     }
 
     private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
+        if (visual is HtmlRenderBookmarkAnchor) return false;
         if (visual is HtmlRenderSemanticGroup semanticGroup) return semanticGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) return logicalTextGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderClipGroup clipGroup) return clipGroup.Visuals.Any(ContainsPaintableVisual);

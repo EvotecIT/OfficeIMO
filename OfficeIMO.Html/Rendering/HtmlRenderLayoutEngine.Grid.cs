@@ -30,19 +30,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(size => GridTrack.Fixed(size, "subgrid"))
                 .ToList()
             : ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
-        List<GridTrack> rowTracks = ParseGridTracks(
-            style.GridTemplateRows,
-            declaredContentHeight ?? 0D,
-            declaredContentHeight.HasValue,
-            style,
-            source,
-            "grid-template-rows");
+        bool authoredRowSubgrid = IsSubgridTrackList(style.GridTemplateRows);
+        bool usesRowSubgrid = authoredRowSubgrid
+            && ReferenceEquals(_activeSubgridOwner, element)
+            && _activeSubgridRowSizes != null;
+        double inheritedRowGap = usesRowSubgrid && _activeSubgridRowSizes!.Count > 1
+            ? style.RowGapWasSpecified ? style.RowGap : _activeSubgridRowGap
+            : 0D;
+        List<GridTrack> rowTracks = usesRowSubgrid
+            ? ResolveRowSubgridTrackSizes(_activeSubgridRowSizes!, declaredContentHeight ?? _activeSubgridRowSizes!.Sum(), _activeSubgridRowGap, inheritedRowGap, style)
+                .Select(size => GridTrack.Fixed(size, "subgrid"))
+                .ToList()
+            : authoredRowSubgrid && _activeSubgridOwner != null
+                ? new List<GridTrack>()
+                : ParseGridTracks(
+                    style.GridTemplateRows,
+                    declaredContentHeight ?? 0D,
+                    declaredContentHeight.HasValue,
+                    style,
+                    source,
+                    "grid-template-rows");
         IReadOnlyDictionary<string, GridAreaDefinition> areas = ParseGridTemplateAreas(style.GridTemplateAreas, source, out int areaRowCount, out int areaColumnCount);
         IReadOnlyDictionary<string, int> columnLineNames = ParseGridLineNames(
             style.GridTemplateColumns,
             usesColumnSubgrid ? columnTracks.Count + 1 : (int?)null,
             usesColumnSubgrid ? _activeSubgridColumnLineNames : null);
-        IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(style.GridTemplateRows);
+        IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(
+            style.GridTemplateRows,
+            usesRowSubgrid ? rowTracks.Count + 1 : authoredRowSubgrid ? _activeSubgridRowLineCount : null,
+            authoredRowSubgrid ? _activeSubgridRowLineNames : null);
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
@@ -59,7 +75,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             CheckCancellation();
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             ApplyInitialGridItemWidth(item, style, cellWidth);
-            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames, rowLineNames: rowLineNames);
         }
 
         EnsureGridTrackCount(
@@ -71,7 +87,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style,
             source,
             "grid-auto-rows");
-        double rowGap = rowCount > 1 ? style.RowGap : 0D;
+        double rowGap = rowCount > 1
+            ? usesRowSubgrid && !style.RowGapWasSpecified ? _activeSubgridRowGap : style.RowGap
+            : 0D;
         List<double> rowSizes = ResolveNaturalGridRows(rowTracks, items, rowGap, declaredContentHeight);
         double naturalContentHeight = rowSizes.Sum() + rowGap * Math.Max(0, rowCount - 1);
         double boxHeight = ResolveBoxHeight(naturalContentHeight, boxWidth, style);
@@ -93,7 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double cellWidth = columns.SpanSize(item.Column, item.ColumnSpan);
             double cellHeight = rows.SpanSize(item.Row, item.RowSpan);
             ApplyFinalGridItemSize(item, style, cellWidth, cellHeight);
-            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames);
+            item.Block = LayoutGridItem(item, Math.Max(1D, cellWidth), style, depth + 1, columns, columnLineNames, rows, rowLineNames);
             item.OffsetX = ResolveGridHorizontalOffset(item, style, cellWidth);
         }
         ResolveGridVerticalOffsets(items, style, rows);
@@ -219,17 +237,58 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return requested - applied;
     }
 
+    private static IReadOnlyList<double> ResolveRowSubgridTrackSizes(
+        IReadOnlyList<double> inheritedSizes,
+        double contentHeight,
+        double parentGap,
+        double subgridGap,
+        HtmlRenderBoxStyle style) {
+        var sizes = inheritedSizes.Select(size => Math.Max(0D, size)).ToList();
+        if (sizes.Count == 0) return sizes;
+        if (sizes.Count == 1) {
+            sizes[0] -= style.BorderTopWidth + style.PaddingTop + style.BorderBottomWidth + style.PaddingBottom;
+        } else {
+            double halfGapDifference = (parentGap - subgridGap) / 2D;
+            sizes[0] += halfGapDifference - style.BorderTopWidth - style.PaddingTop;
+            sizes[sizes.Count - 1] += halfGapDifference - style.BorderBottomWidth - style.PaddingBottom;
+            for (int index = 1; index < sizes.Count - 1; index++) sizes[index] += halfGapDifference * 2D;
+        }
+        for (int index = 0; index < sizes.Count; index++) sizes[index] = Math.Max(0D, sizes[index]);
+
+        double targetTrackHeight = Math.Max(0D, contentHeight - subgridGap * Math.Max(0, sizes.Count - 1));
+        double adjustment = targetTrackHeight - sizes.Sum();
+        if (adjustment > 0.000001D) {
+            sizes[0] += adjustment / 2D;
+            sizes[sizes.Count - 1] += adjustment - adjustment / 2D;
+            return sizes;
+        }
+        double remaining = -adjustment;
+        for (int offset = 0; remaining > 0.000001D && offset < sizes.Count; offset++) {
+            int top = offset;
+            int bottom = sizes.Count - 1 - offset;
+            remaining = ReduceSubgridEdgeTrack(sizes, top, remaining);
+            if (remaining > 0.000001D && bottom != top) remaining = ReduceSubgridEdgeTrack(sizes, bottom, remaining);
+        }
+        return sizes;
+    }
+
     private HtmlRenderFlowBlock LayoutGridItem(
         GridItem item,
         double containingWidth,
         HtmlRenderBoxStyle parentStyle,
         int depth,
         GridAxisLayout columns,
-        IReadOnlyDictionary<string, int> columnLineNames) {
+        IReadOnlyDictionary<string, int> columnLineNames,
+        GridAxisLayout? rows = null,
+        IReadOnlyDictionary<string, int>? rowLineNames = null) {
         IElement? previousOwner = _activeSubgridOwner;
         IReadOnlyList<double>? previousSizes = _activeSubgridColumnSizes;
         IReadOnlyDictionary<string, int>? previousLineNames = _activeSubgridColumnLineNames;
         double previousGap = _activeSubgridColumnGap;
+        IReadOnlyList<double>? previousRowSizes = _activeSubgridRowSizes;
+        IReadOnlyDictionary<string, int>? previousRowLineNames = _activeSubgridRowLineNames;
+        int? previousRowLineCount = _activeSubgridRowLineCount;
+        double previousRowGap = _activeSubgridRowGap;
         try {
             _activeSubgridOwner = item.Item.Element;
             _activeSubgridColumnSizes = columns.Sizes.Skip(item.Column).Take(item.ColumnSpan).ToList();
@@ -237,12 +296,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Where(pair => pair.Value >= item.Column && pair.Value <= item.Column + item.ColumnSpan)
                 .ToDictionary(pair => pair.Key, pair => pair.Value - item.Column, StringComparer.Ordinal);
             _activeSubgridColumnGap = columns.Between;
+            _activeSubgridRowSizes = rows?.Sizes.Skip(item.Row).Take(item.RowSpan).ToList();
+            _activeSubgridRowLineNames = rowLineNames == null
+                ? null
+                : rowLineNames.Where(pair => pair.Value >= item.Row && pair.Value <= item.Row + item.RowSpan)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value - item.Row, StringComparer.Ordinal);
+            _activeSubgridRowLineCount = item.RowSpan + 1;
+            _activeSubgridRowGap = rows?.Between ?? 0D;
             return LayoutFlexItem(item.Item, containingWidth, parentStyle, depth);
         } finally {
             _activeSubgridOwner = previousOwner;
             _activeSubgridColumnSizes = previousSizes;
             _activeSubgridColumnLineNames = previousLineNames;
             _activeSubgridColumnGap = previousGap;
+            _activeSubgridRowSizes = previousRowSizes;
+            _activeSubgridRowLineNames = previousRowLineNames;
+            _activeSubgridRowLineCount = previousRowLineCount;
+            _activeSubgridRowGap = previousRowGap;
         }
     }
 

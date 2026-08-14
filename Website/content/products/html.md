@@ -39,3 +39,6 @@ byte[] png = source.ToPng(new HtmlRenderOptions { ViewportWidth = 720 });
 - Add `OfficeIMO.Mhtml` for bounded MHT/MHTML load and save, and `OfficeIMO.Mhtml.Pdf` for archive-to-PDF conversion.
 - Add `OfficeIMO.Email.Image` only when an email body must be rendered to images.
 - Apply URL, media, size, node, and depth policies before untrusted web content enters a document workflow.
+- Require a no-loss render when a static template must stay inside the declared contract; otherwise every unsupported value remains visible through stable diagnostics.
+
+The static renderer includes paged-media margin content, running elements, page counters, row and column subgrid, basic-shape clipping, vector SVG, tagged-PDF roles, and PDF bookmarks. JavaScript and live browser state remain an explicit browser-adapter concern rather than an automatic fallback.

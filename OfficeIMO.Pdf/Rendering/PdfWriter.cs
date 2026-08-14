@@ -1791,6 +1791,7 @@ internal static partial class PdfWriter {
                     PageIndex = pageIndex,
                     Title = bookmark.Title,
                     Y = bookmark.Y,
+                    OutlineState = bookmark.OutlineState,
                     Parent = parent
                 };
                 parent.Children.Add(node);
@@ -1913,6 +1914,8 @@ internal static partial class PdfWriter {
     }
 
     private static bool IsOutlineExpanded(OutlineNode node, int outlineExpansionLevel) =>
-        node.Children.Count > 0 && node.Level <= outlineExpansionLevel;
+        node.Children.Count > 0
+        && (node.OutlineState == PdfOutlineState.Open
+            || node.OutlineState == PdfOutlineState.Default && node.Level <= outlineExpansionLevel);
 
 }

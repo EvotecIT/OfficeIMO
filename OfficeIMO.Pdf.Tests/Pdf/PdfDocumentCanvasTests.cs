@@ -388,6 +388,44 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasArtifact_ExcludesDecorativeContentFromTheStructureTree() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Artifact(artifact => artifact.Text("Decoration", 10D, 10D, 100D, 20D))
+                .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Meaningful", 10D, 40D, 100D, 20D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "P"));
+        Assert.DoesNotContain("Decoration", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+
+        var canvas = new PdfPageCanvas();
+        Assert.Throws<ArgumentNullException>(() => canvas.Artifact(null!));
+        Assert.Throws<ArgumentException>(() => canvas.Artifact(_ => { }));
+    }
+
+    [Fact]
+    public void CanvasOutline_SupportsPerEntryExpansionState() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { OutlineExpansionLevel = 0 })
+            .Canvas(canvas => canvas
+                .Outline("Open parent", 1, 10D, PdfOutlineState.Open)
+                .Outline("Open child", 2, 20D)
+                .Outline("Closed parent", 1, 30D, PdfOutlineState.Closed)
+                .Outline("Closed child", 2, 40D))
+            .ToBytes();
+
+        IReadOnlyList<PdfOutlineItem> outlines = PdfReadDocument.Open(bytes).Outlines;
+        Assert.True(outlines[0].IsExpanded);
+        Assert.False(outlines[1].IsExpanded);
+        Assert.Equal("Open child", Assert.Single(outlines[0].Children).Title);
+        Assert.Equal("Closed child", Assert.Single(outlines[1].Children).Title);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Outline("Invalid", 1, 1D, (PdfOutlineState)99));
+    }
+
+    [Fact]
     public void CanvasFigure_GroupsMixedCanvasContentUnderOneTaggedFigure() {
         byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()

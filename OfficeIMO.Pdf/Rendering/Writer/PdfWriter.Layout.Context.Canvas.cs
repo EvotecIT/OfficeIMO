@@ -9,6 +9,9 @@ internal static partial class PdfWriter {
             EnsurePage();
             foreach (PdfCanvasItem item in canvas.Items) {
                 switch (item) {
+                    case PdfCanvasArtifactItem artifact:
+                        RenderCanvasArtifact(artifact);
+                        break;
                     case PdfCanvasActualTextItem actualText:
                         RenderCanvasActualText(actualText);
                         break;
@@ -62,6 +65,22 @@ internal static partial class PdfWriter {
                         break;
                 }
             }
+        }
+
+        private void RenderCanvasArtifact(PdfCanvasArtifactItem item) {
+            EnsurePage();
+            sb.Append("/Artifact BMC\n");
+            bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
+            bool previousStructure = _suppressCanvasStructureRegistration;
+            _suppressCanvasAccessibilityWrappers = true;
+            _suppressCanvasStructureRegistration = true;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousAccessibility;
+                _suppressCanvasStructureRegistration = previousStructure;
+            }
+            sb.Append("EMC\n");
         }
 
         private void RenderCanvasFormField(PdfCanvasFormFieldItem item) {
@@ -166,14 +185,31 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {
+            if (_suppressCanvasStructureRegistration) {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+                return;
+            }
             PdfCanvasStructureOptions options = item.Options;
-            int? structureElementIndex = RegisterStructureContainer(
-                MapCanvasStructureType(item.Role),
-                _canvasStructureParentElementIndex,
-                MapCanvasTableHeaderScope(options.HeaderScope),
-                options.ColumnSpan,
-                options.RowSpan,
-                options.AlternativeText);
+            string structureType = MapCanvasStructureType(item.Role);
+            string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
+            int parentElementIndex = _canvasStructureParentElementIndex ?? -1;
+            string alternativeText = options.AlternativeText ?? string.Empty;
+            int? structureElementIndex;
+            var structureKey = (options.StructureElementKey ?? string.Empty, structureType, parentElementIndex, headerScope, options.ColumnSpan, options.RowSpan, alternativeText);
+            if (options.StructureElementKey != null && canvasStructureElements.TryGetValue(structureKey, out int existingStructureElementIndex)) {
+                structureElementIndex = existingStructureElementIndex;
+            } else {
+                structureElementIndex = RegisterStructureContainer(
+                    structureType,
+                    _canvasStructureParentElementIndex,
+                    headerScope,
+                    options.ColumnSpan,
+                    options.RowSpan,
+                    options.AlternativeText);
+                if (options.StructureElementKey != null && structureElementIndex.HasValue) {
+                    canvasStructureElements[structureKey] = structureElementIndex.Value;
+                }
+            }
             int? previous = _canvasStructureParentElementIndex;
             _canvasStructureParentElementIndex = structureElementIndex ?? previous;
             try {
@@ -237,8 +273,10 @@ internal static partial class PdfWriter {
             currentPage!.Bookmarks.Add(new PageBookmark {
                 Level = item.Level,
                 Title = item.Title,
-                Y = currentOpts.PageHeight - item.Y
+                Y = currentOpts.PageHeight - item.Y,
+                OutlineState = item.State
             });
+            pageDirty = true;
         }
 
         private void RenderCanvasText(PdfCanvasTextItem item) {

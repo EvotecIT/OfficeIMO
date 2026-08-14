@@ -32,10 +32,12 @@ internal static partial class PdfWriter {
         private bool usedBoldItalic;
         private int _canvasClipDepth;
         private bool _suppressCanvasAccessibilityWrappers;
+        private bool _suppressCanvasStructureRegistration;
         private int? _canvasStructureParentElementIndex;
         private bool stopDocumentFlow;
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
         private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
+        private readonly System.Collections.Generic.Dictionary<(string Key, string Type, int Parent, string Scope, int Columns, int Rows, string AlternativeText), int> canvasStructureElements = new System.Collections.Generic.Dictionary<(string, string, int, string, int, int, string), int>();
 
         public LayoutContext(
             PdfOptions options,
@@ -80,6 +82,7 @@ internal static partial class PdfWriter {
             yStart = options.PageHeight - options.MarginTop;
             y = yStart;
             currentPage = new LayoutResult.Page { Options = options, PageGroupId = currentPageGroupId };
+            canvasStructureElements.Clear();
             sb.Clear();
             pageDirty = false;
             for (int i = 0; i < activeLayers.Count; i++) {
