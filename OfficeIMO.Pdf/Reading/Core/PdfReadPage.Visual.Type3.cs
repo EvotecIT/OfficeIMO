@@ -327,6 +327,7 @@ public sealed partial class PdfReadPage {
 
     private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image, PdfDictionary? fallbackResources = null) {
         if (!image.IsImageFile) return false;
+        if (placement.HasAuthoredRenderingIntent) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
         PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         if (imageDictionary == null && resources != null) {
@@ -339,7 +340,10 @@ public sealed partial class PdfReadPage {
         }
         if (imageDictionary != null &&
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
-            ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+            ResolveObject(optionalContentObject) is not PdfNull) return false;
+        if (imageDictionary != null &&
+            imageDictionary.Items.TryGetValue("Intent", out PdfObject? intentObject) &&
+            ResolveEffectObject(intentObject) is not PdfNull) return false;
         if (placement.InlineImageStream == null &&
             (imageDictionary == null ||
              ResolveEffectObject(imageDictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" })) return false;
@@ -586,10 +590,11 @@ public sealed partial class PdfReadPage {
 
         if (!imageDictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) return true;
         PdfObject? resolvedFilter = ResolveEffectObject(filterObject);
+        if (resolvedFilter is PdfNull) return true;
         if (resolvedFilter is PdfName filterName) return !IsInlineImageFilterAbbreviation(filterName.Name);
-        if (resolvedFilter is not PdfArray filters) return true;
+        if (resolvedFilter is not PdfArray { Items.Count: > 0 } filters) return false;
         for (int index = 0; index < filters.Items.Count; index++) {
-            if (ResolveEffectObject(filters.Items[index]) is PdfName name &&
+            if (ResolveEffectObject(filters.Items[index]) is not PdfName name ||
                 IsInlineImageFilterAbbreviation(name.Name)) return false;
         }
         return true;

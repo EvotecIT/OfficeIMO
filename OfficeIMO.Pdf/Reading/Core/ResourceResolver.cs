@@ -1111,7 +1111,8 @@ internal static partial class ResourceResolver {
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
         if (dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
             var resolvedSoftMask = ResolveObject(softMaskObj, objects);
-            if (resolvedSoftMask is PdfName softMaskName &&
+            if (resolvedSoftMask is PdfNull ||
+                resolvedSoftMask is PdfName softMaskName &&
                 string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal)) {
                 return null;
             }
@@ -1124,6 +1125,9 @@ internal static partial class ResourceResolver {
         }
 
         var resolvedMask = ResolveObject(maskObj, objects);
+        if (resolvedMask is PdfNull) {
+            return null;
+        }
         if (resolvedMask is PdfArray) {
             return "color-key-mask";
         }
@@ -1518,8 +1522,10 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        return ResolveObject(softMaskObj, objects) is not PdfName softMaskName ||
-               !string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal);
+        PdfObject? resolvedSoftMask = ResolveObject(softMaskObj, objects);
+        return resolvedSoftMask is not PdfNull &&
+            (resolvedSoftMask is not PdfName softMaskName ||
+             !string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal));
     }
 
     private static bool TryBuildPngFileWithSoftMask(

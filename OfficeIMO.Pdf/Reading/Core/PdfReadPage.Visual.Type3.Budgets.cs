@@ -25,7 +25,7 @@ public sealed partial class PdfReadPage {
             PdfReadPage owner,
             PageContentBudget pageContentBudget) =>
             _softMaskValidationContext ??= new Type3SoftMaskValidationContext(
-                _maximum,
+                this,
                 owner.CreateTextOutputBudget(),
                 pageContentBudget);
 
@@ -39,16 +39,14 @@ public sealed partial class PdfReadPage {
 
     private sealed class Type3SoftMaskValidationContext {
         internal Type3SoftMaskValidationContext(
-            int maximumType3GlyphInvocations,
+            Type3GlyphBudget type3GlyphBudget,
             TextContentParser.TextOutputBudget textOutputBudget,
             PageContentBudget pageContentBudget) {
             PageContentBudget = pageContentBudget;
-            Type3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
-            Type3GlyphBudget.AttachSoftMaskValidationContext(this);
+            Type3GlyphBudget = type3GlyphBudget;
             TextOutputBudget = textOutputBudget;
             TransparencyProofPageContentBudget = pageContentBudget;
-            TransparencyProofType3GlyphBudget = new Type3GlyphBudget(maximumType3GlyphInvocations);
-            TransparencyProofType3GlyphBudget.AttachSoftMaskValidationContext(this);
+            TransparencyProofType3GlyphBudget = type3GlyphBudget;
         }
 
         internal PageContentBudget PageContentBudget { get; }

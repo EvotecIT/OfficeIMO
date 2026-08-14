@@ -39,10 +39,17 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
+        return ContainsNonInterpolatedImage(drawing, visibleBounds: null);
+    }
+
+    private static bool ContainsNonInterpolatedImage(
+        OfficeDrawing drawing,
+        (double Left, double Top, double Right, double Bottom)? visibleBounds) {
         for (int index = 0; index < drawing.Elements.Count; index++) {
             OfficeDrawingElement element = drawing.Elements[index];
-            if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D }) return true;
-            if (element is OfficeDrawingGroup group && ContainsNonInterpolatedImage(group.InnerDrawing)) return true;
+            if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D } image &&
+                IntersectsVisibleBounds(image.Projection.GetDestinationBounds(), visibleBounds)) return true;
+            if (element is OfficeDrawingGroup group && ContainsVisibleNonInterpolatedImage(group, visibleBounds)) return true;
             if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
                 (ContainsNonInterpolatedImage(effectGroup.InnerDrawing) ||
                  (effectGroup.SoftMask != null && ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing)))) return true;
@@ -50,6 +57,56 @@ public static partial class OfficeDrawingRasterRenderer {
         }
 
         return false;
+    }
+
+    private static bool ContainsVisibleNonInterpolatedImage(
+        OfficeDrawingGroup group,
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+            return ContainsNonInterpolatedImage(group.InnerDrawing);
+        }
+
+        var groupBounds = (
+            Left: group.X,
+            Top: group.Y,
+            Right: group.X + group.ClipPath.Width,
+            Bottom: group.Y + group.ClipPath.Height);
+        if (!TryIntersectBounds(groupBounds, parentVisibleBounds, out var visibleGroupBounds)) return false;
+
+        double contentX = group.X + group.ContentOffsetX;
+        double contentY = group.Y + group.ContentOffsetY;
+        var childVisibleBounds = (
+            Left: visibleGroupBounds.Left - contentX,
+            Top: visibleGroupBounds.Top - contentY,
+            Right: visibleGroupBounds.Right - contentX,
+            Bottom: visibleGroupBounds.Bottom - contentY);
+        return ContainsNonInterpolatedImage(group.InnerDrawing, childVisibleBounds);
+    }
+
+    private static bool IntersectsVisibleBounds(
+        (double Left, double Top, double Right, double Bottom) bounds,
+        (double Left, double Top, double Right, double Bottom)? visibleBounds) =>
+        !visibleBounds.HasValue ||
+        bounds.Right > visibleBounds.Value.Left &&
+        bounds.Left < visibleBounds.Value.Right &&
+        bounds.Bottom > visibleBounds.Value.Top &&
+        bounds.Top < visibleBounds.Value.Bottom;
+
+    private static bool TryIntersectBounds(
+        (double Left, double Top, double Right, double Bottom) bounds,
+        (double Left, double Top, double Right, double Bottom)? visibleBounds,
+        out (double Left, double Top, double Right, double Bottom) intersection) {
+        if (!visibleBounds.HasValue) {
+            intersection = bounds;
+            return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+        }
+
+        intersection = (
+            System.Math.Max(bounds.Left, visibleBounds.Value.Left),
+            System.Math.Max(bounds.Top, visibleBounds.Value.Top),
+            System.Math.Min(bounds.Right, visibleBounds.Value.Right),
+            System.Math.Min(bounds.Bottom, visibleBounds.Value.Bottom));
+        return intersection.Right > intersection.Left && intersection.Bottom > intersection.Top;
     }
 
     private static OfficeRasterImage ApplySoftMask(

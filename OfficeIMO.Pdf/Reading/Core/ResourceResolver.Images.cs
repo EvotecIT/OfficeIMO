@@ -208,7 +208,7 @@ internal static partial class ResourceResolver {
 
         int baseColors;
         int outputColorType;
-        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
+        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
         PdfColorKeyMask? colorKeyMask = TryReadColorKeyMask(stream.Dictionary, colorType == 0 ? 1 : 3, objects, out PdfColorKeyMask parsedColorKeyMask)
             ? parsedColorKeyMask
             : null;
@@ -290,7 +290,7 @@ internal static partial class ResourceResolver {
             return false;
         }
         int expectedSampleCount = width * height;
-        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
+        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
         byte[]? alphaPixels = null;
         if (hasSoftMask &&
             !TryDecodeSoftMask(stream, width, height, 8, objects, out alphaPixels)) {

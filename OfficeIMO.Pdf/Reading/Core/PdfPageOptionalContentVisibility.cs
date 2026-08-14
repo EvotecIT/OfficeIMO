@@ -484,6 +484,13 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
 
+        var declaredGroups = new HashSet<long>();
+        for (int groupIndex = 0; groupIndex < groups.Items.Count; groupIndex++) {
+            if (groups.Items[groupIndex] is PdfReference declaredReference) {
+                declaredGroups.Add(GetReferenceKey(declaredReference));
+            }
+        }
+
         bool hasUnsupportedViewUsageApplications = false;
         for (int applicationIndex = 0; applicationIndex < applications.Items.Count; applicationIndex++) {
             if (ResolveObject(applications.Items[applicationIndex], objects) is not PdfDictionary application ||
@@ -498,7 +505,11 @@ internal sealed class PdfPageOptionalContentVisibility {
             PdfArray targets = ResolveObject(application.Items.TryGetValue("OCGs", out PdfObject? targetObject) ? targetObject : null, objects) as PdfArray ?? groups;
             for (int targetIndex = 0; targetIndex < targets.Items.Count; targetIndex++) {
                 if (targets.Items[targetIndex] is not PdfReference reference ||
-                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
+                    !declaredGroups.Contains(GetReferenceKey(reference))) {
+                    hasUnsupportedViewUsageApplications = true;
+                    continue;
+                }
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
                     ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||
                     ResolveObject(group.Items.TryGetValue("Usage", out PdfObject? usageObject) ? usageObject : null, objects) is not PdfDictionary usage ||
                     ResolveObject(usage.Items.TryGetValue("View", out PdfObject? viewObject) ? viewObject : null, objects) is not PdfDictionary view) {
@@ -518,6 +529,9 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
         return hasUnsupportedViewUsageApplications;
     }
+
+    private static long GetReferenceKey(PdfReference reference) =>
+        ((long)reference.ObjectNumber << 32) | (uint)reference.Generation;
 
     private static bool HasExactViewCategory(PdfDictionary application, Dictionary<int, PdfIndirectObject> objects) =>
         ResolveObject(application.Items.TryGetValue("Category", out PdfObject? value) ? value : null, objects) is PdfArray { Items.Count: 1 } names &&

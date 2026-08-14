@@ -144,6 +144,38 @@ public partial class DrawingTests {
     [Theory]
     [InlineData(OfficeBlendMode.Normal)]
     [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresClippedNearestNeighborImagesForSampling(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var clipped = new OfficeDrawing(2D, 1D);
+        clipped.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        inner.AddClippedDrawing(clipped, 0D, 0D, OfficeClipPath.Rectangle(2D, 1D), 3D, 0D);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
     public void OfficeDrawingEffectGroup_PreservesNearestNeighborSamplingFromSoftMask(OfficeBlendMode blendMode) {
         var source = new OfficeDrawing(2D, 1D);
         OfficeShape red = OfficeShape.Rectangle(2D, 1D);
