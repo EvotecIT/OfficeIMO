@@ -508,7 +508,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent: "500 0 d0 /Group Do",
             glyphResources: "<< /XObject << /Group 9 0 R >> >>",
             extraObjects: new[] {
-                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0]", "x"),
+                StreamObject(8, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true /BitsPerComponent 1 /Decode [1 0] /Interpolate true", "x"),
                 StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Im1 8 0 R >> >>", "q 500 0 0 700 0 0 cm /Im1 Do Q")
             });
 

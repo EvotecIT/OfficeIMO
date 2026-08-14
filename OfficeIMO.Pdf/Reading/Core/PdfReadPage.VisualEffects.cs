@@ -45,7 +45,8 @@ public sealed partial class PdfReadPage {
             ResolveEffectObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
         PdfDictionary? transparency = ResolveEffectObject(
             group.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyObject) ? transparencyObject : null) as PdfDictionary;
-        if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Form" } ||
+        if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||
+            ResolveEffectObject(group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Form" } ||
             transparency == null ||
             ResolveEffectObject(transparency.Items.TryGetValue("S", out PdfObject? groupSubtypeObject) ? groupSubtypeObject : null) is not PdfName { Name: "Transparency" } ||
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
@@ -81,6 +82,16 @@ public sealed partial class PdfReadPage {
                 : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+    }
+
+    private bool HasSupportedType3PageBlendColorSpace() {
+        if (!_pageDict.Items.TryGetValue("Group", out PdfObject? groupObject) ||
+            ResolveEffectObject(groupObject) is null or PdfNull) return true;
+        if (ResolveEffectObject(groupObject) is not PdfDictionary group ||
+            ResolveEffectObject(group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Transparency" }) return false;
+        if (!group.Items.TryGetValue("CS", out PdfObject? colorSpaceObject) ||
+            ResolveEffectObject(colorSpaceObject) is null or PdfNull) return true;
+        return ResolveEffectObject(colorSpaceObject) is PdfName { Name: "DeviceRGB" };
     }
 
     private bool TryReadStrictNumberArray(PdfArray array, out double[] values) {

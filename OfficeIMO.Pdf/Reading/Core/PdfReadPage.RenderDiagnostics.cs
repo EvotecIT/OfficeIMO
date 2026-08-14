@@ -355,6 +355,8 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands);
+            if (!HasSupportedType3PageBlendColorSpace() &&
+                drawingEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
             if (requireIsolatedGroupSemantics &&
                 drawingEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
             var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
@@ -883,10 +885,7 @@ public sealed partial class PdfReadPage {
         }
         if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
-        if (requireInterpolation &&
-            (!imageDictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) ||
-             ResolveEffectObject(imageMaskObject) is not PdfBoolean { Value: true }) &&
-            !ResolveType3ImageInterpolation(imageDictionary)) return false;
+        if (requireInterpolation && !ResolveType3ImageInterpolation(imageDictionary)) return false;
         if (!TryCreateImageProjection(
                 placement,
                 projectionPageHeight,

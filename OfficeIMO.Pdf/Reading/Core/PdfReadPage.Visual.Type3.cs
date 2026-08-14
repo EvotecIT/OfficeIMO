@@ -155,6 +155,8 @@ public sealed partial class PdfReadPage {
                     return false;
                 }
                 SortGraphicsEffectTransitions(localEffects);
+                if (!HasSupportedType3PageBlendColorSpace() &&
+                    localEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
                 for (int effectIndex = 0; effectIndex < localEffects.Count; effectIndex++) {
                     if (!CanDecodeType3SoftMask(
                             localEffects[effectIndex].Effect.SoftMask,

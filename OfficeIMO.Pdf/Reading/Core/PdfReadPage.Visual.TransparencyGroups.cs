@@ -120,7 +120,7 @@ public sealed partial class PdfReadPage {
             allowSupportedType3TransparencyGroups: true,
             requireNestedType3Uncolored: requireNestedType3Uncolored,
             type3ImageVisitor: (placement, image, effect) => {
-                if (!image.Interpolate && !image.IsImageMask) {
+                if (!image.Interpolate) {
                     type3GlyphBudget.RecordFailure();
                 } else {
                     elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));

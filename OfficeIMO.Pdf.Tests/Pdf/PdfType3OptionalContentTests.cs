@@ -267,6 +267,17 @@ public class PdfType3OptionalContentTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Fact]
+    public void RenderPage_EvaluatesResourceMembershipVisibilityExpressionWithoutOcgs() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            resourceMembershipDictionary: "<< /Type /OCMD /VE [/And 10 0 R] >>");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private static byte[] BuildType3OptionalContentPdf(
         bool nestedForm,
         string? inlineMembershipDictionary = null,
@@ -275,8 +286,9 @@ public class PdfType3OptionalContentTests {
         string? indirectVisibilityExpression = null,
         bool allGroupsOn = false,
         string? secondaryVisibilityExpression = null,
-        int indirectVisibilityChainLength = 0) {
-        string hiddenProperty = inlineMembershipDictionary ?? "/Hidden";
+        int indirectVisibilityChainLength = 0,
+        string? resourceMembershipDictionary = null) {
+        string hiddenProperty = inlineMembershipDictionary ?? (resourceMembershipDictionary is null ? "/Hidden" : "/Membership");
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
             : string.Empty;
@@ -285,7 +297,9 @@ public class PdfType3OptionalContentTests {
             "0 1 0 rg 250 0 250 700 re f";
         string type3Resources = nestedForm
             ? "<< /XObject << /Fm1 7 0 R >> >>"
-            : inlineMembershipDictionary is not null ? "<< >>" : "<< /Properties << /Hidden 10 0 R >> >>";
+            : inlineMembershipDictionary is not null ? "<< >>" : resourceMembershipDictionary is not null
+                ? "<< /Properties << /Membership 14 0 R >> >>"
+                : "<< /Properties << /Hidden 10 0 R >> >>";
         string glyphContent = nestedForm ? "500 0 d0 /Fm1 Do" : "500 0 d0 " + hiddenAndVisibleContent;
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [10 0 R 11 0 R] /D << /ON [" + (allGroupsOn ? "10 0 R " : string.Empty) + "11 0 R] /OFF [" + (allGroupsOn ? string.Empty : "10 0 R") + "] >> >> >>\nendobj",
@@ -299,7 +313,9 @@ public class PdfType3OptionalContentTests {
             objects.Add(StreamObject(
                 7,
                 "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources " +
-                (inlineMembershipDictionary is null ? "<< /Properties << /Hidden 10 0 R >> >>" : "<< >>"),
+                (inlineMembershipDictionary is not null ? "<< >>" : resourceMembershipDictionary is not null
+                    ? "<< /Properties << /Membership 14 0 R >> >>"
+                    : "<< /Properties << /Hidden 10 0 R >> >>"),
                 hiddenAndVisibleContent));
         }
         objects.Add("10 0 obj\n<< /Type /OCG /Name (Hidden Type 3 layer) >>\nendobj");
@@ -317,6 +333,9 @@ public class PdfType3OptionalContentTests {
         }
         if (secondaryVisibilityExpression is not null) {
             objects.Add("13 0 obj\n" + secondaryVisibilityExpression + "\nendobj");
+        }
+        if (resourceMembershipDictionary is not null) {
+            objects.Add("14 0 obj\n" + resourceMembershipDictionary + "\nendobj");
         }
         return Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
     }

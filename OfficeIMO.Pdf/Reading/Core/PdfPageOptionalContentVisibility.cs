@@ -519,14 +519,14 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
 
-        List<bool> visibilities = ReadOptionalContentMembershipGroupVisibilities(dictionary, groupVisibility, objects);
-        if (visibilities.Count == 0) {
-            return false;
-        }
-
         if (dictionary.Items.TryGetValue("VE", out PdfObject? expressionObject) &&
             TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), maxExpressionDepth, depth + 1, out bool expressionVisible)) {
             return !expressionVisible;
+        }
+
+        List<bool> visibilities = ReadOptionalContentMembershipGroupVisibilities(dictionary, groupVisibility, objects);
+        if (visibilities.Count == 0) {
+            return false;
         }
 
         string policy = ReadName(dictionary, "P", objects) ?? "AnyOn";
