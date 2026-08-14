@@ -235,8 +235,7 @@ internal static class HtmlCssClipPathParser {
     }
 
     private static bool TryLength(string value, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double length) =>
-        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length)
-        && length >= 0D;
+        HtmlRenderCssValues.TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out length);
 
     private static bool TryGetFunction(string value, out string name, out string arguments) {
         name = string.Empty;

@@ -1655,9 +1655,9 @@ public sealed partial class HtmlRenderingTests {
               .running { position: running(chapter); margin:0; padding:2px; border-bottom:1px solid #225588; color:#225588; }
               .page { margin:0; height:80px; }
             </style>
-            <header class="running">Chapter Alpha</header>
+            <h1 class="running">Chapter Alpha</h1>
             <div class="page" style="break-after:page">First body</div>
-            <header class="running">Chapter Beta</header>
+            <h1 class="running">Chapter Beta</h1>
             <div class="page">Second body</div>
             """;
         var options = new HtmlRenderOptions {
@@ -1674,6 +1674,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("ChapterAlpha", string.Concat(secondPageText), StringComparison.Ordinal);
         Assert.Contains("ChapterBeta", string.Concat(secondPageText), StringComparison.Ordinal);
         Assert.DoesNotContain("ChapterBeta", string.Concat(firstPageText), StringComparison.Ordinal);
+        Assert.Empty(rendered.Headings);
         Assert.All(
             rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
             group => {
@@ -1689,6 +1690,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string raw = Encoding.ASCII.GetString(pdf);
         string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
         Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Alpha", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("Chapter Beta", pdfText, StringComparison.Ordinal);
@@ -2048,11 +2050,12 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRender_InvalidPdfControlsOnSpecializedAndInlineElementsAreNeverSilent() {
-        const string html = "<hr style='-officeimo-pdf-tag-type:made-up;bookmark-state:sideways'><p><span style='-officeimo-pdf-tag-type:also-made-up;bookmark-state:sideways'>Text</span></p>";
+        const string html = "<hr style='-officeimo-pdf-tag-type:made-up;bookmark-state:sideways'><p><span style='-officeimo-pdf-tag-type:also-made-up;bookmark-state:sideways'>Text</span></p><div style='bookmark-level:bogus'>Not a heading</div>";
 
         HtmlRenderDocument permissive = HtmlRenderTestDriver.Render(html);
         Assert.Equal(2, permissive.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PdfSemanticTagUnsupported));
-        Assert.Equal(2, permissive.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BookmarkValueUnsupported));
+        Assert.Equal(3, permissive.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BookmarkValueUnsupported));
+        Assert.DoesNotContain(permissive.Headings, heading => heading.Text.Contains("Not a heading", StringComparison.Ordinal));
 
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss

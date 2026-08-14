@@ -452,6 +452,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_DoesNotLeakRowSubgridTracksThroughANonGridWrapper() {
+        const string html = """
+            <div style="display:grid;width:200px;grid-template-rows:[top] 40px [middle] 40px [bottom]">
+              <div style="grid-row:top / bottom"><section><div id="nested" style="display:grid;grid-template-rows:subgrid"><span>A</span><span>B</span></div></section></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 220D);
+
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
+            && diagnostic.Source == "div#nested");
+        Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 220D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        }));
+    }
+
+    [Fact]
     public void HtmlGrid_FractionalAutomaticMinimumOverflowUsesDiagnosedFallback() {
         const string html = """
             <div style="display:grid;width:120px;grid-template-columns:1fr 1fr">

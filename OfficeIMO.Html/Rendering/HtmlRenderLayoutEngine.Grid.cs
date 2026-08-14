@@ -31,8 +31,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .ToList()
             : ParseGridTracks(style.GridTemplateColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         bool authoredRowSubgrid = IsSubgridTrackList(style.GridTemplateRows);
-        bool usesRowSubgrid = authoredRowSubgrid
-            && ReferenceEquals(_activeSubgridOwner, element)
+        bool isRowSubgridOwner = authoredRowSubgrid && ReferenceEquals(_activeSubgridOwner, element);
+        bool usesRowSubgrid = isRowSubgridOwner
             && _activeSubgridRowSizes != null;
         double inheritedRowGap = usesRowSubgrid && _activeSubgridRowSizes!.Count > 1
             ? style.RowGapWasSpecified ? style.RowGap : _activeSubgridRowGap
@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? ResolveRowSubgridTrackSizes(_activeSubgridRowSizes!, declaredContentHeight ?? _activeSubgridRowSizes!.Sum(), _activeSubgridRowGap, inheritedRowGap, style)
                 .Select(size => GridTrack.Fixed(size, "subgrid"))
                 .ToList()
-            : authoredRowSubgrid && _activeSubgridOwner != null
+            : isRowSubgridOwner
                 ? new List<GridTrack>()
                 : ParseGridTracks(
                     style.GridTemplateRows,
@@ -57,8 +57,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             usesColumnSubgrid ? _activeSubgridColumnLineNames : null);
         IReadOnlyDictionary<string, int> rowLineNames = ParseGridLineNames(
             style.GridTemplateRows,
-            usesRowSubgrid ? rowTracks.Count + 1 : authoredRowSubgrid ? _activeSubgridRowLineCount : null,
-            authoredRowSubgrid ? _activeSubgridRowLineNames : null);
+            usesRowSubgrid ? rowTracks.Count + 1 : isRowSubgridOwner ? _activeSubgridRowLineCount : null,
+            isRowSubgridOwner ? _activeSubgridRowLineNames : null);
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);

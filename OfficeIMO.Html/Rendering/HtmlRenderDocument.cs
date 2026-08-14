@@ -83,6 +83,9 @@ public sealed class HtmlRenderDocument {
     private static IEnumerable<HtmlRenderVisual> EnumerateVisuals(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals) {
             yield return visual;
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
+                continue;
+            }
             IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
             foreach (HtmlRenderVisual child in EnumerateVisuals(children)) yield return child;
@@ -136,6 +139,9 @@ public sealed class HtmlRenderDocument {
 
     private static IEnumerable<HtmlRenderTextFragment> EnumerateTextFragments(IEnumerable<HtmlRenderVisual> visuals) {
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
+                continue;
+            }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
                 if (representative != null) {

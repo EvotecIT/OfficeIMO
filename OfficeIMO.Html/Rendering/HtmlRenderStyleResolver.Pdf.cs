@@ -53,10 +53,15 @@ internal sealed partial class HtmlRenderStyleResolver {
         string label = computed.GetValue("bookmark-label").Trim();
         string state = computed.GetValue("bookmark-state").Trim().ToLowerInvariant();
         if (level.Length > 0) {
-            style.BookmarkLevelSpecified = true;
-            if (level == "none") style.BookmarkSuppressed = true;
-            else if (int.TryParse(level, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1 && parsed <= 64) style.BookmarkLevel = parsed;
-            else style.UnsupportedBookmark = "bookmark-level=" + level;
+            if (level == "none") {
+                style.BookmarkLevelSpecified = true;
+                style.BookmarkSuppressed = true;
+            } else if (int.TryParse(level, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 1 && parsed <= 64) {
+                style.BookmarkLevelSpecified = true;
+                style.BookmarkLevel = parsed;
+            } else {
+                style.UnsupportedBookmark = "bookmark-level=" + level;
+            }
         }
         if (label.Length > 0) {
             if (string.Equals(label, "content(text)", StringComparison.OrdinalIgnoreCase)) style.BookmarkLabel = null;

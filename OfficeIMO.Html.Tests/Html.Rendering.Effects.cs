@@ -292,6 +292,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlClipPath_AllowsSignedInsetsCoordinatesAndPositions() {
+        const string html = "<div id='inset' style='width:20px;height:20px;margin:0;background:red;clip-path:inset(-5px)'></div>"
+            + "<div id='polygon' style='width:20px;height:20px;margin:0;background:blue;clip-path:polygon(-10px 0,20px 0,20px 20px)'></div>"
+            + "<div id='circle' style='width:20px;height:20px;margin:0;background:green;clip-path:circle(5px at -2px 10px)'></div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 70D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderPathClipGroup>()
+            .ToList();
+
+        HtmlRenderPathClipGroup inset = Assert.Single(clips, group => group.Source == "div#inset");
+        HtmlRenderPathClipGroup polygon = Assert.Single(clips, group => group.Source == "div#polygon");
+        HtmlRenderPathClipGroup circle = Assert.Single(clips, group => group.Source == "div#circle");
+        Assert.Equal((-5D, 30D), (inset.X, inset.Width));
+        Assert.Equal((-10D, 30D), (polygon.X, polygon.Width));
+        Assert.Equal((-7D, 10D), (circle.X, circle.Width));
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(-5px))"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlClipPath_PreservesSearchablePdfAndTruthfullyRejectsUnsupportedGeometry() {
         const string supported = "<div style='width:100px;height:30px;margin:0;background:#eee;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>";
         var options = new HtmlPdfSaveOptions {
