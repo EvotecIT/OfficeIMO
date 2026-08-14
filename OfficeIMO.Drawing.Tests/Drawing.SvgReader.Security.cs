@@ -205,6 +205,22 @@ public class DrawingSvgReaderSecurityTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateChargesObjectBoundingBoxClipChildrenPerConsumer() {
+        static string CreateSvg(int clipChildren, string units) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'>"
+                + "<defs><clipPath id='c' clipPathUnits='" + units + "'>");
+            for (int index = 0; index < clipChildren; index++) {
+                svg.Append("<rect width='1' height='1'/>");
+            }
+            return svg.Append("</clipPath></defs><rect width='16' height='16' clip-path='url(#c)'/></svg>").ToString();
+        }
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(CreateSvg(254, "objectBoundingBox"))));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(CreateSvg(255, "objectBoundingBox"))));
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(CreateSvg(255, "userSpaceOnUse"))));
+    }
+
+    [Fact]
     public void SvgSafetyPredicateDoesNotExpandGradientPaintServersAsPatterns() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
             + "<defs><linearGradient id='g'><stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>"

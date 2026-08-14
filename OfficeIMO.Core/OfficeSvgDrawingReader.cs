@@ -629,9 +629,17 @@ public static partial class OfficeSvgDrawingReader {
         if (result is SvgElementReferenceEntryResult.DepthExceeded or SvgElementReferenceEntryResult.Cycle) return false;
         if (result != SvgElementReferenceEntryResult.Entered) return !HasPotentialSvgUrlFunction(value);
         try {
-            bool conservativeMaskPlacement = propertyName.Equals("mask", StringComparison.OrdinalIgnoreCase)
-                && target!.Name.LocalName.Equals("mask", StringComparison.OrdinalIgnoreCase);
-            if (conservativeMaskPlacement) rasterWork.EnterConservativePlacement();
+            string targetName = target!.Name.LocalName;
+            bool conservativeReferencePlacement =
+                (propertyName.Equals("mask", StringComparison.OrdinalIgnoreCase)
+                    && targetName.Equals("mask", StringComparison.OrdinalIgnoreCase))
+                || (propertyName.Equals("clip-path", StringComparison.OrdinalIgnoreCase)
+                    && targetName.Equals("clipPath", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(
+                        ReadRasterProjectedAttribute(target, "clipPathUnits")?.Trim(),
+                        "objectBoundingBox",
+                        StringComparison.OrdinalIgnoreCase));
+            if (conservativeReferencePlacement) rasterWork.EnterConservativePlacement();
             try {
                 return TryAddRenderedSvgDefinitionExpansion(
                     target!,
@@ -644,7 +652,7 @@ public static partial class OfficeSvgDrawingReader {
                     viewY,
                     rasterWork);
             } finally {
-                if (conservativeMaskPlacement) rasterWork.ExitConservativePlacement();
+                if (conservativeReferencePlacement) rasterWork.ExitConservativePlacement();
             }
         } finally {
             references.Exit(referenceId);
