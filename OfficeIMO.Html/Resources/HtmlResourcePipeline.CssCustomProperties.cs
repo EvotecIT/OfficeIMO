@@ -165,7 +165,7 @@ public static partial class HtmlResourcePipeline {
 
     private static bool IsImportantDeclarationValue(string css, int valueStart, int valueEnd) {
         int index = valueEnd - 1;
-        while (index >= valueStart && char.IsWhiteSpace(css[index])) {
+        while (index >= valueStart && IsCssWhitespace(css[index])) {
             index--;
         }
 
@@ -180,7 +180,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         index -= Important.Length;
-        while (index >= valueStart && char.IsWhiteSpace(css[index])) {
+        while (index >= valueStart && IsCssWhitespace(css[index])) {
             index--;
         }
 

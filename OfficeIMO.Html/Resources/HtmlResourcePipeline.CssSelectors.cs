@@ -226,7 +226,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         char next = useSelector[definitionSelector.Length];
-        return char.IsWhiteSpace(next) || next == '>';
+        return IsCssWhitespace(next) || next == '>';
     }
 
     private static bool IsSameElementSelectorPrefix(string definitionSelector, string useSelector) {

@@ -101,10 +101,10 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                     .FirstOrDefault();
             }
 
-            return !string.IsNullOrWhiteSpace(contentType)
-                && contentType!.StartsWith("application/vnd.ms-excel", StringComparison.OrdinalIgnoreCase)
-                && (contentType.IndexOf("binary", StringComparison.OrdinalIgnoreCase) >= 0
-                    || contentType.EndsWith(".main", StringComparison.OrdinalIgnoreCase));
+            return string.Equals(
+                contentType,
+                "application/vnd.ms-excel.sheet.binary.macroEnabled.main",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         private static string NormalizeContentTypePartName(string? partName) {

@@ -143,9 +143,9 @@ public static partial class HtmlResourcePipeline {
                 !isCustomProperty && ClassifyCssUrl(masked, match.Index) != HtmlResourceKind.Image) continue;
             Group sourceGroup = match.Groups["url"];
             int leading = 0;
-            while (leading < sourceGroup.Length && char.IsWhiteSpace(sourceGroup.Value[leading])) leading++;
+            while (leading < sourceGroup.Length && IsCssWhitespace(sourceGroup.Value[leading])) leading++;
             int trailing = sourceGroup.Length;
-            while (trailing > leading && char.IsWhiteSpace(sourceGroup.Value[trailing - 1])) trailing--;
+            while (trailing > leading && IsCssWhitespace(sourceGroup.Value[trailing - 1])) trailing--;
             if (trailing == leading) continue;
             string source = DecodeCssEscapes(sourceGroup.Value.Substring(leading, trailing - leading));
             var range = (sourceGroup.Index + leading, trailing - leading);

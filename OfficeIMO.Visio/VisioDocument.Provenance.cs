@@ -9,8 +9,10 @@ public partial class VisioDocument {
     private const string SignatureOriginRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
     private const string SignaturePartRelationship = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/signature";
     private const string DocumentRelationship = "http://schemas.microsoft.com/visio/2010/relationships/document";
+    private const string ExtendedPropertiesRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+    private const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved VSDX package and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
@@ -86,9 +88,19 @@ public partial class VisioDocument {
                 package.DeleteRelationship(relationship.Id);
             }
 
-            Uri appPropertiesUri = PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative));
-            if (package.PartExists(appPropertiesUri)) {
+            var appPropertiesUris = new HashSet<Uri> {
+                PackUriHelper.CreatePartUri(new Uri("/docProps/app.xml", UriKind.Relative))
+            };
+            foreach (PackageRelationship relationship in package.GetRelationshipsByType(ExtendedPropertiesRelationship)) {
+                if (relationship.TargetMode != TargetMode.Internal) continue;
+                appPropertiesUris.Add(PackUriHelper.ResolvePartUri(relationship.SourceUri, relationship.TargetUri));
+            }
+            foreach (Uri appPropertiesUri in appPropertiesUris) {
+                if (!package.PartExists(appPropertiesUri)) continue;
                 PackagePart appProperties = package.GetPart(appPropertiesUri);
+                if (!string.Equals(appProperties.ContentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
+                    throw new InvalidDataException("A Visio extended-properties relationship targets a part with an unexpected content type.");
+                }
                 XDocument? document = null;
                 using (Stream input = appProperties.GetStream(FileMode.Open, FileAccess.Read)) {
                     byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);

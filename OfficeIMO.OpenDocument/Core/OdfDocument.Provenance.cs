@@ -16,7 +16,7 @@ public abstract partial class OdfDocument {
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
         using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
-        ValidatePackage(data, options);
+        ValidatePackageForInspection(data, options);
         return OfficeProvenanceInspector.Inspect(data, fullPath, options);
     }
 
@@ -50,6 +50,7 @@ public abstract partial class OdfDocument {
         OfficeProvenanceSignatureStripResult cleaned = OfficeProvenanceZip.RemoveEntries(
             output,
             _ => false,
+            options.Limits.MaxExpandedContainerBytes,
             path => path == "META-INF/manifest.xml",
             (_, manifest) => RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath),
             options.Limits.MaxAssetBytes);
@@ -70,7 +71,15 @@ public abstract partial class OdfDocument {
     };
 
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
-        OfficeProvenanceZip.ValidateMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
+        ValidatePackage(data, options, rejectEncrypted: true);
+    }
+
+    private static void ValidatePackageForInspection(byte[] data, OfficeProvenanceOptions options) {
+        ValidatePackage(data, options, rejectEncrypted: false);
+    }
+
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options, bool rejectEncrypted) {
+        string mediaType = OfficeProvenanceZip.ReadValidatedMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
         ZipArchiveEntry[] manifestEntries = archive.Entries
@@ -96,21 +105,18 @@ public abstract partial class OdfDocument {
         if (root.Name != manifestNamespace + "manifest") {
             throw new InvalidDataException("OpenDocument manifest root must be 'manifest:manifest'.");
         }
+        if (rejectEncrypted && root.Descendants(manifestNamespace + "encryption-data").Any()) {
+            throw new OdfEncryptedPackageException("Encrypted OpenDocument packages are detected but not supported for provenance mutation.");
+        }
 
         XElement[] packageRoots = root.Elements(manifestNamespace + "file-entry")
             .Where(element => string.Equals((string?)element.Attribute(manifestNamespace + "full-path"), "/", StringComparison.Ordinal))
             .ToArray();
         if (packageRoots.Length != 1) throw new InvalidDataException("OpenDocument manifest must contain exactly one package root entry.");
-        string mediaType = Encoding.ASCII.GetString(ReadZipEntryBounded(archive.Entries[0], 256));
         string? manifestMediaType = (string?)packageRoots[0].Attribute(manifestNamespace + "media-type");
         if (!string.Equals(mediaType, manifestMediaType, StringComparison.Ordinal)) {
             throw new InvalidDataException("OpenDocument mimetype does not match the root manifest media type.");
         }
-    }
-
-    private static byte[] ReadZipEntryBounded(ZipArchiveEntry entry, long maximumBytes) {
-        using Stream stream = entry.Open();
-        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes);
     }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) =>
@@ -120,6 +126,7 @@ public abstract partial class OdfDocument {
         return OfficeProvenanceZip.RemoveEntries(
             data,
             OdfPackage.IsSignaturePath,
+            limits.MaxExpandedContainerBytes,
             path => path == "META-INF/manifest.xml",
             (_, manifest) => RemoveManifestEntries(manifest, limits, OdfPackage.IsSignaturePath),
             limits.MaxAssetBytes);

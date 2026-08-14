@@ -55,7 +55,7 @@ public static partial class HtmlProvenance {
         if (manifestElements.Length > 1) diagnostics.Add($"{documentLocation}: manifest.html.multipleManifests: the HTML head contains multiple C2PA manifest associations.");
         int carrierIndex = 0;
         foreach (IElement script in head.QuerySelectorAll("script[type]")) {
-            if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(TrimAsciiWhitespace(script.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
             TryDecodeManifest(
                 script.TextContent,
                 options.MaxManifestBytes,
@@ -74,7 +74,7 @@ public static partial class HtmlProvenance {
 
         foreach (IElement link in head.QuerySelectorAll("link[rel][href]")) {
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
-            string value = link.GetAttribute("href")?.Trim() ?? string.Empty;
+            string value = TrimAsciiWhitespace(link.GetAttribute("href"));
             bool safeReference = IsSafeManifestReference(value, out Uri? uri);
             bool valid = manifestElements.Length == 1 && safeReference;
             AddEvidence(evidence, options, new OfficeProvenanceEvidence(
@@ -165,7 +165,7 @@ public static partial class HtmlProvenance {
 
         int carrierIndex = 0;
         foreach (IElement script in scripts.ToArray()) {
-            if (!string.Equals(script.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(TrimAsciiWhitespace(script.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
             TryDecodeManifest(
                 script.TextContent,
                 options.Limits.MaxManifestBytes,
@@ -183,7 +183,7 @@ public static partial class HtmlProvenance {
 
         foreach (IElement link in links.ToArray()) {
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
-            string value = link.GetAttribute("href")?.Trim() ?? string.Empty;
+            string value = TrimAsciiWhitespace(link.GetAttribute("href"));
             bool valid = manifestElementCount == 1 && IsSafeManifestReference(value, out _);
             string location = $"{documentLocation}/link[rel=c2pa-manifest][{carrierIndex++}]";
             if (!options.RemoveExternalC2paReferences || (!valid && options.RequireStructurallyValidCarrier)) continue;
@@ -456,7 +456,7 @@ public static partial class HtmlProvenance {
     private static void NormalizeDeclaredEncodingToUtf8(IHtmlDocument document) {
         foreach (IElement meta in document.QuerySelectorAll("meta[charset]")) meta.SetAttribute("charset", "utf-8");
         foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv][content]")) {
-            if (!string.Equals(meta.GetAttribute("http-equiv")?.Trim(), "content-type", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!string.Equals(TrimAsciiWhitespace(meta.GetAttribute("http-equiv")), "content-type", StringComparison.OrdinalIgnoreCase)) continue;
             string content = meta.GetAttribute("content") ?? string.Empty;
             meta.SetAttribute("content", Regex.Replace(content, "(?i)(charset\\s*=\\s*)[^;\\s]+", "$1utf-8"));
         }
@@ -464,9 +464,9 @@ public static partial class HtmlProvenance {
 
     private static EmbeddedImageReference CreateDirectUrlReference(string attributeName, string value) {
         int start = 0;
-        while (start < value.Length && char.IsWhiteSpace(value[start])) start++;
+        while (start < value.Length && IsAsciiWhitespace(value[start])) start++;
         int end = value.Length;
-        while (end > start && char.IsWhiteSpace(value[end - 1])) end--;
+        while (end > start && IsAsciiWhitespace(value[end - 1])) end--;
         return new EmbeddedImageReference(attributeName, value.Substring(start, end - start), start, end - start);
     }
 
@@ -479,7 +479,7 @@ public static partial class HtmlProvenance {
 
     private static bool IsPreloadedImage(IElement element) =>
         HasRelationship(element.GetAttribute("rel"), "preload") &&
-        string.Equals(element.GetAttribute("as")?.Trim(), "image", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(TrimAsciiWhitespace(element.GetAttribute("as")), "image", StringComparison.OrdinalIgnoreCase) &&
         HtmlResourcePipeline.IsApplicableProvenanceMedia(element);
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
@@ -498,7 +498,7 @@ public static partial class HtmlProvenance {
         bool svg = string.Equals(dataUri.MediaType, "image/svg+xml", StringComparison.OrdinalIgnoreCase);
         bool hasCharset = false;
         foreach (string part in parts) {
-            string trimmed = part.Trim();
+            string trimmed = TrimAsciiWhitespace(part);
             if (trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase)) continue;
             if (svg && trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) {
                 metadata.Add("charset=utf-8");
@@ -517,7 +517,7 @@ public static partial class HtmlProvenance {
             return dataUri.TryDecodeBytes(out image);
         }
         bool hasDeclaredCharset = dataUri.Metadata.Split(';')
-            .Any(part => part.Trim().StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
+            .Any(part => TrimAsciiWhitespace(part).StartsWith("charset=", StringComparison.OrdinalIgnoreCase));
         if (!hasDeclaredCharset) return dataUri.TryDecodeBytes(out image);
         if (!dataUri.TryDecodeText(out string text)) {
             image = Array.Empty<byte>();
@@ -563,7 +563,7 @@ public static partial class HtmlProvenance {
         ref long expandedBytes,
         out byte[] manifest) {
         manifest = Array.Empty<byte>();
-        string encoded = (value ?? string.Empty).Trim();
+        string encoded = TrimAsciiWhitespace(value);
         const string prefix = "data:application/c2pa;base64,";
         if (encoded.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) encoded = encoded.Substring(prefix.Length);
         if (encoded.Length == 0 || encoded.Length > maximumBytes * 2L || encoded.Length > int.MaxValue) return false;
@@ -617,9 +617,18 @@ public static partial class HtmlProvenance {
     private static string[] SplitAsciiWhitespace(string? value) =>
         (value ?? string.Empty).Split(new[] { '\t', '\n', '\f', '\r', ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+    private static string TrimAsciiWhitespace(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        int start = 0;
+        int end = value!.Length;
+        while (start < end && IsAsciiWhitespace(value[start])) start++;
+        while (end > start && IsAsciiWhitespace(value[end - 1])) end--;
+        return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
+    }
+
     private static bool IsManifestElement(IElement element) =>
         element.LocalName.Equals("script", StringComparison.OrdinalIgnoreCase)
-            ? string.Equals(element.GetAttribute("type")?.Trim(), "application/c2pa", StringComparison.OrdinalIgnoreCase)
+            ? string.Equals(TrimAsciiWhitespace(element.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)
             : element.LocalName.Equals("link", StringComparison.OrdinalIgnoreCase) &&
                 HasRelationship(element.GetAttribute("rel"), "c2pa-manifest");
 

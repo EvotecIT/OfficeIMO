@@ -12,6 +12,8 @@ public partial class ExcelDocument {
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
     private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
     private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
+    private const string ExtendedPropertiesContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
+    private const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML workbook and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
@@ -105,10 +107,12 @@ public partial class ExcelDocument {
         if (!info.HasSignatures) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
 
         HashSet<string> signatureEntries = DiscoverXlsbSignatureEntries(data, limits, info);
+        HashSet<string> applicationMetadataEntries = DiscoverXlsbApplicationMetadataEntries(data, limits);
         OfficeProvenanceSignatureStripResult rewritten = OfficeProvenanceZip.RemoveEntries(
             data,
             entryName => signatureEntries.Contains(NormalizePartName(entryName)),
-            entryName => IsXlsbSignatureMetadataEntry(entryName),
+            limits.MaxExpandedContainerBytes,
+            entryName => IsXlsbSignatureMetadataEntry(entryName, applicationMetadataEntries),
             (entryName, content) => RewriteXlsbSignatureMetadata(entryName, content, signatureEntries, limits),
             limits.MaxAssetBytes);
         return new OfficeProvenanceSignatureStripResult(rewritten.Data, hadSignatures: true);
@@ -179,18 +183,23 @@ public partial class ExcelDocument {
         using var input = new MemoryStream(xml, writable: false);
         using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
         XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XNamespace contentTypesNamespace = "http://schemas.openxmlformats.org/package/2006/content-types";
+        XElement root = document.Root ?? throw new InvalidDataException("The XLSB content-types part has no root element.");
+        if (root.Name != contentTypesNamespace + "Types") {
+            throw new InvalidDataException("The XLSB content-types part has an unexpected root element.");
+        }
         var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (XElement element in document.Descendants()) {
+        foreach (XElement element in root.Elements()) {
             string? contentType = (string?)element.Attribute("ContentType");
             if (string.IsNullOrWhiteSpace(contentType)) continue;
-            if (element.Name.LocalName == "Override") {
+            if (element.Name == contentTypesNamespace + "Override") {
                 string partName = NormalizePartName((string?)element.Attribute("PartName") ?? string.Empty);
                 if (partName.Length == 0 || overrides.ContainsKey(partName)) {
                     throw new InvalidDataException("The XLSB package contains ambiguous content-type overrides.");
                 }
                 overrides.Add(partName, contentType!);
-            } else if (element.Name.LocalName == "Default") {
+            } else if (element.Name == contentTypesNamespace + "Default") {
                 string extension = ((string?)element.Attribute("Extension") ?? string.Empty).TrimStart('.');
                 if (extension.Length == 0 || defaults.ContainsKey(extension)) {
                     throw new InvalidDataException("The XLSB package contains ambiguous default content types.");
@@ -212,7 +221,12 @@ public partial class ExcelDocument {
         using var input = new MemoryStream(xml, writable: false);
         using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
         XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
-        return document.Descendants().Where(element => element.Name.LocalName == "Relationship").ToArray();
+        XNamespace relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+        XElement root = document.Root ?? throw new InvalidDataException("The XLSB relationship part has no root element.");
+        if (root.Name != relationshipsNamespace + "Relationships") {
+            throw new InvalidDataException("The XLSB relationship part has an unexpected root element.");
+        }
+        return root.Elements(relationshipsNamespace + "Relationship").ToArray();
     }
 
     private static bool TryGetSignatureRelationshipContentType(
@@ -251,11 +265,41 @@ public partial class ExcelDocument {
         return directory + "_rels/" + fileName + ".rels";
     }
 
-    private static bool IsXlsbSignatureMetadataEntry(string entryName) {
+    private static HashSet<string> DiscoverXlsbApplicationMetadataEntries(
+        byte[] data,
+        OfficeProvenanceOptions limits) {
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "docProps/app.xml" };
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        PackageContentTypes contentTypes = ReadPackageContentTypes(archive, limits);
+        foreach (XElement relationship in ReadRelationships(archive, "_rels/.rels", limits)) {
+            if (!string.Equals((string?)relationship.Attribute("Type"), ExtendedPropertiesRelationshipType, StringComparison.Ordinal) ||
+                string.Equals((string?)relationship.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+            string? target = ResolveRelationshipTarget(string.Empty, (string?)relationship.Attribute("Target"));
+            if (target == null) {
+                throw new InvalidDataException("The XLSB extended-properties relationship has an invalid target.");
+            }
+            ZipArchiveEntry[] matches = archive.Entries
+                .Where(entry => NormalizePartName(entry.FullName).Equals(target, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (matches.Length != 1 ||
+                !string.Equals(contentTypes.GetContentType(target), ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException("The XLSB extended-properties relationship target is missing or has an unexpected content type.");
+            }
+            entries.Add(target);
+        }
+        return entries;
+    }
+
+    private static bool IsXlsbSignatureMetadataEntry(
+        string entryName,
+        HashSet<string> applicationMetadataEntries) {
         string normalized = NormalizePartName(entryName);
         return normalized.Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase) ||
             normalized.Equals("_rels/.rels", StringComparison.OrdinalIgnoreCase) ||
-            normalized.Equals("docProps/app.xml", StringComparison.OrdinalIgnoreCase);
+            applicationMetadataEntries.Contains(normalized);
     }
 
     private static byte[] RewriteXlsbSignatureMetadata(

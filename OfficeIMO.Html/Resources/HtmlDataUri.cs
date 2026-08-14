@@ -205,12 +205,14 @@ public sealed class HtmlDataUri {
 
     private static string NormalizeBase64Payload(string payload) {
         var builder = new StringBuilder(payload.Length);
-        foreach (char character in payload.Trim()) {
-            if (!char.IsWhiteSpace(character)) {
+        foreach (char character in payload) {
+            if (!IsAsciiWhitespace(character)) {
                 builder.Append(character);
             }
         }
 
         return builder.ToString();
     }
+
+    private static bool IsAsciiWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
 }

@@ -70,7 +70,7 @@ public static partial class HtmlResourcePipeline {
 
     private static int SkipCssWhitespaceAndCommentsBackward(string css, int cursor) {
         while (cursor >= 0) {
-            if (char.IsWhiteSpace(css[cursor])) {
+            if (IsCssWhitespace(css[cursor])) {
                 cursor--;
                 continue;
             }
@@ -90,6 +90,8 @@ public static partial class HtmlResourcePipeline {
 
         return cursor;
     }
+
+    private static bool IsCssWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
 
     private static int FindMatchingCssParenthesis(string css, int open) {
         int depth = 0;
@@ -164,7 +166,7 @@ public static partial class HtmlResourcePipeline {
                 }
             } else {
                 int sourceStart = cursor;
-                while (cursor < css.Length && !char.IsWhiteSpace(css[cursor]) && css[cursor] != ';') {
+                while (cursor < css.Length && !IsCssWhitespace(css[cursor]) && css[cursor] != ';') {
                     cursor++;
                 }
 
@@ -293,7 +295,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static int SkipWhitespace(string text, int index) {
-        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+        while (index < text.Length && IsCssWhitespace(text[index])) {
             index++;
         }
 
@@ -324,7 +326,7 @@ public static partial class HtmlResourcePipeline {
         for (open = css.IndexOf('(', Math.Max(0, startIndex)); open >= 0; open = css.IndexOf('(', open + 1)) {
             int nameEnd = open;
             int cursor = nameEnd - 1;
-            while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            while (cursor >= 0 && IsCssWhitespace(css[cursor])) {
                 cursor--;
             }
 

@@ -67,7 +67,7 @@ public static partial class HtmlResourcePipeline {
             string decoded = char.ConvertFromUtf32(codePoint);
             if (decoded.Length == 1 && CssIdentifierCharactersEqual(decoded[0], expected)) {
                 cursor = hexStart + hexLength;
-                if (cursor < text.Length && char.IsWhiteSpace(text[cursor])) {
+                if (cursor < text.Length && IsCssWhitespace(text[cursor])) {
                     cursor++;
                 }
 
