@@ -480,9 +480,12 @@ internal sealed class PdfPageOptionalContentVisibility {
         Dictionary<int, bool> visibility,
         Dictionary<int, PdfIndirectObject> objects) {
         if (defaultConfiguration == null ||
-            ResolveObject(defaultConfiguration.Items.TryGetValue("AS", out PdfObject? applicationsObject) ? applicationsObject : null, objects) is not PdfArray applications) {
+            !defaultConfiguration.Items.TryGetValue("AS", out PdfObject? applicationsObject)) {
             return false;
         }
+        PdfObject? resolvedApplications = ResolveObject(applicationsObject, objects);
+        if (resolvedApplications is null or PdfNull) return false;
+        if (resolvedApplications is not PdfArray applications) return true;
 
         var declaredGroups = new HashSet<long>();
         for (int groupIndex = 0; groupIndex < groups.Items.Count; groupIndex++) {

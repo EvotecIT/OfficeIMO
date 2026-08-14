@@ -948,7 +948,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
-            return new OfficeDrawingSoftMask(
+            return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 new OfficeDrawing(width, height),
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
                 mode: resource.Mode,
@@ -957,7 +957,7 @@ public sealed partial class PdfReadPage {
         }
         try {
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
-            var mask = new OfficeDrawingSoftMask(
+            var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 drawing,
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
                 mode: resource.Mode,

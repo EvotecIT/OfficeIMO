@@ -36,14 +36,13 @@ public sealed class OfficeDrawingSoftMask {
     }
 
     /// <summary>Creates a mask with an explicit luminosity standard.</summary>
-    public OfficeDrawingSoftMask(
+    public static OfficeDrawingSoftMask CreateWithLuminosityStandard(
         OfficeDrawing drawing,
         OfficeSoftMaskLuminosityStandard luminosityStandard,
         OfficeSoftMaskMode mode = OfficeSoftMaskMode.Alpha,
         OfficeTransform? transform = null,
-        OfficeColor? backdropColor = null)
-        : this(drawing, mode, transform, backdropColor, luminosityStandard) {
-    }
+        OfficeColor? backdropColor = null) =>
+        new OfficeDrawingSoftMask(drawing, mode, transform, backdropColor, luminosityStandard);
 
     /// <summary>Creates a mask with all interpretation settings supplied positionally.</summary>
     public OfficeDrawingSoftMask(

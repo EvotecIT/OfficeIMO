@@ -206,7 +206,7 @@ internal readonly partial struct PdfPageClipPath {
         PdfPageClipPath result = commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
-        return result.WithExactness(isExact);
+        return result.WithExactness(isExact && HasRepresentableClippedContours(active, result));
     }
 
     private static bool CanServeAsExactPathClip(PdfPageClipPath path) => path._canServeAsExactPathClip;

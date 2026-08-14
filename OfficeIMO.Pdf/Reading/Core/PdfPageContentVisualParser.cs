@@ -817,10 +817,12 @@ internal static class PdfPageContentVisualParser {
                          _args[1] is string propertyName &&
                          (_optionalContentVisibility == null || _optionalContentVisibility.HasInvalidProperty(propertyName)) ||
                          _args[1] is PdfInlineOptionalContentReferences references &&
-                         _optionalContentVisibility?.HasInvalidMembershipReferences(references) == true ||
+                         references.IsMembershipDictionary &&
+                         (_optionalContentVisibility == null || _optionalContentVisibility.HasInvalidMembershipReferences(references)) ||
                          _args[1] is PdfContentDictionary dictionary &&
                          dictionary.OptionalContentReferences is PdfInlineOptionalContentReferences dictionaryReferences &&
-                         _optionalContentVisibility?.HasInvalidMembershipReferences(dictionaryReferences) == true)) {
+                         dictionaryReferences.IsMembershipDictionary &&
+                         (_optionalContentVisibility == null || _optionalContentVisibility.HasInvalidMembershipReferences(dictionaryReferences)))) {
                         _unsupportedOperatorVisitor?.Invoke("BDC");
                     }
                     _hiddenContentStack.Push(

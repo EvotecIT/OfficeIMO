@@ -116,6 +116,34 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
+    public void DisconnectedConcavePathIntersectionCannotRemainExact() {
+        OfficePathCommand[] concaveSubject = {
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(10D, 0D),
+            OfficePathCommand.LineTo(10D, 10D),
+            OfficePathCommand.LineTo(7D, 10D),
+            OfficePathCommand.LineTo(7D, 3D),
+            OfficePathCommand.LineTo(3D, 3D),
+            OfficePathCommand.LineTo(3D, 10D),
+            OfficePathCommand.LineTo(0D, 10D),
+            OfficePathCommand.Close()
+        };
+        OfficePathCommand[] convexClip = {
+            OfficePathCommand.MoveTo(-1D, 5D),
+            OfficePathCommand.LineTo(11D, 5D),
+            OfficePathCommand.LineTo(10D, 9D),
+            OfficePathCommand.LineTo(0D, 9D),
+            OfficePathCommand.Close()
+        };
+        Assert.True(PdfPageClipPath.TryCreatePath(concaveSubject, OfficeFillRule.NonZero, out PdfPageClipPath subject));
+        Assert.True(PdfPageClipPath.TryCreatePath(convexClip, OfficeFillRule.NonZero, out PdfPageClipPath clip));
+
+        PdfPageClipPath intersection = PdfPageClipPath.ResolveActiveClip(subject, clip);
+
+        Assert.False(intersection.IsExact);
+    }
+
+    [Fact]
     public void ExactClipIntersectionDoesNotUseNearParallelEndpointFallback() {
         OfficePathCommand[] subjectCommands = {
             OfficePathCommand.MoveTo(1D, -0.00000001D),

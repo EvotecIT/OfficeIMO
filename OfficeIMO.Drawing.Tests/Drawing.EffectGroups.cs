@@ -15,13 +15,23 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSoftMask_DefaultLiteralRetainsOriginalConstructorSemantics() {
+        var drawing = new OfficeDrawing(1D, 1D);
+
+        var mask = new OfficeDrawingSoftMask(drawing, default);
+
+        Assert.Equal(OfficeSoftMaskMode.Alpha, mask.Mode);
+        Assert.Equal(OfficeSoftMaskLuminosityStandard.Srgb, mask.LuminosityStandard);
+    }
+
+    [Fact]
     public void OfficeDrawingSoftMask_RejectsUndefinedPublicEnumValues() {
         var maskDrawing = new OfficeDrawing(1D, 1D);
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
             maskDrawing,
             (OfficeSoftMaskMode)99));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeDrawingSoftMask(
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeDrawingSoftMask.CreateWithLuminosityStandard(
             maskDrawing,
             (OfficeSoftMaskLuminosityStandard)99));
     }
@@ -435,7 +445,7 @@ public partial class DrawingTests {
         redMask.FillColor = OfficeColor.Red;
         redMask.StrokeWidth = 0D;
         maskDrawing.AddShape(redMask, 0D, 0D);
-        var mask = new OfficeDrawingSoftMask(
+        var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
             maskDrawing,
             OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
             mode: OfficeSoftMaskMode.Luminosity);
