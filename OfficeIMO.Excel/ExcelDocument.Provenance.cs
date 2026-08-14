@@ -104,7 +104,10 @@ public partial class ExcelDocument {
         if (!info.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The XLSB package signature state could not be determined safely.");
         }
-        if (!info.HasSignatures) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
+        bool hasApplicationSignatureMetadata = OfficeProvenanceZip.HasApplicationSignatureMetadata(data, limits);
+        if (!info.HasSignatures && !hasApplicationSignatureMetadata) {
+            return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
+        }
 
         HashSet<string> signatureEntries = DiscoverXlsbSignatureEntries(data, limits, info);
         HashSet<string> applicationMetadataEntries = DiscoverXlsbApplicationMetadataEntries(data, limits);

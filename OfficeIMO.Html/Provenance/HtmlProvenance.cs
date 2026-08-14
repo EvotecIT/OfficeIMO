@@ -413,7 +413,7 @@ public static partial class HtmlProvenance {
             StringComparison.Ordinal)) {
             attributeNames = new[] { "src", "data-src" };
         } else if (localName == "image") {
-            attributeNames = new[] { "href", "xlink:href", "src" };
+            attributeNames = new[] { "href", "xlink:href" };
         } else if (localName is "feimage" or "use") {
             attributeNames = new[] { "href", "xlink:href" };
         } else if (localName == "link" && IsImageLink(element)) {
@@ -460,8 +460,43 @@ public static partial class HtmlProvenance {
         foreach (IElement meta in document.QuerySelectorAll("meta[http-equiv][content]")) {
             if (!string.Equals(TrimAsciiWhitespace(meta.GetAttribute("http-equiv")), "content-type", StringComparison.OrdinalIgnoreCase)) continue;
             string content = meta.GetAttribute("content") ?? string.Empty;
-            meta.SetAttribute("content", Regex.Replace(content, "(?i)(charset\\s*=\\s*)[^;\\s]+", "$1utf-8"));
+            meta.SetAttribute("content", RewriteExactCharsetParameter(content));
         }
+    }
+
+    private static string RewriteExactCharsetParameter(string content) {
+        int segmentStart = 0;
+        char quote = '\0';
+        for (int index = 0; index <= content.Length; index++) {
+            char current = index < content.Length ? content[index] : ';';
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') {
+                quote = current;
+                continue;
+            }
+            if (current != ';') continue;
+            int equals = content.IndexOf('=', segmentStart, index - segmentStart);
+            if (equals >= 0 && string.Equals(
+                    TrimAsciiWhitespace(content.Substring(segmentStart, equals - segmentStart)),
+                    "charset",
+                    StringComparison.OrdinalIgnoreCase)) {
+                int valueStart = equals + 1;
+                while (valueStart < index && IsAsciiWhitespace(content[valueStart])) valueStart++;
+                int valueEnd = index;
+                while (valueEnd > valueStart && IsAsciiWhitespace(content[valueEnd - 1])) valueEnd--;
+                string replacement = "utf-8";
+                if (valueEnd - valueStart >= 2 && content[valueStart] is '\'' or '"' &&
+                    content[valueEnd - 1] == content[valueStart]) {
+                    replacement = content[valueStart] + replacement + content[valueEnd - 1];
+                }
+                return content.Substring(0, valueStart) + replacement + content.Substring(valueEnd);
+            }
+            segmentStart = index + 1;
+        }
+        return content;
     }
 
     private static EmbeddedImageReference CreateDirectUrlReference(string attributeName, string value) {

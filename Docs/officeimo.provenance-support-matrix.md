@@ -22,6 +22,19 @@ OfficeIMO separates bounded structural inspection and selective removal from opt
 
 Structural inspection reports whether the carrier shape is safe to interpret or mutate; it does not establish authenticity, content binding, signer identity, or certificate trust. `C2paToolProvenanceVerifier` in `OfficeIMO.Security` performs optional provider-backed verification and fails closed on malformed provider reports. The external executable and trust material are supplied by the host and are not bundled with OfficeIMO.
 
+## Package-owned adapters
+
+| Package | Inspected content | Signature policy during removal |
+| --- | --- | --- |
+| `OfficeIMO.Word` | DOCX, DOCM, DOTX, DOTM and supported embedded images | Blocks save by default; `RemoveInvalidatedSignatures` removes the owned OPC signature graph and application signature metadata |
+| `OfficeIMO.Excel` | XLSX, XLSM, XLTX, XLTM, XLAM, XLSB and supported embedded images | Uses the same explicit policy; XLSB ownership and signature metadata are validated without opening it as SpreadsheetML |
+| `OfficeIMO.PowerPoint` | PPTX, PPTM, POTX, POTM, PPSX, PPSM, PPAM and supported embedded images | Removes only relationship- and content-type-owned signature parts when explicitly requested |
+| `OfficeIMO.Visio` | VSDX-family OPC packages and supported embedded images | Resolves Visio application metadata and signature relationships through the package graph before cleanup |
+| `OfficeIMO.Html` | Native manifest scripts/links, recursive `iframe srcdoc`, active CSS image carriers, responsive image carriers, and embedded supported images | Preserves document encoding for byte APIs; the string API returns UTF-8 and normalizes only exact charset declarations |
+| `OfficeIMO.Markdown` | Structured-text carriers and supported embedded data-URI images | Strict UTF-8 decoding for the string/document owner; preserves unrelated Markdown text |
+| `OfficeIMO.OpenDocument` | Native ODF manifest entry, declared embedded images, and native document signatures | Requires valid ODF identity and an unencrypted package; explicit cleanup removes owned signature entries and manifest declarations |
+| `OfficeIMO.Epub` | Native EPUB manifest entry, OPF-declared images, and native EPUB signatures | Requires valid EPUB identity and OPF ownership; explicit cleanup removes only EPUB-owned signature entries |
+
 ## Known limits
 
 - OfficeIMO removes provenance metadata; it does not alter visible pixels, reconstruct images, or attempt model-specific watermark suppression.

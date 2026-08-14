@@ -44,8 +44,9 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                     return false;
                 }
 
-                string normalizedTarget = NormalizePackageTarget(target!);
-                if (!normalizedTarget.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)) {
+                string? normalizedTarget = NormalizePackageTarget(target!);
+                if (string.IsNullOrWhiteSpace(normalizedTarget) ||
+                    !normalizedTarget!.EndsWith(".bin", StringComparison.OrdinalIgnoreCase)) {
                     return false;
                 }
 
@@ -140,13 +141,15 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return relationships.Length == 1 ? (string?)relationships[0].Attribute("Target") : null;
         }
 
-        private static string NormalizePackageTarget(string target) {
-            string normalized = target.Replace('\\', '/').TrimStart('/');
-            while (normalized.StartsWith("./", StringComparison.Ordinal)) {
-                normalized = normalized.Substring(2);
-            }
-
-            return normalized;
+        private static string? NormalizePackageTarget(string target) {
+            string normalized = target.Replace('\\', '/');
+            if (Uri.TryCreate(normalized, UriKind.Absolute, out Uri? absolute) &&
+                !string.Equals(absolute.Host, "package", StringComparison.OrdinalIgnoreCase)) return null;
+            var packageRoot = new Uri("http://package/", UriKind.Absolute);
+            Uri resolved = new Uri(packageRoot, normalized);
+            if (!string.Equals(resolved.Host, "package", StringComparison.OrdinalIgnoreCase) ||
+                resolved.Query.Length != 0 || resolved.Fragment.Length != 0) return null;
+            return Uri.UnescapeDataString(resolved.AbsolutePath).TrimStart('/');
         }
 
         private static ZipArchiveEntry? FindEntry(ZipArchive archive, string fullName) {
