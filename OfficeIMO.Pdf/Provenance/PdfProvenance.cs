@@ -479,6 +479,15 @@ public static class PdfProvenance {
                         sharedVisited: structuralTraversalVisited);
                 }
                 string? streamSubtype = GetResolvedName(objects, activeStream.Dictionary, "Subtype");
+                if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal) ||
+                    string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue("OC", out PdfObject? xObjectOptionalContent) ? xObjectOptionalContent : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
+                }
                 if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal)) {
                     AddStructuralGraphDictionaries(
                         objects,
