@@ -317,6 +317,11 @@ public static class PdfProvenance {
         foreach (string key in new[] { "AcroForm", "ViewerPreferences", "MarkInfo", "StructTreeRoot" }) {
             AddResolvedDictionary(objects, catalog.Items.TryGetValue(key, out PdfObject? value) ? value : null, result);
         }
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("Perms", out PdfObject? permissions) ? permissions : null,
+            result,
+            maximumContainerEntries);
         if (PdfObjectLookup.Resolve(objects,
                 catalog.Items.TryGetValue("StructTreeRoot", out PdfObject? structureTreeValue) ? structureTreeValue : null) is PdfDictionary structureTree) {
             AddStructuralGraphDictionaries(
@@ -427,6 +432,16 @@ public static class PdfProvenance {
                     pageTreeObjectNumbers,
                     structuralTraversalVisited);
                 AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries, annotationStructuralVisited);
+            }
+            if (item.Value is PdfStream activeStream) {
+                foreach (string key in new[] { "DecodeParms", "DP", "FDecodeParms" }) {
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? decodingParameters) ? decodingParameters : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
+                }
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
@@ -624,7 +639,7 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
