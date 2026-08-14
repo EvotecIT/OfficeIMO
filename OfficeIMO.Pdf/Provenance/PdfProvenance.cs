@@ -342,6 +342,12 @@ public static class PdfProvenance {
                 result,
                 maximumContainerEntries,
                 pageTreeObjectNumbers);
+            AddStructuralGraphDictionaries(
+                objects,
+                structureTree.Items.TryGetValue("IDTree", out PdfObject? idTree) ? idTree : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers);
         }
         AddStructuralGraphDictionaries(
             objects,
@@ -532,7 +538,7 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(field);
-            foreach (string key in new[] { "Lock", "SV", "AP" }) {
+            foreach (string key in new[] { "Lock", "SV", "AP", "MK", "BS" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     field.Items.TryGetValue(key, out PdfObject? constraintValue) ? constraintValue : null,
