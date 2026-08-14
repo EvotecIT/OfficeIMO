@@ -41,8 +41,10 @@ public sealed partial class PdfReadPage {
 
     private PdfPageSoftMaskResource? ReadSoftMask(PdfDictionary state, PdfDictionary? parentResources = null) {
         PdfObject? resolved = ResolveEffectObject(state.Items.TryGetValue("SMask", out PdfObject? value) ? value : null);
-        if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask ||
-            ResolveEffectObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
+        if (resolved is PdfName { Name: "None" } || resolved is not PdfDictionary mask) return null;
+        if (mask.Items.TryGetValue("Type", out PdfObject? maskTypeObject) &&
+            ResolveEffectObject(maskTypeObject) is not PdfName { Name: "Mask" } and not PdfNull) return null;
+        if (ResolveEffectObject(mask.Items.TryGetValue("G", out PdfObject? groupObject) ? groupObject : null) is not PdfStream group) return null;
         PdfDictionary? transparency = ResolveEffectObject(
             group.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyObject) ? transparencyObject : null) as PdfDictionary;
         if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||

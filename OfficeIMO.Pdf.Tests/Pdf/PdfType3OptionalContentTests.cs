@@ -278,6 +278,19 @@ public class PdfType3OptionalContentTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type /Bad")]
+    public void RenderPage_FailsClosedForMalformedOptionalContentGroupDeclaration(string hiddenGroupType) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            hiddenGroupType: hiddenGroupType);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     private static byte[] BuildType3OptionalContentPdf(
         bool nestedForm,
         string? inlineMembershipDictionary = null,
@@ -287,7 +300,8 @@ public class PdfType3OptionalContentTests {
         bool allGroupsOn = false,
         string? secondaryVisibilityExpression = null,
         int indirectVisibilityChainLength = 0,
-        string? resourceMembershipDictionary = null) {
+        string? resourceMembershipDictionary = null,
+        string hiddenGroupType = "/Type /OCG") {
         string hiddenProperty = inlineMembershipDictionary ?? (resourceMembershipDictionary is null ? "/Hidden" : "/Membership");
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -318,7 +332,7 @@ public class PdfType3OptionalContentTests {
                     : "<< /Properties << /Hidden 10 0 R >> >>"),
                 hiddenAndVisibleContent));
         }
-        objects.Add("10 0 obj\n<< /Type /OCG /Name (Hidden Type 3 layer) >>\nendobj");
+        objects.Add("10 0 obj\n<< " + hiddenGroupType + " /Name (Hidden Type 3 layer) >>\nendobj");
         objects.Add("11 0 obj\n<< /Type /OCG /Name (Visible Type 3 layer) >>\nendobj");
         if (indirectVisibilityChainLength > 0) {
             for (int index = 0; index < indirectVisibilityChainLength; index++) {

@@ -707,7 +707,6 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
-        bool cropped = sourceLeft > 0D || sourceTop > 0D || sourceWidth < 1D || sourceHeight < 1D;
         for (int py = top; py <= bottom; py++) {
             for (int px = left; px <= right; px++) {
                 OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
@@ -717,15 +716,8 @@ public sealed partial class OfficeRasterCanvas {
                     continue;
                 }
 
-                double sourceX;
-                double sourceY;
-                if (cropped) {
-                    sourceX = (sourceLeft * image.Width) + (u * Math.Max(0D, (sourceWidth * image.Width) - 1D));
-                    sourceY = (sourceTop * image.Height) + (v * Math.Max(0D, (sourceHeight * image.Height) - 1D));
-                } else {
-                    sourceX = (u * image.Width) - 0.5D;
-                    sourceY = (v * image.Height) - 0.5D;
-                }
+                double sourceX = ((sourceLeft + (u * sourceWidth)) * image.Width) - 0.5D;
+                double sourceY = ((sourceTop + (v * sourceHeight)) * image.Height) - 0.5D;
 
                 BlendPixel(px, py, interpolate
                     ? SampleBilinear(image, sourceX, sourceY)

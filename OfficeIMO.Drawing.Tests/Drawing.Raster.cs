@@ -2295,6 +2295,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_NearestNeighborCropSamplesFromSourcePixelEdges() {
+            OfficeRasterImage source = new OfficeRasterImage(4, 1, OfficeColor.Transparent);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Lime);
+            source.SetPixel(2, 0, OfficeColor.Blue);
+            source.SetPixel(3, 0, OfficeColor.White);
+            OfficeRasterImage target = new OfficeRasterImage(8, 1, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(target);
+
+            canvas.DrawImage(
+                source,
+                0,
+                0,
+                8,
+                1,
+                sourceLeft: 0.125D,
+                sourceTop: 0D,
+                sourceWidth: 0.75D,
+                sourceHeight: 1D,
+                rotationDegrees: 0D,
+                rotationCenterX: 4D,
+                rotationCenterY: 0.5D,
+                flipHorizontal: false,
+                flipVertical: false,
+                interpolate: false);
+
+            Assert.Equal(OfficeColor.Red, target.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.White, target.GetPixel(7, 0));
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_DrawsRotatedEllipsesAroundCenter() {
             OfficeRasterImage target = new OfficeRasterImage(48, 48, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(target);

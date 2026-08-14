@@ -358,6 +358,13 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         for (int i = 0; i < groups.Items.Count; i++) {
             if (groups.Items[i] is not PdfReference reference) {
+                hasUnsupportedViewUsageApplications = true;
+                continue;
+            }
+            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject groupObject) ||
+                ResolveObject(groupObject.Value, objects) is not PdfDictionary group ||
+                ResolveObject(group.Items.TryGetValue("Type", out PdfObject? groupTypeObject) ? groupTypeObject : null, objects) is not PdfName { Name: "OCG" }) {
+                hasUnsupportedViewUsageApplications = true;
                 continue;
             }
 
@@ -373,7 +380,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             result[reference.ObjectNumber] = isVisible;
         }
 
-        hasUnsupportedViewUsageApplications =
+        hasUnsupportedViewUsageApplications |=
             HasUnsupportedOptionalContentIntent(defaultConfiguration, groups, objects) ||
             ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
 
