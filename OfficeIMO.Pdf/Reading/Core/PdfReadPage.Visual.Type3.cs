@@ -1315,7 +1315,8 @@ public sealed partial class PdfReadPage {
                 scaleStrokeWidthWithTransform: true,
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
                 requireExactType3ShadingProjection: true,
-                retainPrimitiveData: false);
+                retainPrimitiveData: false,
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,

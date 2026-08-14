@@ -620,7 +620,8 @@ public sealed partial class PdfReadPage {
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
-            outputIntentColorTransform: EffectiveOutputIntentColorTransform));
+            outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array)));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -648,7 +649,8 @@ public sealed partial class PdfReadPage {
                      initialRenderingIntent: initialRenderingIntent,
                      initialFillColorSelection: initialFillColorSelection,
                      initialStrokeColorSelection: initialStrokeColorSelection,
-                     outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -762,7 +764,8 @@ public sealed partial class PdfReadPage {
                      initialFillColorSelection: initialFillColorSelection,
                      initialStrokeColorSelection: initialStrokeColorSelection,
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-                     textClippingBudget: textClippingBudget)) {
+                     textClippingBudget: textClippingBudget,
+                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array))) {
             Matrix2D invocationTransform = invocation.Transform;
             PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             if (invocation.InlineImage != null) {

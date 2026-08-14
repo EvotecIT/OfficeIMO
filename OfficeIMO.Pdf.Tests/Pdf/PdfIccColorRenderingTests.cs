@@ -1147,7 +1147,7 @@ public class PdfIccColorRenderingTests {
     [Fact]
     public void ExtractImages_ColorManagesDctAfterSupportedPrefixFilter() {
         byte[] jpeg = CreateSinglePixelJpeg(OfficeColor.Red);
-        byte[] encodedJpeg = Encoding.ASCII.GetBytes(Convert.ToHexString(jpeg) + ">");
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(BitConverter.ToString(jpeg).Replace("-", string.Empty) + ">");
         byte[] pdf = BuildIccImagePdf(
             PdfIccProfiles.SrgbIec6196621,
             encodedJpeg,
@@ -1165,7 +1165,7 @@ public class PdfIccColorRenderingTests {
     [Fact]
     public void ExtractImages_PreservesDctPayloadAfterSupportedPrefixFilter() {
         byte[] jpeg = CreateSinglePixelJpeg(OfficeColor.Red);
-        byte[] encodedJpeg = Encoding.ASCII.GetBytes(Convert.ToHexString(jpeg) + ">");
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(BitConverter.ToString(jpeg).Replace("-", string.Empty) + ">");
         byte[] pdf = BuildIccImagePdf(
             PdfIccProfiles.SrgbIec6196621,
             encodedJpeg,

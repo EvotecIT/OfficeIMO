@@ -172,6 +172,21 @@ public class OfficeColorSpaceConverterTests {
     }
 
     [Fact]
+    public void IccMatrixProfile_RejectsNegativeLowerBranchSlopeAboveUnitInterval() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        int curveOffset = FindTagOffset(profileBytes, "rTRC");
+        WriteSignature(profileBytes, curveOffset, "para");
+        Array.Clear(profileBytes, curveOffset + 4, 8);
+        profileBytes[curveOffset + 9] = 3;
+        double[] parameters = { 1D, 1D, 0D, -1D, 2D };
+        for (int index = 0; index < parameters.Length; index++) {
+            WriteS15Fixed16(profileBytes, curveOffset + 12 + index * 4, parameters[index]);
+        }
+
+        Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
+    }
+
+    [Fact]
     public void IccGrayProfile_UsesGrayTrcAndMediaWhitePoint() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
         WriteSignature(profileBytes, 16, "GRAY");
@@ -481,9 +496,9 @@ public class OfficeColorSpaceConverterTests {
             out double y,
             out double z);
         const double pcsXyzScale = 65535D / 32768D;
-        Assert.InRange(Math.Abs(absolute[0] - Math.Clamp(x * (0.9642D / 0.75D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
-        Assert.InRange(Math.Abs(absolute[1] - Math.Clamp(y * (1D / 0.8D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
-        Assert.InRange(Math.Abs(absolute[2] - Math.Clamp(z * (0.8249D / 0.6D) / pcsXyzScale, 0D, 1D)), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(absolute[0] - Clamp01(x * (0.9642D / 0.75D) / pcsXyzScale)), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(absolute[1] - Clamp01(y * (1D / 0.8D) / pcsXyzScale)), 0D, 0.0001D);
+        Assert.InRange(Math.Abs(absolute[2] - Clamp01(z * (0.8249D / 0.6D) / pcsXyzScale)), 0D, 0.0001D);
     }
 
     [Fact]
@@ -506,6 +521,7 @@ public class OfficeColorSpaceConverterTests {
             Math.Abs(perceptual[2] - relative[2]) > 0.0001D);
     }
 
+#if NET8_0_OR_GREATER
     [Fact]
     public void IccMbaProfile_OffersAllocationFreeBufferedOutputAndSoftProofPaths() {
         Assert.True(OfficeIccColorProfile.TryCreate(
@@ -529,6 +545,7 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(succeeded);
         Assert.Equal(0L, allocated);
     }
+#endif
 
     [Fact]
     public void IccMbaProfile_FailsOutputConversionClosedWhenAuthoredTransformIsMalformedOrMissing() {
@@ -581,7 +598,7 @@ public class OfficeColorSpaceConverterTests {
 
         Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out _));
 
-        profileBytes[^1] = 1;
+        profileBytes[profileBytes.Length - 1] = 1;
         Assert.False(OfficeIccColorProfile.TryCreate(profileBytes, out _));
     }
 
@@ -613,9 +630,9 @@ public class OfficeColorSpaceConverterTests {
         out double output0,
         out double output1,
         out double output2) {
-        double b0 = Math.Pow(Math.Clamp(input0, 0D, 1D), 1.25D);
-        double b1 = Math.Pow(Math.Clamp(input1, 0D, 1D), 1.5D);
-        double b2 = Math.Pow(Math.Clamp(input2, 0D, 1D), 1.75D);
+        double b0 = Math.Pow(Clamp01(input0), 1.25D);
+        double b1 = Math.Pow(Clamp01(input1), 1.5D);
+        double b2 = Math.Pow(Clamp01(input2), 1.75D);
         double matrix0 = Math.Min(1D, 0.5D * b0 + 0.1D);
         double matrix1 = Math.Min(1D, 0.5D * b1 + 0.1D);
         double matrix2 = Math.Min(1D, 0.5D * b2 + 0.1D);
@@ -626,6 +643,8 @@ public class OfficeColorSpaceConverterTests {
         output1 = Math.Pow(m1 * (0.25D + 0.75D * m2), 1.2D);
         output2 = Math.Pow(m2 * (0.25D + 0.75D * m0), 1.3D);
     }
+
+    private static double Clamp01(double value) => Math.Min(1D, Math.Max(0D, value));
 
     [Fact]
     public void IccGrayProfile_RequiresValidMediaWhitePoint() {

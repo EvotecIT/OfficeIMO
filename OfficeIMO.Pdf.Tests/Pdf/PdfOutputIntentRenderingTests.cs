@@ -397,6 +397,61 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_DiagnosesPageTransparencyGroupBeforeSoftProofing() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg 10 10 20 20 re f",
+            pageEntries: "/Group << /S /Transparency /CS /DeviceRGB >>");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        OfficeColor color = FindSingleShapeColor(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.FromRgb(51, 102, 204), color);
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
+    public void RenderPage_ResolvesIndirectTilingPatternTypeBeforeTransparencyInspection() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        const string patternContent = "/GS gs 0 0 10 10 re f";
+        string resources = "/Pattern << /P 5 0 R >>";
+        string extraObjects =
+            "5 0 obj\n<< /Type /Pattern /PatternType 7 0 R /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 " +
+            "/Resources << /ExtGState << /GS << /Type /ExtGState /ca 0.5 >> >> >> /Length " +
+            Encoding.ASCII.GetByteCount(patternContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + patternContent + "\nendstream\nendobj\n" +
+            "7 0 obj\n1\nendobj\n";
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "/Pattern cs /P scn 10 10 20 20 re f",
+            resources,
+            extraObjects);
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        _ = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
+    public void RenderPage_UnmatchedRestorePreservesProofedDefaultTextColor() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        string resources = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        byte[] pdf = BuildPdf(profileBytes, "Q BT /F1 12 Tf 10 40 Td (A) Tj ET", resources);
+        OfficeColor expected = ExpectedSoftProof(
+            profileBytes,
+            OfficeColor.Black,
+            OfficeIccRenderingIntent.RelativeColorimetric);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal(expected, Assert.Single(drawing.Elements.OfType<OfficeDrawingText>()).Color);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesLuminositySoftMaskInsteadOfProofingItsBackdropEarly() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         const string maskContent = "1 g 0 0 20 20 re f";
@@ -511,7 +566,8 @@ public class PdfOutputIntentRenderingTests {
         string resources = "",
         string extraObjects = "",
         string profileEntries = "",
-        string? outputIntents = null) {
+        string? outputIntents = null,
+        string pageEntries = "") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
@@ -519,7 +575,7 @@ public class PdfOutputIntentRenderingTests {
             (outputIntents ?? "[<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 6 0 R >>]") +
             " >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
-        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << " + resources + " >> " + pageEntries + " /Contents 4 0 R >>\nendobj\n");
         WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\n");

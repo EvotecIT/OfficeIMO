@@ -109,7 +109,8 @@ public sealed partial class PdfReadPage {
             }
         },
         maxNestingDepth: _limits.MaxContentNestingDepth,
-        maxOperands: _limits.MaxContentOperands);
+        maxOperands: _limits.MaxContentOperands,
+        inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
 
         if (resources == null) return;
         if (invokedShadings.Count > 0 || invokedPatterns.Count > 0) {
@@ -136,7 +137,8 @@ public sealed partial class PdfReadPage {
                     seen,
                     PdfRenderCapabilities.UnsupportedShadingId,
                     "transformed-radial-shading"),
-                textClippingBudget: textClippingBudget);
+                textClippingBudget: textClippingBudget,
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         }
         HashSet<string> failedType3Fonts = CollectType3FontFailures(
             content,
@@ -553,7 +555,8 @@ public sealed partial class PdfReadPage {
                 unsupportedOperatorVisitor: _ => supported = false,
                 initialFillPattern: initialFillPattern,
                 initialStrokePattern: initialStrokePattern,
-                textClippingBudget: textClippingBudget);
+                textClippingBudget: textClippingBudget,
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
             if (usesUnsupportedInheritedShadingStroke) {
                 AddRenderDiagnostic(
                     diagnostics,

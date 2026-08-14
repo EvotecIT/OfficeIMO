@@ -31,7 +31,8 @@ public sealed partial class PdfReadPage {
                 if (operationName != "cs" && operationName != "CS" && operationName != "sh" && operationName != "Do") {
                     malformed = true;
                 }
-            });
+            },
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         if (malformed) return true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,

@@ -15,10 +15,11 @@ internal static class PdfContentStreamInterpreter {
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
-        bool dispatchInvalidOperations = false) {
+        bool dispatchInvalidOperations = false,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
         reader.InterpretUntil(operation => {
             visit(operation);
             return true;
@@ -32,10 +33,11 @@ internal static class PdfContentStreamInterpreter {
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
-        bool dispatchInvalidOperations = false) {
+        bool dispatchInvalidOperations = false,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
         return reader.InterpretUntil(visit);
     }
 
@@ -45,6 +47,7 @@ internal static class PdfContentStreamInterpreter {
         private readonly int _maxOperands;
         private readonly int _maxNestingDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
+        private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private readonly bool _dispatchInvalidOperations;
         private readonly List<object> _operands = new List<object>(8);
         private int _index;
@@ -58,12 +61,14 @@ internal static class PdfContentStreamInterpreter {
             int maxOperands,
             int maxNestingDepth,
             Func<string, int>? inlineImageComponentCount,
+            Func<PdfArray, int>? inlineImageArrayComponentCount,
             bool dispatchInvalidOperations) {
             _content = content;
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
             _maxNestingDepth = maxNestingDepth;
             _inlineImageComponentCount = inlineImageComponentCount;
+            _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _dispatchInvalidOperations = dispatchInvalidOperations;
         }
 
@@ -290,6 +295,13 @@ internal static class PdfContentStreamInterpreter {
                     } else if (string.Equals(token, "false", StringComparison.Ordinal)) {
                         values.Add(false);
                         CountOperand();
+                    } else if (string.Equals(token, "R", StringComparison.Ordinal) &&
+                        values.Count >= 2 &&
+                        TryReadReferencePart(values[values.Count - 2], out int objectNumber) &&
+                        TryReadReferencePart(values[values.Count - 1], out int generation)) {
+                        values.RemoveAt(values.Count - 1);
+                        values.RemoveAt(values.Count - 1);
+                        values.Add(new PdfReference(objectNumber, generation));
                     } else if (token.Length == 0) {
                         _index++;
                     }
@@ -301,6 +313,19 @@ internal static class PdfContentStreamInterpreter {
             }
 
             return values;
+        }
+
+        private static bool TryReadReferencePart(object value, out int result) {
+            result = 0;
+            if (value is not double number ||
+                number < 0D ||
+                number > int.MaxValue ||
+                number != Math.Truncate(number)) {
+                return false;
+            }
+
+            result = (int)number;
+            return true;
         }
 
         private PdfContentDictionary ReadDictionary(int nestingDepth) {
@@ -533,6 +558,10 @@ internal static class PdfContentStreamInterpreter {
         }
 
         private static PdfObject? ConvertToPdfObject(object value, string? ownerKey = null) {
+            if (value is PdfObject pdfObject) {
+                return pdfObject;
+            }
+
             if (value is double number) {
                 return new PdfNumber(number);
             }
@@ -633,7 +662,7 @@ internal static class PdfContentStreamInterpreter {
             }
         }
 
-        private static int GetInlineImageArrayComponentCount(PdfArray array) {
+        private int GetInlineImageArrayComponentCount(PdfArray array) {
             if (array.Items.Count == 0 || array.Items[0] is not PdfName kind) {
                 return 0;
             }
@@ -656,7 +685,7 @@ internal static class PdfContentStreamInterpreter {
                         ? colorants.Items.Count
                         : 0;
                 default:
-                    return 0;
+                    return Math.Max(0, _inlineImageArrayComponentCount?.Invoke(array) ?? 0);
             }
         }
         private static int ReadPositiveInteger(PdfDictionary dictionary, string key) =>

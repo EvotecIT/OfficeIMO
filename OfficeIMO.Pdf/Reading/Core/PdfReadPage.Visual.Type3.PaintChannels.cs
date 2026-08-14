@@ -143,7 +143,8 @@ public sealed partial class PdfReadPage {
                 scaleStrokeWidthWithTransform: true,
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
                 requireExactType3ShadingProjection: true,
-                retainPrimitiveData: false);
+                retainPrimitiveData: false,
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
 
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);

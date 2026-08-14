@@ -2870,6 +2870,18 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_FramesRawInlineIccBasedImageWithDirectColorSpaceArray() {
+        byte[] pdf = BuildInlineDirectIccBasedRawImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(7, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes).Length);
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
     public void RenderPage_PreservesRotatedImageXObjectProjection() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
@@ -5091,7 +5103,7 @@ public partial class PdfPageImageRendererTests {
                 Quality = 100,
                 Subsampling = OfficeJpegSubsampling.Y444
             });
-        byte[] encodedJpeg = Encoding.ASCII.GetBytes(Convert.ToHexString(jpeg) + ">");
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(BitConverter.ToString(jpeg).Replace("-", string.Empty) + ">");
         using var content = new MemoryStream();
         WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /RGB\n/BPC 8\n/F [/AHx /DCT]\n/D [1 0 1 0 1 0]\nID\n");
         content.Write(encodedJpeg, 0, encodedJpeg.Length);
@@ -5127,6 +5139,29 @@ public partial class PdfPageImageRendererTests {
         pdf.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(pdf, "\nendstream\nendobj\n");
         WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineDirectIccBasedRawImagePdf() {
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 2\n/H 1\n/CS [/ICCBased 7 0 R]\n/BPC 8\nID\n");
+        byte[] samples = { 32, 69, 73, 32, 0, 255 };
+        content.Write(samples, 0, samples.Length);
+        WriteAscii(content, "\nEI\nQ\n0 0 1 rg\n120 80 20 20 re\nf");
+        byte[] contentBytes = content.ToArray();
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "7 0 obj\n<< /N 3 /Length " + profile.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(profile, 0, profile.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return pdf.ToArray();
     }
 

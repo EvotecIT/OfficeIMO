@@ -85,12 +85,13 @@ internal static class PdfPageXObjectInvocationParser {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        Action<string, OfficeIccRenderingIntent>? patternInvocationWithIntentVisitor = null) {
+        Action<string, OfficeIccRenderingIntent>? patternInvocationWithIntentVisitor = null,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount);
         return parser.Parse();
     }
 
@@ -189,6 +190,7 @@ internal static class PdfPageXObjectInvocationParser {
         private PdfPaintColorSelection? _fillColorSelection;
         private PdfPaintColorSelection? _strokeColorSelection;
         private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
+        private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
 
         public Parser(
             string content,
@@ -253,7 +255,8 @@ internal static class PdfPageXObjectInvocationParser {
             OfficeIccRenderingIntent initialRenderingIntent,
             PdfPaintColorSelection? initialFillColorSelection,
             PdfPaintColorSelection? initialStrokeColorSelection,
-            PdfOutputIntentColorTransform? outputIntentColorTransform) {
+            PdfOutputIntentColorTransform? outputIntentColorTransform,
+            Func<PdfArray, int>? inlineImageArrayComponentCount) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -294,6 +297,7 @@ internal static class PdfPageXObjectInvocationParser {
             _fillColorSelection = initialFillColorSelection;
             _strokeColorSelection = initialStrokeColorSelection;
             _outputIntentColorTransform = outputIntentColorTransform;
+            _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _pageHeight = pageHeight;
             _pageWidth = pageWidth;
             _paintOrderBase = paintOrderBase;
@@ -345,7 +349,8 @@ internal static class PdfPageXObjectInvocationParser {
                 },
                 ResolveInlineImageComponentCount,
                 _maxNestingDepth,
-                _maxOperands);
+                _maxOperands,
+                inlineImageArrayComponentCount: _inlineImageArrayComponentCount);
 
             ApplyPendingTextClippingPath();
 

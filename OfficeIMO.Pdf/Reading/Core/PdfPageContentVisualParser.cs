@@ -65,12 +65,13 @@ internal static class PdfPageContentVisualParser {
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
-        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount);
         return parser.Parse();
     }
 
@@ -276,6 +277,7 @@ internal static class PdfPageContentVisualParser {
         private bool _hasInexactDash;
         private readonly OfficeIccRenderingIntent _initialRenderingIntent;
         private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
+        private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private OfficeIccRenderingIntent _renderingIntent;
         private PdfPaintColorSelection? _fillColorSelection;
         private PdfPaintColorSelection? _strokeColorSelection;
@@ -322,7 +324,8 @@ internal static class PdfPageContentVisualParser {
             OfficeIccRenderingIntent initialRenderingIntent,
             PdfPaintColorSelection? initialFillColorSelection,
             PdfPaintColorSelection? initialStrokeColorSelection,
-            PdfOutputIntentColorTransform? outputIntentColorTransform) {
+            PdfOutputIntentColorTransform? outputIntentColorTransform,
+            Func<PdfArray, int>? inlineImageArrayComponentCount) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -351,6 +354,7 @@ internal static class PdfPageContentVisualParser {
             _initialRenderingIntent = initialRenderingIntent;
             _renderingIntent = initialRenderingIntent;
             _outputIntentColorTransform = outputIntentColorTransform;
+            _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -443,7 +447,8 @@ internal static class PdfPageContentVisualParser {
                 },
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands,
-                dispatchInvalidOperations: _unsupportedOperatorVisitor != null);
+                dispatchInvalidOperations: _unsupportedOperatorVisitor != null,
+                inlineImageArrayComponentCount: _inlineImageArrayComponentCount);
 
             return _primitives == null || _primitives.Count == 0
                 ? Array.Empty<PdfPageVisualPrimitive>()

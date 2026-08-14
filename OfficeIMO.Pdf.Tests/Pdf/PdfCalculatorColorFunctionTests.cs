@@ -312,6 +312,7 @@ public sealed partial class PdfColorFunctionTests {
             PdfReadLimits.DefaultMaxDecodedStreamBytes));
     }
 
+#if NET8_0_OR_GREATER
     [Fact]
     public void Type4_ReusesItsBoundedOperandStackAcrossPixelScaleEvaluations() {
         PdfStream calculator = CalculatorFunction(1, 3, "{ dup dup }");
@@ -331,6 +332,7 @@ public sealed partial class PdfColorFunctionTests {
 
         Assert.InRange(allocated, 1L, 200_000L);
     }
+#endif
 
     [Fact]
     public void RenderPage_AppliesCalculatorSeparationTintToContentPaint() {

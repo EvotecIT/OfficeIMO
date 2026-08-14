@@ -403,7 +403,8 @@ public sealed partial class PdfReadPage {
             },
             initialFillPattern: initialState?.FillPattern,
             initialStrokePattern: initialState?.StrokePattern,
-            textClippingBudget: textClippingBudget);
+            textClippingBudget: textClippingBudget,
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         if (!supported) return false;
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);

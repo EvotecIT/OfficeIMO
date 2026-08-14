@@ -518,8 +518,9 @@ public sealed partial class OfficeIccColorProfile {
         if (functionType <= 2) return true;
         double slope = parameters[3];
         double boundary = parameters[4];
-        if (boundary <= 0D || boundary > 1D) return true;
+        if (boundary <= 0D) return true;
         if (slope < 0D) return false;
+        if (boundary > 1D) return true;
         double high = Math.Pow(parameters[1] * boundary + parameters[2], parameters[0]);
         double low = slope * boundary;
         if (functionType == 4) {

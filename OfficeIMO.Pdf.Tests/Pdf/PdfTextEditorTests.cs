@@ -55,18 +55,16 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
-    public void PortableTextRestampsRejectAuthoredRenderingIntent() {
+    public void PortableTextRestampsPreserveSupportedAuthoredRenderingIntent() {
         byte[] source = BuildRawTextPdf("q /Perceptual ri BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n");
         PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Text.Move(region, 10D, 0D));
-        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Text.Replace(region, "replacement"));
+        PdfTextEditResult moved = PdfDocument.Open(source).Text.Move(region, 10D, 0D);
+        PdfTextEditResult replaced = PdfDocument.Open(source).Text.Replace(region, "replacement");
 
-        Assert.Contains("cannot be recreated", moveException.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("cannot be recreated", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("managed color", moved.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("replacement", replaced.Document.Read.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

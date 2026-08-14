@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
     private bool HasOutputIntentCompositionInteraction() {
+        if (IsTransparencyGroup(_pageDict)) return true;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this);
@@ -72,7 +73,8 @@ public sealed partial class PdfReadPage {
             }
         },
         maxNestingDepth: _limits.MaxContentNestingDepth,
-        maxOperands: _limits.MaxContentOperands);
+        maxOperands: _limits.MaxContentOperands,
+        inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
     }
 
@@ -86,7 +88,11 @@ public sealed partial class PdfReadPage {
             _objects,
             stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) as PdfName)?.Name;
         if (subtype == "Image") return HasImageTransparency(stream.Dictionary);
-        if (subtype != "Form" && stream.Dictionary.Get<PdfNumber>("PatternType")?.Value != 1D) return false;
+        int? patternType = TryReadInteger(
+            stream.Dictionary.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject)
+                ? patternTypeObject
+                : null);
+        if (subtype != "Form" && patternType != 1) return false;
         if (IsTransparencyGroup(stream.Dictionary)) return true;
         if (!activeStreams.Add(stream)) return false;
         try {

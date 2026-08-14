@@ -780,17 +780,23 @@ public sealed partial class PdfColorFunctionTests {
             Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
         }
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
         bool converted = true;
         OfficeColor color = OfficeColor.Black;
+#if NET8_0_OR_GREATER
+        long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         for (int index = 0; index < 4096; index++) {
             converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
         }
+#if NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.True(converted);
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
+#if NET8_0_OR_GREATER
         Assert.InRange(allocated, 0, 1024);
+#endif
     }
 
     private static PdfDictionary Dictionary(params (string Key, PdfObject Value)[] entries) {
