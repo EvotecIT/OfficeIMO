@@ -665,7 +665,7 @@ public static partial class HtmlProvenance {
                     index = cdataEnd < 0 ? html.Length : cdataEnd + 3;
                 } else if (markup <= html.Length - 9 &&
                     string.Compare(html, markup, "<!DOCTYPE", 0, 9, StringComparison.OrdinalIgnoreCase) == 0) {
-                    int declarationEnd = FindTagEnd(html, markup + 9);
+                    int declarationEnd = FindDoctypeEnd(html, markup + 9);
                     index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 } else {
                     int declarationEnd = html.IndexOf('>', markup + 2);
@@ -895,6 +895,39 @@ public static partial class HtmlProvenance {
         }
         return -1;
     }
+
+    private static int FindDoctypeEnd(string html, int offset) {
+        int cursor = SkipAsciiWhitespace(html, offset);
+        while (cursor < html.Length && html[cursor] != '>' && !IsAsciiWhitespace(html[cursor])) cursor++;
+        if (cursor >= html.Length || html[cursor] == '>') return cursor < html.Length ? cursor : -1;
+        cursor = SkipAsciiWhitespace(html, cursor);
+        bool isPublic = StartsWithDoctypeKeyword(html, cursor, "PUBLIC");
+        bool isSystem = StartsWithDoctypeKeyword(html, cursor, "SYSTEM");
+        if (!isPublic && !isSystem) return html.IndexOf('>', cursor);
+        cursor = SkipAsciiWhitespace(html, cursor + 6);
+        if (cursor >= html.Length || html[cursor] is not ('\'' or '"')) return html.IndexOf('>', cursor);
+        int firstIdentifierEnd = html.IndexOf(html[cursor], cursor + 1);
+        if (firstIdentifierEnd < 0) return -1;
+        cursor = SkipAsciiWhitespace(html, firstIdentifierEnd + 1);
+        if (cursor >= html.Length || html[cursor] == '>') return cursor < html.Length ? cursor : -1;
+        if (!isPublic || html[cursor] is not ('\'' or '"')) return html.IndexOf('>', cursor);
+        int secondIdentifierEnd = html.IndexOf(html[cursor], cursor + 1);
+        if (secondIdentifierEnd < 0) return -1;
+        cursor = SkipAsciiWhitespace(html, secondIdentifierEnd + 1);
+        return cursor < html.Length && html[cursor] == '>' ? cursor : html.IndexOf('>', cursor);
+    }
+
+    private static int SkipAsciiWhitespace(string value, int offset) {
+        while (offset < value.Length && IsAsciiWhitespace(value[offset])) offset++;
+        return offset;
+    }
+
+    private static bool IsAsciiWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
+
+    private static bool StartsWithDoctypeKeyword(string html, int offset, string keyword) =>
+        offset <= html.Length - keyword.Length &&
+        string.Compare(html, offset, keyword, 0, keyword.Length, StringComparison.OrdinalIgnoreCase) == 0 &&
+        offset + keyword.Length < html.Length && IsAsciiWhitespace(html[offset + keyword.Length]);
 
     private static int FindStartTagEnd(string html, int offset, out bool selfClosing) {
         selfClosing = false;

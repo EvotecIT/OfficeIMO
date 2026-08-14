@@ -67,6 +67,7 @@ public partial class VisioDocument {
                         throw new InvalidDataException("A Visio signature-origin relationship targets a part with an unexpected content type.");
                     }
                     originParts.Add(origin);
+                    ValidateRelationshipNodeBudget(package, origin.Uri, limits);
                     foreach (PackageRelationship signature in origin.GetRelationshipsByType(SignaturePartRelationship).ToArray()) {
                         if (signature.TargetMode == TargetMode.External) continue;
                         Uri signatureUri = PackUriHelper.ResolvePartUri(origin.Uri, signature.TargetUri);
@@ -109,6 +110,15 @@ public partial class VisioDocument {
             }
         }
         return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
+    }
+
+    private static void ValidateRelationshipNodeBudget(Package package, Uri sourcePartUri, OfficeProvenanceOptions limits) {
+        Uri relationshipPartUri = PackUriHelper.GetRelationshipPartUri(sourcePartUri);
+        if (!package.PartExists(relationshipPartUri)) return;
+        PackagePart relationshipPart = package.GetPart(relationshipPartUri);
+        using Stream input = relationshipPart.GetStream(FileMode.Open, FileAccess.Read);
+        byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio signature relationships");
     }
 
     private static byte[] ReadBoundedXml(Stream input, long maximumBytes) {
