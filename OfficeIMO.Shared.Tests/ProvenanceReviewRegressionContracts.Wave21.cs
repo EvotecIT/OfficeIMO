@@ -41,6 +41,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             Encoding.ASCII.GetBytes("XMP DataXMP"),
             payload.ToArray(),
             trailer,
+            CreateMinimalGifImage(),
             new byte[] { 0x3B });
     }
 }

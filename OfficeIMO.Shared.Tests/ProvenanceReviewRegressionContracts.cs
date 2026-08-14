@@ -172,6 +172,9 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             new byte[] { 0xFF, 0xD8 },
             CreateJpegApp11(manifest, 0, 46, instance: 11, sequence: 1),
             CreateJpegApp11(manifest, 46, manifest.Length - 46, instance: 11, sequence: 2),
+            CreateMinimalJpegFrame(),
+            CreateMinimalJpegScan(),
+            new byte[] { 0 },
             new byte[] { 0xFF, 0xD9 });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
@@ -1026,6 +1029,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             Encoding.ASCII.GetBytes("XMP DataXMP"),
             packet,
             trailer,
+            CreateMinimalGifImage(),
             new byte[] { 0x3B });
     }
 
@@ -1198,6 +1202,17 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         Buffer.BlockCopy(payload, 0, segment, 4, payload.Length);
         return segment;
     }
+
+    private static byte[] CreateMinimalJpegFrame() => CreateJpegSegment(
+        0xC0,
+        new byte[] { 8, 0, 1, 0, 1, 1, 1, 0x11, 0 });
+
+    private static byte[] CreateMinimalJpegScan() => CreateJpegSegment(
+        0xDA,
+        new byte[] { 1, 1, 0, 0, 63, 0 });
+
+    private static byte[] CreateMinimalGifImage() =>
+        new byte[] { 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 1, 0, 0 };
 
     private static byte[] CreateJpegApp11(byte[] manifest, int offset, int count, ushort instance, uint sequence) {
         byte[] payload = new byte[count + 8];

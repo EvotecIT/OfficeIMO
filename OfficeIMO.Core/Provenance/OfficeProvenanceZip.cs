@@ -776,7 +776,10 @@ internal static class OfficeProvenanceZip {
         return false;
     }
 
-    internal static void ValidateForOwningPackageMutation(byte[] data, OfficeProvenanceOptions options) {
+    internal static void ValidateForOwningPackageMutation(
+        byte[] data,
+        OfficeProvenanceOptions options,
+        bool validateOpcMetadata = true) {
         ValidateEntryCount(data, options.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
@@ -791,9 +794,9 @@ internal static class OfficeProvenanceZip {
                 throw new InvalidDataException("A package part exceeds the configured asset limit.");
             }
             using Stream source = entry.Open();
-            bool isRelationships = entryName.Equals("_rels/.rels", StringComparison.Ordinal) ||
-                entryName.EndsWith(".rels", StringComparison.Ordinal) && entryName.Contains("/_rels/");
-            MemoryStream? metadata = isRelationships || entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)
+            bool isRelationships = validateOpcMetadata && (entryName.Equals("_rels/.rels", StringComparison.Ordinal) ||
+                entryName.EndsWith(".rels", StringComparison.Ordinal) && entryName.Contains("/_rels/"));
+            MemoryStream? metadata = isRelationships || validateOpcMetadata && entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)
                 ? new MemoryStream(entry.Length > int.MaxValue ? 0 : (int)entry.Length)
                 : null;
             long entryBytes = 0;
