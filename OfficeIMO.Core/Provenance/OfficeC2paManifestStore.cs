@@ -116,11 +116,15 @@ internal static class OfficeC2paManifestStore {
         int cursor = descriptionEnd;
         int requiredChild = 0;
         bool hasDataBoxStore = false;
+        var childLabels = new HashSet<string>(StringComparer.Ordinal);
         while (cursor < manifestEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = manifestEnd - cursor;
             if (!TryReadBox(data, cursor, remaining, out _, out ulong childLength, out string childType) ||
                 childLength > int.MaxValue) return false;
+            if (childType != "jumb" ||
+                !TryReadSuperboxLabel(data, cursor, (int)childLength, out string childLabel) ||
+                !childLabels.Add(childLabel)) return false;
             if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, AssertionStoreUuid)) {
                 if (requiredChild != 0) return false;
                 if (!IsAssertionStoreSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
@@ -147,6 +151,19 @@ internal static class OfficeC2paManifestStore {
             cursor += (int)childLength;
         }
         return cursor == manifestEnd && requiredChild == 3;
+    }
+
+    private static bool TryReadSuperboxLabel(byte[] data, int offset, int availableLength, out string label) {
+        label = string.Empty;
+        if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
+            type != "jumb" || declaredLength != (ulong)availableLength) return false;
+        int descriptionOffset = offset + headerLength;
+        if (!TryReadBox(data, descriptionOffset, availableLength - headerLength, out int descriptionHeaderLength,
+                out ulong descriptionLength, out string descriptionType) || descriptionType != "jumd" ||
+            descriptionLength < (ulong)(descriptionHeaderLength + 18)) return false;
+        int togglesOffset = descriptionOffset + descriptionHeaderLength + 16;
+        int descriptionEnd = descriptionOffset + (int)descriptionLength;
+        return TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out label);
     }
 
     private static bool IsExtensionSuperbox(

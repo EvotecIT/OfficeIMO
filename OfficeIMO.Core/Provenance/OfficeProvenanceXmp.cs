@@ -87,25 +87,27 @@ internal static class OfficeProvenanceXmp {
     }
 
     private static IEnumerable<XmpValue> FindValues(XDocument document) {
-        foreach (XElement element in document.Descendants()) {
-            if (!IsRdfPropertyContext(element)) continue;
-            if (element.Name.NamespaceName == IptcNamespace && element.Name.LocalName == "DigitalSourceType") {
-                XAttribute? resource = element.Attribute(RdfNamespace + "resource");
-                string value = resource?.Value ?? element.Value;
-                yield return new XmpValue(value, Classify(value), resource, element, IsScalarRdfProperty(element, resource));
-            }
-            foreach (XAttribute attribute in element.Attributes()) {
+        foreach (XElement description in document.Descendants(RdfNamespace + "Description")
+            .Where(candidate => candidate.Ancestors().Any(ancestor => ancestor.Name == RdfNamespace + "RDF"))) {
+            foreach (XAttribute attribute in description.Attributes()) {
                 if (attribute.Name.NamespaceName == IptcNamespace && attribute.Name.LocalName == "DigitalSourceType") {
                     yield return new XmpValue(attribute.Value, Classify(attribute.Value), attribute, null, isStructurallyValid: true);
+                }
+            }
+            foreach (XElement element in description.Elements()) {
+                if (IsInsideXmlLiteral(element)) continue;
+                if (element.Name.NamespaceName == IptcNamespace && element.Name.LocalName == "DigitalSourceType") {
+                    XAttribute? resource = element.Attribute(RdfNamespace + "resource");
+                    string value = resource?.Value ?? element.Value;
+                    yield return new XmpValue(value, Classify(value), resource, element, IsScalarRdfProperty(element, resource));
                 }
             }
         }
     }
 
-    private static bool IsRdfPropertyContext(XElement element) {
-        XElement? description = element.AncestorsAndSelf().FirstOrDefault(candidate => candidate.Name == RdfNamespace + "Description");
-        return description != null && description.Ancestors().Any(candidate => candidate.Name == RdfNamespace + "RDF");
-    }
+    private static bool IsInsideXmlLiteral(XElement element) =>
+        element.AncestorsAndSelf().Any(candidate =>
+            string.Equals(candidate.Attribute(RdfNamespace + "parseType")?.Value, "Literal", StringComparison.Ordinal));
 
     private static bool IsScalarRdfProperty(XElement element, XAttribute? resource) {
         if (element.HasElements || element.Nodes().Any(node => node is not XText)) return false;

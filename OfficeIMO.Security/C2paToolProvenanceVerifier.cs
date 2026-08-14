@@ -17,6 +17,7 @@ namespace OfficeIMO.Security;
 public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     private static readonly string[] NonObjectReportFinding = { "c2patool returned a non-object JSON report." };
     private static readonly string[] MalformedActiveManifestFinding = { "c2patool returned malformed active_manifest data." };
+    private static readonly string[] DuplicateCriticalReportFieldFinding = { "c2patool returned duplicate security-critical report fields." };
     private static readonly HashSet<string> SuccessfulValidationCodes = new(StringComparer.Ordinal) {
         "claimSignature.validated",
         "claimSignature.insideValidity",
@@ -107,8 +108,13 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     NonObjectReportFinding, process.StandardOutput, options);
             }
+            if (!TryGetUniqueProperty(document.RootElement, "active_manifest", out JsonElement activeManifestElement, out bool hasActiveManifest) ||
+                !TryGetUniqueProperty(document.RootElement, "validation_status", out JsonElement validationStatus, out bool hasValidationStatus)) {
+                return Result(OfficeProvenanceVerificationStatus.Error,
+                    DuplicateCriticalReportFieldFinding, process.StandardOutput, options);
+            }
             string? activeManifest = null;
-            if (document.RootElement.TryGetProperty("active_manifest", out JsonElement activeManifestElement)) {
+            if (hasActiveManifest) {
                 if (activeManifestElement.ValueKind == JsonValueKind.String) {
                     activeManifest = activeManifestElement.GetString();
                     if (string.IsNullOrWhiteSpace(activeManifest)) {
@@ -123,7 +129,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             }
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
-            if (document.RootElement.TryGetProperty("validation_status", out JsonElement validationStatus) &&
+            if (hasValidationStatus &&
                 !TryCollectValidationFindings(validationStatus, findings, findingSet)) {
                 findings.Add("c2patool returned malformed validation_status data.");
                 return Result(OfficeProvenanceVerificationStatus.Error, findings, process.StandardOutput, options);
@@ -168,9 +174,9 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         if (validationStatus.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement status in validationStatus.EnumerateArray()) {
             if (status.ValueKind != JsonValueKind.Object) return false;
-            bool hasCode = status.TryGetProperty("code", out JsonElement codeElement);
-            bool hasExplanation = status.TryGetProperty("explanation", out JsonElement explanationElement);
-            bool hasSuccess = status.TryGetProperty("success", out JsonElement successElement);
+            if (!TryGetUniqueProperty(status, "code", out JsonElement codeElement, out bool hasCode) ||
+                !TryGetUniqueProperty(status, "explanation", out JsonElement explanationElement, out bool hasExplanation) ||
+                !TryGetUniqueProperty(status, "success", out JsonElement successElement, out bool hasSuccess)) return false;
             if (hasCode && codeElement.ValueKind != JsonValueKind.String ||
                 hasExplanation && explanationElement.ValueKind != JsonValueKind.String ||
                 hasSuccess && successElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False) return false;
@@ -181,6 +187,22 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             string finding = string.IsNullOrWhiteSpace(code) ? "unknown validation failure" : code!;
             if (!string.IsNullOrWhiteSpace(explanation)) finding += ": " + explanation;
             if (findingSet.Add(finding)) findings.Add(finding);
+        }
+        return true;
+    }
+
+    private static bool TryGetUniqueProperty(
+        JsonElement element,
+        string propertyName,
+        out JsonElement value,
+        out bool found) {
+        value = default;
+        found = false;
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            if (!string.Equals(property.Name, propertyName, StringComparison.Ordinal)) continue;
+            if (found) return false;
+            value = property.Value;
+            found = true;
         }
         return true;
     }

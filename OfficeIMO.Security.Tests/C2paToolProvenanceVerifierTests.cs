@@ -28,6 +28,9 @@ public sealed class C2paToolProvenanceVerifierTests {
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"claimSignature.validated\",\"success\":\"true\"}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"claimSignature.validated\",\"success\":null}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":1,\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}],\"validation_status\":[]}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":null,\"active_manifest\":\"urn:c2pa:test\"}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"success\":false,\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":null,\"manifests\":{\"urn:c2pa:ingredient\":{\"active_manifest\":\"nested\"}}}", 0, OfficeProvenanceVerificationStatus.NotPresent)]
     [InlineData("not-json", 1, OfficeProvenanceVerificationStatus.Error)]
     public void VerifyNormalizesBoundedToolReports(string report, int exitCode, OfficeProvenanceVerificationStatus expected) {

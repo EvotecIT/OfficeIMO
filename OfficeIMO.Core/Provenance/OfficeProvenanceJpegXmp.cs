@@ -55,6 +55,17 @@ internal static class OfficeProvenanceJpegXmp {
         }
 
         var references = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+        var extensionIndex = new Dictionary<string, List<ExtendedChunk>>(StringComparer.OrdinalIgnoreCase);
+        foreach (ExtendedChunk extension in extensions) {
+            if (!extensionIndex.TryGetValue(extension.Guid, out List<ExtendedChunk>? chunks)) {
+                extensionIndex.Add(extension.Guid, chunks = new List<ExtendedChunk>());
+            }
+            chunks.Add(extension);
+        }
+        var orderedExtensions = extensionIndex.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value.OrderBy(item => item.Offset).ToArray(),
+            StringComparer.OrdinalIgnoreCase);
         var currentPackets = standards.ToDictionary(item => item.SegmentStart, item => item.Packet);
         bool standardSetIsStructurallyValid = standards.Count <= 1;
         foreach (StandardPacket standard in standards) {
@@ -72,10 +83,9 @@ internal static class OfficeProvenanceJpegXmp {
         }
 
         foreach (KeyValuePair<string, List<int>> reference in references) {
-            ExtendedChunk[] chunks = extensions
-                .Where(item => string.Equals(item.Guid, reference.Key, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(item => item.Offset)
-                .ToArray();
+            ExtendedChunk[] chunks = orderedExtensions.TryGetValue(reference.Key, out ExtendedChunk[]? indexedChunks)
+                ? indexedChunks
+                : Array.Empty<ExtendedChunk>();
             int firstChunkOffset = chunks.Length == 0 ? int.MaxValue : chunks[0].SegmentStart;
             string location = $"JPEG[{imageIndex}]/APP1-ExtendedXMP@{firstChunkOffset}[{reference.Key}]";
             if (!TryAssemble(chunks, options.MaxAssetBytes, out byte[] packet)) {
