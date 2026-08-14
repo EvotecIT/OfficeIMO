@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// Default maximum number of cells written by the fixed-schema <see cref="DataTable"/> overload,
         /// including the header row.
         /// </summary>
-        public const long DefaultDataTableMaxCells = 2_000_000L;
+        public const long DefaultDataTableMaxCells = 5_000_000L;
 
         /// <summary>
         /// Renders a fixed-schema <see cref="DataTable"/> as an editable Excel table without generic object flattening.
