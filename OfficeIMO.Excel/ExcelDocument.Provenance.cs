@@ -36,7 +36,8 @@ public partial class ExcelDocument {
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
         ValidateXlsbDetectionMetadata(data, options);
-        if (XlsbPackageDetector.TryFindWorkbookPart(data, out _)) return;
+        if (XlsbPackageDetector.TryFindWorkbookPart(
+            data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) return;
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
         if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
@@ -69,12 +70,22 @@ public partial class ExcelDocument {
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, options, "XLSB package detection metadata");
     }
 
-    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
-        OfficeProvenanceZip.HasPackageSignature(data, options) ||
-        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
+        if (OfficeProvenanceZip.HasNativePackageSignature(data, options)) return true;
+        if (XlsbPackageDetector.TryFindWorkbookPart(
+            data, options.Limits.MaxAssetBytes, options.Limits.MaxAssetBytes, out _)) {
+            return HasXlsbRelationshipOwnedApplicationSignatureMetadata(data, options.Limits);
+        }
+        using var stream = new MemoryStream(data, writable: false);
+        using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+        ExtendedFilePropertiesPart? applicationProperties = document.ExtendedFilePropertiesPart;
+        ValidateApplicationProperties(applicationProperties, options.Limits);
+        return applicationProperties?.Properties?.DigitalSignature != null;
+    }
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
-        if (XlsbPackageDetector.TryFindWorkbookPart(data, out _)) return StripXlsbPackageSignatures(data, limits);
+        if (XlsbPackageDetector.TryFindWorkbookPart(
+            data, limits.MaxAssetBytes, limits.MaxAssetBytes, out _)) return StripXlsbPackageSignatures(data, limits);
         using var stream = new MemoryStream(data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
@@ -107,8 +118,10 @@ public partial class ExcelDocument {
         if (!info.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The XLSB package signature state could not be determined safely.");
         }
-        bool hasApplicationSignatureMetadata = OfficeProvenanceZip.HasApplicationSignatureMetadata(data, limits);
-        if (!info.HasSignatures && !hasApplicationSignatureMetadata) {
+        bool hasNativeSignature = info.OriginRelationshipCount > 0 || info.HasDigitalSignatureOriginPart ||
+            info.SignatureParts.Count > 0;
+        bool hasApplicationSignatureMetadata = HasXlsbRelationshipOwnedApplicationSignatureMetadata(data, limits);
+        if (!hasNativeSignature && !hasApplicationSignatureMetadata) {
             return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
         }
 
@@ -122,6 +135,30 @@ public partial class ExcelDocument {
             (entryName, content) => RewriteXlsbSignatureMetadata(entryName, content, signatureEntries, limits),
             limits.MaxAssetBytes);
         return new OfficeProvenanceSignatureStripResult(rewritten.Data, hadSignatures: true);
+    }
+
+    private static bool HasXlsbRelationshipOwnedApplicationSignatureMetadata(
+        byte[] data,
+        OfficeProvenanceOptions limits) {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        foreach (string target in DiscoverXlsbApplicationMetadataEntries(data, limits)) {
+            ZipArchiveEntry[] matches = archive.Entries
+                .Where(entry => NormalizePartName(entry.FullName).Equals(target, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (matches.Length != 1) {
+                throw new InvalidDataException("The XLSB extended-properties relationship target is ambiguous.");
+            }
+            byte[] xml = ReadBoundedEntry(matches[0], limits.MaxAssetBytes);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "XLSB application metadata");
+            using var input = new MemoryStream(xml, writable: false);
+            using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
+            XDocument document = XDocument.Load(reader, LoadOptions.None);
+            XNamespace properties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+            if (document.Root?.Name == properties + "Properties" &&
+                document.Root.Elements(properties + "DigSig").Any()) return true;
+        }
+        return false;
     }
 
     private static HashSet<string> DiscoverXlsbSignatureEntries(

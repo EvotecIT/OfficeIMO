@@ -42,8 +42,16 @@ public sealed partial class PowerPointPresentation {
     }.Contains(contentType, StringComparer.OrdinalIgnoreCase);
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
-        OfficeProvenanceZip.HasPackageSignature(data, options) ||
-        OfficeProvenanceZip.HasApplicationSignatureMetadata(data, options.Limits);
+        OfficeProvenanceZip.HasNativePackageSignature(data, options) ||
+        HasRelationshipOwnedApplicationSignatureMetadata(data, options.Limits);
+
+    private static bool HasRelationshipOwnedApplicationSignatureMetadata(byte[] data, OfficeProvenanceOptions limits) {
+        using var stream = new MemoryStream(data, writable: false);
+        using PresentationDocument document = PresentationDocument.Open(stream, false);
+        ExtendedFilePropertiesPart? applicationProperties = document.ExtendedFilePropertiesPart;
+        ValidateApplicationProperties(applicationProperties, limits);
+        return applicationProperties?.Properties?.DigitalSignature != null;
+    }
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
         using var stream = new MemoryStream(data.Length);

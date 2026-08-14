@@ -132,7 +132,7 @@ public static partial class HtmlResourcePipeline {
         if (hasLayeredSource && useElement != null && computedStyles != null && computedStyles.TryGetValue(useElement, out HtmlComputedStyle? style)) {
             string effectiveValue = style.GetValue(propertyName).Trim();
             CssCustomPropertyDefinition[] effectiveMatches = candidates
-                .Where(source => string.Equals(source.ValueText.Trim(), effectiveValue, StringComparison.OrdinalIgnoreCase))
+                .Where(source => string.Equals(source.ValueText.Trim(), effectiveValue, StringComparison.Ordinal))
                 .ToArray();
             if (effectiveMatches.Length != 0) candidates = effectiveMatches;
         }

@@ -14,12 +14,30 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         private const int MaxContentTypesBytes = 1024 * 1024;
 
         internal static bool TryFindWorkbookPart(byte[] packageBytes, out string? workbookPartName) {
+            return TryFindWorkbookPart(
+                packageBytes,
+                MaxRootRelationshipsBytes,
+                MaxContentTypesBytes,
+                out workbookPartName);
+        }
+
+        internal static bool TryFindWorkbookPart(
+            byte[] packageBytes,
+            long maxRootRelationshipsBytes,
+            long maxContentTypesBytes,
+            out string? workbookPartName) {
             if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+            if (maxRootRelationshipsBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxRootRelationshipsBytes));
+            if (maxContentTypesBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxContentTypesBytes));
 
             try {
                 using var packageStream = new MemoryStream(packageBytes, writable: false);
                 using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
-                return TryFindWorkbookPart(archive, out workbookPartName);
+                return TryFindWorkbookPart(
+                    archive,
+                    maxRootRelationshipsBytes,
+                    maxContentTypesBytes,
+                    out workbookPartName);
             } catch (InvalidDataException) {
                 workbookPartName = null;
                 return false;
@@ -30,12 +48,24 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         internal static bool TryFindWorkbookPart(ZipArchive archive, out string? workbookPartName) {
+            return TryFindWorkbookPart(
+                archive,
+                MaxRootRelationshipsBytes,
+                MaxContentTypesBytes,
+                out workbookPartName);
+        }
+
+        private static bool TryFindWorkbookPart(
+            ZipArchive archive,
+            long maxRootRelationshipsBytes,
+            long maxContentTypesBytes,
+            out string? workbookPartName) {
             if (archive == null) throw new ArgumentNullException(nameof(archive));
 
             workbookPartName = null;
             try {
                 ZipArchiveEntry? relationshipsEntry = FindEntry(archive, "_rels/.rels");
-                if (relationshipsEntry == null || relationshipsEntry.Length > MaxRootRelationshipsBytes) {
+                if (relationshipsEntry == null || relationshipsEntry.Length > maxRootRelationshipsBytes) {
                     return false;
                 }
 
@@ -51,7 +81,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 }
 
                 ZipArchiveEntry[] workbookEntries = FindEntries(archive, normalizedTarget).Take(2).ToArray();
-                if (workbookEntries.Length != 1 || !HasExcelBinaryWorkbookContentType(archive, normalizedTarget)) {
+                if (workbookEntries.Length != 1 || !HasExcelBinaryWorkbookContentType(
+                    archive, normalizedTarget, maxContentTypesBytes)) {
                     return false;
                 }
 
@@ -66,9 +97,12 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
         }
 
-        private static bool HasExcelBinaryWorkbookContentType(ZipArchive archive, string workbookPartName) {
+        private static bool HasExcelBinaryWorkbookContentType(
+            ZipArchive archive,
+            string workbookPartName,
+            long maxContentTypesBytes) {
             ZipArchiveEntry? contentTypesEntry = FindEntry(archive, "[Content_Types].xml");
-            if (contentTypesEntry == null || contentTypesEntry.Length > MaxContentTypesBytes) {
+            if (contentTypesEntry == null || contentTypesEntry.Length > maxContentTypesBytes) {
                 return false;
             }
 

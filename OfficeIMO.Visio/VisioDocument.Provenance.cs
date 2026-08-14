@@ -64,6 +64,10 @@ public partial class VisioDocument {
             }
             using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
             byte[] xml = ReadBoundedXml(input, limits.MaxAssetBytes);
+            // System.IO.Packaging can surface an owned but empty extended-properties part.
+            // It carries no DigSig evidence and must not make unrelated native signatures
+            // impossible to remove.
+            if (xml.Length == 0) continue;
             OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "Visio app metadata");
             using var xmlInput = new MemoryStream(xml, writable: false);
             using XmlReader reader = XmlReader.Create(xmlInput, OfficeProvenanceXml.CreateReaderSettings(limits));

@@ -183,6 +183,10 @@ public static partial class HtmlResourcePipeline {
                 return true;
             }
 
+            if (string.Equals(sibling.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
             if (!string.Equals(sibling.TagName, "source", StringComparison.OrdinalIgnoreCase)) {
                 continue;
             }

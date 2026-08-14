@@ -280,8 +280,8 @@ public static partial class HtmlResourcePipeline {
         if (TryGetEnclosingKeyframesName(css, index, out string keyframesName)) {
             computedStyles ??= HtmlComputedStyleEngine.Compute(document);
             return computedStyles.Values.Any(style =>
-                ContainsAnimationName(style.GetValue("animation-name"), keyframesName) ||
-                ContainsAnimationName(style.GetValue("animation"), keyframesName));
+                ContainsAnimationLonghandName(style.GetValue("animation-name"), keyframesName) ||
+                ContainsAnimationShorthandName(style.GetValue("animation"), keyframesName));
         }
 
         string selector = GetDeclarationSelector(css, index);
@@ -348,19 +348,6 @@ public static partial class HtmlResourcePipeline {
             search = close + 1;
         }
 
-        return false;
-    }
-
-    private static bool ContainsAnimationName(string value, string name) {
-        if (string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(name)) return false;
-        string decoded = DecodeCssEscapes(value);
-        for (int index = 0; index <= decoded.Length - name.Length; index++) {
-            if (!decoded.Substring(index, name.Length).Equals(name, StringComparison.Ordinal)) continue;
-            bool before = index == 0 || !IsCssIdentifierCharacter(decoded[index - 1]);
-            int afterIndex = index + name.Length;
-            bool after = afterIndex == decoded.Length || !IsCssIdentifierCharacter(decoded[afterIndex]);
-            if (before && after) return true;
-        }
         return false;
     }
 
