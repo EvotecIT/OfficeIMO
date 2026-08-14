@@ -169,7 +169,7 @@ public static class HtmlRenderCapabilityCatalog {
             "Maps semantic groups into tagged PDF structures and exposes HtmlPdfAccessibilityValidator for deterministic language, parent-tree, hierarchy, marked-content, table, list, link, and figure checks."),
         Full("pdf-form-controls", "Interactive PDF forms", HtmlRenderCapabilityKind.Output,
             Features("text inputs", "password inputs", "file inputs", "text areas", "check boxes", "radio groups", "single-select", "multi-select", "required", "disabled and readonly", "maxlength", "accessible names", "static-output fallback"),
-            "Retains standard HTML control semantics and geometry in the shared scene; PDF output emits positioned AcroForm widgets by default while image/SVG output and explicit static PDF mode paint the same managed fallback visuals."),
+            "Retains standard HTML control semantics and geometry in the shared scene; PDF output emits positioned AcroForm widgets by default while image/SVG output, explicit static PDF mode, and diagnosed transformed, translucent, or clipped controls paint the same managed fallback visuals."),
         Rejected("resource-policy", "Resource safety", HtmlRenderCapabilityKind.Resource,
             Features("local files", "remote resources", "data URIs", "package resources", "hyperlinks"),
             "Rejects resources and links outside the caller-selected URL and host-resource policies before loading or emission.",

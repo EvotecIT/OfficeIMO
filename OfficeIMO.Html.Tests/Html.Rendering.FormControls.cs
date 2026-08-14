@@ -224,6 +224,33 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_ClipPathConvertsDescendantControlsToDiagnosedStaticPaint() {
+        const string html = "<div id='clipped-parent' style='width:160px;height:60px;clip-path:circle(50%)'>"
+            + "<input id='child' name='child' value='Clipped descendant' style='width:120px'>"
+            + "</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
+        HtmlRenderVisual[] scene = EnumerateRenderVisuals(rendered.Pages[0].Visuals).ToArray();
+
+        Assert.DoesNotContain(scene, visual => visual is HtmlRenderFormField);
+        Assert.Contains(scene.OfType<HtmlRenderText>(), text => text.Text == "Clipped descendant");
+        Assert.Contains(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && diagnostic.Source == "input#child"
+            && diagnostic.Detail!.StartsWith("ancestor-clip-path=", StringComparison.Ordinal));
+
+        PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlPdfSaveOptions());
+        Assert.Empty(pdfResult.Value.Inspect().FormFields);
+        Assert.Contains(pdfResult.Report.Warnings, warning =>
+            warning.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback
+            && warning.Source == "input#child");
+        Assert.Throws<InvalidOperationException>(() => pdfResult.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        }));
+    }
+
+    [Fact]
     public void HtmlRendering_SingleSelectDefaultsToFirstEnabledOption() {
         const string html = "<select><option disabled>Disabled</option><optgroup disabled><option>Group disabled</option></optgroup><option label='Enabled label'>Fallback text</option></select>";
 

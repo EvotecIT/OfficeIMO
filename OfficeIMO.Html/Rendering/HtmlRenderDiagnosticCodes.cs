@@ -96,7 +96,7 @@ public static class HtmlRenderDiagnosticCodes {
     public const string PdfSemanticTagUnsupported = "HtmlRenderPdfSemanticTagUnsupported";
     /// <summary>A CSS bookmark value was invalid and automatic heading navigation was used.</summary>
     public const string BookmarkValueUnsupported = "HtmlRenderBookmarkValueUnsupported";
-    /// <summary>A form control inside a transformed or translucent paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
+    /// <summary>A form control inside a transformed, translucent, or clipped paint group used static rendering because an interactive PDF widget cannot preserve the authored appearance.</summary>
     public const string FormFieldTransformStaticFallback = "HtmlRenderFormFieldTransformStaticFallback";
     /// <summary>A text control with a zero maximum length used static rendering because PDF /MaxLen must be positive.</summary>
     public const string FormFieldZeroMaximumLengthStaticFallback = "HtmlRenderFormFieldZeroMaximumLengthStaticFallback";

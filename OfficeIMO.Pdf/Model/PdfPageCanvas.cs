@@ -41,7 +41,18 @@ public sealed partial class PdfPageCanvas {
     /// <param name="level">One-based outline hierarchy level.</param>
     /// <param name="y">Top coordinate in page points.</param>
     /// <param name="state">Optional per-entry expansion preference.</param>
-    public PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state) {
+    public PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state) =>
+        AddOutline(title, level, y, state, documentOrder: null);
+
+    /// <summary>Adds an adapter-owned outline entry whose logical order may differ from its destination-page order.</summary>
+    internal PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state, int documentOrder) {
+        if (documentOrder < 0) {
+            throw new ArgumentOutOfRangeException(nameof(documentOrder), "Canvas outline document order cannot be negative.");
+        }
+        return AddOutline(title, level, y, state, documentOrder);
+    }
+
+    private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder) {
         Guard.NotNull(title, nameof(title));
         if (string.IsNullOrWhiteSpace(title)) {
             throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
@@ -55,7 +66,7 @@ public sealed partial class PdfPageCanvas {
         if (state != PdfOutlineState.Default && state != PdfOutlineState.Open && state != PdfOutlineState.Closed) {
             throw new ArgumentOutOfRangeException(nameof(state));
         }
-        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state));
+        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state, documentOrder));
         return this;
     }
 
@@ -537,16 +548,18 @@ internal abstract class PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
-    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state)
+    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state, int? documentOrder)
         : base(0D, y) {
         Title = title;
         Level = level;
         State = state;
+        DocumentOrder = documentOrder;
     }
 
     public string Title { get; }
     public int Level { get; }
     public PdfOutlineState State { get; }
+    public int? DocumentOrder { get; }
 }
 
 internal sealed class PdfCanvasArtifactItem : PdfCanvasItem {

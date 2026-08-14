@@ -793,7 +793,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _diagnostics.Add(
             ComponentName,
             HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback,
-            "An HTML form control inside a transformed or translucent paint group was rendered as static content because PDF widget annotations cannot preserve the authored appearance.",
+            "An HTML form control inside a transformed, translucent, or clipped paint group was rendered as static content because PDF widget annotations cannot preserve the authored appearance.",
             HtmlDiagnosticSeverity.Warning,
             source,
             detail,

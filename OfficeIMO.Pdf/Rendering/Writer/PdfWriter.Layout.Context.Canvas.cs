@@ -304,7 +304,8 @@ internal static partial class PdfWriter {
                 Level = item.Level,
                 Title = item.Title,
                 Y = currentOpts.PageHeight - item.Y,
-                OutlineState = item.State
+                OutlineState = item.State,
+                DocumentOrder = item.DocumentOrder
             });
             pageDirty = true;
         }
@@ -603,7 +604,7 @@ internal static partial class PdfWriter {
             ClipCanvasFreeTextAnnotations(currentPage.FreeTextAnnotations, freeTextAnnotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);
             ClipCanvasHighlightAnnotations(currentPage.HighlightAnnotations, highlightAnnotationStart, item.X, bottomY, item.Width, item.Height, item.ClipPath);
             ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
-            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.ClipPath.Kind == OfficeIMO.Drawing.OfficeClipPathKind.Rectangle);
+            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.ClipPath.Kind);
             new ContentStreamBuilder(sb)
                 .RestoreState();
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
@@ -822,9 +823,13 @@ internal static partial class PdfWriter {
             return true;
         }
 
-        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, bool rectangularClip) {
+        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, OfficeClipPathKind clipKind) {
             if (formFields.Count <= startIndex) return;
-            if (!rectangularClip) {
+            if (clipKind == OfficeClipPathKind.Empty) {
+                formFields.RemoveRange(startIndex, formFields.Count - startIndex);
+                return;
+            }
+            if (clipKind != OfficeClipPathKind.Rectangle) {
                 throw new ArgumentException("Canvas form fields cannot be placed inside nonrectangular clips because PDF widget annotations do not obey page-content clipping.");
             }
             double clipRight = clipX + clipWidth;

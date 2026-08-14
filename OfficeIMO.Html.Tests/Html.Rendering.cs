@@ -2281,6 +2281,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_BookmarksKeepSourceOrderWhenDestinationsCrossPages() {
+        const string html = "<style>@page{size:200px 100px;margin:0}</style>"
+            + "<div style='height:120px'></div>"
+            + "<h1>First source</h1>"
+            + "<h1 style='position:absolute;top:0;left:0'>Second source</h1>";
+        var options = new HtmlPdfSaveOptions {
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D),
+            PdfOptions = new PdfCore.PdfOptions { OutlineExpansionLevel = 64 }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "First source", "Second source" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.True(rendered.Headings[0].PageNumber > rendered.Headings[1].PageNumber);
+        Assert.Equal(new[] { "First source", "Second source" }, PdfCore.PdfInspector.Inspect(pdf).Outlines.Select(outline => outline.Title).ToArray());
+    }
+
+    [Fact]
     public void HtmlPdf_DisplayContentsPreservesBookmarkAndArtifactControlsAcrossBlockChildren() {
         const string html = "<main>"
             + "<div id='bookmark-contents' style='display:contents;bookmark-level:1;bookmark-label:\"Contents entry\"'><p>Bookmark body</p><p>Second body</p></div>"

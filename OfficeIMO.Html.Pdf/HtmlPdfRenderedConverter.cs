@@ -147,6 +147,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 preserveConfiguredFontSlots: options.FontFamily != null);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
+        var headingDocumentOrder = rendered.Headings
+            .Select((heading, index) => new { Heading = heading, Index = index })
+            .ToDictionary(item => item.Heading, item => item.Index);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -157,7 +160,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 .Margin(0D)
                 .Canvas(canvas => {
                     AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
-                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], cancellationToken);
+                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
                 }));
         }
 
@@ -165,14 +168,14 @@ internal static partial class HtmlPdfRenderedConverter {
         return new HtmlPdfRenderResult(pdf, diagnostics, conversionReport);
     }
 
-    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, CancellationToken cancellationToken) {
+    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, IReadOnlyDictionary<HtmlRenderHeading, int> headingDocumentOrder, CancellationToken cancellationToken) {
         foreach (HtmlRenderHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
             canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel, heading.BookmarkState switch {
                 HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
                 HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
                 _ => PdfCore.PdfOutlineState.Default
-            });
+            }, headingDocumentOrder[heading]);
         }
     }
 

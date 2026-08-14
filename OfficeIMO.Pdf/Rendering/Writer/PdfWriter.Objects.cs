@@ -325,6 +325,7 @@ internal static partial class PdfWriter {
         public string Title { get; set; } = string.Empty;
         public double Y { get; set; }
         public PdfOutlineState OutlineState { get; set; }
+        public int? DocumentOrder { get; set; }
     }
 
     private sealed class PageNamedDestination {

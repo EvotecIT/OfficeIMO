@@ -1406,6 +1406,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_EmptyPathSuppressesFormFields() {
+        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            OfficeClipPath.Empty(),
+            clipped => clipped
+                .TextField("HiddenText", "Ada", 20D, 20D, 80D, 20D)
+                .CheckBox("HiddenCheck", true, 20D, 50D, 12D, 12D)))
+            .ToBytes();
+
+        Assert.Empty(PdfInspector.Inspect(bytes).FormFields);
+    }
+
+    [Fact]
     public void CanvasClip_ClipsVisualAnnotationsInsideFrame() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,

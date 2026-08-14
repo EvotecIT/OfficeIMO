@@ -1776,29 +1776,41 @@ internal static partial class PdfWriter {
         var stack = new Stack<OutlineNode>();
         stack.Push(root);
 
+        var bookmarkEntries = new List<(PageBookmark Bookmark, int PageIndex, int EncounterOrder)>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             foreach (var bookmark in pages[pageIndex].Bookmarks) {
-                if (string.IsNullOrWhiteSpace(bookmark.Title)) {
-                    continue;
-                }
-
-                int level = Math.Max(1, bookmark.Level);
-                while (stack.Count > 1 && stack.Peek().Level >= level) {
-                    stack.Pop();
-                }
-
-                var parent = stack.Peek();
-                var node = new OutlineNode {
-                    Level = level,
-                    PageIndex = pageIndex,
-                    Title = bookmark.Title,
-                    Y = bookmark.Y,
-                    OutlineState = bookmark.OutlineState,
-                    Parent = parent
-                };
-                parent.Children.Add(node);
-                stack.Push(node);
+                bookmarkEntries.Add((bookmark, pageIndex, bookmarkEntries.Count));
             }
+        }
+
+        if (bookmarkEntries.Count > 0 && bookmarkEntries.All(static entry => entry.Bookmark.DocumentOrder.HasValue)) {
+            bookmarkEntries.Sort(static (left, right) => {
+                int order = left.Bookmark.DocumentOrder!.Value.CompareTo(right.Bookmark.DocumentOrder!.Value);
+                return order != 0 ? order : left.EncounterOrder.CompareTo(right.EncounterOrder);
+            });
+        }
+
+        foreach ((PageBookmark bookmark, int pageIndex, _) in bookmarkEntries) {
+            if (string.IsNullOrWhiteSpace(bookmark.Title)) {
+                continue;
+            }
+
+            int level = Math.Max(1, bookmark.Level);
+            while (stack.Count > 1 && stack.Peek().Level >= level) {
+                stack.Pop();
+            }
+
+            var parent = stack.Peek();
+            var node = new OutlineNode {
+                Level = level,
+                PageIndex = pageIndex,
+                Title = bookmark.Title,
+                Y = bookmark.Y,
+                OutlineState = bookmark.OutlineState,
+                Parent = parent
+            };
+            parent.Children.Add(node);
+            stack.Push(node);
         }
 
         if (root.Children.Count == 0) {
