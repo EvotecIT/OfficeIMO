@@ -186,7 +186,7 @@ public sealed class PdfReadLimits {
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
             MaxTotalDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
-                ? Math.Min(MaxTotalDecodedStreamBytes, maximumDecodedStreamBytes.Value)
+                ? maximumDecodedStreamBytes.Value
                 : MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxRetainedContentBytes = MaxRetainedContentBytes,

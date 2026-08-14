@@ -58,6 +58,10 @@ public sealed partial class PdfProvenanceTests {
             kids.Items.Add(retainedChild);
             embeddedFiles.Items.Remove("Names");
             embeddedFiles.Items["Kids"] = kids;
+            var limits = new PdfArray();
+            limits.Items.Add(new PdfStringObj("content-credential.c2pa", true));
+            limits.Items.Add(new PdfStringObj("keep.txt", true));
+            embeddedFiles.Items["Limits"] = limits;
             return security.InfoObjectNumber;
         });
 
@@ -69,6 +73,9 @@ public sealed partial class PdfProvenanceTests {
         PdfArray outputKids = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, outputEmbeddedFiles.Items["Kids"]));
 
         Assert.Contains(outputKids.Items, item => PdfObjectLookup.Resolve(parsed.Map, item) is PdfNull);
+        PdfArray outputLimits = Assert.IsType<PdfArray>(PdfObjectLookup.Resolve(parsed.Map, outputEmbeddedFiles.Items["Limits"]));
+        Assert.Equal("content-credential.c2pa", Assert.IsType<PdfStringObj>(outputLimits.Items[0]).Value);
+        Assert.Equal("keep.txt", Assert.IsType<PdfStringObj>(outputLimits.Items[1]).Value);
         Assert.Equal("keep.txt", Assert.Single(PdfAttachmentExtractor.ExtractAttachments(result.ToArray())).FileName);
     }
 

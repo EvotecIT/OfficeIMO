@@ -82,6 +82,7 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<PdfDictionary, NameTreeResult> results) {
         bool hadLimits = dictionary.Items.ContainsKey("Limits");
         bool changed = false;
+        bool hasUnresolvedRetainedChild = false;
         PdfObject? firstName = null;
         PdfObject? lastName = null;
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
@@ -117,7 +118,10 @@ internal static class PdfProvenanceGraphEditor {
             }
             foreach (PdfObject childValue in kids.Items) {
                 if (PdfObjectLookup.Resolve(objects, childValue) is not PdfDictionary child ||
-                    !results.TryGetValue(child, out NameTreeResult childResult)) continue;
+                    !results.TryGetValue(child, out NameTreeResult childResult)) {
+                    hasUnresolvedRetainedChild = true;
+                    continue;
+                }
                 firstName ??= childResult.FirstName;
                 lastName = childResult.LastName ?? lastName;
             }
@@ -129,7 +133,7 @@ internal static class PdfProvenanceGraphEditor {
             if (changed && !hasUnrelatedContent) dictionary.Items.Remove("Limits");
             return new NameTreeResult(null, null, changed, !changed || hasUnrelatedContent);
         }
-        if (hadLimits && changed) {
+        if (hadLimits && changed && !hasUnresolvedRetainedChild) {
             var limits = new PdfArray();
             limits.Items.Add(firstName);
             limits.Items.Add(lastName);
