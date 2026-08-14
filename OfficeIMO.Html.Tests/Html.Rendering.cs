@@ -1786,7 +1786,7 @@ public sealed partial class HtmlRenderingTests {
               <span class="running">Later direct</span>
               <div>Body</div>
             </div>
-            """.Replace("LAYOUT", layout, StringComparison.Ordinal);
+            """.Replace("LAYOUT", layout);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
@@ -1827,7 +1827,7 @@ public sealed partial class HtmlRenderingTests {
               <div class="tall">Tall body three</div>
               <span class="running">Later chapter</span>
             </div>
-            """.Replace("LAYOUT", layout, StringComparison.Ordinal);
+            """.Replace("LAYOUT", layout);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
@@ -2173,6 +2173,27 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain("Decorative table", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "artifact-field");
         Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "field");
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarkLabelAndStateRequireAHeadingOrValidExplicitLevel() {
+        const string html = "<main>"
+            + "<div style='bookmark-label:\"Label only\"'>Ignored label</div>"
+            + "<div style='bookmark-state:open'>Ignored state</div>"
+            + "<h2 style='bookmark-label:\"Heading label\";bookmark-state:closed'>Heading text</h2>"
+            + "<div style='bookmark-level:2;bookmark-label:\"Explicit entry\"'>Explicit text</div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(new[] { "Heading label", "Explicit entry" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { 2, 2 }, rendered.Headings.Select(heading => heading.Level).ToArray());
+        Assert.Equal(2, EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>().Count());
+        Assert.Equal(new[] { "Heading label", "Explicit entry" }, info.Outlines.Select(outline => outline.Title).ToArray());
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -2889,6 +2910,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
+        Assert.Contains(HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));
     }

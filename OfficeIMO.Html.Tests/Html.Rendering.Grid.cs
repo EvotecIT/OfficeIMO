@@ -110,6 +110,50 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_AutoHeightRowSubgridIncludesInheritedParentGap() {
+        const string html = """
+            <div style="display:grid;width:100px;grid-template-rows:32px 32px;row-gap:8px">
+              <div style="display:grid;grid-row:1 / span 2;grid-template-rows:subgrid;align-self:start">
+                <span id="auto-row-subgrid-a" style="background:#ff0000">A</span>
+                <span id="auto-row-subgrid-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#auto-row-subgrid-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#auto-row-subgrid-b");
+
+        Assert.Equal(0D, first.Y, 3);
+        Assert.Equal(32D, first.Height, 3);
+        Assert.Equal(40D, second.Y, 3);
+        Assert.Equal(32D, second.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_AutoHeightRowSubgridKeepsInsetsInsideInheritedExtent() {
+        const string html = """
+            <div style="display:grid;width:100px;grid-template-rows:32px 32px;row-gap:8px">
+              <div style="display:grid;grid-row:1 / span 2;grid-template-rows:subgrid;align-self:start;padding-top:4px;padding-bottom:4px">
+                <span id="inset-auto-row-subgrid-a" style="background:#ff0000">A</span>
+                <span id="inset-auto-row-subgrid-b" style="background:#0000ff">B</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#inset-auto-row-subgrid-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#inset-auto-row-subgrid-b");
+
+        Assert.Equal(4D, first.Y, 3);
+        Assert.Equal(28D, first.Height, 3);
+        Assert.Equal(40D, second.Y, 3);
+        Assert.Equal(28D, second.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_RowSubgridCentersAuthoredGapAndInsetsOnInheritedLines() {
         const string html = """
             <div style="display:grid;width:100px;grid-template-rows:40px 60px;row-gap:10px">

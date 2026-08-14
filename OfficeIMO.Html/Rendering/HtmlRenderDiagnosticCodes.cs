@@ -48,6 +48,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>A joining script is outside the bounded core-Arabic contextual shaper.</summary>
     public const string ComplexTextShapingUnsupported = "HtmlRenderComplexTextShapingUnsupported";
+    /// <summary>Legacy diagnostic retained for source compatibility; inline paint effects are rendered by the shared effect model.</summary>
+    public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
     /// <summary>Flex layout used the documented normal-flow fallback.</summary>
     public const string FlexLayoutPending = "HtmlRenderFlexLayoutPending";
     /// <summary>A flex property value used a documented deterministic fallback.</summary>
@@ -221,6 +223,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceUnavailable,
         FontFormatUnsupported,
         ComplexTextShapingUnsupported,
+        InlinePaintEffectUnsupported,
         FlexLayoutPending,
         FlexValueUnsupported,
         FloatValueUnsupported,

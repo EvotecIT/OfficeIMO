@@ -410,6 +410,8 @@ internal static partial class PdfWriter {
     }
 
     private static void DrawHeaderFooterShapeGeometryAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {
+        if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
+
         DrawHeaderFooterShapeShadowAt(sb, page, shape, xShape, bottomY);
 
         string? opacityState = EnsureHeaderFooterOpacityState(page, shape);

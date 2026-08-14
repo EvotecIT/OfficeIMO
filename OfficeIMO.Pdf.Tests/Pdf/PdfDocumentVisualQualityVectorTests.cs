@@ -242,6 +242,33 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_EmptyClipSuppressesPaintShadowAndTransform() {
+        var shape = OfficeShape.Rectangle(40, 20);
+        shape.FillColor = OfficeColor.Magenta;
+        shape.Shadow = new OfficeShadow(OfficeColor.Lime, 0.5, 3, 4);
+        shape.Transform = OfficeTransform.Translate(10, 5);
+        shape.ClipPath = OfficeClipPath.Empty();
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.DoesNotContain("1 0 1 rg", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 1 0 rg", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("1 0 0 -1 40 125 cm", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/ExtGState", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedClipPathInsideTransformGraphicsState() {
         var shape = OfficeShape.Rectangle(80, 40);
         shape.FillColor = OfficeColor.WhiteSmoke;

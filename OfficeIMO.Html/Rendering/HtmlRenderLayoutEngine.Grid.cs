@@ -37,8 +37,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double inheritedRowGap = usesRowSubgrid && _activeSubgridRowSizes!.Count > 1
             ? style.RowGapWasSpecified ? style.RowGap : _activeSubgridRowGap
             : 0D;
+        double inheritedRowExtent = usesRowSubgrid
+            ? Math.Max(
+                0D,
+                _activeSubgridRowSizes!.Sum()
+                    + _activeSubgridRowGap * Math.Max(0, _activeSubgridRowSizes!.Count - 1)
+                    - style.VerticalInsets)
+            : 0D;
         List<GridTrack> rowTracks = usesRowSubgrid
-            ? ResolveRowSubgridTrackSizes(_activeSubgridRowSizes!, declaredContentHeight ?? _activeSubgridRowSizes!.Sum(), _activeSubgridRowGap, inheritedRowGap, style)
+            ? ResolveRowSubgridTrackSizes(_activeSubgridRowSizes!, declaredContentHeight ?? inheritedRowExtent, _activeSubgridRowGap, inheritedRowGap, style)
                 .Select(size => GridTrack.Fixed(size, "subgrid"))
                 .ToList()
             : isRowSubgridOwner

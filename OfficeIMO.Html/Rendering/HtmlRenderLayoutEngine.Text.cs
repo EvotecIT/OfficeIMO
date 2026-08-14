@@ -254,9 +254,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>
         HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
-        || style.BookmarkLevelSpecified
-        || style.BookmarkLabel != null
-        || style.BookmarkState != HtmlRenderBookmarkState.Default;
+        || style.BookmarkLevelSpecified;
 
     private static bool ShouldCollectSemanticInlineRuns(HtmlRenderBoxStyle style) =>
         ShouldAssignNavigationNode(style)

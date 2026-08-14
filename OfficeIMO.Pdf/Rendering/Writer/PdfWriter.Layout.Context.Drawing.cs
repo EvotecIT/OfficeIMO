@@ -110,6 +110,8 @@ internal static partial class PdfWriter {
         }
 
         private void DrawShapeGeometryAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {
+            if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
+
             DrawShapeShadowAt(shape, xShape, bottomY);
 
             string? opacityState = EnsureOpacityState(shape);

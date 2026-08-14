@@ -123,6 +123,7 @@ This file is generated from `HtmlConversionProfileContracts`, `HtmlTargetCapabil
 
 | Category | Code | Severity | Meaning | Remediation |
 | --- | --- | --- | --- | --- |
+| Compatibility | `HtmlRenderInlinePaintEffectUnsupported` | Warning | Legacy diagnostic retained for source compatibility; inline paint effects are rendered by the shared effect model. | Inspect current transform, opacity, or clip-path diagnostics for an actionable fallback. |
 | Compatibility | `HtmlRenderStylesheetUrlResourcesPending` | Warning | Legacy diagnostic retained for source compatibility; external stylesheet URL images, fonts, and imports are resolved by the bounded resource graph. | Inspect current resource-policy, load, decoding, or format diagnostics for the actionable failure. |
 | ContentSimplification | `HtmlCommentSkipped` | Info | An HTML comment was omitted from generated document content. | Enable HTML comment import when comments are part of the expected document contract, or keep comments as source-only metadata. |
 | Conversion | `ArtifactCreationFailed` | Error | The target artifact could not be constructed. | Inspect the diagnostic detail and validate the source and target-specific constraints. |

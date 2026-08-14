@@ -1703,6 +1703,14 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeClipPathKindPreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)OfficeClipPathKind.Rectangle);
+        Assert.Equal(1, (int)OfficeClipPathKind.RoundedRectangle);
+        Assert.Equal(2, (int)OfficeClipPathKind.Path);
+        Assert.Equal(3, (int)OfficeClipPathKind.Empty);
+    }
+
+    [Fact]
     public void OfficeClipPathEmptySuppressesGroupAndShapePaintAcrossRasterAndSvg() {
         OfficeClipPath empty = OfficeClipPath.Empty();
         OfficeClipPath scaled = empty.Scale(2D, 3D);

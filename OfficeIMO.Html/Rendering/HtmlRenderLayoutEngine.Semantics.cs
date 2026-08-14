@@ -261,9 +261,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeConversionLossKind.Approximation);
         }
         bool automaticHeading = HtmlRenderHeading.TryGetLevel(style.SemanticRole, out int headingLevel);
-        if (!automaticHeading && !style.BookmarkLevelSpecified && style.BookmarkLabel == null && style.BookmarkState == HtmlRenderBookmarkState.Default) return;
+        if (!automaticHeading && !style.BookmarkLevel.HasValue) return;
         int nodeId = GetSemanticNodeId(element);
-        int level = style.BookmarkLevel ?? (automaticHeading ? headingLevel : 1);
+        int level = style.BookmarkLevel ?? headingLevel;
         _bookmarkDefinitions[nodeId] = new HtmlRenderBookmarkDefinition(level, style.BookmarkLabel, style.BookmarkState, style.BookmarkSuppressed, GetDocumentOrder(element));
     }
 
