@@ -534,12 +534,14 @@ public sealed partial class PdfReadPage {
         bool includeArtifactText = false,
         int contentNestingDepth = 0,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
+        textClippingBudget ??= new PdfTextClippingBudget();
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) =>
             decoders.TryGetValue(fontRes, out var dec)
                 ? dec(bytes, maximumCharacters)
@@ -588,6 +590,7 @@ public sealed partial class PdfReadPage {
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
             textOutputBudget: textOutputBudget,
+            textClippingBudget: textClippingBudget,
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
             initialUnsupportedEffect: initialUnsupportedTextEffect));
 
@@ -612,7 +615,8 @@ public sealed partial class PdfReadPage {
                      hasMcidForProperty: ResolveMarkedContentMcid,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands)) {
+                     maxOperands: _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -656,6 +660,7 @@ public sealed partial class PdfReadPage {
                     includeArtifactText,
                     contentNestingDepth + 1,
                     textOutputBudget,
+                    textClippingBudget,
                     pageContentBudget);
             } finally {
                 activeForms.Remove(formStream);
@@ -683,9 +688,11 @@ public sealed partial class PdfReadPage {
         bool initialHasSoftMask = false,
         bool initialHasAuthoredRenderingIntent = false,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -706,7 +713,8 @@ public sealed partial class PdfReadPage {
                      initialBlendMode: initialBlendMode,
                      initialHasUnsupportedBlendMode: initialHasUnsupportedBlendMode,
                      initialHasSoftMask: initialHasSoftMask,
-                     initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent)) {
+                     initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent,
+                     textClippingBudget: textClippingBudget)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(
@@ -765,6 +773,7 @@ public sealed partial class PdfReadPage {
                     initialHasSoftMask: invocation.HasSoftMask,
                     initialHasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget);
             } finally {
                 activeForms.Remove(formStream);

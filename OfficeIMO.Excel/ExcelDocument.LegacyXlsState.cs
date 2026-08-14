@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Drawing;
@@ -462,6 +463,9 @@ namespace OfficeIMO.Excel {
                 || WorkbookRoot.DefinedNames?.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any() == true
                 || HasWorkbookContentOutsideDirectDataSetImport(allowSheets: true)) {
                 return Skip("workbook state requires materialization or preflight.");
+            }
+            if (!LegacyXlsWritePreflight.SupportsWorkbookPackageParts(WorkbookPartRoot, out string? packagePartReason)) {
+                return Skip(packagePartReason ?? "workbook package parts require preflight.");
             }
 
             DirectDataSetSaveCandidate? candidate = _directDataSetSaveCandidate;

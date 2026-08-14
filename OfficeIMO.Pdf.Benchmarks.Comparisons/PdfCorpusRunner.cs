@@ -32,11 +32,6 @@ internal static partial class PdfCorpusRunner {
         if (manifest.SchemaVersion != 1) {
             throw new InvalidDataException($"Unsupported PDF corpus schema {manifest.SchemaVersion}; expected 1.");
         }
-
-        string filesDirectory = Path.Combine(outputDirectory, "files");
-        string diagnosticsDirectory = Path.Combine(outputDirectory, "diagnostics");
-        Directory.CreateDirectory(filesDirectory);
-        Directory.CreateDirectory(diagnosticsDirectory);
         var entries = new List<PdfCorpusEntry>(manifest.Entries);
         if (!string.IsNullOrWhiteSpace(comPdfPath)) {
             entries.Add(new PdfCorpusEntry {
@@ -57,6 +52,12 @@ internal static partial class PdfCorpusRunner {
                 }
             });
         }
+        ValidateEntryIds(entries);
+
+        string filesDirectory = Path.Combine(outputDirectory, "files");
+        string diagnosticsDirectory = Path.Combine(outputDirectory, "diagnostics");
+        Directory.CreateDirectory(filesDirectory);
+        Directory.CreateDirectory(diagnosticsDirectory);
         string? only = GetOption(args, "--only");
         if (!string.IsNullOrWhiteSpace(only)) {
             var selectedIds = new HashSet<string>(
@@ -150,10 +151,10 @@ internal static partial class PdfCorpusRunner {
             };
             officePages = OfficePdfDocument.Open(bytes, readOptions).Read.TextByPage();
             File.WriteAllText(
-                Path.Combine(diagnosticsDirectory, entry.Id + "." + oracle + ".txt"),
+                GetEntryOutputPath(diagnosticsDirectory, entry.Id, "." + oracle + ".txt"),
                 string.Join("\n\f\n", oraclePages));
             File.WriteAllText(
-                Path.Combine(diagnosticsDirectory, entry.Id + ".officeimo.txt"),
+                GetEntryOutputPath(diagnosticsDirectory, entry.Id, ".officeimo.txt"),
                 string.Join("\n\f\n", officePages));
             if (entry.ExpectedPages.HasValue && oraclePages.Count != entry.ExpectedPages.Value) {
                 throw new InvalidDataException(
@@ -169,7 +170,7 @@ internal static partial class PdfCorpusRunner {
             if (recall < entry.MinimumTokenRecall) {
                 WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
                 File.WriteAllText(
-                    Path.Combine(diagnosticsDirectory, entry.Id + ".officeimo.debug.txt"),
+                    GetEntryOutputPath(diagnosticsDirectory, entry.Id, ".officeimo.debug.txt"),
                     OfficePdfDocument.Open(bytes).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
                         IncludeDecodedStreamPreviews = true,
                         MaxDecodedStreamPreviewBytes = 64 * 1024
@@ -235,7 +236,7 @@ internal static partial class PdfCorpusRunner {
         string entryId) {
         const int maxSpans = 10_000;
         OfficeIMO.Pdf.PdfReadDocument document = OfficeIMO.Pdf.PdfReadDocument.Open(bytes, readOptions);
-        using var writer = new StreamWriter(Path.Combine(diagnosticsDirectory, entryId + ".officeimo.spans.txt"));
+        using var writer = new StreamWriter(GetEntryOutputPath(diagnosticsDirectory, entryId, ".officeimo.spans.txt"));
         int written = 0;
         for (int pageIndex = 0; pageIndex < document.Pages.Count && written < maxSpans; pageIndex++) {
             writer.WriteLine($"PAGE {pageIndex + 1}");
@@ -412,7 +413,7 @@ internal static partial class PdfCorpusRunner {
         string filesDirectory,
         bool download,
         HttpClient client) {
-        string target = Path.Combine(filesDirectory, entry.Id + ".pdf");
+        string target = GetEntryOutputPath(filesDirectory, entry.Id, ".pdf");
         if (File.Exists(target)) {
             byte[] cachedPayload = await File.ReadAllBytesAsync(target).ConfigureAwait(false);
             string? cacheError = GetDownloadValidationError(entry, cachedPayload);
@@ -485,6 +486,49 @@ internal static partial class PdfCorpusRunner {
         return path;
     }
 
+    private static void ValidateEntryIds(IReadOnlyList<PdfCorpusEntry> entries) {
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (PdfCorpusEntry entry in entries) {
+            if (!IsSafeCorpusId(entry.Id)) {
+                throw new InvalidDataException(
+                    "PDF corpus entry IDs must be 1-128 ASCII letters, digits, dots, underscores, or hyphens, must start with a letter or digit, and must not use a reserved Windows device name.");
+            }
+            if (!ids.Add(entry.Id)) {
+                throw new InvalidDataException($"PDF corpus entry ID '{entry.Id}' is duplicated.");
+            }
+        }
+    }
+
+    private static string GetEntryOutputPath(string directory, string entryId, string suffix) {
+        if (!IsSafeCorpusId(entryId)) {
+            throw new InvalidDataException($"PDF corpus entry ID '{entryId}' is not safe for artifact paths.");
+        }
+
+        string root = Path.GetFullPath(directory);
+        string candidate = Path.GetFullPath(Path.Combine(root, entryId + suffix));
+        string relative = Path.GetRelativePath(root, candidate);
+        if (Path.IsPathRooted(relative)
+            || relative.Equals("..", StringComparison.Ordinal)
+            || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            || relative.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal)) {
+            throw new InvalidDataException($"PDF corpus artifact path for '{entryId}' escapes its output directory.");
+        }
+        return candidate;
+    }
+
+    private static bool IsSafeCorpusId(string? entryId) {
+        if (string.IsNullOrWhiteSpace(entryId) || !CorpusIdRegex().IsMatch(entryId)) return false;
+        string baseName = entryId.Split('.')[0];
+        if (baseName.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
+            baseName.Equals("NUL", StringComparison.OrdinalIgnoreCase)) return false;
+        return !(baseName.Length == 4 &&
+            (baseName.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
+             baseName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase)) &&
+            baseName[3] is >= '1' and <= '9');
+    }
+
     private static bool HasOption(string[] args, string option) =>
         args.Any(value => string.Equals(value, option, StringComparison.OrdinalIgnoreCase));
 
@@ -510,4 +554,7 @@ internal static partial class PdfCorpusRunner {
 
     [GeneratedRegex(@"[\p{L}\p{Nd}]{3,}", RegexOptions.CultureInvariant)]
     private static partial Regex TokenRegex();
+
+    [GeneratedRegex(@"\A[A-Za-z0-9][A-Za-z0-9._-]{0,127}\z", RegexOptions.CultureInvariant)]
+    private static partial Regex CorpusIdRegex();
 }

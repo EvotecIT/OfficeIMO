@@ -53,12 +53,13 @@ internal static class PdfPageContentVisualParser {
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
         Action<PdfPageVisualPrimitive>? primitiveVisitor = null,
         bool retainPrimitiveData = true,
-        bool scaleStrokeWidthWithTransform = false) {
+        bool scaleStrokeWidthWithTransform = false,
+        PdfTextClippingBudget? textClippingBudget = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, textClippingBudget);
         return parser.Parse();
     }
 
@@ -88,6 +89,7 @@ internal static class PdfPageContentVisualParser {
         private readonly Action<PdfPageVisualPrimitive>? _primitiveVisitor;
         private readonly bool _retainPrimitiveData;
         private readonly bool _scaleStrokeWidthWithTransform;
+        private readonly PdfTextClippingBudget _textClippingBudget;
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
         private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
@@ -138,7 +140,8 @@ internal static class PdfPageContentVisualParser {
             int maxOperands,
             Action<PdfPageVisualPrimitive>? primitiveVisitor,
             bool retainPrimitiveData,
-            bool scaleStrokeWidthWithTransform) {
+            bool scaleStrokeWidthWithTransform,
+            PdfTextClippingBudget? textClippingBudget) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -158,6 +161,7 @@ internal static class PdfPageContentVisualParser {
             _primitiveVisitor = primitiveVisitor;
             _retainPrimitiveData = primitiveVisitor == null || retainPrimitiveData;
             _scaleStrokeWidthWithTransform = scaleStrokeWidthWithTransform;
+            _textClippingBudget = textClippingBudget ?? new PdfTextClippingBudget();
             _primitives = primitiveVisitor == null ? new List<PdfPageVisualPrimitive>() : null;
             GraphicsState initialState = initialFillColor.HasValue
                 ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
@@ -1173,12 +1177,12 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
+                _state = _state.WithClipPath(_textClippingBudget.ResolveActiveClip(_state.ClipPath, clipPath));
             }
         }
 

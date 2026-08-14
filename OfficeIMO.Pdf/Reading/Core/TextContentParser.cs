@@ -270,6 +270,7 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
         bool initialUnsupportedEffect = false) {
 #if NET8_0_OR_GREATER
@@ -285,6 +286,7 @@ internal static class TextContentParser {
 #endif
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
+        textClippingBudget ??= new PdfTextClippingBudget();
 
         var spans = new List<PdfTextSpan>();
         // Text state
@@ -471,7 +473,7 @@ internal static class TextContentParser {
                 case "W":
                 case "W*":
                     if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
                     }
 
                     args.Clear();
@@ -927,13 +929,14 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                textClippingBudget.ChargePath();
                 pendingTextClipPaths.Add(textClipPath);
             }
         }
 
         void ApplyPendingTextClippingPath() {
             if (PdfPageClipPath.TryCombineTextClippingPaths(pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
-                clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
+                clipPath = textClippingBudget.ResolveActiveClip(clipPath, textClipPath);
             }
             pendingTextClipPaths.Clear();
         }
@@ -1209,7 +1212,9 @@ internal static class TextContentParser {
         System.Func<string, bool>? hasMcidForProperty = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        PdfTextClippingBudget? textClippingBudget = null) {
+        textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1353,7 +1358,7 @@ internal static class TextContentParser {
                 case "W":
                 case "W*":
                     if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
                     }
 
                     args.Clear();

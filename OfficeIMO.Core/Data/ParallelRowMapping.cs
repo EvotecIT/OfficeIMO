@@ -50,22 +50,49 @@ public static class ParallelRowMappingExtensions {
     internal static bool TryCreateIndependentSnapshotPlan(
         IDataRecord reader,
         out bool[] cloneColumns) {
-        cloneColumns = new bool[reader.FieldCount];
-        for (int ordinal = 0; ordinal < cloneColumns.Length; ordinal++) {
-            Type fieldType;
-            try {
-                fieldType = reader.GetFieldType(ordinal);
-            } catch (NotSupportedException) {
-                return false;
-            } catch (NotImplementedException) {
-                return false;
-            }
+        return TryCreateIndependentSnapshotPlan(
+            reader,
+            int.MaxValue,
+            out cloneColumns,
+            out _);
+    }
 
+    internal static bool TryCreateIndependentSnapshotPlan(
+        IDataRecord reader,
+        int maximumFieldCount,
+        out bool[] cloneColumns,
+        out bool fieldLimitExceeded) {
+        int fieldCount = reader.FieldCount;
+        cloneColumns = Array.Empty<bool>();
+        fieldLimitExceeded = false;
+        if (fieldCount > maximumFieldCount) {
+            for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
+                if (!TryGetIndependentFieldType(reader, ordinal, out _)) return false;
+            }
+            fieldLimitExceeded = true;
+            return true;
+        }
+
+        cloneColumns = new bool[fieldCount];
+        for (int ordinal = 0; ordinal < fieldCount; ordinal++) {
+            if (!TryGetIndependentFieldType(reader, ordinal, out Type fieldType)) return false;
             Type type = Nullable.GetUnderlyingType(fieldType) ?? fieldType;
-            if (!IsIndependentFieldType(fieldType)) return false;
             cloneColumns[ordinal] = type == typeof(byte[]) || type == typeof(char[]);
         }
         return true;
+    }
+
+    private static bool TryGetIndependentFieldType(IDataRecord reader, int ordinal, out Type fieldType) {
+        try {
+            fieldType = reader.GetFieldType(ordinal);
+        } catch (NotSupportedException) {
+            fieldType = null!;
+            return false;
+        } catch (NotImplementedException) {
+            fieldType = null!;
+            return false;
+        }
+        return fieldType != null && IsIndependentFieldType(fieldType);
     }
 
     private static bool IsIndependentFieldType(Type fieldType) {

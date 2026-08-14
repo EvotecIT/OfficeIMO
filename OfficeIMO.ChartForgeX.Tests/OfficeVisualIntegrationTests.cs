@@ -141,6 +141,86 @@ public sealed class OfficeVisualIntegrationTests {
     }
 
     [Fact]
+    public void PortableSvgSourceRejectsPayloadsBeyondTheHardViewportLimitBeforeRasterFallback() {
+        double oversizedDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension + 1D;
+        string oversizedViewport = FormattableString.Invariant(
+            $"<svg xmlns='http://www.w3.org/2000/svg' width='{oversizedDimension}' height='1' viewBox='0 0 {oversizedDimension} 1'><rect width='{oversizedDimension}' height='1' fill='#2563eb'/></svg>");
+        var options = new OfficeVisualConversionOptions {
+            MaximumSvgElements = OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
+            MaximumSvgViewportDimension = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportDimension,
+            MaximumSvgViewportPixels = OfficeSvgDrawingReaderOptions.MaximumAllowedViewportPixels
+        };
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+            () => new OfficeVisualSource(oversizedViewport).ToOfficeVisual(options));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRasterizesSafeMarkupThatTheVectorImporterCannotProject() {
+        const string noIntrinsicViewport = "<svg xmlns='http://www.w3.org/2000/svg'><rect width='16' height='8' fill='#2563eb'/></svg>";
+
+        OfficeVisualConversionResult result = new OfficeVisualSource(noIntrinsicViewport).ToOfficeVisual(
+            new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded });
+
+        Assert.True(result.Report.UsedRasterFallback);
+        Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRasterizesSafeDegenerateGeometryThatCannotBeVectorProjected() {
+        const string degeneratePolygon = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><polygon points='1,1 2,1 3,1'/></svg>";
+
+        OfficeVisualConversionResult result = new OfficeVisualSource(degeneratePolygon).ToOfficeVisual(
+            new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded });
+
+        Assert.True(result.Report.UsedRasterFallback);
+        Assert.Equal(OfficeVisualMediaFormat.Png, result.PlacementFormat);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRejectsOverNestedMarkupBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>");
+        for (int index = 0; index < 130; index++) svg.Append("<g>");
+        svg.Append("<rect width='16' height='8'/>");
+        for (int index = 0; index < 130; index++) svg.Append("</g>");
+        svg.Append("</svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRejectsOverBudgetPathBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='M0 0");
+        for (int index = 0; index < 20001; index++) svg.Append(" L1 1");
+        svg.Append("'/></svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PortableSvgSourceRejectsOverBudgetClipPathDefinitionBeforeRasterFallback() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><clipPath id='clip'><path d='M0 0");
+        for (int index = 0; index < 20_000; index++) svg.Append(" L1 1");
+        svg.Append("'/></clipPath></defs><rect width='16' height='8' clip-path='url(#clip)'/></svg>");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            new OfficeVisualSource(svg.ToString()).ToOfficeVisual(
+                new OfficeVisualConversionOptions { SvgPolicy = OfficeVisualSvgPolicy.RasterizeWhenNeeded }));
+
+        Assert.Contains("hard import safety limits", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PlacementCreatesReadableWordExcelPowerPointAndPdfPackages() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

@@ -136,6 +136,29 @@ public class CsvParallelWriteTests
     }
 
     [Fact]
+    public void WriteDataReaderParallel_WideUnsafeProviderUsesSequentialFallbackOutsideBatchBudget()
+    {
+        var shared = new MutableFormattable { Value = "safe" };
+        using var reader = new ThrowingGetValuesDataReader(
+            ["First", "Second", "Third"],
+            [[1, 2, shared]]);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReaderParallel(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n" },
+            new CsvWriteParallelOptions
+            {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 4096,
+                MaximumBufferedCellsPerBatch = 2
+            });
+
+        Assert.Equal("First,Second,Third\n1,2,safe\n", writer.ToString());
+    }
+
+    [Fact]
     public void WriteDataReaderParallel_EmptyReaderMatchesSequentialHeader()
     {
         using var table = new DataTable("Empty");
@@ -149,6 +172,44 @@ public class CsvParallelWriteTests
                 table,
                 options,
                 new CsvWriteParallelOptions { MaxDegreeOfParallelism = 3, BatchSize = 2 }));
+    }
+
+    [Fact]
+    public void WriteDataReaderParallel_BoundsBatchRowsByReaderWidth()
+    {
+        var options = new CsvWriteParallelOptions
+        {
+            BatchSize = 4096,
+            MaximumBufferedCellsPerBatch = 200
+        };
+
+        Assert.Equal(2, options.GetBatchSize(fieldCount: 100));
+    }
+
+    [Fact]
+    public void WriteDataReaderParallel_RejectsSchemasWiderThanTheCellBudgetBeforeReading()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "A", "B", "C" },
+            [new object?[] { 1, 2, 3 }]);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            CsvDocument.WriteDataReaderParallel(
+                writer,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                new CsvWriteParallelOptions
+                {
+                    MaxDegreeOfParallelism = 2,
+                    BatchSize = 4096,
+                    MaximumBufferedCellsPerBatch = 2
+                }));
+
+        Assert.Contains("per-batch cell budget", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, reader.GetValueCallCount);
+        Assert.Equal(reader.FieldCount, reader.GetFieldTypeCallCount);
+        Assert.Equal(string.Empty, writer.ToString());
     }
 
     [Theory]
@@ -171,6 +232,30 @@ public class CsvParallelWriteTests
                 MaxDegreeOfParallelism = degree,
                 BatchSize = batchSize
             }));
+        Assert.Equal(string.Empty, writer.ToString());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void WriteDataReaderParallel_InvalidCellBudgetIsRejectedOnSequentialPath(int maximumBufferedCells)
+    {
+        using DataTable table = CreateMixedTable(rowCount: 1);
+        using DataTableReader reader = table.CreateDataReader();
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CsvDocument.WriteDataReaderParallel(
+                writer,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                new CsvWriteParallelOptions
+                {
+                    MaxDegreeOfParallelism = 1,
+                    MaximumBufferedCellsPerBatch = maximumBufferedCells
+                }));
+
+        Assert.Equal(nameof(CsvWriteParallelOptions.MaximumBufferedCellsPerBatch), exception.ParamName);
         Assert.Equal(string.Empty, writer.ToString());
     }
 

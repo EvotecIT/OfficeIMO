@@ -97,9 +97,11 @@ public sealed partial class PdfReadPage {
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int contentNestingDepth = 0,
+        PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
+        textClippingBudget ??= new PdfTextClippingBudget();
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         IReadOnlyList<PdfPageDrawingEffectTransition> local = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
@@ -136,7 +138,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeLineJoin,
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
-                     _limits.MaxContentOperands)) {
+                     _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect);
             try {
@@ -166,6 +169,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
+                    textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget);
                 transitions.Add(new PdfPageDrawingEffectTransition(invocation.PaintOrder + (Math.Abs(paintOrderScale) * 0.25D), inherited));
             } finally {
@@ -194,9 +198,20 @@ public sealed partial class PdfReadPage {
         Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> cache,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget) {
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         if (cache.TryGetValue(resource, out OfficeDrawingSoftMask? existing)) return existing;
-        OfficeDrawing drawing = CreateFormDrawing(resource.Group, width, height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget);
+        OfficeDrawing drawing = CreateFormDrawing(
+            resource.Group,
+            width,
+            height,
+            pageTransform,
+            textOutputBudget,
+            pageContentBudget,
+            type3GlyphBudget,
+            invocationTextClippingBudget,
+            patternTextClippingBudget);
         var mask = new OfficeDrawingSoftMask(drawing, resource.Mode, backdropColor: resource.BackdropColor);
         cache[resource] = mask;
         return mask;
@@ -209,7 +224,9 @@ public sealed partial class PdfReadPage {
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
-        Type3GlyphBudget type3GlyphBudget) {
+        Type3GlyphBudget type3GlyphBudget,
+        PdfTextClippingBudget invocationTextClippingBudget,
+        PdfTextClippingBudget patternTextClippingBudget) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? pageResources;
@@ -232,6 +249,8 @@ public sealed partial class PdfReadPage {
             renderedType3PaintOrders: renderedType3PaintOrders,
             type3GlyphBudget: type3GlyphBudget,
             textOutputBudget: textOutputBudget,
+            invocationTextClippingBudget: invocationTextClippingBudget,
+            patternTextClippingBudget: patternTextClippingBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
@@ -254,6 +273,7 @@ public sealed partial class PdfReadPage {
             paintOrderOffset: -transformedOffset,
             useLogicalTextFilters: false,
             textOutputBudget: textOutputBudget,
+            textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder)) continue;
@@ -261,7 +281,16 @@ public sealed partial class PdfReadPage {
         }
 
         var placements = new List<PdfImagePlacement>();
-        CollectImagePlacementsAndForms(content, resources, 0, transform, height, placements, activeForms, pageContentBudget: pageContentBudget);
+        CollectImagePlacementsAndForms(
+            content,
+            resources,
+            0,
+            transform,
+            height,
+            placements,
+            activeForms,
+            textClippingBudget: invocationTextClippingBudget,
+            pageContentBudget: pageContentBudget);
         if (placements.Count > 0) {
             IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
             for (int i = 0; i < placements.Count; i++) {
@@ -271,7 +300,9 @@ public sealed partial class PdfReadPage {
         }
 
         SortDrawingElements(elements);
-        for (int i = 0; i < elements.Count; i++) AddDrawingElementCore(drawing, height, elements[i]);
+        for (int i = 0; i < elements.Count; i++) {
+            AddDrawingElementCore(drawing, height, elements[i], invocationTextClippingBudget);
+        }
         return drawing;
     }
 }

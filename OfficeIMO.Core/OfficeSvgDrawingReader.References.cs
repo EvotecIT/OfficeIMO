@@ -8,6 +8,13 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeSvgDrawingReader {
     private const int MaximumElementReferenceDepth = 16;
 
+    private enum SvgElementReferenceEntryResult {
+        Invalid,
+        Cycle,
+        DepthExceeded,
+        Entered
+    }
+
     private static void AddReferencedElement(
         XElement use,
         OfficeDrawing drawing,
@@ -23,6 +30,7 @@ public static partial class OfficeSvgDrawingReader {
         int depth,
         ref int visited,
         ref int pathCommands,
+        ref bool pathCommandLimitExceeded,
         ref int unsupported) {
         if (!references.TryEnter(use, out string referenceId, out XElement? target)) {
             unsupported++;
@@ -38,7 +46,7 @@ public static partial class OfficeSvgDrawingReader {
             if (targetName == "symbol") {
                 AddReferencedSymbol(use, target, drawing, style, paintServers, references, transform,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                    ref visited, ref pathCommands, ref unsupported);
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
                 return;
             }
             if (!TryOptionalUseLength(use, "x", out double x) || !TryOptionalUseLength(use, "y", out double y)) {
@@ -49,7 +57,7 @@ public static partial class OfficeSvgDrawingReader {
             OfficeTransform placement = OfficeTransform.Translate(x, y).Then(transform);
             AddElement(target, drawing, style, paintServers, references, placement, viewX, viewY,
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                ref visited, ref pathCommands, ref unsupported);
+                ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
         } finally {
             references.Exit(referenceId);
         }
@@ -73,15 +81,35 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
+            return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterDetailed(XElement use, out string id, out XElement? target) {
+            return TryEnterDetailed(use, expectedTargetName: null, out id, out target);
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterDetailed(
+            XElement use,
+            string? expectedTargetName,
+            out string id,
+            out XElement? target) {
             id = string.Empty;
             target = null;
-            XAttribute? href = use.Attributes().FirstOrDefault(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase));
-            if (href == null
-                || !TryReadLocalElementReference(href.Value, out id)
+            XAttribute[] hrefAttributes = use.Attributes()
+                .Where(attribute => attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase))
+                .Take(2)
+                .ToArray();
+            if (hrefAttributes.Length != 1
+                || !TryReadLocalElementReference(hrefAttributes[0].Value, out id)
                 || !_definitions.TryGetUnique(id, out target)
-                || _activeIds.Count >= MaximumElementReferenceDepth
-                || !_activeIds.Add(id)) return false;
-            return true;
+                || (expectedTargetName != null
+                    && !target!.Name.LocalName.Equals(expectedTargetName, StringComparison.OrdinalIgnoreCase))) {
+                return SvgElementReferenceEntryResult.Invalid;
+            }
+            if (_activeIds.Contains(id)) return SvgElementReferenceEntryResult.Cycle;
+            if (_activeIds.Count >= MaximumElementReferenceDepth) return SvgElementReferenceEntryResult.DepthExceeded;
+            _activeIds.Add(id);
+            return SvgElementReferenceEntryResult.Entered;
         }
 
         internal void Exit(string id) {
@@ -89,12 +117,30 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         internal bool TryEnterLocal(string? value, out string id, out XElement? target) {
+            return TryEnterLocalDetailed(value, out id, out target) == SvgElementReferenceEntryResult.Entered;
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterLocalDetailed(string? value, out string id, out XElement? target) {
+            return TryEnterLocalDetailed(value, expectedTargetName: null, out id, out target);
+        }
+
+        internal SvgElementReferenceEntryResult TryEnterLocalDetailed(
+            string? value,
+            string? expectedTargetName,
+            out string id,
+            out XElement? target) {
             id = string.Empty;
             target = null;
-            return TryReadLocalUrlReference(value, out id)
-                && _definitions.TryGetUnique(id, out target)
-                && _activeIds.Count < MaximumElementReferenceDepth
-                && _activeIds.Add(id);
+            if (!TryReadLocalUrlReference(value, out id)
+                || !_definitions.TryGetUnique(id, out target)
+                || (expectedTargetName != null
+                    && !target!.Name.LocalName.Equals(expectedTargetName, StringComparison.OrdinalIgnoreCase))) {
+                return SvgElementReferenceEntryResult.Invalid;
+            }
+            if (_activeIds.Contains(id)) return SvgElementReferenceEntryResult.Cycle;
+            if (_activeIds.Count >= MaximumElementReferenceDepth) return SvgElementReferenceEntryResult.DepthExceeded;
+            _activeIds.Add(id);
+            return SvgElementReferenceEntryResult.Entered;
         }
 
         private static bool TryReadLocalElementReference(string text, out string id) {
