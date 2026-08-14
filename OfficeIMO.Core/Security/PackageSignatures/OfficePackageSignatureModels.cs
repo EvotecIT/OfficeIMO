@@ -112,11 +112,12 @@ public sealed class OfficePackageSignatureTimestampInfo {
 /// <summary>One XML signature part discovered in an OPC package.</summary>
 public sealed class OfficePackageSignaturePartInfo {
     private readonly IReadOnlyList<byte[]> _certificateBytes;
+    private readonly byte[] _signatureBytes;
 
     internal OfficePackageSignaturePartInfo(string uri, long length, bool isReachableFromOrigin, string? signatureMethod,
         IReadOnlyList<OfficePackageSignatureReferenceInfo> references,
         IReadOnlyList<OfficePackageSignatureTimestampInfo> timestamps, IReadOnlyList<string> subjects,
-        IReadOnlyList<byte[]> certificateBytes, string? parseError) {
+        IReadOnlyList<byte[]> certificateBytes, string? parseError, byte[]? signatureBytes = null) {
         Uri = uri;
         Length = length;
         IsReachableFromOrigin = isReachableFromOrigin;
@@ -125,6 +126,7 @@ public sealed class OfficePackageSignaturePartInfo {
         Timestamps = timestamps;
         X509SubjectNames = subjects;
         _certificateBytes = certificateBytes;
+        _signatureBytes = signatureBytes ?? Array.Empty<byte>();
         ParseError = parseError;
     }
 
@@ -149,6 +151,7 @@ public sealed class OfficePackageSignaturePartInfo {
     /// <summary>Whether the signature part failed structural parsing.</summary>
     public bool HasParseError => !string.IsNullOrWhiteSpace(ParseError);
     internal IReadOnlyList<byte[]> CertificateBytes => _certificateBytes;
+    internal byte[] SignatureBytes => _signatureBytes;
 }
 
 /// <summary>Dependency-light structural inspection of one OPC package signature carrier.</summary>

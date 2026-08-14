@@ -139,6 +139,12 @@ internal static class OfficeProvenanceJpeg {
                 } else {
                     offset = segmentEnd;
                 }
+            } else if (marker == 0xEB && IsC2paContinuationFragment(data, payloadOffset, payloadLength)) {
+                // A continuation that was not consumed by the immediately preceding sequence is
+                // competing malformed carrier evidence. Counting it keeps strict mutation from
+                // deleting a valid sequence while leaving an orphaned C2PA fragment behind.
+                count++;
+                offset = segmentEnd;
             } else {
                 offset = segmentEnd;
             }
@@ -167,6 +173,10 @@ internal static class OfficeProvenanceJpeg {
     private static bool IsC2paSequenceStart(byte[] data, int payloadOffset, int payloadLength) =>
         payloadLength >= 8 && data[payloadOffset] == 0x4A && data[payloadOffset + 1] == 0x50 &&
         OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false) == 1;
+
+    private static bool IsC2paContinuationFragment(byte[] data, int payloadOffset, int payloadLength) =>
+        payloadLength >= 8 && data[payloadOffset] == 0x4A && data[payloadOffset + 1] == 0x50 &&
+        OfficeProvenanceBinary.ReadUInt32(data, payloadOffset + 4, littleEndian: false) > 1;
 
     private static void SortBySourceOffset<T>(List<T>? items) {
         if (items == null || items.Count < 2) return;

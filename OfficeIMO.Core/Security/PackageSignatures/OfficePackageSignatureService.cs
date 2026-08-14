@@ -267,7 +267,7 @@ public static class OfficePackageSignatureService {
             }
             return new OfficePackageSignaturePartInfo(
                 signatureUri, length, isReachableFromOrigin, signatureMethod, references, timestamps,
-                subjects.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), certificates.ToArray(), null);
+                subjects.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), certificates.ToArray(), null, bytes);
         } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or FormatException or OverflowException) {
             return new OfficePackageSignaturePartInfo(
                 signatureUri, length, isReachableFromOrigin, null, Array.Empty<OfficePackageSignatureReferenceInfo>(),
@@ -309,7 +309,10 @@ public static class OfficePackageSignatureService {
                     IsRevocationRequired(options), findings);
             }
 
-            byte[] signatureXml = archive.ReadPart(part.Uri, options.Inspection.MaxSignatureBytes);
+            byte[] signatureXml = part.SignatureBytes;
+            if (signatureXml.Length == 0) {
+                throw new InvalidDataException("The inspected XML signature bytes are unavailable for bounded validation.");
+            }
             var request = new XmlDigitalSignatureVerificationRequest(signatureXml, certificates) {
                 MaxSignatureBytes = options.Inspection.MaxSignatureBytes,
                 MaxReferences = options.Inspection.MaxSignedReferences,
@@ -538,7 +541,10 @@ public static class OfficePackageSignatureService {
             !string.Equals(resolved.Host, source.Host, StringComparison.Ordinal)) {
             throw new InvalidDataException("A package signature relationship target leaves the package namespace.");
         }
-        return OfficePackageSignatureArchive.NormalizePartUri(Uri.UnescapeDataString(resolved.AbsolutePath));
+        // ZIP entry names retain the escaped OPC part-name representation. AbsolutePath has
+        // already resolved dot segments while preserving that representation, so decoding it
+        // here would make legal names such as app%20custom.xml impossible to look up.
+        return OfficePackageSignatureArchive.NormalizePartUri(resolved.AbsolutePath);
     }
 
     private static OriginDiscovery ReadOrigins(

@@ -48,6 +48,15 @@ internal static class OfficeProvenanceBinary {
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
     }
 
+    internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        ValidateLimits(options.Limits);
+        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
+            throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
+        }
+    }
+
     internal static bool HasPrefix(byte[] data, params byte[] prefix) {
         if (data.Length < prefix.Length) return false;
         for (int index = 0; index < prefix.Length; index++) {

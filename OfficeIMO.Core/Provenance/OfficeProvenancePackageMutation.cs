@@ -63,6 +63,7 @@ internal static class OfficeProvenancePackageMutation {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
         options ??= new OfficeProvenanceRemovalOptions();
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         validatePackage?.Invoke(data, options.Limits);
         if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
             return OfficeProvenanceRemover.RemoveZipPackage(data, fileName, options, removeOpcManifestReferences);

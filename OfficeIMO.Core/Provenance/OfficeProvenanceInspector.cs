@@ -215,8 +215,7 @@ public static class OfficeProvenanceRemover {
         OfficeProvenanceRemovalOptions? options = null) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         options ??= new OfficeProvenanceRemovalOptions();
-        OfficeProvenanceBinary.ValidateLimits(options.Limits);
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         if (data.LongLength > options.Limits.MaxAssetBytes) {
             throw new InvalidDataException($"The asset exceeds the configured limit of {options.Limits.MaxAssetBytes} bytes.");
         }
@@ -318,7 +317,7 @@ public static class OfficeProvenanceRemover {
         string fullInputPath = Path.GetFullPath(inputPath);
         string fullOutputPath = Path.GetFullPath(outputPath);
         options ??= new OfficeProvenanceRemovalOptions();
-        OfficeProvenanceBinary.ValidateLimits(options.Limits);
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         byte[] data;
         using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
         OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options);
