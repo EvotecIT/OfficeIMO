@@ -197,7 +197,7 @@ public sealed class HtmlDataUri {
     private static string GetContentType(string metadata) {
         int separatorIndex = metadata.IndexOf(';');
         string contentType = separatorIndex >= 0 ? metadata.Substring(0, separatorIndex) : metadata;
-        return string.IsNullOrWhiteSpace(contentType) ? string.Empty : contentType.Trim();
+        return TrimAsciiWhitespace(contentType);
     }
 
     private static bool HasBase64Flag(string metadata) {

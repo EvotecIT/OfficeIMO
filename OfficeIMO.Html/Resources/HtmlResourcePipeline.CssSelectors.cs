@@ -273,26 +273,30 @@ public static partial class HtmlResourcePipeline {
             return true;
         }
 
-        foreach (string selectorPart in SplitTopLevelList(selector)) {
+        string[] selectorParts = SplitTopLevelList(selector).ToArray();
+        if (selectorParts.Length == 0 || selectorParts.Any(string.IsNullOrWhiteSpace)) return false;
+        bool potentiallyActive = false;
+        foreach (string selectorPart in selectorParts) {
             string normalized = NormalizeSelectorForQuery(selectorPart, stripStatefulPseudoClasses: true);
             if (normalized.Length == 0) {
                 if (IsBarePseudoElementSelector(selectorPart) || IsStatefulPseudoClassOnlySelector(selectorPart)) {
-                    return true;
+                    potentiallyActive = true;
+                    continue;
                 }
 
-                continue;
+                return false;
             }
 
             try {
                 if (document.QuerySelector(normalized) != null) {
-                    return true;
+                    potentiallyActive = true;
                 }
             } catch {
-                return true;
+                return false;
             }
         }
 
-        return false;
+        return potentiallyActive;
     }
 
     private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {
@@ -300,20 +304,25 @@ public static partial class HtmlResourcePipeline {
             yield break;
         }
 
-        var seen = new HashSet<IElement>();
-        foreach (string selectorPart in SplitTopLevelList(selector)) {
+        string[] selectorParts = SplitTopLevelList(selector).ToArray();
+        if (selectorParts.Length == 0 || selectorParts.Any(string.IsNullOrWhiteSpace)) yield break;
+        var matchedGroups = new List<IElement[]>();
+        foreach (string selectorPart in selectorParts) {
             string normalized = NormalizeSelectorForQuery(selectorPart, stripStatefulPseudoClasses: true);
             if (normalized.Length == 0) {
+                if (!IsBarePseudoElementSelector(selectorPart) && !IsStatefulPseudoClassOnlySelector(selectorPart)) yield break;
                 continue;
             }
 
-            IEnumerable<IElement> matches;
             try {
-                matches = document.QuerySelectorAll(normalized).OfType<IElement>().ToArray();
+                matchedGroups.Add(document.QuerySelectorAll(normalized).OfType<IElement>().ToArray());
             } catch {
-                continue;
+                yield break;
             }
+        }
 
+        var seen = new HashSet<IElement>();
+        foreach (IElement[] matches in matchedGroups) {
             foreach (IElement match in matches) {
                 if (seen.Add(match)) {
                     yield return match;

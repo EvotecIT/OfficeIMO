@@ -8,14 +8,15 @@ internal static class HtmlPictureSourceSupport {
     /// Returns whether a picture source type can be consumed by the shared OfficeIMO conversion adapters.
     /// </summary>
     internal static bool IsSupportedConversionContentType(string? type) {
-        if (string.IsNullOrWhiteSpace(type)) {
+        if (type == null) {
             return true;
         }
 
-        string normalized = type!.Trim();
+        string normalized = TrimAsciiWhitespace(type);
+        if (normalized.Length == 0) return true;
         int parameterStart = normalized.IndexOf(';');
         if (parameterStart >= 0) {
-            normalized = normalized.Substring(0, parameterStart).Trim();
+            normalized = TrimAsciiWhitespace(normalized.Substring(0, parameterStart));
         }
 
         switch (normalized.ToLowerInvariant()) {
@@ -33,4 +34,14 @@ internal static class HtmlPictureSourceSupport {
                 return false;
         }
     }
+
+    private static string TrimAsciiWhitespace(string value) {
+        int start = 0;
+        while (start < value.Length && IsAsciiWhitespace(value[start])) start++;
+        int end = value.Length;
+        while (end > start && IsAsciiWhitespace(value[end - 1])) end--;
+        return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
+    }
+
+    private static bool IsAsciiWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
 }

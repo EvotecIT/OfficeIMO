@@ -109,6 +109,7 @@ public sealed class ProvenanceSignatureMutationTests {
             header,
             CreatePngChunk("IHDR", new byte[13]),
             CreatePngChunk("caBX", manifest),
+            CreatePngChunk("IDAT", Array.Empty<byte>()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
     }
 
