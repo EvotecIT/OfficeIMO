@@ -483,6 +483,7 @@ internal static class OfficeProvenanceZip {
         }
         int cursor = (int)centralOffset;
         var metadata = new List<OfficeProvenanceZipEntryMetadata>(expectedEntries);
+        var decodedNames = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int index = 0; index < expectedEntries; index++) {
             if (cursor > data.Length - 46 || OfficeProvenanceBinary.ReadUInt32(data, cursor, littleEndian: true) != centralHeaderSignature) {
                 throw new InvalidDataException("ZIP central directory is malformed.");
@@ -500,6 +501,11 @@ internal static class OfficeProvenanceZip {
             byte[] rawName = new byte[nameLength];
             if (nameLength != 0) Buffer.BlockCopy(data, cursor + 46, rawName, 0, nameLength);
             string decodedName = DecodeZipEntryName(rawName, flags, centralExtraField);
+            string rawNameKey = Convert.ToBase64String(rawName);
+            if (decodedNames.TryGetValue(decodedName, out string? priorRawName) && priorRawName != rawNameKey) {
+                throw new InvalidDataException("ZIP entries resolve to the same decoded name.");
+            }
+            decodedNames[decodedName] = rawNameKey;
             if (localHeaderOffset == uint.MaxValue) {
                 localHeaderOffset = ResolveZip64LocalHeaderOffset(data, cursor, centralExtraField);
             }

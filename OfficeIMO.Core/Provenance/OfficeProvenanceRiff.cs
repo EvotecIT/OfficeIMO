@@ -45,7 +45,9 @@ internal static class OfficeProvenanceRiff {
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
         bool extendedHeaderAdvertisesXmp = false;
-        bool foundImagePayload = false;
+        int lossyImagePayloads = 0;
+        int losslessImagePayloads = 0;
+        int animationFramePayloads = 0;
         bool foundXmp = false;
         while (offset < declaredEnd) {
             if (++chunkCount > options.MaxContainerEntries) {
@@ -70,9 +72,11 @@ internal static class OfficeProvenanceRiff {
             } else if (chunkType == "C2PA") {
                 if (payloadLength > options.MaxManifestBytes) throw new InvalidDataException("RIFF provenance chunk exceeds the configured manifest limit.");
                 bool isLast = offset + total == declaredEnd;
+                bool hasUnambiguousImagePayload = HasUnambiguousImagePayload(
+                    lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
                 bool valid = c2paChunkCount == 1 &&
                     extendedHeaderCount == 1 && hasValidExtendedHeader &&
-                    isLast && foundImagePayload && OfficeC2paManifestStore.IsValid(
+                    isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
@@ -93,7 +97,8 @@ internal static class OfficeProvenanceRiff {
                 string location = $"WebP/XMP@{offset}";
                 bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
                     hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
-                    foundImagePayload && offset > lastImagePayloadOffset && !foundXmp;
+                    HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads) &&
+                    offset > lastImagePayloadOffset && !foundXmp;
                 if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");
                 if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                 if (output != null && removalOptions != null && changes != null &&
@@ -108,13 +113,20 @@ internal static class OfficeProvenanceRiff {
             } else {
                 output?.Write(data, offset, total);
             }
-            if (chunkType is "VP8 " or "VP8L" or "ANMF") foundImagePayload = true;
+            if (chunkType == "VP8 ") lossyImagePayloads++;
+            else if (chunkType == "VP8L") losslessImagePayloads++;
+            else if (chunkType == "ANMF") animationFramePayloads++;
             offset += total;
         }
         if (offset != declaredEnd) throw new InvalidDataException("RIFF chunks do not end on the declared boundary.");
         if (declaredEnd < data.Length) output?.Write(data, declaredEnd, data.Length - declaredEnd);
         return reserialized;
     }
+
+    private static bool HasUnambiguousImagePayload(int lossy, int lossless, int animationFrames) =>
+        lossy == 1 && lossless == 0 && animationFrames == 0 ||
+        lossless == 1 && lossy == 0 && animationFrames == 0 ||
+        animationFrames > 0 && lossy == 0 && lossless == 0;
 
     private static int CountChunks(byte[] data, int declaredEnd, int maximumEntries, string expectedType) {
         int matches = 0;

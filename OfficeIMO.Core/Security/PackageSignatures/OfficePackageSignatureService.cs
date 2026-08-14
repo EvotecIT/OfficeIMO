@@ -605,8 +605,13 @@ public static class OfficePackageSignatureService {
         OfficePackageSignatureInspectionOptions options,
         ICollection<string> findings,
         ref long totalInspectionBytes) {
+        const string conventionalProperties = "/docProps/app.xml";
+        ApplicationMetadataDiscovery conventional = ReadApplicationSignatureMetadataPart(
+            archive, conventionalProperties, options, findings, ref totalInspectionBytes);
+        if (!conventional.IsComplete) return conventional;
+
         const string rootRelationships = "/_rels/.rels";
-        if (!archive.ContainsPart(rootRelationships)) return new ApplicationMetadataDiscovery(false, true);
+        if (!archive.ContainsPart(rootRelationships)) return conventional;
         try {
             byte[] relationshipBytes = ReadInspectionPart(
                 archive, rootRelationships, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
@@ -626,8 +631,7 @@ public static class OfficePackageSignatureService {
             if (declarations.Length > options.MaxPackageParts) {
                 throw new InvalidDataException("The root relationship part exceeds the configured relationship limit.");
             }
-            XNamespace extendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
-            var inspectedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var inspectedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { conventionalProperties };
             foreach (XElement declaration in declarations) {
                 if (string.Equals((string?)declaration.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                 string? target = (string?)declaration.Attribute("Target");
@@ -640,13 +644,9 @@ public static class OfficePackageSignatureService {
                         findings.Add("An extended-properties relationship target has an unexpected OPC content type.");
                         continue;
                     }
-                    byte[] propertyBytes = ReadInspectionPart(
-                        archive, partUri, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
-                    XDocument properties = LoadXml(propertyBytes);
-                    if (properties.Root?.Name == extendedProperties + "Properties" &&
-                        properties.Root.Elements(extendedProperties + "DigSig").Any()) {
-                        return new ApplicationMetadataDiscovery(true, true);
-                    }
+                    ApplicationMetadataDiscovery discovered = ReadApplicationSignatureMetadataPart(
+                        archive, partUri, options, findings, ref totalInspectionBytes);
+                    if (discovered.HasMetadata || !discovered.IsComplete) return discovered;
                 } catch (OfficePackageSignatureResourceLimitException exception) {
                     findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
                     return new ApplicationMetadataDiscovery(false, false);
@@ -655,13 +655,43 @@ public static class OfficePackageSignatureService {
                     findings.Add("An extended application properties target could not be parsed: " + exception.Message);
                 }
             }
-            return new ApplicationMetadataDiscovery(false, true);
+            return conventional;
         } catch (OfficePackageSignatureResourceLimitException exception) {
             findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
             return new ApplicationMetadataDiscovery(false, false);
         } catch (Exception exception) when (
             (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);
+            return conventional;
+        }
+    }
+
+    private static ApplicationMetadataDiscovery ReadApplicationSignatureMetadataPart(
+        OfficePackageSignatureArchive archive,
+        string partUri,
+        OfficePackageSignatureInspectionOptions options,
+        ICollection<string> findings,
+        ref long totalInspectionBytes) {
+        if (!archive.ContainsPart(partUri)) return new ApplicationMetadataDiscovery(false, true);
+        try {
+            if (!archive.TryGetContentType(partUri, out string contentType) ||
+                !string.Equals(contentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
+                findings.Add("An extended-properties part has an unexpected OPC content type.");
+                return new ApplicationMetadataDiscovery(false, true);
+            }
+            byte[] propertyBytes = ReadInspectionPart(
+                archive, partUri, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
+            XDocument properties = LoadXml(propertyBytes);
+            XNamespace extendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+            bool hasMetadata = properties.Root?.Name == extendedProperties + "Properties" &&
+                properties.Root.Elements(extendedProperties + "DigSig").Any();
+            return new ApplicationMetadataDiscovery(hasMetadata, true);
+        } catch (OfficePackageSignatureResourceLimitException exception) {
+            findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
+            return new ApplicationMetadataDiscovery(false, false);
+        } catch (Exception exception) when (
+            exception is IOException or InvalidDataException or XmlException or UriFormatException) {
+            findings.Add("An extended application properties target could not be parsed: " + exception.Message);
             return new ApplicationMetadataDiscovery(false, true);
         }
     }
