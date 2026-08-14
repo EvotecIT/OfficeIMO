@@ -767,6 +767,89 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void TextParser_ChargesLaterPathClipAgainstActiveTextClip() {
+        string content = BuildTextClipFollowedByCurveHeavyPath();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content,
+                (_, bytes) => Encoding.ASCII.GetString(bytes),
+                (_, bytes) => bytes.Length * 500D,
+                pageHeight: 200D,
+                textClippingBudget: new PdfTextClippingBudget()));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void InvocationParser_ChargesLaterPathClipAgainstActiveTextClip() {
+        string content = BuildTextClipFollowedByCurveHeavyPath();
+        var fonts = new Dictionary<string, PdfFontResource>(StringComparer.Ordinal) {
+            ["F1"] = new PdfFontResource("F1", "Helvetica", "WinAnsiEncoding", hasToUnicode: false)
+        };
+        var widthProviders = new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal) {
+            ["F1"] = bytes => bytes.Length * 500D
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageXObjectInvocationParser.Parse(
+                content,
+                Matrix2D.Identity,
+                200D,
+                graphicsStates: null,
+                colorSpaces: null,
+                fonts: fonts,
+                fontWidthProviders: widthProviders,
+                textClippingBudget: new PdfTextClippingBudget()));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void VisualParser_ChargesLaterPathClipAgainstInheritedTextClip() {
+        string content = BuildCurveHeavyPathClip();
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageContentVisualParser.Parse(
+                content,
+                100D,
+                200D,
+                graphicsStates: null,
+                colorSpaces: null,
+                shadings: null,
+                shadingPatterns: null,
+                tilingPatterns: null,
+                initialClipPath: inheritedTextClip,
+                textClippingBudget: new PdfTextClippingBudget()));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void FormInvocationParser_ChargesLaterPathClipAgainstInheritedTextClip() {
+        string content = BuildCurveHeavyPathClip();
+        PdfPageClipPath inheritedTextClip = PdfPageClipPath.Rectangle(0D, 100D, 100D, 120D);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.ExtractFormInvocations(
+                content,
+                pageHeight: 200D,
+                initialClipPath: inheritedTextClip,
+                textClippingBudget: new PdfTextClippingBudget()));
+
+        Assert.Equal(PdfReadLimitKind.TextClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumTextClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void RenderPage_DoesNotChargeDisjointTextClipIntersections() {
         const int runsPerObject = 1416;
         string runs = string.Concat(Enumerable.Repeat("(A) Tj ", runsPerObject));
@@ -778,6 +861,17 @@ public class PdfPageImageRendererTests {
         OfficeDrawing drawing = document.Pages[0].ToDrawing();
 
         Assert.NotNull(drawing);
+    }
+
+    private static string BuildTextClipFollowedByCurveHeavyPath() =>
+        "BT /F1 12 Tf 4 Tr (A) Tj ET " + BuildCurveHeavyPathClip();
+
+    private static string BuildCurveHeavyPathClip() {
+        var content = new StringBuilder("0 -20 m ");
+        for (int index = 0; index < 42000; index++) {
+            content.Append("0 -20 50 100 100 -20 c ");
+        }
+        return content.Append("h W n").ToString();
     }
 
     [Fact]
