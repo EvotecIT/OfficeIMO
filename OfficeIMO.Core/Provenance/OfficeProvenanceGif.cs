@@ -161,11 +161,11 @@ internal static class OfficeProvenanceGif {
                 bool isXmp = headerLength == 11 && OfficeProvenanceBinary.MatchesAscii(data, 0, "GIF89a") &&
                     OfficeProvenanceBinary.MatchesAscii(data, offset, "XMP DataXMP");
                 if (isC2paApplication) count++;
+                if (isXmp) xmpApplicationCount++;
                 offset += headerLength;
                 if (isXmp && TryReadXmpApplicationData(
                     data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
                     out _, out int extensionEnd, out _, out _)) {
-                    xmpApplicationCount++;
                     offset = extensionEnd;
                     continue;
                 }

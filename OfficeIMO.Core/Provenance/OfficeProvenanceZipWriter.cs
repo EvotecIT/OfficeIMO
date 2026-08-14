@@ -21,6 +21,7 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort Utf8FileNameFlag = 0x0800;
     private const ushort StoredMethod = 0;
     private const ushort DeflateMethod = 8;
+    private const ushort Zip64ExtraFieldId = 0x0001;
     private const ushort UnicodePathExtraFieldId = 0x7075;
     private const ushort UnicodeCommentExtraFieldId = 0x6375;
     private static readonly uint[] CrcTable = CreateCrcTable();
@@ -40,10 +41,14 @@ internal static class OfficeProvenanceZipWriter {
             byte[] name = Encoding.UTF8.GetBytes(entry.Name);
             if (name.Length > ushort.MaxValue) throw new InvalidDataException("ZIP entry name exceeds the supported length.");
             byte[] localExtraField = RemoveExtraField(
-                RemoveExtraField(entry.LocalExtraField, UnicodePathExtraFieldId),
+                RemoveExtraField(
+                    RemoveExtraField(entry.LocalExtraField, Zip64ExtraFieldId),
+                    UnicodePathExtraFieldId),
                 UnicodeCommentExtraFieldId);
             byte[] centralExtraField = RemoveExtraField(
-                RemoveExtraField(entry.CentralExtraField, UnicodePathExtraFieldId),
+                RemoveExtraField(
+                    RemoveExtraField(entry.CentralExtraField, Zip64ExtraFieldId),
+                    UnicodePathExtraFieldId),
                 UnicodeCommentExtraFieldId);
             ushort method = entry.Compress ? DeflateMethod : StoredMethod;
             GetDosTimestamp(entry.LastWriteTime, out ushort dosDate, out ushort dosTime);
