@@ -100,6 +100,33 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_DetectsTransparencyInInvokedType3GlyphBeforeSoftProofing() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        const string glyphContent = "500 0 0 0 500 700 d1 /Transparent gs 0.2 0.4 0.8 rg 0 0 500 700 re f";
+        string resources = "/Font << /F3 5 0 R >>";
+        string extraObjects =
+            "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] " +
+            "/FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> " +
+            "/Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] " +
+            "/Resources << /ExtGState << /Transparent << /ca 0.5 >> >> >> >>\nendobj\n" +
+            "7 0 obj\n<< /Length " + Encoding.ASCII.GetByteCount(glyphContent).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + glyphContent + "\nendstream\nendobj\n";
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "BT /F3 40 Tf 10 10 Td (A) Tj ET",
+            resources,
+            extraObjects);
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Equal(OfficeColor.FromRgb(51, 102, 204), FindSingleShapeColor(drawing));
+        Assert.Contains(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesDestinationProfileToDeviceRgbAndIndexedSamples() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         OfficeColor expected = ExpectedSoftProof(

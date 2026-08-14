@@ -6,11 +6,13 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
         var budget = new PageContentBudget(this);
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         if (ContentUsesOutputIntentCompositionInteraction(
                 GetContentStreamContent(budget),
                 resources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
                 0)) return true;
 
         PdfArray? annotations = ResolveArray(
@@ -22,7 +24,7 @@ public sealed partial class PdfReadPage {
             if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation)) continue;
             if (HasNonDefaultOpacity(annotation, "CA") || HasNonNormalBlendMode(annotation)) return true;
             if (TryGetNormalAppearanceStream(annotation, out PdfStream? appearance) && appearance != null &&
-                StreamUsesOutputIntentCompositionInteraction(appearance, resources, activeStreams, budget, 0)) return true;
+                StreamUsesOutputIntentCompositionInteraction(appearance, resources, activeStreams, budget, type3GlyphBudget, 0)) return true;
         }
         return false;
     }
@@ -32,8 +34,16 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         EnsureContentNestingBudget(depth);
+        if (Type3TextUsesOutputIntentCompositionInteraction(
+                content,
+                resources,
+                activeStreams,
+                budget,
+                type3GlyphBudget,
+                depth)) return true;
         bool found = false;
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             if (found) return;
@@ -59,7 +69,7 @@ public sealed partial class PdfReadPage {
                     resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) ? xObjectsObject : null);
                 if (xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, xObject) is PdfStream stream) {
-                    found = StreamUsesOutputIntentCompositionInteraction(stream, resources, activeStreams, budget, depth + 1);
+                    found = StreamUsesOutputIntentCompositionInteraction(stream, resources, activeStreams, budget, type3GlyphBudget, depth + 1);
                 }
                 return;
             }
@@ -68,7 +78,7 @@ public sealed partial class PdfReadPage {
                     resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ? patternsObject : null);
                 if (patterns?.Items.TryGetValue(name, out PdfObject? patternObject) == true &&
                     PdfObjectLookup.ResolveChain(_objects, patternObject) is PdfStream pattern) {
-                    found = StreamUsesOutputIntentCompositionInteraction(pattern, resources, activeStreams, budget, depth + 1);
+                    found = StreamUsesOutputIntentCompositionInteraction(pattern, resources, activeStreams, budget, type3GlyphBudget, depth + 1);
                 }
             }
         },
@@ -83,6 +93,7 @@ public sealed partial class PdfReadPage {
         PdfDictionary? inheritedResources,
         HashSet<PdfStream> activeStreams,
         PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
         int depth) {
         string? subtype = (PdfObjectLookup.ResolveChain(
             _objects,
@@ -104,6 +115,73 @@ public sealed partial class PdfReadPage {
                 resources,
                 activeStreams,
                 budget,
+                type3GlyphBudget,
+                depth);
+        } finally {
+            activeStreams.Remove(stream);
+        }
+    }
+
+    private bool Type3TextUsesOutputIntentCompositionInteraction(
+        string content,
+        PdfDictionary? resources,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
+        int depth) {
+        if (resources == null) return false;
+        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
+        if (!fonts.Values.Any(font => font.Type3 != null)) return false;
+
+        bool found = false;
+        PdfPageXObjectInvocationParser.Parse(
+            content,
+            Matrix2D.Identity,
+            GetVisualPageSize().Height,
+            GetGraphicsStateResources(resources),
+            GetColorSpaceResources(resources),
+            GetOptionalContentVisibility(resources),
+            maxOperations: _limits.MaxContentOperations,
+            maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxOperands: _limits.MaxContentOperands,
+            fonts: fonts,
+            fontWidthProviders: ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
+            type3TextVisitor: invocation => {
+                for (int index = 0; index < invocation.Glyphs.Count && !found; index++) {
+                    PdfPageType3GlyphInvocation glyph = invocation.Glyphs[index];
+                    if (glyph.Font.Type3 is PdfType3FontResource type3 &&
+                        type3.TryGetGlyph(glyph.CharacterCode, out PdfStream glyphStream)) {
+                        found = Type3GlyphUsesOutputIntentCompositionInteraction(
+                            glyphStream,
+                            type3.Resources,
+                            activeStreams,
+                            budget,
+                            type3GlyphBudget,
+                            depth + 1);
+                    }
+                }
+                return false;
+            },
+            type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+        return found;
+    }
+
+    private bool Type3GlyphUsesOutputIntentCompositionInteraction(
+        PdfStream stream,
+        PdfDictionary resources,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget budget,
+        Type3GlyphBudget type3GlyphBudget,
+        int depth) {
+        if (!activeStreams.Add(stream)) return false;
+        try {
+            return ContentUsesOutputIntentCompositionInteraction(
+                PdfEncoding.Latin1GetString(budget.Decode(stream)),
+                resources,
+                activeStreams,
+                budget,
+                type3GlyphBudget,
                 depth);
         } finally {
             activeStreams.Remove(stream);

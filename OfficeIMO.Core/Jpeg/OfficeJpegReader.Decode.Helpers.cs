@@ -88,9 +88,9 @@ internal static partial class OfficeJpegReader {
                 }
             }
 
-            var isYcck = adobeTransform.HasValue
-                ? adobeTransform.Value == 2
-                : requestedColorTransform == 1;
+            var isYcck = requestedColorTransform.HasValue
+                ? requestedColorTransform.Value == 1
+                : adobeTransform == 2;
             var ycckY = FindComponentIndex(frame.Components, 1);
             var ycckCb = FindComponentIndex(frame.Components, 2);
             var ycckCr = FindComponentIndex(frame.Components, 3);
@@ -159,10 +159,10 @@ internal static partial class OfficeJpegReader {
         var gIndex = FindComponentIndex(frame.Components, (byte)'G');
         var bIndex = FindComponentIndex(frame.Components, (byte)'B');
         var hasRgbComponentIds = rIndex >= 0 && gIndex >= 0 && bIndex >= 0;
-        bool transformToRgb = adobeTransform.HasValue
-            ? adobeTransform.Value == 1
-            : requestedColorTransform.HasValue
-                ? requestedColorTransform.Value == 1
+        bool transformToRgb = requestedColorTransform.HasValue
+            ? requestedColorTransform.Value == 1
+            : adobeTransform.HasValue
+                ? adobeTransform.Value == 1
                 : usePdfColorTransformDefault || !hasRgbComponentIds;
 
         var yIndex2 = FindComponentIndex(frame.Components, 1);

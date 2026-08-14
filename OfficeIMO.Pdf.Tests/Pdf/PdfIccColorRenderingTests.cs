@@ -865,6 +865,31 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void IccRanges_AcceptConstantComponentsForContentAndImages() {
+        const string profileEntries = "/N 3 /Range [0 0 0 1 0 1]";
+        byte[] contentPdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            profileEntries,
+            "0 0.5 0.5 scn");
+        byte[] imagePdf = BuildIccImagePdf(
+            PdfIccProfiles.SrgbIec6196621,
+            new byte[] { 0, 128, 128 },
+            profileEntries);
+
+        PdfReadPage contentPage = PdfReadDocument.Open(contentPdf).Pages[0];
+        PdfReadPage imagePage = PdfReadDocument.Open(imagePdf).Pages[0];
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(contentPdf).Shapes);
+        Assert.True(Assert.Single(PdfImageExtractor.ExtractImages(imagePdf)).IsImageFile);
+        Assert.DoesNotContain(
+            contentPage.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+        Assert.DoesNotContain(
+            imagePage.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesPdfRenderingIntentToDctIccSamples() {
         byte[] profile = IccLutTestProfiles.CreateRgbLut16WithDistinctRelativeIntent();
         Assert.True(OfficeIccColorProfile.TryCreate(profile, out OfficeIccColorProfile? parsedProfile));
@@ -1180,7 +1205,7 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
-    public void ExtractImages_AdobeMarkerOverridesPdfDctColorTransform() {
+    public void ExtractImages_PdfDctColorTransformOverridesAdobeMarker() {
         byte[] jpeg = CreateSinglePixelCmykJpeg();
         byte[] profile = IccLutTestProfiles.CreateCmykLut8();
         OfficeColor defaultTransform = ReadSinglePixel(BuildIccImagePdf(
@@ -1194,7 +1219,7 @@ public class PdfIccColorRenderingTests {
             "/N 4",
             imageEntries: "/Filter /DCTDecode /DecodeParms << /ColorTransform 1 >>"));
 
-        Assert.Equal(defaultTransform, requestedTransform);
+        Assert.NotEqual(defaultTransform, requestedTransform);
     }
 
     [Fact]

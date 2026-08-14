@@ -618,7 +618,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 ResolveObject(range.Items[index + 1], objects) is not PdfNumber maximum ||
                 double.IsNaN(minimum.Value) || double.IsInfinity(minimum.Value) ||
                 double.IsNaN(maximum.Value) || double.IsInfinity(maximum.Value) ||
-                minimum.Value >= maximum.Value) {
+                minimum.Value > maximum.Value) {
                 isValid = false;
                 return null;
             }

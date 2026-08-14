@@ -85,7 +85,7 @@ public sealed partial class PdfReadPage {
                 for (int index = 0; index < componentCount; index++) {
                     double minimum = ranges[index * 2];
                     double maximum = ranges[index * 2 + 1];
-                    if (!IsFinite(minimum) || !IsFinite(maximum) || minimum >= maximum) return false;
+                    if (!IsFinite(minimum) || !IsFinite(maximum) || minimum > maximum) return false;
                 }
             }
         }
