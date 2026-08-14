@@ -355,7 +355,7 @@ public sealed partial class PdfReadPage {
             HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
-            HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources) &&
+            HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources, placement.InlineImageStream != null) &&
             ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
             ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
@@ -472,13 +472,15 @@ public sealed partial class PdfReadPage {
             (string.Equals(kind.Name, "ICCBased", StringComparison.Ordinal) || string.Equals(kind.Name, "ICC", StringComparison.Ordinal));
     }
 
-    private bool HasValidType3IndexedColorSpaceDeclaration(PdfDictionary imageDictionary, PdfDictionary? resources) {
+    private bool HasValidType3IndexedColorSpaceDeclaration(PdfDictionary imageDictionary, PdfDictionary? resources, bool allowInlineAbbreviation) {
         PdfObject? colorSpace = ResolveType3ImageColorSpace(imageDictionary, resources);
         if (colorSpace is not PdfArray indexed ||
             indexed.Items.Count == 0 ||
-            ResolveEffectObject(indexed.Items[0]) is not PdfName { Name: "Indexed" or "I" }) {
+            ResolveEffectObject(indexed.Items[0]) is not PdfName kind ||
+            kind.Name is not "Indexed" and not "I") {
             return true;
         }
+        if (!allowInlineAbbreviation && kind.Name == "I") return false;
         return indexed.Items.Count == 4 &&
             ResolveEffectObject(indexed.Items[2]) is PdfNumber highValue &&
             IsFinite(highValue.Value) &&

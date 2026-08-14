@@ -99,6 +99,32 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingTilingPattern_PreservesNearestNeighborImagesThroughTransform() {
+        var source = new OfficeRasterImage(2, 1, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        var tile = new OfficeDrawing(2D, 1D);
+        tile.AddImage(
+            OfficePngWriter.Encode(source),
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, 4D, 1D),
+            2D,
+            1D,
+            repeatX: false,
+            repeatY: false,
+            transform: OfficeTransform.Scale(2D, 1D));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_BoundsAggregateNestedTilingExpansion() {
         var leaf = new OfficeDrawing(1D, 1D);
         OfficeShape square = OfficeShape.Rectangle(1D, 1D);

@@ -151,6 +151,18 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
+    public void RenderPage_FailsClosedForMembershipReferenceOutsideConfiguredOptionalContentGroups() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [12 0 R] /P /AnyOn >>",
+            indirectVisibilityExpression: "<< /Type /OCG /Name (Unconfigured layer) >>");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void RenderPage_EvaluatesChainedIndirectVisibilityExpressionBeforeMembershipPolicy() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,

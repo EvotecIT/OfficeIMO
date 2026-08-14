@@ -95,6 +95,20 @@ internal sealed class PdfPageOptionalContentVisibility {
         return IsHiddenAny(references.ObjectNumbers);
     }
 
+    internal bool HasInvalidMembershipReferences(PdfInlineOptionalContentReferences references) {
+        if (!references.IsMembershipDictionary) return false;
+        for (int index = 0; index < references.ObjectReferences.Count; index++) {
+            PdfReference reference = references.ObjectReferences[index];
+            if (!PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject groupObject) ||
+                !_groupVisibility.ContainsKey(reference.ObjectNumber) ||
+                ResolveObject(groupObject.Value, _objects) is not PdfDictionary group ||
+                ResolveObject(group.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null, _objects) is not PdfName { Name: "OCG" }) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private bool TryEvaluateInlineVisibilityExpression(string expression, out bool visible) {
         visible = false;
         int index = 0;

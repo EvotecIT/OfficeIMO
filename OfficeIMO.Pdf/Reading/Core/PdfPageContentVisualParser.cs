@@ -809,7 +809,9 @@ internal static class PdfPageContentVisualParser {
                     if (_requireExactType3ShadingProjection &&
                         _args[0] is string tagName &&
                         string.Equals(tagName, "OC", StringComparison.Ordinal) &&
-                        _optionalContentVisibility?.HasUnsupportedViewUsageApplications == true) {
+                        (_optionalContentVisibility?.HasUnsupportedViewUsageApplications == true ||
+                         _args[1] is PdfInlineOptionalContentReferences references &&
+                         _optionalContentVisibility?.HasInvalidMembershipReferences(references) == true)) {
                         _unsupportedOperatorVisitor?.Invoke("BDC");
                     }
                     _hiddenContentStack.Push(

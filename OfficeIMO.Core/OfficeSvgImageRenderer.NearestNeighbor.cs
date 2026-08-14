@@ -35,18 +35,19 @@ public static partial class OfficeSvgImageRenderer {
             .Append(OfficeSvgFormatting.FormatNumber(layout.ImagePlacement.Height / raster.Height)).Append(")\">");
 
         byte[] pixels = raster.GetPixels();
+        GetVisibleSourceBounds(raster, layout, out int minimumX, out int minimumY, out int maximumX, out int maximumY);
         int rectangleCount = 0;
-        for (int y = 0; y < raster.Height; y++) {
+        for (int y = minimumY; y < maximumY; y++) {
             cancellationToken.ThrowIfCancellationRequested();
-            int x = 0;
-            while (x < raster.Width) {
+            int x = minimumX;
+            while (x < maximumX) {
                 int offset = ((y * raster.Width) + x) * 4;
                 byte red = pixels[offset];
                 byte green = pixels[offset + 1];
                 byte blue = pixels[offset + 2];
                 byte alpha = pixels[offset + 3];
                 int end = x + 1;
-                while (end < raster.Width) {
+                while (end < maximumX) {
                     int next = ((y * raster.Width) + end) * 4;
                     if (pixels[next] != red || pixels[next + 1] != green || pixels[next + 2] != blue || pixels[next + 3] != alpha) break;
                     end++;
@@ -67,5 +68,37 @@ public static partial class OfficeSvgImageRenderer {
 
         return builder.Append("</g></g>");
     }
+
+    private static void GetVisibleSourceBounds(
+        OfficeRasterImage raster,
+        SvgImageLayout layout,
+        out int minimumX,
+        out int minimumY,
+        out int maximumX,
+        out int maximumY) {
+        minimumX = 0;
+        minimumY = 0;
+        maximumX = raster.Width;
+        maximumY = raster.Height;
+        if (layout.EffectiveClip is not OfficeImagePlacement clip) return;
+
+        OfficeImagePlacement image = layout.ImagePlacement;
+        double visibleLeft = Math.Max(image.X, clip.X);
+        double visibleTop = Math.Max(image.Y, clip.Y);
+        double visibleRight = Math.Min(image.X + image.Width, clip.X + clip.Width);
+        double visibleBottom = Math.Min(image.Y + image.Height, clip.Y + clip.Height);
+        if (visibleRight <= visibleLeft || visibleBottom <= visibleTop) {
+            maximumX = minimumX;
+            maximumY = minimumY;
+            return;
+        }
+
+        minimumX = ClampSourceIndex((int)Math.Floor((visibleLeft - image.X) * raster.Width / image.Width), raster.Width);
+        minimumY = ClampSourceIndex((int)Math.Floor((visibleTop - image.Y) * raster.Height / image.Height), raster.Height);
+        maximumX = ClampSourceIndex((int)Math.Ceiling((visibleRight - image.X) * raster.Width / image.Width), raster.Width);
+        maximumY = ClampSourceIndex((int)Math.Ceiling((visibleBottom - image.Y) * raster.Height / image.Height), raster.Height);
+    }
+
+    private static int ClampSourceIndex(int value, int length) => Math.Max(0, Math.Min(length, value));
 
 }

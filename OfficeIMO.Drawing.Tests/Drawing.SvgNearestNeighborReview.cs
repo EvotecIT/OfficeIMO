@@ -59,6 +59,31 @@ public partial class DrawingTests {
         Assert.DoesNotContain("<rect", svg, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OfficeDrawingSvgExporter_VectorizesOnlyVisibleSourceCrop() {
+        var raster = new OfficeRasterImage(1001, 1000, OfficeColor.Black);
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 1; x < raster.Width; x += 2) raster.SetPixel(x, y, OfficeColor.White);
+        }
+        var drawing = new OfficeDrawing(2D, 1000D);
+        drawing.AddImage(
+            new byte[] { 1 },
+            "image/x-test",
+            new OfficeImageProjection(
+                new OfficeImagePlacement(0D, 0D, 2D, 1000D),
+                new OfficeImageSourceCrop(0.998D, 0D, 0D, 0D)),
+            interpolate: false);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(
+            drawing,
+            1D,
+            OfficeSvgSizeUnit.Pixel,
+            new FixedNearestNeighborCodec(raster));
+
+        Assert.Contains("officeimo-image-clip-", svg, StringComparison.Ordinal);
+        Assert.True(CountOccurrences(svg, "<rect") < 10000);
+    }
+
     private sealed class CancelingNearestNeighborCodec : IOfficeRasterImageCodec {
         private readonly CancellationTokenSource _cancellation;
 
@@ -69,6 +94,19 @@ public partial class DrawingTests {
         public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
             _cancellation.Cancel();
             image = new OfficeRasterImage(64, 64, OfficeColor.White);
+            return true;
+        }
+    }
+
+    private sealed class FixedNearestNeighborCodec : IOfficeRasterImageCodec {
+        private readonly OfficeRasterImage _image;
+
+        internal FixedNearestNeighborCodec(OfficeRasterImage image) {
+            _image = image;
+        }
+
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            image = _image;
             return true;
         }
     }

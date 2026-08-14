@@ -313,7 +313,13 @@ public sealed partial class PdfReadPage {
         if (width <= 0D || height <= 0D) return false;
         if (requireSupportedType3Content && !HasExactType3PatternBox(boxObject)) return false;
         PdfDictionary? resources;
-        if (!TryResolveStrictResources(stream.Dictionary, parentResources, out resources)) return false;
+        if (requireSupportedType3Content) {
+            if (!stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ||
+                ResolveEffectObject(resourcesObject) is not PdfDictionary authoredResources) return false;
+            resources = authoredResources;
+        } else if (!TryResolveStrictResources(stream.Dictionary, parentResources, out resources)) {
+            return false;
+        }
         int failureVersion = type3GlyphBudget.FailureVersion;
         bool uncolored = paintType == 2;
         bool allowNestedPatterns = (allowNestedPatternContent || requireSupportedType3Content) && paintType == 1;

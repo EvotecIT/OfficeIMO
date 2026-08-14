@@ -178,11 +178,13 @@ public partial class PdfPageImageRendererTests {
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }
 
-    [Fact]
-    public void RenderPage_FailsClosedForMalformedIndexedType3ImageColorSpace() {
+    [Theory]
+    [InlineData("[/Indexed /DeviceRGB 1.5 <000000FFFFFF>]")]
+    [InlineData("[/I /DeviceRGB 1 <000000FFFFFF>]")]
+    public void RenderPage_FailsClosedForMalformedOrInlineOnlyIndexedType3ImageColorSpace(string colorSpace) {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
-        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace [/Indexed /DeviceRGB 1.5 <000000FFFFFF>] /BitsPerComponent 8", "x");
+        string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace " + colorSpace + " /BitsPerComponent 8", "x");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, image);
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
@@ -305,11 +307,14 @@ public partial class PdfPageImageRendererTests {
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId && diagnostic.Subject == "P1");
     }
 
-    [Fact]
-    public void RenderPage_FailsClosedForMalformedType3PatternResources() {
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Resources null")]
+    [InlineData("/Resources /Bad")]
+    public void RenderPage_FailsClosedForMissingOrMalformedType3PatternResources(string resourcesEntry) {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");
-        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources /Bad", "1 0 0 rg 0 0 10 10 re f");
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 " + resourcesEntry, "1 0 0 rg 0 0 10 10 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern);
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
