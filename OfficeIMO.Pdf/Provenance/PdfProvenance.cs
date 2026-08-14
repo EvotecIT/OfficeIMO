@@ -548,7 +548,7 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(field);
-            foreach (string key in new[] { "Lock", "SV", "AP", "MK", "BS" }) {
+            foreach (string key in new[] { "Lock", "SV", "V", "AP", "MK", "BS" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     field.Items.TryGetValue(key, out PdfObject? constraintValue) ? constraintValue : null,
