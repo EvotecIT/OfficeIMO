@@ -119,7 +119,8 @@ internal static class PdfAttachmentExtractor {
             maxDecodedBytes,
             maxDecodedBytesPerAttachment,
             maxStructuralEntries,
-            document.DecodedStreamBytes);
+            document.DecodedStreamBytes,
+            document.DecodedStreamBudget);
         var attachments = new List<PdfExtractedAttachment>();
         foreach (AttachmentDescriptor descriptor in descriptors) {
             if (!predicate(descriptor.ToAttachmentInfo())) continue;
@@ -154,12 +155,14 @@ internal static class PdfAttachmentExtractor {
         long? maxDecodedBytes = null,
         long? maxDecodedBytesPerAttachment = null,
         int? maxStructuralEntries = null,
-        long initialDecodedStreamBytes = 0) {
+        long initialDecodedStreamBytes = 0,
+        PdfDecodedStreamBudget? sharedDecodedStreamBudget = null) {
         Guard.NotNull(objects, nameof(objects));
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         effectiveLimits.Validate();
         budget = new AttachmentExtractionBudget(
-            effectiveLimits, maxDecodedBytes, maxDecodedBytesPerAttachment, maxStructuralEntries, initialDecodedStreamBytes);
+            effectiveLimits, maxDecodedBytes, maxDecodedBytesPerAttachment, maxStructuralEntries,
+            initialDecodedStreamBytes, sharedDecodedStreamBudget);
         budget.ValidateStructuralObjects(objects);
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
         if (catalog is null) {
@@ -470,6 +473,7 @@ internal static class PdfAttachmentExtractor {
         private readonly long _maxSingleAttachmentBytes;
         private readonly long _maxTotalDecodedStreamBytes;
         private readonly int? _maxStructuralEntries;
+        private readonly PdfDecodedStreamBudget? _sharedDecodedStreamBudget;
         private readonly Dictionary<PdfStream, byte[]> _decodedEmbeddedStreams = new();
         private int _attachmentCount;
         private int _structuralEntryCount;
@@ -481,12 +485,14 @@ internal static class PdfAttachmentExtractor {
             long? maxDecodedBytes = null,
             long? maxDecodedBytesPerAttachment = null,
             int? maxStructuralEntries = null,
-            long initialDecodedStreamBytes = 0) {
+            long initialDecodedStreamBytes = 0,
+            PdfDecodedStreamBudget? sharedDecodedStreamBudget = null) {
             _limits = limits;
             _maxTotalAttachmentBytes = Math.Min(limits.MaxTotalAttachmentBytes, maxDecodedBytes ?? long.MaxValue);
             _maxSingleAttachmentBytes = Math.Min(limits.MaxDecodedStreamBytes, maxDecodedBytesPerAttachment ?? long.MaxValue);
             _maxTotalDecodedStreamBytes = limits.MaxTotalDecodedStreamBytes;
             _maxStructuralEntries = maxStructuralEntries;
+            _sharedDecodedStreamBudget = sharedDecodedStreamBudget;
             if (initialDecodedStreamBytes < 0 || initialDecodedStreamBytes > _maxTotalDecodedStreamBytes) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.TotalDecodedStreamBytes,
@@ -558,8 +564,10 @@ internal static class PdfAttachmentExtractor {
                     _maxTotalAttachmentBytes + 1L);
             }
 
-            long remainingDecodedStreamBytes = _maxTotalDecodedStreamBytes - _decodedStreamBytes;
-            if (remainingDecodedStreamBytes <= 0L) {
+            long remainingDecodedStreamBytes = _sharedDecodedStreamBudget == null
+                ? _maxTotalDecodedStreamBytes - _decodedStreamBytes
+                : long.MaxValue;
+            if (_sharedDecodedStreamBudget == null && remainingDecodedStreamBytes <= 0L) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.TotalDecodedStreamBytes,
                     _maxTotalDecodedStreamBytes,
@@ -570,13 +578,19 @@ internal static class PdfAttachmentExtractor {
             int decodeLimit = (int)effectiveLimit;
             byte[] bytes;
             try {
-                bytes = requireSuccessfulDecoding
-                    ? StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit)
-                    : StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
+                if (_sharedDecodedStreamBudget != null) {
+                    bytes = requireSuccessfulDecoding
+                        ? _sharedDecodedStreamBudget.DecodeRequired(stream, objects, decodeLimit)
+                        : _sharedDecodedStreamBudget.Decode(stream, objects, decodeLimit);
+                } else {
+                    bytes = requireSuccessfulDecoding
+                        ? StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, decodeLimit)
+                        : StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, decodeLimit);
+                }
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedStreamBytes &&
                 effectiveLimit < _limits.MaxDecodedStreamBytes) {
-                if (remainingDecodedStreamBytes <= remainingBytes && remainingDecodedStreamBytes <= _maxSingleAttachmentBytes) {
+                if (_sharedDecodedStreamBudget == null && remainingDecodedStreamBytes <= remainingBytes && remainingDecodedStreamBytes <= _maxSingleAttachmentBytes) {
                     throw PdfReadLimitException.Create(
                         PdfReadLimitKind.TotalDecodedStreamBytes,
                         _maxTotalDecodedStreamBytes,
@@ -590,7 +604,7 @@ internal static class PdfAttachmentExtractor {
             }
 
             _decodedAttachmentBytes += bytes.LongLength;
-            _decodedStreamBytes += bytes.LongLength;
+            if (_sharedDecodedStreamBudget == null) _decodedStreamBytes += bytes.LongLength;
             _decodedEmbeddedStreams[stream] = bytes;
             return bytes;
         }

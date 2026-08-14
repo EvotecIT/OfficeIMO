@@ -536,6 +536,16 @@ public static class PdfProvenance {
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
                 }
+                if (activeStream.Dictionary.Items.ContainsKey("ShadingType")) {
+                    foreach (string key in new[] { "Function", "ColorSpace" }) {
+                        AddStructuralGraphDictionaries(
+                            objects,
+                            activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? shadingValue) ? shadingValue : null,
+                            result,
+                            maximumContainerEntries,
+                            sharedVisited: structuralTraversalVisited);
+                    }
+                }
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
@@ -773,7 +783,7 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "RichMediaContent", "RichMediaSettings" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,

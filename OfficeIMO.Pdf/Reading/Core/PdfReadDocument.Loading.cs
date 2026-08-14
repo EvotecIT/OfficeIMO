@@ -42,7 +42,11 @@ public sealed partial class PdfReadDocument {
     /// <summary>Extracts embedded file attachments from the document catalog.</summary>
     public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() {
         DemandContentExtraction("attachment");
-        return PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw, _options.Limits, _decodedStreamBytes);
+        return PdfAttachmentExtractor.ExtractAttachments(
+            this,
+            static _ => true,
+            _options.Limits.MaxTotalAttachmentBytes,
+            _options.Limits.MaxDecodedStreamBytes);
     }
 
     internal void DemandTextExtraction() => PdfPermissionAuthorization.DemandTextExtraction(Security, _options.PermissionPolicy);

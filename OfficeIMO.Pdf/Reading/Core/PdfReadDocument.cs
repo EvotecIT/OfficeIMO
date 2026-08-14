@@ -41,6 +41,7 @@ public sealed partial class PdfReadDocument {
     internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
     internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
     internal long DecodedStreamBytes => _decodedStreamBytes;
+    internal PdfDecodedStreamBudget DecodedStreamBudget => _decodedStreamBudget;
 
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
