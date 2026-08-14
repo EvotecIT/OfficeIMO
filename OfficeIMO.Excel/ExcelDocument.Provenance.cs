@@ -9,6 +9,10 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
+    private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
+    private const string SignaturePartContentType = "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml";
+    private const string SignatureRelationshipPrefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
+
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML workbook and its supported embedded images.</summary>
     public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
@@ -116,19 +120,32 @@ public partial class ExcelDocument {
         OfficePackageSignatureInfo info) {
         var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pending = new Queue<string>();
-        void AddPart(string? value) {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        PackageContentTypes contentTypes = ReadPackageContentTypes(archive, limits);
+        void AddPart(string? value, string expectedContentType, string role) {
             if (string.IsNullOrWhiteSpace(value)) return;
             string normalized = NormalizePartName(value!);
+            ZipArchiveEntry[] matches = archive.Entries
+                .Where(entry => NormalizePartName(entry.FullName).Equals(normalized, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (matches.Length != 1 ||
+                !string.Equals(contentTypes.GetContentType(normalized), expectedContentType, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidDataException($"The XLSB {role} target has an unexpected package content type.");
+            }
             if (entries.Add(normalized)) pending.Enqueue(normalized);
         }
 
-        AddPart(info.OriginPartUri);
-        foreach (OfficePackageSignaturePartInfo part in info.SignatureParts) AddPart(part.Uri);
-        using var stream = new MemoryStream(data, writable: false);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        AddPart(info.OriginPartUri, SignatureOriginContentType, "signature-origin");
+        foreach (OfficePackageSignaturePartInfo part in info.SignatureParts) {
+            AddPart(part.Uri, SignaturePartContentType, "signature-part");
+        }
         foreach (XElement relationship in ReadRelationships(archive, "_rels/.rels", limits)) {
-            if (!IsInternalDigitalSignatureRelationship(relationship, requireOrigin: true)) continue;
-            AddPart(ResolveRelationshipTarget(string.Empty, (string?)relationship.Attribute("Target")));
+            if (!TryGetSignatureRelationshipContentType(relationship, requireOrigin: true, out string expectedContentType)) continue;
+            AddPart(
+                ResolveRelationshipTarget(string.Empty, (string?)relationship.Attribute("Target")),
+                expectedContentType,
+                "signature-origin");
         }
 
         int traversed = 0;
@@ -142,11 +159,46 @@ public partial class ExcelDocument {
             if (relationships.Length == 0) continue;
             entries.Add(relationshipsPart);
             foreach (XElement relationship in relationships) {
-                if (!IsInternalDigitalSignatureRelationship(relationship, requireOrigin: false)) continue;
-                AddPart(ResolveRelationshipTarget(sourcePart, (string?)relationship.Attribute("Target")));
+                if (!TryGetSignatureRelationshipContentType(relationship, requireOrigin: false, out string expectedContentType)) continue;
+                AddPart(
+                    ResolveRelationshipTarget(sourcePart, (string?)relationship.Attribute("Target")),
+                    expectedContentType,
+                    "signature-part");
             }
         }
         return entries;
+    }
+
+    private static PackageContentTypes ReadPackageContentTypes(ZipArchive archive, OfficeProvenanceOptions limits) {
+        ZipArchiveEntry[] matches = archive.Entries
+            .Where(entry => NormalizePartName(entry.FullName).Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (matches.Length != 1) throw new InvalidDataException("The XLSB package must contain exactly one content-types part.");
+        byte[] xml = ReadBoundedEntry(matches[0], limits.MaxAssetBytes);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(xml, limits, "XLSB content types");
+        using var input = new MemoryStream(xml, writable: false);
+        using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
+        XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (XElement element in document.Descendants()) {
+            string? contentType = (string?)element.Attribute("ContentType");
+            if (string.IsNullOrWhiteSpace(contentType)) continue;
+            if (element.Name.LocalName == "Override") {
+                string partName = NormalizePartName((string?)element.Attribute("PartName") ?? string.Empty);
+                if (partName.Length == 0 || overrides.ContainsKey(partName)) {
+                    throw new InvalidDataException("The XLSB package contains ambiguous content-type overrides.");
+                }
+                overrides.Add(partName, contentType!);
+            } else if (element.Name.LocalName == "Default") {
+                string extension = ((string?)element.Attribute("Extension") ?? string.Empty).TrimStart('.');
+                if (extension.Length == 0 || defaults.ContainsKey(extension)) {
+                    throw new InvalidDataException("The XLSB package contains ambiguous default content types.");
+                }
+                defaults.Add(extension, contentType!);
+            }
+        }
+        return new PackageContentTypes(overrides, defaults);
     }
 
     private static XElement[] ReadRelationships(ZipArchive archive, string entryName, OfficeProvenanceOptions limits) {
@@ -163,13 +215,21 @@ public partial class ExcelDocument {
         return document.Descendants().Where(element => element.Name.LocalName == "Relationship").ToArray();
     }
 
-    private static bool IsInternalDigitalSignatureRelationship(XElement relationship, bool requireOrigin) {
+    private static bool TryGetSignatureRelationshipContentType(
+        XElement relationship,
+        bool requireOrigin,
+        out string expectedContentType) {
+        expectedContentType = string.Empty;
         if (string.Equals((string?)relationship.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) return false;
         string? type = (string?)relationship.Attribute("Type");
-        const string prefix = "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/";
-        return requireOrigin
-            ? string.Equals(type, prefix + "origin", StringComparison.Ordinal)
-            : type?.StartsWith(prefix, StringComparison.Ordinal) == true;
+        if (requireOrigin) {
+            if (!string.Equals(type, SignatureRelationshipPrefix + "origin", StringComparison.Ordinal)) return false;
+            expectedContentType = SignatureOriginContentType;
+            return true;
+        }
+        if (!string.Equals(type, SignatureRelationshipPrefix + "signature", StringComparison.Ordinal)) return false;
+        expectedContentType = SignaturePartContentType;
+        return true;
     }
 
     private static string? ResolveRelationshipTarget(string sourcePart, string? target) {
@@ -256,5 +316,27 @@ public partial class ExcelDocument {
         if (part == null) return;
         using Stream input = part.GetStream(FileMode.Open, FileAccess.Read);
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(input, limits, "Open XML application metadata");
+    }
+
+    private sealed class PackageContentTypes {
+        private readonly IReadOnlyDictionary<string, string> _overrides;
+        private readonly IReadOnlyDictionary<string, string> _defaults;
+
+        internal PackageContentTypes(
+            IReadOnlyDictionary<string, string> overrides,
+            IReadOnlyDictionary<string, string> defaults) {
+            _overrides = overrides;
+            _defaults = defaults;
+        }
+
+        internal string? GetContentType(string partName) {
+            string normalized = NormalizePartName(partName);
+            if (_overrides.TryGetValue(normalized, out string? contentType)) return contentType;
+            int separator = normalized.LastIndexOf('.');
+            return separator >= 0 && separator < normalized.Length - 1 &&
+                _defaults.TryGetValue(normalized.Substring(separator + 1), out contentType)
+                ? contentType
+                : null;
+        }
     }
 }

@@ -675,15 +675,14 @@ public static partial class HtmlProvenance {
             }
             if (next == '/') {
                 int nameStart = markup + 2;
-                int closingNameEnd = nameStart;
-                while (closingNameEnd < html.Length && (char.IsLetterOrDigit(html[closingNameEnd]) || html[closingNameEnd] is '-' or ':')) closingNameEnd++;
+                int closingNameEnd = FindHtmlTagNameEnd(html, nameStart);
                 string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
                 for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
                     if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
                     openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
                     break;
                 }
-                int declarationEnd = FindTagEnd(html, closingNameEnd);
+                int declarationEnd = html.IndexOf('>', closingNameEnd);
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
             }
@@ -694,8 +693,7 @@ public static partial class HtmlProvenance {
             if (++count > maximumEntries) {
                 throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
             }
-            int nameEnd = markup + 2;
-            while (nameEnd < html.Length && (char.IsLetterOrDigit(html[nameEnd]) || html[nameEnd] is '-' or ':')) nameEnd++;
+            int nameEnd = FindHtmlTagNameEnd(html, markup + 2);
             string tagName = html.Substring(markup + 1, nameEnd - markup - 1);
             int tagEnd = FindStartTagEnd(html, nameEnd, out bool selfClosing);
             if (tagEnd < 0) break;
@@ -717,6 +715,16 @@ public static partial class HtmlProvenance {
                 index = rawTextEnd;
             }
         }
+    }
+
+    private static int FindHtmlTagNameEnd(string html, int start) {
+        int index = start;
+        while (index < html.Length) {
+            char character = html[index];
+            if (character == '>' || character == '/' || character is '\t' or '\n' or '\f' or '\r' or ' ') break;
+            index++;
+        }
+        return index;
     }
 
     private static bool IsSupportedProvenanceImage(string mediaType) => mediaType.ToLowerInvariant() is
