@@ -774,7 +774,8 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            if (skipTransparencyGroupForms && formStream.Dictionary.Items.ContainsKey("Group")) {
+            if (skipTransparencyGroupForms &&
+                (!TryClassifyType3TransparencyGroup(formStream.Dictionary, out bool isTransparencyGroup) || isTransparencyGroup)) {
                 continue;
             }
 

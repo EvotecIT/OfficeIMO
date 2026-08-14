@@ -362,7 +362,8 @@ public sealed partial class PdfReadPage {
         if (image.TransparencyMaskKind != null && !image.TransparencyMaskResolved) return false;
         if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources)) return false;
         if (image.IsImageMask) return imageDictionary != null &&
-            !imageDictionary.Items.ContainsKey("ColorSpace") &&
+            (!imageDictionary.Items.TryGetValue("ColorSpace", out PdfObject? maskColorSpaceObject) ||
+             ResolveEffectObject(maskColorSpaceObject) is PdfNull) &&
             HasValidType3ImageMaskDecode(imageDictionary);
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
@@ -444,8 +445,11 @@ public sealed partial class PdfReadPage {
             !ResourceResolver.HasValidImageDecode(mask, resources, _objects)) {
             return false;
         }
-        return !mask.Items.ContainsKey("SMask") && !mask.Items.ContainsKey("Mask");
+        return IsAbsentOrExplicitNull(mask, "SMask") && IsAbsentOrExplicitNull(mask, "Mask");
     }
+
+    private bool IsAbsentOrExplicitNull(PdfDictionary dictionary, string key) =>
+        !dictionary.Items.TryGetValue(key, out PdfObject? value) || ResolveEffectObject(value) is PdfNull;
 
     private bool HasValidType3ColorKeyMask(PdfDictionary image, PdfArray mask, PdfDictionary? resources) {
         if (!TryReadExactPositiveInteger(image, "BitsPerComponent", out int bitsPerComponent) ||
@@ -1127,7 +1131,10 @@ public sealed partial class PdfReadPage {
         if (resources == null || !TryGetFormStream(resources, name, out PdfStream form)) {
             return PdfType3PaintChannels.Both;
         }
-        if (form.Dictionary.Items.ContainsKey("Group")) {
+        if (!TryClassifyType3TransparencyGroup(form.Dictionary, out bool isTransparencyGroup)) {
+            return PdfType3PaintChannels.Both;
+        }
+        if (isTransparencyGroup) {
             if (!HasVisibleOpacity(invocationState.FillOpacity)) {
                 return PdfType3PaintChannels.None;
             }

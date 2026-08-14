@@ -945,8 +945,14 @@ public sealed partial class PdfReadPage {
 
             try {
                 PdfDictionary formDictionary = formStream.Dictionary;
+                bool isType3TransparencyGroup = false;
                 if (requireSupportedType3Content &&
-                    !formDictionary.Items.ContainsKey("Group") &&
+                    !TryClassifyType3TransparencyGroup(formDictionary, out isType3TransparencyGroup)) {
+                    type3GlyphBudget.RecordFailure();
+                    continue;
+                }
+                if (requireSupportedType3Content &&
+                    !isType3TransparencyGroup &&
                     !TryReadExactType3FormBox(formDictionary, out _)) {
                     type3GlyphBudget.RecordFailure();
                     continue;
@@ -971,7 +977,7 @@ public sealed partial class PdfReadPage {
                     formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 }
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
-                bool projectsType3TransparencyGroup = requireSupportedType3Content && formDictionary.Items.ContainsKey("Group");
+                bool projectsType3TransparencyGroup = requireSupportedType3Content && isType3TransparencyGroup;
                 if (projectsType3TransparencyGroup) {
                     if ((invocation.FillOpacity ?? 1D) <= 0D) {
                         continue;

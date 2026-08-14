@@ -3,6 +3,18 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private bool TryClassifyType3TransparencyGroup(PdfDictionary formDictionary, out bool isTransparencyGroup) {
+        isTransparencyGroup = false;
+        if (!formDictionary.Items.TryGetValue("Group", out PdfObject? groupObject)) return true;
+
+        PdfObject? resolvedGroup = ResolveEffectObject(groupObject);
+        if (resolvedGroup is PdfNull) return true;
+        if (resolvedGroup is not PdfDictionary) return false;
+
+        isTransparencyGroup = true;
+        return true;
+    }
+
     private bool IsSupportedType3TransparencyGroup(PdfDictionary formDictionary) {
         if (ResolveEffectObject(formDictionary.Items.TryGetValue("Group", out PdfObject? groupObject) ? groupObject : null) is not PdfDictionary group ||
             !HasExactTransparencyGroupDeclaration(group) ||

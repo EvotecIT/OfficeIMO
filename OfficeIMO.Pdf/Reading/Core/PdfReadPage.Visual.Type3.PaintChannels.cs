@@ -77,8 +77,9 @@ public sealed partial class PdfReadPage {
         if (cache.VisibleForms.TryGetValue(cacheKey, out PdfType3PaintChannels cached)) return cached;
         if (!activeStreams.Add(form)) return PdfType3PaintChannels.Both;
         try {
-            if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
-                !form.Dictionary.Items.ContainsKey("Group") && !TryReadExactType3FormBox(form.Dictionary, out _)) return PdfType3PaintChannels.Both;
+            if (!TryClassifyType3TransparencyGroup(form.Dictionary, out bool isTransparencyGroup) ||
+                !TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
+                !isTransparencyGroup && !TryReadExactType3FormBox(form.Dictionary, out _)) return PdfType3PaintChannels.Both;
             string content = WrapFormContentWithBoundingBoxClip(
                 PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                 form.Dictionary);

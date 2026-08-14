@@ -754,8 +754,8 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
-                bool isTransparencyGroup = form.Dictionary.Items.ContainsKey("Group");
-                if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
+                if (!TryClassifyType3TransparencyGroup(form.Dictionary, out bool isTransparencyGroup) ||
+                    !TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
                     !isTransparencyGroup && !TryReadExactType3FormBox(form.Dictionary, out _)) {
                     supported = false;
                     continue;

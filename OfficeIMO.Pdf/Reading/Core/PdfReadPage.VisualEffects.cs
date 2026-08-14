@@ -96,13 +96,15 @@ public sealed partial class PdfReadPage {
     }
 
     private bool HasSupportedType3PageBlendColorSpace() {
-        if (!_pageDict.Items.TryGetValue("Group", out PdfObject? groupObject) ||
-            ResolveEffectObject(groupObject) is null or PdfNull) return true;
-        if (ResolveEffectObject(groupObject) is not PdfDictionary group ||
+        if (!_pageDict.Items.TryGetValue("Group", out PdfObject? groupObject)) return true;
+        PdfObject? resolvedGroup = ResolveEffectObject(groupObject);
+        if (resolvedGroup is PdfNull) return true;
+        if (resolvedGroup is not PdfDictionary group ||
             !HasExactTransparencyGroupDeclaration(group)) return false;
-        if (!group.Items.TryGetValue("CS", out PdfObject? colorSpaceObject) ||
-            ResolveEffectObject(colorSpaceObject) is null or PdfNull) return true;
-        return ResolveEffectObject(colorSpaceObject) is PdfName { Name: "DeviceRGB" };
+        if (!group.Items.TryGetValue("CS", out PdfObject? colorSpaceObject)) return true;
+        PdfObject? resolvedColorSpace = ResolveEffectObject(colorSpaceObject);
+        if (resolvedColorSpace is PdfNull) return true;
+        return resolvedColorSpace is PdfName { Name: "DeviceRGB" };
     }
 
     private bool TryReadStrictNumberArray(PdfArray array, out double[] values) {
@@ -556,9 +558,10 @@ public sealed partial class PdfReadPage {
                 if (form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
                     ResolveEffectObject(optionalContentObject) is not PdfNull) return false;
                 if (Filters.StreamDecoder.GetUnsupportedFilters(form.Dictionary, _objects).Count != 0) return false;
-                if (!TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
-                    !form.Dictionary.Items.ContainsKey("Group") && !TryReadExactType3FormBox(form.Dictionary, out _)) return false;
-                if (form.Dictionary.Items.ContainsKey("Group")) {
+                if (!TryClassifyType3TransparencyGroup(form.Dictionary, out bool isTransparencyGroup) ||
+                    !TryReadFormMatrix(form.Dictionary, out Matrix2D authoredFormMatrix) ||
+                    !isTransparencyGroup && !TryReadExactType3FormBox(form.Dictionary, out _)) return false;
+                if (isTransparencyGroup) {
                     PdfType3PaintChannels channels = ResolveXObjectPaintChannels(
                         resources,
                         invocation.Name,
@@ -845,7 +848,8 @@ public sealed partial class PdfReadPage {
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
-                if (skipTransparencyGroupForms && dictionary.Items.ContainsKey("Group")) {
+                if (skipTransparencyGroupForms &&
+                    (!TryClassifyType3TransparencyGroup(dictionary, out bool isTransparencyGroup) || isTransparencyGroup)) {
                     continue;
                 }
                 PdfDictionary? formResources = ResolveDictionary(dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;

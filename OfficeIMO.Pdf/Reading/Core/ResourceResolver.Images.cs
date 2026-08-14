@@ -35,12 +35,10 @@ internal static partial class ResourceResolver {
         PdfDictionary image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
-            ResolveObject(decodeObject, objects) is null or PdfNull) {
-            return true;
-        }
-
-        if (ResolveObject(decodeObject, objects) is not PdfArray decode) return false;
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decode) return false;
         PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
@@ -96,11 +94,10 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject) ||
-            ResolveObject(decodeObject, objects) is null or PdfNull) {
-            return true;
-        }
-        if (ResolveObject(decodeObject, objects) is not PdfArray decode ||
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decode ||
             decode.Items.Count != componentCount * 2) {
             return false;
         }
@@ -120,15 +117,17 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects) {
         if (!image.Items.TryGetValue("DecodeParms", out PdfObject? value)) return true;
         PdfObject? resolved = ResolveObject(value, objects);
-        if (resolved is null or PdfNull) return true;
+        if (resolved is PdfNull) return true;
+        if (resolved is null) return false;
         if (resolved is PdfArray array) {
             if (array.Items.Count != 1) return false;
             resolved = ResolveObject(array.Items[0], objects);
-            if (resolved is null or PdfNull) return true;
+            if (resolved is PdfNull) return true;
+            if (resolved is null) return false;
         }
         if (resolved is not PdfDictionary parameters) return false;
-        return !parameters.Items.TryGetValue("ColorTransform", out PdfObject? colorTransform) ||
-            ResolveObject(colorTransform, objects) is null or PdfNull;
+        if (!parameters.Items.TryGetValue("ColorTransform", out PdfObject? colorTransform)) return true;
+        return ResolveObject(colorTransform, objects) is PdfNull;
     }
 
     private static bool TryBuildExtractedImageMaskPng(
