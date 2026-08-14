@@ -34,6 +34,7 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 | `OfficeIMO.Markdown` | Structured-text carriers | String APIs require valid Unicode; file APIs accept and preserve strict UTF-8 or BOM-marked UTF-16 LE/BE and UTF-32 LE/BE; preserves unrelated Markdown text |
 | `OfficeIMO.OpenDocument` | Native ODF manifest entry and supported package images | Inspection accepts encrypted packages; mutation requires valid ODF identity and an unencrypted package, and explicit cleanup removes owned signature entries and manifest declarations |
 | `OfficeIMO.Epub` | Native EPUB manifest entry and supported package images | Requires valid EPUB identity and OPF ownership; removal detects native signatures and explicit cleanup removes only EPUB-owned signature entries |
+| `OfficeIMO.Pdf` | C2PA manifest attachments with `application/c2pa` and `/AFRelationship /C2PA_Manifest` | Rewrites bounded object graphs only when the attachment has no active structural role; signed, encrypted, ambiguous, or unsupported-filter documents are preserved |
 
 ## Known limits
 

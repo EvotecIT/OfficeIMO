@@ -264,7 +264,7 @@ public static class PdfProvenance {
         if (!visited.Add(value)) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
         if (dictionary != null) {
-            if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(value, dictionary, structuralAssociationSites)) {
+            if (!ReferenceEquals(dictionary, catalog) && IsInformationResource(objects, value, dictionary, structuralAssociationSites)) {
                 AddReferencesFromArray(objects, dictionary.Items.TryGetValue("AF", out PdfObject? associated) ? associated : null, objectLevel);
             }
             foreach (PdfObject child in dictionary.Items.Values) {
@@ -282,12 +282,21 @@ public static class PdfProvenance {
     }
 
     private static bool IsInformationResource(
+        Dictionary<int, PdfIndirectObject> objects,
         PdfObject owner,
         PdfDictionary dictionary,
         HashSet<PdfObject> structuralAssociationSites) {
         if (structuralAssociationSites.Contains(dictionary)) return false;
-        string? type = dictionary.Get<PdfName>("Type")?.Name;
-        string? subtype = dictionary.Get<PdfName>("Subtype")?.Name;
+        string? type = PdfObjectLookup.Resolve(
+            objects,
+            dictionary.Items.TryGetValue("Type", out PdfObject? typeValue) ? typeValue : null) is PdfName typeName
+                ? typeName.Name
+                : null;
+        string? subtype = PdfObjectLookup.Resolve(
+            objects,
+            dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeValue) ? subtypeValue : null) is PdfName subtypeName
+                ? subtypeName.Name
+                : null;
         if (type is "Catalog" or "Pages" or "Page" or "Annot" or "Filespec" or "EmbeddedFile" or "XRef" or "ObjStm") return false;
         if (subtype is "FileAttachment" or "Popup" ||
             subtype != null && dictionary.Items.ContainsKey("Rect")) return false;
@@ -642,6 +651,9 @@ public static class PdfProvenance {
         foreach (KeyValuePair<string, PdfObject> item in names.Items) {
             bool addDestinationLeafValues = string.Equals(item.Key, "Dests", StringComparison.Ordinal);
             bool addActionLeafGraphs = string.Equals(item.Key, "JavaScript", StringComparison.Ordinal);
+            bool addOrdinaryLeafGraphs = !string.Equals(item.Key, "EmbeddedFiles", StringComparison.Ordinal) &&
+                                         !addDestinationLeafValues &&
+                                         !addActionLeafGraphs;
             AddNameTreeDictionaries(
                 objects,
                 new[] { item.Value },
@@ -649,6 +661,7 @@ public static class PdfProvenance {
                 maximumContainerEntries,
                 addDestinationLeafValues,
                 addActionLeafGraphs,
+                addOrdinaryLeafGraphs,
                 pageTreeObjectNumbers,
                 addDestinationLeafValues ? destinationVisited : addActionLeafGraphs ? actionVisited : ordinaryVisited,
                 addDestinationLeafValues ? destinationLeafVisited : addActionLeafGraphs ? actionLeafVisited : ordinaryLeafVisited);
@@ -662,6 +675,7 @@ public static class PdfProvenance {
         int maximumContainerEntries,
         bool addDestinationLeafValues,
         bool addActionLeafGraphs,
+        bool addOrdinaryLeafGraphs,
         HashSet<int> pageTreeObjectNumbers,
         HashSet<PdfObject> visited,
         HashSet<PdfObject> leafStructuralVisited) {
@@ -673,10 +687,10 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(dictionary);
-            if ((addDestinationLeafValues || addActionLeafGraphs) && PdfObjectLookup.Resolve(objects,
+            if ((addDestinationLeafValues || addActionLeafGraphs || addOrdinaryLeafGraphs) && PdfObjectLookup.Resolve(objects,
                     dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray leafNames) {
                 for (int index = 1; index < leafNames.Items.Count; index += 2) {
-                    if (addActionLeafGraphs) {
+                    if (addActionLeafGraphs || addOrdinaryLeafGraphs) {
                         AddStructuralGraphDictionaries(
                             objects,
                             leafNames.Items[index],

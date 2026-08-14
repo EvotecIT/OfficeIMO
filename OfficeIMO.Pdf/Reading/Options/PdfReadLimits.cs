@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Resource budgets applied while parsing PDF syntax and object graphs.</summary>
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
+    internal const long DefaultMaxTotalDecodedStreamBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxContentOperations = 1_000_000;
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
@@ -36,7 +37,8 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
     public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
 
-    internal long MaxTotalDecodedStreamBytes { get; init; } = long.MaxValue;
+    /// <summary>Maximum aggregate decoded stream bytes cached while parsing one document. Default: 512 MiB.</summary>
+    internal long MaxTotalDecodedStreamBytes { get; init; } = DefaultMaxTotalDecodedStreamBytes;
 
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
