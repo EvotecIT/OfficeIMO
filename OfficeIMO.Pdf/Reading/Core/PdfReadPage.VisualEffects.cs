@@ -54,7 +54,7 @@ public sealed partial class PdfReadPage {
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
-            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" }) return null;
+            ResolveEffectObject(transferObject) is not PdfName { Name: "Identity" } and not PdfNull) return null;
         bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
             ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
         if (transparency.Items.TryGetValue("I", out isolatedObject) &&

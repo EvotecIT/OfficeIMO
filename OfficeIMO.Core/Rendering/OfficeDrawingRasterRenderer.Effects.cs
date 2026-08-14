@@ -32,7 +32,20 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         OfficeTransform transform = effectGroup.Transform;
         var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
-        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode);
+        bool interpolate = !ContainsNonInterpolatedImage(effectGroup.InnerDrawing);
+        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
+    }
+
+    private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
+        for (int index = 0; index < drawing.Elements.Count; index++) {
+            OfficeDrawingElement element = drawing.Elements[index];
+            if (element is OfficeDrawingImage { Interpolate: false }) return true;
+            if (element is OfficeDrawingGroup group && ContainsNonInterpolatedImage(group.InnerDrawing)) return true;
+            if (element is OfficeDrawingEffectGroup effectGroup && ContainsNonInterpolatedImage(effectGroup.InnerDrawing)) return true;
+            if (element is OfficeDrawingTilingPattern pattern && ContainsNonInterpolatedImage(pattern.InnerTile)) return true;
+        }
+
+        return false;
     }
 
     private static OfficeRasterImage ApplySoftMask(

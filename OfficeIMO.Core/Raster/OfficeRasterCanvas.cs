@@ -729,7 +729,10 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     /// <summary>Draws an image through an arbitrary destination-space affine transform.</summary>
-    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) {
+    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) =>
+        DrawAffineImage(image, transform, opacity, interpolate: true);
+
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
@@ -745,7 +748,11 @@ public sealed partial class OfficeRasterCanvas {
             for (int px = left; px <= right; px++) {
                 OfficePoint source = inverse.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
                 if (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height) continue;
-                OfficeColor color = SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D);
+                OfficeColor color = interpolate
+                    ? SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D)
+                    : image.GetPixel(
+                        Clamp((int)Math.Floor(source.X), 0, image.Width - 1),
+                        Clamp((int)Math.Floor(source.Y), 0, image.Height - 1));
                 if (opacity < 1D) color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
                 BlendPixel(px, py, color);
             }

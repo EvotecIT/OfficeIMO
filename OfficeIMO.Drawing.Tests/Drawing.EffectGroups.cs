@@ -86,6 +86,30 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(26, 17));
     }
 
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_PreservesNearestNeighborSamplingThroughTransform(OfficeBlendMode blendMode) {
+        OfficeRasterImage source = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        source.SetPixel(0, 0, OfficeColor.Black);
+        source.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(source);
+        var inner = new OfficeDrawing(2D, 1D);
+        inner.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(inner, OfficeTransform.Scale(2D, 1D), blendMode);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(1, 0));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(2, 0));
+    }
+
     [Fact]
     public void OfficeDrawingEffectGroup_AppliesAffineRotation() {
         var inner = new OfficeDrawing(10D, 20D);
