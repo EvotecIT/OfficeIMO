@@ -35,6 +35,8 @@ public sealed partial class PdfReadDocument {
             exception.Limit == MaxXmpMetadataBytes) {
             decoded = Array.Empty<byte>();
             decodedWithinLimit = false;
+        } catch (PdfReadLimitException) {
+            throw;
         } catch (InvalidDataException) {
             decoded = Array.Empty<byte>();
             decodedWithinLimit = false;

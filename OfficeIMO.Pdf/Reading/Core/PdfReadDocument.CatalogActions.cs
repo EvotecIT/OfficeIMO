@@ -137,6 +137,8 @@ public sealed partial class PdfReadDocument {
                     Math.Min(_options.Limits.MaxJavaScriptBytes, _options.Limits.MaxDecodedStreamBytes));
                 sourceBytes = decoded.LongLength;
                 return PdfJavaScriptStringEncoding.TryDecode(decoded, out script!);
+            } catch (PdfReadLimitException) {
+                throw;
             } catch (InvalidDataException) {
                 script = null;
                 sourceBytes = 0L;

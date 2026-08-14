@@ -320,16 +320,21 @@ internal static class PdfAttachmentExtractor {
             return null;
         }
 
-        PdfObject? embeddedFileObject = embeddedFiles.Items.TryGetValue("UF", out var unicodeEmbeddedFileObject)
-            ? unicodeEmbeddedFileObject
-            : embeddedFiles.Items.TryGetValue("F", out var regularEmbeddedFileObject)
-                ? regularEmbeddedFileObject
-                : null;
-
-        int embeddedFileObjectNumber = embeddedFileObject is PdfReference embeddedFileReference ? embeddedFileReference.ObjectNumber : 0;
-        if (ResolveObject(objects, embeddedFileObject) is not PdfStream stream) {
+        PdfObject? embeddedFileObject = null;
+        PdfStream? stream = null;
+        if (embeddedFiles.Items.TryGetValue("UF", out PdfObject? unicodeEmbeddedFileObject) &&
+            ResolveObject(objects, unicodeEmbeddedFileObject) is PdfStream unicodeStream) {
+            embeddedFileObject = unicodeEmbeddedFileObject;
+            stream = unicodeStream;
+        } else if (embeddedFiles.Items.TryGetValue("F", out PdfObject? regularEmbeddedFileObject) &&
+            ResolveObject(objects, regularEmbeddedFileObject) is PdfStream regularStream) {
+            embeddedFileObject = regularEmbeddedFileObject;
+            stream = regularStream;
+        }
+        if (embeddedFileObject == null || stream == null) {
             return null;
         }
+        int embeddedFileObjectNumber = embeddedFileObject is PdfReference embeddedFileReference ? embeddedFileReference.ObjectNumber : 0;
         budget.ReserveAttachment();
 
         string fileName = TryReadText(objects, fileSpec, "F") ?? name;

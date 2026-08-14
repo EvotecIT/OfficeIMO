@@ -187,8 +187,10 @@ public sealed class PdfReadLimits {
                 ? Math.Min(MaxTotalDecodedStreamBytes, maximumDecodedStreamBytes.Value)
                 : MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
+            MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxTextSearchMatches = MaxTextSearchMatches,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -203,6 +205,7 @@ public sealed class PdfReadLimits {
             MaxNameTreeDepth = MaxNameTreeDepth,
             MaxJavaScriptBytes = MaxJavaScriptBytes,
             MaxJavaScripts = Math.Min(MaxJavaScripts, maximumContainerEntries),
+            MaxWidgetActions = Math.Min(MaxWidgetActions, maximumContainerEntries),
             MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
             MaxAttachments = Math.Min(MaxAttachments, maximumContainerEntries),
             MaxTotalAttachmentBytes = MaxTotalAttachmentBytes,

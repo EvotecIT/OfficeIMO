@@ -498,10 +498,15 @@ public static class PdfProvenance {
         PdfObject? value,
         HashSet<PdfObject> result,
         int maximumContainerEntries) {
-        if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary acroForm ||
-            PdfObjectLookup.Resolve(objects, acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsValue) ? fieldsValue : null) is not PdfArray fields) {
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfDictionary acroForm) {
             return;
         }
+        AddStructuralGraphDictionaries(
+            objects,
+            acroForm.Items.TryGetValue("XFA", out PdfObject? xfaValue) ? xfaValue : null,
+            result,
+            maximumContainerEntries);
+        if (PdfObjectLookup.Resolve(objects, acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsValue) ? fieldsValue : null) is not PdfArray fields) return;
         var visited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>(fields.Items);
         while (pending.Count > 0) {
