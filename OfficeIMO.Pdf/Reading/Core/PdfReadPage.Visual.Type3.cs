@@ -1090,8 +1090,8 @@ public sealed partial class PdfReadPage {
             if (boundsResult == Type3TransparencyGroupDrawingResult.Invisible) return PdfType3PaintChannels.None;
             if (boundsResult == Type3TransparencyGroupDrawingResult.Unsupported) return PdfType3PaintChannels.Both;
         }
-        PdfDictionary formResources = ResolveDictionary(
-            form.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ?? resources;
+        if (!TryResolveStrictResources(form.Dictionary, resources, out PdfDictionary? formResources) ||
+            formResources == null) return PdfType3PaintChannels.Both;
         return ResolveVisibleFormPaintChannels(
             form,
             formResources,

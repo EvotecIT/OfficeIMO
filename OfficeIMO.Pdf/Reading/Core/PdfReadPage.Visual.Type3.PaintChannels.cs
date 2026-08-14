@@ -283,10 +283,11 @@ public sealed partial class PdfReadPage {
         if (!cache.ActiveSoftMaskTransparencyProofs.Add(softMask.Group)) return false;
         try {
             Type3SoftMaskValidationContext validation = type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this);
-            PdfDictionary maskResources = ResolveDictionary(
-                softMask.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? value) ? value : null) ??
-                parentResources ??
-                new PdfDictionary();
+            if (!TryResolveStrictResources(
+                    softMask.Group.Dictionary,
+                    parentResources,
+                    out PdfDictionary? maskResources)) return false;
+            maskResources ??= new PdfDictionary();
             var maskState = new PdfPageXObjectPaintState(
                 transform,
                 clipPath: null,

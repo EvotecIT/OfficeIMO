@@ -91,6 +91,16 @@ public partial class PdfPageImageRendererTests {
         Assert.Empty(drawing.Shapes);
     }
 
+    [Fact]
+    public void RenderPage_FailsClosedForMalformedType3FormResources() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /XObject << /Fm1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
+        string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources /Bad", "0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, form);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
     [Theory]
     [InlineData("/Width 1.5 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8")]
     [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Decode [0 1 0 1]")]
@@ -196,6 +206,29 @@ public partial class PdfPageImageRendererTests {
             type3Font,
             glyph,
             "7 0 obj\n<< /Type /OCG /Name (Zoom controlled) /Usage << /Zoom << /min 0 /max 2 >> >> >>\nendobj",
+            "trailer\n<< /Root 1 0 R >>\n%%EOF"
+        });
+
+        AssertType3FallsBackWithoutNativeShapes(Encoding.ASCII.GetBytes(pdfText));
+    }
+
+    [Theory]
+    [InlineData("/Intent /Design", "")]
+    [InlineData("", "/Intent /Design")]
+    public void RenderPage_FailsClosedForUnsupportedOptionalContentIntentInType3Content(string configurationIntent, string groupIntent) {
+        const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Properties << /Layer 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /OC /Layer BDC 0 0 500 700 re f EMC");
+        string content = BuildStreamObject(4, "<<", pageContent);
+        string pdfText = string.Join("\n", new[] {
+            "%PDF-1.7",
+            $"1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [7 0 R] /D << /BaseState /ON {configurationIntent} >> >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj",
+            content,
+            type3Font,
+            glyph,
+            $"7 0 obj\n<< /Type /OCG /Name (Unsupported intent) {groupIntent} >>\nendobj",
             "trailer\n<< /Root 1 0 R >>\n%%EOF"
         });
 
@@ -675,6 +708,16 @@ public partial class PdfPageImageRendererTests {
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /ExtGState << /GS1 8 0 R >> >>", "/GS1 gs 0 0 10 10 re f");
         string graphicsState = "8 0 obj\n<< /Type /ExtGState /ca 0.5 /TR /Identity >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern, graphicsState);
+
+        AssertType3FallsBackWithoutNativeShapes(pdf);
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForMalformedType3ExtGStateType() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
+        string graphicsState = "7 0 obj\n<< /Type /Bad /ca 0.5 >>\nendobj";
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, graphicsState);
 
         AssertType3FallsBackWithoutNativeShapes(pdf);
     }

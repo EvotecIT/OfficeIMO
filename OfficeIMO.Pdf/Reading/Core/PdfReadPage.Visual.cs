@@ -909,7 +909,15 @@ public sealed partial class PdfReadPage {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
-                PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
+                PdfDictionary? formResources;
+                if (requireSupportedType3Content) {
+                    if (!TryResolveStrictResources(formDictionary, resources, out formResources)) {
+                        type3GlyphBudget.RecordFailure();
+                        continue;
+                    }
+                } else {
+                    formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
+                }
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
                 bool projectsType3TransparencyGroup = requireSupportedType3Content && formDictionary.Items.ContainsKey("Group");
@@ -1459,8 +1467,11 @@ public sealed partial class PdfReadPage {
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
             bool hasUnsupportedBlendMode = state.Items.ContainsKey("BM") && !blendMode.HasValue;
+            bool hasUnsupportedType = state.Items.TryGetValue("Type", out PdfObject? typeObject) &&
+                ResolveEffectObject(typeObject) is not PdfNull and not PdfName { Name: "ExtGState" };
             bool hasUnsupportedEntries = state.Items.Keys.Any(static key => key is not (
                 "Type" or "ca" or "CA" or "LW" or "D" or "LC" or "LJ" or "BM" or "SMask")) ||
+                hasUnsupportedType ||
                 HasInvalidStrictNumber(state, "ca", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "CA", static value => value >= 0D && value <= 1D) ||
                 HasInvalidStrictNumber(state, "LW", static value => value >= 0D) ||

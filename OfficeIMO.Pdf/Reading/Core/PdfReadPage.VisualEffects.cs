@@ -204,10 +204,8 @@ public sealed partial class PdfReadPage {
                 nestingDepth.Maximum = Math.Max(nestingDepth.Maximum, cachedMaximumDepth);
                 return true;
             }
-            PdfDictionary? resources = ResolveDictionary(
-                resource.Group.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)
-                    ? resourceObject
-                    : null) ?? resource.ParentResources ?? ResolveDictionary(GetInheritedValue("Resources"));
+            PdfDictionary? inheritedResources = resource.ParentResources ?? ResolveDictionary(GetInheritedValue("Resources"));
+            if (!TryResolveStrictResources(resource.Group.Dictionary, inheritedResources, out PdfDictionary? resources)) return false;
             var groupNestingDepth = new SoftMaskNestingDepth(contentNestingDepth);
             bool supported = CanDecodeType3SoftMasksInContent(
                 content,
@@ -545,10 +543,7 @@ public sealed partial class PdfReadPage {
                 string formContent = WrapFormContentWithBoundingBoxClip(
                     PdfEncoding.Latin1GetString(pageContentBudget.Decode(form)),
                     form.Dictionary);
-                PdfDictionary? formResources = ResolveDictionary(
-                    form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
-                        ? formResourceObject
-                        : null) ?? resources;
+                if (!TryResolveStrictResources(form.Dictionary, resources, out PdfDictionary? formResources)) return false;
                 if (!CanDecodeType3SoftMasksInContent(
                         formContent,
                         formResources,

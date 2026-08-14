@@ -373,9 +373,33 @@ internal sealed class PdfPageOptionalContentVisibility {
             result[reference.ObjectNumber] = isVisible;
         }
 
-        hasUnsupportedViewUsageApplications = ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
+        hasUnsupportedViewUsageApplications =
+            HasUnsupportedOptionalContentIntent(defaultConfiguration, groups, objects) ||
+            ApplyViewUsageApplications(defaultConfiguration, groups, result, objects);
 
         return result;
+    }
+
+    private static bool HasUnsupportedOptionalContentIntent(
+        PdfDictionary? defaultConfiguration,
+        PdfArray groups,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (!HasDefaultViewIntent(defaultConfiguration, objects)) return true;
+
+        for (int index = 0; index < groups.Items.Count; index++) {
+            if (ResolveObject(groups.Items[index], objects) is PdfDictionary group &&
+                !HasDefaultViewIntent(group, objects)) return true;
+        }
+
+        return false;
+    }
+
+    private static bool HasDefaultViewIntent(PdfDictionary? dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        if (dictionary == null || !dictionary.Items.TryGetValue("Intent", out PdfObject? intentObject)) return true;
+        PdfObject? intent = ResolveObject(intentObject, objects);
+        if (intent is PdfNull or PdfName { Name: "View" }) return true;
+        return intent is PdfArray { Items.Count: 1 } names &&
+            ResolveObject(names.Items[0], objects) is PdfName { Name: "View" };
     }
 
     private static bool ApplyViewUsageApplications(

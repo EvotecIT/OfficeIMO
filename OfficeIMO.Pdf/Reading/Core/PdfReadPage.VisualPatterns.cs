@@ -311,18 +311,7 @@ public sealed partial class PdfReadPage {
         if (width <= 0D || height <= 0D) return false;
         if (requireSupportedType3Content && !HasExactType3PatternBox(boxObject)) return false;
         PdfDictionary? resources;
-        if (stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject)) {
-            PdfObject? resolvedResources = ResolveEffectObject(resourceObject);
-            if (resolvedResources is PdfNull) {
-                resources = parentResources;
-            } else if (resolvedResources is PdfDictionary dictionary) {
-                resources = dictionary;
-            } else {
-                return false;
-            }
-        } else {
-            resources = parentResources;
-        }
+        if (!TryResolveStrictResources(stream.Dictionary, parentResources, out resources)) return false;
         int failureVersion = type3GlyphBudget.FailureVersion;
         bool uncolored = paintType == 2;
         bool allowNestedPatterns = (allowNestedPatternContent || requireSupportedType3Content) && paintType == 1;
