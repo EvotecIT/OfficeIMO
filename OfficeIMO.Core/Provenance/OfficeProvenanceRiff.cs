@@ -49,6 +49,7 @@ internal static class OfficeProvenanceRiff {
         int losslessImagePayloads = 0;
         int animationFramePayloads = 0;
         bool foundXmp = false;
+        bool hasValidPadding = true;
         while (offset < declaredEnd) {
             if (++chunkCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("WebP exceeds the configured container entry limit.");
@@ -61,6 +62,10 @@ internal static class OfficeProvenanceRiff {
             if (totalValue > declaredEnd - offset) throw new InvalidDataException("RIFF chunk exceeds the declared container bounds.");
             int total = (int)totalValue;
             string chunkType = System.Text.Encoding.ASCII.GetString(data, offset, 4);
+            if ((payloadLength & 1) != 0 && data[offset + 8 + payloadLength] != 0) {
+                hasValidPadding = false;
+                context?.Diagnostics.Add($"The WebP {chunkType} chunk has a nonzero padding byte.");
+            }
             if (chunkCount == 1 && chunkType == "VP8X") {
                 hasValidExtendedHeader = IsValidExtendedHeader(data, offset + 8, payloadLength);
                 extendedHeaderAdvertisesXmp = hasValidExtendedHeader && (data[offset + 8] & 0x04) != 0;
@@ -76,7 +81,7 @@ internal static class OfficeProvenanceRiff {
                     lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
                 bool valid = c2paChunkCount == 1 &&
                     extendedHeaderCount == 1 && hasValidExtendedHeader &&
-                    isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
+                    hasValidPadding && isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
@@ -96,7 +101,7 @@ internal static class OfficeProvenanceRiff {
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
                 bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
-                    hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
+                    hasValidPadding && hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
                     HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads) &&
                     offset > lastImagePayloadOffset && !foundXmp;
                 if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");

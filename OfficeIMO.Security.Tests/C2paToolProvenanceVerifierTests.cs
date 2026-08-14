@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Security.Tests;
@@ -237,6 +238,28 @@ public sealed class C2paToolProvenanceVerifierTests {
         Assert.Throws<TimeoutException>(() => new C2paToolProcessRunner().Run(request));
 
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Runner blocked for {timer.Elapsed}.");
+    }
+
+    [Fact]
+    public void UnixShellContainmentKillsOrphanedChildrenWithoutSetsid() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string marker = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".orphan");
+        try {
+            var request = new C2paToolProcessRequest(
+                "/bin/sh",
+                new[] { "-c", "(sleep 1; printf orphan > \"$1\") & exit 0", "officeimo-test", marker },
+                Path.GetTempPath(),
+                TimeSpan.FromSeconds(2),
+                1024 * 1024);
+
+            C2paToolProcessResult result = new C2paToolProcessRunner(useExternalUnixSessionLauncher: false).Run(request);
+            Thread.Sleep(1500);
+
+            Assert.Equal(0, result.ExitCode);
+            Assert.False(File.Exists(marker));
+        } finally {
+            if (File.Exists(marker)) File.Delete(marker);
+        }
     }
 
     private static string CreateAsset() {

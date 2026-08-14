@@ -120,7 +120,10 @@ internal static class OfficeProvenanceZip {
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
-        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(
+            data,
+            input,
+            out bool hasCentralDirectorySignature);
         bool hasDuplicateManifests = CountManifestEntries(input, entryMetadata) > 1;
         var removable = new HashSet<string>(StringComparer.Ordinal);
         var embeddedRewrites = new Dictionary<ZipArchiveEntry, byte[]>();
@@ -171,13 +174,17 @@ internal static class OfficeProvenanceZip {
         }
         if (changes.Count == 0) return (byte[])data.Clone();
 
-        bool hasSignature = options.SignatureMutationPolicy != OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup &&
+        bool hasPackageSignature = options.SignatureMutationPolicy != OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup &&
             HasPackageSignature(data, input, options, ref inspectionBytes);
+        bool hasSignature = hasCentralDirectorySignature || hasPackageSignature;
         if (hasSignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.BlockSave) {
             throw new InvalidOperationException("Removing provenance would invalidate package signatures. Choose an explicit signature mutation policy.");
         }
-        if (hasSignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
+        if (hasPackageSignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures) {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
+        }
+        if (hasCentralDirectorySignature && options.SignatureMutationPolicy == OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
+            throw new InvalidOperationException("A ZIP central-directory signature cannot be preserved across a provenance rewrite.");
         }
 
         if (removeOpcManifestReferences && removable.Count != 0 && removable.Count == occurrence &&
@@ -435,7 +442,17 @@ internal static class OfficeProvenanceZip {
     }
 
     private static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetEntryMetadata(byte[] data, ZipArchive archive) {
-        List<OfficeProvenanceZipEntryMetadata> metadata = ReadCentralDirectoryMetadata(data, archive.Entries.Count);
+        return GetEntryMetadata(data, archive, out _);
+    }
+
+    private static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetEntryMetadata(
+        byte[] data,
+        ZipArchive archive,
+        out bool hasCentralDirectorySignature) {
+        List<OfficeProvenanceZipEntryMetadata> metadata = ReadCentralDirectoryMetadata(
+            data,
+            archive.Entries.Count,
+            out hasCentralDirectorySignature);
         var result = new Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata>(archive.Entries.Count);
         for (int index = 0; index < archive.Entries.Count; index++) result.Add(archive.Entries[index], metadata[index]);
         return result;
@@ -460,12 +477,15 @@ internal static class OfficeProvenanceZip {
         throw new InvalidDataException("ZIP package does not contain a valid end-of-central-directory record.");
     }
 
-    private static List<OfficeProvenanceZipEntryMetadata> ReadCentralDirectoryMetadata(byte[] data, int expectedEntries) {
+    private static List<OfficeProvenanceZipEntryMetadata> ReadCentralDirectoryMetadata(
+        byte[] data,
+        int expectedEntries,
+        out bool hasDigitalSignature) {
         const uint zip64LocatorSignature = 0x07064B50;
         const uint zip64EndSignature = 0x06064B50;
         const uint centralHeaderSignature = 0x02014B50;
         int endOffset = FindEndOfCentralDirectory(data);
-        uint centralSize = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 12, littleEndian: true);
+        ulong centralSize = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 12, littleEndian: true);
         ulong centralOffset = OfficeProvenanceBinary.ReadUInt32(data, endOffset + 16, littleEndian: true);
         ushort totalEntries = OfficeProvenanceBinary.ReadUInt16(data, endOffset + 10, littleEndian: true);
         if ((totalEntries == ushort.MaxValue || centralSize == uint.MaxValue || centralOffset == uint.MaxValue) &&
@@ -476,11 +496,14 @@ internal static class OfficeProvenanceZip {
                 OfficeProvenanceBinary.ReadUInt32(data, (int)recordOffset, littleEndian: true) != zip64EndSignature) {
                 throw new InvalidDataException("ZIP64 end-of-central-directory record is invalid.");
             }
+            centralSize = OfficeProvenanceBinary.ReadUInt64(data, (int)recordOffset + 40, littleEndian: true);
             centralOffset = OfficeProvenanceBinary.ReadUInt64(data, (int)recordOffset + 48, littleEndian: true);
         }
-        if (centralOffset > int.MaxValue || centralOffset > (ulong)data.Length) {
+        if (centralOffset > int.MaxValue || centralSize > int.MaxValue ||
+            centralOffset > (ulong)data.Length || centralSize > (ulong)data.Length - centralOffset) {
             throw new InvalidDataException("ZIP central directory is outside the package.");
         }
+        int centralEnd = checked((int)(centralOffset + centralSize));
         int cursor = (int)centralOffset;
         var metadata = new List<OfficeProvenanceZipEntryMetadata>(expectedEntries);
         var decodedNames = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -534,6 +557,18 @@ internal static class OfficeProvenanceZip {
             if (localExtraLength != 0) Buffer.BlockCopy(data, localOffset + 30 + localNameLength, localExtraField, 0, localExtraLength);
             metadata.Add(new OfficeProvenanceZipEntryMetadata(decodedName, localOffset, localExtraField, centralExtraField, comment, internalAttributes));
             cursor = (int)recordEnd;
+        }
+        hasDigitalSignature = false;
+        if (cursor != centralEnd) {
+            const uint digitalSignature = 0x05054B50;
+            if (cursor > centralEnd - 6 || OfficeProvenanceBinary.ReadUInt32(data, cursor, littleEndian: true) != digitalSignature) {
+                throw new InvalidDataException("ZIP central directory contains unsupported trailing records.");
+            }
+            int signatureLength = OfficeProvenanceBinary.ReadUInt16(data, cursor + 4, littleEndian: true);
+            if ((long)cursor + 6 + signatureLength != centralEnd) {
+                throw new InvalidDataException("ZIP central-directory signature record is malformed.");
+            }
+            hasDigitalSignature = true;
         }
         return metadata;
     }

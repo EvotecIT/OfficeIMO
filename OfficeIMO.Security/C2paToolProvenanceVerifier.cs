@@ -315,16 +315,32 @@ internal sealed class C2paToolProcessResult {
 
 internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
+    private const string UnixShellContainmentScript =
+        "set -m; \"$@\" & child=$!; cleanup() { kill -KILL -$child 2>/dev/null || true; }; " +
+        "trap cleanup EXIT; trap 'exit 143' HUP INT TERM; wait $child; status=$?; trap - HUP INT TERM; exit $status";
+    private readonly bool _useExternalUnixSessionLauncher;
+
+    internal C2paToolProcessRunner(bool useExternalUnixSessionLauncher = true) {
+        _useExternalUnixSessionLauncher = useExternalUnixSessionLauncher;
+    }
 
     public C2paToolProcessResult Run(C2paToolProcessRequest request) {
         string targetExecutable = ResolveUnixExecutable(request.ExecutablePath, request.WorkingDirectory);
         string executable = targetExecutable;
         string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
-        string? sessionLauncher = FindUnixSessionLauncher();
+        string? sessionLauncher = _useExternalUnixSessionLauncher ? FindUnixSessionLauncher() : null;
         bool ownsUnixProcessGroup = sessionLauncher != null;
         if (sessionLauncher != null) {
             executable = sessionLauncher;
             arguments = QuoteArgument(targetExecutable) + (arguments.Length == 0 ? string.Empty : " " + arguments);
+        } else if (Environment.OSVersion.Platform != PlatformID.Win32NT) {
+            // Stock macOS has no setsid executable. Keep the verifier in a shell-owned
+            // background process group so the EXIT trap reaps descendants even when the
+            // verifier parent exits before inherited output handles close.
+            executable = "/bin/sh";
+            arguments = QuoteArgument("-c") + " " + QuoteArgument(UnixShellContainmentScript) +
+                " " + QuoteArgument("officeimo-c2patool") + " " + QuoteArgument(targetExecutable) +
+                (arguments.Length == 0 ? string.Empty : " " + arguments);
         }
         var startInfo = new ProcessStartInfo {
             FileName = executable,
