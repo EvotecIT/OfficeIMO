@@ -896,6 +896,12 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
+            if (requireSupportedType3Content &&
+                ResolveEffectObject(formStream.Dictionary.Items.TryGetValue("Type", out PdfObject? formTypeObject) ? formTypeObject : null) is not PdfName { Name: "XObject" }) {
+                type3GlyphBudget.RecordFailure();
+                continue;
+            }
+
             if (!activeForms.Add(formStream)) {
                 if (requireSupportedType3Content) type3GlyphBudget.RecordFailure();
                 continue;

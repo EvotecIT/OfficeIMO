@@ -7,11 +7,12 @@ public sealed partial class PdfReadPage {
         if (!state.Items.TryGetValue("BM", out PdfObject? value)) return null;
         PdfObject? resolved = ResolveEffectObject(value);
         if (resolved is PdfArray array) {
+            OfficeBlendMode? selected = null;
             for (int index = 0; index < array.Items.Count; index++) {
-                OfficeBlendMode? candidate = MapBlendMode(ResolveEffectObject(array.Items[index]) as PdfName);
-                if (candidate.HasValue) return candidate;
+                if (ResolveEffectObject(array.Items[index]) is not PdfName name) return null;
+                selected ??= MapBlendMode(name);
             }
-            return null;
+            return selected;
         }
         return MapBlendMode(resolved as PdfName);
     }

@@ -411,7 +411,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         bool parentInterpolate) {
         PdfDictionary mask = softMask.Dictionary;
-        if (ResolveEffectObject(mask.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Image" } ||
+        if (ResolveEffectObject(mask.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||
+            ResolveEffectObject(mask.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Image" } ||
             !HasValidType3ImageInterpolation(mask) ||
             ResolveType3ImageInterpolation(mask) != parentInterpolate ||
             !HasValidType3ImageDimensions(mask, isImageMask: false) ||

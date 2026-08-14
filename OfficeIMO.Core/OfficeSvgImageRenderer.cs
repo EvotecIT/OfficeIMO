@@ -102,7 +102,7 @@ public static partial class OfficeSvgImageRenderer {
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null) =>
-        AppendImageWithSampling(builder, href, projection, true, null, clipPathId, clipRectangle, preserveAspectRatio);
+        AppendImageWithSampling(builder, href, projection, true, null, clipPathId, clipRectangle, preserveAspectRatio, default);
 
     internal static StringBuilder AppendImageWithSampling(
         StringBuilder builder,
@@ -112,7 +112,8 @@ public static partial class OfficeSvgImageRenderer {
         OfficeRasterImage? nearestNeighborRaster,
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
-        string? preserveAspectRatio = null) {
+        string? preserveAspectRatio = null,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -130,7 +131,8 @@ public static partial class OfficeSvgImageRenderer {
             builder,
             nearestNeighborRaster,
             layout,
-            clipPathId);
+            clipPathId,
+            cancellationToken);
 
         if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
             OfficeImagePlacement clip = layout.EffectiveClip.Value;

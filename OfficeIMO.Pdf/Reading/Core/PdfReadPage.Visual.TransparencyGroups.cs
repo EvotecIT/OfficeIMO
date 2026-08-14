@@ -119,8 +119,13 @@ public sealed partial class PdfReadPage {
             allowSupportedType3Patterns: !requireNestedType3Uncolored,
             allowSupportedType3TransparencyGroups: true,
             requireNestedType3Uncolored: requireNestedType3Uncolored,
-            type3ImageVisitor: (placement, image, effect) => elements.Add(
-                PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
+            type3ImageVisitor: (placement, image, effect) => {
+                if (!image.Interpolate && !image.IsImageMask) {
+                    type3GlyphBudget.RecordFailure();
+                } else {
+                    elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));
+                }
+            },
             type3PrimitiveVisitor: (primitive, effect) => {
                 if (!CanRenderTilingPatterns(primitive, localPageWidth, localPageHeight)) {
                     type3GlyphBudget.RecordFailure();

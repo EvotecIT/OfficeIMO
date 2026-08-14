@@ -711,7 +711,8 @@ public sealed partial class PdfReadPage {
                         diagnostics,
                         seen,
                         surfaceWidth,
-                        surfaceHeight);
+                        surfaceHeight,
+                        requireInterpolation: requireIsolatedGroupSemantics);
                     if (!canProjectImage) supported = false;
                     continue;
                 }
@@ -720,6 +721,10 @@ public sealed partial class PdfReadPage {
                     continue;
                 }
                 if (form.Dictionary.Items.ContainsKey("OC")) {
+                    supported = false;
+                    continue;
+                }
+                if (ResolveEffectObject(form.Dictionary.Items.TryGetValue("Type", out PdfObject? formTypeObject) ? formTypeObject : null) is not PdfName { Name: "XObject" }) {
                     supported = false;
                     continue;
                 }
@@ -837,7 +842,8 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         double projectionPageWidth,
-        double projectionPageHeight) {
+        double projectionPageHeight,
+        bool requireInterpolation = false) {
         PdfImagePlacement placement;
         PdfDictionary imageDictionary;
         if (invocation.InlineImage != null) {
@@ -877,6 +883,10 @@ public sealed partial class PdfReadPage {
         }
         if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
+        if (requireInterpolation &&
+            (!imageDictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) ||
+             ResolveEffectObject(imageMaskObject) is not PdfBoolean { Value: true }) &&
+            !ResolveType3ImageInterpolation(imageDictionary)) return false;
         if (!TryCreateImageProjection(
                 placement,
                 projectionPageHeight,

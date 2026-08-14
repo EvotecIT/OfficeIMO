@@ -155,7 +155,7 @@ public static partial class OfficeDrawingSvgExporter {
                     string? imageClipPathId = drawingImage.Projection.HasCrop
                         ? idPrefix + "officeimo-image-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture)
                         : null;
-                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec);
+                    AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
                     AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId);
@@ -364,7 +364,12 @@ public static partial class OfficeDrawingSvgExporter {
         return new OfficeDrawingShape(shape, clampedX, clampedY);
     }
 
-    private static void AppendImage(StringBuilder sb, OfficeDrawingImage drawingImage, string? clipPathId, IOfficeRasterImageCodec? imageCodec) {
+    private static void AppendImage(
+        StringBuilder sb,
+        OfficeDrawingImage drawingImage,
+        string? clipPathId,
+        IOfficeRasterImageCodec? imageCodec,
+        System.Threading.CancellationToken cancellationToken) {
         byte[] bytes = drawingImage.EncodedBytes;
         string dataUri = string.Empty;
         OfficeRasterImage? nearestNeighborRaster = null;
@@ -394,7 +399,8 @@ public static partial class OfficeDrawingSvgExporter {
             nearestNeighborRaster,
             clipPathId,
             drawingImage.Projection.HasCrop ? drawingImage.Projection.Placement : null,
-            "none");
+            "none",
+            cancellationToken);
         if (drawingImage.Opacity < 1D) {
             sb.Append("</g>");
         }
