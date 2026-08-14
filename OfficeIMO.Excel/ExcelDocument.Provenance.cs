@@ -319,10 +319,7 @@ public partial class ExcelDocument {
         } else if (normalized.Equals("[Content_Types].xml", StringComparison.OrdinalIgnoreCase)) {
             foreach (XElement item in document.Descendants().Where(element => element.Name.LocalName == "Override").ToArray()) {
                 string partName = NormalizePartName((string?)item.Attribute("PartName") ?? string.Empty);
-                string? contentType = (string?)item.Attribute("ContentType");
-                if (signatureEntries.Contains(partName) || contentType is
-                    "application/vnd.openxmlformats-package.digital-signature-origin" or
-                    "application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml") item.Remove();
+                if (signatureEntries.Contains(partName)) item.Remove();
             }
         } else {
             XNamespace properties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";

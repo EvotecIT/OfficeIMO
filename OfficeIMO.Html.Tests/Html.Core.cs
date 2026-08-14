@@ -646,6 +646,28 @@ public sealed class HtmlCoreTests {
         Assert.Equal("1x", candidate.Descriptor);
     }
 
+    [Theory]
+    [InlineData("image.png 1x 2x")]
+    [InlineData("image.png 100w 2x")]
+    [InlineData("image.png 100h")]
+    [InlineData("image.png 0w")]
+    [InlineData("image.png nope")]
+    public void HtmlSrcSetParser_DiscardsCandidatesWithInvalidDescriptorCombinations(string sourceSet) {
+        Assert.Empty(HtmlSrcSetParser.Parse(sourceSet));
+    }
+
+    [Theory]
+    [InlineData("image.png", "")]
+    [InlineData("image.png 0x", "0x")]
+    [InlineData("image.png 1.5x", "1.5x")]
+    [InlineData("image.png 100w", "100w")]
+    [InlineData("image.png 100w 50h", "100w 50h")]
+    public void HtmlSrcSetParser_PreservesValidDescriptors(string sourceSet, string descriptor) {
+        HtmlSrcSetCandidate candidate = Assert.Single(HtmlSrcSetParser.Parse(sourceSet));
+
+        Assert.Equal(descriptor, candidate.Descriptor);
+    }
+
     [Fact]
     public void HtmlImageDataUri_ParsesAndDecodesBase64Images() {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";

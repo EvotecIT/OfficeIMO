@@ -780,7 +780,9 @@ public static partial class HtmlProvenance {
             "(?:^|\\s)encoding\\s*=\\s*(?:\"(?<value>[^\"]*)\"|'(?<value>[^']*)'|(?<value>[^\\s/>]+))",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
             TimeSpan.FromMilliseconds(100));
-        string value = encoding.Success ? encoding.Groups["value"].Value : string.Empty;
+        string value = encoding.Success
+            ? System.Net.WebUtility.HtmlDecode(encoding.Groups["value"].Value)
+            : string.Empty;
         return value.Equals("text/html", StringComparison.OrdinalIgnoreCase) ||
             value.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase);
     }

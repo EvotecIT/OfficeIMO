@@ -200,8 +200,20 @@ public sealed class HtmlDataUri {
         return string.IsNullOrWhiteSpace(contentType) ? string.Empty : contentType.Trim();
     }
 
-    private static bool HasBase64Flag(string metadata) =>
-        metadata.Split(';').Any(part => part.Trim().Equals("base64", StringComparison.OrdinalIgnoreCase));
+    private static bool HasBase64Flag(string metadata) {
+        int separator = metadata.LastIndexOf(';');
+        if (separator < 0) return false;
+        string finalSegment = TrimAsciiWhitespace(metadata.Substring(separator + 1));
+        return finalSegment.Equals("base64", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string TrimAsciiWhitespace(string value) {
+        int start = 0;
+        while (start < value.Length && IsAsciiWhitespace(value[start])) start++;
+        int end = value.Length;
+        while (end > start && IsAsciiWhitespace(value[end - 1])) end--;
+        return start == 0 && end == value.Length ? value : value.Substring(start, end - start);
+    }
 
     private static string NormalizeBase64Payload(string payload) {
         var builder = new StringBuilder(payload.Length);
