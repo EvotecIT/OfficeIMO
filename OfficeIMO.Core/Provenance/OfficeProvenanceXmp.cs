@@ -89,6 +89,7 @@ internal static class OfficeProvenanceXmp {
     private static IEnumerable<XmpValue> FindValues(XDocument document) {
         foreach (XElement description in document.Descendants(RdfNamespace + "Description")
             .Where(candidate => candidate.Ancestors().Any(ancestor => ancestor.Name == RdfNamespace + "RDF"))) {
+            if (IsInsideXmlLiteral(description)) continue;
             foreach (XAttribute attribute in description.Attributes()) {
                 if (attribute.Name.NamespaceName == IptcNamespace && attribute.Name.LocalName == "DigitalSourceType") {
                     yield return new XmpValue(attribute.Value, Classify(attribute.Value), attribute, null, isStructurallyValid: true);

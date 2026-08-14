@@ -37,7 +37,7 @@ internal static class OfficeProvenanceTiff {
                         options,
                         context,
                         $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",
-                        carrierIsStructurallyValid: xmpTagCount == 1);
+                        carrierIsStructurallyValid: xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType);
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
@@ -75,7 +75,8 @@ internal static class OfficeProvenanceTiff {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     var pendingChanges = new List<OfficeProvenanceChange>();
-                    if ((xmpTagCount == 1 || !options.RequireStructurallyValidCarrier) &&
+                    bool xmpCarrierIsStructurallyValid = xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType;
+                    if ((xmpCarrierIsStructurallyValid || !options.RequireStructurallyValidCarrier) &&
                         OfficeProvenanceXmp.TryRemoveAiDeclarations(
                         packet,
                         options,

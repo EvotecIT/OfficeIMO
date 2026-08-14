@@ -18,6 +18,7 @@ internal static class OfficeProvenanceSvg {
         XDocument document = Load(data, options);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
+        int xmpRootCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp && carrier.Element.Name == XmpNamespace + "xmpmeta");
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
@@ -38,7 +39,8 @@ internal static class OfficeProvenanceSvg {
                     SerializeElement(carrier.Element),
                     options,
                     context,
-                    $"SVG/XMP[{xmpIndex++}]");
+                    $"SVG/XMP[{xmpIndex++}]",
+                    carrierIsStructurallyValid: carrier.Element.Name != XmpNamespace + "xmpmeta" || xmpRootCount == 1);
             }
         }
     }
@@ -53,6 +55,7 @@ internal static class OfficeProvenanceSvg {
         XDocument document = Load(data, options.Limits);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
+        int xmpRootCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp && carrier.Element.Name == XmpNamespace + "xmpmeta");
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
@@ -63,7 +66,8 @@ internal static class OfficeProvenanceSvg {
                     options,
                     location,
                     changes,
-                    out byte[] cleanedXmp)) continue;
+                    out byte[] cleanedXmp,
+                    carrierIsStructurallyValid: carrier.Element.Name != XmpNamespace + "xmpmeta" || xmpRootCount == 1)) continue;
                 carrier.Element.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
                 reserialized = true;
                 continue;

@@ -184,10 +184,10 @@ public static class OfficePackageSignatureService {
         bool isReachableFromOrigin,
         OfficePackageSignatureInspectionOptions options,
         ref long totalDigestBytes) {
-        bool hasLength = archive.TryGetPartLength(signatureUri, out long length);
+        archive.TryGetPartLength(signatureUri, out long length);
         try {
-            if (hasLength) ReserveInspectionBytes(ref totalDigestBytes, length, options.MaxTotalDigestBytes);
             byte[] bytes = archive.ReadPart(signatureUri, options.MaxSignatureBytes);
+            ReserveInspectionBytes(ref totalDigestBytes, bytes.LongLength, options.MaxTotalDigestBytes);
             XDocument document = LoadXml(bytes);
             XElement? signature = document.Root;
             if (signature == null || signature.Name != DigitalSignatureNamespace + "Signature") {
