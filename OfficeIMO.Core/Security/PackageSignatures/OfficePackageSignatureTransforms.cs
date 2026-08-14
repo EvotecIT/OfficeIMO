@@ -296,7 +296,10 @@ namespace OfficeIMO.Security {
                 .Elements(ds + "Transform")
                 .ToList() ?? new List<XElement>();
 
-            if (transforms.Count == 0) return ReadPart(targetPartUri, maxPartBytes);
+            if (transforms.Count == 0) {
+                PreflightDigestRead(targetPartUri, maxDigestBytes, transformInputBytes);
+                return ReadPart(targetPartUri, maxPartBytes);
+            }
 
             byte[]? currentBytes = null;
             XmlDocument? currentXml = null;
@@ -436,6 +439,14 @@ namespace OfficeIMO.Security {
             byte[] bytes = ReadPart(partUri, maxPartBytes);
             transformInputBytes = AddDigestWorkBytes(transformInputBytes, bytes.LongLength, maxDigestBytes);
             return bytes;
+        }
+
+        private void PreflightDigestRead(string partUri, long maximumBytes, long currentBytes) {
+            if (TryGetPartLength(partUri, out long declaredLength) &&
+                declaredLength > maximumBytes - currentBytes) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    "OPC signature inspection exceeds the configured aggregate digest-byte limit.");
+            }
         }
 
         private static long AddDigestWorkBytes(long current, long additional, long maximum) {

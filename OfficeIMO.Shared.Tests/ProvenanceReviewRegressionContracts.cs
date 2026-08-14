@@ -837,7 +837,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
-    public void SvgProcessesRdfXmpAndPreservesDirectNonXmpIptc() {
+    public void SvgPreservesMixedWrappedAndDirectIptcScopesAsAmbiguous() {
         byte[] svg = Encoding.UTF8.GetBytes(
             "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:x=\"adobe:ns:meta/\" " +
             "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
@@ -850,8 +850,9 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(svg, "fixture.svg");
 
         Assert.Single(before.Evidence);
-        Assert.True(result.WasChanged);
-        Assert.Empty(result.After.Evidence);
+        Assert.False(Assert.Single(before.Evidence).IsStructurallyValid);
+        Assert.False(result.WasChanged);
+        Assert.Single(result.After.Evidence);
         Assert.Contains("preserve-non-xmp", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
 

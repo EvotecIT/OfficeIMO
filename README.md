@@ -1285,6 +1285,7 @@ Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Many a
 - [Email support matrix](Docs/officeimo.email-support-matrix.md)
 - [AsciiDoc support matrix](Docs/officeimo.asciidoc-support-matrix.md)
 - [LaTeX support matrix](Docs/officeimo.latex-support-matrix.md)
+- [Provenance support matrix](Docs/officeimo.provenance-support-matrix.md)
 - [Markdown compatibility matrix](Docs/officeimo.markdown.compatibility-matrix.md)
 - [OneNote current state](Docs/officeimo.onenote.current-state.md)
 - [Migration guide](MIGRATION.md)

@@ -108,6 +108,8 @@ internal static class OfficeProvenancePng {
         bool allChunksHaveValidCrc = true;
         bool foundEnd = false;
         bool foundImageData = false;
+        bool imageDataSequenceEnded = false;
+        bool imageDataIsContiguous = true;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
@@ -127,7 +129,13 @@ internal static class OfficeProvenancePng {
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
                     HasValidCrc(data, offset, payloadLength);
             }
-            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IDAT")) foundImageData = true;
+            bool isImageData = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IDAT");
+            if (isImageData) {
+                if (imageDataSequenceEnded) imageDataIsContiguous = false;
+                foundImageData = true;
+            } else if (foundImageData) {
+                imageDataSequenceEnded = true;
+            }
             bool isEnd = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IEND");
             if (isEnd) validEnd = payloadLength == 0 && HasValidCrc(data, offset, payloadLength) &&
                 offset + (int)totalValue == data.Length;
@@ -135,7 +143,8 @@ internal static class OfficeProvenancePng {
             if (isEnd) { foundEnd = true; break; }
         }
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
-        validStructure = headerCount == 1 && validLeadingHeader && foundImageData && validEnd && allChunksHaveValidCrc;
+        validStructure = headerCount == 1 && validLeadingHeader && foundImageData && imageDataIsContiguous &&
+            validEnd && allChunksHaveValidCrc;
         return c2paCount;
     }
 

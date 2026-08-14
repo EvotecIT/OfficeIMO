@@ -144,7 +144,9 @@ public static class OfficePackageSignatureService {
         OriginDiscovery origins = ReadOrigins(archive, options, findings);
         string? originUri = origins.FirstOriginUri;
         bool hasOrigin = origins.ExistingPartCount > 0;
-        bool hasApplicationMetadata = ReadApplicationSignatureMetadata(archive, options, findings);
+        long totalDigestBytes = 0;
+        bool hasApplicationMetadata = ReadApplicationSignatureMetadata(
+            archive, options, findings, ref totalDigestBytes);
         var contentTypeSignatureUris = new HashSet<string>(archive.PartUris
             .Where(uri => archive.TryGetContentType(uri, out string contentType) &&
                 string.Equals(contentType, SignatureContentType, StringComparison.OrdinalIgnoreCase)),
@@ -172,7 +174,6 @@ public static class OfficePackageSignatureService {
         }
 
         var parts = new List<OfficePackageSignaturePartInfo>(signatureUris.Length);
-        long totalDigestBytes = 0;
         foreach (string signatureUri in signatureUris) {
             bool reachable = origins.RelationshipCount == 1 && origins.ExistingPartCount == 1 &&
                 relationshipSignatureUris.Contains(signatureUri) && contentTypeSignatureUris.Contains(signatureUri);
@@ -601,11 +602,14 @@ public static class OfficePackageSignatureService {
     private static bool ReadApplicationSignatureMetadata(
         OfficePackageSignatureArchive archive,
         OfficePackageSignatureInspectionOptions options,
-        ICollection<string> findings) {
+        ICollection<string> findings,
+        ref long totalInspectionBytes) {
         const string rootRelationships = "/_rels/.rels";
         if (!archive.ContainsPart(rootRelationships)) return false;
         try {
-            XDocument relationships = LoadXml(archive.ReadPart(rootRelationships, options.MaxSignatureBytes));
+            byte[] relationshipBytes = ReadInspectionPart(
+                archive, rootRelationships, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
+            XDocument relationships = LoadXml(relationshipBytes);
             XNamespace relationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
             XElement? root = relationships.Root;
             if (root == null || root.Name != relationshipsNamespace + "Relationships") {
@@ -622,19 +626,22 @@ public static class OfficePackageSignatureService {
                 throw new InvalidDataException("The root relationship part exceeds the configured relationship limit.");
             }
             XNamespace extendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+            var inspectedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XElement declaration in declarations) {
                 if (string.Equals((string?)declaration.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                 string? target = (string?)declaration.Attribute("Target");
                 if (string.IsNullOrWhiteSpace(target)) continue;
                 try {
                     string partUri = ResolveRelationshipTarget("/", target!);
-                    if (!archive.ContainsPart(partUri)) continue;
+                    if (!archive.ContainsPart(partUri) || !inspectedTargets.Add(partUri)) continue;
                     if (!archive.TryGetContentType(partUri, out string contentType) ||
                         !string.Equals(contentType, ExtendedPropertiesContentType, StringComparison.OrdinalIgnoreCase)) {
                         findings.Add("An extended-properties relationship target has an unexpected OPC content type.");
                         continue;
                     }
-                    XDocument properties = LoadXml(archive.ReadPart(partUri, options.MaxSignatureBytes));
+                    byte[] propertyBytes = ReadInspectionPart(
+                        archive, partUri, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
+                    XDocument properties = LoadXml(propertyBytes);
                     if (properties.Root?.Name == extendedProperties + "Properties" &&
                         properties.Root.Elements(extendedProperties + "DigSig").Any()) {
                         return true;
@@ -648,6 +655,21 @@ public static class OfficePackageSignatureService {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);
             return false;
         }
+    }
+
+    private static byte[] ReadInspectionPart(
+        OfficePackageSignatureArchive archive,
+        string partUri,
+        long maximumPartBytes,
+        long maximumTotalBytes,
+        ref long totalBytes) {
+        if (archive.TryGetPartLength(partUri, out long declaredLength) &&
+            declaredLength > maximumTotalBytes - totalBytes) {
+            throw new InvalidDataException("OPC package signature inspection exceeds the configured aggregate limit.");
+        }
+        byte[] bytes = archive.ReadPart(partUri, maximumPartBytes);
+        ReserveInspectionBytes(ref totalBytes, bytes.LongLength, maximumTotalBytes);
+        return bytes;
     }
 
     private static XDocument LoadXml(byte[] bytes) {

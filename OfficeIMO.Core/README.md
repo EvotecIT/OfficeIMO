@@ -124,6 +124,8 @@ Removal is selective. It removes structurally valid C2PA carriers and AI-specifi
 
 Structural inspection does not claim that a manifest is authentic or trusted. Install `OfficeIMO.Security` and use its optional C2PA verifier when content binding, signature mathematics, and certificate trust must be checked.
 
+The [provenance support matrix](../Docs/officeimo.provenance-support-matrix.md) records the exact carriers, strict-removal behavior, verification boundary, and known limits.
+
 ### Encode common raster formats
 
 ```csharp

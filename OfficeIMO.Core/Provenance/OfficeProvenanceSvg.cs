@@ -18,7 +18,7 @@ internal static class OfficeProvenanceSvg {
         XDocument document = Load(data, options);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
-        int xmpRootCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp && carrier.Element.Name == XmpNamespace + "xmpmeta");
+        int xmpCarrierCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp);
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
@@ -40,7 +40,7 @@ internal static class OfficeProvenanceSvg {
                     options,
                     context,
                     $"SVG/XMP[{xmpIndex++}]",
-                    carrierIsStructurallyValid: carrier.Element.Name != XmpNamespace + "xmpmeta" || xmpRootCount == 1);
+                    carrierIsStructurallyValid: xmpCarrierCount == 1);
             }
         }
     }
@@ -55,7 +55,7 @@ internal static class OfficeProvenanceSvg {
         XDocument document = Load(data, options.Limits);
         IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
         int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
-        int xmpRootCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp && carrier.Element.Name == XmpNamespace + "xmpmeta");
+        int xmpCarrierCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Xmp);
         int manifestIndex = 0;
         int xmpIndex = 0;
         foreach (SvgCarrier carrier in carriers) {
@@ -67,7 +67,7 @@ internal static class OfficeProvenanceSvg {
                     location,
                     changes,
                     out byte[] cleanedXmp,
-                    carrierIsStructurallyValid: carrier.Element.Name != XmpNamespace + "xmpmeta" || xmpRootCount == 1)) continue;
+                    carrierIsStructurallyValid: xmpCarrierCount == 1)) continue;
                 carrier.Element.ReplaceWith(LoadElement(cleanedXmp, options.Limits));
                 reserialized = true;
                 continue;
