@@ -118,7 +118,7 @@ internal static class OfficeProvenancePng {
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
-                TryGetXmpPacket(data, offset + 8, payloadLength, out _, out _, out _)) xmpCount++;
+                HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
@@ -133,6 +133,13 @@ internal static class OfficeProvenancePng {
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
         validStructure = headerCount == 1 && validLeadingHeader && validEnd;
         return c2paCount;
+    }
+
+    private static bool HasXmpKeyword(byte[] data, int payloadOffset, int payloadLength) {
+        const string keyword = "XML:com.adobe.xmp";
+        return payloadLength > keyword.Length &&
+            OfficeProvenanceBinary.MatchesAscii(data, payloadOffset, keyword) &&
+            data[payloadOffset + keyword.Length] == 0;
     }
 
     private static bool TryGetXmpPacket(

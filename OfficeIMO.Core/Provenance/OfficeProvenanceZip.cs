@@ -673,25 +673,36 @@ internal static class OfficeProvenanceZip {
     private static bool HasOpcSignatureOriginRelationship(
         ZipArchive archive,
         IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata,
-        long maximumBytes,
-        long maximumExpandedBytes,
+        OfficeProvenanceOptions options,
         ref long expandedBytes) {
-        byte[] marker = System.Text.Encoding.ASCII.GetBytes(
-            "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
+        const string originRelationshipType =
+            "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin";
         foreach (ZipArchiveEntry relationships in archive.Entries) {
             if (!entryMetadata[relationships].Name.Equals("_rels/.rels", StringComparison.Ordinal) ||
                 relationships.Length <= 0) continue;
-            if (relationships.Length > maximumBytes) {
+            if (relationships.Length > options.MaxAssetBytes) {
                 throw new InvalidDataException("The OPC root relationships part exceeds the configured asset limit.");
             }
-            ReserveExpandedBytes(ref expandedBytes, relationships.Length, maximumExpandedBytes);
+            ReserveExpandedBytes(ref expandedBytes, relationships.Length, options.MaxExpandedContainerBytes);
             using Stream source = relationships.Open();
-            byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, maximumBytes);
-            for (int offset = 0; offset <= bytes.Length - marker.Length; offset++) {
-                int index = 0;
-                while (index < marker.Length && bytes[offset + index] == marker[index]) index++;
-                if (index == marker.Length) return true;
+            byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, options.MaxAssetBytes);
+            OfficeProvenanceXml.ValidateMaterializedNodeBudget(bytes, options, "OPC root relationships");
+            using var input = new MemoryStream(bytes, writable: false);
+            using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(options));
+            bool foundRoot = false;
+            int rootDepth = -1;
+            while (reader.Read()) {
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                if (!foundRoot) {
+                    if (reader.LocalName != "Relationships") return false;
+                    foundRoot = true;
+                    rootDepth = reader.Depth;
+                    continue;
+                }
+                if (reader.Depth == rootDepth + 1 && reader.LocalName == "Relationship" &&
+                    reader.GetAttribute("Type") == originRelationshipType) return true;
             }
+            if (!foundRoot) throw new InvalidDataException("The OPC root relationships part is empty.");
         }
         return false;
     }
@@ -824,8 +835,7 @@ internal static class OfficeProvenanceZip {
             HasOpcSignatureOriginRelationship(
                 archive,
                 entryMetadata,
-                options.Limits.MaxAssetBytes,
-                options.Limits.MaxExpandedContainerBytes,
+                options.Limits,
                 ref expandedBytes);
         if (!entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
             return rawSignatureEvidence;

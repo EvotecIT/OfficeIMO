@@ -138,7 +138,7 @@ internal static class OfficeC2paManifestStore {
                 if (!IsClaimSignatureSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
                 requiredChild = 3;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, DataBoxStoreUuid)) {
-                if (hasDataBoxStore) return false;
+                if (requiredChild != 3 || hasDataBoxStore) return false;
                 if (!IsExtensionSuperbox(
                     data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, "c2pa.databoxes", "cbor")) return false;
                 hasDataBoxStore = true;

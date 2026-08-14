@@ -39,6 +39,7 @@ internal static class OfficeProvenanceRiff {
         int declaredEnd = (int)declaredEndValue;
         int c2paChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "C2PA");
         int xmpChunkCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "XMP ");
+        int extendedHeaderCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "VP8X");
         int lastImagePayloadOffset = FindLastImagePayloadOffset(data, declaredEnd, options.MaxContainerEntries);
         int offset = 12;
         int chunkCount = 0;
@@ -88,7 +89,8 @@ internal static class OfficeProvenanceRiff {
                 byte[] packet = new byte[payloadLength];
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
-                bool carrierValid = xmpChunkCount == 1 && hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
+                bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
+                    hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
                     foundImagePayload && offset > lastImagePayloadOffset && !foundXmp;
                 if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");
                 if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);

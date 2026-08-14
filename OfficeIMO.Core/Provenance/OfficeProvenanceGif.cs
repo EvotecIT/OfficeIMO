@@ -33,7 +33,8 @@ internal static class OfficeProvenanceGif {
         out bool reserialized) {
         reserialized = false;
         int offset = GetBodyOffset(data);
-        int c2paApplicationCount = CountC2paApplications(data, offset, options, out int xmpApplicationCount);
+        int c2paApplicationCount = CountC2paApplications(
+            data, offset, options, out int xmpApplicationCount, out bool validStructure);
         bool foundTrailer = false;
         int entryCount = 0;
         while (offset < data.Length) {
@@ -77,7 +78,7 @@ internal static class OfficeProvenanceGif {
                     data, payloadStart, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
                     out byte[] packet, out int extensionEnd, out int trailerStart, out bool usesSubBlocks)) {
                     string location = $"GIF/XMP@{blockStart}";
-                    bool carrierValid = xmpApplicationCount == 1;
+                    bool carrierValid = xmpApplicationCount == 1 && validStructure;
                     if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                     if (output != null && removalOptions != null && changes != null && removalOptions.RemoveAiSourceMetadata &&
                         (carrierValid || !removalOptions.RequireStructurallyValidCarrier) &&
@@ -97,7 +98,7 @@ internal static class OfficeProvenanceGif {
                     ref entryCount, options.MaxContainerEntries, out int payloadLength);
                 if (isC2paApplication) {
                     byte[] manifest = CollectSubBlocks(data, payloadStart, payloadLength);
-                    bool valid = c2paApplicationCount == 1 && isGif89a && OfficeC2paManifestStore.IsValid(
+                    bool valid = c2paApplicationCount == 1 && validStructure && isGif89a && OfficeC2paManifestStore.IsValid(
                         manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
                     context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
@@ -122,14 +123,19 @@ internal static class OfficeProvenanceGif {
         byte[] data,
         int offset,
         OfficeProvenanceOptions options,
-        out int xmpApplicationCount) {
+        out int xmpApplicationCount,
+        out bool validStructure) {
         int count = 0;
         xmpApplicationCount = 0;
+        validStructure = false;
         int entryCount = 0;
         while (offset < data.Length) {
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
             byte introducer = data[offset++];
-            if (introducer == 0x3B) return count;
+            if (introducer == 0x3B) {
+                validStructure = offset == data.Length;
+                return count;
+            }
             if (introducer == 0x2C) {
                 if (data.Length - offset < 9) throw new InvalidDataException("GIF image descriptor is truncated.");
                 byte packed = data[offset + 8];

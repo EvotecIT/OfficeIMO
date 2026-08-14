@@ -9,7 +9,11 @@ internal static class OfficeProvenanceTiff {
     private const ushort C2paTag = 0xCD41;
     private const ushort XmpTag = 700;
     private const ushort ByteType = 1;
+    private const ushort LongType = 4;
     private const ushort UndefinedType = 7;
+    private const ushort IfdType = 13;
+    private const ushort Long8Type = 16;
+    private const ushort Ifd8Type = 18;
     private const ushort StripOffsetsTag = 273;
     private const ushort StripByteCountsTag = 279;
     private const ushort TileOffsetsTag = 324;
@@ -403,7 +407,8 @@ internal static class OfficeProvenanceTiff {
             result.Add(new TiffIfd(ifdOffset, entriesOffset, nextFieldOffset, countFieldSize, entrySize, nextFieldSize, littleEndian, bigTiff, tagsAreSorted, entries));
             EnqueueIfdOffset(linkedOffset, pendingOffsets, ref scheduledIfds, options.MaxContainerEntries);
             foreach (TiffEntry subIfds in entries.Where(static entry => entry.Tag == SubIfdsTag)) {
-                if (subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
+                if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) ||
+                    subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
                     !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {
                     throw new InvalidDataException("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
                 }
@@ -417,6 +422,9 @@ internal static class OfficeProvenanceTiff {
         }
         return result;
     }
+
+    private static bool IsValidSubIfdPointerType(ushort type, bool bigTiff) =>
+        type is LongType or IfdType || bigTiff && (type is Long8Type or Ifd8Type);
 
     private static void EnqueueIfdOffset(
         ulong offset,
