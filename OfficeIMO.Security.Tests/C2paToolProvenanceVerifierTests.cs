@@ -28,6 +28,8 @@ public sealed class C2paToolProvenanceVerifierTests {
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"claimSignature.validated\",\"success\":\"true\"}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"claimSignature.validated\",\"success\":null}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":1,\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
+    [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"   \",\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"code\":\"assertion.dataHash.mismatch\"}],\"validation_status\":[]}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":null,\"active_manifest\":\"urn:c2pa:test\"}", 0, OfficeProvenanceVerificationStatus.Error)]
     [InlineData("{\"active_manifest\":\"urn:c2pa:test\",\"validation_status\":[{\"success\":false,\"success\":true}]}", 0, OfficeProvenanceVerificationStatus.Error)]

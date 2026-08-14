@@ -177,10 +177,11 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             if (!TryGetUniqueProperty(status, "code", out JsonElement codeElement, out bool hasCode) ||
                 !TryGetUniqueProperty(status, "explanation", out JsonElement explanationElement, out bool hasExplanation) ||
                 !TryGetUniqueProperty(status, "success", out JsonElement successElement, out bool hasSuccess)) return false;
-            if (hasCode && codeElement.ValueKind != JsonValueKind.String ||
+            if (!hasCode || codeElement.ValueKind != JsonValueKind.String ||
                 hasExplanation && explanationElement.ValueKind != JsonValueKind.String ||
                 hasSuccess && successElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False) return false;
             string? code = hasCode ? codeElement.GetString() : null;
+            if (string.IsNullOrWhiteSpace(code)) return false;
             string? explanation = hasExplanation ? explanationElement.GetString() : null;
             bool? explicitSuccess = hasSuccess ? successElement.GetBoolean() : null;
             if (explicitSuccess == true || explicitSuccess != false && code != null && SuccessfulValidationCodes.Contains(code)) continue;
