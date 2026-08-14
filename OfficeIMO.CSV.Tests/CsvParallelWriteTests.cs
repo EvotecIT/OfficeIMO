@@ -136,7 +136,7 @@ public class CsvParallelWriteTests
     }
 
     [Fact]
-    public void WriteDataReaderParallel_WideUnsafeProviderUsesSequentialFallbackOutsideBatchBudget()
+    public void WriteDataReaderParallel_RejectsWideUnsafeProviderBeforeSnapshotPlanning()
     {
         var shared = new MutableFormattable { Value = "safe" };
         using var reader = new ThrowingGetValuesDataReader(
@@ -144,18 +144,22 @@ public class CsvParallelWriteTests
             [[1, 2, shared]]);
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
 
-        CsvDocument.WriteDataReaderParallel(
-            writer,
-            reader,
-            new CsvSaveOptions { NewLine = "\n" },
-            new CsvWriteParallelOptions
-            {
-                MaxDegreeOfParallelism = 2,
-                BatchSize = 4096,
-                MaximumBufferedCellsPerBatch = 2
-            });
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            CsvDocument.WriteDataReaderParallel(
+                writer,
+                reader,
+                new CsvSaveOptions { NewLine = "\n" },
+                new CsvWriteParallelOptions
+                {
+                    MaxDegreeOfParallelism = 2,
+                    BatchSize = 4096,
+                    MaximumBufferedCellsPerBatch = 2
+                }));
 
-        Assert.Equal("First,Second,Third\n1,2,safe\n", writer.ToString());
+        Assert.Contains("per-batch cell budget", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, reader.GetFieldTypeCallCount);
+        Assert.Equal(0, reader.GetValueCallCount);
+        Assert.Equal(string.Empty, writer.ToString());
     }
 
     [Fact]
@@ -208,7 +212,7 @@ public class CsvParallelWriteTests
 
         Assert.Contains("per-batch cell budget", exception.Message, StringComparison.Ordinal);
         Assert.Equal(0, reader.GetValueCallCount);
-        Assert.Equal(reader.FieldCount, reader.GetFieldTypeCallCount);
+        Assert.Equal(0, reader.GetFieldTypeCallCount);
         Assert.Equal(string.Empty, writer.ToString());
     }
 

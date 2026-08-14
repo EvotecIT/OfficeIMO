@@ -72,6 +72,12 @@ public static partial class OfficeSvgDrawingReader {
                 height += strokeExtent * 2D;
             }
 
+            if (double.IsNaN(x) || double.IsInfinity(x)
+                || double.IsNaN(y) || double.IsInfinity(y)
+                || double.IsNaN(width) || double.IsInfinity(width)
+                || double.IsNaN(height) || double.IsInfinity(height)
+                || width < 0D || height < 0D) return false;
+
             (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x, y, width, height);
             if (name is "text" or "tspan" or "textpath") {
                 double intermediatePixels = Math.Min(
