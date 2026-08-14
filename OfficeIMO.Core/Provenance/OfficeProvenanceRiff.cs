@@ -42,6 +42,8 @@ internal static class OfficeProvenanceRiff {
         int extendedHeaderCount = CountChunks(data, declaredEnd, options.MaxContainerEntries, "VP8X");
         int lastImagePayloadOffset = FindLastImagePayloadOffset(data, declaredEnd, options.MaxContainerEntries);
         bool allChunksHaveValidPadding = HaveValidChunkPadding(data, declaredEnd, options.MaxContainerEntries);
+        bool extendedHeaderFeaturesAreConsistent = HaveConsistentExtendedHeaderFeatures(
+            data, declaredEnd, options.MaxContainerEntries);
         int offset = 12;
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
@@ -80,7 +82,8 @@ internal static class OfficeProvenanceRiff {
                     lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
                 bool valid = c2paChunkCount == 1 &&
                     extendedHeaderCount == 1 && hasValidExtendedHeader &&
-                    allChunksHaveValidPadding && isLast && hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
+                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding && isLast &&
+                    hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
                 context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
@@ -100,7 +103,8 @@ internal static class OfficeProvenanceRiff {
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
                 bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
-                    allChunksHaveValidPadding && hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
+                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding &&
+                    hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
                     HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads) &&
                     offset > lastImagePayloadOffset && !foundXmp;
                 if (xmpChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple XMP chunks.");
@@ -196,6 +200,23 @@ internal static class OfficeProvenanceRiff {
         byte flags = data[payloadOffset];
         return (flags & 0xC1) == 0 &&
             data[payloadOffset + 1] == 0 && data[payloadOffset + 2] == 0 && data[payloadOffset + 3] == 0;
+    }
+
+    private static bool HaveConsistentExtendedHeaderFeatures(byte[] data, int declaredEnd, int maximumEntries) {
+        if (declaredEnd < 30 || !OfficeProvenanceBinary.MatchesAscii(data, 12, "VP8X")) return false;
+        uint headerLength = OfficeProvenanceBinary.ReadUInt32(data, 16, littleEndian: true);
+        if (headerLength != 10 || !IsValidExtendedHeader(data, 20, 10)) return false;
+        byte flags = data[20];
+        int animationControls = CountChunks(data, declaredEnd, maximumEntries, "ANIM");
+        int animationFrames = CountChunks(data, declaredEnd, maximumEntries, "ANMF");
+        int xmpChunks = CountChunks(data, declaredEnd, maximumEntries, "XMP ");
+        int exifChunks = CountChunks(data, declaredEnd, maximumEntries, "EXIF");
+        int colorProfiles = CountChunks(data, declaredEnd, maximumEntries, "ICCP");
+        bool declaresAnimation = (flags & 0x02) != 0;
+        return declaresAnimation == (animationControls == 1 && animationFrames > 0) &&
+            ((flags & 0x04) != 0) == (xmpChunks == 1) &&
+            ((flags & 0x08) != 0) == (exifChunks == 1) &&
+            ((flags & 0x20) != 0) == (colorProfiles == 1);
     }
 
     private static void WriteChunk(Stream output, string type, byte[] payload) {

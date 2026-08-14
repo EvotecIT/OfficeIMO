@@ -181,7 +181,7 @@ public static class OfficePackageSignatureService {
             parts.Add(InspectPart(archive, signatureUri, reachable, options, ref totalDigestBytes));
         }
         return new OfficePackageSignatureInfo(origins.RelationshipCount, origins.ExistingPartCount,
-            originUri, hasApplicationMetadata, signatureDiscoveryComplete, parts, findings);
+            originUri, hasApplicationMetadata, signatureDiscoveryComplete, parts, findings, totalDigestBytes);
     }
 
     private static OfficePackageSignaturePartInfo InspectPart(

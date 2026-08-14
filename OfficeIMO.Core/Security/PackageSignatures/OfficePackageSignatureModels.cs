@@ -157,7 +157,8 @@ public sealed class OfficePackageSignaturePartInfo {
 /// <summary>Dependency-light structural inspection of one OPC package signature carrier.</summary>
 public sealed class OfficePackageSignatureInfo {
     internal OfficePackageSignatureInfo(int originRelationshipCount, int originPartCount, string? originUri, bool hasApplicationMetadata,
-        bool signatureDiscoveryComplete, IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings) {
+        bool signatureDiscoveryComplete, IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings,
+        long inspectionBytes) {
         OriginRelationshipCount = originRelationshipCount;
         OriginPartCount = originPartCount;
         HasDigitalSignatureOriginPart = originPartCount > 0;
@@ -166,6 +167,7 @@ public sealed class OfficePackageSignatureInfo {
         SignatureDiscoveryComplete = signatureDiscoveryComplete;
         SignatureParts = parts;
         Findings = findings;
+        InspectionBytes = inspectionBytes;
     }
 
     /// <summary>Number of root digital-signature-origin relationships.</summary>
@@ -184,6 +186,7 @@ public sealed class OfficePackageSignatureInfo {
     public IReadOnlyList<OfficePackageSignaturePartInfo> SignatureParts { get; }
     /// <summary>Stable structural findings.</summary>
     public IReadOnlyList<string> Findings { get; }
+    internal long InspectionBytes { get; }
     /// <summary>Whether any package signature carrier evidence exists.</summary>
     public bool HasSignatures => OriginRelationshipCount > 0 || HasDigitalSignatureOriginPart || HasApplicationSignatureMetadata || SignatureParts.Count > 0;
 }

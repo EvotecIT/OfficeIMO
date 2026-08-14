@@ -902,16 +902,21 @@ internal static class OfficeProvenanceZip {
             return rawSignatureEvidence;
         }
 
+        long remainingInspectionBytes = options.Limits.MaxExpandedContainerBytes - expandedBytes;
+        if (remainingInspectionBytes <= 0) {
+            throw new InvalidDataException("ZIP signature inspection exceeds the configured expanded-byte limit.");
+        }
         var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
             MaxPackageBytes = options.Limits.MaxAssetBytes,
             MaxPackageParts = options.Limits.MaxContainerEntries,
             MaxPartBytes = options.Limits.MaxAssetBytes,
             MaxSignatureBytes = options.Limits.MaxAssetBytes,
-            MaxTotalDigestBytes = options.Limits.MaxExpandedContainerBytes,
+            MaxTotalDigestBytes = remainingInspectionBytes,
             VerifyDigests = false
         };
         OfficeIMO.Security.OfficePackageSignatureInfo signatureInfo =
             OfficeIMO.Security.OfficePackageSignatureService.Inspect(data, inspectionOptions);
+        ReserveExpandedBytes(ref expandedBytes, signatureInfo.InspectionBytes, options.Limits.MaxExpandedContainerBytes);
         if (!signatureInfo.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The OPC package signature state could not be determined safely.");
         }
