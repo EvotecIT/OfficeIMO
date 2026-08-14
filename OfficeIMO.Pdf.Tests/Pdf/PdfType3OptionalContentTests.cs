@@ -61,15 +61,12 @@ public class PdfType3OptionalContentTests {
     [Theory]
     [InlineData("<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn >>", true)]
     [InlineData("<< /Type /OCMD /OCGs 10 0 R /P /AllOn >>", true)]
-    [InlineData("<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE 10 0 R >>", false)]
     [InlineData("<< /Type /O#43MD /OCGs [10 0 R] /P /Any#4Fn >>", true)]
     [InlineData("<< /Type /OCMD /OCGs [11 0 R % 10 0 R\n] /P /AllOn >>", false)]
     [InlineData("<< /Type /OCMD /OCGs [11 0 R] /P /AllOn /XRef 10 0 R >>", false)]
     [InlineData("<< /Type /OCMD /OCGs [11 0 R] /Extension << /P /AllOff >> /P /AnyOn >>", false)]
     [InlineData("<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE [/N#6Ft 10 0 R] >>", false)]
     [InlineData("<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE [/Or % hidden operand\n 10 0 R] >>", true)]
-    [InlineData("<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE [/Or] >>", false)]
-    [InlineData("<< /Type /OCMD /OCGs [11 0 R] /P /AnyOn /VE 10 0 Rubbish >>", false)]
     public void RenderPage_EvaluatesInlineMembershipDictionaryInsideType3GlyphProgram(
         string membershipDictionary,
         bool expectHidden) {
@@ -126,29 +123,27 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
-    public void RenderPage_FallsBackToMembershipPolicyForMismatchedVisibilityExpressionGeneration() {
+    public void RenderPage_FailsClosedForMismatchedVisibilityExpressionGeneration() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 1 R >>",
             indirectVisibilityExpression: "[/Not 10 0 R]");
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
-        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
-        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
-    public void RenderPage_FallsBackToMembershipPolicyForMismatchedNestedVisibilityGeneration() {
+    public void RenderPage_FailsClosedForMismatchedNestedVisibilityGeneration() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
             indirectVisibilityExpression: "[/Not 10 1 R]");
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
-        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
-        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
@@ -190,6 +185,21 @@ public class PdfType3OptionalContentTests {
         Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
     }
 
+    [Theory]
+    [InlineData("[/Or]")]
+    [InlineData("10 0 R")]
+    [InlineData("10 0 Rubbish")]
+    public void RenderPage_FailsClosedForMalformedInlineVisibilityExpression(string expression) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE " + expression + " >>",
+            includeUnsupportedConditionalContent: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForMembershipReferenceOutsideConfiguredOptionalContentGroups() {
         byte[] pdf = BuildType3OptionalContentPdf(
@@ -219,18 +229,14 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
-    public void RenderPage_FallsBackToMembershipPolicyForMalformedIndirectNotExpression() {
+    public void RenderPage_FailsClosedForMalformedIndirectNotExpression() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
             indirectVisibilityExpression: "[/Not 10 0 R 11 0 R]");
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-
-        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
-        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
-        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
@@ -247,7 +253,7 @@ public class PdfType3OptionalContentTests {
     }
 
     [Fact]
-    public void RenderPage_BoundsDirectInlineVisibilityExpressionNesting() {
+    public void RenderPage_FailsClosedWhenInlineVisibilityExpressionExceedsNestingLimit() {
         string expression = "10 0 R";
         for (int depth = 0; depth < 129; depth++) expression = "[/Not " + expression + "]";
         byte[] pdf = BuildType3OptionalContentPdf(
@@ -257,23 +263,21 @@ public class PdfType3OptionalContentTests {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 256 }
         };
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(PdfReadDocument.Open(pdf, options));
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf, readOptions: options));
 
-        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
-        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
-    public void RenderPage_BoundsIndirectVisibilityExpressionChains() {
+    public void RenderPage_FailsClosedWhenIndirectVisibilityExpressionExceedsNestingLimit() {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE 12 0 R >>",
             indirectVisibilityChainLength: 130);
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
-        OfficeDrawingShape visible = Assert.Single(drawing.Shapes);
-        Assert.Equal(OfficeColor.Lime, visible.Shape.FillColor);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]

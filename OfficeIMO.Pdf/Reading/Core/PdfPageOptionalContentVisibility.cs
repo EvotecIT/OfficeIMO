@@ -76,17 +76,7 @@ internal sealed class PdfPageOptionalContentVisibility {
         if (references.IsMembershipDictionary) {
             if (!string.IsNullOrWhiteSpace(references.VisibilityExpression)) {
                 string expression = references.VisibilityExpression!;
-                if (TryEvaluateInlineVisibilityExpression(expression, out bool expressionVisible)) return !expressionVisible;
-                int index = 0;
-                SkipInlineWhitespace(expression, ref index);
-                if (TryReadInlineReference(expression, ref index, out PdfReference reference)) {
-                    SkipInlineWhitespace(expression, ref index);
-                    if (index == expression.Length &&
-                        PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect) &&
-                        TryEvaluateVisibilityExpression(indirect.Value, _groupVisibility, _objects, new HashSet<int>(), _maxExpressionDepth, depth: 0, out expressionVisible)) {
-                        return !expressionVisible;
-                    }
-                }
+                if (TryEvaluateInlineOrIndirectVisibilityExpression(expression, out bool expressionVisible)) return !expressionVisible;
             }
 
             return IsMembershipHidden(references.ObjectReferences, references.Policy);
@@ -98,6 +88,8 @@ internal sealed class PdfPageOptionalContentVisibility {
     internal bool HasInvalidMembershipReferences(PdfInlineOptionalContentReferences references) {
         if (!references.IsMembershipDictionary) return false;
         if (references.HasInvalidPolicy) return true;
+        if (!string.IsNullOrWhiteSpace(references.VisibilityExpression) &&
+            !TryEvaluateInlineOrIndirectVisibilityExpression(references.VisibilityExpression!, out _)) return true;
         for (int index = 0; index < references.ObjectReferences.Count; index++) {
             PdfReference reference = references.ObjectReferences[index];
             if (!PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject groupObject) ||
@@ -124,6 +116,26 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         SkipInlineWhitespace(expression, ref index);
         return index == expression.Length;
+    }
+
+    private bool TryEvaluateInlineOrIndirectVisibilityExpression(string expression, out bool visible) {
+        if (TryEvaluateInlineVisibilityExpression(expression, out visible)) return true;
+
+        visible = false;
+        int index = 0;
+        SkipInlineWhitespace(expression, ref index);
+        if (!TryReadInlineReference(expression, ref index, out PdfReference reference)) return false;
+        SkipInlineWhitespace(expression, ref index);
+        return index == expression.Length &&
+            PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect) &&
+            TryEvaluateVisibilityExpression(
+                indirect.Value,
+                _groupVisibility,
+                _objects,
+                new HashSet<int> { reference.ObjectNumber },
+                _maxExpressionDepth,
+                depth: 0,
+                out visible);
     }
 
     private bool TryEvaluateInlineVisibilityExpression(string expression, ref int index, int depth, out bool visible) {

@@ -218,6 +218,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingEffectGroup_IsolatesEverySvgCompositionBoundary() {
+        var painted = new OfficeDrawing(8D, 8D);
+        OfficeShape red = OfficeShape.Rectangle(8D, 8D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        painted.AddShape(red, 0D, 0D);
+
+        var nested = new OfficeDrawing(8D, 8D);
+        nested.AddEffectDrawing(painted, OfficeTransform.Identity, OfficeBlendMode.Multiply);
+        var drawing = new OfficeDrawing(8D, 8D);
+        drawing.AddEffectDrawing(nested, OfficeTransform.Identity);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(2, svg.Split(new[] { "isolation:isolate" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("isolation:isolate;mix-blend-mode:multiply", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingEffectGroup_AppliesReusableLuminositySoftMask() {
         var source = new OfficeDrawing(10D, 4D);
         OfficeShape red = OfficeShape.Rectangle(10D, 4D);

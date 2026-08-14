@@ -13,7 +13,9 @@ public static partial class OfficeDrawingSvgExporter {
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
         if (effectGroup.Opacity < 1D) sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
-        if (effectGroup.BlendMode != OfficeBlendMode.Normal) sb.Append(" style=\"mix-blend-mode:").Append(ToCssBlendMode(effectGroup.BlendMode)).Append("\"");
+        sb.Append(" style=\"isolation:isolate");
+        if (effectGroup.BlendMode != OfficeBlendMode.Normal) sb.Append(";mix-blend-mode:").Append(ToCssBlendMode(effectGroup.BlendMode));
+        sb.Append('"');
         if (maskId != null) sb.Append(" mask=\"url(#").Append(maskId).Append(")\"");
         sb.Append('>');
         AppendElements(sb, effectGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);

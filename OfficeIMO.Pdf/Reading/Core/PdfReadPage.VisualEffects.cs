@@ -58,9 +58,9 @@ public sealed partial class PdfReadPage {
         bool isIsolated = transparency.Items.TryGetValue("I", out PdfObject? isolatedObject) &&
             ResolveEffectObject(isolatedObject) is PdfBoolean { Value: true };
         if (transparency.Items.TryGetValue("I", out isolatedObject) &&
-            ResolveEffectObject(isolatedObject) is not PdfBoolean) return null;
+            ResolveEffectObject(isolatedObject) is not PdfBoolean and not PdfNull) return null;
         if (transparency.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
-            ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false }) return null;
+            ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false } and not PdfNull) return null;
         PdfName? groupColorSpace = null;
         bool hasExplicitGroupColorSpace = transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject);
         if (hasExplicitGroupColorSpace) {

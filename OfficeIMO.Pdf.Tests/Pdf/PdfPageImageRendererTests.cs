@@ -1087,6 +1087,19 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_TreatsExplicitNullSoftMaskGroupFlagsAsDefaultFalse() {
+        string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
+        string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Group << /Type /Group /S /Transparency /I null /K null /CS /DeviceGray >> /Resources << >>", "0 0 100 100 re f");
+        byte[] pdf = BuildSingleStreamPdf("/GS1 gs 0 0 100 100 re f", "<< /ExtGState << /GS1 7 0 R >> >>", graphicsState, softMask);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+
+        Assert.NotNull(effect.SoftMask);
+        Assert.Single(effect.SoftMask!.Drawing.Elements.OfType<OfficeDrawingShape>());
+    }
+
+    [Fact]
     public void RenderPage_RestoresType3BlendEffectAtGraphicsStateBoundary() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q /GS1 gs 0 0 200 700 re f Q 300 0 200 700 re f");

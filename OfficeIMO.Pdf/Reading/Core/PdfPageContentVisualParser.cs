@@ -1893,16 +1893,25 @@ internal static class PdfPageContentVisualParser {
         private bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":
-                case "RGB":
                     colorSpace = PdfPageColorSpaceKind.DeviceRgb;
                     return true;
                 case "DeviceCMYK":
-                case "CMYK":
                     colorSpace = PdfPageColorSpaceKind.DeviceCmyk;
                     return true;
                 case "DeviceGray":
-                case "G":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                case "RGB":
+                case "CMYK":
+                case "G":
+                    if (_colorSpaces != null && _colorSpaces.TryGetValue(name, out colorSpace)) return true;
+                    if (_requireExactType3ShadingProjection) {
+                        colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        return false;
+                    }
+                    colorSpace = name == "RGB"
+                        ? PdfPageColorSpaceKind.DeviceRgb
+                        : name == "CMYK" ? PdfPageColorSpaceKind.DeviceCmyk : PdfPageColorSpaceKind.DeviceGray;
                     return true;
                 case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.CalGray;
