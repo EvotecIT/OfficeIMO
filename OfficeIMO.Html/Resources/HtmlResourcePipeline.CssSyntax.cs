@@ -584,7 +584,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string DecodeCssEscapes(string source) {
-        return HtmlCssEscapeDecoder.Decode(source);
+        return HtmlCssEscapeDecoder.Decode(source.Replace(CssCommentMask.ToString(), string.Empty));
     }
 
 }

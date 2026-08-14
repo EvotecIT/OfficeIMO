@@ -254,7 +254,9 @@ public static partial class HtmlResourcePipeline {
         int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, blockStart - 1));
         int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, blockStart - 1));
         int selectorStart = Math.Max(0, Math.Max(previousBlockEnd, previousStatementEnd) + 1);
-        string selector = css.Substring(selectorStart, blockStart - selectorStart).Trim();
+        string selector = css.Substring(selectorStart, blockStart - selectorStart)
+            .Replace(CssCommentMask.ToString(), string.Empty)
+            .Trim();
         int groupingStart = selector.LastIndexOf('{');
         return groupingStart >= 0
             ? selector.Substring(groupingStart + 1).Trim()

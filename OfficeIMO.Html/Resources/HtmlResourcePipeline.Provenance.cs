@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
+    private const char CssCommentMask = '\u0001';
     internal static bool IsActiveProvenanceStyleElement(IElement element) =>
         IsCssStyleElement(element) && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
 
@@ -188,10 +189,10 @@ public static partial class HtmlResourcePipeline {
             }
             if (current is '"' or '\'') { quote = current; continue; }
             if (current != '/' || index + 1 >= css.Length || css[index + 1] != '*') continue;
-            result[index++] = ' ';
-            result[index] = ' ';
-            while (index + 1 < css.Length && !(css[index] == '*' && css[index + 1] == '/')) result[++index] = ' ';
-            if (index + 1 < css.Length) { result[index] = ' '; result[++index] = ' '; }
+            result[index++] = CssCommentMask;
+            result[index] = CssCommentMask;
+            while (index + 1 < css.Length && !(css[index] == '*' && css[index + 1] == '/')) result[++index] = CssCommentMask;
+            if (index + 1 < css.Length) { result[index] = CssCommentMask; result[++index] = CssCommentMask; }
         }
         return result.ToString();
     }

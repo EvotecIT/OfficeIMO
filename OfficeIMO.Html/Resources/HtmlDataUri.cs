@@ -65,7 +65,7 @@ public sealed class HtmlDataUri {
         try {
             bytes = DecodeBytes();
             return bytes.Length > 0;
-        } catch (FormatException) {
+        } catch (Exception exception) when (exception is FormatException || exception is UriFormatException) {
             return false;
         }
     }

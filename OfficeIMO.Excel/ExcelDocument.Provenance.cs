@@ -247,7 +247,8 @@ public partial class ExcelDocument {
     }
 
     private static string? ResolveRelationshipTarget(string sourcePart, string? target) {
-        if (string.IsNullOrWhiteSpace(target) || Uri.TryCreate(target, UriKind.Absolute, out _)) return null;
+        if (target == null || target.Trim().Length == 0 ||
+            (!target.StartsWith("/", StringComparison.Ordinal) && Uri.TryCreate(target, UriKind.Absolute, out _))) return null;
         string normalizedSource = NormalizePartName(sourcePart);
         int separator = normalizedSource.LastIndexOf('/');
         string directory = separator < 0 ? string.Empty : normalizedSource.Substring(0, separator + 1);
