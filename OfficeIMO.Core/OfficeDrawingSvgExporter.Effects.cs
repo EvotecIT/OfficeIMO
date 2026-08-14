@@ -4,12 +4,12 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
+    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         if (effectGroup.Opacity <= 0D) return;
         string? maskId = null;
         if (effectGroup.SoftMask != null) {
             maskId = idPrefix + "officeimo-mask-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
-            AppendSoftMaskDefinition(sb, maskId, effectGroup.SoftMask, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
+            AppendSoftMaskDefinition(sb, maskId, effectGroup.SoftMask, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
         if (effectGroup.Opacity < 1D) sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
@@ -18,11 +18,11 @@ public static partial class OfficeDrawingSvgExporter {
         sb.Append('"');
         if (maskId != null) sb.Append(" mask=\"url(#").Append(maskId).Append(")\"");
         sb.Append('>');
-        AppendElements(sb, effectGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
+        AppendElements(sb, effectGroup.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         sb.Append("</g>");
     }
 
-    private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
+    private static void AppendSoftMaskDefinition(StringBuilder sb, string id, OfficeDrawingSoftMask mask, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         bool pdfLuminosity = mask.Mode == OfficeSoftMaskMode.Luminosity &&
             mask.LuminosityStandard == OfficeSoftMaskLuminosityStandard.PdfDeviceRgb;
         string filterId = id + "-pdf-luminosity";
@@ -44,7 +44,7 @@ public static partial class OfficeDrawingSvgExporter {
                 .Append("\" fill-opacity=\"").Append(Format(mask.BackdropColor.A / 255D)).Append("\"/>");
         }
         sb.Append("<g").Append(BuildMatrixTransformAttribute(mask.Transform, 0D, 0D)).Append('>');
-        AppendElements(sb, mask.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
+        AppendElements(sb, mask.InnerDrawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         sb.Append("</g>");
         if (pdfLuminosity) sb.Append("</g>");
         sb.Append("</mask></defs>");

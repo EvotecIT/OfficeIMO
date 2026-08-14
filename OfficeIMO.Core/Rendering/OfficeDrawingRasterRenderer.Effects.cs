@@ -62,16 +62,29 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool ContainsVisibleNonInterpolatedImage(
         OfficeDrawingGroup group,
         (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
-        if (group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
-            return ContainsNonInterpolatedImage(group.InnerDrawing);
-        }
-
         var groupBounds = (
             Left: group.X,
             Top: group.Y,
             Right: group.X + group.ClipPath.Width,
             Bottom: group.Y + group.ClipPath.Height);
-        if (!TryIntersectBounds(groupBounds, parentVisibleBounds, out var visibleGroupBounds)) return false;
+        (double Left, double Top, double Right, double Bottom)? effectiveParentBounds = parentVisibleBounds;
+        if (parentVisibleBounds.HasValue && group.FrameTransform.HasValue && group.FrameTransform.Value.HasTransform) {
+            OfficeTransform frameTransform = group.FrameTransform.Value.CreateDestinationTransform();
+            var transformedGroupBounds = frameTransform.TransformRectangleBounds(
+                group.X,
+                group.Y,
+                group.ClipPath.Width,
+                group.ClipPath.Height);
+            if (!TryIntersectBounds(transformedGroupBounds, parentVisibleBounds, out var transformedVisibleBounds) ||
+                !frameTransform.TryInvert(out OfficeTransform inverseFrameTransform)) return false;
+            effectiveParentBounds = inverseFrameTransform.TransformRectangleBounds(
+                transformedVisibleBounds.Left,
+                transformedVisibleBounds.Top,
+                transformedVisibleBounds.Right - transformedVisibleBounds.Left,
+                transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
+        }
+
+        if (!TryIntersectBounds(groupBounds, effectiveParentBounds, out var visibleGroupBounds)) return false;
 
         double contentX = group.X + group.ContentOffsetX;
         double contentY = group.Y + group.ContentOffsetY;

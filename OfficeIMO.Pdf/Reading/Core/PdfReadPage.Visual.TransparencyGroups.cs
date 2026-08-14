@@ -9,9 +9,11 @@ public sealed partial class PdfReadPage {
             ResolveEffectObject(group.Items.TryGetValue("I", out PdfObject? isolatedObject) ? isolatedObject : null) is not PdfBoolean { Value: true }) {
             return false;
         }
-        if (group.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
-            ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false }) {
-            return false;
+        if (group.Items.TryGetValue("K", out PdfObject? knockoutObject)) {
+            PdfObject? resolvedKnockout = ResolveEffectObject(knockoutObject);
+            if (resolvedKnockout is not PdfNull && resolvedKnockout is not PdfBoolean { Value: false }) {
+                return false;
+            }
         }
         if (!group.Items.TryGetValue("CS", out PdfObject? colorSpaceObject) ||
             ResolveEffectObject(colorSpaceObject) is not PdfName { Name: "DeviceRGB" }) {

@@ -5,7 +5,7 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget) {
+    private static void AppendTilingPattern(StringBuilder sb, OfficeDrawingTilingPattern pattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int gradientId, ref int clipPathId, System.Threading.CancellationToken cancellationToken, SvgTilingExpansionBudget tilingExpansionBudget, SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         if (pattern.Opacity <= 0D) return;
         tilingExpansionBudget.EnterPattern();
         try {
@@ -27,7 +27,7 @@ public static partial class OfficeDrawingSvgExporter {
                 tilingExpansionBudget.Consume(pattern.MaximumTileCount);
                 sb.Append("<g").Append(BuildMatrixTransformAttribute(transform, 0D, 0D))
                     .Append("><g clip-path=\"url(#").Append(tileClipId).Append(")\">");
-                AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
+                AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
                 sb.Append("</g></g>");
             }
             sb.Append("</g>");

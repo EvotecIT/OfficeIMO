@@ -4,14 +4,15 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeSvgImageRenderer {
-    private const int MaximumVectorizedNearestNeighborRectangles = 1_000_000;
+    internal const int MaximumVectorizedNearestNeighborRectangles = 1_000_000;
 
     private static StringBuilder AppendNearestNeighborRaster(
         StringBuilder builder,
         OfficeRasterImage? raster,
         SvgImageLayout layout,
         string? clipPathId,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        SvgNearestNeighborRectangleBudget? rectangleBudget) {
         if (raster == null) {
             throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
         }
@@ -36,7 +37,15 @@ public static partial class OfficeSvgImageRenderer {
 
         byte[] pixels = raster.GetPixels();
         GetVisibleSourceBounds(raster, layout, out int minimumX, out int minimumY, out int maximumX, out int maximumY);
-        int rectangleCount = 0;
+        rectangleBudget ??= new SvgNearestNeighborRectangleBudget();
+        rectangleBudget.Consume(CountVisibleRectangles(
+            pixels,
+            raster.Width,
+            minimumX,
+            minimumY,
+            maximumX,
+            maximumY,
+            cancellationToken));
         for (int y = minimumY; y < maximumY; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             int x = minimumX;
@@ -53,9 +62,6 @@ public static partial class OfficeSvgImageRenderer {
                     end++;
                 }
                 if (alpha != 0) {
-                    if (++rectangleCount > MaximumVectorizedNearestNeighborRectangles) {
-                        throw new InvalidOperationException("SVG nearest-neighbor image export exceeds the supported vectorization limit.");
-                    }
                     var color = OfficeColor.FromRgba(red, green, blue, alpha);
                     builder.Append("<rect x=\"").Append(x).Append("\" y=\"").Append(y)
                         .Append("\" width=\"").Append(end - x).Append("\" height=\"1\"")
@@ -67,6 +73,43 @@ public static partial class OfficeSvgImageRenderer {
         }
 
         return builder.Append("</g></g>");
+    }
+
+    private static int CountVisibleRectangles(
+        byte[] pixels,
+        int rasterWidth,
+        int minimumX,
+        int minimumY,
+        int maximumX,
+        int maximumY,
+        System.Threading.CancellationToken cancellationToken) {
+        int count = 0;
+        for (int y = minimumY; y < maximumY; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int x = minimumX;
+            while (x < maximumX) {
+                int offset = ((y * rasterWidth) + x) * 4;
+                byte red = pixels[offset];
+                byte green = pixels[offset + 1];
+                byte blue = pixels[offset + 2];
+                byte alpha = pixels[offset + 3];
+                int end = x + 1;
+                while (end < maximumX) {
+                    int next = ((y * rasterWidth) + end) * 4;
+                    if (pixels[next] != red || pixels[next + 1] != green || pixels[next + 2] != blue || pixels[next + 3] != alpha) break;
+                    end++;
+                }
+                if (alpha != 0) {
+                    if (count == int.MaxValue) {
+                        throw new InvalidOperationException("SVG nearest-neighbor image export exceeds the supported vectorization limit.");
+                    }
+                    count++;
+                }
+                x = end;
+            }
+        }
+
+        return count;
     }
 
     private static void GetVisibleSourceBounds(
@@ -101,4 +144,21 @@ public static partial class OfficeSvgImageRenderer {
 
     private static int ClampSourceIndex(int value, int length) => Math.Max(0, Math.Min(length, value));
 
+}
+
+internal sealed class SvgNearestNeighborRectangleBudget {
+    private readonly int _maximum;
+    private int _count;
+
+    internal SvgNearestNeighborRectangleBudget(int maximum = OfficeSvgImageRenderer.MaximumVectorizedNearestNeighborRectangles) {
+        if (maximum <= 0) throw new ArgumentOutOfRangeException(nameof(maximum));
+        _maximum = maximum;
+    }
+
+    internal void Consume(int count) {
+        if (count < 0 || count > _maximum - _count) {
+            throw new InvalidOperationException("SVG nearest-neighbor image export exceeds the supported vectorization limit.");
+        }
+        _count += count;
+    }
 }

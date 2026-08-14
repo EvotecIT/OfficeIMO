@@ -43,7 +43,26 @@ public static partial class OfficeDrawingSvgExporter {
         IOfficeRasterImageCodec? imageCodec,
         string? resourceIdPrefix,
         CancellationToken cancellationToken) {
+        return ToSvg(
+            drawing,
+            scale,
+            sizeUnit,
+            imageCodec,
+            resourceIdPrefix,
+            cancellationToken,
+            new SvgNearestNeighborRectangleBudget());
+    }
+
+    internal static string ToSvg(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix,
+        CancellationToken cancellationToken,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        if (nearestNeighborRectangleBudget == null) throw new ArgumentNullException(nameof(nearestNeighborRectangleBudget));
         cancellationToken.ThrowIfCancellationRequested();
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
@@ -77,7 +96,7 @@ public static partial class OfficeDrawingSvgExporter {
         int gradientId = 0;
         int clipPathId = 0;
         var tilingExpansionBudget = new SvgTilingExpansionBudget();
-        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget);
+        AppendElements(builder, drawing.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
         builder.Append("</svg>");
         cancellationToken.ThrowIfCancellationRequested();
         string svg = builder.ToString();

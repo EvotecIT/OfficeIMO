@@ -891,7 +891,9 @@ public sealed partial class PdfReadPage {
                 continue;
             }
 
-            if (requireSupportedType3Content && formStream.Dictionary.Items.ContainsKey("OC")) {
+            if (requireSupportedType3Content &&
+                formStream.Dictionary.Items.TryGetValue("OC", out PdfObject? formOptionalContentObject) &&
+                ResolveEffectObject(formOptionalContentObject) is not PdfNull) {
                 type3GlyphBudget.RecordFailure();
                 continue;
             }

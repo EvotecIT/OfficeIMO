@@ -722,7 +722,8 @@ public sealed partial class PdfReadPage {
                     supported = false;
                     continue;
                 }
-                if (form.Dictionary.Items.ContainsKey("OC")) {
+                if (form.Dictionary.Items.TryGetValue("OC", out PdfObject? formOptionalContentObject) &&
+                    ResolveEffectObject(formOptionalContentObject) is not PdfNull) {
                     supported = false;
                     continue;
                 }

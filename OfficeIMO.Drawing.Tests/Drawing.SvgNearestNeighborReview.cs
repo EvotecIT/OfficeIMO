@@ -84,6 +84,37 @@ public partial class DrawingTests {
         Assert.True(CountOccurrences(svg, "<rect") < 10000);
     }
 
+    [Fact]
+    public void OfficeDrawingSvgExporter_SharesNearestNeighborRectangleBudgetAcrossNestedImages() {
+        var raster = new OfficeRasterImage(2, 1, OfficeColor.Red);
+        raster.SetPixel(1, 0, OfficeColor.Blue);
+        byte[] png = OfficePngWriter.Encode(raster);
+        var nested = new OfficeDrawing(2D, 1D);
+        nested.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var drawing = new OfficeDrawing(2D, 2D);
+        drawing.AddImage(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        drawing.AddClippedDrawing(nested, 0D, 1D, OfficeClipPath.Rectangle(2D, 1D));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(
+            drawing,
+            1D,
+            OfficeSvgSizeUnit.Pixel,
+            imageCodec: null,
+            resourceIdPrefix: null,
+            CancellationToken.None,
+            new SvgNearestNeighborRectangleBudget(3)));
+
+        Assert.Contains("vectorization limit", exception.Message, StringComparison.Ordinal);
+    }
+
     private sealed class CancelingNearestNeighborCodec : IOfficeRasterImageCodec {
         private readonly CancellationTokenSource _cancellation;
 

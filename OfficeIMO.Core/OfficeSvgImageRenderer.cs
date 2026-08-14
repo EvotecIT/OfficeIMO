@@ -113,7 +113,8 @@ public static partial class OfficeSvgImageRenderer {
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken = default,
+        SvgNearestNeighborRectangleBudget? rectangleBudget = null) {
         if (builder == null) {
             throw new ArgumentNullException(nameof(builder));
         }
@@ -132,7 +133,8 @@ public static partial class OfficeSvgImageRenderer {
             nearestNeighborRaster,
             layout,
             clipPathId,
-            cancellationToken);
+            cancellationToken,
+            rectangleBudget);
 
         if (!string.IsNullOrEmpty(clipPathId) && layout.EffectiveClip != null) {
             OfficeImagePlacement clip = layout.EffectiveClip.Value;
