@@ -9,7 +9,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         ref int sourceIndex,
-        ICollection<FlexItem> items) {
+        ICollection<FlexItem> items,
+        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments) {
         if (node is IText text) {
             if (string.IsNullOrWhiteSpace(text.Data)) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
@@ -22,10 +23,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureDepth(depth, element);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, containingWidth, parentStyle);
         if (style.Display == "none") return true;
+        if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
+            if (runningElementAssignments != null) {
+                runningElementAssignments.Add(CaptureRunningElement(
+                    element,
+                    runningElementName,
+                    containingWidth,
+                    style,
+                    parentStyle,
+                    depth + 1,
+                    sourceIndex));
+            }
+            sourceIndex++;
+            return true;
+        }
         if (style.Display == "contents") {
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
             foreach (INode child in element.ChildNodes) {
-                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, items)) return false;
+                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, items, runningElementAssignments)) return false;
             }
             AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
             return true;

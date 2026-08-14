@@ -378,8 +378,8 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Adds a path-clipped fixed-position canvas frame using top-left page coordinates.</summary>
     public PdfPageCanvas Clip(double x, double y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.NotNull(clipPath, nameof(clipPath));
         Guard.NotNull(build, nameof(build));
 

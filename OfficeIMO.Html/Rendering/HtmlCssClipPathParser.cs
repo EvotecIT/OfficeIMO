@@ -66,7 +66,10 @@ internal static class HtmlCssClipPathParser {
         ExpandFour(values, out double top, out double right, out double bottom, out double left);
         double clipWidth = width - left - right;
         double clipHeight = height - top - bottom;
-        if (clipWidth <= 0.0001D || clipHeight <= 0.0001D) return false;
+        if (clipWidth <= 0.0001D || clipHeight <= 0.0001D) {
+            resolved = HtmlCssResolvedClipPath.Empty;
+            return true;
+        }
 
         OfficeClipPath path;
         if (roundIndex < 0) {
@@ -113,8 +116,12 @@ internal static class HtmlCssClipPathParser {
         else {
             double reference = Math.Sqrt(width * width + height * height) / Math.Sqrt(2D);
             if (!TryLength(radiusToken, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius)) return false;
+            if (radius < 0D) return false;
         }
-        if (radius <= 0.0001D) return false;
+        if (radius <= 0.0001D) {
+            resolved = HtmlCssResolvedClipPath.Empty;
+            return true;
+        }
         resolved = new HtmlCssResolvedClipPath(centerX - radius, centerY - radius, CreateEllipse(radius, radius));
         return true;
     }
@@ -140,7 +147,11 @@ internal static class HtmlCssClipPathParser {
         string vertical = shapeTokens.Count == 0 ? "closest-side" : shapeTokens[1];
         if (!TryShapeRadius(horizontal, centerX, width - centerX, width, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double radiusX)
             || !TryShapeRadius(vertical, centerY, height - centerY, height, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double radiusY)
-            || radiusX <= 0.0001D || radiusY <= 0.0001D) return false;
+            || radiusX < 0D || radiusY < 0D) return false;
+        if (radiusX <= 0.0001D || radiusY <= 0.0001D) {
+            resolved = HtmlCssResolvedClipPath.Empty;
+            return true;
+        }
         resolved = new HtmlCssResolvedClipPath(centerX - radiusX, centerY - radiusY, CreateEllipse(radiusX, radiusY));
         return true;
     }
@@ -229,8 +240,8 @@ internal static class HtmlCssClipPathParser {
     }
 
     private static bool TryShapeRadius(string token, double near, double far, double reference, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, double containerWidth, double containerHeight, out double radius) {
-        if (token == "closest-side") { radius = Math.Min(near, far); return true; }
-        if (token == "farthest-side") { radius = Math.Max(near, far); return true; }
+        if (token == "closest-side") { radius = Math.Max(0D, Math.Min(near, far)); return true; }
+        if (token == "farthest-side") { radius = Math.Max(0D, Math.Max(near, far)); return true; }
         return TryLength(token, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out radius);
     }
 
@@ -256,6 +267,8 @@ internal static class HtmlCssClipPathParser {
 }
 
 internal sealed class HtmlCssResolvedClipPath {
+    internal static HtmlCssResolvedClipPath Empty { get; } = new HtmlCssResolvedClipPath(0D, 0D, OfficeClipPath.Empty());
+
     internal HtmlCssResolvedClipPath(double x, double y, OfficeClipPath clipPath) {
         X = x;
         Y = y;

@@ -11,15 +11,17 @@ public enum HtmlRenderBookmarkState {
 }
 
 internal sealed class HtmlRenderBookmarkDefinition {
-    internal HtmlRenderBookmarkDefinition(int level, string? label, HtmlRenderBookmarkState state, bool suppressed) {
+    internal HtmlRenderBookmarkDefinition(int level, string? label, HtmlRenderBookmarkState state, bool suppressed, int sourceOrder) {
         Level = level;
         Label = label;
         State = state;
         Suppressed = suppressed;
+        SourceOrder = sourceOrder;
     }
 
     internal int Level { get; }
     internal string? Label { get; }
     internal HtmlRenderBookmarkState State { get; }
     internal bool Suppressed { get; }
+    internal int SourceOrder { get; }
 }

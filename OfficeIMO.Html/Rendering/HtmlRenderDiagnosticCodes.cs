@@ -134,8 +134,6 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FormFieldNoWrapStaticFallback = "HtmlRenderFormFieldNoWrapStaticFallback";
     /// <summary>A CSS opacity value used the opaque fallback.</summary>
     public const string OpacityValueUnsupported = "HtmlRenderOpacityValueUnsupported";
-    /// <summary>A non-atomic inline paint effect could not form an isolated group.</summary>
-    public const string InlinePaintEffectUnsupported = "HtmlRenderInlinePaintEffectUnsupported";
     /// <summary>A CSS border radius contained invalid or unsupported syntax and used square-corner fallback.</summary>
     public const string BorderRadiusValueUnsupported = "HtmlRenderBorderRadiusValueUnsupported";
     /// <summary>A CSS box shadow contained invalid or unsupported syntax.</summary>
@@ -263,7 +261,6 @@ public static class HtmlRenderDiagnosticCodes {
         FormFieldTypographyStaticFallback,
         FormFieldNoWrapStaticFallback,
         OpacityValueUnsupported,
-        InlinePaintEffectUnsupported,
         BorderRadiusValueUnsupported,
         BoxShadowLayerLimit,
         BoxShadowValueUnsupported,

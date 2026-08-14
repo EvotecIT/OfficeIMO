@@ -123,17 +123,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
         }
         if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
-            HtmlRenderBoxStyle captureStyle = style.Clone();
-            captureStyle.Position = "static";
-            captureStyle.ZIndex = "auto";
-            HtmlRenderFlowBlock snapshot = LayoutElement(element, width, captureStyle, inheritedStyle, depth + 1);
-            int snapshotId = ++_nextRunningElementSnapshotId;
-            _runningElementSnapshots[snapshotId] = new HtmlCssRunningElementSnapshot(snapshot, element, inheritedStyle, depth + 1);
             runs.Add(new HtmlInlineRun(
-                new HtmlCssRunningStringAssignment(
-                    HtmlCssRunningElementKeys.ForName(runningElementName),
-                    HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
-                    0D),
+                CaptureRunningElement(element, runningElementName, width, style, inheritedStyle, depth + 1),
                 style,
                 HtmlRenderStyleResolver.DescribeSource(element)));
             return;
@@ -201,14 +192,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (style.Transform != "none"
+            || style.OpacityWasSpecified && (style.Opacity < 1D || style.UnsupportedOpacity.Length > 0)
+            || style.ClipPath != "none") {
+            _inlineStackingElements.Add(element);
+        }
+
         if (!string.IsNullOrWhiteSpace(style.StringSet)) {
             runs.Add(new HtmlInlineRun(
                 element,
                 style,
                 HtmlRenderStyleResolver.DescribeSource(element)));
         }
-
-        ReportUnsupportedInlinePaintEffects(element, style);
 
         ResolvePositionPaintOffset(style, width, containingHeight, HtmlRenderStyleResolver.DescribeSource(element), out double elementPaintOffsetX, out double elementPaintOffsetY);
         double paintOffsetX = inheritedPaintOffsetX + elementPaintOffsetX;
@@ -222,11 +217,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (tag == "img") {
             AddInlineImageRun(element, style, link, paintOffsetX, paintOffsetY, targetRuns);
-            AppendSemanticInlineRuns(element, style, semanticRuns, runs);
+            AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;
         }
         if (tag == "math" && TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
-            AppendSemanticInlineRuns(element, style, semanticRuns, runs);
+            AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;
         }
 
@@ -235,7 +230,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
-        AppendSemanticInlineRuns(element, style, semanticRuns, runs);
+        AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
 
     private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>
@@ -253,10 +248,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement element,
         HtmlRenderBoxStyle style,
         IReadOnlyList<HtmlInlineRun>? semanticRuns,
-        ICollection<HtmlInlineRun> destination) {
+        ICollection<HtmlInlineRun> destination,
+        string? link,
+        double paintOffsetX,
+        double paintOffsetY) {
         if (semanticRuns == null) return;
         int nodeId = GetSemanticNodeId(element);
         string bookmarkAnchorText = ResolveBookmarkAnchorText(element, style);
+        if (semanticRuns.Count == 0
+            && ShouldAssignNavigationNode(style)
+            && !style.BookmarkSuppressed
+            && bookmarkAnchorText.Length > 0) {
+            string source = HtmlRenderStyleResolver.DescribeSource(element);
+            var anchor = new HtmlRenderBookmarkAnchor(nodeId, bookmarkAnchorText, 0D, 0D, 0.01D, 0.01D, 0, source);
+            var markerBlock = new HtmlRenderFlowBlock(
+                0.01D,
+                0.01D,
+                new[] { anchor },
+                HtmlPageBreakTarget.None,
+                HtmlPageBreakTarget.None,
+                false,
+                source);
+            var markerRun = new HtmlInlineRun(markerBlock, style, link, source, paintOffsetX, paintOffsetY, element);
+            markerRun.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
+            AssignInlineSemanticGroup(markerRun, style, nodeId);
+            destination.Add(markerRun);
+            return;
+        }
         foreach (HtmlInlineRun run in semanticRuns) {
             if (ShouldAssignNavigationNode(style)) run.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
             AssignInlineSemanticGroup(run, style, nodeId);

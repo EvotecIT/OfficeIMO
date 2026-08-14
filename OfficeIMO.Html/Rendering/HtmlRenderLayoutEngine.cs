@@ -41,6 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, int> _documentOrderByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<int, HtmlRenderBookmarkDefinition> _bookmarkDefinitions = new Dictionary<int, HtmlRenderBookmarkDefinition>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _blankValueRadioGroupKeys = new Dictionary<IElement, string>();
@@ -90,6 +91,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
+        int documentOrder = 0;
+        foreach (IElement element in document.QuerySelectorAll("*")) {
+            _documentOrderByElement[element] = documentOrder++;
+        }
         _options = options;
         _diagnostics = diagnostics;
         _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
@@ -249,6 +254,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _semanticNodeIds[element] = nodeId;
         return nodeId;
     }
+
+    private int GetDocumentOrder(IElement element) =>
+        _documentOrderByElement.TryGetValue(element, out int order) ? order : int.MaxValue;
 
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
         double width = _options.ViewportWidth;

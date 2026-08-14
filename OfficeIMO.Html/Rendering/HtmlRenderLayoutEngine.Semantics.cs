@@ -6,6 +6,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
+        if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
+            int nodeId = GetSemanticNodeId(element);
+            string anchorText = ResolveBookmarkAnchorText(element, style);
+            if (anchorText.Length > 0 && !ContainsNavigationFragment(block.Visuals, nodeId)) {
+                block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
+                    new HtmlRenderBookmarkAnchor(
+                        nodeId,
+                        anchorText,
+                        style.MarginLeft,
+                        style.MarginTop,
+                        Math.Max(0.01D, block.Width - style.MarginLeft - style.MarginRight),
+                        Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom),
+                        block.Visuals.Count,
+                        HtmlRenderStyleResolver.DescribeSource(element))
+                }));
+            }
+        }
         HtmlRenderFlowBlock listBlock = style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue
             ? block
             : ApplyListSemantics(block, element);
@@ -105,6 +122,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
+    private static bool ContainsNavigationFragment(IEnumerable<HtmlRenderVisual> visuals, int semanticNodeId) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderBookmarkAnchor anchor && anchor.SemanticNodeId == semanticNodeId) return true;
+            if (visual is HtmlRenderText text && text.SemanticNodeId == semanticNodeId) return true;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderSemanticGroup semantic ? semantic.Visuals
+                : visual is HtmlRenderLogicalTextGroup logical ? logical.Visuals
+                : visual is HtmlRenderClipGroup clip ? clip.Visuals
+                : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
+                : visual is HtmlRenderEffectGroup effect ? effect.Visuals
+                : visual is HtmlRenderFormField form ? form.Visuals
+                : null;
+            if (children != null && ContainsNavigationFragment(children, semanticNodeId)) return true;
+        }
+        return false;
+    }
+
     private void RegisterInlineSemanticControls(IElement element, HtmlRenderBoxStyle style) {
         RegisterBookmark(element, style);
         ReportUnsupportedSemanticTag(element, style);
@@ -137,7 +170,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!automaticHeading && !style.BookmarkLevelSpecified && style.BookmarkLabel == null && style.BookmarkState == HtmlRenderBookmarkState.Default) return;
         int nodeId = GetSemanticNodeId(element);
         int level = style.BookmarkLevel ?? (automaticHeading ? headingLevel : 1);
-        _bookmarkDefinitions[nodeId] = new HtmlRenderBookmarkDefinition(level, style.BookmarkLabel, style.BookmarkState, style.BookmarkSuppressed);
+        _bookmarkDefinitions[nodeId] = new HtmlRenderBookmarkDefinition(level, style.BookmarkLabel, style.BookmarkState, style.BookmarkSuppressed, GetDocumentOrder(element));
     }
 
     private static bool TryResolveSemanticGroupRole(string tagName, out HtmlRenderSemanticGroupRole role) {

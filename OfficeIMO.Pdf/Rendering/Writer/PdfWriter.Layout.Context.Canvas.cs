@@ -544,7 +544,13 @@ internal static partial class PdfWriter {
         }
 
         private void RenderCanvasClip(PdfCanvasClipItem item) {
-            ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
+            if (item.ClipPath.Kind == OfficeIMO.Drawing.OfficeClipPathKind.Empty) {
+                if (double.IsNaN(item.X) || double.IsNaN(item.Y) || double.IsInfinity(item.X) || double.IsInfinity(item.Y)) {
+                    throw new ArgumentOutOfRangeException(nameof(item), "Canvas clip coordinates must be finite.");
+                }
+            } else {
+                ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
+            }
             double bottomY = currentOpts.PageHeight - item.Y - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
             int textAnnotationStart = currentPage.TextAnnotations.Count;

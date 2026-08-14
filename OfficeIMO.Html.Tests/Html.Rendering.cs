@@ -1732,6 +1732,40 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_DirectFlexAndGridRunningItemsPreserveCaseAndContainerLayout() {
+        const string html = """
+            <style>
+              @page {
+                size:320px 200px;
+                margin:32px;
+                @top-center { content:element(FlexHeader); }
+                @bottom-center { content:element(GridFooter); }
+              }
+              .flex { display:flex; width:240px; height:32px; }
+              .grid { display:grid; grid-template-columns:1fr; width:240px; height:32px; }
+              .flex-running { position:running(FlexHeader); }
+              .grid-running { position:running(GridFooter); }
+            </style>
+            <div class="flex"><header class="flex-running">MixedCaseHeader</header><div>FlexBody</div></div>
+            <div class="grid"><footer class="grid-running">MixedCaseFooter</footer><div>GridBody</div></div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string sceneText = string.Concat(EnumerateRenderVisuals(Assert.Single(rendered.Pages).Scene).OfType<HtmlRenderText>().Select(text => text.Text));
+
+        Assert.Contains("MixedCaseHeader", sceneText, StringComparison.Ordinal);
+        Assert.Contains("MixedCaseFooter", sceneText, StringComparison.Ordinal);
+        Assert.Contains("FlexBody", sceneText, StringComparison.Ordinal);
+        Assert.Contains("GridBody", sceneText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.FlexLayoutPending or HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlRender_Paged_MixedRunningElementContentIsDiagnosedAndStrictModeRejectsIt() {
         const string html = """
             <style>
@@ -1975,6 +2009,9 @@ public sealed partial class HtmlRenderingTests {
             + "<h2>Child</h2>"
             + "<h2 style='bookmark-level:none'>Suppressed child</h2>"
             + "<div style='bookmark-level:1;bookmark-label:\"Extra entry\";bookmark-state:open'>Extra body</div>"
+            + "<h2 style='bookmark-label:\"Empty heading\"'></h2>"
+            + "<div style='height:12px;bookmark-level:1;bookmark-label:\"Empty block\"'></div>"
+            + "<p>Before<span style='bookmark-level:1;bookmark-label:\"Empty inline\"'></span>After</p>"
             + "<p style='-officeimo-pdf-tag-type:H2'>Promoted semantic paragraph</p>"
             + "<aside style='-officeimo-pdf-tag-type:artifact'>Decorative note</aside>"
             + "</main>";
@@ -1996,11 +2033,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Collection(rendered.Headings,
             heading => { Assert.Equal("Public label", heading.Text); Assert.Equal(HtmlRenderBookmarkState.Closed, heading.BookmarkState); },
             heading => Assert.Equal("Child", heading.Text),
-            heading => { Assert.Equal("Extra entry", heading.Text); Assert.Equal(HtmlRenderBookmarkState.Open, heading.BookmarkState); });
+            heading => { Assert.Equal("Extra entry", heading.Text); Assert.Equal(HtmlRenderBookmarkState.Open, heading.BookmarkState); },
+            heading => Assert.Equal("Empty heading", heading.Text),
+            heading => Assert.Equal("Empty block", heading.Text),
+            heading => Assert.Equal("Empty inline", heading.Text));
         Assert.Equal("Public label", info.Outlines[0].Title);
         Assert.False(info.Outlines[0].IsExpanded);
         Assert.Equal("Child", Assert.Single(info.Outlines[0].Children).Title);
         Assert.Equal("Extra entry", info.Outlines[1].Title);
+        Assert.Equal("Empty heading", Assert.Single(info.Outlines[1].Children).Title);
+        Assert.Equal("Empty block", info.Outlines[2].Title);
+        Assert.Equal("Empty inline", info.Outlines[3].Title);
         Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
         Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
         Assert.DoesNotContain("Decorative note", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -2016,7 +2059,7 @@ public sealed partial class HtmlRenderingTests {
             + "<img src='data:image/png;base64," + image + "' alt='Chart' style='display:block;width:8px;height:6px;bookmark-level:1;bookmark-label:\"Chart entry\";-officeimo-pdf-tag-type:H2'>"
             + "<p style='width:72px'>Prefix <span style='bookmark-level:2;bookmark-label:\"Inline entry\";-officeimo-pdf-tag-type:H3'>Inline content wraps across lines</span></p>"
             + "<p><input name='field' aria-label='Field' value='Value' style='width:80px;bookmark-level:1;bookmark-label:\"Field entry\";-officeimo-pdf-tag-type:H4'></p>"
-            + "<table style='-officeimo-pdf-tag-type:artifact'><tr><td>Decorative table</td></tr></table>"
+            + "<table style='-officeimo-pdf-tag-type:artifact'><tr><td>Decorative table<input name='artifact-field' value='Must not be interactive'></td></tr></table>"
             + "</main>";
         var options = new HtmlPdfSaveOptions {
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
@@ -2045,6 +2088,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H4"));
         Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.DoesNotContain("Decorative table", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "artifact-field");
+        Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "field");
         Assert.Empty(rendered.Diagnostics);
     }
 

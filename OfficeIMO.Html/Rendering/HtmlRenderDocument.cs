@@ -121,10 +121,16 @@ public sealed class HtmlRenderDocument {
 
         var headings = new List<HtmlRenderHeading>();
         foreach (IGrouping<int, (int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order)> group in fragments
-            .OrderBy(item => item.PageNumber)
-            .ThenBy(item => item.Order)
-            .GroupBy(item => item.NodeId)) {
-            var ordered = group.OrderBy(item => item.PageNumber).ThenBy(item => item.Order).ToList();
+            .GroupBy(item => item.NodeId)
+            .OrderBy(group => bookmarks != null && bookmarks.TryGetValue(group.Key, out HtmlRenderBookmarkDefinition? definition)
+                ? definition.SourceOrder
+                : int.MaxValue)) {
+            var ordered = group
+                .OrderBy(item => item.PageNumber)
+                .ThenBy(item => item.Y)
+                .ThenBy(item => item.X)
+                .ThenBy(item => item.Order)
+                .ToList();
             var first = ordered[0];
             string headingText = string.Concat(ordered.Select(item => item.Text)).Trim();
             if (headingText.Length == 0) continue;

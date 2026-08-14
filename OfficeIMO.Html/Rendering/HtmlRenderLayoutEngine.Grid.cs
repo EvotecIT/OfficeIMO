@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         out HtmlRenderFlowBlock block) {
         block = null!;
-        if (!TryCollectFlexItems(element, containingWidth, style, depth, out List<FlexItem> formattingItems)) return false;
+        if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> formattingItems, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -187,10 +187,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             breakOffsets,
             pageName: style.PageName,
-            runningStringAssignments: itemPaintLayers.SelectMany(layer =>
+            runningStringAssignments: runningElementAssignments.Concat(itemPaintLayers.SelectMany(layer =>
                     layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
                 .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset));
+                .OrderBy(assignment => assignment.OrderOffset)));
         return true;
     }
 

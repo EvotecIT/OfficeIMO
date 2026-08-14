@@ -229,13 +229,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, group.Width, 3);
         Assert.Equal((byte)255, pixel.R);
         Assert.InRange(pixel.A, (byte)127, (byte)128);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported);
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Fact]
     public void HtmlEffects_InvalidAndInlineValuesUseCatalogedDiagnosticsAndSupportsTruth() {
         const string html = "<div id='invalid-effect' style='transform:warp(2);opacity:opaque'>Block</div>"
-            + "<p><span id='inline-effect' style='transform:rotate(10deg);opacity:.5'>Inline</span></p>";
+            + "<p><span id='invalid-inline-effect' style='transform:warp(2);opacity:opaque;clip-path:url(#missing)'>Inline</span></p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
@@ -243,7 +243,9 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported && item.Source == "span#inline-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported && item.Source == "span#invalid-inline-effect");
         Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OpacityValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TransformValueUnsupported, out _));
@@ -253,6 +255,35 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(transform:warp(2))"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(transform-origin:left top 2px)"));
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(opacity:opaque)"));
+    }
+
+    [Fact]
+    public void HtmlEffects_NonAtomicInlineTransformOpacityAndClipPathShareArtifactPipeline() {
+        const string html = "<p style='width:100px;margin:0;font-size:10px;line-height:20px'>Before "
+            + "<span id='inline-effect' style='background:#ff0000;transform-origin:0 0;transform:translateX(4px);opacity:.5;clip-path:inset(0 2px)'>InlineEffectMarker</span> after</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 50D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderVisual> visuals = EnumerateRenderVisuals(rendered.Pages[0].Scene).ToList();
+        HtmlRenderEffectGroup effect = Assert.Single(visuals.OfType<HtmlRenderEffectGroup>(), group => group.Source == "span#inline-effect");
+        HtmlRenderPathClipGroup clip = Assert.Single(visuals.OfType<HtmlRenderPathClipGroup>(), group => group.Source == "span#inline-effect");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.Equal(4D, effect.Transform.OffsetX, 3);
+        Assert.Equal(.5D, effect.Opacity, 3);
+        Assert.True(clip.Width > 0D);
+        Assert.Contains("opacity=\"0.5\"", svg, StringComparison.Ordinal);
+        Assert.Contains("InlineEffectMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(raster.Width > 0 && raster.Height > 0);
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Fact]
@@ -311,10 +342,51 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPathClipGroup inset = Assert.Single(clips, group => group.Source == "div#inset");
         HtmlRenderPathClipGroup polygon = Assert.Single(clips, group => group.Source == "div#polygon");
         HtmlRenderPathClipGroup circle = Assert.Single(clips, group => group.Source == "div#circle");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
         Assert.Equal((-5D, 30D), (inset.X, inset.Width));
         Assert.Equal((-10D, 30D), (polygon.X, polygon.Width));
         Assert.Equal((-7D, 10D), (circle.X, circle.Width));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 2));
+        Assert.Contains("<clipPath", svg, StringComparison.Ordinal);
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:circle(-5px))"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlClipPath_EmptyBasicShapesRemainValidEmptyClipsAcrossArtifacts() {
+        const string html = "<div id='inset-empty' style='width:20px;height:20px;margin:0;background:red;clip-path:inset(60%);font-size:8px'>InsetMarker</div>"
+            + "<div id='circle-empty' style='width:20px;height:20px;margin:0;background:blue;clip-path:circle(0)'>CircleMarker</div>"
+            + "<div id='ellipse-empty' style='width:20px;height:20px;margin:0;background:green;clip-path:ellipse(0 10px)'>EllipseMarker</div>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 70D,
+            Margins = HtmlRenderMargins.All(0D),
+            BackgroundColor = OfficeColor.Transparent,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderPathClipGroup>()
+            .Where(group => group.Source != null && group.Source.Contains("empty", StringComparison.Ordinal))
+            .ToList();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = OfficeDrawingSvgExporter.ToSvg(rendered.Pages[0].CreateDrawing());
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+
+        Assert.Equal(3, clips.Count);
+        Assert.All(clips, clip => Assert.Equal(OfficeClipPathKind.Empty, clip.ClipPath.Kind));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 30));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 50));
+        Assert.Contains("<path d=\"\"", svg, StringComparison.Ordinal);
+        Assert.Contains("InsetMarker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("CircleMarker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("EllipseMarker", pdfText, StringComparison.Ordinal);
         Assert.Empty(rendered.Diagnostics);
     }
 

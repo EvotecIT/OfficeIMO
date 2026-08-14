@@ -873,7 +873,10 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static void ApplyPositioning(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
-        style.Position = NormalizeCssValue(computed.GetValue("position"), "static");
+        string position = computed.GetValue("position");
+        style.Position = HtmlCssRunningElementParser.TryParsePosition(position, out _)
+            ? position.Trim()
+            : NormalizeCssValue(position, "static");
         style.Top = NormalizeCssValue(computed.GetValue("top"), "auto");
         style.Right = NormalizeCssValue(computed.GetValue("right"), "auto");
         style.Bottom = NormalizeCssValue(computed.GetValue("bottom"), "auto");

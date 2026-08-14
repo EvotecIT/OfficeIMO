@@ -224,7 +224,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(clipPath), "Image clip must fit inside the drawing bounds.");
         }
 
-        var clipped = new OfficeDrawing(clipPath.Width, clipPath.Height);
+        var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
         clipped.AddImageCore(bytes, contentType, projection.Translate(-clipX, -clipY), alternativeText, opacity, allowOverflow: true);
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
@@ -241,7 +241,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(clipPath), "Text clip must fit inside the drawing bounds.");
         }
 
-        var clipped = new OfficeDrawing(clipPath.Width, clipPath.Height);
+        var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
         clipped.AddTextCore(
             text,
             x - clipX,
@@ -382,6 +382,18 @@ public sealed partial class OfficeDrawing {
 
     internal OfficeDrawing AddDrawingForClippedRendering(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform) {
         return AddDrawingCore(drawing, x, y, frameTransform, allowOverflow: true);
+    }
+
+    internal OfficeDrawing AddClippedDrawingForRendering(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY) {
+        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
+        ValidateFinite(x, nameof(x));
+        ValidateFinite(y, nameof(y));
+        ValidateFinite(contentOffsetX, nameof(contentOffsetX));
+        ValidateFinite(contentOffsetY, nameof(contentOffsetY));
+        Fonts.AddRange(drawing.Fonts);
+        _elements.Add(new OfficeDrawingGroup(drawing, x, y, clipPath, contentOffsetX, contentOffsetY));
+        return this;
     }
 
     private OfficeDrawing AddDrawingCore(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {

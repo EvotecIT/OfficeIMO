@@ -71,6 +71,13 @@ public sealed partial class PdfDocument {
             return;
         }
 
+        if (clipPath.Kind == OfficeClipPathKind.Empty) {
+            if (clipPath.Width != 0D || clipPath.Height != 0D || clipPath.Commands.Count != 0) {
+                throw new System.ArgumentException("Empty clip paths cannot contain geometry.", paramName);
+            }
+            return;
+        }
+
         Guard.Positive(clipPath.Width, paramName);
         Guard.Positive(clipPath.Height, paramName);
         if (clipPath.Width > width || clipPath.Height > height) {

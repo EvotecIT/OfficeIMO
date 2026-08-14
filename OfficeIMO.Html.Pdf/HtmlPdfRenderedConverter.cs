@@ -317,7 +317,7 @@ internal static partial class HtmlPdfRenderedConverter {
             canvas.Artifact(nested => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan: true, activeClip: activeClip);
+                    AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip);
                 }
             });
             return;
@@ -458,16 +458,24 @@ internal static partial class HtmlPdfRenderedConverter {
             group.X + group.Width,
             group.Y + group.Height,
             allowsInteractiveWidgets: false));
-        canvas.Clip(
-            group.ClipX * PointsPerCssPixel,
-            group.ClipY * PointsPerCssPixel,
-            group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel),
+        double clipX = group.ClipX * PointsPerCssPixel;
+        double clipY = group.ClipY * PointsPerCssPixel;
+        OfficeClipPath clipPath = group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel);
+        Action<PdfCore.PdfPageCanvas> addClip = target => target.Clip(
+            clipX,
+            clipY,
+            clipPath,
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AddVisual(clipped, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, clip);
                 }
             });
+        if (clipX < 0D || clipY < 0D) {
+            canvas.Effect(OfficeTransform.Identity, 1D, addClip);
+        } else {
+            addClip(canvas);
+        }
     }
 
     private static void AddShape(

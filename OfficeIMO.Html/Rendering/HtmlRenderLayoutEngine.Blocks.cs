@@ -59,12 +59,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) adjoiningMargins.Clear();
-                    HtmlRenderBoxStyle captureStyle = childStyle.Clone();
-                    captureStyle.Position = "static";
-                    captureStyle.ZIndex = "auto";
-                    HtmlRenderFlowBlock snapshot = LayoutElement(element, width, captureStyle, parentStyle, depth + 1);
-                    int snapshotId = ++_nextRunningElementSnapshotId;
-                    _runningElementSnapshots[snapshotId] = new HtmlCssRunningElementSnapshot(snapshot, element, parentStyle, depth + 1);
+                    HtmlCssRunningStringAssignment assignment = CaptureRunningElement(
+                        element,
+                        runningElementName,
+                        width,
+                        childStyle,
+                        parentStyle,
+                        depth + 1);
                     blocks.Add(new HtmlRenderFlowBlock(
                         width,
                         0D,
@@ -73,12 +74,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HtmlPageBreakTarget.None,
                         false,
                         HtmlRenderStyleResolver.DescribeSource(element),
-                        runningStringAssignments: new[] {
-                            new HtmlCssRunningStringAssignment(
-                                HtmlCssRunningElementKeys.ForName(runningElementName),
-                                HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
-                                0D)
-                        },
+                        runningStringAssignments: new[] { assignment },
                         layoutViewportWidth: ActiveSurfaceWidth,
                         layoutViewportHeight: _activePageGeometry.Height));
                     adjoiningMargins.Clear();

@@ -41,7 +41,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return Math.Min(availableOuterWidth, style.MarginLeft + ResolveBoxWidth(availableBoxWidth, style) + style.MarginRight);
         }
 
-        if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, out List<FlexItem> formattingItems)) return availableOuterWidth;
+        if (!TryCollectFlexItems(element, availableOuterWidth, style, depth, captureRunningElements: false, out List<FlexItem> formattingItems, out _)) return availableOuterWidth;
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         List<GridTrack> tracks = ParseGridTracks(style.GridTemplateColumns, availableBoxWidth, percentageReferenceIsDefinite: true, style, source, "grid-template-columns");
         double? declaredContentHeight = ResolveGridDeclaredContentHeight(style);
