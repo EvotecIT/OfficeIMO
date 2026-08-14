@@ -1555,6 +1555,7 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedBlendMode ||
                 unsupportedSoftMask ||
                 unsupportedTextRestampEffect ||
+                state.Items.ContainsKey("SMask") ||
                 softMaskEnabled.HasValue ||
                 hasUnsupportedEntries) {
                 result[entry.Key] = new PdfPageGraphicsStateResource(

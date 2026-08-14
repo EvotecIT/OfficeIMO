@@ -392,6 +392,35 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderDiagnostics_SharesPatternPrepassBudgetWithType3AndFormValidation() {
+        const string pageContent = "/Pattern cs /P1 scn /Fm1 Do BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent = "500 0 d0 0 0 500 700 re f";
+        const string formContent = "0 0 10 10 re f";
+        string patternContent = "1 0 0 rg 0 0 10 10 re f " + new string(' ', 1024);
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
+        string glyph = BuildStreamObject(6, "<<", glyphContent);
+        string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", patternContent);
+        string form = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>", formContent);
+        byte[] pdf = BuildSingleStreamPdf(
+            pageContent,
+            "<< /Font << /FType3 5 0 R >> /Pattern << /P1 7 0 R >> /XObject << /Fm1 8 0 R >> >>",
+            type3Font,
+            glyph,
+            pattern,
+            form);
+        int independentlyValidBudget = Math.Max(
+            patternContent.Length,
+            pageContent.Length + glyphContent.Length + formContent.Length) + 32;
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxPageContentBytes = independentlyValidBudget }
+        });
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].GetRenderCapabilityDiagnostics());
+
+        Assert.Equal(PdfReadLimitKind.PageContentBytes, exception.Kind);
+    }
+
+    [Fact]
     public void RenderDiagnostics_ChargesNestedType3PatternGlyphsOnce() {
         string outerFont = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Pattern << /P1 7 0 R >> >> >>\nendobj";
         string outerGlyph = BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f");

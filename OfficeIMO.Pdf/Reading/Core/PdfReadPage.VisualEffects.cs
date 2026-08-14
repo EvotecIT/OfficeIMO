@@ -736,7 +736,10 @@ public sealed partial class PdfReadPage {
 
     private bool? ReadSoftMaskEnabled(PdfDictionary state) {
         if (!state.Items.TryGetValue("SMask", out PdfObject? value)) return null;
-        return ResolveObject(value) is PdfName { Name: "None" } ? false : true;
+        PdfObject? resolved = ResolveObject(value);
+        if (resolved is PdfNull) return null;
+        if (resolved is null) return true;
+        return resolved is PdfName { Name: "None" } ? false : true;
     }
 
     private IReadOnlyList<PdfPageDrawingEffectTransition> GetGraphicsEffectTransitions(Matrix2D pageTransform, double pageHeight, PageContentBudget? pageContentBudget = null) {

@@ -32,9 +32,10 @@ public static partial class OfficeDrawingRasterRenderer {
         }
         OfficeTransform transform = effectGroup.Transform;
         var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
+        var surfaceBounds = (Left: 0D, Top: 0D, Right: effectGroup.InnerDrawing.Width, Bottom: effectGroup.InnerDrawing.Height);
         bool interpolate =
-            !ContainsNonInterpolatedImage(effectGroup.InnerDrawing) &&
-            (effectGroup.SoftMask == null || !ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing));
+            !ContainsNonInterpolatedImage(effectGroup.InnerDrawing, surfaceBounds) &&
+            (effectGroup.SoftMask == null || !ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, surfaceBounds));
         canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
     }
 

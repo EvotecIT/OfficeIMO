@@ -228,9 +228,9 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfPageTilingPatternResource> tilingPatterns = GetTilingPatternResources(
             resources,
             invokedPatternNames,
-            textOutputBudget: CreateTextOutputBudget(),
-            pageContentBudget: new PageContentBudget(this),
-            type3GlyphBudget: new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage),
+            textOutputBudget: type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget).TextOutputBudget,
+            pageContentBudget: pageContentBudget,
+            type3GlyphBudget: type3GlyphBudget,
             requireSupportedType3Content: false,
             contentNestingDepth: contentNestingDepth,
             invocationTextClippingBudget: textClippingBudget,

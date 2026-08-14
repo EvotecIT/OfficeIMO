@@ -103,7 +103,7 @@ internal sealed class PdfPageOptionalContentVisibility {
 
     internal bool HasInvalidMembershipReferences(PdfInlineOptionalContentReferences references) {
         if (!references.IsMembershipDictionary) return false;
-        if (references.HasInvalidPolicy) return true;
+        if (references.HasInvalidPolicy || references.HasInvalidGroupContainer) return true;
         if (!string.IsNullOrWhiteSpace(references.VisibilityExpression) &&
             !TryEvaluateInlineOrIndirectVisibilityExpression(references.VisibilityExpression!, out _)) return true;
         for (int index = 0; index < references.ObjectReferences.Count; index++) {
@@ -392,13 +392,19 @@ internal sealed class PdfPageOptionalContentVisibility {
             return result;
         }
 
-        PdfDictionary? defaultConfiguration = ResolveObject(
-            optionalContent.Items.TryGetValue("D", out PdfObject? defaultConfigurationObject) ? defaultConfigurationObject : null,
-            objects) as PdfDictionary;
+        PdfDictionary? defaultConfiguration = null;
+        bool invalidDefaultConfiguration = false;
+        if (optionalContent.Items.TryGetValue("D", out PdfObject? defaultConfigurationObject)) {
+            if (defaultConfigurationObject is not PdfNull) {
+                PdfObject? resolvedDefaultConfiguration = ResolveObject(defaultConfigurationObject, objects);
+                if (resolvedDefaultConfiguration is PdfDictionary dictionary) defaultConfiguration = dictionary;
+                else if (resolvedDefaultConfiguration is not PdfNull) invalidDefaultConfiguration = true;
+            }
+        }
         bool validBaseState = TryReadBaseState(defaultConfiguration, objects, out string? baseState);
         HashSet<int> onGroups = ReadReferenceSet(defaultConfiguration, "ON", objects, out bool invalidOnGroups);
         HashSet<int> offGroups = ReadReferenceSet(defaultConfiguration, "OFF", objects, out bool invalidOffGroups);
-        hasUnsupportedViewUsageApplications = !validBaseState || invalidOnGroups || invalidOffGroups;
+        hasUnsupportedViewUsageApplications = invalidDefaultConfiguration || !validBaseState || invalidOnGroups || invalidOffGroups;
 
         for (int i = 0; i < groups.Items.Count; i++) {
             if (groups.Items[i] is not PdfReference reference) {

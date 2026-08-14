@@ -310,6 +310,40 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 0));
     }
 
+    [Theory]
+    [InlineData(OfficeBlendMode.Normal)]
+    [InlineData(OfficeBlendMode.Multiply)]
+    public void OfficeDrawingEffectGroup_IgnoresTransformedAwayNearestNeighborSoftMaskImage(OfficeBlendMode blendMode) {
+        OfficeRasterImage sourcePixels = new OfficeRasterImage(2, 1, OfficeColor.Transparent);
+        sourcePixels.SetPixel(0, 0, OfficeColor.Black);
+        sourcePixels.SetPixel(1, 0, OfficeColor.White);
+        byte[] png = OfficePngWriter.Encode(sourcePixels);
+        var source = new OfficeDrawing(2D, 1D);
+        source.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: true);
+        var maskDrawing = new OfficeDrawing(2D, 1D);
+        maskDrawing.AddImageWithInterpolation(
+            png,
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 2D, 1D)),
+            interpolate: false);
+        var mask = new OfficeDrawingSoftMask(
+            maskDrawing,
+            transform: OfficeTransform.Translate(10D, 0D),
+            backdropColor: OfficeColor.White);
+        var drawing = new OfficeDrawing(4D, 1D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Scale(2D, 1D), blendMode, mask);
+
+        OfficeColor boundary = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(1, 0);
+
+        Assert.InRange(boundary.R, (byte)1, (byte)254);
+        Assert.Equal(boundary.R, boundary.G);
+        Assert.Equal(boundary.R, boundary.B);
+    }
+
     [Fact]
     public void OfficeDrawingEffectGroup_AppliesAffineRotation() {
         var inner = new OfficeDrawing(10D, 20D);

@@ -29,6 +29,17 @@ public class PdfType3OptionalContentTests {
         Assert.True(references.HasInvalidPolicy);
     }
 
+    [Theory]
+    [InlineData("<< /Fake 11 0 R >>")]
+    [InlineData("[11 0 R /Bad]")]
+    public void InlineOptionalContentMembershipDictionary_RejectsMalformedGroupContainer(string groups) {
+        string content = "<< /Type /OCMD /OCGs " + groups + " /P /AnyOn >>";
+
+        PdfInlineOptionalContentReferences references = PdfInlineOptionalContentReferenceParser.Parse(content, 0, content.Length);
+
+        Assert.True(references.HasInvalidGroupContainer);
+    }
+
     [Fact]
     public void RenderPage_SkipsHiddenOptionalContentInsideType3GlyphProgram() {
         byte[] pdf = BuildType3OptionalContentPdf(nestedForm: false);
@@ -88,6 +99,19 @@ public class PdfType3OptionalContentTests {
 
         Assert.Empty(drawing.Images);
         Assert.Empty(drawing.Elements.OfType<OfficeDrawingText>());
+    }
+
+    [Theory]
+    [InlineData("<< /Type /OCMD /OCGs << /Fake 10 0 R >> /P /AnyOn >>")]
+    [InlineData("<< /Type /OCMD /OCGs [10 0 R /Bad] /P /AnyOn >>")]
+    public void RenderPage_FailsClosedForMalformedInlineMembershipGroupContainer(string membershipDictionary) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            inlineMembershipDictionary: membershipDictionary);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
     [Fact]
@@ -338,6 +362,8 @@ public class PdfType3OptionalContentTests {
     [InlineData("<< /Type /OCMD /OCGs [10 0 R] /P /Bad >>")]
     [InlineData("<< /Type /OCMD /OCGs [10 0 R] /VE [/Or] >>")]
     [InlineData("<< /Type /OCMD /OCGs [10 1 R] /P /AnyOn >>")]
+    [InlineData("<< /Type /OCMD /OCGs << /Fake 10 0 R >> /P /AnyOn >>")]
+    [InlineData("<< /Type /OCMD /OCGs [10 0 R /Bad] /P /AnyOn >>")]
     public void RenderPage_FailsClosedForMalformedResourceMembershipDictionary(string membershipDictionary) {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
@@ -433,6 +459,32 @@ public class PdfType3OptionalContentTests {
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
     }
 
+    [Theory]
+    [InlineData("/D /Bad")]
+    [InlineData("/D 99 0 R")]
+    public void RenderPage_FailsClosedForMalformedDefaultOptionalContentConfiguration(string defaultConfiguration) {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            optionalContentDefaultConfiguration: defaultConfiguration,
+            includeUnsupportedConditionalContent: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
+    public void RenderPage_TreatsExplicitNullDefaultOptionalContentConfigurationAsAbsent() {
+        byte[] pdf = BuildType3OptionalContentPdf(
+            nestedForm: false,
+            optionalContentDefaultConfiguration: "/D null",
+            includeUnsupportedConditionalContent: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
     [Fact]
     public void RenderPage_FailsClosedForInlineMembershipWithoutOptionalContentConfiguration() {
         byte[] pdf = BuildType3OptionalContentPdf(
@@ -458,7 +510,8 @@ public class PdfType3OptionalContentTests {
         string hiddenGroupType = "/Type /OCG",
         string? defaultConfigurationEntries = null,
         bool omitPropertyResource = false,
-        bool omitOptionalContentConfiguration = false) {
+        bool omitOptionalContentConfiguration = false,
+        string? optionalContentDefaultConfiguration = null) {
         string hiddenProperty = inlineMembershipDictionary ?? (resourceMembershipDictionary is null ? "/Hidden" : "/Membership");
         string unsupportedConditionalContent = includeUnsupportedConditionalContent
             ? " BT /Missing 12 Tf (Hidden) Tj ET /Missing gs /Missing Do"
@@ -477,7 +530,8 @@ public class PdfType3OptionalContentTests {
             "/ON [" + (allGroupsOn ? "10 0 R " : string.Empty) + "11 0 R] /OFF [" + (allGroupsOn ? string.Empty : "10 0 R") + "]";
         string optionalContentConfiguration = omitOptionalContentConfiguration
             ? string.Empty
-            : " /OCProperties << /OCGs [10 0 R 11 0 R] /D << " + defaultConfiguration + " >> >>";
+            : " /OCProperties << /OCGs [10 0 R 11 0 R] " +
+              (optionalContentDefaultConfiguration ?? "/D << " + defaultConfiguration + " >>") + " >>";
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R" + optionalContentConfiguration + " >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj",

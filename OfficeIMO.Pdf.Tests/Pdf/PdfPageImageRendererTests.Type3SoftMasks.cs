@@ -6,6 +6,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderPage_TreatsExplicitNullGraphicsStateSoftMaskAsAbsent() {
+        string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /Mask 7 0 R /Null 8 0 R >> >> >>\nendobj";
+        string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Mask gs /Null gs 0 0 500 700 re f");
+        string maskedState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 9 0 R >> >>\nendobj";
+        string nullState = "8 0 obj\n<< /Type /ExtGState /SMask null >>\nendobj";
+        string maskGroup = BuildStreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true >> /Resources << >>", "0 0 500 700 re f");
+        byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, maskedState, nullState, maskGroup);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.NotNull(Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>()).SoftMask);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForSubToleranceInheritedType3SoftMaskState() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ExtGState << /GS1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /GS1 gs 0 0 500 700 re f");
