@@ -19,14 +19,22 @@ public static partial class OfficeDrawingSvgExporter {
             .Append("\" height=\"").Append(Format(pattern.InnerTile.Height))
             .Append("\"/></clipPath><g id=\"").Append(tileId).Append("\" clip-path=\"url(#")
             .Append(tileClipId).Append(")\">");
-        AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+        tilingExpansionBudget.BeginTile(pattern.MaximumTileCount);
+        long descendantExpansion;
+        try {
+            AppendElements(sb, pattern.InnerTile.Elements, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
+            descendantExpansion = tilingExpansionBudget.EndTile();
+        } catch {
+            tilingExpansionBudget.CancelTile();
+            throw;
+        }
         sb.Append("</g></defs><g clip-path=\"url(#")
             .Append(clipId).Append(")\"");
         if (pattern.Opacity < 1D) sb.Append(" opacity=\"").Append(Format(pattern.Opacity)).Append('"');
         sb.Append('>');
         foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {
             cancellationToken.ThrowIfCancellationRequested();
-            tilingExpansionBudget.Consume(pattern.MaximumTileCount);
+            tilingExpansionBudget.Consume(1L + descendantExpansion);
             sb.Append("<use href=\"#").Append(tileId).Append('"')
                 .Append(BuildMatrixTransformAttribute(transform, 0D, 0D)).Append("/>");
         }
@@ -34,14 +42,36 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private sealed class SvgTilingExpansionBudget {
-        private int _maximum;
-        private int _count;
+        private readonly System.Collections.Generic.Stack<long> _tileScopes = new System.Collections.Generic.Stack<long>();
+        private long _maximum;
+        private long _count;
 
-        internal void Consume(int configuredMaximum) {
+        internal void BeginTile(int configuredMaximum) {
             _maximum = Math.Max(_maximum, configuredMaximum);
-            if (++_count > _maximum) {
+            _tileScopes.Push(0L);
+        }
+
+        internal long EndTile() => _tileScopes.Pop();
+
+        internal void CancelTile() {
+            if (_tileScopes.Count > 0) _tileScopes.Pop();
+        }
+
+        internal void Consume(long renderedInstances) {
+            if (renderedInstances <= 0L ||
+                renderedInstances > _maximum ||
+                _tileScopes.Count == 0 && _count > _maximum - renderedInstances ||
+                _tileScopes.Count > 0 && _tileScopes.Peek() > _maximum - renderedInstances) {
                 throw new InvalidOperationException("Vector pattern aggregate expansion exceeds the configured tile-count limit.");
             }
+
+            if (_tileScopes.Count == 0) {
+                _count += renderedInstances;
+                return;
+            }
+
+            long current = _tileScopes.Pop();
+            _tileScopes.Push(current + renderedInstances);
         }
     }
 }

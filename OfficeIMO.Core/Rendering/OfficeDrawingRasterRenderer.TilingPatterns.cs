@@ -31,7 +31,8 @@ public static partial class OfficeDrawingRasterRenderer {
         });
         bool interpolate = !ContainsNonInterpolatedImage(
             pattern.InnerTile,
-            (0D, 0D, pattern.InnerTile.Width, pattern.InnerTile.Height));
+            (0D, 0D, pattern.InnerTile.Width, pattern.InnerTile.Height),
+            new SamplingInspectionContext(cancellationToken));
         OfficeImagePlacement area = pattern.Area;
         using (canvas.PushClipRectangle(area.X * scale, area.Y * scale, area.Width * scale, area.Height * scale)) {
             foreach (OfficeTransform transform in pattern.GetTileTransforms(pattern.MaximumTileCount)) {

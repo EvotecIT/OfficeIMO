@@ -337,14 +337,20 @@ public class PdfType3OptionalContentTests {
     }
 
     [Theory]
-    [InlineData("AnyOn", true)]
-    [InlineData("AnyOff", true)]
-    [InlineData("AllOn", false)]
-    [InlineData("AllOff", false)]
-    public void RenderPage_AppliesMembershipPolicyToEmptyGroupSet(string policy, bool expectHidden) {
+    [InlineData("AnyOn", true, false)]
+    [InlineData("AnyOff", true, false)]
+    [InlineData("AllOn", false, false)]
+    [InlineData("AllOff", false, false)]
+    [InlineData("AnyOn", true, true)]
+    [InlineData("AnyOff", true, true)]
+    [InlineData("AllOn", false, true)]
+    [InlineData("AllOff", false, true)]
+    public void RenderPage_AppliesMembershipPolicyToEmptyGroupSet(string policy, bool expectHidden, bool inline) {
+        string membership = $"<< /Type /OCMD /OCGs [] /P /{policy} >>";
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
-            resourceMembershipDictionary: $"<< /Type /OCMD /OCGs [] /P /{policy} >>",
+            resourceMembershipDictionary: inline ? null : membership,
+            inlineMembershipDictionary: inline ? membership : null,
             includeUnsupportedConditionalContent: false);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));

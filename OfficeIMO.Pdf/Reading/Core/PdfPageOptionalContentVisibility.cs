@@ -355,10 +355,6 @@ internal sealed class PdfPageOptionalContentVisibility {
     }
 
     private bool IsMembershipHidden(IReadOnlyList<PdfReference> objectReferences, string? policy) {
-        if (objectReferences.Count == 0) {
-            return false;
-        }
-
         bool anyVisible = false;
         bool anyHidden = false;
         bool hasResolvedGroup = false;
@@ -370,7 +366,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             anyVisible |= visible;
             anyHidden |= !visible;
         }
-        if (!hasResolvedGroup) return false;
+        if (!hasResolvedGroup && objectReferences.Count > 0) return false;
 
         bool visibleByPolicy = policy switch {
             "AllOn" => !anyHidden,

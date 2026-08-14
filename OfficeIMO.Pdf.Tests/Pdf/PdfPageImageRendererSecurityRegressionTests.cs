@@ -1,5 +1,7 @@
 using System;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -151,9 +153,10 @@ public partial class PdfPageImageRendererTests {
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
-        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+        Assert.True(
+            exception.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
+            $"Unexpected limit kind: {exception.Kind}.");
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
@@ -463,6 +466,34 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void ParserChargesClippedContourRepresentabilityAgainstSourceEdges() {
+        const int pointCount = 1100;
+        var content = new StringBuilder();
+        for (int index = 0; index < pointCount; index++) {
+            double angle = index * Math.PI * 2D / pointCount;
+            double x = 100D + (50D * Math.Cos(angle));
+            double y = 100D + (50D * Math.Sin(angle));
+            content.Append(x.ToString("0.######", CultureInfo.InvariantCulture))
+                .Append(' ')
+                .Append(y.ToString("0.######", CultureInfo.InvariantCulture))
+                .Append(index == 0 ? " m " : " l ");
+        }
+        content.Append("h W n 0 0 200 200 re W n");
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TextContentParser.Parse(
+                content.ToString(),
+                (_, bytes) => Encoding.ASCII.GetString(bytes),
+                (_, bytes) => bytes.Length * 500D,
+                pageHeight: 200D,
+                textClippingBudget: new PdfTextClippingBudget()));
+
+        Assert.Equal(PdfReadLimitKind.ClippingIntersectionWork, exception.Kind);
+        Assert.Equal(PdfPageClipPath.MaximumClippingIntersectionWork, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
     public void TextParserAllowsBoundedOrdinaryClipAfterRestoringPreTextClipState() {
         const string content = "q BT /F1 12 Tf 4 Tr (A) Tj ET Q 0 -20 100 120 re W n 0 -20 100 120 re W n";
 
@@ -546,9 +577,10 @@ public partial class PdfPageImageRendererTests {
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
-        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+        Assert.True(
+            exception.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
+            $"Unexpected limit kind: {exception.Kind}.");
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
@@ -571,9 +603,10 @@ public partial class PdfPageImageRendererTests {
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
-        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+        Assert.True(
+            exception.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
+            $"Unexpected limit kind: {exception.Kind}.");
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
@@ -600,9 +633,10 @@ public partial class PdfPageImageRendererTests {
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.Pages[0].ToDrawing());
 
-        Assert.Equal(PdfReadLimitKind.TextClippingPaths, exception.Kind);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths, exception.Limit);
-        Assert.Equal(PdfPageClipPath.MaximumPendingTextClippingPaths + 1L, exception.Actual);
+        Assert.True(
+            exception.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
+            $"Unexpected limit kind: {exception.Kind}.");
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]

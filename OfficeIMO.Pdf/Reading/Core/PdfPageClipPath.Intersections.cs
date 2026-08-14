@@ -7,8 +7,10 @@ internal readonly partial struct PdfPageClipPath {
         List<List<OfficePoint>> contours,
         OfficeFillRule fillRule,
         OfficePoint start,
-        OfficePoint end) {
+        OfficePoint end,
+        PdfTextClippingBudget? textClippingBudget) {
         var parameters = new List<double> { 0D, 1D };
+        textClippingBudget?.ChargeContourIntersectionWork(contours);
         for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
             List<OfficePoint> contour = contours[contourIndex];
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
@@ -29,7 +31,7 @@ internal readonly partial struct PdfPageClipPath {
             var sample = new OfficePoint(
                 start.X + ((end.X - start.X) * t),
                 start.Y + ((end.Y - start.Y) * t));
-            if (!ContainsFilledPoint(contours, fillRule, sample)) return false;
+            if (!ContainsFilledPoint(contours, fillRule, sample, textClippingBudget)) return false;
         }
         return true;
     }

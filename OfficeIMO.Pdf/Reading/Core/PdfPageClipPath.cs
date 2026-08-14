@@ -162,7 +162,7 @@ internal readonly partial struct PdfPageClipPath {
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
         return result.WithExactness(pathClip.IsExact &&
             !ContainsCurve(pathClip.Commands) &&
-            HasRepresentableClippedContours(pathClip, result));
+            HasRepresentableClippedContours(pathClip, result, textClippingBudget));
     }
 
     private static PdfPageClipPath IntersectPathWithPath(
@@ -206,7 +206,7 @@ internal readonly partial struct PdfPageClipPath {
         PdfPageClipPath result = commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
-        return result.WithExactness(isExact && HasRepresentableClippedContours(active, result));
+        return result.WithExactness(isExact && HasRepresentableClippedContours(active, result, textClippingBudget));
     }
 
     private static bool CanServeAsExactPathClip(PdfPageClipPath path) => path._canServeAsExactPathClip;
@@ -230,7 +230,10 @@ internal readonly partial struct PdfPageClipPath {
         return false;
     }
 
-    private static bool HasRepresentableClippedContours(PdfPageClipPath source, PdfPageClipPath clipped) {
+    private static bool HasRepresentableClippedContours(
+        PdfPageClipPath source,
+        PdfPageClipPath clipped,
+        PdfTextClippingBudget? textClippingBudget = null) {
         if ((clipped.IsRectangle && clipped.Width <= 0D) || clipped.Height <= 0D) return true;
         List<List<OfficePoint>> sourceContours = FlattenPathContours(source.Commands);
         List<List<OfficePoint>> clippedContours = clipped.IsRectangle
@@ -249,13 +252,18 @@ internal readonly partial struct PdfPageClipPath {
             for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
                 OfficePoint start = contour[pointIndex];
                 OfficePoint end = contour[(pointIndex + 1) % contour.Count];
-                if (!IsSegmentWithinFilledArea(sourceContours, source.FillRule, start, end)) return false;
+                if (!IsSegmentWithinFilledArea(sourceContours, source.FillRule, start, end, textClippingBudget)) return false;
             }
         }
         return true;
     }
 
-    private static bool ContainsFilledPoint(List<List<OfficePoint>> contours, OfficeFillRule fillRule, OfficePoint point) {
+    private static bool ContainsFilledPoint(
+        List<List<OfficePoint>> contours,
+        OfficeFillRule fillRule,
+        OfficePoint point,
+        PdfTextClippingBudget? textClippingBudget = null) {
+        textClippingBudget?.ChargeContourIntersectionWork(contours);
         int winding = 0;
         bool inside = false;
         for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {

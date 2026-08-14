@@ -36,28 +36,36 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeTransform transform = effectGroup.Transform;
         var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
         var surfaceBounds = (Left: 0D, Top: 0D, Right: effectGroup.InnerDrawing.Width, Bottom: effectGroup.InnerDrawing.Height);
+        var samplingInspection = new SamplingInspectionContext(cancellationToken);
         bool interpolate =
-            !ContainsNonInterpolatedImage(effectGroup.InnerDrawing, surfaceBounds) &&
-            (effectGroup.SoftMask == null || !ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, surfaceBounds));
+            !ContainsNonInterpolatedImage(effectGroup.InnerDrawing, surfaceBounds, samplingInspection) &&
+            (effectGroup.SoftMask == null || !ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, surfaceBounds, samplingInspection));
         canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
     }
 
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
-        return ContainsNonInterpolatedImage(drawing, visibleBounds: null);
+        return ContainsNonInterpolatedImage(
+            drawing,
+            visibleBounds: null,
+            new SamplingInspectionContext(System.Threading.CancellationToken.None));
     }
 
     private static bool ContainsNonInterpolatedImage(
         OfficeDrawing drawing,
-        (double Left, double Top, double Right, double Bottom)? visibleBounds) {
+        (double Left, double Top, double Right, double Bottom)? visibleBounds,
+        SamplingInspectionContext inspection) {
+        if (!visibleBounds.HasValue) return ContainsAnyNonInterpolatedImage(drawing, inspection);
+        if (!ContainsAnyNonInterpolatedImage(drawing, inspection)) return false;
         for (int index = 0; index < drawing.Elements.Count; index++) {
+            if (!inspection.TryConsume()) return true;
             OfficeDrawingElement element = drawing.Elements[index];
             if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D } image &&
                 IntersectsVisibleBounds(image.Projection.GetDestinationBounds(), visibleBounds)) return true;
-            if (element is OfficeDrawingGroup group && ContainsVisibleNonInterpolatedImage(group, visibleBounds)) return true;
+            if (element is OfficeDrawingGroup group && ContainsVisibleNonInterpolatedImage(group, visibleBounds, inspection)) return true;
             if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
-                ContainsVisibleNonInterpolatedImage(effectGroup, visibleBounds)) return true;
+                ContainsVisibleNonInterpolatedImage(effectGroup, visibleBounds, inspection)) return true;
             if (element is OfficeDrawingTilingPattern { Opacity: > 0D } pattern &&
-                ContainsVisibleNonInterpolatedImage(pattern, visibleBounds)) return true;
+                ContainsVisibleNonInterpolatedImage(pattern, visibleBounds, inspection)) return true;
         }
 
         return false;
@@ -65,7 +73,8 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static bool ContainsVisibleNonInterpolatedImage(
         OfficeDrawingGroup group,
-        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
+        SamplingInspectionContext inspection) {
         var groupBounds = (
             Left: group.X,
             Top: group.Y,
@@ -97,15 +106,16 @@ public static partial class OfficeDrawingRasterRenderer {
             Top: visibleGroupBounds.Top - contentY,
             Right: visibleGroupBounds.Right - contentX,
             Bottom: visibleGroupBounds.Bottom - contentY);
-        return ContainsNonInterpolatedImage(group.InnerDrawing, childVisibleBounds);
+        return ContainsNonInterpolatedImage(group.InnerDrawing, childVisibleBounds, inspection);
     }
 
     private static bool ContainsVisibleNonInterpolatedImage(
         OfficeDrawingEffectGroup effectGroup,
-        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
+        SamplingInspectionContext inspection) {
         if (!parentVisibleBounds.HasValue) {
-            return ContainsNonInterpolatedImage(effectGroup.InnerDrawing) ||
-                (effectGroup.SoftMask != null && ContainsNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing));
+            return ContainsAnyNonInterpolatedImage(effectGroup.InnerDrawing, inspection) ||
+                (effectGroup.SoftMask != null && ContainsAnyNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing, inspection));
         }
 
         OfficeDrawing inner = effectGroup.InnerDrawing;
@@ -117,14 +127,15 @@ public static partial class OfficeDrawingRasterRenderer {
             transformedVisibleBounds.Top,
             transformedVisibleBounds.Right - transformedVisibleBounds.Left,
             transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
-        return ContainsNonInterpolatedImage(inner, childVisibleBounds) ||
-            (effectGroup.SoftMask != null && ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, childVisibleBounds));
+        return ContainsNonInterpolatedImage(inner, childVisibleBounds, inspection) ||
+            (effectGroup.SoftMask != null && ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, childVisibleBounds, inspection));
     }
 
     private static bool ContainsVisibleNonInterpolatedImage(
         OfficeDrawingSoftMask softMask,
-        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
-        if (!parentVisibleBounds.HasValue) return ContainsNonInterpolatedImage(softMask.InnerDrawing);
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
+        SamplingInspectionContext inspection) {
+        if (!parentVisibleBounds.HasValue) return ContainsAnyNonInterpolatedImage(softMask.InnerDrawing, inspection);
         OfficeDrawing inner = softMask.InnerDrawing;
         var transformedBounds = softMask.Transform.TransformRectangleBounds(0D, 0D, inner.Width, inner.Height);
         if (!TryIntersectBounds(transformedBounds, parentVisibleBounds, out var transformedVisibleBounds) ||
@@ -134,13 +145,15 @@ public static partial class OfficeDrawingRasterRenderer {
             transformedVisibleBounds.Top,
             transformedVisibleBounds.Right - transformedVisibleBounds.Left,
             transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
-        return ContainsNonInterpolatedImage(inner, childVisibleBounds);
+        return ContainsNonInterpolatedImage(inner, childVisibleBounds, inspection);
     }
 
     private static bool ContainsVisibleNonInterpolatedImage(
         OfficeDrawingTilingPattern pattern,
-        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds) {
-        if (!parentVisibleBounds.HasValue) return ContainsNonInterpolatedImage(pattern.InnerTile);
+        (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
+        SamplingInspectionContext inspection) {
+        if (!ContainsAnyNonInterpolatedImage(pattern.InnerTile, inspection)) return false;
+        if (!parentVisibleBounds.HasValue) return true;
         var patternBounds = (
             Left: pattern.Area.X,
             Top: pattern.Area.Y,
@@ -151,6 +164,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawing tile = pattern.InnerTile;
         System.Collections.Generic.IReadOnlyList<OfficeTransform> transforms = pattern.GetTileTransforms(pattern.MaximumTileCount);
         for (int index = 0; index < transforms.Count; index++) {
+            if (!inspection.TryConsume()) return true;
             OfficeTransform transform = transforms[index];
             var transformedTileBounds = transform.TransformRectangleBounds(0D, 0D, tile.Width, tile.Height);
             if (!TryIntersectBounds(transformedTileBounds, visiblePatternBounds, out var transformedVisibleBounds) ||
@@ -160,10 +174,54 @@ public static partial class OfficeDrawingRasterRenderer {
                 transformedVisibleBounds.Top,
                 transformedVisibleBounds.Right - transformedVisibleBounds.Left,
                 transformedVisibleBounds.Bottom - transformedVisibleBounds.Top);
-            if (ContainsNonInterpolatedImage(tile, tileVisibleBounds)) return true;
+            if (ContainsNonInterpolatedImage(tile, tileVisibleBounds, inspection)) return true;
         }
 
         return false;
+    }
+
+    private static bool ContainsAnyNonInterpolatedImage(
+        OfficeDrawing drawing,
+        SamplingInspectionContext inspection) {
+        if (inspection.TryGetCached(drawing, out bool cached)) return cached;
+        inspection.Cache(drawing, value: true);
+        for (int index = 0; index < drawing.Elements.Count; index++) {
+            if (!inspection.TryConsume()) return true;
+            OfficeDrawingElement element = drawing.Elements[index];
+            if (element is OfficeDrawingImage { Interpolate: false, Opacity: > 0D }) return true;
+            if (element is OfficeDrawingGroup group && ContainsAnyNonInterpolatedImage(group.InnerDrawing, inspection)) return true;
+            if (element is OfficeDrawingEffectGroup { Opacity: > 0D } effectGroup &&
+                (ContainsAnyNonInterpolatedImage(effectGroup.InnerDrawing, inspection) ||
+                 effectGroup.SoftMask != null && ContainsAnyNonInterpolatedImage(effectGroup.SoftMask.InnerDrawing, inspection))) return true;
+            if (element is OfficeDrawingTilingPattern { Opacity: > 0D } pattern &&
+                ContainsAnyNonInterpolatedImage(pattern.InnerTile, inspection)) return true;
+        }
+
+        inspection.Cache(drawing, value: false);
+        return false;
+    }
+
+    private sealed class SamplingInspectionContext {
+        private const long MaximumWork = 1_000_000L;
+        private readonly System.Collections.Generic.Dictionary<OfficeDrawing, bool> _drawingResults = new System.Collections.Generic.Dictionary<OfficeDrawing, bool>();
+        private readonly System.Threading.CancellationToken _cancellationToken;
+        private long _work;
+
+        internal SamplingInspectionContext(System.Threading.CancellationToken cancellationToken) {
+            _cancellationToken = cancellationToken;
+        }
+
+        internal bool TryConsume() {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_work >= MaximumWork) return false;
+            _work++;
+            return true;
+        }
+
+        internal bool TryGetCached(OfficeDrawing drawing, out bool value) =>
+            _drawingResults.TryGetValue(drawing, out value);
+
+        internal void Cache(OfficeDrawing drawing, bool value) => _drawingResults[drawing] = value;
     }
 
     private static bool IntersectsVisibleBounds(

@@ -468,7 +468,7 @@ public static partial class OfficeDrawingRasterRenderer {
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken,
         out OfficeRasterImage? image) {
-        if (OfficeRasterImageDecoder.TryDecode(bytes, out image) && image != null) return true;
+        if (OfficeRasterImageDecoder.TryDecode(bytes, maximumRasterPixels, out image) && image != null) return true;
         if (IsSvg(bytes, contentType) &&
             OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? vector, out int unsupportedFeatureCount) &&
             vector != null &&
@@ -488,7 +488,12 @@ public static partial class OfficeDrawingRasterRenderer {
             });
             return true;
         }
-        return imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) && image != null;
+        if (imageCodec == null ||
+            !imageCodec.TryDecode((byte[])bytes.Clone(), contentType, out image) ||
+            image == null) return false;
+        if (OfficeRasterImageDecoder.IsWithinPixelLimit(image.Width, image.Height, maximumRasterPixels)) return true;
+        image = null;
+        return false;
     }
 
     private static bool IsSvg(byte[] bytes, string? contentType) =>
