@@ -1,4 +1,7 @@
 using OfficeIMO.Provenance;
+using System.IO.Compression;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Epub;
 
@@ -30,8 +33,65 @@ public sealed partial class EpubDocument {
         OfficeProvenancePackageMutation.Remove(
             packageBytes, fileName, options, StripPackageSignatures, HasPackageSignatures, ValidatePackage);
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) =>
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);
+        using var input = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry[] containers = archive.Entries
+            .Where(entry => entry.FullName.Replace('\\', '/').Equals("META-INF/container.xml", StringComparison.Ordinal))
+            .ToArray();
+        if (containers.Length != 1) throw new InvalidDataException("The EPUB package must contain exactly one META-INF/container.xml part.");
+        using Stream containerStream = containers[0].Open();
+        byte[] containerXml = OfficeProvenanceBinary.ReadBounded(containerStream, options.MaxAssetBytes);
+        if (containerXml.LongLength > options.MaxExpandedContainerBytes) {
+            throw new InvalidDataException("The EPUB container metadata exceeds the configured expanded-container limit.");
+        }
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(containerXml, options, "EPUB container metadata");
+        using var xmlInput = new MemoryStream(containerXml, writable: false);
+        using XmlReader reader = XmlReader.Create(xmlInput, OfficeProvenanceXml.CreateReaderSettings(options));
+        XDocument document = XDocument.Load(reader, LoadOptions.None);
+        XNamespace containerNamespace = "urn:oasis:names:tc:opendocument:xmlns:container";
+        if (document.Root?.Name != containerNamespace + "container") {
+            throw new InvalidDataException("The EPUB container metadata has an unexpected root element.");
+        }
+        Dictionary<string, int> entryCounts = archive.Entries
+            .GroupBy(entry => entry.FullName.Replace('\\', '/'), StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        XElement[] rootfileContainers = document.Root.Elements(containerNamespace + "rootfiles").ToArray();
+        if (rootfileContainers.Length != 1) {
+            throw new InvalidDataException("The EPUB container metadata must contain exactly one rootfiles element.");
+        }
+        int declaredRootfiles = 0;
+        bool hasAvailableRootfile = false;
+        foreach (XElement rootfile in rootfileContainers[0].Elements(containerNamespace + "rootfile")) {
+            if (++declaredRootfiles > options.MaxContainerEntries) {
+                throw new InvalidDataException("The EPUB container declares too many rootfiles.");
+            }
+            if (!TryNormalizeRootfilePath((string?)rootfile.Attribute("full-path"), out string path)) {
+                throw new InvalidDataException("The EPUB container declares an invalid rootfile path.");
+            }
+            if (entryCounts.TryGetValue(path, out int count)) {
+                if (count != 1) throw new InvalidDataException("The EPUB package contains duplicate declared rootfile entries.");
+                hasAvailableRootfile = true;
+            }
+        }
+        if (declaredRootfiles == 0 || !hasAvailableRootfile) {
+            throw new InvalidDataException("The EPUB container must declare at least one rootfile that exists in the package.");
+        }
+    }
+
+    private static bool TryNormalizeRootfilePath(string? value, out string normalized) {
+        normalized = string.Empty;
+        if (string.IsNullOrWhiteSpace(value) || value!.IndexOfAny(new[] { '\\', '?', '#' }) >= 0 || value.StartsWith("/", StringComparison.Ordinal)) return false;
+        var segments = new List<string>();
+        foreach (string segment in value.Split('/')) {
+            if (segment.Length == 0 || segment == "." || segment == "..") return false;
+            segments.Add(segment);
+        }
+        if (segments.Count == 0) return false;
+        normalized = string.Join("/", segments);
+        return true;
+    }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) => OfficeProvenanceZip.HasEntry(data, path =>
         path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));

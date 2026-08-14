@@ -603,17 +603,19 @@ public static partial class HtmlProvenance {
     }
 
     private static bool HasRelationship(string? value, string relationship) =>
-        (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        SplitAsciiWhitespace(value)
             .Any(item => item.Equals(relationship, StringComparison.OrdinalIgnoreCase));
 
     private static void RemoveRelationship(IElement element, string relationship) {
-        string[] retained = (element.GetAttribute("rel") ?? string.Empty)
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+        string[] retained = SplitAsciiWhitespace(element.GetAttribute("rel"))
             .Where(item => !item.Equals(relationship, StringComparison.OrdinalIgnoreCase))
             .ToArray();
         if (retained.Length == 0) element.Remove();
         else element.SetAttribute("rel", string.Join(" ", retained));
     }
+
+    private static string[] SplitAsciiWhitespace(string? value) =>
+        (value ?? string.Empty).Split(new[] { '\t', '\n', '\f', '\r', ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
     private static bool IsManifestElement(IElement element) =>
         element.LocalName.Equals("script", StringComparison.OrdinalIgnoreCase)

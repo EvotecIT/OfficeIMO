@@ -936,6 +936,15 @@ public sealed partial class ProvenanceDocumentContracts {
             if (extension == "odt") {
                 WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
                 WriteEntry(archive, "content.xml", "<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\"/>", CompressionLevel.Optimal);
+            } else {
+                WriteEntry(archive, "META-INF/container.xml",
+                    "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles>" +
+                    "<rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/>" +
+                    "</rootfiles></container>", CompressionLevel.Optimal);
+                WriteEntry(archive, "package.opf",
+                    "<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\">" +
+                    "<metadata><identifier xmlns=\"http://purl.org/dc/elements/1.1/\" id=\"id\">fixture</identifier></metadata>" +
+                    "<manifest/><spine/></package>", CompressionLevel.Optimal);
             }
             WriteEntry(archive, signaturePath, "<signatures/>", CompressionLevel.Optimal);
             WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);

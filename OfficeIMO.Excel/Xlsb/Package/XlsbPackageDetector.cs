@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
     /// </summary>
     internal static class XlsbPackageDetector {
         private const string OfficeDocumentRelationship = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument";
+        private const string PackageRelationshipsNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+        private const string PackageContentTypesNamespace = "http://schemas.openxmlformats.org/package/2006/content-types";
         private const int MaxRootRelationshipsBytes = 1024 * 1024;
         private const int MaxContentTypesBytes = 1024 * 1024;
 
@@ -76,10 +78,10 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 CloseInput = false
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
+            if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
             string expectedPartName = "/" + workbookPartName.TrimStart('/');
             string? contentType = document
-                .Descendants()
-                .Where(element => element.Name.LocalName == "Override")
+                .Descendants(XName.Get("Override", PackageContentTypesNamespace))
                 .Where(element => string.Equals(
                     NormalizeContentTypePartName((string?)element.Attribute("PartName")),
                     expectedPartName,
@@ -90,8 +92,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             if (string.IsNullOrWhiteSpace(contentType)) {
                 string extension = Path.GetExtension(workbookPartName).TrimStart('.');
                 contentType = document
-                    .Descendants()
-                    .Where(element => element.Name.LocalName == "Default")
+                    .Descendants(XName.Get("Default", PackageContentTypesNamespace))
                     .Where(element => string.Equals(
                         (string?)element.Attribute("Extension"),
                         extension,
@@ -122,11 +123,11 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 CloseInput = false
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
+            if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
             XElement? relationship = document
-                .Descendants()
+                .Descendants(XName.Get("Relationship", PackageRelationshipsNamespace))
                 .FirstOrDefault(element =>
-                    element.Name.LocalName == "Relationship"
-                    && string.Equals((string?)element.Attribute("Type"), OfficeDocumentRelationship, StringComparison.Ordinal)
+                    string.Equals((string?)element.Attribute("Type"), OfficeDocumentRelationship, StringComparison.Ordinal)
                     && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase));
             return (string?)relationship?.Attribute("Target");
         }
