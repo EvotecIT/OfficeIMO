@@ -2135,6 +2135,34 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(-officeimo-pdf-tag-type:artifact)"));
     }
 
+    [Theory]
+    [InlineData("(bookmark-level:var(--outline-level))")]
+    [InlineData("(bookmark-state:var(--outline-state))")]
+    [InlineData("(bookmark-label:var(--outline-label))")]
+    [InlineData("(clip-path:var(--clip))")]
+    [InlineData("(-officeimo-pdf-tag-type:var(--tag))")]
+    [InlineData("(bookmark-level:inherit)")]
+    [InlineData("(bookmark-state:initial)")]
+    [InlineData("(bookmark-label:revert-layer)")]
+    public void HtmlSupports_DeferredAndCssWideValuesReachSpecializedProperties(string condition) {
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports(condition));
+    }
+
+    [Fact]
+    public void HtmlSupports_DeferredValuesDoNotMakeUnknownPropertiesSupported() {
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(not-a-real-property:var(--value))"));
+    }
+
+    [Theory]
+    [InlineData("(clip-path:var())")]
+    [InlineData("(bookmark-level:notvar(--level))")]
+    [InlineData("(bookmark-state:var(--state)")]
+    [InlineData("(bookmark-label:var(--label, var()))")]
+    [InlineData("(bookmark-label:var(--label, [{]}))")]
+    public void HtmlSupports_RejectsMalformedDeferredValues(string condition) {
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports(condition));
+    }
+
     [Fact]
     public void HtmlPdf_CssBookmarkAndTagControlsReachSpecializedAndInlineElements() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(8, 6));
@@ -2302,6 +2330,66 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("Alpha Beta Gamma", Assert.Single(rendered.Headings).Text);
         Assert.Equal("Alpha Beta Gamma", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DefaultBookmarkLabelsUseOnlyRenderedContent() {
+        const string html = "<main><h1>Visible<span style='display:none'>Hidden</span><script>Script</script><span> tail</span></h1>"
+            + "<h2 style='visibility:hidden'>Invisible <span style='visibility:visible'>Visible child</span></h2>"
+            + "<h3>Public <span style='-officeimo-pdf-tag-type:artifact'>Decorative</span> heading</h3>"
+            + "<h4 style='visibility:hidden' aria-label='Hidden metadata'>Invisible metadata</h4>"
+            + "<div style='display:contents;bookmark-level:1'>Flattened<span style='display:none'>Secret</span><span> entry</span></div>"
+            + "<table style='bookmark-level:1'><tr><td>Table<span style='display:none'>Private</span><span style='-officeimo-pdf-tag-type:none'>Decorative</span> entry</td></tr></table>"
+            + "<input style='bookmark-level:1' aria-label='Field entry' value='Value'>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "Visible tail", "Visible child", "Public heading", "Flattened entry", "Table entry", "Field entry" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        IReadOnlyList<PdfCore.PdfOutlineItem> outlines = PdfCore.PdfInspector.Inspect(pdf).Outlines;
+        Assert.Equal(new[] { "Visible tail", "Flattened entry", "Table entry", "Field entry" }, outlines.Select(outline => outline.Title).ToArray());
+        PdfCore.PdfOutlineItem visibleChild = Assert.Single(outlines[0].Children);
+        Assert.Equal("Visible child", visibleChild.Title);
+        Assert.Equal("Public heading", Assert.Single(visibleChild.Children).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DefaultBookmarkLabelsIgnoreGeneratedAndPaintTransformedText() {
+        const string html = "<style>.generated::before{content:'Generated '}</style>"
+            + "<h1 class='generated' style='text-transform:uppercase'>Source title</h1>"
+            + "<p>Before <span class='generated' style='bookmark-level:1;text-transform:uppercase'>Inline source</span> after</p>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "Source title", "Inline source" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { "Source title", "Inline source" }, PdfCore.PdfInspector.Inspect(pdf).Outlines.Select(outline => outline.Title).ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_RepeatedFixedBookmarkAnchorsKeepOneSourceLabel() {
+        const string html = "<main><h1 style='position:fixed;left:0;top:0;margin:0'>Fixed title</h1>"
+            + "<p>First page</p><section style='break-before:page'>Second page</section>"
+            + "<section style='break-before:page'>Third page</section></main>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Equal("Fixed title", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Fixed title", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
         Assert.Empty(rendered.Diagnostics);
     }
 

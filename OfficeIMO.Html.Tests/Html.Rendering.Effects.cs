@@ -414,6 +414,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("(clip-path:inset(10cqw))")]
+    [InlineData("(clip-path:circle(10cqh at 20cqi 30cqb))")]
+    [InlineData("(clip-path:polygon(0 0,100cqmin 0,0 100cqmax))")]
+    public void HtmlClipPath_SupportsAcceptsContainerRelativeUnits(string condition) {
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports(condition));
+    }
+
     [Fact]
     public void HtmlClipPath_CircleAndEllipseImplementTheCompleteBasicShapeRadialGrammar() {
         const string html = "<div style='width:40px;height:20px;background:red;clip-path:circle(closest-corner at 25% 25%)'></div>"

@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
     private readonly IHtmlDocument _document;
+    private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
@@ -92,6 +93,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
+        _computedStyles = computedStyles;
         int documentOrder = 0;
         foreach (IElement element in document.QuerySelectorAll("*")) {
             _documentOrderByElement[element] = documentOrder++;

@@ -122,11 +122,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         FlattenedSemanticBoundary boundary,
         bool firstFragment) {
-        if (firstFragment && boundary.AnchorText.Length > 0 && !ContainsBookmarkAnchor(block.Visuals, boundary.NodeId)) {
+        string anchorText = boundary.AnchorText.Length > 0
+            ? boundary.AnchorText
+            : ResolveVisibleBookmarkText(boundary.Element);
+        if (firstFragment
+            && anchorText.Length > 0
+            && !ContainsBookmarkAnchor(block.Visuals, boundary.NodeId)) {
             block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
                 new HtmlRenderBookmarkAnchor(
                     boundary.NodeId,
-                    boundary.AnchorText,
+                    anchorText,
                     0D,
                     0D,
                     0.01D,
@@ -190,14 +195,68 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal bool FirstFragment { get; }
     }
 
-    private static string ResolveBookmarkAnchorText(IElement element, HtmlRenderBoxStyle style) {
+    private string ResolveBookmarkAnchorText(IElement element, HtmlRenderBoxStyle style) {
         if (!string.IsNullOrWhiteSpace(style.BookmarkLabel)) return style.BookmarkLabel!.Trim();
-        string text = CollapseFlexText(element.TextContent ?? string.Empty);
-        if (text.Length > 0) return text;
+        string renderedText = ResolveVisibleBookmarkText(element, out bool rootVisible);
+        if (renderedText.Length > 0) return renderedText;
+        if (!rootVisible) return string.Empty;
         return CollapseFlexText(element.GetAttribute("aria-label")
             ?? element.GetAttribute("alt")
             ?? element.GetAttribute("title")
             ?? string.Empty);
+    }
+
+    private string ResolveVisibleBookmarkText(IElement element) => ResolveVisibleBookmarkText(element, out _);
+
+    private string ResolveVisibleBookmarkText(IElement element, out bool rootVisible) {
+        if (ShouldSkipElement(element)
+            || !TryResolveBookmarkTextState(element, inheritedVisibility: true, out bool visible, out bool prunesSubtree)
+            || prunesSubtree) {
+            rootVisible = false;
+            return string.Empty;
+        }
+        rootVisible = visible;
+        return CollapseFlexText(string.Concat(EnumerateVisibleBookmarkText(element.ChildNodes, visible)));
+    }
+
+    private IEnumerable<string> EnumerateVisibleBookmarkText(IEnumerable<INode> nodes, bool inheritedVisibility) {
+        foreach (INode node in nodes) {
+            if (node is IText text) {
+                if (inheritedVisibility) yield return text.Data;
+                continue;
+            }
+            if (node is not IElement element
+                || ShouldSkipElement(element)
+                || !TryResolveBookmarkTextState(element, inheritedVisibility, out bool visible, out bool prunesSubtree)
+                || prunesSubtree) {
+                continue;
+            }
+            foreach (string childText in EnumerateVisibleBookmarkText(element.ChildNodes, visible)) yield return childText;
+        }
+    }
+
+    private bool TryResolveBookmarkTextState(IElement element, bool inheritedVisibility, out bool visible, out bool prunesSubtree) {
+        if (_layoutStyles.TryGetValue(element, out HtmlRenderBoxStyle? layoutStyle)) {
+            visible = layoutStyle.PaintVisible;
+            prunesSubtree = layoutStyle.Display == "none" || layoutStyle.SemanticArtifact;
+            return true;
+        }
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computedStyle)) {
+            visible = inheritedVisibility;
+            prunesSubtree = false;
+            return true;
+        }
+
+        string visibility = computedStyle.GetValue("visibility").Trim().ToLowerInvariant();
+        visible = visibility == "visible"
+            ? true
+            : visibility == "hidden" || visibility == "collapse"
+                ? false
+                : inheritedVisibility;
+        prunesSubtree = string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "artifact", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "none", StringComparison.OrdinalIgnoreCase);
+        return true;
     }
 
     private HtmlRenderVisual ApplyInlineElementSemantics(HtmlRenderVisual visual, HtmlInlineRun run) {

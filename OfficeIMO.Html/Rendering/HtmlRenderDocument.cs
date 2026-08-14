@@ -133,8 +133,9 @@ public sealed class HtmlRenderDocument {
                 .ThenBy(item => item.X)
                 .ToList();
             var first = ordered[0];
-            string? anchorText = group.Where(item => item.IsAnchor).Select(item => item.Text).FirstOrDefault();
-            string headingText = (anchorText ?? string.Concat(ordered.Where(item => !item.IsAnchor).Select(item => item.Text))).Trim();
+            string renderedText = string.Concat(ordered.Where(item => !item.IsAnchor).Select(item => item.Text)).Trim();
+            string anchorText = ordered.Where(item => item.IsAnchor).Select(item => item.Text.Trim()).FirstOrDefault(text => text.Length > 0) ?? string.Empty;
+            string headingText = anchorText.Length > 0 ? anchorText : renderedText;
             if (headingText.Length == 0) continue;
             HtmlRenderBookmarkDefinition? definition = null;
             bookmarks?.TryGetValue(first.NodeId, out definition);

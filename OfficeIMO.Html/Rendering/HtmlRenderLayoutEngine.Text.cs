@@ -272,8 +272,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (semanticRuns == null) return;
         int nodeId = GetSemanticNodeId(element);
         string bookmarkAnchorText = ResolveBookmarkAnchorText(element, style);
-        if (semanticRuns.Count == 0
-            && ShouldAssignNavigationNode(style)
+        if (ShouldAssignNavigationNode(style)
             && !style.BookmarkSuppressed
             && bookmarkAnchorText.Length > 0) {
             string source = HtmlRenderStyleResolver.DescribeSource(element);
@@ -288,9 +287,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source);
             var markerRun = new HtmlInlineRun(markerBlock, style, link, source, paintOffsetX, paintOffsetY, element);
             markerRun.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
-            AssignInlineSemanticGroup(markerRun, style, nodeId);
+            if (semanticRuns.Count == 0) AssignInlineSemanticGroup(markerRun, style, nodeId);
             destination.Add(markerRun);
-            return;
+            if (semanticRuns.Count == 0) return;
         }
         foreach (HtmlInlineRun run in semanticRuns) {
             if (ShouldAssignNavigationNode(style)) run.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);

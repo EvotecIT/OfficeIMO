@@ -56,6 +56,17 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     private static bool IsSupportedSupportsConditionValue(string propertyName, string value) {
+        if (propertyName.StartsWith("--", StringComparison.Ordinal)) {
+            return !string.IsNullOrWhiteSpace(value);
+        }
+        if (!SupportedProperties.Contains(propertyName) || string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+        if (HtmlCssCustomPropertyResolver.HasValidVarFunctionSyntax(value)
+            || IsCssWideKeyword(value.Trim().ToLowerInvariant())) {
+            return true;
+        }
+
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
