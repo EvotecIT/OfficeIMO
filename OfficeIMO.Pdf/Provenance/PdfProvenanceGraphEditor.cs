@@ -182,7 +182,7 @@ internal static class PdfProvenanceGraphEditor {
             PdfObject current = pending.Pop();
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, current);
             if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
-            string? type = dictionary.Get<PdfName>("Type")?.Name;
+            string? type = GetResolvedName(objects, dictionary, "Type");
             PdfArray? kids = PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) as PdfArray;
             if (type == "Pages" || kids != null) {
                 if (kids != null) {
@@ -223,7 +223,7 @@ internal static class PdfProvenanceGraphEditor {
         }
         foreach (PdfIndirectObject item in objects.Values) {
             if (item.Value is not PdfDictionary dictionary ||
-                !string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) ||
+                !string.Equals(GetResolvedName(objects, dictionary, "Subtype"), "Popup", StringComparison.Ordinal) ||
                 !dictionary.Items.TryGetValue("Parent", out PdfObject? parent) ||
                 PdfObjectLookup.Resolve(objects, parent) is not PdfDictionary parentDictionary) continue;
             AddDependent(dependents, parentDictionary, dictionary, item.ObjectNumber);
@@ -257,7 +257,7 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary popup,
         PdfDictionary expectedParent) =>
-        string.Equals(popup.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) &&
+        string.Equals(GetResolvedName(objects, popup, "Subtype"), "Popup", StringComparison.Ordinal) &&
         popup.Items.TryGetValue("Parent", out PdfObject? parent) &&
         ReferenceEquals(PdfObjectLookup.Resolve(objects, parent), expectedParent);
 
@@ -269,16 +269,24 @@ internal static class PdfProvenanceGraphEditor {
         if (value == null) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
         if (dictionary != null) {
-            if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) &&
+            if (string.Equals(GetResolvedName(objects, dictionary, "Subtype"), "FileAttachment", StringComparison.Ordinal) &&
                 dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecification) &&
                 fileSpecification is PdfReference reference && targets.Contains(reference.ObjectNumber) &&
                 PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
                 indirect.Value is PdfDictionary fileSpecificationDictionary &&
-                (fileSpecificationDictionary.Get<PdfName>("Type")?.Name is null or "Filespec")) {
+                (GetResolvedName(objects, fileSpecificationDictionary, "Type") is null or "Filespec")) {
                 annotations.Add(dictionary);
             }
         }
     }
+
+    private static string? GetResolvedName(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key) =>
+        PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue(key, out PdfObject? value) ? value : null) is PdfName name
+            ? name.Name
+            : null;
 
     private static void ScrubReferences(
         Dictionary<int, PdfIndirectObject> objects,

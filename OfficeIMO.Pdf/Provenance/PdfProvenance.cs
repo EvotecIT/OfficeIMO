@@ -486,6 +486,12 @@ public static class PdfProvenance {
                         result,
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue("Ref", out PdfObject? referenceXObject) ? referenceXObject : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
                 } else if (string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
                     AddStructuralGraphDictionaries(
                         objects,
