@@ -28,7 +28,7 @@ internal static class OfficeProvenancePng {
         OfficeProvenanceRemovalOptions? removalOptions,
         List<OfficeProvenanceChange>? changes) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options, out bool validHeader);
+        int c2paCount = CountC2paChunks(data, options, out int xmpCount, out bool validHeader);
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
@@ -61,7 +61,7 @@ internal static class OfficeProvenancePng {
                 else output?.Write(data, offset, total);
             } else if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 TryGetXmpPacket(data, offset + 8, payloadLength, out int packetOffset, out int packetLength, out bool fieldsValid)) {
-                bool carrierValid = validHeader && fieldsValid && HasValidCrc(data, offset, payloadLength);
+                bool carrierValid = xmpCount == 1 && validHeader && fieldsValid && HasValidCrc(data, offset, payloadLength);
                 byte[] packet = new byte[packetLength];
                 Buffer.BlockCopy(data, packetOffset, packet, 0, packetLength);
                 string location = $"PNG/iTXt-XMP@{offset}";
@@ -93,10 +93,15 @@ internal static class OfficeProvenancePng {
         return reserialized;
     }
 
-    private static int CountC2paChunks(byte[] data, OfficeProvenanceOptions options, out bool validHeader) {
+    private static int CountC2paChunks(
+        byte[] data,
+        OfficeProvenanceOptions options,
+        out int xmpCount,
+        out bool validHeader) {
         int offset = SignatureLength;
         int chunkCount = 0;
         int c2paCount = 0;
+        xmpCount = 0;
         int headerCount = 0;
         bool validLeadingHeader = false;
         bool foundEnd = false;
@@ -111,6 +116,8 @@ internal static class OfficeProvenancePng {
             long totalValue = 12L + payloadLength;
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
+                TryGetXmpPacket(data, offset + 8, payloadLength, out _, out _, out _)) xmpCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&

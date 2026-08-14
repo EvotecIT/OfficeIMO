@@ -115,6 +115,7 @@ internal static class OfficeC2paManifestStore {
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;
         int requiredChild = 0;
+        bool hasDataBoxStore = false;
         while (cursor < manifestEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = manifestEnd - cursor;
@@ -133,8 +134,10 @@ internal static class OfficeC2paManifestStore {
                 if (!IsClaimSignatureSuperbox(data, cursor, (int)childLength, ref visitedBoxes, maximumEntries)) return false;
                 requiredChild = 3;
             } else if (childType == "jumb" && HasDescriptionUuid(data, cursor, (int)childLength, DataBoxStoreUuid)) {
+                if (hasDataBoxStore) return false;
                 if (!IsExtensionSuperbox(
                     data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, "c2pa.databoxes", "cbor")) return false;
+                hasDataBoxStore = true;
             } else if (childType != "jumb" || !IsExtensionSuperbox(
                 data, cursor, (int)childLength, ref visitedBoxes, maximumEntries, expectedLabel: null, requiredChildType: null)) {
                 // C2PA permits private and future extension superboxes, but not arbitrary raw
@@ -205,6 +208,7 @@ internal static class OfficeC2paManifestStore {
         int storeEnd = offset + availableLength;
         int cursor = descriptionEnd;
         bool hasAssertion = false;
+        var assertionLabels = new HashSet<string>(StringComparer.Ordinal);
         while (cursor < storeEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = storeEnd - cursor;
@@ -217,7 +221,8 @@ internal static class OfficeC2paManifestStore {
                 childDescriptionLength < (ulong)(childDescriptionHeaderLength + 18)) return false;
             int childTogglesOffset = childDescriptionOffset + childDescriptionHeaderLength + 16;
             int childDescriptionEnd = childDescriptionOffset + (int)childDescriptionLength;
-            if (!TryReadDescriptionFields(data, childTogglesOffset, childDescriptionEnd, out _)) return false;
+            if (!TryReadDescriptionFields(data, childTogglesOffset, childDescriptionEnd, out string assertionLabel) ||
+                !assertionLabels.Add(assertionLabel)) return false;
             int contentOffset = childDescriptionEnd;
             int contentAvailable = cursor + (int)childLength - contentOffset;
             if (contentAvailable < 8 || !TryReserveBox(ref visitedBoxes, maximumEntries) ||

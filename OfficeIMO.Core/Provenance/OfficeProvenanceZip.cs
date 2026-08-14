@@ -162,8 +162,9 @@ internal static class OfficeProvenanceZip {
             throw new NotSupportedException("Generic ZIP provenance removal cannot safely rewrite package signatures. Use the owning OfficeIMO document format API.");
         }
 
-        if (removable.Count != 0 && removable.Count == occurrence && input.GetEntry("[Content_Types].xml") != null) {
-            RemoveOpcManifestReferences(input, embeddedRewrites, options.Limits, ref inspectionBytes);
+        if (removable.Count != 0 && removable.Count == occurrence &&
+            entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
+            RemoveOpcManifestReferences(input, entryMetadata, embeddedRewrites, options.Limits, ref inspectionBytes);
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
@@ -195,13 +196,15 @@ internal static class OfficeProvenanceZip {
 
     private static void RemoveOpcManifestReferences(
         ZipArchive archive,
+        IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata,
         IDictionary<ZipArchiveEntry, byte[]> replacements,
         OfficeProvenanceOptions limits,
         ref long expandedBytes) {
         foreach (ZipArchiveEntry entry in archive.Entries) {
-            bool isContentTypes = entry.FullName.Equals("[Content_Types].xml", StringComparison.Ordinal);
-            bool isRelationships = entry.FullName.EndsWith(".rels", StringComparison.Ordinal) &&
-                (entry.FullName.StartsWith("_rels/", StringComparison.Ordinal) || entry.FullName.Contains("/_rels/"));
+            string entryName = entryMetadata[entry].Name;
+            bool isContentTypes = entryName.Equals("[Content_Types].xml", StringComparison.Ordinal);
+            bool isRelationships = entryName.EndsWith(".rels", StringComparison.Ordinal) &&
+                (entryName.StartsWith("_rels/", StringComparison.Ordinal) || entryName.Contains("/_rels/"));
             if (!isContentTypes && !isRelationships) continue;
             if (entry.Length > limits.MaxAssetBytes || entry.Length > int.MaxValue) {
                 throw new InvalidDataException("An OPC relationship metadata part exceeds the configured asset limit.");
@@ -224,7 +227,7 @@ internal static class OfficeProvenanceZip {
                     }
                 }
             } else {
-                string ownerDirectory = GetOpcRelationshipOwnerDirectory(entry.FullName);
+                string ownerDirectory = GetOpcRelationshipOwnerDirectory(entryName);
                 foreach (XmlElement relationship in document.GetElementsByTagName("Relationship", "http://schemas.openxmlformats.org/package/2006/relationships").OfType<XmlElement>().ToArray()) {
                     if (string.Equals(relationship.GetAttribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)) continue;
                     if (TryNormalizeOpcTarget(ownerDirectory, relationship.GetAttribute("Target"), out string normalized) && normalized == ManifestPath) {
@@ -630,15 +633,15 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceBinary.ReadUInt32(data, locatorOffset, littleEndian: true) == locatorSignature;
     }
 
-    private static bool IsNonOpcSignatureEntry(ZipArchiveEntry entry) =>
-        !entry.FullName.EndsWith("/", StringComparison.Ordinal) &&
-        entry.FullName.StartsWith("META-INF/", StringComparison.Ordinal) &&
-        entry.FullName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
+    private static bool IsNonOpcSignatureEntry(string entryName) =>
+        !entryName.EndsWith("/", StringComparison.Ordinal) &&
+        entryName.StartsWith("META-INF/", StringComparison.Ordinal) &&
+        entryName.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsOpcSignatureEvidenceEntry(ZipArchiveEntry entry) {
-        if (entry.FullName.EndsWith("/", StringComparison.Ordinal) ||
-            !entry.FullName.StartsWith("_xmlsignatures/", StringComparison.Ordinal)) return false;
-        string relativeName = entry.FullName.Substring("_xmlsignatures/".Length);
+    private static bool IsOpcSignatureEvidenceEntry(string entryName) {
+        if (entryName.EndsWith("/", StringComparison.Ordinal) ||
+            !entryName.StartsWith("_xmlsignatures/", StringComparison.Ordinal)) return false;
+        string relativeName = entryName.Substring("_xmlsignatures/".Length);
         return relativeName.Equals("origin.sigs", StringComparison.Ordinal) ||
             relativeName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ||
             relativeName.StartsWith("_rels/", StringComparison.Ordinal) &&
@@ -647,20 +650,26 @@ internal static class OfficeProvenanceZip {
 
     private static bool HasOpcSignatureOriginRelationship(
         ZipArchive archive,
+        IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata,
         long maximumBytes,
         long maximumExpandedBytes,
         ref long expandedBytes) {
-        ZipArchiveEntry? relationships = archive.GetEntry("_rels/.rels");
-        if (relationships == null || relationships.Length <= 0 || relationships.Length > maximumBytes) return false;
-        ReserveExpandedBytes(ref expandedBytes, relationships.Length, maximumExpandedBytes);
-        using Stream source = relationships.Open();
-        byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, maximumBytes);
         byte[] marker = System.Text.Encoding.ASCII.GetBytes(
             "http://schemas.openxmlformats.org/package/2006/relationships/digital-signature/origin");
-        for (int offset = 0; offset <= bytes.Length - marker.Length; offset++) {
-            int index = 0;
-            while (index < marker.Length && bytes[offset + index] == marker[index]) index++;
-            if (index == marker.Length) return true;
+        foreach (ZipArchiveEntry relationships in archive.Entries) {
+            if (!entryMetadata[relationships].Name.Equals("_rels/.rels", StringComparison.Ordinal) ||
+                relationships.Length <= 0) continue;
+            if (relationships.Length > maximumBytes) {
+                throw new InvalidDataException("The OPC root relationships part exceeds the configured asset limit.");
+            }
+            ReserveExpandedBytes(ref expandedBytes, relationships.Length, maximumExpandedBytes);
+            using Stream source = relationships.Open();
+            byte[] bytes = OfficeProvenanceBinary.ReadBounded(source, maximumBytes);
+            for (int offset = 0; offset <= bytes.Length - marker.Length; offset++) {
+                int index = 0;
+                while (index < marker.Length && bytes[offset + index] == marker[index]) index++;
+                if (index == marker.Length) return true;
+            }
         }
         return false;
     }
@@ -677,8 +686,9 @@ internal static class OfficeProvenanceZip {
         ValidateEntryCount(data, options.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
         ZipArchiveEntry[] entries = archive.Entries
-            .Where(entry => entry.FullName.Equals("docProps/app.xml", StringComparison.Ordinal))
+            .Where(entry => entryMetadata[entry].Name.Equals("docProps/app.xml", StringComparison.Ordinal))
             .ToArray();
         if (entries.Length == 0) return false;
         if (entries.Length != 1) throw new InvalidDataException("The OPC package contains duplicate application metadata parts.");
@@ -705,17 +715,19 @@ internal static class OfficeProvenanceZip {
         ValidateEntryCount(data, options.MaxContainerEntries);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
         long expandedBytes = 0;
         byte[] buffer = new byte[81920];
         byte[]? rootRelationships = null;
         byte[]? contentTypes = null;
         foreach (ZipArchiveEntry entry in archive.Entries) {
+            string entryName = entryMetadata[entry].Name;
             if (entry.Length > options.MaxAssetBytes) {
                 throw new InvalidDataException("A package part exceeds the configured asset limit.");
             }
             using Stream source = entry.Open();
-            MemoryStream? metadata = entry.FullName.Equals("_rels/.rels", StringComparison.Ordinal) ||
-                entry.FullName.Equals("[Content_Types].xml", StringComparison.Ordinal)
+            MemoryStream? metadata = entryName.Equals("_rels/.rels", StringComparison.Ordinal) ||
+                entryName.Equals("[Content_Types].xml", StringComparison.Ordinal)
                 ? new MemoryStream(entry.Length > int.MaxValue ? 0 : (int)entry.Length)
                 : null;
             long entryBytes = 0;
@@ -733,7 +745,7 @@ internal static class OfficeProvenanceZip {
                 if (entryBytes != entry.Length) throw new InvalidDataException("A ZIP entry expanded to an unexpected length.");
                 if (metadata != null) {
                     byte[] xml = metadata.ToArray();
-                    if (entry.FullName.Equals("_rels/.rels", StringComparison.Ordinal)) {
+                    if (entryName.Equals("_rels/.rels", StringComparison.Ordinal)) {
                         if (rootRelationships != null) throw new InvalidDataException("The OPC package contains duplicate root relationships parts.");
                         rootRelationships = xml;
                     } else {
@@ -754,14 +766,18 @@ internal static class OfficeProvenanceZip {
         ZipArchive archive,
         OfficeProvenanceRemovalOptions options,
         ref long expandedBytes) {
-        bool rawSignatureEvidence = archive.Entries.Any(IsNonOpcSignatureEntry) ||
-            archive.Entries.Any(IsOpcSignatureEvidenceEntry) ||
+        Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
+        bool rawSignatureEvidence = archive.Entries.Any(entry => IsNonOpcSignatureEntry(entryMetadata[entry].Name)) ||
+            archive.Entries.Any(entry => IsOpcSignatureEvidenceEntry(entryMetadata[entry].Name)) ||
             HasOpcSignatureOriginRelationship(
                 archive,
+                entryMetadata,
                 options.Limits.MaxAssetBytes,
                 options.Limits.MaxExpandedContainerBytes,
                 ref expandedBytes);
-        if (archive.GetEntry("[Content_Types].xml") == null) return rawSignatureEvidence;
+        if (!entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
+            return rawSignatureEvidence;
+        }
 
         var inspectionOptions = new OfficeIMO.Security.OfficePackageSignatureInspectionOptions {
             MaxPackageBytes = options.Limits.MaxAssetBytes,

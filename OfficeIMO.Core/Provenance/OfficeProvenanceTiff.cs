@@ -24,6 +24,7 @@ internal static class OfficeProvenanceTiff {
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
             TiffIfd ifd = ifds[ifdIndex];
+            int xmpTagCount = ifd.Entries.Count(static entry => entry.Tag == XmpTag);
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
                     TryGetPayload(data, entry, options.MaxAssetBytes, out int xmpOffset, out int xmpLength)) {
@@ -31,7 +32,12 @@ internal static class OfficeProvenanceTiff {
                         options.MaxExpandedContainerBytes)) continue;
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
-                    OfficeProvenanceXmp.Inspect(packet, options, context, $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}");
+                    OfficeProvenanceXmp.Inspect(
+                        packet,
+                        options,
+                        context,
+                        $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",
+                        carrierIsStructurallyValid: xmpTagCount == 1);
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
@@ -56,6 +62,7 @@ internal static class OfficeProvenanceTiff {
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
             TiffIfd ifd = ifds[ifdIndex];
+            int xmpTagCount = ifd.Entries.Count(static entry => entry.Tag == XmpTag);
             var retained = new List<TiffEntry>(ifd.Entries.Count);
             foreach (TiffEntry entry in ifd.Entries) {
                 if (entry.Tag == XmpTag && (entry.Type == ByteType || entry.Type == UndefinedType) &&
@@ -68,7 +75,8 @@ internal static class OfficeProvenanceTiff {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     var pendingChanges = new List<OfficeProvenanceChange>();
-                    if (OfficeProvenanceXmp.TryRemoveAiDeclarations(
+                    if ((xmpTagCount == 1 || !options.RequireStructurallyValidCarrier) &&
+                        OfficeProvenanceXmp.TryRemoveAiDeclarations(
                         packet,
                         options,
                         $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",

@@ -820,7 +820,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             "<rdf:Description xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" " +
             "iptc:DigitalSourceType=\"http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia\"/>" +
             "</rdf:RDF></x:xmpmeta>");
-        byte[] tiff = CreateTiffWithRepeatedXmpRange(xmp, 3);
+        byte[] tiff = CreateTiffWithRepeatedXmpRangeAcrossIfds(xmp, 3);
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
             tiff,
@@ -1297,20 +1297,25 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         return data;
     }
 
-    private static byte[] CreateTiffWithRepeatedXmpRange(byte[] xmp, int entryCount) {
-        const int ifdOffset = 8;
-        int payloadOffset = ifdOffset + 2 + entryCount * 12 + 4;
+    private static byte[] CreateTiffWithRepeatedXmpRangeAcrossIfds(byte[] xmp, int ifdCount) {
+        const int firstIfdOffset = 8;
+        const int ifdSize = 18;
+        int payloadOffset = firstIfdOffset + ifdCount * ifdSize;
         byte[] result = new byte[payloadOffset + xmp.Length];
         result[0] = result[1] = (byte)'I';
         result[2] = 42;
-        BitConverter.GetBytes(ifdOffset).CopyTo(result, 4);
-        BitConverter.GetBytes((ushort)entryCount).CopyTo(result, ifdOffset);
-        for (int index = 0; index < entryCount; index++) {
-            int entryOffset = ifdOffset + 2 + index * 12;
+        BitConverter.GetBytes(firstIfdOffset).CopyTo(result, 4);
+        for (int index = 0; index < ifdCount; index++) {
+            int ifdOffset = firstIfdOffset + index * ifdSize;
+            BitConverter.GetBytes((ushort)1).CopyTo(result, ifdOffset);
+            int entryOffset = ifdOffset + 2;
             BitConverter.GetBytes((ushort)700).CopyTo(result, entryOffset);
             BitConverter.GetBytes((ushort)1).CopyTo(result, entryOffset + 2);
             BitConverter.GetBytes(xmp.Length).CopyTo(result, entryOffset + 4);
             BitConverter.GetBytes(payloadOffset).CopyTo(result, entryOffset + 8);
+            int nextFieldOffset = entryOffset + 12;
+            int nextIfdOffset = index + 1 < ifdCount ? ifdOffset + ifdSize : 0;
+            BitConverter.GetBytes(nextIfdOffset).CopyTo(result, nextFieldOffset);
         }
         Buffer.BlockCopy(xmp, 0, result, payloadOffset, xmp.Length);
         return result;

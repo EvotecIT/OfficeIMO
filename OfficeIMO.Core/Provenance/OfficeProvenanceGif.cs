@@ -33,7 +33,7 @@ internal static class OfficeProvenanceGif {
         out bool reserialized) {
         reserialized = false;
         int offset = GetBodyOffset(data);
-        int c2paApplicationCount = CountC2paApplications(data, offset, options);
+        int c2paApplicationCount = CountC2paApplications(data, offset, options, out int xmpApplicationCount);
         bool foundTrailer = false;
         int entryCount = 0;
         while (offset < data.Length) {
@@ -77,8 +77,10 @@ internal static class OfficeProvenanceGif {
                     data, payloadStart, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
                     out byte[] packet, out int extensionEnd, out int trailerStart, out bool usesSubBlocks)) {
                     string location = $"GIF/XMP@{blockStart}";
-                    if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location);
+                    bool carrierValid = xmpApplicationCount == 1;
+                    if (context != null) OfficeProvenanceXmp.Inspect(packet, options, context, location, carrierValid);
                     if (output != null && removalOptions != null && changes != null && removalOptions.RemoveAiSourceMetadata &&
+                        (carrierValid || !removalOptions.RequireStructurallyValidCarrier) &&
                         OfficeProvenanceXmp.TryRemoveAiDeclarations(packet, removalOptions, location, changes, out byte[] cleaned)) {
                         output.Write(data, blockStart, payloadStart - blockStart);
                         if (usesSubBlocks) WriteSubBlocks(output, cleaned);
@@ -116,8 +118,13 @@ internal static class OfficeProvenanceGif {
         if (offset < data.Length) output?.Write(data, offset, data.Length - offset);
     }
 
-    private static int CountC2paApplications(byte[] data, int offset, OfficeProvenanceOptions options) {
+    private static int CountC2paApplications(
+        byte[] data,
+        int offset,
+        OfficeProvenanceOptions options,
+        out int xmpApplicationCount) {
         int count = 0;
+        xmpApplicationCount = 0;
         int entryCount = 0;
         while (offset < data.Length) {
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
@@ -152,6 +159,7 @@ internal static class OfficeProvenanceGif {
                 if (isXmp && TryReadXmpApplicationData(
                     data, offset, options.MaxAssetBytes, ref entryCount, options.MaxContainerEntries,
                     out _, out int extensionEnd, out _, out _)) {
+                    xmpApplicationCount++;
                     offset = extensionEnd;
                     continue;
                 }
