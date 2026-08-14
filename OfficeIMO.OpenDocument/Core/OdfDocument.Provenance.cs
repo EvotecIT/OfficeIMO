@@ -1,5 +1,7 @@
 using OfficeIMO.Provenance;
 using OfficeIMO.Core.Internal;
+using System.IO.Compression;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -67,8 +69,46 @@ public abstract partial class OdfDocument {
         OdfMediaTypes.Presentation
     };
 
-    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) =>
+    private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
         OfficeProvenanceZip.ValidateMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
+        using var input = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry[] manifestEntries = archive.Entries
+            .Where(entry => string.Equals(entry.FullName.Replace('\\', '/'), "META-INF/manifest.xml", StringComparison.Ordinal))
+            .ToArray();
+        if (manifestEntries.Length != 1) throw new InvalidDataException("OpenDocument package must contain exactly one 'META-INF/manifest.xml'.");
+
+        long maximumManifestBytes = Math.Min(options.MaxAssetBytes, options.MaxExpandedContainerBytes);
+        byte[] manifestBytes;
+        using (Stream stream = manifestEntries[0].Open()) manifestBytes = OfficeProvenanceBinary.ReadBounded(stream, maximumManifestBytes);
+        OfficeProvenanceXml.ValidateMaterializedNodeBudget(manifestBytes, options, "ODF manifest");
+
+        XDocument manifest;
+        using (var stream = new MemoryStream(manifestBytes, writable: false))
+        using (XmlReader reader = XmlReader.Create(stream, OfficeProvenanceXml.CreateReaderSettings(options))) {
+            manifest = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        }
+        XNamespace manifestNamespace = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
+        XElement root = manifest.Root ?? throw new InvalidDataException("OpenDocument manifest has no root element.");
+        if (root.Name != manifestNamespace + "manifest") {
+            throw new InvalidDataException("OpenDocument manifest root must be 'manifest:manifest'.");
+        }
+
+        XElement[] packageRoots = root.Elements(manifestNamespace + "file-entry")
+            .Where(element => string.Equals((string?)element.Attribute(manifestNamespace + "full-path"), "/", StringComparison.Ordinal))
+            .ToArray();
+        if (packageRoots.Length != 1) throw new InvalidDataException("OpenDocument manifest must contain exactly one package root entry.");
+        string mediaType = Encoding.ASCII.GetString(ReadZipEntryBounded(archive.Entries[0], 256));
+        string? manifestMediaType = (string?)packageRoots[0].Attribute(manifestNamespace + "media-type");
+        if (!string.Equals(mediaType, manifestMediaType, StringComparison.Ordinal)) {
+            throw new InvalidDataException("OpenDocument mimetype does not match the root manifest media type.");
+        }
+    }
+
+    private static byte[] ReadZipEntryBounded(ZipArchiveEntry entry, long maximumBytes) {
+        using Stream stream = entry.Open();
+        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes);
+    }
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) =>
         OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath);

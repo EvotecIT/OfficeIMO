@@ -829,7 +829,7 @@ public static partial class HtmlProvenance {
             candidate = html.IndexOf(closingPrefix, candidate, StringComparison.OrdinalIgnoreCase);
             if (candidate < 0) return -1;
             int delimiter = candidate + closingPrefix.Length;
-            if (delimiter >= html.Length || char.IsWhiteSpace(html[delimiter]) || html[delimiter] is '>' or '/') return candidate;
+            if (delimiter >= html.Length || IsAsciiWhitespace(html[delimiter]) || html[delimiter] is '>' or '/') return candidate;
             candidate = delimiter;
         }
         return -1;
@@ -871,7 +871,7 @@ public static partial class HtmlProvenance {
     private static bool MatchesScriptTag(string html, int offset, string prefix) {
         if (!StartsWithOrdinalIgnoreCase(html, offset, prefix)) return false;
         int delimiter = offset + prefix.Length;
-        return delimiter >= html.Length || char.IsWhiteSpace(html[delimiter]) || html[delimiter] is '>' or '/';
+        return delimiter >= html.Length || IsAsciiWhitespace(html[delimiter]) || html[delimiter] is '>' or '/';
     }
 
     private static bool StartsWithOrdinal(string value, int offset, string prefix) =>
@@ -942,11 +942,11 @@ public static partial class HtmlProvenance {
             }
             if (current == '>') return index;
             if (unquotedValue) {
-                if (char.IsWhiteSpace(current)) unquotedValue = false;
+                if (IsAsciiWhitespace(current)) unquotedValue = false;
                 continue;
             }
             if (afterEquals) {
-                if (char.IsWhiteSpace(current)) continue;
+                if (IsAsciiWhitespace(current)) continue;
                 afterEquals = false;
                 if (current is '\'' or '"') quote = current;
                 else unquotedValue = true;

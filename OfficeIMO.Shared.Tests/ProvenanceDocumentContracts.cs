@@ -659,6 +659,7 @@ public sealed partial class ProvenanceDocumentContracts {
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/content_credential.c2pa", CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
@@ -684,6 +685,7 @@ public sealed partial class ProvenanceDocumentContracts {
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "media/first.png", image, CompressionLevel.Optimal);
                 WriteEntry(archive, "media/second.png", image, CompressionLevel.Optimal);
@@ -930,12 +932,18 @@ public sealed partial class ProvenanceDocumentContracts {
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
             WriteEntry(archive, "mimetype", extension == "odt" ? "application/vnd.oasis.opendocument.text" : "application/epub+zip", CompressionLevel.NoCompression);
+            if (extension == "odt") WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
             WriteEntry(archive, signaturePath, "<signatures/>", CompressionLevel.Optimal);
             WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
             WriteEntry(archive, "media/provenance.png", image, CompressionLevel.Optimal);
         }
         return RewriteFixtureWithStoredMimetype(output.ToArray());
     }
+
+    private const string ValidOdfManifestXml =
+        "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\">" +
+        "<manifest:file-entry manifest:full-path=\"/\" manifest:media-type=\"application/vnd.oasis.opendocument.text\"/>" +
+        "</manifest:manifest>";
 
     private static void WriteEntry(ZipArchive archive, string name, string content, CompressionLevel level) =>
         WriteEntry(archive, name, Encoding.UTF8.GetBytes(content), level);

@@ -52,6 +52,7 @@ public sealed partial class ProvenanceDocumentContracts {
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
+                WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
                 WriteEntry(archive, "[Content_Types].xml", "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/documentsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "Pictures/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
