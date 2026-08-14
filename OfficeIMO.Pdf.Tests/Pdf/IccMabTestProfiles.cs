@@ -22,6 +22,17 @@ internal static class IccMabTestProfiles {
     internal static byte[] CreateRgbXyz16WithTransformedStages() =>
         Create("RGB ", 3, precision: 2, pcsIsLab: false, transformedStages: true, includeMatrix: true, includeClut: true);
 
+    internal static byte[] CreateRgbXyz16WithoutInputCurves() =>
+        Create(
+            "RGB ",
+            3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: false,
+            includeMatrix: false,
+            includeClut: true,
+            includeACurves: false);
+
     internal static byte[] CreateRgbXyzBOnly() =>
         Create("RGB ", 3, precision: 2, pcsIsLab: false, transformedStages: false, includeMatrix: false, includeClut: false);
 
@@ -36,6 +47,16 @@ internal static class IccMabTestProfiles {
             pcsIsLab: false,
             transformedStages: true,
             includeMatrix: true);
+
+    internal static byte[] CreateRgbXyz16BidirectionalWithoutOutputCurves() =>
+        AppendMba(
+            CreateRgbXyzBOnly(),
+            outputChannels: 3,
+            precision: 2,
+            pcsIsLab: false,
+            transformedStages: false,
+            includeMatrix: false,
+            includeACurves: false);
 
     internal static byte[] CreateCmykLab8Bidirectional() =>
         AppendMba(
@@ -73,6 +94,12 @@ internal static class IccMabTestProfiles {
             tagSignature: "B2A1");
     }
 
+    internal static byte[] CreateRgbXyz16OutputDeviceWithDistinctOutputIntents() {
+        byte[] profile = CreateRgbXyz16WithDistinctOutputIntents();
+        WriteSignature(profile, 12, "prtr");
+        return profile;
+    }
+
     internal static int FindTransformOffset(byte[] profile) => checked((int)ReadUInt32(profile, 136));
 
     internal static int FindOutputTransformOffset(byte[] profile) => checked((int)ReadUInt32(profile, 148));
@@ -84,6 +111,7 @@ internal static class IccMabTestProfiles {
         bool pcsIsLab,
         bool transformedStages,
         bool includeMatrix,
+        bool includeACurves = true,
         string tagSignature = "B2A0") {
         const int bOffset = 32;
         int cursor = bOffset + 3 * 16;
@@ -93,8 +121,8 @@ internal static class IccMabTestProfiles {
         if (includeMatrix) cursor += 3 * 16;
         int clutOffset = cursor;
         cursor += Align4(20 + GetGridSampleCount(3, variableGrid: false) * outputChannels * precision);
-        int aOffset = cursor;
-        cursor += outputChannels * 16;
+        int aOffset = includeACurves ? cursor : 0;
+        if (includeACurves) cursor += outputChannels * 16;
         int tagLength = cursor;
         const int tagOffset = 0;
         var tag = new byte[tagLength];
@@ -126,13 +154,15 @@ internal static class IccMabTestProfiles {
                 sampled: false);
         }
         WriteMbaClut(tag, tagOffset + clutOffset, outputChannels, precision, pcsIsLab, transformedStages);
-        WriteCurveSet(
-            tag,
-            tagOffset + aOffset,
-            outputChannels,
-            transformedStages ? 1.1D : 1D,
-            transformedStages ? 0.1D : 0D,
-            sampled: false);
+        if (includeACurves) {
+            WriteCurveSet(
+                tag,
+                tagOffset + aOffset,
+                outputChannels,
+                transformedStages ? 1.1D : 1D,
+                transformedStages ? 0.1D : 0D,
+                sampled: false);
+        }
         return AppendTag(inputProfile, tagSignature, tag);
     }
 
@@ -167,7 +197,8 @@ internal static class IccMabTestProfiles {
         bool transformedStages,
         bool includeMatrix,
         bool includeClut,
-        bool shareInputAndOutputCurves = false) {
+        bool shareInputAndOutputCurves = false,
+        bool includeACurves = true) {
         const int tagOffset = 156;
         const int bOffset = 32;
         int storedBCurveCount = shareInputAndOutputCurves ? Math.Max(3, inputChannels) : 3;
@@ -181,8 +212,8 @@ internal static class IccMabTestProfiles {
             int gridSamples = GetGridSampleCount(inputChannels, variableGrid: inputChannels == 4);
             cursor += Align4(20 + gridSamples * 3 * precision);
         }
-        int aOffset = includeClut ? (shareInputAndOutputCurves ? bOffset : cursor) : 0;
-        if (includeClut && !shareInputAndOutputCurves) cursor += inputChannels * 16;
+        int aOffset = includeClut && includeACurves ? (shareInputAndOutputCurves ? bOffset : cursor) : 0;
+        if (includeClut && includeACurves && !shareInputAndOutputCurves) cursor += inputChannels * 16;
         int tagLength = cursor;
         var profile = new byte[tagOffset + tagLength];
 
@@ -229,7 +260,7 @@ internal static class IccMabTestProfiles {
         }
         if (includeClut) {
             WriteClut(profile, tagOffset + clutOffset, inputChannels, precision, pcsIsLab, transformedStages);
-            if (!shareInputAndOutputCurves) {
+            if (includeACurves && !shareInputAndOutputCurves) {
                 WriteCurveSet(
                     profile,
                     tagOffset + aOffset,

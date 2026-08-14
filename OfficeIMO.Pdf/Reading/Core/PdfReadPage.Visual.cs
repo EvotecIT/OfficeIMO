@@ -1906,21 +1906,21 @@ public sealed partial class PdfReadPage {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
             !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
-        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        double[] whitePoint = ReadColorSpaceNumberArray(whitePointObject);
         if (!PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
 
         if (!TryResolveOptionalColorSpaceEntry(calibration, "Gamma", out PdfObject? gammaObject, out bool hasGamma)) return false;
-        IReadOnlyList<double>? gamma = null;
+        double[]? gamma = null;
         if (hasGamma) {
-            gamma = ReadNumberArray(gammaObject);
-            if (gamma.Count != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+            gamma = ReadColorSpaceNumberArray(gammaObject);
+            if (gamma.Length != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
         }
 
         if (!TryResolveOptionalColorSpaceEntry(calibration, "Matrix", out PdfObject? matrixObject, out bool hasMatrix)) return false;
-        IReadOnlyList<double>? matrix = null;
+        double[]? matrix = null;
         if (hasMatrix) {
-            matrix = ReadNumberArray(matrixObject);
-            if (matrix.Count != 9 || matrix.Any(static value => !IsFinite(value))) return false;
+            matrix = ReadColorSpaceNumberArray(matrixObject);
+            if (matrix.Length != 9 || matrix.Any(static value => !IsFinite(value))) return false;
         }
 
         colorSpace = PdfPageColorSpace.CalRgb(whitePoint[0], whitePoint[1], whitePoint[2], gamma, matrix);

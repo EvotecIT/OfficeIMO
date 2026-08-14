@@ -11,6 +11,27 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOutputIntentRenderingTests {
     [Fact]
+    public void RenderPage_AppliesOutputDeviceClassProfileToVectorColor() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16OutputDeviceWithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(profileBytes, "0.2 0.4 0.8 rg 10 10 20 20 re f");
+
+        OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
+
+        Assert.Equal(
+            ExpectedSoftProof(profileBytes, OfficeColor.FromRgb(51, 102, 204), OfficeIccRenderingIntent.RelativeColorimetric),
+            actual);
+    }
+
+    [Fact]
+    public void IccProfile_AcceptsMbaClutWithoutOptionalACurves() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16BidirectionalWithoutOutputCurves();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TrySoftProof(OfficeColor.FromRgb(64, 128, 192), out _));
+    }
+
+    [Fact]
     public void DrawingEffect_ExplicitRelativeIntentOverridesInheritedPerceptualIntent() {
         PdfPageDrawingEffect inherited = PdfPageDrawingEffect.Default
             .WithRenderingIntent(OfficeIccRenderingIntent.Perceptual);

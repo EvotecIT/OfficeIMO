@@ -18,11 +18,13 @@ internal sealed partial class PdfCalculatorProgram {
     private PdfCalculatorProgram(
         Instruction[] instructions,
         double[] numericConstants,
+        bool hasConditional,
         int instructionCount,
         int maximumEvaluationWork,
         int sourceLength) {
         _instructions = instructions;
         _numericConstants = numericConstants;
+        HasConditional = hasConditional;
         InstructionCount = instructionCount;
         MaximumEvaluationWork = maximumEvaluationWork;
         RetainedBytes = checked(sourceLength + instructionCount * 64L);
@@ -35,6 +37,8 @@ internal sealed partial class PdfCalculatorProgram {
     internal long RetainedBytes { get; }
 
     internal IReadOnlyList<double> NumericConstants => _numericConstants;
+
+    internal bool HasConditional { get; }
 
     internal static bool TryParse(byte[] source, out PdfCalculatorProgram program) {
         program = null!;
@@ -181,6 +185,7 @@ internal sealed partial class PdfCalculatorProgram {
         private readonly List<double> _numericConstants = new List<double>();
         private int _position;
         private int _instructionCount;
+        private bool _hasConditional;
 
         internal Parser(byte[] source) {
             _source = source;
@@ -195,6 +200,7 @@ internal sealed partial class PdfCalculatorProgram {
             program = new PdfCalculatorProgram(
                 instructions,
                 _numericConstants.Distinct().OrderBy(static value => value).ToArray(),
+                _hasConditional,
                 _instructionCount,
                 maximumSteps,
                 _source.Length);
@@ -228,6 +234,7 @@ internal sealed partial class PdfCalculatorProgram {
                         (falseBranch == null && !string.Equals(conditionalToken.Text, "if", StringComparison.Ordinal)) ||
                         (falseBranch != null && !string.Equals(conditionalToken.Text, "ifelse", StringComparison.Ordinal))) return false;
                     instruction = Instruction.Conditional(trueBranch, falseBranch);
+                    _hasConditional = true;
                     instructionSteps = checked(1 + Math.Max(trueSteps, falseSteps));
                 } else if (token.Kind != TokenKind.Word || !TryCreateInstruction(token.Text!, out instruction)) {
                     return false;

@@ -29,7 +29,6 @@ public sealed partial class OfficeIccColorProfile {
         int aOffset = ReadRelativeOffset(bytes, range.Offset + 28);
         if (bOffset <= 0 || matrixOffset < 0 || mOffset < 0 || clutOffset < 0 || aOffset < 0 ||
             (matrixOffset == 0) != (mOffset == 0) ||
-            (clutOffset == 0) != (aOffset == 0) ||
             (clutOffset == 0 && inputChannels != outputChannels)) {
             return false;
         }
@@ -55,11 +54,15 @@ public sealed partial class OfficeIccColorProfile {
         ToneCurve[]? aCurves = null;
         MabClut? clut = null;
         if (clutOffset != 0) {
-            if (!TryReadMabClut(bytes, range, clutOffset, inputChannels, outputChannels, out clut, out ElementRange clutRegion) ||
-                !TryReadEmbeddedCurveSet(bytes, range, aOffset, inputChannels, out aCurves, out ElementRange[] aRegions)) {
+            if (!TryReadMabClut(bytes, range, clutOffset, inputChannels, outputChannels, out clut, out ElementRange clutRegion)) {
                 return false;
             }
             regions[regionCount++] = new ElementRegion(clutRegion, isCurve: false);
+        }
+        if (aOffset != 0) {
+            if (!TryReadEmbeddedCurveSet(bytes, range, aOffset, inputChannels, out aCurves, out ElementRange[] aRegions)) {
+                return false;
+            }
             AddCurveRegions(regions, ref regionCount, aRegions);
         }
 
@@ -93,7 +96,6 @@ public sealed partial class OfficeIccColorProfile {
         int aOffset = ReadRelativeOffset(bytes, range.Offset + 28);
         if (bOffset <= 0 || matrixOffset < 0 || mOffset < 0 || clutOffset < 0 || aOffset < 0 ||
             (matrixOffset == 0) != (mOffset == 0) ||
-            (clutOffset == 0) != (aOffset == 0) ||
             (clutOffset == 0 && inputChannels != outputChannels)) {
             return false;
         }
@@ -119,11 +121,15 @@ public sealed partial class OfficeIccColorProfile {
         ToneCurve[]? aCurves = null;
         MabClut? clut = null;
         if (clutOffset != 0) {
-            if (!TryReadMabClut(bytes, range, clutOffset, inputChannels, outputChannels, out clut, out ElementRange clutRegion) ||
-                !TryReadEmbeddedCurveSet(bytes, range, aOffset, outputChannels, out aCurves, out ElementRange[] aRegions)) {
+            if (!TryReadMabClut(bytes, range, clutOffset, inputChannels, outputChannels, out clut, out ElementRange clutRegion)) {
                 return false;
             }
             regions[regionCount++] = new ElementRegion(clutRegion, isCurve: false);
+        }
+        if (aOffset != 0) {
+            if (!TryReadEmbeddedCurveSet(bytes, range, aOffset, outputChannels, out aCurves, out ElementRange[] aRegions)) {
+                return false;
+            }
             AddCurveRegions(regions, ref regionCount, aRegions);
         }
 

@@ -50,9 +50,16 @@ internal static partial class PdfColorSpaceFunctionResolver {
         retainedFunctionBytes = totalRetainedBytes;
 
         IReadOnlyList<double>? breakpoints = null;
+        IReadOnlyList<double>? discontinuities = null;
         if (inputCount == 1) {
-            double[] requiredPoints = program.NumericConstants
-                .Where(value => value >= domain[0] && value <= domain[1])
+            double domainMinimum = Math.Min(domain[0], domain[1]);
+            double domainMaximum = Math.Max(domain[0], domain[1]);
+            double[] authoredPoints = program.NumericConstants
+                .Where(value => value >= domainMinimum && value <= domainMaximum)
+                .Distinct()
+                .OrderBy(static value => value)
+                .ToArray();
+            double[] requiredPoints = authoredPoints
                 .Concat(domain)
                 .Distinct()
                 .OrderBy(static value => value)
@@ -61,6 +68,11 @@ internal static partial class PdfColorSpaceFunctionResolver {
             breakpoints = LimitSuggestedPoints(
                 CreateUniformBreakpoints(domain, MaxSuggestedSampleBreakpoints).Concat(requiredPoints),
                 requiredPoints);
+            if (program.HasConditional) {
+                discontinuities = authoredPoints
+                    .Where(value => value > domainMinimum && value < domainMaximum)
+                    .ToArray();
+            }
         }
 
         function = new PdfColorFunction(
@@ -71,6 +83,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             (values, output, outputOffset) =>
                 program.TryEvaluate(values, output, outputOffset, outputCount),
             breakpoints,
+            discontinuities,
             evaluationCost: program.MaximumEvaluationWork);
         return true;
     }

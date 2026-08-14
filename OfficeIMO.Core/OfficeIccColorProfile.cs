@@ -14,6 +14,7 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeIccColorProfile {
     private const uint InputDeviceClassSignature = 0x73636E72U;
     private const uint DisplayDeviceClassSignature = 0x6D6E7472U;
+    private const uint OutputDeviceClassSignature = 0x70727472U;
     private const uint GraySignature = 0x47524159U;
     private const uint RgbSignature = 0x52474220U;
     private const uint XyzSignature = 0x58595A20U;
@@ -207,7 +208,9 @@ public sealed partial class OfficeIccColorProfile {
     }
 
     private static bool IsSupportedProfileClass(uint signature) =>
-        signature == InputDeviceClassSignature || signature == DisplayDeviceClassSignature;
+        signature == InputDeviceClassSignature ||
+        signature == DisplayDeviceClassSignature ||
+        signature == OutputDeviceClassSignature;
 
     /// <summary>Attempts to convert device components through the ICC profile to sRGB.</summary>
     public bool TryConvert(IReadOnlyList<double> components, out OfficeColor color) {

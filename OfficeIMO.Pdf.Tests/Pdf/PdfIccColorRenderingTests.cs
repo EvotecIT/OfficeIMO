@@ -9,6 +9,15 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfIccColorRenderingTests {
     [Fact]
+    public void IccProfile_AcceptsMabClutWithoutOptionalACurves() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithoutInputCurves();
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TryConvert(new[] { 0.25D, 0.5D, 0.75D }, out _));
+    }
+
+    [Fact]
     public void RenderPage_AppliesEmbeddedCmykMabProfileWithoutApproximationDiagnostic() {
         byte[] pdf = BuildIccContentPdf(
             IccMabTestProfiles.CreateCmykLab8(),
@@ -535,6 +544,31 @@ public class PdfIccColorRenderingTests {
             "7 0 obj\n8 0 R\nendobj\n8 0 obj\n" + calibrationDictionary + "\nendobj\n",
             colorSpaceName: "CsCal",
             colorSpaceResources: "/CsCal [/" + colorSpaceKind + " 7 0 R]");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);
+        Assert.DoesNotContain(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsCal");
+    }
+
+    [Theory]
+    [InlineData("CalGray", "<< /WhitePoint [7 0 R 1 1] /Gamma 2 >>", "0.5 scn", "0.9505")]
+    [InlineData("CalRGB", "<< /WhitePoint [0.9505 1 1.089] /Gamma [7 0 R 2 2] >>", "0.5 0.5 0.5 scn", "2")]
+    [InlineData("CalRGB", "<< /WhitePoint [0.9505 1 1.089] /Matrix [7 0 R 0 0 0 1 0 0 0 1] >>", "0.5 0.5 0.5 scn", "1")]
+    [InlineData("Lab", "<< /WhitePoint [0.9505 1 1.089] /Range [7 0 R 100 -100 100] >>", "50 0 0 scn", "-100")]
+    public void RenderPage_ResolvesMultiHopCalibratedArrayElements(
+        string colorSpaceKind,
+        string calibrationDictionary,
+        string colorOperation,
+        string number) {
+        byte[] pdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            colorOperation,
+            "7 0 obj\n8 0 R\nendobj\n8 0 obj\n" + number + "\nendobj\n",
+            colorSpaceName: "CsCal",
+            colorSpaceResources: "/CsCal [/" + colorSpaceKind + " " + calibrationDictionary + "]");
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
         Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes);

@@ -242,7 +242,7 @@ public sealed partial class PdfReadPage {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
             !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
-        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        double[] whitePoint = ReadColorSpaceNumberArray(whitePointObject);
         if (!PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
 
         if (!TryResolveOptionalColorSpaceEntry(calibration, "Gamma", out PdfObject? gammaObject, out bool hasGamma)) return false;
@@ -261,13 +261,13 @@ public sealed partial class PdfReadPage {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (!PdfCalibratedColorSpaceSemantics.HasSupportedBlackPoint(calibration, _objects) ||
             !calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
-        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        double[] whitePoint = ReadColorSpaceNumberArray(whitePointObject);
         if (!PdfCalibratedColorSpaceSemantics.IsValidWhitePoint(whitePoint)) return false;
 
         if (!TryResolveOptionalColorSpaceEntry(calibration, "Range", out PdfObject? rangeObject, out bool hasRange)) return false;
         IReadOnlyList<double> abRange = new[] { -100D, 100D, -100D, 100D };
         if (hasRange) {
-            abRange = ReadNumberArray(rangeObject);
+            abRange = ReadColorSpaceNumberArray(rangeObject);
             if (!PdfCalibratedColorSpaceSemantics.IsSupportedLabRange(abRange)) return false;
         }
 

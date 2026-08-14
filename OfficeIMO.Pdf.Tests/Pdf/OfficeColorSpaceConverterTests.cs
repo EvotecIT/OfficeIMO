@@ -103,17 +103,24 @@ public class OfficeColorSpaceConverterTests {
         badSignature[36] = (byte)'x';
         byte[] authoredLutTransform = PdfIccProfiles.SrgbIec6196621;
         RenameTag(authoredLutTransform, "desc", "A2B0");
-        byte[] outputProfile = PdfIccProfiles.SrgbIec6196621;
-        WriteSignature(outputProfile, 12, "prtr");
         byte[] deviceLinkProfile = PdfIccProfiles.SrgbIec6196621;
         WriteSignature(deviceLinkProfile, 12, "link");
 
         Assert.False(OfficeIccColorProfile.TryCreate(cmykProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(badSignature, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(authoredLutTransform, out _));
-        Assert.False(OfficeIccColorProfile.TryCreate(outputProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(deviceLinkProfile, out _));
         Assert.False(OfficeIccColorProfile.TryCreate(null!, out _));
+    }
+
+    [Fact]
+    public void IccMatrixProfile_AcceptsOutputDeviceClass() {
+        byte[] outputProfile = PdfIccProfiles.SrgbIec6196621;
+        WriteSignature(outputProfile, 12, "prtr");
+
+        Assert.True(OfficeIccColorProfile.TryCreate(outputProfile, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TrySoftProof(OfficeColor.CornflowerBlue, out _));
     }
 
     [Fact]

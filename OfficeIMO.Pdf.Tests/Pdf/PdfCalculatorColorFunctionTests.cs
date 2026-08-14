@@ -102,6 +102,7 @@ public sealed partial class PdfColorFunctionTests {
             out PdfColorFunction function));
 
         Assert.Contains(0.5D, function.Breakpoints);
+        Assert.Contains(0.5D, function.Discontinuities);
         Assert.True(function.Breakpoints.Count <= 128);
     }
 
