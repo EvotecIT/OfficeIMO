@@ -336,6 +336,12 @@ public static class PdfProvenance {
                 result,
                 maximumContainerEntries,
                 pageTreeObjectNumbers);
+            AddStructuralGraphDictionaries(
+                objects,
+                structureTree.Items.TryGetValue("ClassMap", out PdfObject? classMap) ? classMap : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers);
         }
         AddStructuralGraphDictionaries(
             objects,
@@ -390,7 +396,8 @@ public static class PdfProvenance {
             objects,
             catalog.Items.TryGetValue("Outlines", out PdfObject? outlines) ? outlines : null,
             result,
-            maximumContainerEntries);
+            maximumContainerEntries,
+            pageTreeObjectNumbers);
         AddCatalogNameTrees(
             objects,
             catalog.Items.TryGetValue("Names", out PdfObject? names) ? names : null,
@@ -438,6 +445,14 @@ public static class PdfProvenance {
                     AddStructuralGraphDictionaries(
                         objects,
                         activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? decodingParameters) ? decodingParameters : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
+                }
+                if (string.Equals(activeStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyGroup) ? transparencyGroup : null,
                         result,
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
@@ -517,7 +532,7 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(field);
-            foreach (string key in new[] { "Lock", "SV" }) {
+            foreach (string key in new[] { "Lock", "SV", "AP" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     field.Items.TryGetValue(key, out PdfObject? constraintValue) ? constraintValue : null,
@@ -534,9 +549,11 @@ public static class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject? value,
         HashSet<PdfObject> result,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        HashSet<int> pageTreeObjectNumbers) {
         if (value == null) return;
         var visited = new HashSet<PdfObject>();
+        var structuralVisited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>();
         pending.Push(value);
         while (pending.Count > 0) {
@@ -546,6 +563,13 @@ public static class PdfProvenance {
                 throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
             }
             result.Add(outline);
+            AddStructuralGraphDictionaries(
+                objects,
+                outline.Items.TryGetValue("Dest", out PdfObject? destination) ? destination : null,
+                result,
+                maximumContainerEntries,
+                pageTreeObjectNumbers,
+                structuralVisited);
             foreach (string key in new[] { "First", "Last", "Next", "Prev", "Parent" }) {
                 if (outline.Items.TryGetValue(key, out PdfObject? linked)) pending.Push(linked);
             }
@@ -609,6 +633,7 @@ public static class PdfProvenance {
         bool addActionLeafGraphs,
         HashSet<int> pageTreeObjectNumbers) {
         var visited = new HashSet<PdfObject>();
+        var leafStructuralVisited = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>(values.Where(static value => value != null).Cast<PdfObject>());
         while (pending.Count > 0) {
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, pending.Pop());
@@ -626,7 +651,8 @@ public static class PdfProvenance {
                             leafNames.Items[index],
                             result,
                             maximumContainerEntries,
-                            pageTreeObjectNumbers);
+                            pageTreeObjectNumbers,
+                            leafStructuralVisited);
                     } else {
                         AddResolvedDictionary(objects, leafNames.Items[index], result);
                     }
