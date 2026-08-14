@@ -505,9 +505,15 @@ internal sealed class PdfPageOptionalContentVisibility {
                     continue;
                 }
 
-                string? viewState = ReadName(view, "ViewState", objects);
-                if (string.Equals(viewState, "ON", StringComparison.Ordinal)) visibility[reference.ObjectNumber] = true;
-                else if (string.Equals(viewState, "OFF", StringComparison.Ordinal)) visibility[reference.ObjectNumber] = false;
+                if (!view.Items.TryGetValue("ViewState", out PdfObject? viewStateObject)) {
+                    visibility[reference.ObjectNumber] = true;
+                    continue;
+                }
+                PdfObject? resolvedViewState = ResolveObject(viewStateObject, objects);
+                if (resolvedViewState is PdfNull) visibility[reference.ObjectNumber] = true;
+                else if (resolvedViewState is PdfName { Name: "ON" }) visibility[reference.ObjectNumber] = true;
+                else if (resolvedViewState is PdfName { Name: "OFF" }) visibility[reference.ObjectNumber] = false;
+                else hasUnsupportedViewUsageApplications = true;
             }
         }
         return hasUnsupportedViewUsageApplications;

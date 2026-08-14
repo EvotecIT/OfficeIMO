@@ -1060,7 +1060,9 @@ public sealed partial class PdfReadPage {
     private bool TryReadFormMatrix(PdfDictionary? formDict, out Matrix2D formMatrix) {
         formMatrix = Matrix2D.Identity;
         if (formDict is null || !formDict.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) return true;
-        if (ResolveEffectObject(matrixObject) is not PdfArray array || array.Items.Count != 6) return false;
+        PdfObject? resolvedMatrix = ResolveEffectObject(matrixObject);
+        if (resolvedMatrix is PdfNull) return true;
+        if (resolvedMatrix is not PdfArray array || array.Items.Count != 6) return false;
         var values = new double[6];
         for (int index = 0; index < values.Length; index++) {
             if (ResolveEffectObject(array.Items[index]) is not PdfNumber number ||

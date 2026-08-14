@@ -343,6 +343,8 @@ public sealed partial class PdfReadPage {
         if (placement.InlineImageStream == null &&
             (imageDictionary == null ||
              ResolveEffectObject(imageDictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" })) return false;
+        if (placement.InlineImageStream == null && imageDictionary != null &&
+            !HasFullType3ImageXObjectNames(imageDictionary)) return false;
         if (imageDictionary != null && HasType3SoftMaskMatte(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageMaskDeclaration(imageDictionary)) return false;
         if (imageDictionary != null && !HasValidType3ImageDimensions(imageDictionary, image.IsImageMask)) return false;
@@ -560,7 +562,9 @@ public sealed partial class PdfReadPage {
 
     private bool HasValidType3ImageMaskDecode(PdfDictionary imageDictionary) {
         if (!imageDictionary.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
-        if (ResolveEffectObject(decodeObject) is not PdfArray decode || decode.Items.Count != 2 ||
+        PdfObject? resolvedDecode = ResolveEffectObject(decodeObject);
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decode || decode.Items.Count != 2 ||
             ResolveEffectObject(decode.Items[0]) is not PdfNumber first ||
             ResolveEffectObject(decode.Items[1]) is not PdfNumber second ||
             double.IsNaN(first.Value) || double.IsInfinity(first.Value) ||
@@ -568,6 +572,31 @@ public sealed partial class PdfReadPage {
         return first.Value == 0D && second.Value == 1D ||
                first.Value == 1D && second.Value == 0D;
     }
+
+    private bool HasFullType3ImageXObjectNames(PdfDictionary imageDictionary) {
+        if (imageDictionary.Items.ContainsKey("W") ||
+            imageDictionary.Items.ContainsKey("H") ||
+            imageDictionary.Items.ContainsKey("BPC") ||
+            imageDictionary.Items.ContainsKey("CS") ||
+            imageDictionary.Items.ContainsKey("F") ||
+            imageDictionary.Items.ContainsKey("D") ||
+            imageDictionary.Items.ContainsKey("DP") ||
+            imageDictionary.Items.ContainsKey("IM") ||
+            imageDictionary.Items.ContainsKey("I")) return false;
+
+        if (!imageDictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) return true;
+        PdfObject? resolvedFilter = ResolveEffectObject(filterObject);
+        if (resolvedFilter is PdfName filterName) return !IsInlineImageFilterAbbreviation(filterName.Name);
+        if (resolvedFilter is not PdfArray filters) return true;
+        for (int index = 0; index < filters.Items.Count; index++) {
+            if (ResolveEffectObject(filters.Items[index]) is PdfName name &&
+                IsInlineImageFilterAbbreviation(name.Name)) return false;
+        }
+        return true;
+    }
+
+    private static bool IsInlineImageFilterAbbreviation(string name) =>
+        name is "AHx" or "A85" or "LZW" or "Fl" or "RL" or "CCF" or "DCT";
 
     private bool HasType3SoftMaskMatte(PdfDictionary imageDictionary) {
         if (!imageDictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) return false;

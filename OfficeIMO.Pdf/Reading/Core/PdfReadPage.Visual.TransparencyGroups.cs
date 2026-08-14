@@ -17,13 +17,7 @@ public sealed partial class PdfReadPage {
             ResolveEffectObject(colorSpaceObject) is not PdfName { Name: "DeviceRGB" }) {
             return false;
         }
-        if (formDictionary.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
-            if (ResolveEffectObject(matrixObject) is not PdfArray matrix || matrix.Items.Count != 6) return false;
-            for (int index = 0; index < matrix.Items.Count; index++) {
-                if (ResolveEffectObject(matrix.Items[index]) is not PdfNumber number || !IsFinite(number.Value)) return false;
-            }
-        }
-        return true;
+        return TryReadFormMatrix(formDictionary, out _);
     }
 
     private bool HasExactTransparencyGroupDeclaration(PdfDictionary group) {

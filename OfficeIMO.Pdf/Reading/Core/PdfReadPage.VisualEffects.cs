@@ -62,27 +62,35 @@ public sealed partial class PdfReadPage {
         if (transparency.Items.TryGetValue("K", out PdfObject? knockoutObject) &&
             ResolveEffectObject(knockoutObject) is not PdfBoolean { Value: false } and not PdfNull) return null;
         PdfName? groupColorSpace = null;
-        bool hasExplicitGroupColorSpace = transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject);
-        if (hasExplicitGroupColorSpace) {
-            groupColorSpace = ResolveEffectObject(colorSpaceObject) as PdfName;
-            if (groupColorSpace?.Name != "DeviceGray" && groupColorSpace?.Name != "DeviceRGB") return null;
+        bool hasExplicitGroupColorSpace = false;
+        if (transparency.Items.TryGetValue("CS", out PdfObject? colorSpaceObject)) {
+            PdfObject? resolvedColorSpace = ResolveEffectObject(colorSpaceObject);
+            if (resolvedColorSpace is not PdfNull) {
+                if (resolvedColorSpace is not PdfName resolvedColorSpaceName ||
+                    resolvedColorSpaceName.Name != "DeviceGray" && resolvedColorSpaceName.Name != "DeviceRGB") return null;
+                groupColorSpace = resolvedColorSpaceName;
+                hasExplicitGroupColorSpace = true;
+            }
         }
         OfficeSoftMaskMode mode = modeName.Name == "Luminosity" ? OfficeSoftMaskMode.Luminosity : OfficeSoftMaskMode.Alpha;
         OfficeColor backdrop = OfficeColor.Transparent;
         bool hasByteExactBackdrop = true;
         if (mode == OfficeSoftMaskMode.Luminosity &&
             mask.Items.TryGetValue("BC", out PdfObject? backdropObject)) {
-            if (ResolveEffectObject(backdropObject) is not PdfArray components) return null;
-            if (!TryReadStrictNumberArray(components, out double[] values)) return null;
-            int expectedComponents = groupColorSpace?.Name == "DeviceGray"
-                ? 1
-                : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Length;
-            if ((expectedComponents != 1 && expectedComponents != 3) ||
-                values.Length != expectedComponents) return null;
-            hasByteExactBackdrop = values.All(IsByteRepresentableComponent);
-            backdrop = values.Length == 1
-                ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
-                : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
+            PdfObject? resolvedBackdrop = ResolveEffectObject(backdropObject);
+            if (resolvedBackdrop is not PdfNull) {
+                if (resolvedBackdrop is not PdfArray components) return null;
+                if (!TryReadStrictNumberArray(components, out double[] values)) return null;
+                int expectedComponents = groupColorSpace?.Name == "DeviceGray"
+                    ? 1
+                    : groupColorSpace?.Name == "DeviceRGB" ? 3 : values.Length;
+                if ((expectedComponents != 1 && expectedComponents != 3) ||
+                    values.Length != expectedComponents) return null;
+                hasByteExactBackdrop = values.All(IsByteRepresentableComponent);
+                backdrop = values.Length == 1
+                    ? OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[0]), ToColorByte(values[0]))
+                    : OfficeColor.FromRgb(ToColorByte(values[0]), ToColorByte(values[1]), ToColorByte(values[2]));
+            }
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
     }
