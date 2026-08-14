@@ -2490,9 +2490,11 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(rendered.Pages.Count > 1);
         Assert.Equal("Paged list", Assert.Single(rendered.Headings).Text);
-        Assert.Contains(tagged.StructureElements, element => element.StructureType == "L");
-        Assert.Contains(tagged.StructureElements, element => element.StructureType == "LI");
-        Assert.Contains(tagged.StructureElements, element => element.StructureType == "LBody");
+        PdfCore.PdfStructureElementInfo list = Assert.Single(tagged.StructureElements, element => element.StructureType == "L");
+        PdfCore.PdfStructureElementInfo listItem = Assert.Single(tagged.StructureElements, element => element.StructureType == "LI");
+        PdfCore.PdfStructureElementInfo listBody = Assert.Single(tagged.StructureElements, element => element.StructureType == "LBody");
+        Assert.Contains(listItem.ObjectNumber, list.ChildElementObjectNumbers);
+        Assert.Contains(listBody.ObjectNumber, listItem.ChildElementObjectNumbers);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
         Assert.Empty(rendered.Diagnostics);
     }

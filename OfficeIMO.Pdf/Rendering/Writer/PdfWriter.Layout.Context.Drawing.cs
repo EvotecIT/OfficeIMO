@@ -301,7 +301,7 @@ internal static partial class PdfWriter {
             pageImage.RotationCenterX = originX + projection.RotationCenterX;
             pageImage.RotationCenterY = originTopY - projection.RotationCenterY;
             pageImage.SuppressAccessibilityWrapper = _suppressCanvasAccessibilityWrappers;
-            pageImage.StructureParentElementIndex = _canvasStructureParentElementIndex;
+            pageImage.StructureParentElement = _canvasStructureParentElement;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage);
             sb.Append(pageImage.InlineDrawToken);
@@ -442,7 +442,7 @@ internal static partial class PdfWriter {
                 return null;
             }
 
-            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!, _canvasStructureParentElementIndex);
+            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!, _canvasStructureParentElement);
             int? structElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(style.AlternativeText!));

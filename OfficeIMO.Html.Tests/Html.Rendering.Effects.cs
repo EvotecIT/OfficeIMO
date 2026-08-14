@@ -359,10 +359,12 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlClipPath_EmptyBasicShapesRemainValidEmptyClipsAcrossArtifacts() {
         const string html = "<div id='inset-empty' style='width:20px;height:20px;margin:0;background:red;clip-path:inset(60%);font-size:8px'>InsetMarker</div>"
             + "<div id='circle-empty' style='width:20px;height:20px;margin:0;background:blue;clip-path:circle(0)'>CircleMarker</div>"
-            + "<div id='ellipse-empty' style='width:20px;height:20px;margin:0;background:green;clip-path:ellipse(0 10px)'>EllipseMarker</div>";
+            + "<div id='ellipse-empty' style='width:20px;height:20px;margin:0;background:green;clip-path:ellipse(0 10px)'>EllipseMarker</div>"
+            + "<div id='polygon-empty' style='width:20px;height:20px;margin:0;background:purple;clip-path:polygon(0 0,0 0,0 0)'>PolygonMarker</div>"
+            + "<div id='polygon-collinear-empty' style='width:20px;height:20px;margin:0;background:orange;clip-path:polygon(0 0,10px 10px,20px 20px)'>CollinearMarker</div>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 30D,
-            ViewportHeight = 70D,
+            ViewportHeight = 110D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent,
             FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
@@ -378,16 +380,39 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
-        Assert.Equal(3, clips.Count);
+        Assert.Equal(5, clips.Count);
         Assert.All(clips, clip => Assert.Equal(OfficeClipPathKind.Empty, clip.ClipPath.Kind));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 30));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 50));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 70));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 90));
         Assert.Contains("<path d=\"\"", svg, StringComparison.Ordinal);
         Assert.Contains("InsetMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("CircleMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("EllipseMarker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("PolygonMarker", pdfText, StringComparison.Ordinal);
+        Assert.Contains("CollinearMarker", pdfText, StringComparison.Ordinal);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,0 0,0 0))"));
         Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_NonRectangularClipSuppressesOnlyLinksOutsideTheVisibleRegion() {
+        const string html = "<div style='width:100px;height:20px;margin:0;clip-path:polygon(0 0,100% 0,0 100%)'>"
+            + "<a style='font-size:8px;line-height:10px' href='https://example.com/inside'>Inside</a></div>"
+            + "<div style='width:100px;height:20px;margin:0;clip-path:polygon(100% 0,100% 100%,0 100%)'>"
+            + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
+        var options = new HtmlPdfSaveOptions {
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+
+        Assert.Single(logical.GetLinksByUri("https://example.com/inside"));
+        Assert.Empty(logical.GetLinksByUri("https://example.com/outside"));
     }
 
     [Fact]

@@ -97,5 +97,20 @@ internal static partial class PdfWriter {
             });
             return markedContentId;
         }
+
+        private int? RegisterFigureStructureElement(string alternativeText, PageStructElement? parentElement) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
+                return null;
+            }
+
+            int markedContentId = currentPage.NextMarkedContentId++;
+            currentPage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = "Figure",
+                AlternativeText = alternativeText,
+                ParentElement = parentElement
+            });
+            return markedContentId;
+        }
     }
 }

@@ -154,6 +154,54 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlGrid_RowSubgridClampsAutoPlacementToInheritedTracks() {
+        const string html = """
+            <div style="display:grid;width:100px;grid-template-rows:30px 40px;row-gap:10px">
+              <div style="display:grid;grid-row:1 / span 2;grid-template-rows:subgrid">
+                <span id="clamped-row-a" style="background:#ff0000">A</span>
+                <span id="clamped-row-b" style="background:#00ff00">B</span>
+                <span id="clamped-row-c" style="background:#0000ff">C</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#clamped-row-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#clamped-row-b");
+        HtmlRenderShape third = FindGridShape(rendered, "span#clamped-row-c");
+
+        Assert.Equal(0D, first.Y, 3);
+        Assert.Equal(40D, second.Y, 3);
+        Assert.Equal(second.Y, third.Y, 3);
+        Assert.Equal(second.Height, third.Height, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlGrid_ColumnSubgridClampsAutoPlacementToInheritedTracks() {
+        const string html = """
+            <div style="display:grid;width:90px;grid-template-columns:30px 40px;column-gap:10px">
+              <div style="display:grid;grid-column:1 / span 2;grid-template-columns:subgrid;grid-auto-flow:column">
+                <span id="clamped-column-a" style="background:#ff0000">A</span>
+                <span id="clamped-column-b" style="background:#00ff00">B</span>
+                <span id="clamped-column-c" style="background:#0000ff">C</span>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderGrid(html, 120D);
+        HtmlRenderShape first = FindGridShape(rendered, "span#clamped-column-a");
+        HtmlRenderShape second = FindGridShape(rendered, "span#clamped-column-b");
+        HtmlRenderShape third = FindGridShape(rendered, "span#clamped-column-c");
+
+        Assert.Equal(0D, first.X, 3);
+        Assert.Equal(40D, second.X, 3);
+        Assert.Equal(second.X, third.X, 3);
+        Assert.Equal(second.Width, third.Width, 3);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+    }
+
+    [Fact]
     public void HtmlGrid_RowSubgridCentersAuthoredGapAndInsetsOnInheritedLines() {
         const string html = """
             <div style="display:grid;width:100px;grid-template-rows:40px 60px;row-gap:10px">

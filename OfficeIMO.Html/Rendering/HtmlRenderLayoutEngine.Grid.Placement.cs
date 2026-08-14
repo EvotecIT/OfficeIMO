@@ -280,8 +280,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal FlexItem Item { get; }
         internal int? RequestedRow { get; }
         internal int? RequestedColumn { get; }
-        internal int RowSpan { get; }
-        internal int ColumnSpan { get; }
+        internal int RowSpan { get; set; }
+        internal int ColumnSpan { get; set; }
         internal int Row { get; set; }
         internal int Column { get; set; }
         internal bool HasExplicitWidth { get; }

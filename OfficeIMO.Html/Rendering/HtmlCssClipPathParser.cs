@@ -201,6 +201,11 @@ internal static class HtmlCssClipPathParser {
             minY = Math.Min(minY, y);
         }
 
+        if (AreCollinear(points)) {
+            resolved = HtmlCssResolvedClipPath.Empty;
+            return true;
+        }
+
         var commands = new List<OfficePathCommand>(points.Count + 1) { OfficePathCommand.MoveTo(points[0]) };
         for (int index = 1; index < points.Count; index++) commands.Add(OfficePathCommand.LineTo(points[index]));
         commands.Add(OfficePathCommand.Close());
@@ -210,6 +215,28 @@ internal static class HtmlCssClipPathParser {
         } catch (ArgumentException) {
             return false;
         }
+    }
+
+    private static bool AreCollinear(IReadOnlyList<OfficePoint> points) {
+        const double tolerance = 0.0001D;
+        OfficePoint origin = points[0];
+        int distinctIndex = 1;
+        while (distinctIndex < points.Count
+               && Math.Abs(points[distinctIndex].X - origin.X) <= tolerance
+               && Math.Abs(points[distinctIndex].Y - origin.Y) <= tolerance) {
+            distinctIndex++;
+        }
+        if (distinctIndex == points.Count) return true;
+
+        double directionX = points[distinctIndex].X - origin.X;
+        double directionY = points[distinctIndex].Y - origin.Y;
+        double scale = Math.Max(1D, Math.Sqrt(directionX * directionX + directionY * directionY));
+        for (int index = distinctIndex + 1; index < points.Count; index++) {
+            double offsetX = points[index].X - origin.X;
+            double offsetY = points[index].Y - origin.Y;
+            if (Math.Abs(directionX * offsetY - directionY * offsetX) > tolerance * scale) return false;
+        }
+        return true;
     }
 
     private static OfficeClipPath CreateEllipse(double radiusX, double radiusY) {

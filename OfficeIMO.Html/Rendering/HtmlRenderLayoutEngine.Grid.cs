@@ -69,6 +69,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int explicitColumnCount = Math.Max(1, Math.Max(columnTracks.Count, areaColumnCount));
         int explicitRowCount = Math.Max(1, Math.Max(rowTracks.Count, areaRowCount));
         List<GridItem> items = PlaceGridItems(formattingItems, explicitColumnCount, explicitRowCount, style, source, areas, columnLineNames, rowLineNames, out int columnCount, out int rowCount);
+        if (usesColumnSubgrid) {
+            ClampSubgridPlacements(items, columnTracks.Count, rows: false);
+            columnCount = columnTracks.Count;
+        }
+        if (usesRowSubgrid) {
+            ClampSubgridPlacements(items, rowTracks.Count, rows: true);
+            rowCount = rowTracks.Count;
+        }
         CollapseEmptyAutoFitColumns(style, items, columnTracks, ref columnCount);
         rowCount = Math.Max(rowCount, Math.Max(1, areaRowCount));
         EnsureGridTrackCount(columnTracks, columnCount, style.GridAutoColumns, contentWidth, percentageReferenceIsDefinite: true, style, source, "grid-auto-columns");
@@ -207,6 +215,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(positionedRunningStringAssignments),
                 outerHeight));
         return true;
+    }
+
+    private static void ClampSubgridPlacements(IReadOnlyList<GridItem> items, int trackCount, bool rows) {
+        if (trackCount <= 0) return;
+        foreach (GridItem item in items) {
+            int start = rows ? item.Row : item.Column;
+            int span = rows ? item.RowSpan : item.ColumnSpan;
+            int end = Math.Min(trackCount, Math.Max(1, start + span));
+            start = Math.Min(trackCount - 1, Math.Max(0, start));
+            if (end <= start) end = start + 1;
+            if (rows) {
+                item.Row = start;
+                item.RowSpan = end - start;
+            } else {
+                item.Column = start;
+                item.ColumnSpan = end - start;
+            }
+        }
     }
 
     private static IReadOnlyList<double> ResolveColumnSubgridTrackSizes(

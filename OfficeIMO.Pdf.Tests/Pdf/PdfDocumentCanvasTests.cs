@@ -1442,6 +1442,32 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_SuppressesVisualAnnotationsOutsideNonRectangularRegion() {
+        OfficeClipPath triangle = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(100D, 0D),
+            OfficePathCommand.LineTo(0D, 80D),
+            OfficePathCommand.Close());
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160
+            })
+            .Canvas(canvas => canvas.Clip(20D, 20D, triangle, clipped => clipped
+                .TextAnnotation("Visible text", 25D, 25D, 10D, 10D)
+                .TextAnnotation("Hidden text", 100D, 80D, 10D, 10D)
+                .FreeTextAnnotation("Visible free text", 40D, 25D, 15D, 10D)
+                .FreeTextAnnotation("Hidden free text", 85D, 75D, 15D, 10D)
+                .HighlightAnnotation("Visible highlight", 25D, 45D, 15D, 8D)
+                .HighlightAnnotation("Hidden highlight", 90D, 65D, 15D, 8D)))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal("Visible text", Assert.Single(info.GetAnnotationsBySubtype("Text")).Contents);
+        Assert.Equal("Visible free text", Assert.Single(info.GetAnnotationsBySubtype("FreeText")).Contents);
+        Assert.Equal("Visible highlight", Assert.Single(info.GetAnnotationsBySubtype("Highlight")).Contents);
+    }
+
+    [Fact]
     public void CanvasClip_PreservesInlineImageClipPathInsideFrame() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,
