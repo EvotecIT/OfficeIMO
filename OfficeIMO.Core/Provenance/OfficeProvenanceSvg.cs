@@ -16,15 +16,17 @@ internal static class OfficeProvenanceSvg {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         XDocument document = Load(data, options);
+        IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
+        int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
         int manifestIndex = 0;
         int xmpIndex = 0;
-        foreach (SvgCarrier carrier in FindCarriers(document)) {
+        foreach (SvgCarrier carrier in carriers) {
             if (carrier.Kind == SvgCarrierKind.Manifest) {
                 XElement element = carrier.Element;
                 string value = element.Value.Trim();
                 byte[] manifest = Array.Empty<byte>();
                 bool decoded = HasOnlyTextContent(element) && TryDecode(value, options.MaxManifestBytes, out manifest);
-                bool valid = decoded && OfficeC2paManifestStore.IsValid(
+                bool valid = manifestCount == 1 && decoded && OfficeC2paManifestStore.IsValid(
                     manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 context.Add(new OfficeProvenanceEvidence(
                     OfficeProvenanceCarrierKind.C2paManifest,
@@ -49,9 +51,11 @@ internal static class OfficeProvenanceSvg {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         XDocument document = Load(data, options.Limits);
+        IReadOnlyList<SvgCarrier> carriers = FindCarriers(document);
+        int manifestCount = carriers.Count(carrier => carrier.Kind == SvgCarrierKind.Manifest);
         int manifestIndex = 0;
         int xmpIndex = 0;
-        foreach (SvgCarrier carrier in FindCarriers(document)) {
+        foreach (SvgCarrier carrier in carriers) {
             if (carrier.Kind == SvgCarrierKind.Xmp) {
                 string location = $"SVG/XMP[{xmpIndex++}]";
                 if (!options.RemoveAiSourceMetadata || !OfficeProvenanceXmp.TryRemoveAiDeclarations(
@@ -69,7 +73,7 @@ internal static class OfficeProvenanceSvg {
             int index = manifestIndex++;
             byte[] manifest = Array.Empty<byte>();
             bool decoded = HasOnlyTextContent(element) && TryDecode(element.Value.Trim(), options.Limits.MaxManifestBytes, out manifest);
-            bool valid = decoded && OfficeC2paManifestStore.IsValid(
+            bool valid = manifestCount == 1 && decoded && OfficeC2paManifestStore.IsValid(
                 manifest, 0, manifest.Length, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
             if (!options.RemoveC2paManifests || !valid && options.RequireStructurallyValidCarrier) continue;
             element.Remove();

@@ -28,11 +28,10 @@ internal static class OfficeProvenancePng {
         OfficeProvenanceRemovalOptions? removalOptions,
         List<OfficeProvenanceChange>? changes) {
         bool reserialized = false;
-        int c2paCount = CountC2paChunks(data, options);
+        int c2paCount = CountC2paChunks(data, options, out bool validHeader);
         int offset = SignatureLength;
         bool foundEnd = false;
         bool foundHeader = false;
-        bool validHeader = false;
         bool foundImageData = false;
         int chunkCount = 0;
         while (offset < data.Length) {
@@ -51,7 +50,7 @@ internal static class OfficeProvenancePng {
             string type = System.Text.Encoding.ASCII.GetString(data, offset + 4, 4);
             bool isC2pa = type == "caBX";
             if (isC2pa) {
-                bool valid = c2paCount == 1 && validHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
+                bool valid = c2paCount == 1 && validHeader && foundHeader && !foundImageData && HasValidCrc(data, offset, payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"PNG/caBX@{offset}";
@@ -83,10 +82,7 @@ internal static class OfficeProvenancePng {
                 output?.Write(data, offset, total);
             }
             if (type == "IHDR") {
-                bool isFirstHeader = !foundHeader;
                 foundHeader = true;
-                validHeader = isFirstHeader && offset == SignatureLength && payloadLength == 13 &&
-                    HasValidCrc(data, offset, payloadLength);
             }
             else if (type == "IDAT") foundImageData = true;
             offset += total;
@@ -97,10 +93,12 @@ internal static class OfficeProvenancePng {
         return reserialized;
     }
 
-    private static int CountC2paChunks(byte[] data, OfficeProvenanceOptions options) {
+    private static int CountC2paChunks(byte[] data, OfficeProvenanceOptions options, out bool validHeader) {
         int offset = SignatureLength;
         int chunkCount = 0;
         int c2paCount = 0;
+        int headerCount = 0;
+        bool validLeadingHeader = false;
         bool foundEnd = false;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
@@ -113,11 +111,17 @@ internal static class OfficeProvenancePng {
             long totalValue = 12L + payloadLength;
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IHDR")) {
+                headerCount++;
+                validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
+                    HasValidCrc(data, offset, payloadLength);
+            }
             bool isEnd = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IEND");
             offset += (int)totalValue;
             if (isEnd) { foundEnd = true; break; }
         }
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
+        validHeader = headerCount == 1 && validLeadingHeader;
         return c2paCount;
     }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Provenance;
 
@@ -69,6 +70,7 @@ internal static class OfficeC2paManifestStore {
         int storeEnd = offset + totalLength;
         int nextChildOffset = childOffset + (int)childLength;
         bool hasManifest = false;
+        var manifestLabels = new HashSet<string>(StringComparer.Ordinal);
         while (nextChildOffset < storeEnd) {
             if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
             int remaining = storeEnd - nextChildOffset;
@@ -77,7 +79,8 @@ internal static class OfficeC2paManifestStore {
                 return false;
             }
             if (nextChildType != "jumb" || !IsManifestSuperbox(
-                data, nextChildOffset, (int)nextChildLength, ref visitedBoxes, maximumEntries)) return false;
+                data, nextChildOffset, (int)nextChildLength, ref visitedBoxes, maximumEntries, out string manifestLabel) ||
+                !manifestLabels.Add(manifestLabel)) return false;
             hasManifest = true;
             nextChildOffset += (int)nextChildLength;
         }
@@ -92,7 +95,9 @@ internal static class OfficeC2paManifestStore {
         int offset,
         int availableLength,
         ref int visitedBoxes,
-        int maximumEntries) {
+        int maximumEntries,
+        out string manifestLabel) {
+        manifestLabel = string.Empty;
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
             type != "jumb" || declaredLength != (ulong)availableLength) return false;
         int descriptionOffset = offset + headerLength;
@@ -105,7 +110,7 @@ internal static class OfficeC2paManifestStore {
         if (!Matches(data, payloadOffset, StandardManifestUuid) && !Matches(data, payloadOffset, UpdateManifestUuid)) return false;
         int togglesOffset = payloadOffset + StandardManifestUuid.Length;
         int descriptionEnd = descriptionOffset + (int)descriptionLength;
-        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out _)) return false;
+        if (!TryReadDescriptionFields(data, togglesOffset, descriptionEnd, out manifestLabel)) return false;
 
         int manifestEnd = offset + availableLength;
         int cursor = descriptionEnd;

@@ -109,7 +109,13 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             }
             string? activeManifest = null;
             if (document.RootElement.TryGetProperty("active_manifest", out JsonElement activeManifestElement)) {
-                if (activeManifestElement.ValueKind == JsonValueKind.String) activeManifest = activeManifestElement.GetString();
+                if (activeManifestElement.ValueKind == JsonValueKind.String) {
+                    activeManifest = activeManifestElement.GetString();
+                    if (string.IsNullOrWhiteSpace(activeManifest)) {
+                        return Result(OfficeProvenanceVerificationStatus.Error,
+                            MalformedActiveManifestFinding, process.StandardOutput, options);
+                    }
+                }
                 else if (activeManifestElement.ValueKind != JsonValueKind.Null) {
                     return Result(OfficeProvenanceVerificationStatus.Error,
                         MalformedActiveManifestFinding, process.StandardOutput, options);
