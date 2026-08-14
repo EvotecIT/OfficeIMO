@@ -114,6 +114,9 @@ public static class PdfProvenance {
         }
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveReadOptions);
+        if (security.HasEncryption) {
+            throw new InvalidOperationException("Provenance removal does not remove or replace PDF encryption. Decrypt the document through an explicit PDF security workflow first.");
+        }
         if (security.HasSignatures) {
             string detail = options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
                 ? "OfficeIMO.Pdf does not silently delete PDF signature revisions or fields; remove the signature through an explicit PDF signature workflow first."
@@ -459,6 +462,13 @@ public static class PdfProvenance {
                     AddStructuralGraphDictionaries(
                         objects,
                         activeStream.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyGroup) ? transparencyGroup : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
+                } else if (string.Equals(activeStream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal)) {
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) ? colorSpace : null,
                         result,
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
