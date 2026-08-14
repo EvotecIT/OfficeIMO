@@ -341,6 +341,11 @@ public static class PdfProvenance {
             catalog.Items.TryGetValue("Collection", out PdfObject? collection) ? collection : null,
             result,
             maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
+            catalog.Items.TryGetValue("URI", out PdfObject? uri) ? uri : null,
+            result,
+            maximumContainerEntries);
         foreach (string key in new[] { "OpenAction", "AA" }) {
             AddStructuralGraphDictionaries(
                 objects,
@@ -384,6 +389,7 @@ public static class PdfProvenance {
         AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
         var resourceSites = new HashSet<PdfObject>();
         var structuralTraversalVisited = new HashSet<PdfObject>();
+        var annotationStructuralVisited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
             if (dictionary == null) continue;
@@ -409,7 +415,7 @@ public static class PdfProvenance {
                     maximumContainerEntries,
                     pageTreeObjectNumbers,
                     structuralTraversalVisited);
-                AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries);
+                AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries, annotationStructuralVisited);
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
@@ -595,7 +601,8 @@ public static class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary page,
         HashSet<PdfObject> result,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        HashSet<PdfObject> structuralVisited) {
         if (PdfObjectLookup.Resolve(objects,
                 page.Items.TryGetValue("Annots", out PdfObject? annotsValue) ? annotsValue : null) is not PdfArray annotations) return;
         if (annotations.Items.Count > maximumContainerEntries) {
@@ -606,11 +613,14 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            AddStructuralGraphDictionaries(
-                objects,
-                dictionary.Items.TryGetValue("AP", out PdfObject? appearance) ? appearance : null,
-                result,
-                maximumContainerEntries);
+            foreach (string key in new[] { "AP", "BS", "BE" }) {
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
+                    result,
+                    maximumContainerEntries,
+                    sharedVisited: structuralVisited);
+            }
         }
     }
 

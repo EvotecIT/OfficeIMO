@@ -194,48 +194,47 @@ internal static class PdfProvenanceGraphEditor {
         IReadOnlyList<(PdfObject Value, PdfDictionary Dictionary)> activeAnnotations,
         HashSet<PdfDictionary> annotations,
         HashSet<int> indirectObjectNumbers) {
-        bool changed;
-        do {
-            int priorCount = annotations.Count;
-            CollectLinkedPopupAnnotations(objects, annotations, indirectObjectNumbers);
-            foreach ((PdfObject value, PdfDictionary dictionary) in activeAnnotations) {
-                if (annotations.Contains(dictionary) || !dictionary.Items.TryGetValue("IRT", out PdfObject? replyTo) ||
-                    PdfObjectLookup.Resolve(objects, replyTo) is not PdfDictionary parent || !annotations.Contains(parent)) continue;
-                annotations.Add(dictionary);
-                if (value is PdfReference reference) indirectObjectNumbers.Add(reference.ObjectNumber);
+        var dependents = new Dictionary<PdfDictionary, List<(PdfDictionary Dictionary, int? ObjectNumber)>>();
+        foreach ((PdfObject value, PdfDictionary dictionary) in activeAnnotations) {
+            if (dictionary.Items.TryGetValue("IRT", out PdfObject? replyTo) &&
+                PdfObjectLookup.Resolve(objects, replyTo) is PdfDictionary replyParent) {
+                AddDependent(dependents, replyParent, dictionary, value is PdfReference replyReference ? replyReference.ObjectNumber : (int?)null);
             }
-            changed = annotations.Count != priorCount;
-        } while (changed);
-    }
-
-    private static void CollectLinkedPopupAnnotations(
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<PdfDictionary> annotations,
-        HashSet<int> indirectObjectNumbers) {
-        foreach (PdfDictionary annotation in annotations.ToArray()) {
-            if (!annotation.Items.TryGetValue("Popup", out PdfObject? popup)) continue;
-            if (popup is PdfReference reference &&
-                PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) &&
-                indirect.Value is PdfDictionary popupDictionary &&
-                IsLinkedPopup(objects, popupDictionary, annotation)) {
-                annotations.Add(popupDictionary);
-                indirectObjectNumbers.Add(reference.ObjectNumber);
-            } else if (popup is PdfDictionary directPopup && IsLinkedPopup(objects, directPopup, annotation)) {
-                annotations.Add(directPopup);
-            }
+            if (!dictionary.Items.TryGetValue("Popup", out PdfObject? popup) ||
+                PdfObjectLookup.Resolve(objects, popup) is not PdfDictionary popupDictionary ||
+                !IsLinkedPopup(objects, popupDictionary, dictionary)) continue;
+            AddDependent(dependents, dictionary, popupDictionary, popup is PdfReference popupReference ? popupReference.ObjectNumber : (int?)null);
         }
-
         foreach (PdfIndirectObject item in objects.Values) {
             if (item.Value is not PdfDictionary dictionary ||
                 !string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "Popup", StringComparison.Ordinal) ||
                 !dictionary.Items.TryGetValue("Parent", out PdfObject? parent) ||
-                parent is not PdfReference parentReference ||
-                !PdfObjectLookup.TryGet(objects, parentReference, out PdfIndirectObject? parentIndirect) ||
-                parentIndirect.Value is not PdfDictionary parentDictionary ||
-                !annotations.Contains(parentDictionary)) continue;
-            annotations.Add(dictionary);
-            indirectObjectNumbers.Add(item.ObjectNumber);
+                PdfObjectLookup.Resolve(objects, parent) is not PdfDictionary parentDictionary) continue;
+            AddDependent(dependents, parentDictionary, dictionary, item.ObjectNumber);
         }
+
+        var pending = new Queue<PdfDictionary>(annotations);
+        while (pending.Count > 0) {
+            PdfDictionary parent = pending.Dequeue();
+            if (!dependents.TryGetValue(parent, out List<(PdfDictionary Dictionary, int? ObjectNumber)>? children)) continue;
+            foreach ((PdfDictionary dictionary, int? objectNumber) in children) {
+                if (!annotations.Add(dictionary)) continue;
+                if (objectNumber.HasValue) indirectObjectNumbers.Add(objectNumber.Value);
+                pending.Enqueue(dictionary);
+            }
+        }
+    }
+
+    private static void AddDependent(
+        Dictionary<PdfDictionary, List<(PdfDictionary Dictionary, int? ObjectNumber)>> dependents,
+        PdfDictionary parent,
+        PdfDictionary child,
+        int? objectNumber) {
+        if (!dependents.TryGetValue(parent, out List<(PdfDictionary Dictionary, int? ObjectNumber)>? children)) {
+            children = new List<(PdfDictionary Dictionary, int? ObjectNumber)>();
+            dependents[parent] = children;
+        }
+        children.Add((child, objectNumber));
     }
 
     private static bool IsLinkedPopup(
