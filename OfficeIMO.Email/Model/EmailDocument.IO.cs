@@ -57,19 +57,33 @@ public sealed partial class EmailDocument {
     public EmailWriteResult Save(string filePath, EmailFileFormat format, EmailWriterOptions? options = null) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
-        EnsureWriteSucceeded(result);
-        OfficeFileCommit.WriteAllBytes(filePath, data);
-        return result;
+        string stagingPath = string.Empty;
+        try {
+            EmailWriteResult result;
+            using (FileStream staging = OfficeFileCommit.CreateTemporaryFile(
+                       filePath, FileOptions.SequentialScan, out stagingPath)) {
+                result = writer.Write(this, staging, format);
+                EnsureWriteSucceeded(result);
+            }
+            OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath);
+            stagingPath = string.Empty;
+            return result;
+        } finally {
+            DeleteStagedFile(stagingPath);
+        }
     }
 
     /// <summary>Saves the document to a stream without closing it.</summary>
     public EmailWriteResult Save(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
+        using FileStream staging = OfficeTemporaryFile.Create(
+            "officeimo-email-write-", ".tmp", FileOptions.SequentialScan, out _);
+        EmailWriteResult result = writer.Write(this, staging, format);
         EnsureWriteSucceeded(result);
-        OfficeStreamWriter.WriteAllBytes(stream, data);
+        OfficeStreamWriter.Write(stream, output => CopyStagedOutput(staging, output));
         return result;
     }
 
@@ -84,22 +98,40 @@ public sealed partial class EmailDocument {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
-        EnsureWriteSucceeded(result);
-        await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        return result;
+        string stagingPath = string.Empty;
+        try {
+            EmailWriteResult result;
+            using (FileStream staging = OfficeFileCommit.CreateTemporaryFile(
+                       filePath, FileOptions.Asynchronous | FileOptions.SequentialScan, out stagingPath)) {
+                result = await writer.WriteAsync(this, staging, format, cancellationToken)
+                    .ConfigureAwait(false);
+                EnsureWriteSucceeded(result);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeFileCommit.CommitTemporaryFile(stagingPath, filePath);
+            stagingPath = string.Empty;
+            return result;
+        } finally {
+            DeleteStagedFile(stagingPath);
+        }
     }
 
     /// <summary>Asynchronously saves the document to a stream without closing it.</summary>
     public async Task<EmailWriteResult> SaveAsync(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
+        using FileStream staging = OfficeTemporaryFile.Create(
+            "officeimo-email-write-", ".tmp",
+            FileOptions.Asynchronous | FileOptions.SequentialScan, out _);
+        EmailWriteResult result = await writer.WriteAsync(this, staging, format, cancellationToken)
+            .ConfigureAwait(false);
         EnsureWriteSucceeded(result);
-        cancellationToken.ThrowIfCancellationRequested();
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAsync(stream,
+            (output, token) => CopyStagedOutputAsync(staging, output, token), cancellationToken)
+            .ConfigureAwait(false);
         return result;
     }
 
@@ -134,6 +166,35 @@ public sealed partial class EmailDocument {
             }
         }
         return new InvalidDataException(message + ".");
+    }
+
+    private static void DeleteStagedFile(string path) {
+        if (string.IsNullOrEmpty(path)) return;
+        try { File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private static void CopyStagedOutput(Stream source, Stream destination) {
+        source.Position = 0;
+        var buffer = new byte[81920];
+        while (true) {
+            int read = source.Read(buffer, 0, buffer.Length);
+            if (read == 0) return;
+            destination.Write(buffer, 0, read);
+        }
+    }
+
+    private static async Task CopyStagedOutputAsync(Stream source, Stream destination,
+        CancellationToken cancellationToken) {
+        source.Position = 0;
+        var buffer = new byte[81920];
+        while (true) {
+            int read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0) return;
+            await destination.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private static EmailFileFormat InferOutputFormat(string filePath) {

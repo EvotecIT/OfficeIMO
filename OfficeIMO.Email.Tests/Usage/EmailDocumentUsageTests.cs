@@ -70,7 +70,10 @@ public sealed class EmailDocumentUsageTests {
         string directory = CreateTempDirectory();
         try {
             string outputPath = Path.Combine(directory, "message.eml");
+            string existingOutputPath = Path.Combine(directory, "existing-message.eml");
             string diagnosticOutputPath = Path.Combine(directory, "diagnostic-message.eml");
+            byte[] existingContent = Encoding.UTF8.GetBytes("existing destination");
+            File.WriteAllBytes(existingOutputPath, existingContent);
             var document = new EmailDocument { Subject = "Missing attachment content" };
             document.Attachments.Add(new EmailAttachment {
                 FileName = "missing.bin",
@@ -79,16 +82,43 @@ public sealed class EmailDocumentUsageTests {
             });
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => document.Save(outputPath));
+            Assert.Throws<InvalidDataException>(() => document.Save(existingOutputPath));
             EmailWriteResult diagnosticResult = new EmailDocumentWriter().Write(
                 document, diagnosticOutputPath, EmailFileFormat.Eml);
 
             Assert.Contains("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE", exception.Message, StringComparison.Ordinal);
             Assert.False(File.Exists(outputPath));
+            Assert.Equal(existingContent, File.ReadAllBytes(existingOutputPath));
             Assert.True(diagnosticResult.HasErrors);
             Assert.True(File.Exists(diagnosticOutputPath));
         } finally {
             Directory.Delete(directory, true);
         }
+    }
+
+    [Fact]
+    public async Task SaveDoesNotModifyCallerStreamWhenSerializationReportsAnError() {
+        byte[] existingContent = Encoding.UTF8.GetBytes("existing destination");
+        var document = new EmailDocument { Subject = "Missing attachment content" };
+        document.Attachments.Add(new EmailAttachment {
+            FileName = "missing.bin",
+            ContentType = "application/octet-stream",
+            Length = 10
+        });
+        using var synchronous = new MemoryStream();
+        synchronous.Write(existingContent, 0, existingContent.Length);
+        synchronous.Position = 3;
+        using var asynchronous = new MemoryStream();
+        asynchronous.Write(existingContent, 0, existingContent.Length);
+        asynchronous.Position = 5;
+
+        Assert.Throws<InvalidDataException>(() => document.Save(synchronous));
+        await Assert.ThrowsAsync<InvalidDataException>(() => document.SaveAsync(asynchronous));
+
+        Assert.Equal(existingContent, synchronous.ToArray());
+        Assert.Equal(3, synchronous.Position);
+        Assert.Equal(existingContent, asynchronous.ToArray());
+        Assert.Equal(5, asynchronous.Position);
     }
 
     private static string CreateTempDirectory() {
