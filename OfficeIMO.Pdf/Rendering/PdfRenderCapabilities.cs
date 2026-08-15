@@ -112,7 +112,7 @@ public sealed class PdfRenderCapabilityManifest {
 public static class PdfRenderCapabilities {
     internal const string UnknownOperatorId = "render.operator.unsupported";
     internal const string MiterLimitId = "render.operator.miter-limit-simplified";
-    internal const string RenderingIntentId = "render.operator.rendering-intent-simplified";
+    internal const string RenderingIntentId = "render.operator.rendering-intent";
     internal const string FlatnessId = "render.operator.flatness-simplified";
     internal const string MarkedPointId = "render.operator.marked-point-simplified";
     internal const string Type3MetricsId = "render.operator.type3-metrics-unsupported";
@@ -121,6 +121,9 @@ public static class PdfRenderCapabilities {
     internal const string CffFontSubstitutionId = "render.resource.font-cff-substitution";
     internal const string ColorSpaceId = "render.resource.colorspace-unsupported";
     internal const string IccColorSpaceId = "render.colorspace.icc";
+    internal const string IccOutputIntentId = "render.colorspace.icc-output-intent";
+    internal const string UnsupportedIccOutputIntentId = "render.colorspace.icc-output-intent-unsupported";
+    internal const string OutputIntentTransparencyId = "render.colorspace.icc-output-intent-transparency-simplified";
     internal const string TilingPatternId = "render.resource.tiling-pattern";
     internal const string BlendModeId = "render.resource.blend-mode";
     internal const string SoftMaskId = "render.resource.soft-mask";
@@ -149,7 +152,10 @@ public static class PdfRenderCapabilities {
             Entry(AnnotationAppearanceId, "annotation", "Annotations without appearance streams", PdfRenderSupportLevel.Unsupported, "The annotation is skipped because it has no usable appearance stream."),
             Entry("render.colorspace.device", "color", "DeviceGray, DeviceRGB, and DeviceCMYK", PdfRenderSupportLevel.Supported, "Device color spaces are projected to shared Drawing colors."),
             Entry("render.colorspace.calibrated", "color", "CalGray, CalRGB, and Lab color spaces", PdfRenderSupportLevel.Simplified, "Calibrated colors are projected through managed device-color approximations."),
-            Entry(IccColorSpaceId, "color", "ICCBased color spaces", PdfRenderSupportLevel.Simplified, "ICCBased colors are projected through their declared component count without applying the embedded profile."),
+            Entry(IccOutputIntentId, "color", "ICC destination output intents", PdfRenderSupportLevel.Supported, "Catalog destination profiles with bounded RGB matrix/TRC or RGB/CMYK B2A0/B2A1/B2A2 mBA output transforms are soft-proofed through the shared managed color engine for content without explicit PDF transparency composition."),
+            Entry(UnsupportedIccOutputIntentId, "color", "Unsupported ICC destination output intent", PdfRenderSupportLevel.Simplified, "The catalog output intent is retained for inspection, but its destination profile is malformed or outside the managed output-transform contract, so page colors are rendered without output-profile soft proofing."),
+            Entry(OutputIntentTransparencyId, "color", "Output intent with explicit PDF transparency", PdfRenderSupportLevel.Simplified, "The page uses blend modes, opacity, soft masks, transparency groups, or image masks. Colors remain in their authored space because output-profile conversion before transparency composition would be inaccurate."),
+            Entry(IccColorSpaceId, "color", "Unsupported ICCBased profile fallback", PdfRenderSupportLevel.Simplified, "ICCBased colors whose embedded profile is unsupported use their declared alternate or component-count device fallback."),
             Entry("render.colorspace.indexed-content", "color", "Indexed content-paint color spaces", PdfRenderSupportLevel.Supported, "Bounded Indexed palettes are projected for path, text, pattern, and nested-form painting."),
             Entry("render.colorspace.indexed-image", "color", "Indexed image color spaces", PdfRenderSupportLevel.Supported, "Indexed image palettes are decoded and projected through shared Drawing images."),
             Entry("render.colorspace.alternate", "color", "Separation, DeviceN, and NChannel alternate color spaces", PdfRenderSupportLevel.Supported, "Bounded exponential and identity calculator tint transforms are projected through their declared alternate color space."),
@@ -158,7 +164,7 @@ public static class PdfRenderCapabilities {
             Entry(FlatnessId, "operator", "i flatness operator", PdfRenderSupportLevel.Simplified, "The flatness value is accepted but the shared Drawing renderer selects its own curve tolerance."),
             Entry(MarkedPointId, "operator", "MP and DP marked-point operators", PdfRenderSupportLevel.Simplified, "Marked-point metadata has no visual projection and is ignored."),
             Entry(MiterLimitId, "operator", "M miter-limit operator", PdfRenderSupportLevel.Simplified, "The miter limit is accepted but the shared Drawing renderer uses its own miter behavior."),
-            Entry(RenderingIntentId, "operator", "ri rendering-intent operator", PdfRenderSupportLevel.Simplified, "The rendering intent is accepted but color conversion uses the managed renderer defaults."),
+            Entry(RenderingIntentId, "operator", "ri and image rendering intents", PdfRenderSupportLevel.Supported, "Perceptual, relative colorimetric, saturation, and absolute colorimetric intents select authored ICC transforms and propagate through graphics state, nested forms, text, color-managed DCT/JPEG and other normalized images, indexed palettes, output-intent soft proofing, shadings, tiling patterns, and soft-mask groups."),
             Entry(Type3MetricsId, "operator", "d0 and d1 Type 3 glyph metric operators", PdfRenderSupportLevel.Simplified, "Type 3 glyph metric operators are accepted inside bounded glyph programs; text advances use the font Widths contract."),
             Entry(UnknownOperatorId, "operator", "Unknown content-stream operator", PdfRenderSupportLevel.Unsupported, "The content-stream operator is not recognized by the managed renderer and is skipped."),
             Entry("render.resource.extgstate-alpha", "resource", "ExtGState alpha, line width, dash, cap, and join", PdfRenderSupportLevel.Supported, "Supported ExtGState painting values are projected."),

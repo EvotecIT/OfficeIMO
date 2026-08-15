@@ -12,6 +12,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<PdfRedactionMatch> matches,
         PdfRedactionApplyOptions options,
         PdfReadLimits limits,
+        bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         bool removeWholeIntersectingImages = options.UnsupportedImagePolicy == PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement;
@@ -71,7 +72,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         changed = ScrubMatchedImageFormXObjects(objects, pageDictionary, currentContentsObject, wholeImageTargets, referenceCounts, removedMatches, limits, ref nextObjectNumber) || changed;
-        changed = RewriteMatchedImagePixels(objects, pageDictionary, currentContentsObject, pixelTargets, options, referenceCounts, removedMatches, limits, ref nextObjectNumber) || changed;
+        changed = RewriteMatchedImagePixels(objects, pageDictionary, currentContentsObject, pixelTargets, options, referenceCounts, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber) || changed;
         return new ImageRedactionMutation(changed, removedMatches.AsReadOnly());
     }
 

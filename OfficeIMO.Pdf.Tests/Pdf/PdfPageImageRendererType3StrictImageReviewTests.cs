@@ -7,6 +7,83 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfPageImageRendererTests {
     [Fact]
+    public void RenderPage_ChargesAnnotationAppearanceImageTintsToSharedPageBudget() {
+        const string firstSeparation = "[/Separation /Spot1 /DeviceRGB 9 0 R]";
+        const string secondSeparation = "[/Separation /Spot2 /DeviceRGB 10 0 R]";
+        string annotation = "5 0 obj\n<< /Type /Annot /Subtype /Stamp /Rect [10 10 50 50] /AP << /N 6 0 R >> >>\nendobj";
+        string appearance = BuildStreamObject(
+            6,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] " +
+            "/Resources << /XObject << /Im1 7 0 R /Im2 8 0 R >> >>",
+            "q 10 0 0 10 0 0 cm /Im1 Do Q q 10 0 0 10 20 0 cm /Im2 Do Q");
+        string firstImage = BuildStreamObject(
+            7,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + firstSeparation,
+            new string('@', 16));
+        string secondImage = BuildStreamObject(
+            8,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + secondSeparation,
+            new string('#', 16));
+        string firstTint = BuildStreamObject(9, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        string secondTint = BuildStreamObject(10, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        byte[] pdf = BuildSingleStreamPdfWithPageEntries(
+            string.Empty,
+            "<< >>",
+            "/Annots [5 0 R]",
+            annotation,
+            appearance,
+            firstImage,
+            secondImage,
+            firstTint,
+            secondTint);
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 50 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        int normalizedImages = 0;
+        foreach (OfficeDrawingImage image in drawing.Images) {
+            if (OfficePngReader.TryDecode(image.Bytes, out _)) normalizedImages++;
+        }
+        Assert.Equal(1, normalizedImages);
+    }
+
+    [Fact]
+    public void RenderPage_ReusesDrawingPassBudgetForTopLevelImageExtraction() {
+        const string firstSeparation = "[/Separation /Spot1 /DeviceRGB 7 0 R]";
+        const string secondSeparation = "[/Separation /Spot2 /DeviceRGB 8 0 R]";
+        string firstImage = BuildStreamObject(
+            5,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + firstSeparation,
+            new string('@', 16));
+        string secondImage = BuildStreamObject(
+            6,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + secondSeparation,
+            new string('#', 16));
+        string firstTint = BuildStreamObject(7, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        string secondTint = BuildStreamObject(8, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        byte[] pdf = BuildSingleStreamPdf(
+            "q 10 0 0 10 0 0 cm /Im1 Do Q q 10 0 0 10 20 0 cm /Im2 Do Q",
+            "<< /XObject << /Im1 5 0 R /Im2 6 0 R >> >>",
+            firstImage,
+            secondImage,
+            firstTint,
+            secondTint);
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 50 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        int normalizedImages = 0;
+        foreach (OfficeDrawingImage image in drawing.Images) {
+            if (OfficePngReader.TryDecode(image.Bytes, out _)) normalizedImages++;
+        }
+        Assert.Equal(1, normalizedImages);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedWhenViewUsageTargetsUndeclaredOcg() {
         const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Properties << /Layer 8 0 R >> >> >>\nendobj";
@@ -56,8 +133,23 @@ public partial class PdfPageImageRendererTests {
     [Theory]
     [InlineData("/Perceptual ri", "")]
     [InlineData("", "/Intent /Perceptual")]
-    public void RenderPage_FailsClosedForAuthoredType3ImageRenderingIntent(string glyphPrefix, string imageEntry) {
-        AssertType3FallsBackWithoutNativeShapes(BuildStrictType3ImagePdf(imageEntry, glyphPrefix));
+    public void RenderPage_PreservesSupportedAuthoredType3ImageRenderingIntent(string glyphPrefix, string imageEntry) {
+        byte[] pdf = BuildStrictType3ImagePdf(imageEntry, glyphPrefix);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Images);
+        Assert.DoesNotContain(
+            result.CapabilityDiagnostics,
+            static diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Theory]
+    [InlineData("/Intent /Bogus")]
+    [InlineData("/Intent 0")]
+    [InlineData("/Intent 99 0 R")]
+    public void RenderPage_FailsClosedForMalformedType3ImageRenderingIntent(string imageEntry) {
+        AssertType3FallsBackWithoutNativeShapes(BuildStrictType3ImagePdf(imageEntry));
     }
 
     [Fact]

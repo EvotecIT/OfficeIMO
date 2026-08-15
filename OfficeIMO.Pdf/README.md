@@ -50,7 +50,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
 - Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven core-Arabic/TrueType subset. The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
-- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
+- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple device-color JPEGs without required color management remain lossless pass-through payloads.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
@@ -894,6 +894,7 @@ dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
 dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
 Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
 Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
@@ -901,7 +902,11 @@ Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 The checked-in interoperability gate uses hash-pinned Open Preservation
 Foundation and veraPDF fixtures with explicit provenance. The performance gate
 uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
-SVG rendering, PNG rendering, output integrity, and allocation/time budgets.
+SVG rendering, PNG rendering, output integrity, absolute allocation and heap
+budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
+cached speedup is opt-in through `--verify-timing-budgets` for controlled
+benchmark hosts; ordinary CI records it without treating shared-runner timing as
+a release comparison.
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic

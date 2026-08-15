@@ -846,17 +846,14 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPages_DiagnosesUnsupportedColorSpaceInsideType3RasterGlyph() {
+    public void RenderPage_ProjectsSupportedSeparationColorSpaceInsideType3RasterGlyph() {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 8 0 R] >> /XObject << /Im1 7 0 R >> >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 q 500 0 0 700 0 0 cm /Im1 Do Q");
         string image = BuildStreamObject(7, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /CsSpot /BitsPerComponent 8", "x");
         string function = "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj";
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, image, function);
 
-        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
-
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId && diagnostic.Subject == "CsSpot");
-        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        AssertType3RendersOneNativeImage(pdf);
     }
 
     [Fact]
@@ -2846,6 +2843,45 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ColorManagesAbbreviatedInlineDctImage() {
+        byte[] pdf = BuildInlineDctImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        OfficeColor pixel = raster!.GetPixel(0, 0);
+        Assert.InRange(pixel.R, 0, 35);
+        Assert.InRange(pixel.G, 220, 255);
+        Assert.InRange(pixel.B, 220, 255);
+    }
+
+    [Fact]
+    public void RenderPage_ResolvesNamedColorSpaceBeforeScanningRawInlineImage() {
+        byte[] pdf = BuildInlineNamedDeviceRgbRawImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(16, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes).Length);
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
+    public void RenderPage_FramesRawInlineIccBasedImageWithDirectColorSpaceArray() {
+        byte[] pdf = BuildInlineDirectIccBasedRawImagePdf();
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(7, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes).Length);
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 0, 255));
+    }
+
+    [Fact]
     public void RenderPage_PreservesRotatedImageXObjectProjection() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
@@ -3024,7 +3060,7 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ReportsUnsupportedNamedImageXObjectColorSpace() {
+    public void RenderPage_ProjectsNamedSeparationImageXObjectColorSpace() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0x7F }),
             colorSpace: "/CsSpot",
@@ -3034,11 +3070,13 @@ public partial class PdfPageImageRendererTests {
                 "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj"
             });
 
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
 
-        Assert.Contains(
+        Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
+        Assert.DoesNotContain(
             result.CapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
                 diagnostic.Subject == "CsSpot");
@@ -3088,17 +3126,19 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ReportsUnsupportedNamedInlineImageColorSpace() {
+    public void RenderPage_ProjectsNamedSeparationInlineImageColorSpace() {
         byte[] pdf = BuildSingleStreamPdf(
             "BI\n/W 1\n/H 1\n/CS /CsSpot\n/BPC 8\nID\nA\nEI",
             "<< /ColorSpace << /CsSpot [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
             "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj");
 
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
 
-        Assert.Contains(
+        Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
+        Assert.DoesNotContain(
             result.CapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId &&
                 diagnostic.Subject == "CsSpot");
@@ -3404,6 +3444,20 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsType2ShadingEndpointsToDeclaredRange() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "20 80 120 40 re\nW\nn\n/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /Range [0 1 0 1 0 1] /C0 [2 -1 0] /C1 [0 0 3] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeLinearGradient gradient = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillGradient!;
+
+        Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[gradient.Stops.Count - 1].Color);
+        Assert.True(gradient.Stops.Count > 2);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesInvokedIccShadingAndFailsNoLossPolicy() {
         byte[] pdf = BuildSingleStreamPdf(
             "20 80 120 40 re\nW\nn\n/Sh1 sh",
@@ -3477,7 +3531,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item => item.Shape.FillGradient != null);
         OfficeLinearGradient gradient = shape.Shape.FillGradient!;
         Assert.Equal(OfficeColor.White, gradient.Stops[0].Color);
-        Assert.Equal(OfficeColor.Black, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Black, gradient.Stops[gradient.Stops.Count - 1].Color);
     }
 
     [Fact]
@@ -4785,8 +4839,14 @@ public partial class PdfPageImageRendererTests {
         indexedColorSpace.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 255, 255, 255 }));
         var objects = new Dictionary<int, PdfIndirectObject>();
 
-        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(8, 1, maskStream, objects, out _));
-        Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, out _));
+        Assert.False(PdfImageMaskNormalizer.TryBuildPngFile(
+            8,
+            1,
+            maskStream,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
+        Assert.False(PdfIndexedImageNormalizer.TryBuildPngFile(indexedColorSpace, 8, 1, 1, indexedStream, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes, out _));
     }
 
     [Fact]
@@ -4805,8 +4865,8 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void CalculatorColorSpaceProgramUsesATinyDecodeBudget() {
-        string oversizedProgram = "{" + new string(' ', 300) + "}";
+    public void CalculatorColorSpaceProgramUsesABoundedDecodeBudget() {
+        string oversizedProgram = "{" + new string(' ', PdfCalculatorProgram.MaxProgramBytes) + "}";
         byte[] pdf = BuildSingleStreamPdf(
             "/Cs1 cs 0.5 sc 0 0 10 10 re f",
             "<< /ColorSpace << /Cs1 [/Separation /Spot /DeviceRGB 5 0 R] >> >>",
@@ -4820,7 +4880,7 @@ public partial class PdfPageImageRendererTests {
             document.Pages[0].ToDrawing());
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
-        Assert.Equal(257, exception.Limit);
+        Assert.Equal(PdfCalculatorProgram.MaxProgramBytes + 1, exception.Limit);
     }
 
     private static void AssertPngSignature(byte[] bytes) {
@@ -5034,6 +5094,75 @@ public partial class PdfPageImageRendererTests {
         pdf.Write(contentBytes, 0, contentBytes.Length);
         WriteAscii(pdf, "\nendstream\nendobj\n");
         WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineDctImagePdf() {
+        byte[] jpeg = OfficeJpegCodec.Encode(
+            OfficeRasterImage.FromRgba32(1, 1, new byte[] { 255, 0, 0, 255 }),
+            new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444
+            });
+        byte[] encodedJpeg = Encoding.ASCII.GetBytes(BitConverter.ToString(jpeg).Replace("-", string.Empty) + ">");
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 1\n/H 1\n/CS /RGB\n/BPC 8\n/F [/AHx /DCT]\n/D [1 0 1 0 1 0]\nID\n");
+        content.Write(encodedJpeg, 0, encodedJpeg.Length);
+        WriteAscii(content, "\nEI\nQ");
+        byte[] contentBytes = content.ToArray();
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineNamedDeviceRgbRawImagePdf() {
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 5\n/H 1\n/CS /CsRgb\n/BPC 8\nID\n");
+        byte[] samples = Encoding.ASCII.GetBytes("ABCDE/Unused cs");
+        content.Write(samples, 0, samples.Length);
+        WriteAscii(content, "\nEI\nQ\n0 0 1 rg\n120 80 20 20 re\nf");
+        byte[] contentBytes = content.ToArray();
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /CsRgb /DeviceRGB /Unused /DeviceCMYK >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return pdf.ToArray();
+    }
+
+    private static byte[] BuildInlineDirectIccBasedRawImagePdf() {
+        using var content = new MemoryStream();
+        WriteAscii(content, "q\n20 0 0 20 40 80 cm\nBI\n/W 2\n/H 1\n/CS [/ICCBased 7 0 R]\n/BPC 8\nID\n");
+        byte[] samples = { 32, 69, 73, 32, 0, 255 };
+        content.Write(samples, 0, samples.Length);
+        WriteAscii(content, "\nEI\nQ\n0 0 1 rg\n120 80 20 20 re\nf");
+        byte[] contentBytes = content.ToArray();
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
+
+        using var pdf = new MemoryStream();
+        WriteAscii(pdf, "%PDF-1.4\n");
+        WriteAscii(pdf, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(pdf, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(pdf, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(pdf, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\n");
+        WriteAscii(pdf, "7 0 obj\n<< /N 3 /Length " + profile.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n");
+        pdf.Write(profile, 0, profile.Length);
+        WriteAscii(pdf, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return pdf.ToArray();
     }
 

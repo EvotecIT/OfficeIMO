@@ -117,7 +117,12 @@ internal static partial class PdfImageEditor {
 
     private static PdfExtractedImage ResolveMovableImage(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
-        PdfImagePlacement[] currentPlacements = document.Pages[placement.PageNumber - 1]
+        PdfReadPage page = document.Pages[placement.PageNumber - 1];
+        if (page.HasEffectiveOutputIntentColorTransform) {
+            throw new NotSupportedException("Moving an image from an output-managed page is not supported because restamping would apply the catalog output profile a second time.");
+        }
+
+        PdfImagePlacement[] currentPlacements = page
             .GetImagePlacements(placement.PageNumber)
             .Where(candidate => SamePlacementIdentity(candidate, placement))
             .ToArray();
@@ -125,7 +130,7 @@ internal static partial class PdfImageEditor {
             throw new NotSupportedException("The selected image placement could not be resolved uniquely for a safe move.");
         }
         PdfImagePlacement current = currentPlacements[0];
-        IReadOnlyList<PdfExtractedImage> images = document.Pages[placement.PageNumber - 1]
+        IReadOnlyList<PdfExtractedImage> images = page
             .GetImages(placement.PageNumber, new[] { current });
         PdfExtractedImage[] matches = images.Where(image =>
             image.PageNumber == current.PageNumber &&
@@ -265,10 +270,11 @@ internal static partial class PdfImageEditor {
             placement.InlineImageStream,
             placement.InlineImageResources,
             placement.PaintOrder,
-            placement.BlendMode,
-            placement.HasUnsupportedBlendMode,
-            placement.HasSoftMask,
-            placement.HasAuthoredRenderingIntent);
+            renderingIntent: placement.RenderingIntent,
+            blendMode: placement.BlendMode,
+            hasUnsupportedBlendMode: placement.HasUnsupportedBlendMode,
+            hasSoftMask: placement.HasSoftMask,
+            hasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent);
 
     private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= CoordinateTolerance;
 

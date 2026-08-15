@@ -12,7 +12,9 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         double paintOrderOffset = 0D,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        Func<string, int>? inlineImageComponentCount = null,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
         }
@@ -66,10 +68,17 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                             ApplyState(updated, paintOrder, contentOrderKey);
                         }
                         break;
+                    case "ri":
+                        if (operation.Operands.Count == 1 && operation.Operands[0] is string renderingIntentName) {
+                            ApplyState(state.WithRenderingIntent(PdfRenderingIntentResolver.FromName(renderingIntentName)), paintOrder, contentOrderKey);
+                        }
+                        break;
                 }
             },
+            inlineImageComponentCount: inlineImageComponentCount,
             maxNestingDepth: maxNestingDepth,
-            maxOperands: maxOperands);
+            maxOperands: maxOperands,
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount);
         return transitions.Count == 0
             ? Array.Empty<PdfPageDrawingEffectTransition>()
             : transitions.AsReadOnly();
@@ -100,5 +109,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         ReferenceEquals(left.SoftMask, right.SoftMask) &&
         left.HasBlendMode == right.HasBlendMode &&
         left.HasSoftMask == right.HasSoftMask &&
-        Nullable.Equals(left.SoftMaskTransform, right.SoftMaskTransform);
+        Nullable.Equals(left.SoftMaskTransform, right.SoftMaskTransform) &&
+        left.RenderingIntent == right.RenderingIntent &&
+        left.HasRenderingIntent == right.HasRenderingIntent;
 }

@@ -19,7 +19,8 @@ internal readonly struct PdfPagePatternSelection {
         PdfPageTilingPatternResource? tilingPattern,
         PdfPageShadingPatternResource? shadingPattern,
         Matrix2D paintTransform,
-        int componentCount = 0) {
+        int componentCount = 0,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         Name = name;
         Tint = tint;
         BaseColorSpace = baseColorSpace;
@@ -27,6 +28,7 @@ internal readonly struct PdfPagePatternSelection {
         ShadingPattern = shadingPattern;
         PaintTransform = paintTransform;
         ComponentCount = componentCount;
+        RenderingIntent = renderingIntent;
     }
 
     internal string Name { get; }
@@ -36,6 +38,7 @@ internal readonly struct PdfPagePatternSelection {
     internal PdfPageShadingPatternResource? ShadingPattern { get; }
     internal Matrix2D PaintTransform { get; }
     internal int ComponentCount { get; }
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
 
     internal PdfPagePatternSelection Translate(double offsetX, double offsetY, double sourceHeight, double targetHeight) {
         var sourceFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, sourceHeight);
@@ -52,7 +55,8 @@ internal readonly struct PdfPagePatternSelection {
             TilingPattern,
             ShadingPattern,
             translatedPaintTransform,
-            ComponentCount);
+            ComponentCount,
+            RenderingIntent);
     }
 }
 
@@ -91,7 +95,11 @@ internal readonly struct PdfPageType3GlyphInvocation {
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
-        OfficeStrokeLineJoin? strokeLineJoin) {
+        OfficeStrokeLineJoin? strokeLineJoin,
+        bool hasAuthoredRenderingIntent = false,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfPaintColorSelection? fillColorSelection = null,
+        PdfPaintColorSelection? strokeColorSelection = null) {
         Font = font;
         CharacterCode = characterCode;
         Transform = transform;
@@ -112,6 +120,10 @@ internal readonly struct PdfPageType3GlyphInvocation {
         StrokeDashStyle = strokeDashStyle;
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
+        RenderingIntent = renderingIntent;
+        FillColorSelection = fillColorSelection;
+        StrokeColorSelection = strokeColorSelection;
     }
 
     internal PdfFontResource Font { get; }
@@ -134,4 +146,8 @@ internal readonly struct PdfPageType3GlyphInvocation {
     internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
     internal OfficeStrokeLineCap? StrokeLineCap { get; }
     internal OfficeStrokeLineJoin? StrokeLineJoin { get; }
+    internal bool HasAuthoredRenderingIntent { get; }
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
+    internal PdfPaintColorSelection? FillColorSelection { get; }
+    internal PdfPaintColorSelection? StrokeColorSelection { get; }
 }

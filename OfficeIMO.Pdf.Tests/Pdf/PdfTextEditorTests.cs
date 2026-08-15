@@ -54,19 +54,37 @@ public class PdfTextEditorTests {
         Assert.Equal(2, findException.Limit);
     }
 
-    [Fact]
-    public void PortableTextRestampsRejectAuthoredRenderingIntent() {
-        byte[] source = BuildRawTextPdf("q /Perceptual ri BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n");
+    [Theory]
+    [InlineData("/Perceptual ri", "")]
+    [InlineData("/IntentGs gs", "/ExtGState << /IntentGs << /RI /Perceptual >> >>")]
+    public void PortableTextRestampsPreserveSupportedAuthoredRenderingIntent(
+        string renderingIntentOperation,
+        string additionalResources) {
+        byte[] source = BuildRawTextPdf(
+            "q " + renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n",
+            additionalResources);
         PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Text.Move(region, 10D, 0D));
-        NotSupportedException replaceException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Text.Replace(region, "replacement"));
+        PdfTextEditResult moved = PdfDocument.Open(source).Text.Move(region, 10D, 0D);
+        PdfTextEditResult replaced = PdfDocument.Open(source).Text.Replace(region, "replacement");
 
-        Assert.Contains("cannot be recreated", moveException.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("cannot be recreated", replaceException.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("managed color", moved.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("replacement", replaced.Document.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("42 ri")]
+    [InlineData("/Perceptual /RelativeColorimetric ri")]
+    public void PortableTextRestampsRejectMalformedRenderingIntentOperands(string renderingIntentOperation) {
+        byte[] source = BuildRawTextPdf(
+            renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (unsafe intent) Tj ET\n");
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+            "unsafe intent",
+            new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 10D, 0D));
     }
 
     [Fact]

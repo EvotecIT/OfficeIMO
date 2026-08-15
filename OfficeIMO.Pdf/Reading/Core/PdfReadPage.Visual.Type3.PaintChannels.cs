@@ -85,7 +85,8 @@ public sealed partial class PdfReadPage {
                 form.Dictionary);
             Matrix2D formTransform = Matrix2D.Multiply(invocationState.Transform, authoredFormMatrix);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
                 content,
@@ -94,7 +95,9 @@ public sealed partial class PdfReadPage {
                 formTransform,
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
-                maxOperands: _limits.MaxContentOperands);
+                maxOperands: _limits.MaxContentOperands,
+                inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
             string transformedContent = WrapContentWithTransform(content, formTransform, out int transformedOffset);
             var visibilityGeometryBudget = new VisualGeometryBudget();
             _ = PdfPageContentVisualParser.Parse(
@@ -103,8 +106,8 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 graphicsStates,
                 colorSpaces,
-                GetShadingResources(resources),
-                GetShadingPatternResources(resources),
+                GetShadingResources(resources, pageContentBudget: pageContentBudget),
+                GetShadingPatternResources(resources, pageContentBudget: pageContentBudget),
                 null,
                 GetOptionalContentVisibility(resources),
                 paintOrderOffset: -transformedOffset,
@@ -116,7 +119,7 @@ public sealed partial class PdfReadPage {
                 initialStrokeLineCap: invocationState.StrokeLineCap,
                 initialStrokeLineJoin: invocationState.StrokeLineJoin,
                 maxOperations: _limits.MaxContentOperations,
-                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources),
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {
@@ -143,7 +146,8 @@ public sealed partial class PdfReadPage {
                 scaleStrokeWidthWithTransform: true,
                 unsupportedShadingTransformVisitor: () => channels |= PdfType3PaintChannels.Both,
                 requireExactType3ShadingProjection: true,
-                retainPrimitiveData: false);
+                retainPrimitiveData: false,
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
 
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -364,7 +368,7 @@ public sealed partial class PdfReadPage {
             cache.BlackLuminosityForms[cacheKey] = false;
             return false;
         }
-        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask>();
+        var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         Type3SoftMaskValidationContext validation =
             type3GlyphBudget.GetOrCreateSoftMaskValidationContext(this, pageContentBudget);
         OfficeDrawing drawing = CreateFormDrawing(
@@ -373,6 +377,7 @@ public sealed partial class PdfReadPage {
             pageWidth,
             pageHeight,
             transform,
+            OfficeIccRenderingIntent.RelativeColorimetric,
             softMasks,
             new HashSet<PdfStream>(),
             CreateTextOutputBudget(),

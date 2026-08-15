@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfType3UncoloredPatternTests {
     [Fact]
+    public void RenderPage_FramesNamedIccInlineImageDuringStrictPatternValidation() {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary:
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] " +
+                "/XStep 5 /YStep 5 /Resources << /ColorSpace << /CsIcc [/ICCBased 8 0 R] >> >>",
+            patternContent: "BI /W 1 /H 1 /BPC 8 /CS /CsIcc ID  XX EI",
+            glyphContent: "500 0 d0 0 0 500 700 re f",
+            extraObjects: new[] { StreamObject(8, "<< /N 3", "fake") });
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(
+            result.CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+    }
+
+    [Fact]
     public void ExhaustedSharedType3VisibilityBudgetFailsClosed() {
         PdfPageVisualPrimitive primitive = PdfPageVisualPrimitive.Rectangle(
             0D,

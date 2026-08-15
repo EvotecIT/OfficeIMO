@@ -19,7 +19,10 @@ public sealed partial class PdfReadPage {
             1D,
             1D,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources),
+            GetColorSpaceResources(
+                resources,
+                GetInvokedResourceNames(content, resources).ColorSpaces,
+                pageContentBudget),
             null,
             null,
             null,
@@ -31,7 +34,8 @@ public sealed partial class PdfReadPage {
                 if (operationName != "cs" && operationName != "CS" && operationName != "sh" && operationName != "Do") {
                     malformed = true;
                 }
-            });
+            },
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         if (malformed) return true;
         PdfContentStreamInterpreter.InterpretUntil(
             content,
@@ -61,6 +65,9 @@ public sealed partial class PdfReadPage {
                     case "SC": case "SCN": case "sc": case "scn":
                     case "G": case "g": case "RG": case "rg": case "K": case "k":
                         if (rejectColorOperators) malformed = true;
+                        break;
+                    case "ri":
+                        malformed = true;
                         break;
                     case "Do":
                         if (operation.HasInvalidOperands || operation.Operands.Count != 1 || operation.Operands[0] is not string xObjectName) {
@@ -105,6 +112,7 @@ public sealed partial class PdfReadPage {
                 }
                 return !malformed;
             },
+            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             dispatchInvalidOperations: true);

@@ -27,6 +27,7 @@ public sealed class PdfImagePlacement {
         PdfStream? inlineImageStream = null,
         PdfDictionary? inlineImageResources = null,
         double paintOrder = 0D,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         OfficeBlendMode? blendMode = null,
         bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false,
@@ -55,6 +56,7 @@ public sealed class PdfImagePlacement {
         InlineImageStream = inlineImageStream;
         InlineImageResources = inlineImageResources;
         PaintOrder = paintOrder;
+        RenderingIntent = renderingIntent;
         BlendMode = blendMode;
         HasUnsupportedBlendMode = hasUnsupportedBlendMode;
         HasSoftMask = hasSoftMask;
@@ -119,6 +121,8 @@ public sealed class PdfImagePlacement {
 
     internal double PaintOrder { get; }
 
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
+
     internal OfficeBlendMode? BlendMode { get; }
 
     internal bool HasUnsupportedBlendMode { get; }
@@ -149,6 +153,7 @@ public sealed class PdfImagePlacement {
             A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
             ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
             PaintOrder,
+            renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
             hasSoftMask: HasSoftMask,
@@ -166,6 +171,7 @@ public sealed class PdfImagePlacement {
             A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
             ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
             PaintOrder,
+            renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
             hasSoftMask: HasSoftMask,
@@ -199,6 +205,7 @@ public sealed class PdfImagePlacement {
             InlineImageStream,
             InlineImageResources,
             paintOrder,
+            renderingIntent: RenderingIntent,
             blendMode: BlendMode,
             hasUnsupportedBlendMode: HasUnsupportedBlendMode,
             hasSoftMask: HasSoftMask,

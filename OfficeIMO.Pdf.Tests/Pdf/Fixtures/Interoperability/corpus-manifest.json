@@ -88,7 +88,7 @@
       "expectedAnnotationActionTypes": [ "Launch" ],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc", "render.resource.annotation-appearance-missing" ],
+      "expectedRenderDiagnosticCodes": [ "render.resource.annotation-appearance-missing" ],
       "expectedMutationMode": "Blocked",
       "features": [ "word-2003", "acrobat-9", "external-document", "launch-action", "link-annotation", "tagged" ]
     },
@@ -164,7 +164,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-1a", "tounicode", "tagged" ]
     },
@@ -202,9 +202,9 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
-      "features": [ "verapdf", "pdfa-1b", "iccbased", "bounded-profile-fallback" ]
+      "features": [ "verapdf", "pdfa-1b", "iccbased", "matrix-trc-profile" ]
     },
     {
       "id": "standard-devicen-content",
@@ -221,7 +221,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [],
+      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc-output-intent-unsupported" ],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-1b", "devicen", "calculator-tint-transform" ]
     },
@@ -240,7 +240,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.colorspace.icc" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-2b", "indexed-content", "iccbased-palette" ]
     },

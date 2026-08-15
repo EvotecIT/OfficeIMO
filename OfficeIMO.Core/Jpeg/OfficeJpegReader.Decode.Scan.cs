@@ -96,7 +96,7 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables) {
         if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
-        if (frame.ComponentCount != 1 && frame.ComponentCount != 3 && frame.ComponentCount != 4) {
+        if (frame.ComponentCount < 1 || frame.ComponentCount > 4) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (scan.Ss != 0 || scan.Se != 63 || scan.Ah != 0 || scan.Al != 0) {
@@ -141,7 +141,11 @@ internal static partial class OfficeJpegReader {
         var scanMcuRows = isSingle ? GetNonInterleavedBlockCount(frame.Height, scanComponent.V, frame.MaxV) : state.McuRows;
 
         for (var i = 0; i < scan.ComponentIndices.Length; i++) {
-            state.Components[scan.ComponentIndices[i]].PrevDc = 0;
+            int componentIndex = scan.ComponentIndices[i];
+            // SOS headers may select different Huffman tables for later progressive scans.
+            // Keep the retained coefficient state synchronized with the current scan declaration.
+            state.Components[componentIndex].Component = frame.Components[componentIndex];
+            state.Components[componentIndex].PrevDc = 0;
         }
 
         for (var my = 0; my < scanMcuRows; my++) {

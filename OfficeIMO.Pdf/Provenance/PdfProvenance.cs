@@ -20,6 +20,9 @@ public static partial class PdfProvenance {
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfReadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
+            _ = outputIntent.DestinationOutputProfileSizeBytes;
+        }
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
         PdfC2paAssociationProfile associations = CollectAssociationProfile(
             document,

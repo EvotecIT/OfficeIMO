@@ -15,10 +15,11 @@ internal static class PdfContentStreamInterpreter {
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
-        bool dispatchInvalidOperations = false) {
+        bool dispatchInvalidOperations = false,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
         reader.InterpretUntil(operation => {
             visit(operation);
             return true;
@@ -32,10 +33,11 @@ internal static class PdfContentStreamInterpreter {
         Func<string, int>? inlineImageComponentCount = null,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
-        bool dispatchInvalidOperations = false) {
+        bool dispatchInvalidOperations = false,
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(visit, nameof(visit));
-        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, dispatchInvalidOperations);
+        var reader = new Reader(content, maxOperations, maxOperands, maxNestingDepth, inlineImageComponentCount, inlineImageArrayComponentCount, dispatchInvalidOperations);
         return reader.InterpretUntil(visit);
     }
 
@@ -45,6 +47,7 @@ internal static class PdfContentStreamInterpreter {
         private readonly int _maxOperands;
         private readonly int _maxNestingDepth;
         private readonly Func<string, int>? _inlineImageComponentCount;
+        private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private readonly bool _dispatchInvalidOperations;
         private readonly List<object> _operands = new List<object>(8);
         private int _index;
@@ -58,12 +61,14 @@ internal static class PdfContentStreamInterpreter {
             int maxOperands,
             int maxNestingDepth,
             Func<string, int>? inlineImageComponentCount,
+            Func<PdfArray, int>? inlineImageArrayComponentCount,
             bool dispatchInvalidOperations) {
             _content = content;
             _maxOperations = maxOperations;
             _maxOperands = maxOperands;
             _maxNestingDepth = maxNestingDepth;
             _inlineImageComponentCount = inlineImageComponentCount;
+            _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
             _dispatchInvalidOperations = dispatchInvalidOperations;
         }
 
@@ -290,6 +295,13 @@ internal static class PdfContentStreamInterpreter {
                     } else if (string.Equals(token, "false", StringComparison.Ordinal)) {
                         values.Add(false);
                         CountOperand();
+                    } else if (string.Equals(token, "R", StringComparison.Ordinal) &&
+                        values.Count >= 2 &&
+                        TryReadReferencePart(values[values.Count - 2], out int objectNumber) &&
+                        TryReadReferencePart(values[values.Count - 1], out int generation)) {
+                        values.RemoveAt(values.Count - 1);
+                        values.RemoveAt(values.Count - 1);
+                        values.Add(new PdfReference(objectNumber, generation));
                     } else if (token.Length == 0) {
                         _index++;
                     }
@@ -301,6 +313,19 @@ internal static class PdfContentStreamInterpreter {
             }
 
             return values;
+        }
+
+        private static bool TryReadReferencePart(object value, out int result) {
+            result = 0;
+            if (value is not double number ||
+                number < 0D ||
+                number > int.MaxValue ||
+                number != Math.Truncate(number)) {
+                return false;
+            }
+
+            result = (int)number;
+            return true;
         }
 
         private PdfContentDictionary ReadDictionary(int nestingDepth) {
@@ -399,7 +424,7 @@ internal static class PdfContentStreamInterpreter {
                 string key = NormalizeInlineImageKey(ReadName());
                 CountOperand();
                 SkipWhitespaceAndComments();
-                if (TryReadInlineImageValue(out PdfObject? value) && value is not null) {
+                if (TryReadInlineImageValue(key, out PdfObject? value) && value is not null) {
                     dictionary.Items[key] = value;
                 }
             }
@@ -427,7 +452,7 @@ internal static class PdfContentStreamInterpreter {
             return new PdfContentInlineImage(dictionary, data);
         }
 
-        private bool TryReadInlineImageValue(out PdfObject? value) {
+        private bool TryReadInlineImageValue(string key, out PdfObject? value) {
             value = null;
             if (_index >= _content.Length) {
                 return false;
@@ -435,7 +460,7 @@ internal static class PdfContentStreamInterpreter {
 
             char current = _content[_index];
             if (current == '/') {
-                value = new PdfName(NormalizeInlineImageName(ReadName()));
+                value = new PdfName(NormalizeInlineImageName(ReadName(), key));
                 CountOperand();
                 return true;
             }
@@ -459,7 +484,7 @@ internal static class PdfContentStreamInterpreter {
                     ? numbers.Cast<object>()
                     : (IEnumerable<object>)arrayValue;
                 foreach (object item in items) {
-                    PdfObject? converted = ConvertToPdfObject(item);
+                    PdfObject? converted = ConvertToPdfObject(item, key);
                     if (converted is not null) {
                         array.Items.Add(converted);
                     }
@@ -532,13 +557,17 @@ internal static class PdfContentStreamInterpreter {
             return dictionary;
         }
 
-        private static PdfObject? ConvertToPdfObject(object value) {
+        private static PdfObject? ConvertToPdfObject(object value, string? ownerKey = null) {
+            if (value is PdfObject pdfObject) {
+                return pdfObject;
+            }
+
             if (value is double number) {
                 return new PdfNumber(number);
             }
 
             if (value is string name) {
-                return new PdfName(NormalizeInlineImageName(name));
+                return new PdfName(NormalizeInlineImageName(name, ownerKey));
             }
 
             if (value is bool boolean) {
@@ -565,7 +594,7 @@ internal static class PdfContentStreamInterpreter {
             if (value is List<object> values) {
                 var array = new PdfArray();
                 foreach (object item in values) {
-                    PdfObject? converted = ConvertToPdfObject(item);
+                    PdfObject? converted = ConvertToPdfObject(item, ownerKey);
                     if (converted is not null) {
                         array.Items.Add(converted);
                     }
@@ -613,10 +642,16 @@ internal static class PdfContentStreamInterpreter {
         }
 
         private int GetInlineImageComponentCount(PdfDictionary dictionary) {
-            string colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? value) &&
-                                value is PdfName name
-                ? name.Name
-                : "DeviceGray";
+            if (!dictionary.Items.TryGetValue("ColorSpace", out PdfObject? value)) {
+                return 1;
+            }
+            if (value is PdfArray array) {
+                return GetInlineImageArrayComponentCount(array);
+            }
+            if (value is not PdfName name) {
+                return 0;
+            }
+            string colorSpace = name.Name;
             switch (colorSpace) {
                 case "DeviceRGB":
                     return 3;
@@ -627,6 +662,32 @@ internal static class PdfContentStreamInterpreter {
             }
         }
 
+        private int GetInlineImageArrayComponentCount(PdfArray array) {
+            if (array.Items.Count == 0 || array.Items[0] is not PdfName kind) {
+                return 0;
+            }
+
+            switch (kind.Name) {
+                case "DeviceGray":
+                case "CalGray":
+                case "Indexed":
+                case "Separation":
+                    return 1;
+                case "DeviceRGB":
+                case "CalRGB":
+                case "Lab":
+                    return 3;
+                case "DeviceCMYK":
+                    return 4;
+                case "DeviceN":
+                case "NChannel":
+                    return array.Items.Count > 1 && array.Items[1] is PdfArray colorants && colorants.Items.Count > 0
+                        ? colorants.Items.Count
+                        : 0;
+                default:
+                    return Math.Max(0, _inlineImageArrayComponentCount?.Invoke(array) ?? 0);
+            }
+        }
         private static int ReadPositiveInteger(PdfDictionary dictionary, string key) =>
             dictionary.Items.TryGetValue(key, out PdfObject? value) &&
             value is PdfNumber number &&
@@ -747,18 +808,27 @@ internal static class PdfContentStreamInterpreter {
             }
         }
 
-        private static string NormalizeInlineImageName(string name) {
-            switch (name) {
-                case "G": return "DeviceGray";
-                case "RGB": return "DeviceRGB";
-                case "CMYK": return "DeviceCMYK";
-                case "I": return "Indexed";
-                case "Fl": return "FlateDecode";
-                case "AHx": return "ASCIIHexDecode";
-                case "A85": return "ASCII85Decode";
-                case "RL": return "RunLengthDecode";
-                default: return name;
+        private static string NormalizeInlineImageName(string name, string? ownerKey) {
+            if (string.Equals(ownerKey, "ColorSpace", StringComparison.Ordinal)) {
+                switch (name) {
+                    case "G": return "DeviceGray";
+                    case "RGB": return "DeviceRGB";
+                    case "CMYK": return "DeviceCMYK";
+                    case "I": return "Indexed";
+                }
             }
+
+            if (string.Equals(ownerKey, "Filter", StringComparison.Ordinal)) {
+                switch (name) {
+                    case "Fl": return "FlateDecode";
+                    case "AHx": return "ASCIIHexDecode";
+                    case "A85": return "ASCII85Decode";
+                    case "RL": return "RunLengthDecode";
+                    case "DCT": return "DCTDecode";
+                }
+            }
+
+            return name;
         }
     }
 }

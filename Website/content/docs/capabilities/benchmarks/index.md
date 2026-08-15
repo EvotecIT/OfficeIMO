@@ -52,6 +52,11 @@ dotnet run -c Release --project OfficeIMO.Pdf.Benchmarks -- --verify-budgets
 dotnet run -c Release --project OfficeIMO.Rtf.Benchmarks -- --verify-budgets
 ```
 
+The PDF budget gate uses deterministic allocation, retained-memory, output, and
+cached-allocation-savings contracts plus generous elapsed-time ceilings in
+ordinary CI. Run it with `--verify-timing-budgets` on a controlled benchmark
+host to additionally enforce the relative cached speedup target.
+
 Email performance tests cover representative MIME, MSG, and mbox workloads. They assert both the budget and the workload envelope, such as source size or message count, so a smaller fixture cannot accidentally make the test pass.
 
 ```shell

@@ -28,6 +28,39 @@ public static class OfficeJpegCodec {
         return OfficeRasterImage.FromRgba32(width, height, pixels);
     }
 
+    internal static bool TryDecodeColorComponents(
+        byte[]? encodedBytes,
+        int? requestedColorTransform,
+        bool usePdfColorTransformDefault,
+        out byte[] components,
+        out int width,
+        out int height,
+        out int componentCount,
+        OfficeJpegDecodeOptions options = default) {
+        components = Array.Empty<byte>();
+        width = 0;
+        height = 0;
+        componentCount = 0;
+        if (!IsJpeg(encodedBytes)) return false;
+        try {
+            components = OfficeJpegReader.DecodeColorComponents(
+                encodedBytes!,
+                out width,
+                out height,
+                out componentCount,
+                requestedColorTransform,
+                usePdfColorTransformDefault,
+                options);
+            return true;
+        } catch (Exception ex) when (ex is FormatException || ex is ArgumentException || ex is IndexOutOfRangeException || ex is OverflowException) {
+            components = Array.Empty<byte>();
+            width = 0;
+            height = 0;
+            componentCount = 0;
+            return false;
+        }
+    }
+
     /// <summary>Encodes an RGBA image as JPEG bytes.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficeJpegEncodeOptions? options = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));

@@ -50,7 +50,7 @@ public sealed partial class PdfReadPage {
         if (ResolveEffectObject(group.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||
             ResolveEffectObject(group.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Form" } ||
             transparency == null ||
-            !HasExactTransparencyGroupDeclaration(transparency) ||
+            !HasOrdinaryTransparencyGroupDeclaration(transparency) ||
             ResolveEffectObject(mask.Items.TryGetValue("S", out PdfObject? modeObject) ? modeObject : null) is not PdfName modeName ||
             (modeName.Name != "Alpha" && modeName.Name != "Luminosity")) return null;
         if (mask.Items.TryGetValue("TR", out PdfObject? transferObject) &&
@@ -93,6 +93,12 @@ public sealed partial class PdfReadPage {
             }
         }
         return new PdfPageSoftMaskResource(group, mode, backdrop, hasByteExactBackdrop, isIsolated, hasExplicitGroupColorSpace, parentResources);
+    }
+
+    private bool HasOrdinaryTransparencyGroupDeclaration(PdfDictionary group) {
+        if (group.Items.TryGetValue("Type", out PdfObject? typeObject) &&
+            ResolveEffectObject(typeObject) is not PdfName { Name: "Group" } and not PdfNull) return false;
+        return ResolveEffectObject(group.Items.TryGetValue("S", out PdfObject? subtypeObject) ? subtypeObject : null) is PdfName { Name: "Transparency" };
     }
 
     private bool HasSupportedType3PageBlendColorSpace() {
@@ -195,6 +201,8 @@ public sealed partial class PdfReadPage {
         bool hasInheritedStrokePattern,
         PdfPageGraphicsStateResource? inheritedGraphicsState) {
         if (resource == null) return true;
+        if (ResolveEffectObject(resource.Group.Dictionary.Items.TryGetValue("Group", out PdfObject? groupDeclaration) ? groupDeclaration : null) is not PdfDictionary exactGroup ||
+            !HasExactTransparencyGroupDeclaration(exactGroup)) return false;
         if (!resource.IsIsolated) return false;
         if (!resource.HasByteExactBackdrop) return false;
         if (resource.Mode == OfficeSoftMaskMode.Luminosity && !resource.HasExplicitGroupColorSpace) return false;
@@ -293,8 +301,9 @@ public sealed partial class PdfReadPage {
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
         var visualPageSize = (Width: projectionPageWidth, Height: projectionPageHeight);
-        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources);
-        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         var type3PaintChannelCache = new Type3PaintChannelCache();
         var activeType3PaintChannelStreams = new HashSet<PdfStream>();
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);
@@ -356,8 +365,8 @@ public sealed partial class PdfReadPage {
             contentNestingDepth: contentNestingDepth,
             invocationTextClippingBudget: textClippingBudget,
             patternTextClippingBudget: textClippingBudget);
-        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources);
-        Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources);
+        Dictionary<string, PdfPageShadingPatternResource> shadingPatterns = GetShadingPatternResources(resources, pageContentBudget: pageContentBudget);
+        Dictionary<string, PdfPageShadingResource> shadings = GetShadingResources(resources, pageContentBudget: pageContentBudget);
         _ = PdfPageContentVisualParser.Parse(
             WrapContentWithTransform(content, baseTransform),
             visualPageSize.Width,
@@ -395,7 +404,8 @@ public sealed partial class PdfReadPage {
             },
             initialFillPattern: initialState?.FillPattern,
             initialStrokePattern: initialState?.StrokePattern,
-            textClippingBudget: textClippingBudget);
+            textClippingBudget: textClippingBudget,
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         if (!supported) return false;
         var validationDiagnostics = new List<PdfRenderCapabilityDiagnostic>();
         var validationDiagnosticKeys = new HashSet<string>(StringComparer.Ordinal);
@@ -549,7 +559,8 @@ public sealed partial class PdfReadPage {
                         seen: validationDiagnosticKeys,
                         projectionPageWidth: visualPageSize.Width,
                         projectionPageHeight: visualPageSize.Height,
-                        geometryBudget: type3GlyphBudget.VisibilityGeometryBudget)) {
+                        geometryBudget: type3GlyphBudget.VisibilityGeometryBudget,
+                        pageContentBudget: pageContentBudget)) {
                     return false;
                 }
                 continue;
@@ -789,6 +800,7 @@ public sealed partial class PdfReadPage {
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
+        OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         int contentNestingDepth = 0,
         PdfTextClippingBudget? textClippingBudget = null,
         PageContentBudget? pageContentBudget = null,
@@ -797,6 +809,8 @@ public sealed partial class PdfReadPage {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textClippingBudget ??= new PdfTextClippingBudget();
+        initialEffect = initialEffect.WithEffectiveRenderingIntent(initialRenderingIntent);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
         IReadOnlyList<PdfPageDrawingEffectTransition> parsed = PdfPageGraphicsEffectTimelineParser.Parse(
             content,
@@ -809,7 +823,9 @@ public sealed partial class PdfReadPage {
             paintOrderOffset,
             _limits.MaxContentOperations,
             _limits.MaxContentNestingDepth,
-            _limits.MaxContentOperands);
+            _limits.MaxContentOperands,
+            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         var local = new List<PdfPageDrawingEffectTransition>(parsed.Count);
         for (int transitionIndex = 0; transitionIndex < parsed.Count; transitionIndex++) {
             PdfPageDrawingEffectTransition transition = parsed[transitionIndex];
@@ -830,7 +846,7 @@ public sealed partial class PdfReadPage {
                      baseTransform,
                      pageHeight,
                      graphicsStates,
-                     GetColorSpaceResources(resources),
+                     GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                      GetOptionalContentVisibility(resources),
                      initialFillColor,
                      initialFillColorSpace,
@@ -849,6 +865,8 @@ public sealed partial class PdfReadPage {
                      _limits.MaxContentOperations,
                      _limits.MaxContentNestingDepth,
                      _limits.MaxContentOperands,
+                     initialRenderingIntent: initialRenderingIntent,
+                     outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      textClippingBudget: textClippingBudget)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
@@ -883,6 +901,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
+                    initialRenderingIntent: invocation.RenderingIntent,
                     contentNestingDepth: contentNestingDepth + 1,
                     textClippingBudget: textClippingBudget,
                     pageContentBudget: pageContentBudget,
@@ -942,17 +961,18 @@ public sealed partial class PdfReadPage {
 
     private OfficeDrawingSoftMask GetOrCreateSoftMask(
         PdfPageSoftMaskResource resource,
+        OfficeIccRenderingIntent renderingIntent,
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> cache,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask> cache,
         HashSet<PdfStream> active,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
         PdfTextClippingBudget patternTextClippingBudget) {
-        var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height);
+        var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
             return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
@@ -963,7 +983,7 @@ public sealed partial class PdfReadPage {
                 transform: null);
         }
         try {
-            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
             var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 drawing,
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
@@ -983,7 +1003,8 @@ public sealed partial class PdfReadPage {
         double width,
         double height,
         Matrix2D pageTransform,
-        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height), OfficeDrawingSoftMask> softMasks,
+        OfficeIccRenderingIntent renderingIntent,
+        Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask> softMasks,
         HashSet<PdfStream> activeSoftMasks,
         TextContentParser.TextOutputBudget textOutputBudget,
         PageContentBudget pageContentBudget,
@@ -1027,7 +1048,8 @@ public sealed partial class PdfReadPage {
             invocationTextClippingBudget: invocationTextClippingBudget,
             patternTextClippingBudget: patternTextClippingBudget,
             pageContentBudget: pageContentBudget,
-            contentOrderPrefix: PdfContentOrderKey.Root);
+            contentOrderPrefix: PdfContentOrderKey.Root,
+            initialRenderingIntent: renderingIntent);
         for (int i = 0; i < primitives.Count; i++) elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
 
         var spans = new List<PdfTextSpan>();
@@ -1052,7 +1074,8 @@ public sealed partial class PdfReadPage {
             textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root,
-            contentOrderOffset: -transformedOffset);
+            contentOrderOffset: -transformedOffset,
+            initialRenderingIntent: renderingIntent);
         for (int i = 0; i < spans.Count; i++) {
             if (renderedType3PaintOrders.Contains(spans[i].PaintOrder, spans[i].ContentOrderKey)) continue;
             elements.Add(PdfPageDrawingElement.FromText(spans[i], elements.Count));
@@ -1067,11 +1090,17 @@ public sealed partial class PdfReadPage {
             height,
             placements,
             activeForms,
+            initialRenderingIntent: renderingIntent,
             textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);
         if (placements.Count > 0) {
-            IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(resources, 0, placements, colorizeImageMasks: true);
+            IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(
+                resources,
+                0,
+                placements,
+                colorizeImageMasks: true,
+                pageContentBudget);
             for (int i = 0; i < placements.Count; i++) {
                 PdfExtractedImage? image = FindImage(images, placements[i]);
                 if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
@@ -1086,6 +1115,7 @@ public sealed partial class PdfReadPage {
             enclosingEffects,
             new HashSet<PdfStream>(),
             PdfPageDrawingEffect.Default,
+            initialRenderingIntent: renderingIntent,
             textClippingBudget: invocationTextClippingBudget,
             pageContentBudget: pageContentBudget,
             contentOrderPrefix: PdfContentOrderKey.Root);

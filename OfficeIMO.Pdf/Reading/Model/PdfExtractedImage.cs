@@ -26,9 +26,11 @@ public sealed class PdfExtractedImage {
         int directStreamIdentity = 0,
         bool isImageMask = false,
         OfficeColor? imageMaskColor = null,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         bool hasExplicitDecode = false,
         bool hasDecodeParameters = false,
-        bool interpolate = false) {
+        bool interpolate = false,
+        bool hasAuthoredRenderingIntent = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -46,6 +48,8 @@ public sealed class PdfExtractedImage {
         DirectStreamIdentity = directStreamIdentity;
         IsImageMask = isImageMask;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
+        RenderingIntent = renderingIntent;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
         HasExplicitDecode = hasExplicitDecode;
         HasDecodeParameters = hasDecodeParameters;
         Interpolate = interpolate;
@@ -113,6 +117,10 @@ public sealed class PdfExtractedImage {
     public bool IsImageMask { get; }
 
     internal OfficeColor ImageMaskColor { get; }
+
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
+
+    internal bool HasAuthoredRenderingIntent { get; }
 
     internal bool HasExplicitDecode { get; }
 

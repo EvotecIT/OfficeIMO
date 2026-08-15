@@ -16,6 +16,7 @@ public sealed partial class PdfReadDocument {
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
+    private readonly PdfIccProfileRetentionBudget _outputIntentMetadataRetentionBudget;
     private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
@@ -34,6 +35,7 @@ public sealed partial class PdfReadDocument {
     private readonly bool? _acroFormNeedAppearances;
     private readonly int? _acroFormSignatureFlags;
     private readonly PdfAcroFormXfaInfo? _acroFormXfa;
+    private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
@@ -52,7 +54,13 @@ public sealed partial class PdfReadDocument {
         long decodedStreamBytes) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
+        _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
+        _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
+            FindCatalog(),
+            _objects,
+            _options.Limits.MaxDecodedStreamBytes,
+            _outputIntentMetadataRetentionBudget);
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
         _metadata = ExtractMetadata();

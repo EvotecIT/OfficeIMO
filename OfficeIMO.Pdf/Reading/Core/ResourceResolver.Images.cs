@@ -3,38 +3,181 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
-    /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
-    internal static bool CanProjectImageColorSpace(
+    internal static bool HasIccBasedImageColorSpace(
         PdfDictionary image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (image.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
-            ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
-            return true;
-        }
-
         PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
             ? colorSpaceObject
             : null;
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
-        int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
-        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
-            return true;
+        return effectiveColorSpace is PdfArray { Items.Count: > 0 } colorSpaceArray &&
+            ResolveObject(colorSpaceArray.Items[0], objects) is PdfName { Name: "ICCBased" };
+    }
+
+    internal static bool CanProjectImageColorSpace(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) =>
+        CanProjectImageColorSpace(image, resources, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes);
+
+    internal static bool CanProjectImageColorSpace(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) =>
+        CanProjectImageColorSpace(
+            new PdfStream(image, Array.Empty<byte>()),
+            resources,
+            objects,
+            maxDecodedStreamBytes,
+            outputIntentColorTransform,
+            colorFunctionEvaluationBudget,
+            functionResolutionContext);
+
+    /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
+    internal static bool CanProjectImageColorSpace(
+        PdfStream image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) {
+        PdfDictionary dictionary = image.Dictionary;
+        if (Filters.StreamDecoder.GetUnsupportedFilters(dictionary, objects).Contains("MalformedFilterDeclaration")) {
+            return false;
+        }
+        if (dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
+            ResolveObject(imageMaskObject, objects) is PdfBoolean { Value: true }) {
+            return CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent: 1, maxDecodedStreamBytes) &&
+                CanAllocateProjectedImageBuffer(dictionary, channels: 4, maxDecodedStreamBytes);
         }
 
-        string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
-        return PdfImageColorSpaceNormalization.TryResolve(
-            effectiveColorSpace,
-            colorSpaceName,
+        if (PdfImageMaskSemantics.HasUnsupportedSoftMaskMatte(dictionary, objects)) return false;
+
+        PdfObject? authoredColorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        int bitsPerComponent = (int)(dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int width = (int)(dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
+        if (width <= 0 || height <= 0) return false;
+
+        bool isDctFilterChain = IsDctFilterChain(dictionary, objects);
+        OfficeIccRenderingIntent renderingIntent = PdfRenderingIntentResolver.Read(
+            dictionary,
+            "Intent",
             objects,
-            out _);
+            OfficeIccRenderingIntent.RelativeColorimetric);
+        bool hasSupportedOutputIntent = outputIntentColorTransform?.IsSupported == true;
+        if (HasTrailingDctFilter(dictionary, objects) && !isDctFilterChain) {
+            return false;
+        }
+        if (HasDctPrefixFilters(dictionary, objects) &&
+            !TryGetDctPayload(image, objects, maxDecodedStreamBytes, out _)) {
+            return false;
+        }
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(
+                effectiveColorSpace,
+                bitsPerComponent,
+                objects,
+                maxDecodedStreamBytes,
+                colorFunctionEvaluationBudget,
+                functionResolutionContext)) {
+            if (!PdfImageDecodeTransform.TryCreateIndexedDeclaration(dictionary, objects, out _) ||
+                !PdfImageColorKeyMask.TryCreateDeclaration(dictionary, 1, bitsPerComponent, objects, out _)) {
+                return false;
+            }
+            int indexedChannels = PdfImageMaskSemantics.HasSoftMask(dictionary, objects) ||
+                PdfImageColorKeyMask.Create(dictionary, 1, bitsPerComponent, objects) is not null
+                ? 4
+                : 3;
+            if (!CanAllocateProjectedImageBuffer(dictionary, indexedChannels, maxDecodedStreamBytes)) return false;
+            return isDctFilterChain
+                ? bitsPerComponent == 8 &&
+                  (image.Data.Length == 0 ||
+                  TryDecodeDctImage(
+                      image,
+                      width,
+                      height,
+                      expectedColorCount: 1,
+                      objects,
+                      maxDecodedStreamBytes,
+                      out _))
+                : CanAllocateDecodedImageBuffer(dictionary, components: 1, bitsPerComponent, maxDecodedStreamBytes);
+        }
+        if (bitsPerComponent != 8) return false;
+
+        string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                effectiveColorSpace,
+                colorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                renderingIntent,
+                outputIntentColorTransform,
+                colorFunctionEvaluationBudget,
+                functionResolutionContext,
+                out PdfImageColorSpaceNormalization normalization)) {
+            return false;
+        }
+
+        if (!normalization.CanConvertPixelCount((long)width * height)) return false;
+        if (!PdfImageDecodeTransform.TryCreateColorDeclaration(
+                dictionary,
+                normalization.SourceColorCount,
+                objects,
+                out _) ||
+            !PdfImageColorKeyMask.TryCreateDeclaration(
+                dictionary,
+                normalization.SourceColorCount,
+                bitsPerComponent,
+                objects,
+                out _)) {
+            return false;
+        }
+        int baseChannels = normalization.RequiresColorConversion || normalization.SourceColorCount == 4
+            ? 3
+            : normalization.SourceColorCount;
+        if (baseChannels is not (1 or 3)) return false;
+        string? transparencyMaskKind = GetTransparencyMaskKind(dictionary, objects);
+        int channels = PdfImageMaskSemantics.HasSoftMask(dictionary, objects) ||
+            PdfImageColorKeyMask.Create(dictionary, normalization.SourceColorCount, bitsPerComponent, objects) is not null
+            ? baseChannels + 1
+            : baseChannels;
+        bool requiresDctNormalization = isDctFilterChain &&
+            (hasSupportedOutputIntent ||
+             RequiresDctColorNormalization(dictionary, colorSpaceName, transparencyMaskKind, objects));
+        if (isDctFilterChain && !requiresDctNormalization) return true;
+        if (!CanAllocateProjectedImageBuffer(dictionary, channels, maxDecodedStreamBytes)) return false;
+        return isDctFilterChain
+            ? image.Data.Length == 0 || TryDecodeDctImage(
+                image,
+                width,
+                height,
+                normalization.SourceColorCount,
+                objects,
+                maxDecodedStreamBytes,
+                out _)
+            : CanAllocateDecodedImageBuffer(
+                dictionary,
+                normalization.SourceColorCount,
+                bitsPerComponent,
+                maxDecodedStreamBytes);
     }
 
     /// <summary>Determines whether an authored image decode array has the exact shape required by its color space.</summary>
     internal static bool HasValidImageDecode(
         PdfDictionary image,
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) {
         if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
         PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
         if (resolvedDecode is PdfNull) return true;
@@ -45,7 +188,13 @@ internal static partial class ResourceResolver {
         PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
         int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
         int componentCount;
-        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(
+                effectiveColorSpace,
+                bitsPerComponent,
+                objects,
+                PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                colorFunctionEvaluationBudget,
+                functionResolutionContext)) {
             componentCount = 1;
         } else {
             string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
@@ -53,6 +202,11 @@ internal static partial class ResourceResolver {
                     effectiveColorSpace,
                     colorSpaceName,
                     objects,
+                    PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                    OfficeIccRenderingIntent.RelativeColorimetric,
+                    outputIntentColorTransform: null,
+                    colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
+                    functionResolutionContext: functionResolutionContext,
                     out PdfImageColorSpaceNormalization normalization)) {
                 return false;
             }
@@ -90,29 +244,16 @@ internal static partial class ResourceResolver {
             "CMYK" when allowInlineColorSpaceAbbreviations => 4,
             _ => 0
         };
-        if (componentCount == 0) {
-            return false;
-        }
-
-        if (!HasPassThroughDctDecodeParameters(image, objects)) {
-            return false;
-        }
+        if (componentCount == 0 || !HasPassThroughDctDecodeParameters(image, objects)) return false;
 
         if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
         PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
         if (resolvedDecode is PdfNull) return true;
-        if (resolvedDecode is not PdfArray decode ||
-            decode.Items.Count != componentCount * 2) {
-            return false;
-        }
-
+        if (resolvedDecode is not PdfArray decode || decode.Items.Count != componentCount * 2) return false;
         for (int component = 0; component < componentCount; component++) {
             if (ResolveObject(decode.Items[component * 2], objects) is not PdfNumber { Value: 0D } ||
-                ResolveObject(decode.Items[component * 2 + 1], objects) is not PdfNumber { Value: 1D }) {
-                return false;
-            }
+                ResolveObject(decode.Items[component * 2 + 1], objects) is not PdfNumber { Value: 1D }) return false;
         }
-
         return true;
     }
 
@@ -134,6 +275,34 @@ internal static partial class ResourceResolver {
         return ResolveObject(colorTransform, objects) is PdfNull;
     }
 
+    private static bool CanAllocateProjectedImageBuffer(
+        PdfDictionary image,
+        int channels,
+        int maxDecodedStreamBytes) {
+        int width = (int)(image.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(image.Get<PdfNumber>("Height")?.Value ?? 0);
+        return PdfImageBufferLimits.TryGetScanlineBufferSize(
+            width,
+            height,
+            channels,
+            maxDecodedStreamBytes,
+            out _,
+            out _);
+    }
+
+    private static bool CanAllocateDecodedImageBuffer(
+        PdfDictionary image,
+        int components,
+        int bitsPerComponent,
+        int maxDecodedStreamBytes) {
+        int width = (int)(image.Get<PdfNumber>("Width")?.Value ?? 0);
+        int height = (int)(image.Get<PdfNumber>("Height")?.Value ?? 0);
+        if (width <= 0 || height <= 0 || components <= 0 || bitsPerComponent <= 0 || maxDecodedStreamBytes <= 0) return false;
+        long rowBytes = ((long)width * components * bitsPerComponent + 7L) / 8L;
+        long totalBytes = rowBytes * height;
+        return rowBytes <= int.MaxValue && totalBytes <= maxDecodedStreamBytes;
+    }
+
     private static bool TryBuildExtractedImageMaskPng(
         PdfStream stream,
         int width,
@@ -141,13 +310,21 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor? imageMaskColor,
-        int maximumDecodedStreamBytes,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         if (imageMaskColor.HasValue) {
-            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor.Value, maximumDecodedStreamBytes, out pngBytes);
+            return TryBuildPngFileFromImageMask(
+                stream,
+                width,
+                height,
+                bitsPerComponent,
+                objects,
+                imageMaskColor.Value,
+                maxDecodedStreamBytes,
+                out pngBytes);
         }
 
-        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maximumDecodedStreamBytes, out pngBytes);
+        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, maxDecodedStreamBytes, out pngBytes);
     }
 
     private static bool TryBuildPngFileFromImageMask(
@@ -157,17 +334,23 @@ internal static partial class ResourceResolver {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         OfficeColor imageMaskColor,
-        int maximumDecodedStreamBytes,
+        int maxDecodedStreamBytes,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (bitsPerComponent is not (0 or 1)) {
             return false;
         }
-        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(width, height, 4, out int pixelCount, out int scanlineBytes)) {
+        if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
+                width,
+                height,
+                4,
+                maxDecodedStreamBytes,
+                out int pixelCount,
+                out int scanlineBytes)) {
             return false;
         }
 
-        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maximumDecodedStreamBytes)) {
+        if (!TryDecodeImageStream(stream, objects, out byte[] maskPixels, maxDecodedStreamBytes)) {
             return false;
         }
         byte[] scanlines = new byte[scanlineBytes];
@@ -211,7 +394,7 @@ internal static partial class ResourceResolver {
 
         int baseColors;
         int outputColorType;
-        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
+        bool hasSoftMask = PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects);
         PdfColorKeyMask? colorKeyMask = TryReadColorKeyMask(stream.Dictionary, colorType == 0 ? 1 : 3, objects, out PdfColorKeyMask parsedColorKeyMask)
             ? parsedColorKeyMask
             : null;
@@ -293,7 +476,7 @@ internal static partial class ResourceResolver {
             return false;
         }
         int expectedSampleCount = width * height;
-        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
+        bool hasSoftMask = PdfImageMaskSemantics.HasSoftMask(stream.Dictionary, objects);
         byte[]? alphaPixels = null;
         if (hasSoftMask &&
             !TryDecodeSoftMask(stream, width, height, 8, objects, out alphaPixels)) {
@@ -443,8 +626,8 @@ internal static partial class ResourceResolver {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] decoded,
-        int maximumDecodedStreamBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) =>
-        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maximumDecodedStreamBytes);
+        int maxDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) =>
+        PdfImageStreamDecoder.TryDecode(stream, objects, out decoded, maxDecodedBytes);
 
     private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;
@@ -557,14 +740,14 @@ internal static partial class ResourceResolver {
         colorKeyMask = default;
         if (componentCount <= 0 ||
             !imageDictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
-            ResolveObject(maskObject, objects) is not PdfArray maskArray ||
+            PdfObjectLookup.ResolveChain(objects, maskObject) is not PdfArray maskArray ||
             maskArray.Items.Count < componentCount * 2) {
             return false;
         }
 
         var ranges = new int[componentCount * 2];
         for (int i = 0; i < ranges.Length; i++) {
-            if (ResolveObject(maskArray.Items[i], objects) is not PdfNumber number) {
+            if (PdfObjectLookup.ResolveChain(objects, maskArray.Items[i]) is not PdfNumber number) {
                 return false;
             }
 
