@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -134,7 +135,7 @@ internal static class OfficeProvenanceGif {
             ReserveEntry(ref entryCount, options.MaxContainerEntries);
             byte introducer = data[offset++];
             if (introducer == 0x3B) {
-                validStructure = offset == data.Length && foundImage;
+                validStructure = offset == data.Length && foundImage && OfficeGifReader.TryValidateAllFrames(data);
                 return count;
             }
             if (introducer == 0x2C) {

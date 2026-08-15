@@ -275,11 +275,11 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] manifest = CreateManifestStore();
         byte[] exact = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, manifest);
         byte[] other = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 1 }, Encoding.ASCII.GetBytes("keep"));
-        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, exact, CreateMinimalGifImage(), new byte[] { 0x3B });
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[] { 1, 0, 1, 0, 0, 0, 0 }, other, exact, CreateMinimalGifImage(), new byte[] { 0x3B });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif");
 
-        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], other, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
+        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[] { 1, 0, 1, 0, 0, 0, 0 }, other, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
         Assert.Single(result.Changes);
     }
 
@@ -287,14 +287,14 @@ public sealed partial class ProvenanceCoreContracts {
     public void GifAppliesTheManifestLimitOnlyToTheC2paApplicationExtension() {
         byte[] unrelated = CreateGifApplication("OTHERAPP", new byte[] { 1, 0, 0 }, new byte[512]);
         byte[] c2pa = CreateGifApplication("C2PA_GIF", new byte[] { 1, 0, 0 }, CreateManifestStore());
-        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, c2pa, CreateMinimalGifImage(), new byte[] { 0x3B });
+        byte[] gif = Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[] { 1, 0, 1, 0, 0, 0, 0 }, unrelated, c2pa, CreateMinimalGifImage(), new byte[] { 0x3B });
         var options = new OfficeProvenanceRemovalOptions();
         options.Limits.MaxAssetBytes = gif.Length + 1L;
         options.Limits.MaxManifestBytes = 512;
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(gif, "fixture.gif", options);
 
-        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[7], unrelated, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
+        Assert.Equal(Join(Encoding.ASCII.GetBytes("GIF89a"), new byte[] { 1, 0, 1, 0, 0, 0, 0 }, unrelated, CreateMinimalGifImage(), new byte[] { 0x3B }), result.ToArray());
         Assert.Empty(result.After.Evidence);
     }
 

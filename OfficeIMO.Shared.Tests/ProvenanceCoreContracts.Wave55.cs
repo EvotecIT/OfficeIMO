@@ -151,5 +151,9 @@ public sealed partial class ProvenanceCoreContracts {
         new byte[] { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 };
 
     private static byte[] CreateMinimalGifImage() =>
-        new byte[] { 0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 1, 0, 0 };
+        new byte[] {
+            0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0x80,
+            0, 0, 0, 255, 255, 255,
+            2, 2, 0x44, 0x01, 0
+        };
 }
