@@ -94,6 +94,79 @@ public sealed class EmailContentSourceTests {
     }
 
     [Theory]
+    [InlineData(EmailFileFormat.Eml)]
+    [InlineData(EmailFileFormat.OutlookMsg)]
+    [InlineData(EmailFileFormat.OutlookTemplate)]
+    [InlineData(EmailFileFormat.Tnef)]
+    public void DocumentSaveStreamsAttachmentContentIntoTheDestination(EmailFileFormat format) {
+        const int payloadLength = 1024 * 1024 + 19;
+        var source = new GeneratedContentSource(payloadLength, allowSynchronous: true);
+        var document = CreateStreamingDocument(source, payloadLength, format);
+        using var output = new GuardedWriteStream(maximumWriteSize: 128 * 1024);
+
+        EmailWriteResult result = document.Save(output, format);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+
+        Assert.False(result.HasErrors);
+        Assert.Equal(result.BytesWritten, output.Length);
+        Assert.Equal(payloadLength, attachment.Content!.Length);
+        Assert.Equal(1, source.SynchronousOpenCount);
+        Assert.True(source.MaximumSynchronousReadSize <= 81920);
+        Assert.True(output.MaximumSynchronousWriteSize <= 81920);
+    }
+
+    [Theory]
+    [InlineData(EmailFileFormat.Eml)]
+    [InlineData(EmailFileFormat.OutlookMsg)]
+    [InlineData(EmailFileFormat.OutlookTemplate)]
+    [InlineData(EmailFileFormat.Tnef)]
+    public async Task DocumentSaveAsyncUsesAsyncAttachmentAndDestinationIo(EmailFileFormat format) {
+        const int payloadLength = 512 * 1024 + 13;
+        var source = new GeneratedContentSource(payloadLength, allowSynchronous: false);
+        var document = CreateStreamingDocument(source, payloadLength, format);
+        using var output = new AsyncOnlyWriteStream();
+
+        EmailWriteResult result = await document.SaveAsync(output, format);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+
+        Assert.False(result.HasErrors);
+        Assert.Equal(payloadLength, attachment.Content!.Length);
+        Assert.Equal(0, source.SynchronousOpenCount);
+        Assert.Equal(1, source.AsynchronousOpenCount);
+        Assert.True(source.AsynchronousReadCount > 1);
+        Assert.True(output.AsynchronousWriteCount > 1);
+    }
+
+    [Theory]
+    [InlineData(EmailFileFormat.Eml, ".eml")]
+    [InlineData(EmailFileFormat.OutlookMsg, ".msg")]
+    [InlineData(EmailFileFormat.OutlookTemplate, ".oft")]
+    [InlineData(EmailFileFormat.Tnef, ".tnef")]
+    public async Task DocumentSaveAsyncToFileUsesAsyncAttachmentIo(EmailFileFormat format, string extension) {
+        const int payloadLength = 512 * 1024 + 17;
+        string path = Path.Combine(Path.GetTempPath(),
+            string.Concat("officeimo-email-save-", Guid.NewGuid().ToString("N"), extension));
+        try {
+            var source = new GeneratedContentSource(payloadLength, allowSynchronous: false);
+            var document = CreateStreamingDocument(source, payloadLength, format);
+
+            EmailWriteResult result = await document.SaveAsync(path, format);
+            EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(path).Document.Attachments);
+
+            Assert.False(result.HasErrors);
+            Assert.Equal(result.BytesWritten, new FileInfo(path).Length);
+            Assert.Equal(payloadLength, attachment.Content!.Length);
+            Assert.Equal(0, source.SynchronousOpenCount);
+            Assert.Equal(1, source.AsynchronousOpenCount);
+            Assert.True(source.AsynchronousReadCount > 1);
+        } finally {
+            try { if (File.Exists(path)) File.Delete(path); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    [Theory]
     [InlineData(EmailFileFormat.Eml, "message.eml")]
     [InlineData(EmailFileFormat.OutlookMsg, "message.msg")]
     [InlineData(EmailFileFormat.OutlookTemplate, "message.oft")]
