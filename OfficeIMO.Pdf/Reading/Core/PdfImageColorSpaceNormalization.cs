@@ -494,6 +494,10 @@ internal sealed class PdfImageColorSpaceNormalization {
                 Math.Min(lookupLength, maxDecodedStreamBytes),
                 out byte[] lookup) || lookup.Length < lookupLength) return false;
         var palette = new OfficeColor[paletteCount];
+        IReadOnlyList<double>[]? lookupComponents =
+            baseColorSpace._colorSpace.IsNativeDeviceRgb || baseColorSpace._colorSpace.IsNativeDeviceCmyk
+                ? new IReadOnlyList<double>[paletteCount]
+                : null;
         var components = new double[baseColorSpace.SourceColorCount];
         PdfImageColorConversionBuffer conversionBuffer = baseColorSpace.CreateConversionBuffer();
         for (int entry = 0; entry < paletteCount; entry++) {
@@ -502,10 +506,13 @@ internal sealed class PdfImageColorSpaceNormalization {
                     component,
                     lookup[entry * components.Length + component]);
             }
+            if (lookupComponents != null) lookupComponents[entry] = components.ToArray();
             if (!baseColorSpace.TryConvertComponents(components, conversionBuffer, out palette[entry])) return false;
         }
         normalization = new PdfImageColorSpaceNormalization(
-            PdfPageColorSpace.Indexed(palette, baseColorSpace.UsesIccApproximation),
+            lookupComponents == null
+                ? PdfPageColorSpace.Indexed(palette, baseColorSpace.UsesIccApproximation)
+                : PdfPageColorSpace.Indexed(baseColorSpace._colorSpace, lookupComponents),
             2,
             componentRanges: new[] { 0D, (double)highValue });
         return true;

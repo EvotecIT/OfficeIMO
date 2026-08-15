@@ -387,6 +387,63 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntentMetadata_BoundsDistinctRetainedProfileBytesAcrossDocument() {
+        byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
+        byte[] pdf = BuildPdfWithTwoOutputProfiles(profileBytes);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = profileBytes.Length + 16 }
+        });
+
+        Assert.Equal(2, document.OutputIntents.Count);
+        Assert.Equal(profileBytes.Length, document.OutputIntents[0].DestinationOutputProfileSizeBytes);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            _ = document.OutputIntents[1].DestinationOutputProfileSizeBytes);
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(profileBytes.Length + 16, exception.Limit);
+        Assert.Equal(profileBytes.Length * 2L, exception.Actual);
+    }
+
+    [Fact]
+    public void IndexedImageNormalization_UsesAuthoredDeviceComponentsForMatchingOutputProfile() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        var profileStream = new PdfStream(new PdfDictionary(), profileBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = profileStream;
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        PdfOutputIntentColorTransform transform = Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(
+                catalog,
+                new Dictionary<int, PdfIndirectObject>(),
+                profileBytes.Length));
+        var indexed = new PdfArray();
+        indexed.Items.Add(new PdfName("Indexed"));
+        indexed.Items.Add(new PdfName("DeviceRGB"));
+        indexed.Items.Add(new PdfNumber(1));
+        indexed.Items.Add(new PdfStringObj(new byte[] { 0, 0, 0, 51, 102, 204 }));
+
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            indexed,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            profileBytes.Length,
+            OfficeIccRenderingIntent.Perceptual,
+            transform,
+            out PdfImageColorSpaceNormalization normalization));
+        Assert.True(normalization.TryConvertComponents(new[] { 1D }, out OfficeColor actual));
+
+        Assert.Equal(
+            ExpectedOutputConversion(
+                profileBytes,
+                OfficeColor.FromRgb(51, 102, 204),
+                OfficeIccRenderingIntent.Perceptual),
+            actual);
+    }
+
+    [Fact]
     public void RenderPage_PublishesDestinationProfileSafelyAcrossConcurrentFirstUse() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         byte[] pdf = BuildPdf(profileBytes, "0.2 0.4 0.8 rg 10 10 20 20 re f");
@@ -747,6 +804,25 @@ public class PdfOutputIntentRenderingTests {
         WriteAscii(output, "6 0 obj\n<< " + profileEntries + " /Length " + profileBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
         output.Write(profileBytes, 0, profileBytes.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildPdfWithTwoOutputProfiles(byte[] profileBytes) {
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OutputIntents [" +
+            "<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 5 0 R >> " +
+            "<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 6 0 R >>] >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        for (int objectNumber = 5; objectNumber <= 6; objectNumber++) {
+            WriteAscii(output, objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n<< /Length " +
+                profileBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+            output.Write(profileBytes, 0, profileBytes.Length);
+            WriteAscii(output, "\nendstream\nendobj\n");
+        }
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 

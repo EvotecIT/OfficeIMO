@@ -42,6 +42,26 @@ internal readonly struct PdfPageColorSpace {
     internal bool IsNativeDeviceCmyk =>
         Kind == PdfPageColorSpaceKind.DeviceCmyk && _custom == null;
 
+    internal bool TryGetIndexedBaseComponents(
+        IReadOnlyList<double> components,
+        out PdfPageColorSpace baseColorSpace,
+        out IReadOnlyList<double> baseComponents) {
+        baseColorSpace = default;
+        baseComponents = Array.Empty<double>();
+        if (Kind != PdfPageColorSpaceKind.Indexed ||
+            components == null || components.Count == 0 ||
+            _custom?.IndexedBaseColorSpace is not PdfPageColorSpace indexedBase ||
+            _custom.IndexedLookupComponents is not IReadOnlyList<IReadOnlyList<double>> lookup ||
+            lookup.Count == 0) return false;
+
+        int index = (int)Math.Round(components[0]);
+        if (index < 0) index = 0;
+        if (index >= lookup.Count) index = lookup.Count - 1;
+        baseColorSpace = indexedBase;
+        baseComponents = lookup[index];
+        return true;
+    }
+
     public bool HasPatternBaseColorSpace => Kind == PdfPageColorSpaceKind.Pattern && _custom?.Alternate != null;
 
     internal bool RequiresColorManagedGradientSampling =>

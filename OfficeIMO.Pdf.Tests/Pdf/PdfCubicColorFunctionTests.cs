@@ -335,6 +335,32 @@ public sealed partial class PdfColorFunctionTests {
         Assert.Equal(128, function.Breakpoints.Count);
         Assert.Equal(0D, function.Breakpoints[0], 8);
         Assert.Equal(1D, function.Breakpoints[127], 8);
+        Assert.False(function.HasCompleteShadingBreakpoints);
+    }
+
+    [Fact]
+    public void RenderPage_RejectsCubicSampledShadingAboveExactKnotBudget() {
+        var samples = new byte[129 * 3];
+        samples[64 * 3] = 255;
+        byte[] pdf = BuildSinglePagePdf(
+            "/Sh1 sh",
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] " +
+            "/Function 6 0 R /Extend [true true] >>\nendobj",
+            SampledStreamObject(
+                6,
+                1,
+                3,
+                "[129]",
+                8,
+                Convert.ToHexString(samples) + ">",
+                order: 3));
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        Assert.DoesNotContain(page.ToDrawing().Shapes, static item => item.Shape.FillGradient != null);
+        Assert.Contains(
+            page.GetRenderCapabilityDiagnostics(),
+            static diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
     }
 
     [Fact]

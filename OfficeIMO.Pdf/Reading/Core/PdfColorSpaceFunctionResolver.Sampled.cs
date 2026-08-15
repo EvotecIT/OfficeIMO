@@ -340,8 +340,21 @@ internal static partial class PdfColorSpaceFunctionResolver {
         if (encodedMinimum > encodedMaximum) return domain.Distinct().ToArray();
 
         var result = new List<double>(MaxSuggestedSampleBreakpoints + 2);
+        IReadOnlyCollection<double> required = domain;
         result.AddRange(domain);
         if (GetNaturalSplinePointCount(order, 1, encode, sizes) > 0) {
+            int firstSample = (int)Math.Ceiling(encodedMinimum);
+            int lastSample = (int)Math.Floor(encodedMaximum);
+            var exactKnots = new List<double>(Math.Max(0, lastSample - firstSample + 1));
+            for (int sample = firstSample; sample <= lastSample; sample++) {
+                AddMappedSampleBreakpoint(exactKnots, sample, domain, encode);
+            }
+            double[] requiredKnots = domain.Concat(exactKnots).Distinct().ToArray();
+            hasCompleteShadingBreakpoints = requiredKnots.Length <= MaxSuggestedSampleBreakpoints;
+            if (hasCompleteShadingBreakpoints) {
+                required = requiredKnots;
+                result.AddRange(exactKnots);
+            }
             double encodedSpan = encodedMaximum - encodedMinimum;
             int intervalCount = Math.Max(1, (int)Math.Ceiling(encodedSpan));
             int pointCount = Math.Min(MaxSuggestedSampleBreakpoints, checked(intervalCount * 4 + 1));
@@ -367,7 +380,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     result.Distinct().Count() <= MaxSuggestedSampleBreakpoints;
             }
         }
-        return LimitSuggestedPoints(result, domain);
+        return LimitSuggestedPoints(result, required);
     }
 
     private static void AddMappedSampleBreakpoint(List<double> result, double sample, double[] domain, double[] encode) {

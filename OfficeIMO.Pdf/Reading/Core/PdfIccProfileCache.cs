@@ -55,8 +55,17 @@ internal static class PdfIccProfileCache {
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedBytes,
+        out byte[] bytes) =>
+        TryReadBytes(stream, objects, maxDecodedBytes, retentionBudget: null, out bytes);
+
+    internal static bool TryReadBytes(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedBytes,
+        PdfIccProfileRetentionBudget? retentionBudget,
         out byte[] bytes) {
         BytesCacheEntry entry = GetBytesEntry(stream, objects, maxDecodedBytes);
+        if (entry.Decoded) retentionBudget?.Charge(stream, entry.Bytes.LongLength);
         bytes = entry.Bytes;
         return entry.Decoded;
     }

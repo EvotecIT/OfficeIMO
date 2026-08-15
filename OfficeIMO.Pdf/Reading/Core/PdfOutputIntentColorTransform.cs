@@ -42,11 +42,19 @@ internal sealed class PdfOutputIntentColorTransform {
         IReadOnlyList<double> components,
         OfficeColor fallbackColor,
         OfficeIccRenderingIntent renderingIntent) {
-        if (TryGetProfile(out OfficeIccColorProfile? profile) &&
-            profile != null &&
-            IsMatchingDeviceColorSpace(colorSpace, profile.ComponentCount) &&
-            profile.TryConvert(components, renderingIntent, out OfficeColor converted)) {
-            return converted;
+        if (TryGetProfile(out OfficeIccColorProfile? profile) && profile != null) {
+            if (IsMatchingDeviceColorSpace(colorSpace, profile.ComponentCount) &&
+                profile.TryConvert(components, renderingIntent, out OfficeColor converted)) {
+                return converted;
+            }
+            if (colorSpace.TryGetIndexedBaseComponents(
+                    components,
+                    out PdfPageColorSpace indexedBase,
+                    out IReadOnlyList<double> indexedComponents) &&
+                IsMatchingDeviceColorSpace(indexedBase, profile.ComponentCount) &&
+                profile.TryConvert(indexedComponents, renderingIntent, out converted)) {
+                return converted;
+            }
         }
         return Apply(fallbackColor, renderingIntent);
     }

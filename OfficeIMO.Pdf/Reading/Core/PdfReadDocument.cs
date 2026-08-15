@@ -14,6 +14,7 @@ public sealed partial class PdfReadDocument {
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
+    private readonly PdfIccProfileRetentionBudget _outputIntentMetadataRetentionBudget;
     private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
     private readonly IReadOnlyList<PdfNamedDestination> _namedDestinations;
@@ -47,6 +48,7 @@ public sealed partial class PdfReadDocument {
         PdfRepairReport repairReport,
         PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
         _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
             FindCatalog(),

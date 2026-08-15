@@ -58,6 +58,7 @@ public sealed partial class PdfReadDocument {
                 profileStream,
                 _objects,
                 _options.Limits.MaxDecodedStreamBytes,
+                _outputIntentMetadataRetentionBudget,
                 out byte[] profileBytes)) return null;
         return new PdfOutputIntentProfileMetadata(
             profileBytes.Length,

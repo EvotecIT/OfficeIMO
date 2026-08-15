@@ -2199,7 +2199,12 @@ public sealed partial class PdfReadPage {
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root);
             if (imagePlacements.Count > 0) {
-                IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true);
+                IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(
+                    appearanceResources,
+                    0,
+                    imagePlacements,
+                    colorizeImageMasks: true,
+                    pageContentBudget);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
                     PdfImagePlacement placement = imagePlacements[imageIndex];
                     PdfExtractedImage? image = FindImage(images, placement);

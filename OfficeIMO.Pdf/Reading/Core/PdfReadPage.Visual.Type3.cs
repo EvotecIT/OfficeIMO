@@ -279,7 +279,7 @@ public sealed partial class PdfReadPage {
                     }
                     for (int imageIndex = 0; imageIndex < localImagePlacements.Count; imageIndex++) {
                         PdfExtractedImage image = extractedImageCache[GetType3ImageCacheKey(localImagePlacements[imageIndex])];
-                        if (!IsSupportedType3ImagePlacement(localImagePlacements[imageIndex]) || image.HasUnresolvedTransparencyMask) return false;
+                        if (image.HasUnresolvedTransparencyMask) return false;
                         if (image.IsImageMask && localImagePlacements[imageIndex].FillPattern.HasValue) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
@@ -350,7 +350,6 @@ public sealed partial class PdfReadPage {
         PdfDictionary? fallbackResources = null,
         PageContentBudget? pageContentBudget = null) {
         if (!image.IsImageFile) return false;
-        if (!IsSupportedType3ImagePlacement(placement)) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
         PdfDictionary? resources = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         if (imageDictionary == null && resources != null) {
@@ -364,9 +363,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null &&
             imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not PdfNull) return false;
-        if (imageDictionary != null &&
-            imageDictionary.Items.TryGetValue("Intent", out PdfObject? intentObject) &&
-            ResolveEffectObject(intentObject) is not PdfNull) return false;
+        if (imageDictionary != null && !HasValidType3ImageRenderingIntent(imageDictionary)) return false;
         if (placement.InlineImageStream == null &&
             (imageDictionary == null ||
              ResolveEffectObject(imageDictionary.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" })) return false;
@@ -425,8 +422,13 @@ public sealed partial class PdfReadPage {
             validated.Height == height;
     }
 
-    private static bool IsSupportedType3ImagePlacement(PdfImagePlacement placement) =>
-        !placement.HasAuthoredRenderingIntent;
+    private bool HasValidType3ImageRenderingIntent(PdfDictionary imageDictionary) {
+        if (!imageDictionary.Items.TryGetValue("Intent", out PdfObject? intentObject)) return true;
+        PdfObject? resolved = ResolveEffectObject(intentObject);
+        return resolved is PdfNull or PdfName {
+            Name: "Perceptual" or "RelativeColorimetric" or "Saturation" or "AbsoluteColorimetric"
+        };
+    }
 
     private bool HasValidType3ImageInterpolation(PdfDictionary imageDictionary) {
         return !imageDictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) ||
