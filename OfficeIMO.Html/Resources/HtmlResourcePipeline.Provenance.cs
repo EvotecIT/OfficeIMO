@@ -27,10 +27,11 @@ public static partial class HtmlResourcePipeline {
 
     internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(IHtmlDocument document) {
         var options = new HtmlResourcePipelineOptions();
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = HtmlComputedStyleEngine.Compute(document, options);
+        HtmlComputedStyleSet computedStyleSet = HtmlComputedStyleEngine.ComputeForProvenance(document, options);
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = computedStyleSet.Elements;
         Dictionary<string, List<CssCustomPropertyDefinition>> documentDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
-        var result = new HtmlProvenanceCssScope(computedStyles);
+        var result = new HtmlProvenanceCssScope(computedStyleSet);
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
@@ -132,6 +133,7 @@ public static partial class HtmlResourcePipeline {
         ISet<int>? usedCustomPropertyDeclarationStarts = null,
         ISet<int>? resolvedVarFallbackStarts = null,
         IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null,
+        HtmlComputedStyleSet? computedStyleSet = null,
         IElement? sourceOwner = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
@@ -157,7 +159,7 @@ public static partial class HtmlResourcePipeline {
             if (trailing == leading) continue;
             string source = DecodeCssEscapes(sourceGroup.Value.Substring(leading, trailing - leading));
             if (!isCustomProperty && !IsEffectiveImageDeclaration(
-                    document, attributeName, sourceOwner, masked, match.Index, source, computedStyles)) continue;
+                    document, attributeName, sourceOwner, masked, match.Index, source, computedStyles, computedStyleSet)) continue;
             var range = (sourceGroup.Index + leading, trailing - leading);
             if (emittedRanges.Add(range)) yield return new HtmlCssImageReference(range.Item1, range.Item2, source);
         }
@@ -172,7 +174,7 @@ public static partial class HtmlResourcePipeline {
                     : ClassifyCssUrl(masked, reference.Start) != HtmlResourceKind.Image)) continue;
             if (!isCustomProperty && !IsEffectiveImageDeclaration(
                     document, attributeName, sourceOwner, masked, reference.Start,
-                    DecodeCssEscapes(reference.Source), computedStyles)) continue;
+                    DecodeCssEscapes(reference.Source), computedStyles, computedStyleSet)) continue;
             if (!emittedRanges.Add((reference.SourceStart, reference.Source.Length))) continue;
             yield return new HtmlCssImageReference(reference.SourceStart, reference.Source.Length, DecodeCssEscapes(reference.Source));
         }
@@ -185,7 +187,8 @@ public static partial class HtmlResourcePipeline {
         string css,
         int index,
         string source,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
+        HtmlComputedStyleSet? computedStyleSet) {
         if (TryGetEnclosingKeyframesName(css, index, out _, out _)) return true;
         string propertyName = GetCssDeclarationPropertyName(css, index);
         if (propertyName.Length == 0) return true;
@@ -198,31 +201,61 @@ public static partial class HtmlResourcePipeline {
         if (important >= 0 && string.IsNullOrWhiteSpace(declarationValue.Substring(important + 10))) {
             declarationValue = declarationValue.Substring(0, important).TrimEnd();
         }
-        computedStyles ??= HtmlComputedStyleEngine.Compute(document);
+        computedStyles ??= computedStyleSet?.Elements ?? HtmlComputedStyleEngine.Compute(document);
         IEnumerable<IElement> elements;
+        string selector = string.Empty;
         if (string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
             if (sourceOwner == null) return true;
             elements = new[] { sourceOwner };
         } else {
-            string selector = GetDeclarationSelector(css, index);
+            selector = GetDeclarationSelector(css, index);
             elements = GetElementsMatchingSelectorList(document, selector);
         }
         bool sawElement = false;
         foreach (IElement element in elements) {
             sawElement = true;
-            if (!computedStyles.TryGetValue(element, out HtmlComputedStyle? style)) continue;
-            string effective = style.GetValue(propertyName);
-            if (effective.Length == 0) {
-                if (!IsInsideContainerRule(css, index)) return true;
-                continue;
+            if (!computedStyles.TryGetValue(element, out HtmlComputedStyle? elementStyle) ||
+                IsDisplayNone(elementStyle)) continue;
+            foreach (HtmlComputedStyle style in GetDeclarationStyles(element, elementStyle, selector, computedStyleSet)) {
+                if (IsDisplayNone(style)) continue;
+                string effective = style.GetValue(propertyName);
+                if (effective.Length == 0) {
+                    if (!IsInsideContainerRule(css, index)) return true;
+                    continue;
+                }
+                if (ContainsEquivalentImageSource(effective, source) || string.Equals(
+                        HtmlRenderCssValues.NormalizeComponentValueWhitespace(DecodeCssEscapes(declarationValue)),
+                        HtmlRenderCssValues.NormalizeComponentValueWhitespace(effective),
+                        StringComparison.Ordinal)) return true;
             }
-            if (ContainsEquivalentImageSource(effective, source) || string.Equals(
-                    HtmlRenderCssValues.NormalizeComponentValueWhitespace(DecodeCssEscapes(declarationValue)),
-                    HtmlRenderCssValues.NormalizeComponentValueWhitespace(effective),
-                    StringComparison.Ordinal)) return true;
         }
         return !sawElement;
     }
+
+    private static IEnumerable<HtmlComputedStyle> GetDeclarationStyles(
+        IElement element,
+        HtmlComputedStyle elementStyle,
+        string selector,
+        HtmlComputedStyleSet? computedStyleSet) {
+        bool yieldedPseudo = false;
+        if (computedStyleSet != null && selector.Length != 0) {
+            foreach (string selectorPart in SplitTopLevelList(selector)) {
+                if (!HtmlComputedStyleEngine.TryParsePseudoElementSelector(
+                        selectorPart, out string hostSelector, out HtmlPseudoElementKind kind)) continue;
+                string normalized = NormalizeSelectorForQuery(hostSelector, stripStatefulPseudoClasses: true);
+                if (normalized.Length == 0) normalized = "*";
+                bool matches;
+                try { matches = element.Matches(normalized); } catch { matches = false; }
+                if (!matches || !computedStyleSet.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)) continue;
+                yieldedPseudo = true;
+                yield return pseudoStyle;
+            }
+        }
+        if (!yieldedPseudo) yield return elementStyle;
+    }
+
+    private static bool IsDisplayNone(HtmlComputedStyle style) =>
+        string.Equals(style.GetValue("display").Trim(), "none", StringComparison.OrdinalIgnoreCase);
 
     private static bool ContainsEquivalentImageSource(string effective, string source) {
         foreach (Match match in CssUrlExpression.Matches(effective)) {
@@ -288,11 +321,12 @@ public static partial class HtmlResourcePipeline {
 }
 
 internal sealed class HtmlProvenanceCssScope {
-    internal HtmlProvenanceCssScope(IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles) {
-        ComputedStyles = computedStyles;
+    internal HtmlProvenanceCssScope(HtmlComputedStyleSet computedStyleSet) {
+        ComputedStyleSet = computedStyleSet;
     }
 
-    internal IReadOnlyDictionary<IElement, HtmlComputedStyle> ComputedStyles { get; }
+    internal HtmlComputedStyleSet ComputedStyleSet { get; }
+    internal IReadOnlyDictionary<IElement, HtmlComputedStyle> ComputedStyles => ComputedStyleSet.Elements;
     internal Dictionary<IElement, HashSet<int>> UsedCustomPropertyDeclarations { get; } = new();
     internal Dictionary<IElement, HashSet<int>> ResolvedVarFallbackStarts { get; } = new();
 

@@ -228,13 +228,13 @@ public static partial class HtmlProvenance {
         string documentLocation,
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets) {
-            IElement[] elements = GetEmbeddedImageElements(document).ToArray();
+            IElement[] elements = GetEmbeddedImageElements(document, options).ToArray();
             HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
             foreach (IElement element in elements) {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles)) {
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles, cssScope.ComputedStyleSet)) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                     int index = count++;
@@ -293,13 +293,13 @@ public static partial class HtmlProvenance {
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets && options.Limits.ProcessEmbeddedAssets) {
             int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
-            IElement[] elements = GetEmbeddedImageElements(document).ToArray();
+            IElement[] elements = GetEmbeddedImageElements(document, options.Limits).ToArray();
             HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
             foreach (IElement element in elements) {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 EmbeddedImageReference[] references = GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles).ToArray();
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles, cssScope.ComputedStyleSet).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -360,7 +360,8 @@ public static partial class HtmlProvenance {
         IElement element,
         ISet<int>? usedImageProperties,
         ISet<int>? resolvedVarFallbacks,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles) {
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
+        HtmlComputedStyleSet computedStyleSet) {
         const string htmlNamespace = "http://www.w3.org/1999/xhtml";
         const string svgNamespace = "http://www.w3.org/2000/svg";
         string localName = element.LocalName.ToLowerInvariant();
@@ -375,6 +376,7 @@ public static partial class HtmlProvenance {
                 usedImageProperties,
                 resolvedVarFallbacks,
                 computedStyles,
+                computedStyleSet,
                 element)) {
                 yield return new EmbeddedImageReference("css", reference.Value, reference.Start, reference.Length);
             }
@@ -390,6 +392,7 @@ public static partial class HtmlProvenance {
                 usedImageProperties,
                 resolvedVarFallbacks,
                 computedStyles,
+                computedStyleSet,
                 element)) {
                 yield return new EmbeddedImageReference("style", reference.Value, reference.Start, reference.Length);
             }
@@ -468,13 +471,69 @@ public static partial class HtmlProvenance {
     private static bool IsHtmlIframe(IElement element) =>
         string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
-    private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
-        document.QuerySelectorAll("img,source,video,input,object,embed,image,feImage,use,link,[background],style,[style]")
+    private static IEnumerable<IElement> GetEmbeddedImageElements(
+        IHtmlDocument document,
+        OfficeProvenanceOptions options) {
+        var activeObjectImages = new Dictionary<IElement, bool>();
+        return document.QuerySelectorAll("img,source,video,input,object,embed,image,feImage,use,link,[background],style,[style]")
             .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
                 HtmlResourcePipeline.IsActiveProvenanceStyleElement(element))
             .Where(element => !element.LocalName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
                 IsSupportedPictureSource(element))
+            .Where(element => !HasActiveObjectImageAncestor(element, options, activeObjectImages))
             .Distinct();
+    }
+
+    private static bool HasActiveObjectImageAncestor(
+        IElement element,
+        OfficeProvenanceOptions options,
+        IDictionary<IElement, bool> cache) {
+        for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+            if (!ancestor.LocalName.Equals("object", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(ancestor.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) continue;
+            if (!cache.TryGetValue(ancestor, out bool active)) {
+                active = HasLoadableSupportedObjectImage(ancestor, options);
+                cache.Add(ancestor, active);
+            }
+            if (active) return true;
+        }
+        return false;
+    }
+
+    private static bool HasLoadableSupportedObjectImage(IElement element, OfficeProvenanceOptions options) {
+        if (!HasSupportedDeclaredOrInferredImageType(element, "data")) return false;
+        string? source = element.GetAttribute("data");
+        if (source == null || !HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) ||
+            !IsSupportedProvenanceImage(dataUri.MediaType) ||
+            !dataUri.TryEstimateDecodedByteCount(out long estimatedBytes) ||
+            estimatedBytes > options.MaxAssetBytes) return false;
+        try {
+            if (!TryDecodeEmbeddedImage(dataUri, options.MaxAssetBytes, out byte[] image) ||
+                image.LongLength > options.MaxAssetBytes) return false;
+            OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+                image,
+                "asset" + dataUri.FileExtension,
+                CreateNestedOptions(options));
+            return IsMatchingImageFormat(dataUri.MediaType, report.Format);
+        } catch (Exception exception) when (
+            (exception is InvalidDataException || exception is System.Xml.XmlException) &&
+            !OfficeProvenanceLimitException.Is(exception)) {
+            return false;
+        }
+    }
+
+    private static bool IsMatchingImageFormat(string mediaType, OfficeProvenanceAssetFormat format) {
+        switch (mediaType.ToLowerInvariant()) {
+            case "image/jpeg":
+            case "image/jpg": return format == OfficeProvenanceAssetFormat.Jpeg;
+            case "image/png": return format == OfficeProvenanceAssetFormat.Png;
+            case "image/gif": return format == OfficeProvenanceAssetFormat.Gif;
+            case "image/tiff": return format == OfficeProvenanceAssetFormat.Tiff;
+            case "image/webp": return format == OfficeProvenanceAssetFormat.Webp;
+            case "image/svg+xml": return format == OfficeProvenanceAssetFormat.Svg;
+            default: return false;
+        }
+    }
 
     private static bool IsSupportedPictureSource(IElement element) {
         string? parentName = element.ParentElement?.LocalName;
