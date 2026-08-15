@@ -96,7 +96,7 @@ internal static partial class OfficeJpegReader {
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables) {
         if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
-        if (frame.ComponentCount != 1 && frame.ComponentCount != 3 && frame.ComponentCount != 4) {
+        if (frame.ComponentCount < 1 || frame.ComponentCount > 4) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (scan.Ss != 0 || scan.Se != 63 || scan.Ah != 0 || scan.Al != 0) {

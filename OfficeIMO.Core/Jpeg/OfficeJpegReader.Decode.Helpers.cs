@@ -609,7 +609,7 @@ internal static partial class OfficeJpegReader {
         if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out _)) {
             throw new FormatException(JpegDimensionsLimitMessage);
         }
-        if (components != 1 && components != 3 && components != 4) {
+        if (components < 1 || components > 4) {
             throw new FormatException("Unsupported JPEG component count.");
         }
         if (data.Length < 6 + components * 3) throw new FormatException("Invalid JPEG SOF segment.");

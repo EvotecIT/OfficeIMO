@@ -15,7 +15,8 @@ internal static class PdfIndexedImageNormalizer {
         PdfObject? colorSpaceObj,
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes) =>
+        int maxDecodedStreamBytes,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null) =>
         TryResolveIndexedPaletteDeclaration(
             colorSpaceObj,
             bitsPerComponent,
@@ -23,6 +24,7 @@ internal static class PdfIndexedImageNormalizer {
             maxDecodedStreamBytes,
             OfficeIccRenderingIntent.RelativeColorimetric,
             outputIntentColorTransform: null,
+            colorFunctionEvaluationBudget,
             out _,
             out _,
             out _);
@@ -219,6 +221,7 @@ internal static class PdfIndexedImageNormalizer {
                 maxDecodedStreamBytes,
                 renderingIntent,
                 outputIntentColorTransform,
+                colorFunctionEvaluationBudget,
                 out PdfImageColorSpaceNormalization baseColorSpace,
                 out int paletteEntryCount,
                 out byte[] lookupBytes)) return false;
@@ -251,6 +254,7 @@ internal static class PdfIndexedImageNormalizer {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         PdfOutputIntentColorTransform? outputIntentColorTransform,
+        Func<int, long, bool>? colorFunctionEvaluationBudget,
         out PdfImageColorSpaceNormalization baseColorSpace,
         out int paletteEntryCount,
         out byte[] lookupBytes) {
@@ -278,6 +282,7 @@ internal static class PdfIndexedImageNormalizer {
                 maxDecodedStreamBytes,
                 renderingIntent,
                 outputIntentColorTransform,
+                colorFunctionEvaluationBudget,
                 out baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
 

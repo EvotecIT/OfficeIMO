@@ -2948,10 +2948,11 @@ public sealed partial class PdfReadPage {
     private PdfExtractedImage? GetImageForPlacement(
         PdfDictionary? fallbackResources,
         PdfImagePlacement placement,
-        bool colorizeImageMasks) {
+        bool colorizeImageMasks,
+        PageContentBudget? pageContentBudget = null) {
         PdfDictionary? resourceContext = placement.EffectiveResources ?? placement.InlineImageResources ?? fallbackResources;
         return FindImage(
-            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks),
+            GetImagesForResources(resourceContext, 0, new[] { placement }, colorizeImageMasks, pageContentBudget),
             placement);
     }
 

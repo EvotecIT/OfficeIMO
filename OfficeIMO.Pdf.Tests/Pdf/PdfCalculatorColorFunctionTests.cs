@@ -404,6 +404,40 @@ public sealed partial class PdfColorFunctionTests {
             out _));
     }
 
+    [Fact]
+    public void IccIndexedAlternateChargesPaletteMaterializationToSharedBudget() {
+        PdfArray indexedAlternate = Array(
+            new PdfName("Indexed"),
+            Array(
+                new PdfName("Separation"),
+                new PdfName("Brand"),
+                new PdfName("DeviceRGB"),
+                CalculatorFunction(1, 3, "{ dup dup }")),
+            Number(1),
+            new PdfStringObj(new byte[] { 0, 255 }));
+        var profileDictionary = Dictionary(
+            ("N", Number(1)),
+            ("Alternate", indexedAlternate));
+        PdfArray icc = Array(
+            new PdfName("ICCBased"),
+            new PdfStream(profileDictionary, new byte[] { 0 }));
+        long chargedWork = 0L;
+
+        Assert.False(PdfImageColorSpaceNormalization.TryResolve(
+            icc,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            outputIntentColorTransform: null,
+            (evaluationCost, evaluationCount) => {
+                chargedWork += (long)evaluationCost * evaluationCount;
+                return false;
+            },
+            out _));
+        Assert.True(chargedWork > 0L);
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public void Type4_ReusesItsBoundedOperandStackAcrossPixelScaleEvaluations() {

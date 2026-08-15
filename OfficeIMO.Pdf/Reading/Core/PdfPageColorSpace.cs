@@ -36,6 +36,9 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    internal bool IsNativeDeviceRgb =>
+        Kind == PdfPageColorSpaceKind.DeviceRgb && _custom == null;
+
     internal bool IsNativeDeviceCmyk =>
         Kind == PdfPageColorSpaceKind.DeviceCmyk && _custom == null;
 

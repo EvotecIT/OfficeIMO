@@ -120,7 +120,8 @@ internal sealed class PdfOutputIntentColorTransform {
     }
 
     private static bool IsMatchingDeviceColorSpace(PdfPageColorSpace colorSpace, int componentCount) =>
-        colorSpace.IsNativeDeviceCmyk && componentCount == 4;
+        (colorSpace.IsNativeDeviceRgb && componentCount == 3) ||
+        (colorSpace.IsNativeDeviceCmyk && componentCount == 4);
 
     private static bool TryResolve(
         Dictionary<int, PdfIndirectObject> objects,

@@ -14,13 +14,15 @@ internal static partial class ResourceResolver {
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        PdfOutputIntentColorTransform? outputIntentColorTransform = null) =>
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null) =>
         CanProjectImageColorSpace(
             new PdfStream(image, Array.Empty<byte>()),
             resources,
             objects,
             maxDecodedStreamBytes,
-            outputIntentColorTransform);
+            outputIntentColorTransform,
+            colorFunctionEvaluationBudget);
 
     /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
     internal static bool CanProjectImageColorSpace(
@@ -28,7 +30,8 @@ internal static partial class ResourceResolver {
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        PdfOutputIntentColorTransform? outputIntentColorTransform = null) {
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null) {
         PdfDictionary dictionary = image.Dictionary;
         if (Filters.StreamDecoder.GetUnsupportedFilters(dictionary, objects).Contains("MalformedFilterDeclaration")) {
             return false;
@@ -64,7 +67,12 @@ internal static partial class ResourceResolver {
             !TryGetDctPayload(image, objects, maxDecodedStreamBytes, out _)) {
             return false;
         }
-        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects, maxDecodedStreamBytes)) {
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(
+                effectiveColorSpace,
+                bitsPerComponent,
+                objects,
+                maxDecodedStreamBytes,
+                colorFunctionEvaluationBudget)) {
             if (!PdfImageDecodeTransform.TryCreateIndexedDeclaration(dictionary, objects, out _) ||
                 !PdfImageColorKeyMask.TryCreateDeclaration(dictionary, 1, bitsPerComponent, objects, out _)) {
                 return false;
@@ -97,6 +105,7 @@ internal static partial class ResourceResolver {
                 maxDecodedStreamBytes,
                 renderingIntent,
                 outputIntentColorTransform,
+                colorFunctionEvaluationBudget,
                 out PdfImageColorSpaceNormalization normalization)) {
             return false;
         }
@@ -149,7 +158,8 @@ internal static partial class ResourceResolver {
     internal static bool HasValidImageDecode(
         PdfDictionary image,
         PdfDictionary? resources,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null) {
         if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
         PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
         if (resolvedDecode is PdfNull) return true;
@@ -164,7 +174,8 @@ internal static partial class ResourceResolver {
                 effectiveColorSpace,
                 bitsPerComponent,
                 objects,
-                PdfReadLimits.DefaultMaxDecodedStreamBytes)) {
+                PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                colorFunctionEvaluationBudget)) {
             componentCount = 1;
         } else {
             string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
@@ -173,6 +184,9 @@ internal static partial class ResourceResolver {
                     colorSpaceName,
                     objects,
                     PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                    OfficeIccRenderingIntent.RelativeColorimetric,
+                    outputIntentColorTransform: null,
+                    colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                     out PdfImageColorSpaceNormalization normalization)) {
                 return false;
             }

@@ -1680,6 +1680,43 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void TextAndFormParsersFrameNamedIccInlineImagesBeforeVisitingPayloadOperators() {
+        const string textPayload = "BT BI /W 3 /H 1 /BPC 8 /CS /CsIcc ID AAA(X) Tj EI ET";
+        const string formPayload = "BI /W 3 /H 1 /BPC 8 /CS /CsIcc ID AAA/F1 Do EI";
+        static int ResolveComponents(string name) => name == "CsIcc" ? 3 : 1;
+
+        Assert.Empty(TextContentParser.Parse(
+            textPayload,
+            static (_, bytes) => PdfWinAnsiEncoding.Decode(bytes),
+            static (_, bytes) => bytes.Length * 500D,
+            inlineImageComponentCount: ResolveComponents));
+        Assert.Empty(TextContentParser.ExtractFormInvocations(
+            formPayload,
+            inlineImageComponentCount: ResolveComponents));
+    }
+
+    [Fact]
+    public void DctComponentDecoderAcceptsTwoColorantFramesWithoutEnablingRgbaDecode() {
+        byte[] jpeg = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQH/wAAOCAABAAECAREAAhEA/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/9oACgIBAAIAAD8AKK//2Q==");
+
+        Assert.True(OfficeJpegCodec.TryDecodeColorComponents(
+            jpeg,
+            requestedColorTransform: null,
+            usePdfColorTransformDefault: true,
+            out byte[] components,
+            out int width,
+            out int height,
+            out int componentCount));
+        Assert.Equal(1, width);
+        Assert.Equal(1, height);
+        Assert.Equal(2, componentCount);
+        Assert.Equal(2, components.Length);
+        Assert.True(ResourceResolver.HasExpectedDctFrame(jpeg, width, height, expectedColorCount: 2));
+        Assert.False(OfficeJpegCodec.TryDecode(jpeg, out _));
+    }
+
+    [Fact]
     public void VisualParserRestoresInitialColorSelectionAfterUnmatchedRestore() {
         Assert.True(OfficeIccColorProfile.TryCreate(
             IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents(),

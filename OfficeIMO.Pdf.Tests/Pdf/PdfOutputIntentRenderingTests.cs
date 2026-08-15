@@ -18,7 +18,7 @@ public class PdfOutputIntentRenderingTests {
         OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
 
         Assert.Equal(
-            ExpectedSoftProof(profileBytes, OfficeColor.FromRgb(51, 102, 204), OfficeIccRenderingIntent.RelativeColorimetric),
+            ExpectedOutputConversion(profileBytes, OfficeColor.FromRgb(51, 102, 204), OfficeIccRenderingIntent.RelativeColorimetric),
             actual);
     }
 
@@ -72,6 +72,42 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntent_ConvertsNativeDeviceRgbComponentsDirectly() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        var profile = new PdfStream(new PdfDictionary(), profileBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = new PdfReference(6, 0);
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [6] = new PdfIndirectObject(6, 0, profile)
+        };
+        PdfOutputIntentColorTransform transform = Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(catalog, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes));
+        double[] components = { 0.2D, 0.4D, 0.6D };
+        PdfPageColorSpace colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+        Assert.True(colorSpace.TryConvertColor(
+            components,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out OfficeColor fallback));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? parsedProfile));
+        Assert.True(parsedProfile!.TryConvert(
+            components,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out OfficeColor expected));
+
+        OfficeColor actual = transform.Apply(
+            colorSpace,
+            components,
+            fallback,
+            OfficeIccRenderingIntent.RelativeColorimetric);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void IccProfile_AcceptsMbaClutWithoutOptionalACurves() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16BidirectionalWithoutOutputCurves();
 
@@ -105,7 +141,7 @@ public class PdfOutputIntentRenderingTests {
 
         OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
 
-        Assert.Equal(ExpectedSoftProof(profileBytes, OfficeColor.FromRgb(51, 102, 204), ParseIntent(intentName)), actual);
+        Assert.Equal(ExpectedOutputConversion(profileBytes, OfficeColor.FromRgb(51, 102, 204), ParseIntent(intentName)), actual);
     }
 
     [Fact]
@@ -137,7 +173,7 @@ public class PdfOutputIntentRenderingTests {
             "0.2 0.4 0.8 rg /Perceptual ri q 1 0 0 1 10 10 cm /Fm Do Q " +
             "BT /F1 12 Tf 10 40 Td (A) Tj ET";
         byte[] pdf = BuildPdf(profileBytes, content, resources, extraObjects);
-        OfficeColor expected = ExpectedSoftProof(
+        OfficeColor expected = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.Perceptual);
@@ -178,7 +214,7 @@ public class PdfOutputIntentRenderingTests {
     [Fact]
     public void ExtractImages_AppliesDestinationProfileToDeviceRgbAndIndexedSamples() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
-        OfficeColor expected = ExpectedSoftProof(
+        OfficeColor expected = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.Perceptual);
@@ -204,7 +240,7 @@ public class PdfOutputIntentRenderingTests {
             OfficeRasterImage.FromRgba32(1, 1, new byte[] { 51, 102, 204, 255 }),
             new OfficeJpegEncodeOptions { Quality = 100, Subsampling = OfficeJpegSubsampling.Y444 });
         Assert.True(OfficeJpegCodec.TryDecode(jpeg, out OfficeRasterImage? decoded));
-        OfficeColor expected = ExpectedSoftProof(
+        OfficeColor expected = ExpectedOutputConversion(
             profileBytes,
             decoded!.GetPixel(0, 0),
             OfficeIccRenderingIntent.RelativeColorimetric);
@@ -220,11 +256,11 @@ public class PdfOutputIntentRenderingTests {
     [Fact]
     public void RenderPage_AppliesDestinationProfileToShadingStopsAndPatternTiles() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
-        OfficeColor expectedBlue = ExpectedSoftProof(
+        OfficeColor expectedBlue = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.RelativeColorimetric);
-        OfficeColor expectedRed = ExpectedSoftProof(
+        OfficeColor expectedRed = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.Red,
             OfficeIccRenderingIntent.RelativeColorimetric);
@@ -316,7 +352,7 @@ public class PdfOutputIntentRenderingTests {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         byte[] pdf = BuildPdf(profileBytes, "0.2 0.4 0.8 rg 10 10 20 20 re f");
         PdfReadDocument document = PdfReadDocument.Open(pdf);
-        OfficeColor expected = ExpectedSoftProof(
+        OfficeColor expected = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.RelativeColorimetric);
@@ -367,7 +403,7 @@ public class PdfOutputIntentRenderingTests {
 
         OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
 
-        Assert.Equal(ExpectedSoftProof(
+        Assert.Equal(ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.RelativeColorimetric), actual);
@@ -383,7 +419,7 @@ public class PdfOutputIntentRenderingTests {
 
         OfficeColor actual = Assert.Single(PdfPageImageRenderer.RenderPage(pdf).Shapes).Shape.FillColor!.Value;
 
-        Assert.Equal(ExpectedSoftProof(
+        Assert.Equal(ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.RelativeColorimetric), actual);
@@ -445,7 +481,7 @@ public class PdfOutputIntentRenderingTests {
             profileBytes,
             OfficeColor.Black,
             OfficeIccRenderingIntent.RelativeColorimetric);
-        OfficeColor expectedBlue = ExpectedSoftProof(
+        OfficeColor expectedBlue = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
             OfficeIccRenderingIntent.RelativeColorimetric);
@@ -584,6 +620,19 @@ public class PdfOutputIntentRenderingTests {
         Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(pdf)).IsImageFile);
         Assert.Contains(page.GetRenderCapabilityDiagnostics(),
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
+    }
+
+    private static OfficeColor ExpectedOutputConversion(
+        byte[] profileBytes,
+        OfficeColor source,
+        OfficeIccRenderingIntent intent) {
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.NotNull(profile);
+        Assert.True(profile!.TryConvert(
+            new[] { source.R / 255D, source.G / 255D, source.B / 255D },
+            intent,
+            out OfficeColor expected));
+        return expected;
     }
 
     private static OfficeColor ExpectedSoftProof(

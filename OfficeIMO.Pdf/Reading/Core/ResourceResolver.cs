@@ -1375,7 +1375,15 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, out var colorNormalization)) {
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                colorSpaceObj,
+                colorSpace,
+                objects,
+                maxDecodedStreamBytes,
+                renderingIntent,
+                outputIntentColorTransform,
+                colorFunctionEvaluationBudget,
+                out var colorNormalization)) {
             return false;
         }
         if (!colorNormalization.TryConsumeEvaluationWork((long)width * height, colorFunctionEvaluationBudget)) {

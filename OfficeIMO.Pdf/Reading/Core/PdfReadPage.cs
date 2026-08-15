@@ -513,7 +513,8 @@ public sealed partial class PdfReadPage {
                      content,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
-                     maxOperands: _limits.MaxContentOperands)) {
+                     maxOperands: _limits.MaxContentOperands,
+                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -640,6 +641,7 @@ public sealed partial class PdfReadPage {
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array)));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
@@ -669,6 +671,7 @@ public sealed partial class PdfReadPage {
                      initialFillColorSelection: initialFillColorSelection,
                      initialStrokeColorSelection: initialStrokeColorSelection,
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                     inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;

@@ -587,9 +587,9 @@ public sealed partial class PdfReadPage {
             initialRenderingIntent: renderingIntent);
         if (placements.Count > 0) {
             for (int i = 0; i < placements.Count; i++) {
-                PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true);
+                PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true, pageContentBudget);
                 if (requireSupportedType3Content &&
-                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources) || image!.HasUnresolvedTransparencyMask ||
+                    (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources, pageContentBudget) || image!.HasUnresolvedTransparencyMask ||
                      !TryCreateImageProjection(placements[i], height, width, height, out _, allowAxisAlignedFallback: false))) {
                     type3GlyphBudget.RecordFailure();
                     continue;

@@ -267,13 +267,13 @@ public sealed partial class PdfReadPage {
                             PdfImagePlacement placement = pendingPlacements[imageIndex];
                             PdfExtractedImage? image;
                             try {
-                                image = GetImageForPlacement(type3.Resources, placement, colorizeImageMasks: true);
+                                image = GetImageForPlacement(type3.Resources, placement, colorizeImageMasks: true, pageContentBudget);
                             } catch (IOException exception) when (exception is not PdfReadLimitException) {
                                 return false;
                             } catch (NotSupportedException) {
                                 return false;
                             }
-                            if (image == null || !IsSupportedType3Image(placement, image, type3.Resources)) return false;
+                            if (image == null || !IsSupportedType3Image(placement, image, type3.Resources, pageContentBudget)) return false;
                             extractedImageCache[GetType3ImageCacheKey(placement)] = image;
                         }
                     }
@@ -344,7 +344,11 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool IsSupportedType3Image(PdfImagePlacement placement, PdfExtractedImage image, PdfDictionary? fallbackResources = null) {
+    private bool IsSupportedType3Image(
+        PdfImagePlacement placement,
+        PdfExtractedImage image,
+        PdfDictionary? fallbackResources = null,
+        PageContentBudget? pageContentBudget = null) {
         if (!image.IsImageFile) return false;
         if (!IsSupportedType3ImagePlacement(placement)) return false;
         PdfDictionary? imageDictionary = placement.InlineImageStream?.Dictionary;
@@ -374,7 +378,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary != null && !HasMatchingType3DctDimensions(image, imageDictionary, resources)) return false;
         if (imageDictionary != null && !HasValidType3ImageInterpolation(imageDictionary)) return false;
         if (image.TransparencyMaskKind != null && !image.TransparencyMaskResolved) return false;
-        if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources)) return false;
+        if (imageDictionary != null && !HasValidType3TransparencyMasks(imageDictionary, resources, pageContentBudget)) return false;
         if (image.IsImageMask) return imageDictionary != null &&
             (!imageDictionary.Items.TryGetValue("ColorSpace", out PdfObject? maskColorSpaceObject) ||
              ResolveEffectObject(maskColorSpaceObject) is PdfNull) &&
@@ -382,8 +386,18 @@ public sealed partial class PdfReadPage {
         if (imageDictionary == null) return !string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal);
         return !HasType3IccBasedColorSpace(imageDictionary, resources) &&
             HasValidType3IndexedColorSpaceDeclaration(imageDictionary, resources, placement.InlineImageStream != null) &&
-            ResourceResolver.CanProjectImageColorSpace(imageDictionary, resources, _objects) &&
-            ResourceResolver.HasValidImageDecode(imageDictionary, resources, _objects) &&
+            ResourceResolver.CanProjectImageColorSpace(
+                imageDictionary,
+                resources,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                EffectiveOutputIntentColorTransform,
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations) &&
+            ResourceResolver.HasValidImageDecode(
+                imageDictionary,
+                resources,
+                _objects,
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(
                  imageDictionary,
@@ -422,14 +436,22 @@ public sealed partial class PdfReadPage {
             ResolveEffectObject(imageMaskObject) is PdfBoolean or PdfNull;
     }
 
-    private bool HasValidType3TransparencyMasks(PdfDictionary imageDictionary, PdfDictionary? resources) {
+    private bool HasValidType3TransparencyMasks(
+        PdfDictionary imageDictionary,
+        PdfDictionary? resources,
+        PageContentBudget? pageContentBudget) {
         bool parentInterpolate = ResolveType3ImageInterpolation(imageDictionary);
         bool hasActiveSoftMask = false;
         if (imageDictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject)) {
             PdfObject? softMask = ResolveEffectObject(softMaskObject);
             if (softMask is not PdfNull and not PdfName { Name: "None" } &&
                 (softMask is not PdfStream softMaskStream ||
-                 !HasValidType3SoftMaskStream(imageDictionary, softMaskStream, resources, parentInterpolate))) {
+                 !HasValidType3SoftMaskStream(
+                     imageDictionary,
+                     softMaskStream,
+                     resources,
+                     parentInterpolate,
+                     pageContentBudget))) {
                 return false;
             }
             hasActiveSoftMask = softMask is PdfStream;
@@ -446,7 +468,8 @@ public sealed partial class PdfReadPage {
         PdfDictionary parent,
         PdfStream softMask,
         PdfDictionary? resources,
-        bool parentInterpolate) {
+        bool parentInterpolate,
+        PageContentBudget? pageContentBudget) {
         PdfDictionary mask = softMask.Dictionary;
         if (ResolveEffectObject(mask.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null) is not PdfName { Name: "XObject" } ||
             ResolveEffectObject(mask.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null) is not PdfName { Name: "Image" } ||
@@ -465,7 +488,11 @@ public sealed partial class PdfReadPage {
             mask.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
                 ResolveEffectObject(imageMaskObject) is not PdfBoolean { Value: false } and not PdfNull ||
             ResolveType3ImageColorSpace(mask, resources) is not PdfName { Name: "DeviceGray" } ||
-            !ResourceResolver.HasValidImageDecode(mask, resources, _objects)) {
+            !ResourceResolver.HasValidImageDecode(
+                mask,
+                resources,
+                _objects,
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations)) {
             return false;
         }
         return IsAbsentOrExplicitNull(mask, "SMask") && IsAbsentOrExplicitNull(mask, "Mask");

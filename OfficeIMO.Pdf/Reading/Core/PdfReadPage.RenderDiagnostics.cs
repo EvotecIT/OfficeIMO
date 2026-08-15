@@ -105,6 +105,7 @@ public sealed partial class PdfReadPage {
                     diagnostics,
                     seen,
                     "inline-image",
+                    pageContentBudget,
                     new PdfStream(inlineImage.Dictionary, inlineImage.Data));
             }
         },
@@ -795,6 +796,7 @@ public sealed partial class PdfReadPage {
                         surfaceWidth,
                         surfaceHeight,
                         type3GlyphBudget.VisibilityGeometryBudget,
+                        pageContentBudget,
                         requireInterpolation: requireIsolatedGroupSemantics);
                     if (!canProjectImage) supported = false;
                     continue;
@@ -934,6 +936,7 @@ public sealed partial class PdfReadPage {
         double projectionPageWidth,
         double projectionPageHeight,
         VisualGeometryBudget geometryBudget,
+        PageContentBudget pageContentBudget,
         bool requireInterpolation = false) {
         PdfImagePlacement placement;
         PdfDictionary imageDictionary;
@@ -1004,7 +1007,7 @@ public sealed partial class PdfReadPage {
 
         IReadOnlyList<PdfExtractedImage> images;
         try {
-            images = GetImagesForResources(resources, 0, new[] { placement }, colorizeImageMasks: true);
+            images = GetImagesForResources(resources, 0, new[] { placement }, colorizeImageMasks: true, pageContentBudget);
         } catch (IOException exception) when (exception is not PdfReadLimitException) {
             return false;
         } catch (NotSupportedException) {
@@ -1021,8 +1024,9 @@ public sealed partial class PdfReadPage {
             diagnostics,
             seen,
             invocation.Name,
+            pageContentBudget,
             invocation.InlineImage?.Stream);
-        if (image == null || !IsSupportedType3Image(placement, image, resources) || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
+        if (image == null || !IsSupportedType3Image(placement, image, resources, pageContentBudget) || image.HasUnresolvedTransparencyMask || (requireImageMask && !image.IsImageMask)) return false;
         if (!requireImageMask && image.IsImageMask && inheritedFillPattern.HasValue) return false;
         if (requireImageMask && inheritedFillPattern.HasValue) {
             Type3PatternImageMaskDrawingResult result = TryPrepareInheritedPatternImageMaskDrawing(
@@ -1307,6 +1311,7 @@ public sealed partial class PdfReadPage {
                     diagnostics,
                     seen,
                     entry.Key,
+                    pageContentBudget,
                     stream);
                 if (RequiresOptionalImageCodec(stream.Dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ? filterObject : null)) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.OptionalImageCodecId, entry.Key);
                 continue;
@@ -1402,6 +1407,7 @@ public sealed partial class PdfReadPage {
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
         string imageName,
+        PageContentBudget pageContentBudget,
         PdfStream? imageStream = null) {
         if (!image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             return;
@@ -1413,8 +1419,15 @@ public sealed partial class PdfReadPage {
                 resources,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
-                EffectiveOutputIntentColorTransform)
-            : ResourceResolver.CanProjectImageColorSpace(image, resources, _objects);
+                EffectiveOutputIntentColorTransform,
+                pageContentBudget.TryConsumeColorFunctionEvaluations)
+            : ResourceResolver.CanProjectImageColorSpace(
+                image,
+                resources,
+                _objects,
+                _limits.MaxDecodedStreamBytes,
+                EffectiveOutputIntentColorTransform,
+                pageContentBudget.TryConsumeColorFunctionEvaluations);
         if (canProject) {
             PdfObject? diagnosticColorSpace = colorSpaceObject;
             if (ResolveObject(colorSpaceObject) is PdfName resourceName) {

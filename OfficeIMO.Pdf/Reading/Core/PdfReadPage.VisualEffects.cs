@@ -558,7 +558,8 @@ public sealed partial class PdfReadPage {
                         seen: validationDiagnosticKeys,
                         projectionPageWidth: visualPageSize.Width,
                         projectionPageHeight: visualPageSize.Height,
-                        geometryBudget: type3GlyphBudget.VisibilityGeometryBudget)) {
+                        geometryBudget: type3GlyphBudget.VisibilityGeometryBudget,
+                        pageContentBudget: pageContentBudget)) {
                     return false;
                 }
                 continue;

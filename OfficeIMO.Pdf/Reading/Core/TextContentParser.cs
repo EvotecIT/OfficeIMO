@@ -297,6 +297,7 @@ internal static class TextContentParser {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -699,7 +700,7 @@ internal static class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
         ApplyPendingTextClippingPath();
         return spans;
 
@@ -1277,6 +1278,7 @@ internal static class TextContentParser {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
@@ -1632,7 +1634,7 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
             }
-        }, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount);
 
         return invocations;
 

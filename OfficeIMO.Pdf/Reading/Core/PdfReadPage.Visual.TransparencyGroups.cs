@@ -283,10 +283,10 @@ public sealed partial class PdfReadPage {
                 if (suppressedBySoftMask) {
                     continue;
                 }
-                PdfExtractedImage? image = GetImageForPlacement(resources, placement, colorizeImageMasks: true);
+                PdfExtractedImage? image = GetImageForPlacement(resources, placement, colorizeImageMasks: true, pageContentBudget);
                 if (image == null ||
                     !image.IsImageFile ||
-                    !IsSupportedType3Image(placement, image, resources) ||
+                    !IsSupportedType3Image(placement, image, resources, pageContentBudget) ||
                     image.HasUnresolvedTransparencyMask ||
                     !TryCreateImageProjection(
                         placement,
