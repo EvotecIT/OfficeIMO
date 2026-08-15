@@ -4,7 +4,7 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Inspects and selectively removes the standards-defined PDF C2PA associated-file carrier.</summary>
-public static class PdfProvenance {
+public static partial class PdfProvenance {
     private const string C2paMimeType = "application/c2pa";
 
     /// <summary>Inspects a bounded PDF for C2PA Manifest Store associated files.</summary>
@@ -17,14 +17,8 @@ public static class PdfProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
-        long maximumManifestBytes = Math.Min(
-            options.MaxExpandedContainerBytes,
-            MultiplySaturating(options.MaxManifestBytes, options.MaxCarriers));
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
-            readOptions,
-            options.MaxContainerEntries,
-            options.MaxExpandedContainerBytes,
-            maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
+        long maximumManifestBytes = GetMaximumManifestBytes(options);
+        PdfReadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
@@ -87,6 +81,9 @@ public static class PdfProvenance {
             options.Limits.MaxContainerEntries,
             options.Limits.MaxExpandedContainerBytes,
             maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
+        if (readOptions == null) {
+            effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(effectiveReadOptions, options.Limits.MaxAssetBytes);
+        }
         OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);
@@ -249,9 +246,6 @@ public static class PdfProvenance {
         }
         return result;
     }
-
-    private static long MultiplySaturating(long value, int multiplier) =>
-        value > long.MaxValue / multiplier ? long.MaxValue : value * multiplier;
 
     private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceOptions source, long outputBytes) => new() {
         MaxAssetBytes = Math.Max(source.MaxAssetBytes, outputBytes),
@@ -541,18 +535,14 @@ public static class PdfProvenance {
                         sharedVisited: structuralTraversalVisited);
                 }
                 if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal)) {
-                    AddStructuralGraphDictionaries(
-                        objects,
-                        activeStream.Dictionary.Items.TryGetValue("Group", out PdfObject? transparencyGroup) ? transparencyGroup : null,
-                        result,
-                        maximumContainerEntries,
-                        sharedVisited: structuralTraversalVisited);
-                    AddStructuralGraphDictionaries(
-                        objects,
-                        activeStream.Dictionary.Items.TryGetValue("Ref", out PdfObject? referenceXObject) ? referenceXObject : null,
-                        result,
-                        maximumContainerEntries,
-                        sharedVisited: structuralTraversalVisited);
+                    foreach (string key in new[] { "Group", "Ref", "PieceInfo" }) {
+                        AddStructuralGraphDictionaries(
+                            objects,
+                            activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? formValue) ? formValue : null,
+                            result,
+                            maximumContainerEntries,
+                            sharedVisited: structuralTraversalVisited);
+                    }
                 } else if (string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
                     foreach (string key in new[] { "ColorSpace", "Alternates" }) {
                         AddStructuralGraphDictionaries(
@@ -573,6 +563,12 @@ public static class PdfProvenance {
                             sharedVisited: structuralTraversalVisited);
                     }
                 }
+                AddStructuralGraphDictionaries(
+                    objects,
+                    activeStream.Dictionary.Items.TryGetValue("F", out PdfObject? externalFile) ? externalFile : null,
+                    result,
+                    maximumContainerEntries,
+                    sharedVisited: structuralTraversalVisited);
             }
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
             AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
