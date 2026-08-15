@@ -11,7 +11,7 @@ public sealed partial class ProvenanceCoreContracts {
             CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("ABCD", Array.Empty<byte>()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");

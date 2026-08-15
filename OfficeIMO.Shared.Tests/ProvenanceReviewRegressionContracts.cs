@@ -1003,7 +1003,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
         CreatePngChunk("IHDR", new byte[] { 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0 }),
         CreatePngChunk("caBX", manifest),
-        CreatePngChunk("IDAT", Array.Empty<byte>()),
+        CreatePngChunk("IDAT", new byte[] { 0x78, 0x9C, 0x63, 0x60, 0x60, 0x60, 0x00, 0x00, 0x00, 0x04, 0x00, 0x01 }),
         CreatePngChunk("IEND", Array.Empty<byte>()));
 
     private static byte[] CreateWebp(params byte[][] chunks) {

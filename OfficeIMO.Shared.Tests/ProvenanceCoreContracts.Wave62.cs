@@ -11,7 +11,7 @@ public sealed partial class ProvenanceCoreContracts {
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
             CreatePngChunk("IHDR", indexedHeader),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", new byte[] { 1 }),
+            CreatePngChunk("IDAT", new byte[] { 0x78, 0x9C, 0x63, 0x60, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01 }),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
@@ -46,7 +46,7 @@ public sealed partial class ProvenanceCoreContracts {
             CreatePngChunk("IHDR", indexedHeader),
             CreatePngChunk("PLTE", new byte[] { 0, 0, 0 }),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", new byte[] { 1 }),
+            CreatePngChunk("IDAT", new byte[] { 0x78, 0x9C, 0x63, 0x60, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01 }),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");

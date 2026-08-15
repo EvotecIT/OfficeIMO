@@ -13,7 +13,11 @@ using OfficeIMO.Security;
 namespace OfficeIMO.Security {
     /// <summary>Reports that bounded OPC archive inspection stopped at a caller-owned resource limit.</summary>
     internal sealed class OfficePackageSignatureResourceLimitException : IOException {
-        internal OfficePackageSignatureResourceLimitException(string message) : base(message) { }
+        internal OfficePackageSignatureResourceLimitException(string message, long consumedBytes = 0) : base(message) {
+            ConsumedBytes = consumedBytes;
+        }
+
+        internal long ConsumedBytes { get; }
     }
 
     /// <summary>Bounded OPC archive reader and transform-aware signature digest engine.</summary>
@@ -159,8 +163,10 @@ namespace OfficeIMO.Security {
             long transformInputBytes = 0;
             try {
                 input = ApplyTransforms(targetPartUri, reference, maxPartBytes, maxDigestBytes, ref transformInputBytes);
-            } catch (OfficePackageSignatureResourceLimitException) {
-                throw;
+            } catch (OfficePackageSignatureResourceLimitException exception) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    exception.Message,
+                    Math.Max(exception.ConsumedBytes, transformInputBytes));
             } catch (NotSupportedException exception) {
                 return OfficePackageDigestResult.Unsupported(exception.Message, transformInputBytes);
             } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or CryptographicException) {
@@ -169,7 +175,14 @@ namespace OfficeIMO.Security {
                     transformInputBytes);
             }
 
-            long digestWorkBytes = AddDigestWorkBytes(transformInputBytes, input.LongLength, maxDigestBytes);
+            long digestWorkBytes;
+            try {
+                digestWorkBytes = AddDigestWorkBytes(transformInputBytes, input.LongLength, maxDigestBytes);
+            } catch (OfficePackageSignatureResourceLimitException exception) {
+                throw new OfficePackageSignatureResourceLimitException(
+                    exception.Message,
+                    Math.Max(exception.ConsumedBytes, transformInputBytes));
+            }
 
             byte[] actual;
             using (HashAlgorithm hash = hashFactory()) {

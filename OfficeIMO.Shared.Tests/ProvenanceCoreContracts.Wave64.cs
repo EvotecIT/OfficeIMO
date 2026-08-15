@@ -12,7 +12,7 @@ public sealed partial class ProvenanceCoreContracts {
             CreatePngChunk("sRGB", new byte[] { 0 }),
             CreatePngChunk("sRGB", new byte[] { 0 }),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
@@ -66,7 +66,7 @@ public sealed partial class ProvenanceCoreContracts {
             CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(("media/image.png", png));
         var options = new OfficeProvenanceOptions { MaxCarriers = 1 };

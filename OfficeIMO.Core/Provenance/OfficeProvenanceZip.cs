@@ -944,8 +944,10 @@ internal static class OfficeProvenanceZip {
         }
         if (entry.Length <= 0) return false;
 
-        if (entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue) return false;
-        int sniffLength = (int)entry.Length;
+        bool exceedsAssetLimit = entry.Length > options.MaxAssetBytes || entry.Length > int.MaxValue;
+        int sniffLength = exceedsAssetLimit
+            ? (int)Math.Min(entry.Length, Math.Min(options.MaxAssetBytes, 64L * 1024L))
+            : (int)entry.Length;
         byte[] prefix = new byte[sniffLength];
         using Stream source = entry.Open();
         int read = 0;
@@ -960,6 +962,9 @@ internal static class OfficeProvenanceZip {
         bool supported = format is OfficeProvenanceAssetFormat.Jpeg or OfficeProvenanceAssetFormat.Png or
             OfficeProvenanceAssetFormat.Webp or OfficeProvenanceAssetFormat.Gif or
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
+        if (supported && exceedsAssetLimit) {
+            throw new InvalidDataException("A supported embedded asset exceeds the configured asset limit.");
+        }
         if (supported) asset = prefix;
         return supported;
     }

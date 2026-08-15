@@ -170,7 +170,8 @@ internal static class OfficeProvenancePng {
         validStructure = headerCount == 1 && validLeadingHeader && requiredPalettePresent && paletteIsValid &&
             foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc &&
             allChunkTypesValid && !hasUnknownCriticalChunk &&
-            OfficePngContainerValidator.TryValidate(data, out _, out _);
+            OfficePngContainerValidator.TryValidate(data, out _, out _) &&
+            OfficePngReader.TryValidateDecodedPayload(data);
         return c2paCount;
     }
 

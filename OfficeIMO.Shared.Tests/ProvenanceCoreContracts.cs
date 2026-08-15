@@ -118,7 +118,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] ihdr = CreatePngChunk("IHDR", CreateValidPngHeader());
         byte[] cabx = CreatePngChunk("caBX", manifest);
         byte[] text = CreatePngChunk("tEXt", Encoding.ASCII.GetBytes("keep\0this"));
-        byte[] imageData = CreatePngChunk("IDAT", Array.Empty<byte>());
+        byte[] imageData = CreatePngChunk("IDAT", CreateValidPngImageData());
         byte[] iend = CreatePngChunk("IEND", Array.Empty<byte>());
         byte[] png = Join(header, ihdr, cabx, text, imageData, iend);
 
@@ -163,7 +163,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] png = Join(
             header,
             CreatePngChunk("IHDR", CreateValidPngHeader()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("caBX", CreateManifestStore()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
@@ -477,7 +477,7 @@ public sealed partial class ProvenanceCoreContracts {
             header,
             CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(
             ("word/document.xml", Encoding.UTF8.GetBytes("<document/>")),
@@ -500,7 +500,7 @@ public sealed partial class ProvenanceCoreContracts {
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
             CreatePngChunk("IHDR", CreateValidPngHeader()),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(("media/cover", image));
 
@@ -519,7 +519,7 @@ public sealed partial class ProvenanceCoreContracts {
             new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
             CreatePngChunk("IHDR", new byte[13]),
             CreatePngChunk("caBX", CreateManifestStore()),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
         byte[] package = CreateZip(
             ("META-INF/content_credential.c2pa", CreateManifestStore()),
@@ -745,7 +745,7 @@ public sealed partial class ProvenanceCoreContracts {
             header,
             CreatePngChunk("IHDR", ihdr),
             CreatePngChunk("iTXt", Join(prefix, CreateXmpPacket())),
-            CreatePngChunk("IDAT", Array.Empty<byte>()),
+            CreatePngChunk("IDAT", CreateValidPngImageData()),
             CreatePngChunk("IEND", Array.Empty<byte>()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");

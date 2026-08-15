@@ -268,6 +268,11 @@ public static class OfficePackageSignatureService {
             return new OfficePackageSignaturePartInfo(
                 signatureUri, length, isReachableFromOrigin, signatureMethod, references, timestamps,
                 subjects.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), certificates.ToArray(), null, bytes);
+        } catch (OfficePackageSignatureResourceLimitException exception) {
+            DebitFailedDigestWork(ref totalDigestBytes, exception.ConsumedBytes, options.MaxTotalDigestBytes);
+            return new OfficePackageSignaturePartInfo(
+                signatureUri, length, isReachableFromOrigin, null, Array.Empty<OfficePackageSignatureReferenceInfo>(),
+                Array.Empty<OfficePackageSignatureTimestampInfo>(), Array.Empty<string>(), Array.Empty<byte[]>(), exception.Message);
         } catch (Exception exception) when (exception is IOException or InvalidDataException or XmlException or FormatException or OverflowException) {
             return new OfficePackageSignaturePartInfo(
                 signatureUri, length, isReachableFromOrigin, null, Array.Empty<OfficePackageSignatureReferenceInfo>(),
@@ -278,6 +283,15 @@ public static class OfficePackageSignatureService {
     private static void ReserveInspectionBytes(ref long totalBytes, long bytes, long maximumBytes) {
         if (bytes < 0 || totalBytes > maximumBytes - bytes) {
             throw new InvalidDataException("OPC package signature inspection exceeds the configured aggregate limit.");
+        }
+        totalBytes += bytes;
+    }
+
+    private static void DebitFailedDigestWork(ref long totalBytes, long bytes, long maximumBytes) {
+        if (bytes <= 0) return;
+        if (bytes >= maximumBytes || totalBytes > maximumBytes - bytes) {
+            totalBytes = maximumBytes;
+            return;
         }
         totalBytes += bytes;
     }
