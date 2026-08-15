@@ -35,5 +35,8 @@ public enum HtmlRenderVisualKind {
     LogicalTextGroup,
 
     /// <summary>Standard HTML form semantics with ordered static fallback visuals.</summary>
-    FormField
+    FormField,
+
+    /// <summary>Paint-neutral navigation destination for an element without searchable text visuals.</summary>
+    BookmarkAnchor
 }

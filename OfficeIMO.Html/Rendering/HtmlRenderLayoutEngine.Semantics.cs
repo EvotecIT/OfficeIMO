@@ -3,9 +3,34 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element) {
-        HtmlRenderFlowBlock listBlock = ApplyListSemantics(block, element);
-        if (!TryResolveSemanticGroupRole(element.TagName, out HtmlRenderSemanticGroupRole role)) return listBlock;
+    private HtmlRenderFlowBlock ApplyElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
+        RegisterBookmark(element, style);
+        ReportUnsupportedSemanticTag(element, style);
+        int nodeId = GetSemanticNodeId(element);
+        string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
+            string anchorText = ResolveBookmarkAnchorText(element, style);
+            if (anchorText.Length > 0 && !ContainsBookmarkAnchor(block.Visuals, nodeId)) {
+                block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
+                    new HtmlRenderBookmarkAnchor(
+                        nodeId,
+                        anchorText,
+                        style.MarginLeft,
+                        style.MarginTop,
+                        0.01D,
+                        0.01D,
+                        block.Visuals.Count,
+                        HtmlRenderStyleResolver.DescribeSource(element))
+                }));
+            }
+        }
+        HtmlRenderFlowBlock listBlock = style.SemanticArtifact || style.SemanticGroupRoleOverride.HasValue
+            ? block
+            : ApplyListSemantics(block, element, structureElementKey);
+        HtmlRenderSemanticGroupRole role;
+        if (style.SemanticArtifact) role = HtmlRenderSemanticGroupRole.Artifact;
+        else if (style.SemanticGroupRoleOverride.HasValue) role = style.SemanticGroupRoleOverride.Value;
+        else if (!TryResolveSemanticGroupRole(element.TagName, out role)) return listBlock;
         return listBlock.WithVisuals(new[] {
             new HtmlRenderSemanticGroup(
                 role,
@@ -15,8 +40,291 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, listBlock.Height),
                 listBlock.Visuals,
                 0,
-                HtmlRenderStyleResolver.DescribeSource(element))
+                HtmlRenderStyleResolver.DescribeSource(element),
+                structureElementKey: structureElementKey)
         });
+    }
+
+    private HtmlRenderFlowBlock ApplySpecializedElementSemantics(HtmlRenderFlowBlock block, IElement element, HtmlRenderBoxStyle style) {
+        RegisterBookmark(element, style);
+        ReportUnsupportedSemanticTag(element, style);
+        int nodeId = GetSemanticNodeId(element);
+        string structureElementKey = "html-element:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed) {
+            string anchorText = ResolveBookmarkAnchorText(element, style);
+            if (anchorText.Length > 0) {
+                block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
+                    new HtmlRenderBookmarkAnchor(
+                        nodeId,
+                        anchorText,
+                        0D,
+                        0D,
+                        0.01D,
+                        0.01D,
+                        block.Visuals.Count,
+                        HtmlRenderStyleResolver.DescribeSource(element))
+                }));
+            }
+        }
+        if (!style.SemanticArtifact && !style.SemanticGroupRoleOverride.HasValue) return block;
+        HtmlRenderSemanticGroupRole role = style.SemanticArtifact
+            ? HtmlRenderSemanticGroupRole.Artifact
+            : style.SemanticGroupRoleOverride!.Value;
+        return block.WithVisuals(new[] {
+            new HtmlRenderSemanticGroup(
+                role,
+                0D,
+                0D,
+                Math.Max(0.01D, block.Width),
+                Math.Max(0.01D, block.Height),
+                block.Visuals,
+                0,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                structureElementKey: structureElementKey)
+        });
+    }
+
+    private IReadOnlyList<HtmlRenderFlowBlock> ApplyFlattenedElementSemantics(
+        IReadOnlyList<HtmlRenderFlowBlock> blocks,
+        FlattenedSemanticBoundary boundary) {
+        if (blocks.Count == 0) return blocks;
+        var result = new List<HtmlRenderFlowBlock>(blocks.Count);
+        for (int index = 0; index < blocks.Count; index++) {
+            result.Add(ApplyFlattenedSemanticBoundary(blocks[index], boundary, index == 0));
+        }
+        return result;
+    }
+
+    private FlattenedSemanticBoundary CreateFlattenedSemanticBoundary(IElement element, HtmlRenderBoxStyle style) {
+        if (_flattenedSemanticBoundaries.TryGetValue(element, out FlattenedSemanticBoundary? existing)) return existing;
+        RegisterBookmark(element, style);
+        ReportUnsupportedSemanticTag(element, style);
+        int nodeId = GetSemanticNodeId(element);
+        bool hasNavigation = ShouldAssignNavigationNode(style) && !style.BookmarkSuppressed;
+        HtmlRenderSemanticGroupRole? role = style.SemanticArtifact
+            ? HtmlRenderSemanticGroupRole.Artifact
+            : style.SemanticGroupRoleOverride;
+        if (!role.HasValue && TryResolveSemanticGroupRole(element.TagName, out HtmlRenderSemanticGroupRole naturalRole)) {
+            role = naturalRole;
+        }
+        var boundary = new FlattenedSemanticBoundary(
+            element,
+            style,
+            role,
+            nodeId,
+            hasNavigation ? ResolveBookmarkAnchorText(element, style) : string.Empty,
+            "html-display-contents:" + nodeId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        _flattenedSemanticBoundaries[element] = boundary;
+        return boundary;
+    }
+
+    private HtmlRenderFlowBlock ApplyFlattenedSemanticBoundary(
+        HtmlRenderFlowBlock block,
+        FlattenedSemanticBoundary boundary,
+        bool firstFragment) {
+        string anchorText = boundary.AnchorText.Length > 0
+            ? boundary.AnchorText
+            : ResolveVisibleBookmarkText(boundary.Element);
+        if (firstFragment
+            && anchorText.Length > 0
+            && !ContainsBookmarkAnchor(block.Visuals, boundary.NodeId)) {
+            block = block.WithVisuals(block.Visuals.Concat(new HtmlRenderVisual[] {
+                new HtmlRenderBookmarkAnchor(
+                    boundary.NodeId,
+                    anchorText,
+                    0D,
+                    0D,
+                    0.01D,
+                    0.01D,
+                    block.Visuals.Count,
+                    boundary.Source)
+            }));
+        }
+
+        HtmlRenderFlowBlock semanticBlock = boundary.Style.SemanticArtifact || boundary.Style.SemanticGroupRoleOverride.HasValue
+            ? block
+            : ApplyListSemantics(block, boundary.Element, boundary.StructureElementKey);
+        if (!boundary.Role.HasValue) return semanticBlock;
+        return semanticBlock.WithVisuals(new[] {
+            new HtmlRenderSemanticGroup(
+                boundary.Role.Value,
+                0D,
+                0D,
+                Math.Max(0.01D, semanticBlock.Width),
+                Math.Max(0.01D, semanticBlock.Height),
+                semanticBlock.Visuals,
+                0,
+                boundary.Source,
+                structureElementKey: boundary.StructureElementKey)
+        });
+    }
+
+    private sealed class FlattenedSemanticBoundary {
+        internal FlattenedSemanticBoundary(
+            IElement element,
+            HtmlRenderBoxStyle style,
+            HtmlRenderSemanticGroupRole? role,
+            int nodeId,
+            string anchorText,
+            string structureElementKey) {
+            Element = element;
+            Style = style;
+            Role = role;
+            NodeId = nodeId;
+            AnchorText = anchorText;
+            StructureElementKey = structureElementKey;
+            Source = HtmlRenderStyleResolver.DescribeSource(element);
+        }
+
+        internal IElement Element { get; }
+        internal HtmlRenderBoxStyle Style { get; }
+        internal HtmlRenderSemanticGroupRole? Role { get; }
+        internal int NodeId { get; }
+        internal string AnchorText { get; }
+        internal string StructureElementKey { get; }
+        internal string Source { get; }
+    }
+
+    private sealed class FlattenedSemanticPlacement {
+        internal FlattenedSemanticPlacement(FlattenedSemanticBoundary boundary, bool firstFragment) {
+            Boundary = boundary;
+            FirstFragment = firstFragment;
+        }
+
+        internal FlattenedSemanticBoundary Boundary { get; }
+        internal bool FirstFragment { get; }
+    }
+
+    private string ResolveBookmarkAnchorText(IElement element, HtmlRenderBoxStyle style) {
+        if (!string.IsNullOrWhiteSpace(style.BookmarkLabel)) return style.BookmarkLabel!.Trim();
+        string renderedText = ResolveVisibleBookmarkText(element, out bool rootVisible);
+        if (renderedText.Length > 0) return renderedText;
+        if (!rootVisible) return string.Empty;
+        return CollapseFlexText(element.GetAttribute("aria-label")
+            ?? element.GetAttribute("alt")
+            ?? element.GetAttribute("title")
+            ?? string.Empty);
+    }
+
+    private string ResolveVisibleBookmarkText(IElement element) => ResolveVisibleBookmarkText(element, out _);
+
+    private string ResolveVisibleBookmarkText(IElement element, out bool rootVisible) {
+        if (ShouldSkipElement(element)
+            || !TryResolveBookmarkTextState(element, inheritedVisibility: true, out bool visible, out bool prunesSubtree)
+            || prunesSubtree) {
+            rootVisible = false;
+            return string.Empty;
+        }
+        rootVisible = visible;
+        return CollapseFlexText(string.Concat(EnumerateVisibleBookmarkText(element.ChildNodes, visible)));
+    }
+
+    private IEnumerable<string> EnumerateVisibleBookmarkText(IEnumerable<INode> nodes, bool inheritedVisibility) {
+        foreach (INode node in nodes) {
+            if (node is IText text) {
+                if (inheritedVisibility) yield return text.Data;
+                continue;
+            }
+            if (node is not IElement element
+                || ShouldSkipElement(element)
+                || !TryResolveBookmarkTextState(element, inheritedVisibility, out bool visible, out bool prunesSubtree)
+                || prunesSubtree) {
+                continue;
+            }
+            foreach (string childText in EnumerateVisibleBookmarkText(element.ChildNodes, visible)) yield return childText;
+        }
+    }
+
+    private bool TryResolveBookmarkTextState(IElement element, bool inheritedVisibility, out bool visible, out bool prunesSubtree) {
+        if (_layoutStyles.TryGetValue(element, out HtmlRenderBoxStyle? layoutStyle)) {
+            visible = layoutStyle.PaintVisible;
+            prunesSubtree = layoutStyle.Display == "none" || layoutStyle.SemanticArtifact;
+            return true;
+        }
+        if (!_computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computedStyle)) {
+            visible = inheritedVisibility;
+            prunesSubtree = false;
+            return true;
+        }
+
+        string visibility = computedStyle.GetValue("visibility").Trim().ToLowerInvariant();
+        visible = visibility == "visible"
+            ? true
+            : visibility == "hidden" || visibility == "collapse"
+                ? false
+                : inheritedVisibility;
+        prunesSubtree = string.Equals(computedStyle.GetValue("display"), "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "artifact", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(computedStyle.GetValue("-officeimo-pdf-tag-type"), "none", StringComparison.OrdinalIgnoreCase);
+        return true;
+    }
+
+    private HtmlRenderVisual ApplyInlineElementSemantics(HtmlRenderVisual visual, HtmlInlineRun run) {
+        if (!run.InlineSemanticGroupRole.HasValue) return visual;
+        HtmlRenderSemanticGroupRole role = run.InlineSemanticGroupRole.Value;
+        if (visual is HtmlRenderSemanticGroup existing && existing.Role == role) return visual;
+        return new HtmlRenderSemanticGroup(
+            role,
+            visual.X,
+            visual.Y,
+            Math.Max(0.01D, visual.Width),
+            Math.Max(0.01D, visual.Height),
+            new[] { visual },
+            visual.PaintOrder,
+            run.Source,
+            layoutY: visual.LayoutY,
+            structureElementKey: run.InlineSemanticGroupKey);
+    }
+
+    private static bool ContainsBookmarkAnchor(IEnumerable<HtmlRenderVisual> visuals, int semanticNodeId) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderBookmarkAnchor anchor && anchor.SemanticNodeId == semanticNodeId) return true;
+            IEnumerable<HtmlRenderVisual>? children = visual is HtmlRenderSemanticGroup semantic ? semantic.Visuals
+                : visual is HtmlRenderLogicalTextGroup logical ? logical.Visuals
+                : visual is HtmlRenderClipGroup clip ? clip.Visuals
+                : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
+                : visual is HtmlRenderEffectGroup effect ? effect.Visuals
+                : visual is HtmlRenderFormField form ? form.Visuals
+                : null;
+            if (children != null && ContainsBookmarkAnchor(children, semanticNodeId)) return true;
+        }
+        return false;
+    }
+
+    private void RegisterInlineSemanticControls(IElement element, HtmlRenderBoxStyle style) {
+        RegisterBookmark(element, style);
+        ReportUnsupportedSemanticTag(element, style);
+    }
+
+    private void ReportUnsupportedSemanticTag(IElement element, HtmlRenderBoxStyle style) {
+        if (style.UnsupportedSemanticTag.Length == 0) return;
+        _diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.PdfSemanticTagUnsupported,
+            "A PDF semantic tag override was invalid and automatic HTML semantics were used.",
+            HtmlDiagnosticSeverity.Warning,
+            HtmlRenderStyleResolver.DescribeSource(element),
+            "-officeimo-pdf-tag-type=" + style.UnsupportedSemanticTag,
+            OfficeConversionLossKind.Approximation);
+    }
+
+    private void RegisterBookmark(IElement element, HtmlRenderBoxStyle style) {
+        if (style.UnsupportedBookmark.Length > 0) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.BookmarkValueUnsupported,
+                "A CSS bookmark value used automatic heading navigation.",
+                HtmlDiagnosticSeverity.Warning,
+                HtmlRenderStyleResolver.DescribeSource(element),
+                style.UnsupportedBookmark,
+                OfficeConversionLossKind.Approximation);
+        }
+        if (style.SemanticArtifact) return;
+        bool automaticHeading = HtmlRenderHeading.TryGetLevel(style.SemanticRole, out int headingLevel);
+        if (!automaticHeading && !style.BookmarkLevel.HasValue) return;
+        int nodeId = GetSemanticNodeId(element);
+        int level = style.BookmarkLevel ?? headingLevel;
+        _bookmarkDefinitions[nodeId] = new HtmlRenderBookmarkDefinition(level, style.BookmarkLabel, style.BookmarkState, style.BookmarkSuppressed, GetDocumentOrder(element));
     }
 
     private static bool TryResolveSemanticGroupRole(string tagName, out HtmlRenderSemanticGroupRole role) {

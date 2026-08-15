@@ -113,7 +113,7 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         cancellationToken.ThrowIfCancellationRequested();
-        return new HtmlRenderLayoutEngine(
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
             styles,
             resolved,
@@ -122,6 +122,7 @@ public static class HtmlRenderEngine {
             pageRules,
             fonts,
             cancellationToken).Render();
+        return CompleteRender(rendered, resolved);
     }
 
     /// <summary>
@@ -208,13 +209,19 @@ public static class HtmlRenderEngine {
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         cancellationToken.ThrowIfCancellationRequested();
-        return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
+        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
+        return CompleteRender(rendered, resolved);
     }
 
     internal static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);
 
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
+
+    private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) =>
+        options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
+            ? rendered.RequireNoLoss()
+            : rendered;
 
     internal static T ExecuteWithDeadline<T>(
         HtmlRenderOptions options,

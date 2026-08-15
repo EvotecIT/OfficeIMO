@@ -7,6 +7,7 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
     private readonly IHtmlDocument _document;
+    private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly HtmlRenderStyleResolver _styleResolver;
@@ -25,6 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderBoxStyle? _viewportOverflowStyle;
     private int _paintOrder;
     private int _positionedSourceOrder;
+    private int _nextLogicalTextOrder;
     private int _nextSemanticNodeId;
     private long _backgroundImageTileCount;
     private long _layoutOperationCount;
@@ -41,6 +43,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly Dictionary<IElement, int> _semanticNodeIds = new Dictionary<IElement, int>();
+    private readonly Dictionary<IElement, FlattenedSemanticBoundary> _flattenedSemanticBoundaries = new Dictionary<IElement, FlattenedSemanticBoundary>();
+    private readonly Dictionary<IElement, int> _documentOrderByElement = new Dictionary<IElement, int>();
+    private readonly Dictionary<int, HtmlRenderBookmarkDefinition> _bookmarkDefinitions = new Dictionary<int, HtmlRenderBookmarkDefinition>();
     private readonly Dictionary<IElement, string> _staticRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _blankValueRadioGroupKeys = new Dictionary<IElement, string>();
     private readonly Dictionary<IElement, string> _mixedDisabledRadioGroupKeys = new Dictionary<IElement, string>();
@@ -68,23 +73,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
+    private readonly HtmlShapedTextMeasurementCache _shapedTextMeasurementCache = new HtmlShapedTextMeasurementCache();
+    private readonly HashSet<string> _reportedMixedRunningElementMarginBoxes = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<int, HtmlCssRunningElementSnapshot> _runningElementSnapshots = new Dictionary<int, HtmlCssRunningElementSnapshot>();
     private readonly List<HtmlCssRunningStringAssignment> _currentPageRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
+    private int _nextRunningElementSnapshotId;
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
     private HtmlCssPageGeometry _activePageGeometry;
     private IElement? _activeSubgridOwner;
     private IReadOnlyList<double>? _activeSubgridColumnSizes;
     private IReadOnlyDictionary<string, int>? _activeSubgridColumnLineNames;
     private double _activeSubgridColumnGap;
+    private IReadOnlyList<double>? _activeSubgridRowSizes;
+    private IReadOnlyDictionary<string, int>? _activeSubgridRowLineNames;
+    private int? _activeSubgridRowLineCount;
+    private double _activeSubgridRowGap;
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, CancellationToken cancellationToken = default) {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
+        _computedStyles = computedStyles;
+        int documentOrder = 0;
+        foreach (IElement element in document.QuerySelectorAll("*")) {
+            _documentOrderByElement[element] = documentOrder++;
+        }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
         _resources = resources ?? new HtmlResourceSession();
@@ -214,6 +232,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _rootStackingPaintOrders.Clear();
         _positionedSourceOrdersByElement.Clear();
         _semanticNodeIds.Clear();
+        _bookmarkDefinitions.Clear();
+        _runningElementSnapshots.Clear();
+        _nextRunningElementSnapshotId = 0;
         _formFieldNames.Clear();
         _formFieldNamesByElement.Clear();
         _radioFieldNames.Clear();
@@ -224,6 +245,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _activeSubgridColumnSizes = null;
         _activeSubgridColumnLineNames = null;
         _activeSubgridColumnGap = 0D;
+        _activeSubgridRowSizes = null;
+        _activeSubgridRowLineNames = null;
+        _activeSubgridRowLineCount = null;
+        _activeSubgridRowGap = 0D;
     }
 
     private void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
@@ -234,6 +259,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _semanticNodeIds[element] = nodeId;
         return nodeId;
     }
+
+    private int GetDocumentOrder(IElement element) =>
+        _documentOrderByElement.TryGetValue(element, out int order) ? order : int.MaxValue;
 
     private HtmlRenderDocument RenderContinuous(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
         double width = _options.ViewportWidth;
@@ -263,7 +291,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AppendGlobalPositionedRequests(visuals, includeRoot: true, width, height, contentWidth, contentHeight, PositionedPaintBand.NonNegative);
         ApplyViewportOverflow(visuals, width, height);
         var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
-        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata);
+        return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {
@@ -488,7 +516,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         CommitPage(pages, visuals, pageGeometry, currentPageName);
-        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata);
+        return new HtmlRenderDocument(HtmlRenderMode.Paged, ApplyPageMarginContent(pages), _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
     }
 
     private HtmlRenderFlowBlock RelayoutTopLevelBlockForPage(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
@@ -508,11 +536,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool RequiresPageRelayout(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) =>
-        Math.Abs(block.Width - geometry.ContentWidth) > 0.0001D
+        !IsGeometryIndependentAssignmentMarker(block)
+        && (Math.Abs(block.Width - geometry.ContentWidth) > 0.0001D
         || double.IsNaN(block.LayoutViewportWidth)
         || double.IsNaN(block.LayoutViewportHeight)
         || Math.Abs(block.LayoutViewportWidth - geometry.Width) > 0.0001D
-        || Math.Abs(block.LayoutViewportHeight - geometry.Height) > 0.0001D;
+        || Math.Abs(block.LayoutViewportHeight - geometry.Height) > 0.0001D);
+
+    private static bool IsGeometryIndependentAssignmentMarker(HtmlRenderFlowBlock block) =>
+        block.Height <= 0.0001D
+        && block.Visuals.Count == 0
+        && block.RunningStringAssignments.Count > 0;
 
     private void ReportPageContinuationReflowPending(HtmlRenderFlowBlock block, HtmlCssPageGeometry geometry) {
         string key = block.Source
@@ -670,7 +704,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void RecordRunningStringAssignments(HtmlRenderFlowBlock block, double start, double end, double pageOffset) {
-        if (_currentRunningStringPage == null || end <= start + 0.0001D) return;
+        if (_currentRunningStringPage == null || block.RunningStringAssignments.Count == 0) return;
+        if (end < start - 0.0001D) return;
         bool finalFragment = end >= block.Height - 0.0001D;
         foreach (HtmlCssRunningStringAssignment assignment in block.RunningStringAssignments) {
             if (assignment.Offset < start - 0.0001D) continue;
@@ -746,7 +781,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         semanticGroup.ColumnSpan,
                         semanticGroup.RowSpan,
                         semanticGroup.HeaderScope,
-                        semanticGroup.LayoutY - start));
+                        semanticGroup.LayoutY - start,
+                        semanticGroup.StructureElementKey));
+                }
+                continue;
+            }
+
+            if (visual is HtmlRenderBookmarkAnchor bookmarkAnchor) {
+                if (bookmarkAnchor.LayoutY >= start - 0.0001D && bookmarkAnchor.LayoutY < end - 0.0001D) {
+                    fragment.Add(new HtmlRenderBookmarkAnchor(
+                        bookmarkAnchor.SemanticNodeId,
+                        bookmarkAnchor.Text,
+                        bookmarkAnchor.X,
+                        bookmarkAnchor.Y - start,
+                        bookmarkAnchor.Width,
+                        bookmarkAnchor.Height,
+                        fragment.Count,
+                        bookmarkAnchor.Source,
+                        bookmarkAnchor.LayoutY - start));
                 }
                 continue;
             }

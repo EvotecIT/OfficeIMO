@@ -719,7 +719,7 @@ internal static partial class PdfWriter {
                                 byte[] positionedSelectedBytes = PdfEncoding.Latin1GetBytes(positionedSelectedAppearance);
                                 string positionedSelectedDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(widgetWidth, widgetHeight, positionedSelectedBytes.Length);
                                 int positionedSelectedAppearanceId = AddStreamObject(objects, positionedSelectedDictionary, positionedSelectedBytes);
-                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex);
+                                AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", widgetFrame.StructureParentElementIndex, widgetFrame.StructureParentElement);
                                 string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
                                     widgetFrame.X1,
                                     widgetFrame.Y1,
@@ -757,7 +757,7 @@ internal static partial class PdfWriter {
 
                         var widgetObjectIds = new List<int>(field.Options.Count);
                         for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
-                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex);
+                            AnnotationStructureReference? widgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement);
                             double widgetTop = field.Y2 - optionIndex * (field.ButtonSize + field.ButtonGap);
                             double widgetBottom = widgetTop - field.ButtonSize;
                             double widgetLeft = field.X1;
@@ -786,7 +786,7 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex);
+                    AnnotationStructureReference? formWidgetStructureReference = RegisterAnnotationStructureReference(page, markInfo, ref nextStructParentIndex, "Form", field.StructureParentElementIndex, field.StructureParentElement);
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
                         string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
@@ -1215,7 +1215,8 @@ internal static partial class PdfWriter {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
                 AlternativeText = image.AlternativeText!,
-                ParentElementIndex = image.StructureParentElementIndex
+                ParentElementIndex = image.StructureParentElementIndex,
+                ParentElement = image.StructureParentElement
             });
         }
     }
@@ -1240,7 +1241,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null) {
+    private static AnnotationStructureReference? RegisterAnnotationStructureReference(LayoutResult.Page page, bool markInfo, ref int nextStructParentIndex, string structureType, int? parentElementIndex = null, PageStructElement? parentElement = null) {
         if (!markInfo) {
             return null;
         }
@@ -1252,7 +1253,8 @@ internal static partial class PdfWriter {
         page.StructElements.Add(new PageStructElement {
             StructureType = structureType,
             AnnotationStructParentIndex = reference.StructParentIndex,
-            ParentElementIndex = parentElementIndex
+            ParentElementIndex = parentElementIndex,
+            ParentElement = parentElement
         });
         return reference;
     }
@@ -1774,28 +1776,41 @@ internal static partial class PdfWriter {
         var stack = new Stack<OutlineNode>();
         stack.Push(root);
 
+        var bookmarkEntries = new List<(PageBookmark Bookmark, int PageIndex, int EncounterOrder)>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             foreach (var bookmark in pages[pageIndex].Bookmarks) {
-                if (string.IsNullOrWhiteSpace(bookmark.Title)) {
-                    continue;
-                }
-
-                int level = Math.Max(1, bookmark.Level);
-                while (stack.Count > 1 && stack.Peek().Level >= level) {
-                    stack.Pop();
-                }
-
-                var parent = stack.Peek();
-                var node = new OutlineNode {
-                    Level = level,
-                    PageIndex = pageIndex,
-                    Title = bookmark.Title,
-                    Y = bookmark.Y,
-                    Parent = parent
-                };
-                parent.Children.Add(node);
-                stack.Push(node);
+                bookmarkEntries.Add((bookmark, pageIndex, bookmarkEntries.Count));
             }
+        }
+
+        if (bookmarkEntries.Count > 0 && bookmarkEntries.All(static entry => entry.Bookmark.DocumentOrder.HasValue)) {
+            bookmarkEntries.Sort(static (left, right) => {
+                int order = left.Bookmark.DocumentOrder!.Value.CompareTo(right.Bookmark.DocumentOrder!.Value);
+                return order != 0 ? order : left.EncounterOrder.CompareTo(right.EncounterOrder);
+            });
+        }
+
+        foreach ((PageBookmark bookmark, int pageIndex, _) in bookmarkEntries) {
+            if (string.IsNullOrWhiteSpace(bookmark.Title)) {
+                continue;
+            }
+
+            int level = Math.Max(1, bookmark.Level);
+            while (stack.Count > 1 && stack.Peek().Level >= level) {
+                stack.Pop();
+            }
+
+            var parent = stack.Peek();
+            var node = new OutlineNode {
+                Level = level,
+                PageIndex = pageIndex,
+                Title = bookmark.Title,
+                Y = bookmark.Y,
+                OutlineState = bookmark.OutlineState,
+                Parent = parent
+            };
+            parent.Children.Add(node);
+            stack.Push(node);
         }
 
         if (root.Children.Count == 0) {
@@ -1913,6 +1928,8 @@ internal static partial class PdfWriter {
     }
 
     private static bool IsOutlineExpanded(OutlineNode node, int outlineExpansionLevel) =>
-        node.Children.Count > 0 && node.Level <= outlineExpansionLevel;
+        node.Children.Count > 0
+        && (node.OutlineState == PdfOutlineState.Open
+            || node.OutlineState == PdfOutlineState.Default && node.Level <= outlineExpansionLevel);
 
 }

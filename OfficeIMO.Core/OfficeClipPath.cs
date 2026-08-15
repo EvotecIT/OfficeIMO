@@ -29,6 +29,13 @@ public sealed class OfficeClipPath {
     private OfficeClipPath() {
     }
 
+    /// <summary>Creates an empty clipping region.</summary>
+    public static OfficeClipPath Empty() => new OfficeClipPath {
+        Kind = OfficeClipPathKind.Empty,
+        Width = 0D,
+        Height = 0D
+    };
+
     /// <summary>Creates a rectangular clipping path from the shape's local top-left corner.</summary>
     public static OfficeClipPath Rectangle(double width, double height) {
         ValidatePositiveFinite(width, nameof(width));
@@ -161,6 +168,8 @@ public sealed class OfficeClipPath {
         }
 
         switch (Kind) {
+            case OfficeClipPathKind.Empty:
+                return Empty();
             case OfficeClipPathKind.Rectangle:
                 return Rectangle(Width * scaleX, Height * scaleY);
             case OfficeClipPathKind.RoundedRectangle:

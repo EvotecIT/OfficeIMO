@@ -28,7 +28,7 @@ public sealed class HtmlConversionException : InvalidOperationException {
     private static string CreateMessage(IReadOnlyList<HtmlDiagnostic> diagnostics) {
         HtmlDiagnostic? error = diagnostics.FirstOrDefault(item => item.Severity == HtmlDiagnosticSeverity.Error);
         return error == null
-            ? "HTML conversion failed."
+            ? "HTML conversion did not satisfy the required no-loss contract."
             : "HTML conversion failed: " + error.Message;
     }
 }

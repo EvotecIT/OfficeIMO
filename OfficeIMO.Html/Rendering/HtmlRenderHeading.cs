@@ -4,13 +4,14 @@ namespace OfficeIMO.Html;
 /// A source heading retained by the shared render model for navigation-capable backends.
 /// </summary>
 public sealed class HtmlRenderHeading {
-    internal HtmlRenderHeading(int semanticNodeId, int level, string text, int pageNumber, double x, double y) {
+    internal HtmlRenderHeading(int semanticNodeId, int level, string text, int pageNumber, double x, double y, HtmlRenderBookmarkState bookmarkState = HtmlRenderBookmarkState.Default) {
         SemanticNodeId = semanticNodeId;
         Level = level;
         Text = text;
         PageNumber = pageNumber;
         X = x;
         Y = y;
+        BookmarkState = bookmarkState;
     }
 
     /// <summary>Stable operation-scoped identifier of the source semantic element.</summary>
@@ -30,6 +31,9 @@ public sealed class HtmlRenderHeading {
 
     /// <summary>Top destination coordinate in CSS pixels.</summary>
     public double Y { get; }
+
+    /// <summary>Requested outline expansion state for navigation-capable backends.</summary>
+    public HtmlRenderBookmarkState BookmarkState { get; }
 
     internal static bool TryGetLevel(string? semanticRole, out int level) {
         switch (semanticRole) {

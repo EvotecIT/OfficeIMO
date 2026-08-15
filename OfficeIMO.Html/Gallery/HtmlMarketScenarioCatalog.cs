@@ -14,7 +14,8 @@ public static class HtmlMarketScenarioCatalog {
         new HtmlMarketScenario("legal-contract", "Legal Contract", HtmlConversionProfile.Semantic, new[] { "headings", "numbered-lists", "comments", "links" }, "Preserve contract structure for editing, review, and audit trails."),
         new HtmlMarketScenario("email-render", "Email Render", HtmlConversionProfile.Semantic, new[] { "inline-styles", "images", "links", "resource-policy" }, "Ingest email-like HTML safely while reporting blocked resources."),
         new HtmlMarketScenario("dashboard-print", "Dashboard Print", HtmlConversionProfile.HighFidelityPrint, new[] { "cards", "charts", "computed-style", "print-layout" }, "Create a visual-first review artifact from dashboard HTML."),
-        new HtmlMarketScenario("multilingual-bidi", "Multilingual BiDi", HtmlConversionProfile.Document, new[] { "language", "direction", "tables", "fonts" }, "Validate right-to-left and mixed-language document conversion.")
+        new HtmlMarketScenario("multilingual-bidi", "Multilingual BiDi", HtmlConversionProfile.Document, new[] { "language", "direction", "tables", "fonts" }, "Validate right-to-left and mixed-language document conversion."),
+        new HtmlMarketScenario("static-standards-showcase", "Static Standards Showcase", HtmlConversionProfile.HighFidelityPrint, new[] { "running-elements", "row-subgrid", "clip-path", "pdf-tags", "bookmarks" }, "Exercise the strict managed page, layout, vector-effect, navigation, and tagged-PDF contracts in one artifact.")
     }.AsReadOnly();
 
     /// <summary>Gets all curated market scenarios.</summary>

@@ -22,7 +22,6 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Extend PDF-to-Office hybrid reconstruction beyond detected tables with bounded positioned text, image, and vector layers that remain visibly aligned while reports distinguish editable, visual-only, approximated, and omitted content.
 - [ ] Publish optional provider adapters for OCR and other heavyweight engines only where the provider contract, resource limits, provenance, and warning merge are stable; keep `OfficeIMO.Pdf` dependency-light.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
-- [ ] Expand the static HTML-to-PDF standards corpus for fragmentation, paged media, typography, SVG effects, and resource policy. Keep browser JavaScript and interactive state outside the managed static-renderer claim unless a separate browser-backed adapter owns them.
 
 ## Security and protected content
 

@@ -103,6 +103,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec,
         long maximumRasterPixels,
         System.Threading.CancellationToken cancellationToken) {
+        if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Empty) return;
         using (PushGroupClip(canvas, drawingGroup, scale)) {
             var translated = new OfficeDrawing(
                 Math.Max(1D, canvas.Width / scale),
@@ -148,6 +149,7 @@ public static partial class OfficeDrawingRasterRenderer {
         new OfficePoint(point.X * scale, point.Y * scale);
 
     private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
+        if (drawingShape.Shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
         IReadOnlyList<OfficeDrawingShape> glowShapes = CreateGlowShapes(drawingShape);
         for (int i = 0; i < glowShapes.Count; i++) {
             RenderShape(canvas, glowShapes[i], scale);

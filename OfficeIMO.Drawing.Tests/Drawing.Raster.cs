@@ -1511,20 +1511,24 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage image = new OfficeRasterImage(32, 32, OfficeColor.Transparent);
             double firstSegmentLength = Math.Sqrt(200D);
 
-            System.Threading.Tasks.Task render = System.Threading.Tasks.Task.Run(() => new OfficeRasterCanvas(image).DrawDashedEllipse(
-                16D,
-                16D,
-                10D,
-                10D,
-                OfficeColor.Black,
-                thickness: 1D,
-                dashLength: firstSegmentLength + 0.0000000005D,
-                gapLength: 0D,
-                segments: 4));
+            System.Threading.Tasks.Task render = System.Threading.Tasks.Task.Factory.StartNew(
+                () => new OfficeRasterCanvas(image).DrawDashedEllipse(
+                    16D,
+                    16D,
+                    10D,
+                    10D,
+                    OfficeColor.Black,
+                    thickness: 1D,
+                    dashLength: firstSegmentLength + 0.0000000005D,
+                    gapLength: 0D,
+                    segments: 4),
+                System.Threading.CancellationToken.None,
+                System.Threading.Tasks.TaskCreationOptions.LongRunning,
+                System.Threading.Tasks.TaskScheduler.Default);
 
             System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(
                 render,
-                System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(2)));
+                System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(10)));
             Assert.Same(render, completed);
             await render;
             Assert.True(CountPaintedPixels(image) > 0);

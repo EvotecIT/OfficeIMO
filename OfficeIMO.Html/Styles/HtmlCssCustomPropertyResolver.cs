@@ -11,6 +11,78 @@ internal static class HtmlCssCustomPropertyResolver {
     internal static bool ContainsVarFunction(string value) =>
         !string.IsNullOrEmpty(value) && value.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0;
 
+    internal static bool HasValidVarFunctionSyntax(string value) {
+        if (string.IsNullOrWhiteSpace(value) || !HasBalancedComponentValueSyntax(value)) return false;
+        bool found = false;
+        char quote = '\0';
+        for (int index = 0; index <= value.Length - 4; index++) {
+            char current = value[index];
+            if (quote != '\0') {
+                if (current == '\\') {
+                    index++;
+                } else if (current == quote) {
+                    quote = '\0';
+                }
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
+            if (!IsVarFunctionAt(value, index)) continue;
+
+            found = true;
+            int open = index + 3;
+            int close = FindMatchingParenthesis(value, open);
+            if (close <= open) return false;
+            string arguments = value.Substring(open + 1, close - open - 1);
+            SplitArguments(arguments, out string propertyName, out _);
+            if (!HtmlCssIdentifierParser.TryParse(propertyName, out string identifier)
+                || !identifier.StartsWith("--", StringComparison.Ordinal)
+                || identifier.Length <= 2) {
+                return false;
+            }
+        }
+        return found;
+    }
+
+    private static bool IsVarFunctionAt(string value, int index) {
+        if (index > 0 && IsIdentifierCharacter(value[index - 1])) return false;
+        return string.Compare(value, index, "var(", 0, 4, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool IsIdentifierCharacter(char value) =>
+        char.IsLetterOrDigit(value) || value == '_' || value == '-' || value == '\\' || value >= 0x80;
+
+    private static bool HasBalancedComponentValueSyntax(string value) {
+        var delimiters = new Stack<char>();
+        char quote = '\0';
+        for (int index = 0; index < value.Length; index++) {
+            char current = value[index];
+            if (quote != '\0') {
+                if (current == '\\') {
+                    index++;
+                } else if (current == quote) {
+                    quote = '\0';
+                }
+                continue;
+            }
+            if (current == '\\') {
+                index++;
+            } else if (current == '\'' || current == '"') {
+                quote = current;
+            } else if (current == '(' || current == '[' || current == '{') {
+                delimiters.Push(current);
+            } else if (current == ')' || current == ']' || current == '}') {
+                if (delimiters.Count == 0 || !IsMatchingDelimiter(delimiters.Pop(), current)) return false;
+            }
+        }
+        return quote == '\0' && delimiters.Count == 0;
+    }
+
+    private static bool IsMatchingDelimiter(char open, char close) =>
+        open == '(' && close == ')' || open == '[' && close == ']' || open == '{' && close == '}';
+
     private static bool TryResolve(string value, Func<string, string?> lookup, ISet<string> resolving, int depth, out string resolved) {
         resolved = value;
         if (depth > MaximumDepth) return false;

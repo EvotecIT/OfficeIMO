@@ -224,6 +224,56 @@ public class HtmlLongDocumentBenchmarks {
     }
 }
 
+/// <summary>Measures the strict managed standards packet across layout and searchable PDF output.</summary>
+[MemoryDiagnoser]
+[BenchmarkCategory("HTML", "StaticStandards")]
+public class HtmlStaticStandardsBenchmarks {
+    private HtmlConversionDocument _document = null!;
+    private HtmlRenderOptions _renderOptions = null!;
+    private HtmlPdfSaveOptions _pdfOptions = null!;
+
+    [GlobalSetup]
+    public void Setup() {
+        _document = HtmlConversionDocument.Parse(HtmlBenchmarkCorpus.BuildStaticStandardsShowcase());
+        _renderOptions = HtmlBenchmarkCorpus.CreateStaticStandardsOptions();
+        _pdfOptions = new HtmlPdfSaveOptions(_renderOptions) {
+            PdfOptions = new OfficeIMO.Pdf.PdfOptions {
+                FileVersion = OfficeIMO.Pdf.PdfFileVersion.Pdf17,
+                ObjectSerializationMode = OfficeIMO.Pdf.PdfObjectSerializationMode.ForwardOnly,
+                TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+
+        RequireStandardsContract(HtmlRenderEngine.Render(_document, _renderOptions));
+        byte[] pdf = _document.ToPdf(_pdfOptions);
+        OfficeIMO.Pdf.PdfReadDocument readDocument = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
+        string text = readDocument.ExtractText();
+        if (readDocument.Pages.Count != 2
+            || !text.Contains("Static standards packet", StringComparison.Ordinal)
+            || !text.Contains("Second-page evidence", StringComparison.Ordinal)) {
+            throw new InvalidOperationException("The static-standards PDF validation did not preserve the two-page searchable contract.");
+        }
+    }
+
+    [Benchmark]
+    public HtmlRenderDocument LayoutStrictPaged() => RequireStandardsContract(
+        HtmlRenderEngine.Render(_document, _renderOptions));
+
+    [Benchmark]
+    public long RenderTaggedPdfToForwardOnlyStream() =>
+        _document.SaveAsPdf(Stream.Null, _pdfOptions).RequireSuccess().RequireNoLoss().BytesWritten;
+
+    private static HtmlRenderDocument RequireStandardsContract(HtmlRenderDocument rendered) {
+        rendered.RequireNoLoss();
+        if (rendered.Pages.Count != 2
+            || !rendered.Text.Contains("Static standards packet", StringComparison.Ordinal)
+            || !rendered.Text.Contains("Second-page evidence", StringComparison.Ordinal)) {
+            throw new InvalidOperationException("The static-standards layout validation did not preserve the expected page and text contract.");
+        }
+        return rendered;
+    }
+}
+
 internal static class HtmlBenchmarkCorpus {
     internal static HtmlRenderOptions CreateContinuousOptions() => new HtmlRenderOptions {
         Mode = HtmlRenderMode.Continuous,
@@ -237,6 +287,14 @@ internal static class HtmlBenchmarkCorpus {
         PageSize = new OfficePageSize(5D, 4D),
         Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White
+    };
+
+    internal static HtmlRenderOptions CreateStaticStandardsOptions() => new HtmlRenderOptions {
+        Mode = HtmlRenderMode.Paged,
+        PageSize = new OfficePageSize(5D, 4D),
+        Margins = HtmlRenderMargins.All(32D),
+        BackgroundColor = OfficeColor.White,
+        FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
     };
 
     internal static string BuildReport(int rowCount, bool includeUnicodeText = false) {
@@ -306,4 +364,21 @@ internal static class HtmlBenchmarkCorpus {
         }
         return html.Append("</main>").ToString();
     }
+
+    internal static string BuildStaticStandardsShowcase() => """
+        <style>
+          @page{size:5in 4in;margin:44px 32px 38px;@top-center{content:element(doc-header,first)}@bottom-right{content:"Page " counter(page) " / " counter(pages)}}
+          body{margin:0;font:12px/1.4 Arial,sans-serif;color:#172033}.running{position:running(doc-header);margin:0;padding:4px;border-bottom:1px solid #315b8a;color:#315b8a}
+          section{break-after:page;-officeimo-pdf-tag-type:Sect}section:last-child{break-after:auto}h1{bookmark-level:1;bookmark-state:open}h2{bookmark-level:2}
+          .matrix{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:34px 52px;gap:8px}.sub{display:grid;grid-column:1;grid-row:1/3;grid-template-rows:subgrid;row-gap:inherit}
+          .cell{padding:7px;background:linear-gradient(135deg,#edf4ff,#fff);border:1px solid #b9c9dc}.badge{clip-path:polygon(0 0,100% 0,88% 100%,0 100%);background:#315b8a;color:white;padding:7px}
+          svg{width:150px;height:62px}path{fill:none;stroke:#2a7a58;stroke-width:4}
+        </style>
+        <header class="running">Managed static standards · vector output</header>
+        <section><h1>Static standards packet</h1><p>Deterministic page one content remains searchable and tagged.</p>
+          <div class="matrix"><div class="sub"><div class="cell">Inherited row A</div><div class="cell">Inherited row B</div></div><div class="badge">Clipped vector badge</div><div class="cell">Named page evidence</div></div>
+          <svg viewBox="0 0 150 62" role="img" aria-label="Vector trend"><path d="M5 52 L42 31 L79 40 L113 15 L145 7"/></svg>
+        </section>
+        <section><h2>Second-page evidence</h2><p>Running elements, counters, outlines, and artifact tagging remain deterministic.</p></section>
+        """;
 }

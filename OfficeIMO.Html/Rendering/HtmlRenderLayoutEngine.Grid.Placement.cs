@@ -35,18 +35,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         var occupied = new HashSet<long>();
+        var placed = new HashSet<GridItem>();
         int cursorRow = 0;
         int cursorColumn = 0;
         rowCount = Math.Max(1, explicitRowCount);
-        foreach (GridItem item in gridItems) {
-            if (item.RequestedRow.HasValue && item.RequestedColumn.HasValue) {
-                item.Row = item.RequestedRow.Value;
-                item.Column = item.RequestedColumn.Value;
-            } else if (item.RequestedRow.HasValue) {
+
+        foreach (GridItem item in gridItems.Where(item => item.RequestedRow.HasValue && item.RequestedColumn.HasValue)) {
+            item.Row = item.RequestedRow!.Value;
+            item.Column = item.RequestedColumn!.Value;
+            CommitGridPlacement(item, occupied, placed, ref columnCount, ref rowCount);
+        }
+
+        foreach (GridItem item in gridItems.Where(item => !placed.Contains(item))) {
+            if (!columnFlow && item.RequestedRow.HasValue && !item.RequestedColumn.HasValue) {
                 item.Row = item.RequestedRow.Value;
                 item.Column = FindGridColumn(occupied, item.Row, item.RowSpan, item.ColumnSpan, columnCount);
-                int requestedColumnEnd = GridPlacementEnd(item.Column, item.ColumnSpan);
-                if (requestedColumnEnd > columnCount) columnCount = requestedColumnEnd;
+            } else if (columnFlow && item.RequestedColumn.HasValue && !item.RequestedRow.HasValue) {
+                item.Column = item.RequestedColumn.Value;
+                item.Row = FindGridRow(occupied, item.Column, item.RowSpan, item.ColumnSpan);
+            } else {
+                continue;
+            }
+            CommitGridPlacement(item, occupied, placed, ref columnCount, ref rowCount);
+        }
+
+        foreach (GridItem item in gridItems) {
+            if (placed.Contains(item)) continue;
+            if (item.RequestedRow.HasValue) {
+                item.Row = item.RequestedRow.Value;
+                item.Column = FindGridColumn(occupied, item.Row, item.RowSpan, item.ColumnSpan, columnCount);
             } else if (item.RequestedColumn.HasValue) {
                 item.Column = item.RequestedColumn.Value;
                 item.Row = FindGridRow(occupied, item.Column, item.RowSpan, item.ColumnSpan);
@@ -75,16 +92,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     }
                 }
             }
-
-            int itemRowEnd = GridPlacementEnd(item.Row, item.RowSpan);
-            int itemColumnEnd = GridPlacementEnd(item.Column, item.ColumnSpan);
-            MarkGridArea(occupied, item.Row, item.Column, item.RowSpan, item.ColumnSpan);
-            rowCount = Math.Max(rowCount, itemRowEnd);
-            columnCount = Math.Max(columnCount, itemColumnEnd);
+            CommitGridPlacement(item, occupied, placed, ref columnCount, ref rowCount);
         }
 
         rowCount = Math.Max(1, rowCount);
         return gridItems;
+    }
+
+    private void CommitGridPlacement(
+        GridItem item,
+        HashSet<long> occupied,
+        ISet<GridItem> placed,
+        ref int columnCount,
+        ref int rowCount) {
+        int itemRowEnd = GridPlacementEnd(item.Row, item.RowSpan);
+        int itemColumnEnd = GridPlacementEnd(item.Column, item.ColumnSpan);
+        MarkGridArea(occupied, item.Row, item.Column, item.RowSpan, item.ColumnSpan);
+        rowCount = Math.Max(rowCount, itemRowEnd);
+        columnCount = Math.Max(columnCount, itemColumnEnd);
+        placed.Add(item);
     }
 
     private GridItem CreateGridItem(
@@ -254,8 +280,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal FlexItem Item { get; }
         internal int? RequestedRow { get; }
         internal int? RequestedColumn { get; }
-        internal int RowSpan { get; }
-        internal int ColumnSpan { get; }
+        internal int RowSpan { get; set; }
+        internal int ColumnSpan { get; set; }
         internal int Row { get; set; }
         internal int Column { get; set; }
         internal bool HasExplicitWidth { get; }

@@ -147,6 +147,9 @@ internal static partial class HtmlPdfRenderedConverter {
                 preserveConfiguredFontSlots: options.FontFamily != null);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
+        var headingDocumentOrder = rendered.Headings
+            .Select((heading, index) => new { Heading = heading, Index = index })
+            .ToDictionary(item => item.Heading, item => item.Index);
         ILookup<int, HtmlRenderHeading> headingsByPage = rendered.Headings.ToLookup(heading => heading.PageNumber);
         foreach (HtmlRenderPage renderedPage in rendered.Pages) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -157,7 +160,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 .Margin(0D)
                 .Canvas(canvas => {
                     AddPageVisuals(canvas, renderedPage, webFonts, conversionReport, options.InteractiveFormControls, cancellationToken);
-                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], cancellationToken);
+                    AddPageOutlines(canvas, headingsByPage[renderedPage.PageNumber], headingDocumentOrder, cancellationToken);
                 }));
         }
 
@@ -165,10 +168,14 @@ internal static partial class HtmlPdfRenderedConverter {
         return new HtmlPdfRenderResult(pdf, diagnostics, conversionReport);
     }
 
-    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, CancellationToken cancellationToken) {
+    private static void AddPageOutlines(PdfCore.PdfPageCanvas canvas, IEnumerable<HtmlRenderHeading> headings, IReadOnlyDictionary<HtmlRenderHeading, int> headingDocumentOrder, CancellationToken cancellationToken) {
         foreach (HtmlRenderHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel);
+            canvas.Outline(heading.Text, heading.Level, heading.Y * PointsPerCssPixel, heading.BookmarkState switch {
+                HtmlRenderBookmarkState.Open => PdfCore.PdfOutlineState.Open,
+                HtmlRenderBookmarkState.Closed => PdfCore.PdfOutlineState.Closed,
+                _ => PdfCore.PdfOutlineState.Default
+            }, headingDocumentOrder[heading]);
         }
     }
 
@@ -312,21 +319,41 @@ internal static partial class HtmlPdfRenderedConverter {
 
     private static void AddSemanticGroup(PdfCore.PdfPageCanvas canvas, HtmlRenderSemanticGroup group, RegisteredWebFonts webFonts, PdfCore.PdfConversionReport conversionReport, double surfaceWidth, double surfaceHeight, bool interactiveFormControls, CancellationToken cancellationToken, bool textAsSpan, ClipBounds? activeClip) {
         if (!group.Visuals.Any(ContainsPaintableVisual)) return;
+        if (group.Role == HtmlRenderSemanticGroupRole.Artifact) {
+            canvas.Artifact(nested => {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls: false, cancellationToken, textAsSpan: true, activeClip: activeClip);
+                }
+            });
+            return;
+        }
         var options = new PdfCore.PdfCanvasStructureOptions {
             ColumnSpan = group.ColumnSpan,
             RowSpan = group.RowSpan,
-            HeaderScope = MapTableHeaderScope(group.HeaderScope)
+            HeaderScope = MapTableHeaderScope(group.HeaderScope),
+            StructureElementKey = group.StructureElementKey
         };
         bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan, activeClip);
+            void AddChildren(PdfCore.PdfPageCanvas target) {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan, activeClip);
+                }
+            }
+
+            if (IsTextContentGroup(group.Role)
+                && TryResolveReorderedLogicalText(group.Visuals, out string logicalText)) {
+                nested.ActualText(logicalText, AddChildren);
+            } else {
+                AddChildren(nested);
             }
         }, options);
     }
 
     private static bool ContainsPaintableVisual(HtmlRenderVisual visual) {
+        if (visual is HtmlRenderBookmarkAnchor) return false;
         if (visual is HtmlRenderSemanticGroup semanticGroup) return semanticGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) return logicalTextGroup.Visuals.Any(ContainsPaintableVisual);
         if (visual is HtmlRenderClipGroup clipGroup) return clipGroup.Visuals.Any(ContainsPaintableVisual);
@@ -446,16 +473,24 @@ internal static partial class HtmlPdfRenderedConverter {
             group.X + group.Width,
             group.Y + group.Height,
             allowsInteractiveWidgets: false));
-        canvas.Clip(
-            group.ClipX * PointsPerCssPixel,
-            group.ClipY * PointsPerCssPixel,
-            group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel),
+        double clipX = group.ClipX * PointsPerCssPixel;
+        double clipY = group.ClipY * PointsPerCssPixel;
+        OfficeClipPath clipPath = group.ClipPath.Scale(PointsPerCssPixel, PointsPerCssPixel);
+        Action<PdfCore.PdfPageCanvas> addClip = target => target.Clip(
+            clipX,
+            clipY,
+            clipPath,
             clipped => {
                 foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     AddVisual(clipped, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, textAsSpan, clip);
                 }
             });
+        if (clipX < 0D || clipY < 0D) {
+            canvas.Effect(OfficeTransform.Identity, 1D, addClip);
+        } else {
+            addClip(canvas);
+        }
     }
 
     private static void AddShape(

@@ -285,6 +285,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.ActualText("AB", logical => logical
+                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", 20D, 10D, 10D, 20D))
+                .Text("B", 35D, 10D, 10D, 20D)))
+            .ToBytes();
+
+        Assert.Equal("AB", string.Concat(PdfReadDocument.Open(bytes).ExtractText().Where(character => !char.IsWhiteSpace(character))));
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "Span");
+    }
+
+    [Fact]
     public void CanvasActualText_RejectsInvalidArgumentsAndEmptyBuilders() {
         var canvas = new PdfPageCanvas();
 
@@ -385,6 +399,81 @@ public class PdfDocumentCanvasTests {
             new PdfCanvasStructureOptions { HeaderScope = PdfCanvasTableHeaderScope.Row }));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCanvasStructureOptions { ColumnSpan = 0 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCanvasStructureOptions { HeaderScope = (PdfCanvasTableHeaderScope)99 });
+    }
+
+    [Fact]
+    public void CanvasArtifact_ExcludesDecorativeContentFromTheStructureTree() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Artifact(artifact => artifact
+                    .Text("Decoration", 10D, 10D, 100D, 20D)
+                    .SearchableText("Searchable decoration", 10D, 30D)
+                    .Table(new[] { new[] { "Decorative header" }, new[] { "Decorative cell" } }, 10D, 40D, 100D, 40D)
+                    .Figure("Decorative figure", figure => figure.Text("Figure decoration", 10D, 85D, 100D, 20D)))
+                .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Meaningful", 10D, 40D, 100D, 20D)))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "P"));
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType is "Span" or "TH" or "TD" or "Figure");
+        string extracted = PdfReadDocument.Open(bytes).ExtractText();
+        Assert.DoesNotContain("Decoration", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Searchable decoration", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative header", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative cell", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain("Figure decoration", extracted, StringComparison.Ordinal);
+
+        var canvas = new PdfPageCanvas();
+        Assert.Throws<ArgumentNullException>(() => canvas.Artifact(null!));
+        Assert.Throws<ArgumentException>(() => canvas.Artifact(_ => { }));
+    }
+
+    [Fact]
+    public void CanvasArtifact_SuppressesEveryInteractiveDescendant() {
+        const string uri = "https://evotec.xyz/decorative";
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.Artifact(artifact => artifact
+                .Text(new[] { PdfTextRun.Link("Decorative link", uri) }, 10D, 10D, 100D, 20D)
+                .TextAnnotation("Decorative note", 10D, 35D)
+                .FreeTextAnnotation("Decorative free text", 35D, 35D, 100D, 20D)
+                .HighlightAnnotation("Decorative highlight", 10D, 60D, 100D, 20D)
+                .Outline("Decorative outline", 1, 10D)
+                .Structure(PdfCanvasStructureRole.Paragraph, nested => nested
+                    .TextField("DecorativeField", "Value", 10D, 85D, 100D, 20D))))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.Empty(info.GetAnnotationsBySubtype("Text"));
+        Assert.Empty(info.GetAnnotationsBySubtype("FreeText"));
+        Assert.Empty(info.GetAnnotationsBySubtype("Highlight"));
+        Assert.Empty(info.Outlines);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Form");
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasOutline_SupportsPerEntryExpansionState() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { OutlineExpansionLevel = 0 })
+            .Canvas(canvas => canvas
+                .Outline("Open parent", 1, 10D, PdfOutlineState.Open)
+                .Outline("Open child", 2, 20D)
+                .Outline("Closed parent", 1, 30D, PdfOutlineState.Closed)
+                .Outline("Closed child", 2, 40D))
+            .ToBytes();
+
+        IReadOnlyList<PdfOutlineItem> outlines = PdfReadDocument.Open(bytes).Outlines;
+        Assert.True(outlines[0].IsExpanded);
+        Assert.False(outlines[1].IsExpanded);
+        Assert.Equal("Open child", Assert.Single(outlines[0].Children).Title);
+        Assert.Equal("Closed child", Assert.Single(outlines[1].Children).Title);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageCanvas().Outline("Invalid", 1, 1D, (PdfOutlineState)99));
     }
 
     [Fact]
@@ -1331,6 +1420,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_EmptyPathSuppressesFormFields() {
+        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+            20D,
+            20D,
+            OfficeClipPath.Empty(),
+            clipped => clipped
+                .TextField("HiddenText", "Ada", 20D, 20D, 80D, 20D)
+                .CheckBox("HiddenCheck", true, 20D, 50D, 12D, 12D)))
+            .ToBytes();
+
+        Assert.Empty(PdfInspector.Inspect(bytes).FormFields);
+    }
+
+    [Fact]
     public void CanvasClip_ClipsVisualAnnotationsInsideFrame() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,
@@ -1364,6 +1467,44 @@ public class PdfDocumentCanvasTests {
         AssertClose(60D, highlight.Y1);
         AssertClose(120D, highlight.X2);
         AssertClose(70D, highlight.Y2);
+    }
+
+    [Fact]
+    public void CanvasClip_SuppressesVisualAnnotationsOutsideNonRectangularRegion() {
+        OfficeClipPath triangle = OfficeClipPath.Path(
+            OfficePathCommand.MoveTo(0D, 0D),
+            OfficePathCommand.LineTo(100D, 0D),
+            OfficePathCommand.LineTo(0D, 80D),
+            OfficePathCommand.Close());
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160
+            })
+            .Canvas(canvas => canvas.Clip(20D, 20D, triangle, clipped => clipped
+                .TextAnnotation("Visible text", 25D, 25D, 10D, 10D)
+                .TextAnnotation("Hidden text", 100D, 80D, 10D, 10D)
+                .FreeTextAnnotation("Visible free text", 40D, 25D, 15D, 10D)
+                .FreeTextAnnotation("Hidden free text", 85D, 75D, 15D, 10D)
+                .HighlightAnnotation("Visible highlight", 25D, 45D, 15D, 8D)
+                .HighlightAnnotation("Hidden highlight", 90D, 65D, 15D, 8D)
+                .Image(CreateMinimalRgbPng(), 50D, 40D, 40D, 30D, linkUri: "https://example.com/partial")))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal("Visible text", Assert.Single(info.GetAnnotationsBySubtype("Text")).Contents);
+        Assert.Equal("Visible free text", Assert.Single(info.GetAnnotationsBySubtype("FreeText")).Contents);
+        Assert.Equal("Visible highlight", Assert.Single(info.GetAnnotationsBySubtype("Highlight")).Contents);
+        PdfLinkAnnotation link = Assert.Single(info.GetLinkAnnotationsByUri("https://example.com/partial"));
+        Assert.True(link.Width < 40D || link.Height < 30D);
+        Assert.True(link.Width > 0D && link.Height > 0D);
+        const double clipBottomY = 60D;
+        foreach (double pageX in new[] { link.X1, link.X2 }) {
+            foreach (double pageY in new[] { link.Y1, link.Y2 }) {
+                double localX = pageX - 20D;
+                double localY = 80D - (pageY - clipBottomY);
+                Assert.True(localX / 100D + localY / 80D <= 1.001D);
+            }
+        }
     }
 
     [Fact]

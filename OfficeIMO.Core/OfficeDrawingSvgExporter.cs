@@ -726,6 +726,9 @@ public static partial class OfficeDrawingSvgExporter {
             .Append("\">");
 
         switch (clipPath.Kind) {
+            case OfficeClipPathKind.Empty:
+                sb.Append("<path d=\"\"/>");
+                break;
             case OfficeClipPathKind.Rectangle:
                 sb.AppendRectElement(0D, 0D, clipPath.Width, clipPath.Height);
                 break;

@@ -49,7 +49,8 @@ public partial class Html {
         Assert.Equal(
             capabilities.Select(capability => capability.Area + "\0" + capability.Id),
             capabilities.Select(capability => capability.Area + "\0" + capability.Id).OrderBy(value => value, StringComparer.Ordinal));
-        foreach (HtmlRenderSupportLevel level in Enum.GetValues(typeof(HtmlRenderSupportLevel))) {
+        Assert.DoesNotContain(capabilities, capability => capability.SupportLevel == HtmlRenderSupportLevel.Partial);
+        foreach (HtmlRenderSupportLevel level in new[] { HtmlRenderSupportLevel.Full, HtmlRenderSupportLevel.Fallback, HtmlRenderSupportLevel.Rejected, HtmlRenderSupportLevel.Ignored }) {
             Assert.Contains(capabilities, capability => capability.SupportLevel == level);
         }
         foreach (HtmlRenderCapability capability in capabilities) {

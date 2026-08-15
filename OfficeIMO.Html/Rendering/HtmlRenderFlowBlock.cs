@@ -486,6 +486,19 @@ internal sealed class HtmlRenderLineBreakGroup {
 
 internal sealed class HtmlInlineRun {
     internal HtmlInlineRun(
+        IEnumerable<HtmlCssRunningStringAssignment> runningElementAssignments,
+        HtmlRenderBoxStyle style,
+        string source) {
+        RunningElementAssignments = new List<HtmlCssRunningStringAssignment>(runningElementAssignments).AsReadOnly();
+        RunningElementAssignment = RunningElementAssignments.FirstOrDefault();
+        Text = string.Empty;
+        LogicalText = string.Empty;
+        Style = style;
+        Source = source;
+        SemanticRole = style.SemanticRole;
+    }
+
+    internal HtmlInlineRun(
         IElement runningStringElement,
         HtmlRenderBoxStyle style,
         string source) {
@@ -528,7 +541,8 @@ internal sealed class HtmlInlineRun {
         double paintOffsetY = 0D,
         IElement? ownerElement = null,
         bool isReplacedImage = false,
-        double? atomicBaseline = null) {
+        double? atomicBaseline = null,
+        bool isBookmarkMarker = false) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         LogicalText = string.Empty;
@@ -540,6 +554,7 @@ internal sealed class HtmlInlineRun {
         OwnerElement = ownerElement;
         IsReplacedImage = isReplacedImage;
         AtomicBaseline = atomicBaseline;
+        IsBookmarkMarker = isBookmarkMarker;
         SemanticRole = style.SemanticRole;
     }
 
@@ -575,18 +590,35 @@ internal sealed class HtmlInlineRun {
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
     internal IElement? RunningStringElement { get; }
+    internal HtmlCssRunningStringAssignment? RunningElementAssignment { get; }
+    internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
+    internal bool IsBookmarkMarker { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
+    internal int? SemanticFragmentOrder { get; private set; }
+    internal int? LogicalTextOrder { get; private set; }
+    internal HtmlRenderSemanticGroupRole? InlineSemanticGroupRole { get; private set; }
+    internal string? InlineSemanticGroupKey { get; private set; }
+    internal string? BookmarkAnchorText { get; private set; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
 
-    internal void AssignSemanticNode(string role, int nodeId) {
+    internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null, int? semanticFragmentOrder = null) {
         SemanticNodeId = nodeId;
+        SemanticFragmentOrder = semanticFragmentOrder;
+        BookmarkAnchorText = bookmarkAnchorText;
         if (!SemanticRole.StartsWith("generated-", StringComparison.Ordinal)) {
             SemanticRole = role;
         }
+    }
+
+    internal void AssignLogicalTextOrder(int order) => LogicalTextOrder = order;
+
+    internal void AssignInlineSemanticGroup(HtmlRenderSemanticGroupRole role, string structureElementKey) {
+        InlineSemanticGroupRole = role;
+        InlineSemanticGroupKey = structureElementKey;
     }
 }
 

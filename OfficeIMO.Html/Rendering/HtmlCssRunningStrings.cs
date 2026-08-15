@@ -8,11 +8,13 @@ internal sealed class HtmlCssRunningStringAssignment {
         string name,
         string value,
         double offset,
-        double? orderOffset = null) {
+        double? orderOffset = null,
+        int? documentOrder = null) {
         Name = name;
         Value = value;
         Offset = offset;
         OrderOffset = orderOffset ?? offset;
+        DocumentOrder = documentOrder;
     }
 
     internal string Name { get; }
@@ -21,12 +23,19 @@ internal sealed class HtmlCssRunningStringAssignment {
     internal double Offset { get; }
     /// <summary>Monotonic document-flow offset used to resolve first and last assignments.</summary>
     internal double OrderOffset { get; }
+    /// <summary>DOM document order used when layout coordinates do not match authored order.</summary>
+    internal int? DocumentOrder { get; }
 
     internal HtmlCssRunningStringAssignment Translate(double offset) =>
-        new HtmlCssRunningStringAssignment(Name, Value, Offset + offset, OrderOffset + offset);
+        new HtmlCssRunningStringAssignment(Name, Value, Offset + offset, OrderOffset + offset, DocumentOrder);
 
     internal HtmlCssRunningStringAssignment Place(double offset, double orderOffset) =>
-        new HtmlCssRunningStringAssignment(Name, Value, offset, orderOffset);
+        new HtmlCssRunningStringAssignment(Name, Value, offset, orderOffset, DocumentOrder);
+
+    /// <summary>Associates a parsed assignment with its authored DOM position for mixed layout ordering.</summary>
+    internal HtmlCssRunningStringAssignment InDocumentOrder(int documentOrder) =>
+        new HtmlCssRunningStringAssignment(Name, Value, Offset, OrderOffset, documentOrder);
+
 }
 
 internal sealed class HtmlCssRunningStringPageContext {

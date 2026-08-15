@@ -14,6 +14,39 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_LossContractRejectsEveryDiagnosedFallback() {
+        HtmlRenderDocument permissive = HtmlRenderTestDriver.Render(
+            "<div style='transform:rotate(not-an-angle)'>Fallback</div>");
+
+        Assert.True(permissive.HasLoss);
+        HtmlConversionException documentException = Assert.Throws<HtmlConversionException>(() => permissive.RequireNoLoss());
+        Assert.Equal("HTML conversion did not satisfy the required no-loss contract.", documentException.Message);
+        Assert.Contains(documentException.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported);
+
+        var strict = new HtmlRenderOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+        HtmlConversionException renderException = Assert.Throws<HtmlConversionException>(() =>
+            HtmlRenderTestDriver.Render("<div style='transform:rotate(not-an-angle)'>Fallback</div>", strict));
+        Assert.Contains(renderException.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_StrictLossContractReturnsCleanOutputAndRejectsFallbacks() {
+        var options = new HtmlRenderOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument clean = await HtmlRenderTestDriver.RenderAsync("<h1>Lossless static output</h1>", options);
+        Assert.False(clean.HasLoss);
+        Assert.Same(clean, clean.RequireNoLoss());
+
+        await Assert.ThrowsAsync<HtmlConversionException>(() =>
+            HtmlRenderTestDriver.RenderAsync("<div style='opacity:not-a-number'>Fallback</div>", options));
+        Assert.Equal(HtmlRenderFidelityPolicy.RequireNoLoss, options.Clone().FidelityPolicy);
+    }
+
+    [Fact]
     public void HtmlFitWithinBoundsHighRequestedScaleBeforeSurfaceValidation() {
         OfficeImageExportResult result = HtmlConversionDocument
             .Parse("<h1>Bounded</h1><p>High requested scale, small final surface.</p>")
@@ -1181,7 +1214,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfReadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstPage", pdfText, StringComparison.Ordinal);
         Assert.Contains("Page 2 of " + rendered.Pages.Count, pdfText, StringComparison.Ordinal);
@@ -1533,7 +1566,9 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions),
+            new PdfCore.PdfReadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("Invoice", pdfText, StringComparison.Ordinal);
         Assert.Contains("IL", pdfText, StringComparison.Ordinal);
         Assert.Contains("Report", pdfText, StringComparison.Ordinal);
@@ -1601,8 +1636,323 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        string pdfText = PdfCore.PdfReadDocument.Open(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions),
+            new PdfCore.PdfReadOptions { IncludeArtifactText = true }).ExtractText();
         foreach (string marker in markers) Assert.Contains(marker, pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_RunningElementsUsePageSelectionAndRemainPdfArtifacts() {
+        const string html = """
+            <style>
+              @page {
+                size: 320px 180px;
+                margin: 32px;
+                @top-left { content: element(chapter, start); text-align:left; }
+                @top-right { content: element(chapter, first); text-align:right; }
+              }
+              .running { position: running(chapter); margin:0; padding:2px; border-bottom:1px solid #225588; color:#225588; }
+              .page { margin:0; height:80px; }
+            </style>
+            <h1 class="running">Chapter Alpha</h1>
+            <div class="page" style="break-after:page">First body</div>
+            <h1 class="running">Chapter Beta</h1>
+            <div class="page">Second body</div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        string[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
+        string[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().Select(item => item.Text).ToArray();
+        Assert.Contains("ChapterAlpha", string.Concat(firstPageText), StringComparison.Ordinal);
+        Assert.Contains("ChapterAlpha", string.Concat(secondPageText), StringComparison.Ordinal);
+        Assert.Contains("ChapterBeta", string.Concat(secondPageText), StringComparison.Ordinal);
+        Assert.DoesNotContain("ChapterBeta", string.Concat(firstPageText), StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Alpha", rendered.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Beta", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("First body", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Second body", rendered.Text, StringComparison.Ordinal);
+        Assert.Empty(rendered.Headings);
+        Assert.All(
+            rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
+            group => {
+                Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, group.Role);
+                Assert.All(
+                    EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderText>(),
+                    text => Assert.InRange(text.X, group.X - 0.001D, group.X + group.Width - 0.001D));
+            });
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(position: running(chapter))"));
+        Assert.Empty(rendered.Diagnostics);
+
+        HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions(options);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
+        string raw = Encoding.ASCII.GetString(pdf);
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
+        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Alpha", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Beta", pdfText, StringComparison.Ordinal);
+        Assert.Contains("First body", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Second body", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlRenderDocument_TextExcludesArtifactsNestedInsideLogicalTextGroups() {
+        var font = new OfficeFontInfo("Arial", 10D);
+        var logicalText = new HtmlRenderLogicalTextGroup(
+            "Before Decorative After",
+            0D,
+            0D,
+            100D,
+            12D,
+            new HtmlRenderVisual[] {
+                new HtmlRenderText("Before ", 0D, 0D, 30D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 0),
+                new HtmlRenderSemanticGroup(
+                    HtmlRenderSemanticGroupRole.Artifact,
+                    30D,
+                    0D,
+                    40D,
+                    12D,
+                    new[] { new HtmlRenderText("Decorative ", 30D, 0D, 40D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 0) },
+                    1,
+                    "decorative"),
+                new HtmlRenderText("After", 70D, 0D, 30D, 12D, font, OfficeColor.Black, OfficeTextAlignment.Left, 12D, 2)
+            },
+            0,
+            "logical");
+        var rendered = new HtmlRenderDocument(
+            HtmlRenderMode.Continuous,
+            new[] { new HtmlRenderPage(1, 100D, 100D, new[] { logicalText }) },
+            new HtmlDiagnosticReport());
+
+        Assert.Equal("Before After", rendered.Text);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_NestedInlineRunningElementLeavesFlowAndRepeatsAsArtifact() {
+        const string html = """
+            <style>
+              @page { size:320px 180px; margin:32px; @top-center { content:element(chapter); } }
+              .running { position:running(chapter); color:#225588; border-bottom:1px solid #225588; }
+              .page { margin:0; height:80px; }
+            </style>
+            <p>Before <span class="running">Nested Chapter</span> After</p>
+            <div class="page" style="break-after:page">First body</div>
+            <div class="page">Second body</div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.All(rendered.Pages, page =>
+            Assert.Contains(
+                EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
+                text => text.Text.Contains("Nested", StringComparison.Ordinal)));
+        Assert.DoesNotContain(
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Nested Chapter", StringComparison.Ordinal) && text.SemanticRole != "page-margin");
+        Assert.DoesNotContain("Nested Chapter", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("Before", rendered.Text, StringComparison.Ordinal);
+        Assert.Contains("After", rendered.Text, StringComparison.Ordinal);
+        Assert.All(
+            rendered.Pages.SelectMany(page => page.Scene).OfType<HtmlRenderSemanticGroup>().Where(group => group.Source?.Contains("element(chapter)", StringComparison.Ordinal) == true),
+            group => Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, group.Role));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("block")]
+    [InlineData("inline")]
+    [InlineData("flex")]
+    [InlineData("grid")]
+    public void HtmlRender_Paged_CapturedRunningElementsPropagateOwnAndNestedAssignments(string layout) {
+        const string captured = "<span class='outer'>OuterMarker <span class='nested'>NestedMarker</span></span>";
+        string body = layout switch {
+            "inline" => "<p>Before " + captured + " After</p>",
+            "flex" => "<div style='display:flex'>" + captured + "<span>Body</span></div>",
+            "grid" => "<div style='display:grid;grid-template-columns:1fr'>" + captured + "<span>Body</span></div>",
+            _ => captured + "<p>Body</p>"
+        };
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:32px;
+                @top-left { content:string(title); }
+                @top-center { content:element(outer); }
+                @top-right { content:element(nested); }
+              }
+              .outer { position:running(outer); string-set:title 'TitleMarker'; }
+              .nested { position:running(nested); }
+            </style>
+            """ + body;
+
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string marginText = string.Concat(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene)
+                .OfType<HtmlRenderText>()
+                .Select(text => text.Text));
+
+        Assert.Contains("TitleMarker", marginText, StringComparison.Ordinal);
+        Assert.Contains("OuterMarker", marginText, StringComparison.Ordinal);
+        Assert.Contains("NestedMarker", marginText, StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+        PdfCore.PdfDocumentConversionResult pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPdfDocumentResult(new HtmlPdfSaveOptions(options));
+        Assert.DoesNotContain(pdf.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_DirectFlexAndGridRunningItemsPreserveCaseAndContainerLayout() {
+        const string html = """
+            <style>
+              @page {
+                size:320px 200px;
+                margin:32px;
+                @top-center { content:element(FlexHeader); }
+                @bottom-center { content:element(GridFooter); }
+              }
+              .flex { display:flex; width:240px; height:32px; }
+              .grid { display:grid; grid-template-columns:1fr; width:240px; height:32px; }
+              .flex-running { position:running(FlexHeader); }
+              .grid-running { position:running(GridFooter); }
+            </style>
+            <div class="flex"><header class="flex-running">MixedCaseHeader</header><div>FlexBody</div></div>
+            <div class="grid"><footer class="grid-running">MixedCaseFooter</footer><div>GridBody</div></div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string sceneText = string.Concat(EnumerateRenderVisuals(Assert.Single(rendered.Pages).Scene).OfType<HtmlRenderText>().Select(text => text.Text));
+
+        Assert.Contains("MixedCaseHeader", sceneText, StringComparison.Ordinal);
+        Assert.Contains("MixedCaseFooter", sceneText, StringComparison.Ordinal);
+        Assert.Contains("FlexBody", sceneText, StringComparison.Ordinal);
+        Assert.Contains("GridBody", sceneText, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code is HtmlRenderDiagnosticCodes.FlexLayoutPending or HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("flex")]
+    [InlineData("grid")]
+    public void HtmlRender_Paged_FlexAndGridRunningElementsUseDomOrderForFirstAndLastSelection(string layout) {
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:32px;
+                @top-left { content:element(chapter, first); }
+                @top-right { content:element(chapter, last); }
+              }
+              .container { display:LAYOUT; width:240px; height:64px; }
+              .nested { padding-top:20px; }
+              .running { position:running(chapter); }
+            </style>
+            <div class="container">
+              <div class="nested"><span class="running">Earlier nested</span></div>
+              <span class="running">Later direct</span>
+              <div>Body</div>
+            </div>
+            """.Replace("LAYOUT", layout);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+        IReadOnlyList<HtmlRenderSemanticGroup> marginGroups = Assert.Single(rendered.Pages).Scene
+            .OfType<HtmlRenderSemanticGroup>()
+            .Where(group => group.Source?.Contains("element(chapter", StringComparison.Ordinal) == true)
+            .OrderBy(group => group.X)
+            .ToList();
+
+        Assert.Equal(2, marginGroups.Count);
+        Assert.Contains("Earliernested", string.Concat(EnumerateRenderVisuals(marginGroups[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
+        Assert.Contains("Later direct", string.Concat(EnumerateRenderVisuals(marginGroups[1].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("flex;flex-direction:column")]
+    [InlineData("flex;flex-wrap:wrap")]
+    [InlineData("grid;grid-template-columns:1fr")]
+    public void HtmlRender_Paged_FlexAndGridRunningElementsBecomeAvailableAtTheirFragmentedSourcePosition(string layout) {
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:24px;
+                @top-center { content:element(chapter, last); }
+              }
+              .container { display:LAYOUT; width:240px; }
+              .running { position:running(chapter); }
+              .tall { width:240px; height:100px; }
+            </style>
+            <div class="container">
+              <span class="running">Earlier chapter</span>
+              <div class="tall">Tall body one</div>
+              <div class="tall">Tall body two</div>
+              <div class="tall">Tall body three</div>
+              <span class="running">Later chapter</span>
+            </div>
+            """.Replace("LAYOUT", layout);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        });
+        IReadOnlyList<string> pageHeaders = rendered.Pages
+            .Select(page => string.Concat(page.Scene
+                .OfType<HtmlRenderSemanticGroup>()
+                .Where(group => group.Source?.Contains("element(chapter", StringComparison.Ordinal) == true)
+                .SelectMany(group => EnumerateRenderVisuals(group.Visuals).OfType<HtmlRenderText>())
+                .Select(text => text.Text)))
+            .ToList();
+
+        Assert.True(pageHeaders.Count > 1);
+        Assert.Contains("Earlierchapter", pageHeaders[0], StringComparison.Ordinal);
+        Assert.DoesNotContain("Laterchapter", pageHeaders[0], StringComparison.Ordinal);
+        Assert.Contains("Laterchapter", pageHeaders[pageHeaders.Count - 1], StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_MixedRunningElementContentIsDiagnosedAndStrictModeRejectsIt() {
+        const string html = """
+            <style>
+              @page { size:320px 180px; margin:32px; @top-center { content:"Report " element(chapter); } }
+              header { position:running(chapter); }
+            </style>
+            <header>Chapter</header><p>Body</p>
+            """;
+
+        HtmlRenderDocument permissive = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        HtmlDiagnostic diagnostic = Assert.Single(permissive.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.DoesNotContain(permissive.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("Report", StringComparison.Ordinal));
+
+        HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        }));
+        Assert.Contains(exception.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
     }
 
     [Fact]
@@ -1634,7 +1984,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
-        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfReadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("FirstBody", pdfText, StringComparison.Ordinal);
         Assert.Contains("L2", pdfText, StringComparison.Ordinal);
@@ -1818,6 +2168,543 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = HtmlConversionDocument.Parse("<p>Explicit untagged output</p>").ToPdf(options);
 
         Assert.False(PdfCore.PdfReadDocument.Open(pdf).HasTaggedContent);
+    }
+
+    [Fact]
+    public void HtmlPdf_CssBookmarkAndTagControlsMapToCanonicalPdfModels() {
+        const string html = "<main>"
+            + "<h1 style='bookmark-label:\"Public label\";bookmark-state:closed'>Visible title</h1>"
+            + "<h2>Child</h2>"
+            + "<h2 style='bookmark-level:none'>Suppressed child</h2>"
+            + "<div style='bookmark-level:1;bookmark-label:\"Extra entry\";bookmark-state:open'>Extra body</div>"
+            + "<h2 style='bookmark-label:\"Empty heading\"'></h2>"
+            + "<div style='height:12px;bookmark-level:1;bookmark-label:\"Empty block\"'></div>"
+            + "<p>Before<span style='bookmark-level:1;bookmark-label:\"Empty inline\"'></span>After</p>"
+            + "<p style='-officeimo-pdf-tag-type:H2'>Promoted semantic paragraph</p>"
+            + "<aside style='-officeimo-pdf-tag-type:artifact'>Decorative note</aside>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                OutlineExpansionLevel = 64,
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Collection(rendered.Headings,
+            heading => { Assert.Equal("Public label", heading.Text); Assert.Equal(HtmlRenderBookmarkState.Closed, heading.BookmarkState); },
+            heading => Assert.Equal("Child", heading.Text),
+            heading => { Assert.Equal("Extra entry", heading.Text); Assert.Equal(HtmlRenderBookmarkState.Open, heading.BookmarkState); },
+            heading => Assert.Equal("Empty heading", heading.Text),
+            heading => Assert.Equal("Empty block", heading.Text),
+            heading => Assert.Equal("Empty inline", heading.Text));
+        Assert.Equal("Public label", info.Outlines[0].Title);
+        Assert.False(info.Outlines[0].IsExpanded);
+        Assert.Equal("Child", Assert.Single(info.Outlines[0].Children).Title);
+        Assert.Equal("Extra entry", info.Outlines[1].Title);
+        Assert.Equal("Empty heading", Assert.Single(info.Outlines[1].Children).Title);
+        Assert.Equal("Empty block", info.Outlines[2].Title);
+        Assert.Equal("Empty inline", info.Outlines[3].Title);
+        Assert.Contains("/Artifact BMC", raw, StringComparison.Ordinal);
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
+        Assert.DoesNotContain("Decorative note", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(bookmark-level:2)"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(bookmark-label:'Label')"));
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(-officeimo-pdf-tag-type:artifact)"));
+    }
+
+    [Theory]
+    [InlineData("(bookmark-level:var(--outline-level))")]
+    [InlineData("(bookmark-state:var(--outline-state))")]
+    [InlineData("(bookmark-label:var(--outline-label))")]
+    [InlineData("(clip-path:var(--clip))")]
+    [InlineData("(-officeimo-pdf-tag-type:var(--tag))")]
+    [InlineData("(bookmark-level:inherit)")]
+    [InlineData("(bookmark-state:initial)")]
+    [InlineData("(bookmark-label:revert-layer)")]
+    public void HtmlSupports_DeferredAndCssWideValuesReachSpecializedProperties(string condition) {
+        Assert.True(HtmlComputedStyleEngine.IsApplicableSupports(condition));
+    }
+
+    [Fact]
+    public void HtmlSupports_DeferredValuesDoNotMakeUnknownPropertiesSupported() {
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(not-a-real-property:var(--value))"));
+    }
+
+    [Theory]
+    [InlineData("(clip-path:var())")]
+    [InlineData("(bookmark-level:notvar(--level))")]
+    [InlineData("(bookmark-state:var(--state)")]
+    [InlineData("(bookmark-label:var(--label, var()))")]
+    [InlineData("(bookmark-label:var(--label, [{]}))")]
+    public void HtmlSupports_RejectsMalformedDeferredValues(string condition) {
+        Assert.False(HtmlComputedStyleEngine.IsApplicableSupports(condition));
+    }
+
+    [Fact]
+    public void HtmlPdf_CssBookmarkAndTagControlsReachSpecializedAndInlineElements() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(8, 6));
+        string html = "<main>"
+            + "<img src='data:image/png;base64," + image + "' alt='Chart' style='display:block;width:8px;height:6px;bookmark-level:1;bookmark-label:\"Chart entry\";-officeimo-pdf-tag-type:H2'>"
+            + "<p style='width:72px'>Prefix <span style='bookmark-level:2;bookmark-label:\"Inline entry\";-officeimo-pdf-tag-type:H3'>Inline content wraps across lines</span></p>"
+            + "<p><input name='field' aria-label='Field' value='Value' style='width:80px;bookmark-level:1;bookmark-label:\"Field entry\";-officeimo-pdf-tag-type:H4'></p>"
+            + "<table style='-officeimo-pdf-tag-type:artifact'><tr><td>Decorative table<input name='artifact-field' value='Must not be interactive'></td></tr></table>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
+            ResourceUrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
+            PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+        IReadOnlyList<HtmlRenderSemanticGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderSemanticGroup>().ToList();
+
+        Assert.NotEmpty(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>());
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Chart entry" && heading.Level == 1);
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Inline entry" && heading.Level == 2);
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Field entry" && heading.Level == 1);
+        Assert.Contains(groups, group => group.Role == HtmlRenderSemanticGroupRole.Heading2 && group.Source?.Contains("img", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Contains(groups, group => group.Role == HtmlRenderSemanticGroupRole.Heading3 && group.Source?.Contains("span", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.True(groups.Count(group => group.Role == HtmlRenderSemanticGroupRole.Heading3) > 1);
+        Assert.Contains(groups, group => group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("table", StringComparison.OrdinalIgnoreCase) == true);
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H3"));
+        Assert.Equal(1, tagged.StructureElements.Count(element => element.StructureType == "H4"));
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative table", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "artifact-field");
+        Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.Name == "field");
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_InlineArtifactCannotCreateABookmark() {
+        const string html = "<p>Before <span style='bookmark-level:1;bookmark-label:\"Decorative\";-officeimo-pdf-tag-type:artifact'>Hidden outline</span> after</p>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Empty(rendered.Headings);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
+        Assert.DoesNotContain(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>(),
+            anchor => anchor.Text == "Decorative");
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_InlineBookmarkAnchorDoesNotConsumeFlowWidth() {
+        const string html = "<p style='margin:0'><span id='plain'>Plain</span></p>"
+            + "<p style='margin:0'><span id='bookmarked' style='bookmark-level:1'>Plain</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-before'>X</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-bookmark' style='bookmark-level:1'>X</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-after'>X</span></p>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] textVisuals = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Text == "Plain")
+            .OrderBy(text => text.Y)
+            .ToArray();
+        Assert.Equal(2, textVisuals.Length);
+        HtmlRenderText plain = textVisuals[0];
+        HtmlRenderText bookmarked = textVisuals[1];
+
+        Assert.Equal(plain.X, bookmarked.X, 6);
+        HtmlRenderText[] narrow = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Text == "X")
+            .OrderBy(text => text.Y)
+            .ToArray();
+        Assert.Equal(3, narrow.Length);
+        Assert.Equal(narrow[1].Y - narrow[0].Y, narrow[2].Y - narrow[1].Y, 6);
+        Assert.Equal(new[] { "Plain", "X" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarkLabelAndStateRequireAHeadingOrValidExplicitLevel() {
+        const string html = "<main>"
+            + "<div style='bookmark-label:\"Label only\"'>Ignored label</div>"
+            + "<div style='bookmark-state:open'>Ignored state</div>"
+            + "<h2 style='bookmark-label:\"Heading label\";bookmark-state:closed'>Heading text</h2>"
+            + "<div style='bookmark-level:2;bookmark-label:\"Explicit entry\"'>Explicit text</div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Equal(new[] { "Heading label", "Explicit entry" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { 2, 2 }, rendered.Headings.Select(heading => heading.Level).ToArray());
+        Assert.Equal(2, EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>().Count());
+        Assert.Equal(new[] { "Heading label", "Explicit entry" }, info.Outlines.Select(outline => outline.Title).ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarkTitlesKeepLogicalSourceOrderAfterVisualRepositioning() {
+        const string html = "<h1><span style='position:relative;left:100px'>A</span><span>B</span></h1>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { OutlineExpansionLevel = 64 }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal("AB", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("AB", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarksKeepSourceOrderWhenDestinationsCrossPages() {
+        const string html = "<style>@page{size:200px 100px;margin:0}</style>"
+            + "<div style='height:120px'></div>"
+            + "<h1>First source</h1>"
+            + "<h1 style='position:absolute;top:0;left:0'>Second source</h1>";
+        var options = new HtmlPdfSaveOptions {
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D),
+            PdfOptions = new PdfCore.PdfOptions { OutlineExpansionLevel = 64 }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "First source", "Second source" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.True(rendered.Headings[0].PageNumber > rendered.Headings[1].PageNumber);
+        Assert.Equal(new[] { "First source", "Second source" }, PdfCore.PdfInspector.Inspect(pdf).Outlines.Select(outline => outline.Title).ToArray());
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsPreservesBookmarkAndArtifactControlsAcrossBlockChildren() {
+        const string html = "<main>"
+            + "<div id='bookmark-contents' style='display:contents;bookmark-level:1;bookmark-label:\"Contents entry\"'><p>Bookmark body</p><p>Second body</p></div>"
+            + "<div id='artifact-contents' style='display:contents;-officeimo-pdf-tag-type:artifact'><p>Decorative first <a href='https://evotec.xyz/decorative'>link</a></p><p>Decorative second <input name='decorative-field' value='hidden'></p></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        IReadOnlyList<HtmlRenderSemanticGroup> groups = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderSemanticGroup>().ToList();
+
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Contents entry" && heading.Level == 1);
+        Assert.Contains(info.Outlines, outline => outline.Title == "Contents entry");
+        Assert.Equal(2, groups.Count(group => group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source == "div#artifact-contents"));
+        Assert.DoesNotContain("Decorative first", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Decorative second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsPreservesSemanticsForDirectFlexAndGridItems() {
+        const string html = "<main>"
+            + "<div style='display:flex'><div id='flex-bookmark' style='display:contents;bookmark-level:1;bookmark-label:\"Flex entry\"'><span>Flex body</span></div><div id='flex-artifact' style='display:contents;-officeimo-pdf-tag-type:artifact'><a href='https://evotec.xyz/flex'>Flex link</a><input name='flex-field' value='hidden'></div></div>"
+            + "<div style='display:grid'><div id='grid-bookmark' style='display:contents;bookmark-level:1;bookmark-label:\"Grid entry\"'><span>Grid body</span></div><div id='grid-artifact' style='display:contents;-officeimo-pdf-tag-type:artifact'><a href='https://evotec.xyz/grid'>Grid link</a><input name='grid-field' value='hidden'></div></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Flex entry");
+        Assert.Contains(rendered.Headings, heading => heading.Text == "Grid entry");
+        Assert.Contains(info.Outlines, outline => outline.Title == "Flex entry");
+        Assert.Contains(info.Outlines, outline => outline.Title == "Grid entry");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.DoesNotContain("Flex link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Grid link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsWithOnlyPositionedChildrenKeepsSemanticOwnership() {
+        const string html = "<main>"
+            + "<div id='block-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:fixed;left:0;top:0'>Block only</span></div>"
+            + "<div style='display:flex;position:relative;height:20px'><div id='flex-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:absolute;left:0;top:0'>Flex only</span></div></div>"
+            + "<div style='display:grid;position:relative;height:20px'><div id='grid-only' style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><span style='position:absolute;left:0;top:0'>Grid only</span></div></div>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { "Block only", "Flex only", "Grid only" }, info.Outlines.Select(outline => outline.Title).ToArray());
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "H2"));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_BookmarkFallbackLabelsUseCssNormalWhitespace() {
+        const string html = "<h1>Alpha   <span>Beta</span>\n    Gamma</h1>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal("Alpha Beta Gamma", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Alpha Beta Gamma", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DefaultBookmarkLabelsUseOnlyRenderedContent() {
+        const string html = "<main><h1>Visible<span style='display:none'>Hidden</span><script>Script</script><span> tail</span></h1>"
+            + "<h2 style='visibility:hidden'>Invisible <span style='visibility:visible'>Visible child</span></h2>"
+            + "<h3>Public <span style='-officeimo-pdf-tag-type:artifact'>Decorative</span> heading</h3>"
+            + "<h4 style='visibility:hidden' aria-label='Hidden metadata'>Invisible metadata</h4>"
+            + "<div style='display:contents;bookmark-level:1'>Flattened<span style='display:none'>Secret</span><span> entry</span></div>"
+            + "<table style='bookmark-level:1'><tr><td>Table<span style='display:none'>Private</span><span style='-officeimo-pdf-tag-type:none'>Decorative</span> entry</td></tr></table>"
+            + "<input style='bookmark-level:1' aria-label='Field entry' value='Value'>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "Visible tail", "Visible child", "Public heading", "Flattened entry", "Table entry", "Field entry" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        IReadOnlyList<PdfCore.PdfOutlineItem> outlines = PdfCore.PdfInspector.Inspect(pdf).Outlines;
+        Assert.Equal(new[] { "Visible tail", "Flattened entry", "Table entry", "Field entry" }, outlines.Select(outline => outline.Title).ToArray());
+        PdfCore.PdfOutlineItem visibleChild = Assert.Single(outlines[0].Children);
+        Assert.Equal("Visible child", visibleChild.Title);
+        Assert.Equal("Public heading", Assert.Single(visibleChild.Children).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DefaultBookmarkLabelsIgnoreGeneratedAndPaintTransformedText() {
+        const string html = "<style>.generated::before{content:'Generated '}</style>"
+            + "<h1 class='generated' style='text-transform:uppercase'>Source title</h1>"
+            + "<p>Before <span class='generated' style='bookmark-level:1;text-transform:uppercase'>Inline source</span> after</p>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Equal(new[] { "Source title", "Inline source" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Equal(new[] { "Source title", "Inline source" }, PdfCore.PdfInspector.Inspect(pdf).Outlines.Select(outline => outline.Title).ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_RepeatedFixedBookmarkAnchorsKeepOneSourceLabel() {
+        const string html = "<main><h1 style='position:fixed;left:0;top:0;margin:0'>Fixed title</h1>"
+            + "<p>First page</p><section style='break-before:page'>Second page</section>"
+            + "<section style='break-before:page'>Third page</section></main>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Equal("Fixed title", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Fixed title", Assert.Single(PdfCore.PdfInspector.Inspect(pdf).Outlines).Title);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_OutOfFlowDescendantsRemainInsideAncestorArtifactAndBookmarkText() {
+        const string html = "<main>"
+            + "<div id='artifact' style='position:relative;height:60px;-officeimo-pdf-tag-type:artifact'><div style='display:contents;bookmark-level:1;-officeimo-pdf-tag-type:H2'><input style='position:absolute;left:0;top:0' name='absolute-field' value='hidden'><a style='position:fixed;left:0;top:0' href='https://evotec.xyz/fixed'>Fixed link</a></div></div>"
+            + "<h1>Start<span style='position:absolute;left:120px'>Middle</span>End</h1>"
+            + "</main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal("StartMiddleEnd", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("StartMiddleEnd", Assert.Single(info.Outlines).Title);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.FormFields);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
+        Assert.DoesNotContain("Fixed link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_OutOfFlowArtifactRemainsInsideOuterFlattenedBookmark() {
+        const string html = "<main>"
+            + "<div style='display:contents;bookmark-level:1;bookmark-label:\"Outer bookmark\";-officeimo-pdf-tag-type:H2'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<a style='display:block;position:fixed;left:0;top:0' href='https://evotec.xyz/hidden'>Hidden artifact link</a>"
+            + "</div></div></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Equal("Outer bookmark", Assert.Single(rendered.Headings).Text);
+        Assert.Equal("Outer bookmark", Assert.Single(info.Outlines).Title);
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "H2");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.DoesNotContain("Hidden artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("fixed")]
+    [InlineData("absolute")]
+    public void HtmlPdf_NestedArtifactsSuppressIntermediateFlattenedBookmark(string position) {
+        string html = "<main style='position:relative'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<div style='display:contents;bookmark-level:1;bookmark-label:\"Hidden bookmark\";-officeimo-pdf-tag-type:H2'>"
+            + "<div style='display:contents;-officeimo-pdf-tag-type:artifact'>"
+            + "<a style='display:block;position:" + position + ";left:0;top:0' href='https://evotec.xyz/hidden'>Hidden nested artifact link</a>"
+            + "</div></div></div></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+
+        Assert.Empty(rendered.Headings);
+        Assert.Empty(info.Outlines);
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "H2");
+        Assert.Empty(info.LinkAnnotations);
+        Assert.DoesNotContain("Hidden nested artifact link", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_PagedDisplayContentsRetainsListStructureAndBookmarkAnchor() {
+        string longText = string.Join(" ", Enumerable.Repeat("breakable", 80));
+        string html = "<main><ol style='display:contents;bookmark-level:1;bookmark-label:\"Paged list\"'><li style='display:contents'><p style='width:120px;font-size:16px;line-height:20px;margin:0'>" + longText + "</p><p style='margin:0'>Continuation body</p></li></ol></main>";
+        var options = new HtmlPdfSaveOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 1.25D),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+
+        Assert.True(rendered.Pages.Count > 1);
+        Assert.Equal("Paged list", Assert.Single(rendered.Headings).Text);
+        PdfCore.PdfStructureElementInfo list = Assert.Single(tagged.StructureElements, element => element.StructureType == "L");
+        PdfCore.PdfStructureElementInfo listItem = Assert.Single(tagged.StructureElements, element => element.StructureType == "LI");
+        PdfCore.PdfStructureElementInfo listBody = Assert.Single(tagged.StructureElements, element => element.StructureType == "LBody");
+        Assert.Contains(listItem.ObjectNumber, list.ChildElementObjectNumbers);
+        Assert.Contains(listBody.ObjectNumber, listItem.ChildElementObjectNumbers);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_DisplayContentsReusesOneListStructureAcrossSiblingFragments() {
+        const string html = "<main><ol style='display:contents'><li>First item body</li><li>Second item body</li></ol><ol><li style='display:contents'><p>Flattened item body</p><p>Continuation body</p></li></ol></main>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(PdfCore.PdfInspector.Inspect(pdf).TaggedContent);
+
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "L"));
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "LI"));
+        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Lbl"));
+        Assert.Equal(3, tagged.StructureElements.Count(element => element.StructureType == "LBody"));
+    }
+
+    [Fact]
+    public void HtmlRender_InvalidPdfControlsOnSpecializedAndInlineElementsAreNeverSilent() {
+        const string html = "<hr style='-officeimo-pdf-tag-type:made-up;bookmark-state:sideways'><p><span style='-officeimo-pdf-tag-type:also-made-up;bookmark-state:sideways'>Text</span></p><div style='bookmark-level:bogus'>Not a heading</div>";
+
+        HtmlRenderDocument permissive = HtmlRenderTestDriver.Render(html);
+        Assert.Equal(2, permissive.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PdfSemanticTagUnsupported));
+        Assert.Equal(3, permissive.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BookmarkValueUnsupported));
+        Assert.DoesNotContain(permissive.Headings, heading => heading.Text.Contains("Not a heading", StringComparison.Ordinal));
+
+        HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        }));
+        Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PdfSemanticTagUnsupported);
+        Assert.Contains(exception.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BookmarkValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlPdf_PagedGeneratedMarginTextIsDecorativeArtifact() {
+        const string html = "<style>@page{size:320px 180px;margin:32px;@top-left{content:\"Page \" counter(page)}}</style><p>Body</p>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+        HtmlRenderSemanticGroup artifact = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>(), group =>
+            group.Role == HtmlRenderSemanticGroupRole.Artifact && group.Source?.Contains("top-left", StringComparison.Ordinal) == true);
+
+        Assert.Contains(artifact.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page 1");
+        Assert.Contains("/Artifact BMC", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page 1", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Page 1", PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfReadOptions { IncludeArtifactText = true }).ExtractText(), StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Fact]
@@ -2268,6 +3155,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRenderDiagnostics_AreAllRegisteredInThePublicCatalog() {
+        Assert.Contains(HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.All(HtmlRenderDiagnosticCodes.All, code =>
             Assert.True(HtmlDiagnosticCatalog.TryGet(code, out _), code));
     }

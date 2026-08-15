@@ -53,6 +53,9 @@ public static partial class HtmlComputedStyleEngine {
         "align-self",
         "aspect-ratio",
         "bottom",
+        "bookmark-label",
+        "bookmark-level",
+        "bookmark-state",
         "box-shadow",
         "border",
         "border-bottom",
@@ -87,6 +90,7 @@ public static partial class HtmlComputedStyleEngine {
         "break-inside",
         "caption-side",
         "clear",
+        "clip-path",
         "color",
         "column-gap",
         "column-count",
@@ -209,6 +213,7 @@ public static partial class HtmlComputedStyleEngine {
         "word-spacing",
         "line-clamp",
         "-webkit-line-clamp",
+        "-officeimo-pdf-tag-type",
         "z-index"
     };
 

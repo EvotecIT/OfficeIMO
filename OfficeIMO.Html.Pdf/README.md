@@ -70,6 +70,69 @@ Console.WriteLine(saved.Serialization?.PeakRetainedPageContentBytes);
 
 This bounds completed PDF page and object payloads and avoids buffering the final artifact inside OfficeIMO. HTML parsing, cascading, and layout still operate on the complete document so CSS page counters, named pages, cross-page fragmentation, and other whole-document rules remain correct. `PdfSerializationReport.IsForwardOnlyLayout` stays `false`; split independently generated documents at the application boundary when a workload requires a hard end-to-end heap ceiling.
 
+## Paged-media and PDF semantics
+
+The managed path supports named page rules, margin boxes, page counters, running strings, and running elements. It also maps headings and CSS bookmark controls to PDF outlines, maps supported semantic roles to the tagged structure tree, and marks repeated decorative margin content as PDF artifacts.
+
+```html
+<style>
+  @page {
+    margin: 18mm;
+    @top-center { content: element(report-header, first) }
+    @bottom-right { content: "Page " counter(page) " / " counter(pages) }
+  }
+  .running-header { position: running(report-header) }
+  section { break-after: page; -officeimo-pdf-tag-type: Sect }
+  section:last-child { break-after: auto }
+  h1 { bookmark-level: 1; bookmark-state: open }
+  .summary { display: grid; grid-template-rows: 32px 48px }
+  .summary-body { display: grid; grid-column: 1; grid-row: 1 / 3; grid-template-rows: subgrid }
+  .badge { clip-path: polygon(0 0, 100% 0, 88% 100%, 0 100%) }
+</style>
+<header class="running-header">Quarterly report</header>
+<section>
+  <h1>Overview</h1>
+  <div class="summary">
+    <div class="summary-body"><div>Revenue</div><div>Margin</div></div>
+    <div class="badge">Approved</div>
+  </div>
+</section>
+```
+
+`bookmark-level:none` suppresses an automatic heading outline. `bookmark-label:"…"` changes its outline label, and `bookmark-state:open|closed` controls its initial state. `-officeimo-pdf-tag-type` accepts the declared PDF structure roles plus `artifact`/`none` for decorative content. Invalid values keep the normal semantic behavior and produce a typed warning.
+
+Use strict mode when the input must stay inside the declared static contract, and require the PDF-stage report as well:
+
+```csharp
+var options = new HtmlPdfSaveOptions {
+    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+    PdfOptions = new OfficeIMO.Pdf.PdfOptions()
+        .EnableTaggedPdfCatalogMarkers()
+};
+
+var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+result.RequireNoLoss();
+result.Save("report.pdf").RequireNoLoss();
+```
+
+## Fonts and text shaping
+
+The dependency-light path loads policy-approved TrueType-glyf OpenType and WOFF 1 faces and provides deterministic managed Unicode, bidirectional, and bounded core-Arabic behavior. WOFF 2 transformed tables and CFF outlines are not silently substituted: font loading reports `HtmlRenderFontFormatUnsupported` unless the host pre-converts the face to a supported static font.
+
+For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
+
+```csharp
+using OfficeIMO.Drawing.HarfBuzz;
+
+var options = new HtmlPdfSaveOptions {
+    TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+    TextShapingLanguage = "ar"
+};
+options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
+```
+
+If a configured provider declines a joining-script run, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback.
+
 Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.
 
 Naming is consistent across the direct output APIs:

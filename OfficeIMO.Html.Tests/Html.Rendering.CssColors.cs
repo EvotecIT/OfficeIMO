@@ -68,6 +68,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
     }
 
+    [Fact]
+    public void HtmlRenderer_DiagnosesUnsupportedForegroundAndBackgroundColorValues() {
+        const string html = "<div style='color:color(from red srgb r g b);background-color:color(from blue srgb r g b)'>Fallback</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "color=color(from red srgb r g b)");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "background-color=color(from blue srgb r g b)");
+        Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
+            html,
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+        Assert.Contains(HtmlRenderDiagnosticCodes.ColorValueUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ColorValueUnsupported, out _));
+    }
+
+    [Theory]
+    [InlineData("red url('{0}') no-repeat")]
+    [InlineData("url('{0}') no-repeat red")]
+    public void HtmlRenderer_PreservesColorInCombinedBackgroundShorthand(string shorthand) {
+        const string pixelPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP4/w8AAv8B/h10yjMAAAAASUVORK5CYII=";
+        string dataUri = "data:image/png;base64," + pixelPng;
+        string html = "<div id='combined' style=\"width:20px;height:12px;background:"
+            + string.Format(System.Globalization.CultureInfo.InvariantCulture, shorthand, dataUri)
+            + "\">Color</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            BackgroundColor = OfficeColor.Transparent
+        });
+        HtmlRenderShape fill = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            item => item.Source == "div#combined" && item.Shape.FillColor.HasValue);
+
+        Assert.Equal(OfficeColor.Red, fill.Shape.FillColor);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported);
+    }
+
     [Theory]
     [InlineData("lab(50 200 0)", "lab(50 125 0)")]
     [InlineData("lab(50 -200 0)", "lab(50 -125 0)")]
