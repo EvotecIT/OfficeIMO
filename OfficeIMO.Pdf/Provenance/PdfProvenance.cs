@@ -551,7 +551,7 @@ public static partial class PdfProvenance {
                         sharedVisited: structuralTraversalVisited);
                 }
                 if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal)) {
-                    foreach (string key in new[] { "Group", "Ref", "PieceInfo" }) {
+                    foreach (string key in new[] { "Group", "Ref", "PieceInfo", "OPI" }) {
                         AddStructuralGraphDictionaries(
                             objects,
                             activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? formValue) ? formValue : null,
