@@ -37,5 +37,5 @@
     }
   },
   "minimumCachedSpeedup": 1.1,
-  "minimumCachedAllocationReduction": 1.15
+  "minimumCachedAllocatedBytesSaved": 6000000
 }

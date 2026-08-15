@@ -882,6 +882,7 @@ dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net8.0
 dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
+dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
 Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
 Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
@@ -889,7 +890,11 @@ Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 The checked-in interoperability gate uses hash-pinned Open Preservation
 Foundation and veraPDF fixtures with explicit provenance. The performance gate
 uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
-SVG rendering, PNG rendering, output integrity, and allocation/time budgets.
+SVG rendering, PNG rendering, output integrity, absolute allocation and heap
+budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
+cached speedup is opt-in through `--verify-timing-budgets` for controlled
+benchmark hosts; ordinary CI records it without treating shared-runner timing as
+a release comparison.
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic
