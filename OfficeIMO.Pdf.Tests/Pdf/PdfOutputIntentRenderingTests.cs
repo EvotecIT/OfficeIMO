@@ -39,6 +39,39 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntent_DoesNotTreatIccFallbackAsNativeDeviceCmyk() {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        var profile = new PdfStream(new PdfDictionary(), profileBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = new PdfReference(6, 0);
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [6] = new PdfIndirectObject(6, 0, profile)
+        };
+        PdfOutputIntentColorTransform transform = Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(catalog, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes));
+        PdfPageColorSpace colorSpace = PdfPageColorSpace.IccFallback(
+            PdfPageColorSpaceKind.DeviceCmyk,
+            new[] { 1D, 1D, 1D, 1D, 1D, 1D, 1D, 1D });
+        double[] components = { 0D, 0D, 0D, 0D };
+        Assert.True(colorSpace.TryConvertColor(
+            components,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out OfficeColor fallback));
+
+        OfficeColor actual = transform.Apply(
+            colorSpace,
+            components,
+            fallback,
+            OfficeIccRenderingIntent.RelativeColorimetric);
+
+        Assert.Equal(transform.Apply(fallback, OfficeIccRenderingIntent.RelativeColorimetric), actual);
+    }
+
+    [Fact]
     public void IccProfile_AcceptsMbaClutWithoutOptionalACurves() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16BidirectionalWithoutOutputCurves();
 

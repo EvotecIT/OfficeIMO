@@ -44,7 +44,7 @@ internal sealed class PdfOutputIntentColorTransform {
         OfficeIccRenderingIntent renderingIntent) {
         if (TryGetProfile(out OfficeIccColorProfile? profile) &&
             profile != null &&
-            IsMatchingDeviceColorSpace(colorSpace.Kind, profile.ComponentCount) &&
+            IsMatchingDeviceColorSpace(colorSpace, profile.ComponentCount) &&
             profile.TryConvert(components, renderingIntent, out OfficeColor converted)) {
             return converted;
         }
@@ -119,8 +119,8 @@ internal sealed class PdfOutputIntentColorTransform {
                (resolved is PdfNumber componentCount && componentCount.Value == profileComponentCount);
     }
 
-    private static bool IsMatchingDeviceColorSpace(PdfPageColorSpaceKind kind, int componentCount) =>
-        kind == PdfPageColorSpaceKind.DeviceCmyk && componentCount == 4;
+    private static bool IsMatchingDeviceColorSpace(PdfPageColorSpace colorSpace, int componentCount) =>
+        colorSpace.IsNativeDeviceCmyk && componentCount == 4;
 
     private static bool TryResolve(
         Dictionary<int, PdfIndirectObject> objects,

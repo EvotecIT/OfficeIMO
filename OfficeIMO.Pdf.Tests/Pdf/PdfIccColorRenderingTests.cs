@@ -1680,6 +1680,36 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void VisualParserRestoresInitialColorSelectionAfterUnmatchedRestore() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents(),
+            out OfficeIccColorProfile? profile));
+        PdfPageColorSpace colorSpace = PdfPageColorSpace.IccBased(profile!);
+        Assert.True(PdfPaintColorSelection.TryCreate(
+            new object[] { 0.1D, 0.2D, 0.3D },
+            colorSpace,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            out PdfPaintColorSelection? initialSelection,
+            out _));
+        Assert.True(initialSelection!.TryConvert(
+            OfficeIccRenderingIntent.Perceptual,
+            out OfficeColor expected));
+
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = PdfPageContentVisualParser.Parse(
+            "/Cs cs 0.8 0.7 0.6 scn Q /Perceptual ri 0 0 10 10 re f",
+            pageWidth: 100D,
+            pageHeight: 100D,
+            graphicsStates: null,
+            colorSpaces: new Dictionary<string, PdfPageColorSpace> { ["Cs"] = colorSpace },
+            shadings: null,
+            shadingPatterns: null,
+            tilingPatterns: null,
+            initialFillColorSelection: initialSelection);
+
+        Assert.Equal(expected, Assert.Single(primitives).FillColor);
+    }
+
+    [Fact]
     public void RenderPage_PermitsIndexedAlternateForUnsupportedIccProfile() {
         byte[] pdf = BuildIccContentPdf(
             new byte[] { 0 },

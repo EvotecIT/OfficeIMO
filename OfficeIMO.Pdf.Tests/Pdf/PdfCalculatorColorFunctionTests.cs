@@ -163,6 +163,16 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type4_ShadingRejectsSharpAbsoluteValueFeaturesThatCanAliasAdaptiveProbes() {
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+            CalculatorFunction(1, 3, "{ 3 mul 1 sub abs 10000 mul 1 exch sub dup dup }"),
+            3,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out _));
+    }
+
+    [Fact]
     public void Type4_BoundsValidationWorkAcrossAuthoredConstants() {
         string body = string.Join(" ", Enumerable.Range(1, 2000).Select(index =>
             (index / 2001D).ToString("0.000000", System.Globalization.CultureInfo.InvariantCulture) + " pop"));
@@ -366,6 +376,32 @@ public sealed partial class PdfColorFunctionTests {
             null,
             objects,
             PdfReadLimits.DefaultMaxDecodedStreamBytes));
+    }
+
+    [Fact]
+    public void IndexedCapabilityProbeDoesNotEvaluateTintPaletteEntries() {
+        PdfArray indexed = Array(
+            new PdfName("Indexed"),
+            Array(
+                new PdfName("Separation"),
+                new PdfName("Brand"),
+                new PdfName("DeviceRGB"),
+                CalculatorFunction(1, 3, "{ 3 mul 1 sub abs 0.01 sub sqrt dup dup }")),
+            Number(0),
+            new PdfStringObj(new byte[] { 85 }));
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.True(PdfIndexedImageNormalizer.CanNormalizeColorSpace(
+            indexed,
+            8,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes));
+        Assert.False(PdfImageColorSpaceNormalization.TryResolve(
+            indexed,
+            string.Empty,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            out _));
     }
 
 #if NET8_0_OR_GREATER

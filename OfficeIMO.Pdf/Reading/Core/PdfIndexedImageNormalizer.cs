@@ -16,14 +16,15 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes) =>
-        TryResolveIndexedPalette(
+        TryResolveIndexedPaletteDeclaration(
             colorSpaceObj,
             bitsPerComponent,
             objects,
             maxDecodedStreamBytes,
             OfficeIccRenderingIntent.RelativeColorimetric,
             outputIntentColorTransform: null,
-            colorFunctionEvaluationBudget: null,
+            out _,
+            out _,
             out _);
 
     internal static bool TryBuildPngFile(
@@ -211,56 +212,18 @@ internal static class PdfIndexedImageNormalizer {
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         out byte[] rgbPalette) {
         rgbPalette = Array.Empty<byte>();
-        if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8) {
-            return false;
-        }
-
-        if (ResolveObject(colorSpaceObj, objects) is not PdfArray colorSpaceArray ||
-            colorSpaceArray.Items.Count < 4 ||
-            ResolveObject(colorSpaceArray.Items[0], objects) is not PdfName indexedName ||
-            (!string.Equals(indexedName.Name, "Indexed", StringComparison.Ordinal) &&
-             !string.Equals(indexedName.Name, "I", StringComparison.Ordinal)) ||
-            ResolveObject(colorSpaceArray.Items[2], objects) is not PdfNumber highValueNumber) {
-            return false;
-        }
-
-        int highValue = (int)highValueNumber.Value;
-        if (highValue < 0 || highValue > 255) {
-            return false;
-        }
-
-        PdfObject? baseColorSpaceObject = colorSpaceArray.Items[1];
-        string baseColorSpaceName = ResolveObject(baseColorSpaceObject, objects) is PdfName baseName
-            ? baseName.Name
-            : string.Empty;
-        if (!PdfImageColorSpaceNormalization.TryResolve(
-                baseColorSpaceObject,
-                baseColorSpaceName,
+        if (!TryResolveIndexedPaletteDeclaration(
+                colorSpaceObj,
+                bitsPerComponent,
                 objects,
                 maxDecodedStreamBytes,
                 renderingIntent,
                 outputIntentColorTransform,
-                out PdfImageColorSpaceNormalization baseColorSpace) ||
-            baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) {
-            return false;
-        }
-        int baseComponentCount = baseColorSpace.SourceColorCount;
-
-        int paletteEntryCount = highValue + 1;
+                out PdfImageColorSpaceNormalization baseColorSpace,
+                out int paletteEntryCount,
+                out byte[] lookupBytes)) return false;
         if (!baseColorSpace.TryConsumeEvaluationWork(paletteEntryCount, colorFunctionEvaluationBudget)) return false;
-        int expectedLookupLength = paletteEntryCount * baseComponentCount;
-        if (!TryReadIndexedLookupBytes(
-                colorSpaceArray.Items[3],
-                objects,
-                Math.Min(expectedLookupLength, maxDecodedStreamBytes),
-                out var lookupBytes)) {
-            return false;
-        }
-
-        if (lookupBytes.Length < expectedLookupLength) {
-            return false;
-        }
-
+        int baseComponentCount = baseColorSpace.SourceColorCount;
         rgbPalette = new byte[paletteEntryCount * 3];
         var components = new double[baseComponentCount];
         PdfImageColorConversionBuffer conversionBuffer = baseColorSpace.CreateConversionBuffer();
@@ -279,6 +242,54 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         return true;
+    }
+
+    private static bool TryResolveIndexedPaletteDeclaration(
+        PdfObject? colorSpaceObj,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        out PdfImageColorSpaceNormalization baseColorSpace,
+        out int paletteEntryCount,
+        out byte[] lookupBytes) {
+        baseColorSpace = null!;
+        paletteEntryCount = 0;
+        lookupBytes = Array.Empty<byte>();
+        if (bitsPerComponent != 1 && bitsPerComponent != 2 && bitsPerComponent != 4 && bitsPerComponent != 8) return false;
+        if (ResolveObject(colorSpaceObj, objects) is not PdfArray colorSpaceArray ||
+            colorSpaceArray.Items.Count < 4 ||
+            ResolveObject(colorSpaceArray.Items[0], objects) is not PdfName indexedName ||
+            (!string.Equals(indexedName.Name, "Indexed", StringComparison.Ordinal) &&
+             !string.Equals(indexedName.Name, "I", StringComparison.Ordinal)) ||
+            ResolveObject(colorSpaceArray.Items[2], objects) is not PdfNumber highValueNumber) return false;
+
+        int highValue = (int)highValueNumber.Value;
+        if (highValue < 0 || highValue > 255) return false;
+        PdfObject? baseColorSpaceObject = colorSpaceArray.Items[1];
+        string baseColorSpaceName = ResolveObject(baseColorSpaceObject, objects) is PdfName baseName
+            ? baseName.Name
+            : string.Empty;
+        if (!PdfImageColorSpaceNormalization.TryResolve(
+                baseColorSpaceObject,
+                baseColorSpaceName,
+                objects,
+                maxDecodedStreamBytes,
+                renderingIntent,
+                outputIntentColorTransform,
+                out baseColorSpace) ||
+            baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
+
+        paletteEntryCount = highValue + 1;
+        if (!baseColorSpace.CanConvertPixelCount(paletteEntryCount)) return false;
+        int expectedLookupLength = paletteEntryCount * baseColorSpace.SourceColorCount;
+        return TryReadIndexedLookupBytes(
+                colorSpaceArray.Items[3],
+                objects,
+                Math.Min(expectedLookupLength, maxDecodedStreamBytes),
+                out lookupBytes) &&
+            lookupBytes.Length >= expectedLookupLength;
     }
 
     internal static bool TryReadIndexedLookupBytes(

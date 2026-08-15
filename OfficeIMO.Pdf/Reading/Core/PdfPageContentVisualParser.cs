@@ -276,6 +276,8 @@ internal static class PdfPageContentVisualParser {
         private int _compatibilityDepth;
         private bool _hasInexactDash;
         private readonly OfficeIccRenderingIntent _initialRenderingIntent;
+        private readonly PdfPaintColorSelection? _initialFillColorSelection;
+        private readonly PdfPaintColorSelection? _initialStrokeColorSelection;
         private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
         private OfficeIccRenderingIntent _renderingIntent;
@@ -375,6 +377,8 @@ internal static class PdfPageContentVisualParser {
                 PdfPaintColorSelection.TryCreateDefaultBlack(initialRenderingIntent, outputIntentColorTransform, out _strokeColorSelection, out OfficeColor defaultStrokeColor)) {
                 initialState = initialState.WithStrokeColor(defaultStrokeColor, PdfPageColorSpaceKind.DeviceGray);
             }
+            _initialFillColorSelection = _fillColorSelection;
+            _initialStrokeColorSelection = _strokeColorSelection;
             if (initialFillOpacity.HasValue) {
                 initialState = initialState.WithOpacity(initialFillOpacity, null);
             }
@@ -497,6 +501,8 @@ internal static class PdfPageContentVisualParser {
                         _strokeColorSelection = restoredColor.Stroke;
                     } else {
                         _renderingIntent = _initialRenderingIntent;
+                        _fillColorSelection = _initialFillColorSelection;
+                        _strokeColorSelection = _initialStrokeColorSelection;
                     }
                     _hasInexactDash = _inexactDashStack.Count > 0 && _inexactDashStack.Pop();
                     if (_tilingStack.Count > 0) {
