@@ -42,10 +42,14 @@ internal static class OfficeC2paManifestStore {
         out int storeLength) {
         storeLength = 0;
         int visitedBoxes = 0;
-        if (offset < 0 || availableLength < 0 || offset > data.Length - availableLength || availableLength < 38) return false;
+        if (offset < 0 || availableLength < 0 || offset > data.Length - availableLength) return false;
+        if (availableLength > maximumBytes) {
+            throw OfficeProvenanceLimitException.Create("C2PA manifest store exceeds the configured manifest limit.");
+        }
+        if (availableLength < 38) return false;
         if (!TryReserveBox(ref visitedBoxes, maximumEntries)) return false;
         if (!TryReadBox(data, offset, availableLength, out int headerLength, out ulong declaredLength, out string type) ||
-            type != "jumb" || declaredLength > (ulong)maximumBytes || declaredLength != (ulong)availableLength || declaredLength > int.MaxValue) {
+            type != "jumb" || declaredLength != (ulong)availableLength || declaredLength > int.MaxValue) {
             return false;
         }
 
@@ -323,7 +327,9 @@ internal static class OfficeC2paManifestStore {
     }
 
     private static bool TryReserveBox(ref int visitedBoxes, int maximumEntries) {
-        if (visitedBoxes >= maximumEntries) return false;
+        if (visitedBoxes >= maximumEntries) {
+            throw OfficeProvenanceLimitException.Create("C2PA manifest store exceeds the configured container-entry limit.");
+        }
         visitedBoxes++;
         return true;
     }

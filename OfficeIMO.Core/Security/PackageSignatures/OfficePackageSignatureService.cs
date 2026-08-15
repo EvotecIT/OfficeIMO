@@ -652,10 +652,14 @@ public static class OfficePackageSignatureService {
                     }
                     ApplicationMetadataDiscovery discovered = ReadApplicationSignatureMetadataPart(
                         archive, partUri, options, findings, ref totalInspectionBytes);
-                    if (discovered.HasMetadata || !discovered.IsComplete) return discovered;
+                    if (discovered.HasMetadata || !discovered.IsComplete) {
+                        return new ApplicationMetadataDiscovery(
+                            conventional.HasMetadata || discovered.HasMetadata,
+                            conventional.IsComplete && discovered.IsComplete);
+                    }
                 } catch (OfficePackageSignatureResourceLimitException exception) {
                     findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
-                    return new ApplicationMetadataDiscovery(false, false);
+                    return new ApplicationMetadataDiscovery(conventional.HasMetadata, false);
                 } catch (Exception exception) when (
                     (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
                     findings.Add("An extended application properties target could not be parsed: " + exception.Message);
@@ -664,7 +668,7 @@ public static class OfficePackageSignatureService {
             return conventional;
         } catch (OfficePackageSignatureResourceLimitException exception) {
             findings.Add("Extended application properties inspection stopped at a resource limit: " + exception.Message);
-            return new ApplicationMetadataDiscovery(false, false);
+            return new ApplicationMetadataDiscovery(conventional.HasMetadata, false);
         } catch (Exception exception) when (
             (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);

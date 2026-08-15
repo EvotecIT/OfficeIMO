@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using Xunit;
 
@@ -13,7 +14,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] unrelated = CreateJpegSegment(0xEB, Encoding.ASCII.GetBytes("not-c2pa"));
         byte[] first = CreateJpegApp11(manifest, 0, 40, instance: 7, sequence: 1);
         byte[] second = CreateJpegApp11(manifest, 40, manifest.Length - 40, instance: 7, sequence: 2);
-        byte[] jpeg = Join(new byte[] { 0xFF, 0xD8 }, unrelated, first, second, CreateMinimalJpegFrame(), CreateMinimalJpegScan(), new byte[] { 0, 0xFF, 0xD9 });
+        byte[] jpeg = CreateValidJpeg(unrelated, first, second);
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
@@ -21,7 +22,7 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Single(report.Evidence);
         Assert.True(report.Evidence[0].IsStructurallyValid);
         Assert.Equal(manifest.Length, report.Evidence[0].PayloadLength);
-        Assert.Equal(Join(new byte[] { 0xFF, 0xD8 }, unrelated, CreateMinimalJpegFrame(), CreateMinimalJpegScan(), new byte[] { 0, 0xFF, 0xD9 }), result.ToArray());
+        Assert.Equal(CreateValidJpeg(unrelated), result.ToArray());
         Assert.Empty(result.After.Evidence);
         Assert.False(result.WasReserialized);
     }
@@ -79,13 +80,9 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void JpegAcceptsFragmentedExtendedLengthJumbf() {
         byte[] manifest = CreateExtendedManifestStore(324);
-        byte[] jpeg = Join(
-            new byte[] { 0xFF, 0xD8 },
+        byte[] jpeg = CreateValidJpeg(
             CreateJpegApp11(manifest, 0, 50, instance: 9, sequence: 1),
-            CreateJpegApp11(manifest, 50, manifest.Length - 50, instance: 9, sequence: 2),
-            CreateMinimalJpegFrame(),
-            CreateMinimalJpegScan(),
-            new byte[] { 0, 0xFF, 0xD9 });
+            CreateJpegApp11(manifest, 50, manifest.Length - 50, instance: 9, sequence: 2));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
 
@@ -242,15 +239,11 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void ProgressiveJpegAllowsMarkerSegmentsBetweenScans() {
         byte[] manifest = CreateManifestStore();
-        byte[] jpeg = Join(
-            new byte[] { 0xFF, 0xD8 },
-            CreateJpegApp11(manifest, 0, manifest.Length, instance: 1, sequence: 1),
-            CreateMinimalJpegFrame(),
-            CreateMinimalJpegScan(),
-            new byte[] { 0x11 },
-            CreateJpegSegment(0xC4, new byte[] { 0, 1 }),
-            CreateMinimalJpegScan(),
-            new byte[] { 0x22, 0xFF, 0xD9 });
+        byte[] progressive = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wgARCAACAAIDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAX/xAAVAQEBAAAAAAAAAAAAAAAAAAAFBv/aAAwDAQACEAMQAAABigy4/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABBQJ//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPwF//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPwF//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQAGPwJ//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPyF//9oADAMBAAIAAwAAABAH/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAwEBPxB//8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAgEBPxB//8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxB//9k=");
+        byte[] jpeg = InsertJpegSegments(
+            progressive,
+            CreateJpegApp11(manifest, 0, manifest.Length, instance: 1, sequence: 1));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "progressive.jpg");
 
@@ -884,6 +877,15 @@ public sealed partial class ProvenanceCoreContracts {
         WriteBigEndian(payload, 4, checked((int)sequence));
         Buffer.BlockCopy(manifest, offset, payload, 8, count);
         return CreateJpegSegment(0xEB, payload);
+    }
+
+    private static byte[] CreateValidJpeg(params byte[][] segments) => InsertJpegSegments(
+        OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White)),
+        segments);
+
+    private static byte[] InsertJpegSegments(byte[] jpeg, params byte[][] segments) {
+        Assert.True(jpeg.Length >= 4 && jpeg[0] == 0xFF && jpeg[1] == 0xD8);
+        return Join(jpeg.Take(2).ToArray(), Join(segments), jpeg.Skip(2).ToArray());
     }
 
     private static byte[] CreateJpegSegment(byte marker, byte[] payload) {

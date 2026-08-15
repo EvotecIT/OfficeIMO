@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -46,7 +47,9 @@ internal static class OfficeProvenanceJpeg {
             int offset = imageStart + 2;
             OfficeProvenanceJpegXmpResult xmpResult = OfficeProvenanceJpegXmp.ProcessImage(
                 data, offset, imageIndex, options, context, removalOptions, changes);
-            bool hasDuplicateC2paSequences = CountC2paSequences(data, offset, options, out bool hasImageFrameAndScan) > 1;
+            bool hasDuplicateC2paSequences = CountC2paSequences(
+                data, offset, options, out bool hasImageFrameAndScan, out int completeImageEnd) > 1;
+            bool hasCompleteImagePayload = hasImageFrameAndScan && IsCompleteJpegPayload(data, imageStart, completeImageEnd);
             while (offset < data.Length) {
                 int segmentStart = offset;
                 if (!TryReadMarker(data, segmentStart, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
@@ -79,7 +82,7 @@ internal static class OfficeProvenanceJpeg {
 
                 if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
                     out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
-                    structurallyValid &= !hasDuplicateC2paSequences && hasImageFrameAndScan;
+                    structurallyValid &= !hasDuplicateC2paSequences && hasCompleteImagePayload;
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
                         OfficeProvenanceCarrierKind.C2paManifest,
@@ -110,21 +113,26 @@ internal static class OfficeProvenanceJpeg {
         byte[] data,
         int offset,
         OfficeProvenanceOptions options,
-        out bool hasImageFrameAndScan) {
+        out bool hasImageFrameAndScan,
+        out int imageEnd) {
         int count = 0;
         int markers = 0;
         bool hasValidFrame = false;
         hasImageFrameAndScan = false;
+        imageEnd = offset;
         while (offset < data.Length) {
             if (!TryReadMarker(data, offset, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
                 throw new InvalidDataException("JPEG contains an invalid marker sequence.");
             }
             ReserveMarker(ref markers, options.MaxContainerEntries);
             if (marker == 0xD8) throw new InvalidDataException("JPEG contains a nested start-of-image marker.");
-            if (marker == 0xD9) return count;
+            if (marker == 0xD9) {
+                imageEnd = segmentEnd;
+                return count;
+            }
             if (marker == 0xDA) {
                 int scanMarkers = markers;
-                _ = FindEnd(data, offset, ref scanMarkers, options.MaxContainerEntries);
+                imageEnd = FindEnd(data, offset, ref scanMarkers, options.MaxContainerEntries);
                 hasImageFrameAndScan = hasValidFrame && IsValidStartOfScan(data, payloadOffset, payloadLength);
                 return count;
             }
@@ -150,6 +158,14 @@ internal static class OfficeProvenanceJpeg {
             }
         }
         throw new InvalidDataException("JPEG does not contain an end marker.");
+    }
+
+    private static bool IsCompleteJpegPayload(byte[] data, int imageStart, int imageEnd) {
+        if (imageStart < 0 || imageEnd <= imageStart || imageEnd > data.Length) return false;
+        byte[] image = new byte[imageEnd - imageStart];
+        Buffer.BlockCopy(data, imageStart, image, 0, image.Length);
+        return OfficeImageReader.TryValidateContent(image, ".jpg", out OfficeImageInfo info) &&
+               info.Format == OfficeImageFormat.Jpeg;
     }
 
     private static bool IsStartOfFrame(byte marker) => marker is

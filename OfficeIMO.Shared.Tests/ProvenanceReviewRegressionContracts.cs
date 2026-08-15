@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Provenance;
 using OfficeIMO.Security;
 using Xunit;
@@ -168,14 +169,9 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         byte[] signatureDescription = CreateBox("jumd", Join(signatureUuid, new byte[] { 0x03 }, Encoding.ASCII.GetBytes("c2pa.signature\0")));
         byte[] signature = CreateBox("jumb", Join(signatureDescription, CreateBox("cbor", new byte[] { 0xA0 })));
         byte[] manifest = CreateBox("jumb", Join(storeDescription, CreateBox("jumb", Join(manifestDescription, assertionStore, claim, signature))));
-        byte[] jpeg = Join(
-            new byte[] { 0xFF, 0xD8 },
+        byte[] jpeg = CreateValidJpeg(
             CreateJpegApp11(manifest, 0, 46, instance: 11, sequence: 1),
-            CreateJpegApp11(manifest, 46, manifest.Length - 46, instance: 11, sequence: 2),
-            CreateMinimalJpegFrame(),
-            CreateMinimalJpegScan(),
-            new byte[] { 0 },
-            new byte[] { 0xFF, 0xD9 });
+            CreateJpegApp11(manifest, 46, manifest.Length - 46, instance: 11, sequence: 2));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
 
@@ -187,16 +183,15 @@ public sealed partial class ProvenanceReviewRegressionContracts {
     public void JumbfChildBoxesShareTheContainerEntryLimit() {
         byte[] png = CreatePngWithManifest(CreateManifestStore());
 
-        OfficeProvenanceReport bounded = OfficeProvenanceInspector.Inspect(
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
-            new OfficeProvenanceOptions { MaxContainerEntries = 14 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 14 }));
         OfficeProvenanceReport accepted = OfficeProvenanceInspector.Inspect(
             png,
             "fixture.png",
             new OfficeProvenanceOptions { MaxContainerEntries = 15 });
 
-        Assert.False(Assert.Single(bounded.Evidence).IsStructurallyValid);
         Assert.True(Assert.Single(accepted.Evidence).IsStructurallyValid);
     }
 
@@ -1228,6 +1223,11 @@ public sealed partial class ProvenanceReviewRegressionContracts {
         WriteBigEndian(payload, 4, checked((int)sequence));
         Buffer.BlockCopy(manifest, offset, payload, 8, count);
         return CreateJpegSegment(0xEB, payload);
+    }
+
+    private static byte[] CreateValidJpeg(params byte[][] segments) {
+        byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        return Join(jpeg.Take(2).ToArray(), Join(segments), jpeg.Skip(2).ToArray());
     }
 
     private static string ComputeMd5(byte[] data) {

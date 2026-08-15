@@ -26,13 +26,10 @@ public sealed partial class ProvenanceCoreContracts {
     public void JpegOrdersTrailingSuffixResultsBySourceOffset() {
         byte[] manifest = CreateManifestStore();
         byte[] xmpHeader = Encoding.ASCII.GetBytes("http://ns.adobe.com/xap/1.0/\0");
-        byte[] jpeg = Join(
-            new byte[] { 0xFF, 0xD8 },
+        byte[] jpeg = Join(CreateValidJpeg(
             CreateJpegApp11(manifest, 0, manifest.Length, 1, 1),
-            CreateJpegSegment(0xE1, Join(xmpHeader, CreateXmpPacket())),
-            CreateMinimalJpegFrame(),
-            CreateMinimalJpegScan(),
-            new byte[] { 0, 0xFF, 0xD9, 0xDE, 0xAD });
+            CreateJpegSegment(0xE1, Join(xmpHeader, CreateXmpPacket()))),
+            new byte[] { 0xDE, 0xAD });
 
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(jpeg, "fixture.jpg");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(jpeg, "fixture.jpg");
