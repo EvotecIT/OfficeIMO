@@ -160,8 +160,9 @@ public static class OfficePackageSignatureService {
             .OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        bool signatureDiscoveryComplete = applicationMetadata.IsComplete && signatureUris.Length <= options.MaxSignatureParts;
-        if (!signatureDiscoveryComplete) {
+        bool exceedsSignaturePartLimit = signatureUris.Length > options.MaxSignatureParts;
+        bool signatureDiscoveryComplete = applicationMetadata.IsComplete && !exceedsSignaturePartLimit;
+        if (exceedsSignaturePartLimit) {
             findings.Add("The package contains more XML signature parts than the configured limit.");
             signatureUris = signatureUris.Take(options.MaxSignatureParts).ToArray();
         }

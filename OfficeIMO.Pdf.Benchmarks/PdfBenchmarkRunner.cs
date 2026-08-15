@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using OfficeIMO.Pdf;
 
 internal static class PdfBenchmarkRunner {
@@ -79,19 +80,33 @@ internal static class PdfBenchmarkRunner {
         // Keep this comparison focused on the canonical parse cache. Mixing unrelated analysis
         // stages into the ratio hides the reuse signal behind their independent work.
         long output = 0L;
+        PdfDocumentInfo? last = null;
         for (int operation = 0; operation < 4; operation++) {
-            output += PdfDocument.Open(corpus).Inspect().PageCount;
+            last = PdfDocument.Open(corpus).Inspect();
+            output += last.PageCount;
         }
-        return output;
+        return CombineInspectionOutput(output, last!);
     }
 
     private static long RunCachedAnalysis(byte[] corpus) {
         PdfDocument document = PdfDocument.Open(corpus);
         long output = 0L;
+        PdfDocumentInfo? last = null;
         for (int operation = 0; operation < 4; operation++) {
-            output += document.Inspect().PageCount;
+            last = document.Inspect();
+            output += last.PageCount;
         }
-        return output;
+        return CombineInspectionOutput(output, last!);
+    }
+
+    private static long CombineInspectionOutput(long pageCount, PdfDocumentInfo info) {
+        byte[] contract = JsonSerializer.SerializeToUtf8Bytes(info);
+        ulong checksum = 14695981039346656037UL;
+        foreach (byte value in contract) {
+            checksum ^= value;
+            checksum *= 1099511628211UL;
+        }
+        return (long)((checksum ^ (ulong)pageCount) & 0x3FFF_FFFF_FFFF_FFFFUL) + 1L;
     }
 
     private static long RunSvgRender(byte[] corpus) =>

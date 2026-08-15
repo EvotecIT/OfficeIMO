@@ -27,6 +27,7 @@ internal static class OfficeProvenanceTiff {
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         List<TiffIfd> ifds = ReadIfds(data, options);
         int reachableC2paCount = ifds.Sum(static ifd => ifd.Entries.Count(static entry => entry.Tag == C2paTag));
+        bool allEntriesHaveValidStorage = HasValidEntryStorage(data, ifds);
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
@@ -44,11 +45,11 @@ internal static class OfficeProvenanceTiff {
                         options,
                         context,
                         $"TIFF/IFD[{ifdIndex}]/XMP@{entry.Offset}",
-                        carrierIsStructurallyValid: xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType);
+                        carrierIsStructurallyValid: allEntriesHaveValidStorage && xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType);
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
-                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
+                bool valid = allEntriesHaveValidStorage && ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
                     HasCompletePrimaryImage(data, ifd, options.MaxContainerEntries) &&
                     entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
@@ -66,6 +67,7 @@ internal static class OfficeProvenanceTiff {
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
         List<TiffIfd> ifds = ReadIfds(data, options.Limits);
         int reachableC2paCount = ifds.Sum(static ifd => ifd.Entries.Count(static entry => entry.Tag == C2paTag));
+        bool allEntriesHaveValidStorage = HasValidEntryStorage(data, ifds);
         byte[] output = (byte[])data.Clone();
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
@@ -84,7 +86,7 @@ internal static class OfficeProvenanceTiff {
                     byte[] packet = new byte[xmpLength];
                     Buffer.BlockCopy(data, xmpOffset, packet, 0, xmpLength);
                     var pendingChanges = new List<OfficeProvenanceChange>();
-                    bool xmpCarrierIsStructurallyValid = xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType;
+                    bool xmpCarrierIsStructurallyValid = allEntriesHaveValidStorage && xmpTagCount == 1 && ifd.TagsAreSorted && entry.Type == ByteType;
                     if ((xmpCarrierIsStructurallyValid || !options.RequireStructurallyValidCarrier) &&
                         OfficeProvenanceXmp.TryRemoveAiDeclarations(
                         packet,
@@ -122,7 +124,7 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
-                bool valid = ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
+                bool valid = allEntriesHaveValidStorage && ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
                     HasCompletePrimaryImage(data, ifd, options.Limits.MaxContainerEntries) &&
                     entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
@@ -378,6 +380,18 @@ internal static class OfficeProvenanceTiff {
         5 or 10 or 12 or 16 or 17 or 18 => 8,
         _ => 0
     };
+
+    private static bool HasValidEntryStorage(byte[] data, IEnumerable<TiffIfd> ifds) {
+        foreach (TiffEntry entry in ifds.SelectMany(static ifd => ifd.Entries)) {
+            int elementSize = GetElementSize(entry.Type);
+            if (elementSize == 0 || entry.Count > (ulong)(int.MaxValue / elementSize)) return false;
+            int length = (int)entry.Count * elementSize;
+            if (length <= entry.InlineSize) continue;
+            if (entry.ValueOrOffset > int.MaxValue || length > data.Length ||
+                entry.ValueOrOffset > (ulong)(data.Length - length)) return false;
+        }
+        return true;
+    }
 
     private static void WriteEntryCount(byte[] output, TiffEntry entry, ulong count) {
         if (entry.InlineSize == 8) OfficeProvenanceBinary.WriteUInt64(output, entry.Offset + 4, count, entry.LittleEndian);
