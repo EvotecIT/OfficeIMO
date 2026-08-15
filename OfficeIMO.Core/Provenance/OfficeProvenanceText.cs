@@ -110,6 +110,17 @@ internal static class OfficeProvenanceText {
         int delimiterCount = 0;
         while (search < data.Length) {
             int begin = IndexOf(data, BeginDelimiter, search);
+            int orphanEnd = FindStandaloneDelimiter(data, EndDelimiter, search);
+            if (orphanEnd >= 0 && (begin < 0 || orphanEnd < begin)) {
+                if (++delimiterCount > maximumContainerEntries) {
+                    throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
+                }
+                int orphanLineStart = FindLineStart(data, orphanEnd);
+                int orphanLineEnd = FindLineEndIncludingTerminator(data, orphanEnd + EndDelimiter.Length);
+                yield return new StructuredBlock(orphanEnd, orphanLineStart, orphanLineEnd, false, false, 0L, null);
+                search = orphanEnd + EndDelimiter.Length;
+                continue;
+            }
             if (begin < 0) yield break;
             if (++delimiterCount > maximumContainerEntries) {
                 throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
@@ -147,17 +158,20 @@ internal static class OfficeProvenanceText {
             if (StartsWith(data, contentStart, valueLength, DataUriPrefix)) {
                 int base64Offset = contentStart + DataUriPrefix.Length;
                 int base64Length = contentEnd - base64Offset;
-                if (base64Length <= maximumManifestBytes * 2L) {
-                    try {
-                        string encoded = Encoding.ASCII.GetString(data, base64Offset, base64Length);
-                        byte[] manifest = Convert.FromBase64String(encoded);
-                        manifestLength = manifest.Length;
-                        valid = manifest.LongLength <= maximumManifestBytes &&
-                            OfficeC2paManifestStore.IsValid(
-                                manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
-                    } catch (FormatException) {
-                        valid = false;
+                if (base64Length > GetMaximumBase64Length(maximumManifestBytes)) {
+                    throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
+                }
+                try {
+                    string encoded = Encoding.ASCII.GetString(data, base64Offset, base64Length);
+                    byte[] manifest = Convert.FromBase64String(encoded);
+                    manifestLength = manifest.Length;
+                    if (manifest.LongLength > maximumManifestBytes) {
+                        throw OfficeProvenanceLimitException.Create("The structured-text manifest exceeds the configured manifest limit.");
                     }
+                    valid = OfficeC2paManifestStore.IsValid(
+                        manifest, 0, manifest.Length, maximumManifestBytes, maximumContainerEntries, out _);
+                } catch (FormatException) {
+                    valid = false;
                 }
             } else if (valueLength > 0) {
                 try {
@@ -176,6 +190,11 @@ internal static class OfficeProvenanceText {
             yield return new StructuredBlock(begin, lineStart, lineEnd, external, valid, manifestLength, externalUri);
             search = end + EndDelimiter.Length;
         }
+    }
+
+    private static long GetMaximumBase64Length(long maximumDecodedBytes) {
+        long groups = maximumDecodedBytes / 3L + (maximumDecodedBytes % 3L == 0L ? 0L : 1L);
+        return groups > long.MaxValue / 4L ? long.MaxValue : groups * 4L;
     }
 
     private static IEnumerable<TextWrapper> FindWrappers(
