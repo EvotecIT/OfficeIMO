@@ -27,7 +27,7 @@ public sealed class OfficePackageSignatureInspectionOptions {
     public int MaxPackageParts { get; set; } = 10000;
     /// <summary>Maximum bytes read from one package part. Defaults to 256 MiB.</summary>
     public long MaxPartBytes { get; set; } = 256L * 1024L * 1024L;
-    /// <summary>Maximum aggregate bytes hashed across package references. Defaults to 512 MiB.</summary>
+    /// <summary>Maximum aggregate bytes read across signature parts and hashed package references. Defaults to 512 MiB.</summary>
     public long MaxTotalDigestBytes { get; set; } = 512L * 1024L * 1024L;
     /// <summary>Maximum XML signature parts. Defaults to 32.</summary>
     public int MaxSignatureParts { get; set; } = 32;
@@ -112,11 +112,12 @@ public sealed class OfficePackageSignatureTimestampInfo {
 /// <summary>One XML signature part discovered in an OPC package.</summary>
 public sealed class OfficePackageSignaturePartInfo {
     private readonly IReadOnlyList<byte[]> _certificateBytes;
+    private readonly byte[] _signatureBytes;
 
     internal OfficePackageSignaturePartInfo(string uri, long length, bool isReachableFromOrigin, string? signatureMethod,
         IReadOnlyList<OfficePackageSignatureReferenceInfo> references,
         IReadOnlyList<OfficePackageSignatureTimestampInfo> timestamps, IReadOnlyList<string> subjects,
-        IReadOnlyList<byte[]> certificateBytes, string? parseError) {
+        IReadOnlyList<byte[]> certificateBytes, string? parseError, byte[]? signatureBytes = null) {
         Uri = uri;
         Length = length;
         IsReachableFromOrigin = isReachableFromOrigin;
@@ -125,6 +126,7 @@ public sealed class OfficePackageSignaturePartInfo {
         Timestamps = timestamps;
         X509SubjectNames = subjects;
         _certificateBytes = certificateBytes;
+        _signatureBytes = signatureBytes ?? Array.Empty<byte>();
         ParseError = parseError;
     }
 
@@ -149,12 +151,14 @@ public sealed class OfficePackageSignaturePartInfo {
     /// <summary>Whether the signature part failed structural parsing.</summary>
     public bool HasParseError => !string.IsNullOrWhiteSpace(ParseError);
     internal IReadOnlyList<byte[]> CertificateBytes => _certificateBytes;
+    internal byte[] SignatureBytes => _signatureBytes;
 }
 
 /// <summary>Dependency-light structural inspection of one OPC package signature carrier.</summary>
 public sealed class OfficePackageSignatureInfo {
     internal OfficePackageSignatureInfo(int originRelationshipCount, int originPartCount, string? originUri, bool hasApplicationMetadata,
-        bool signatureDiscoveryComplete, IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings) {
+        bool signatureDiscoveryComplete, IReadOnlyList<OfficePackageSignaturePartInfo> parts, IReadOnlyList<string> findings,
+        long inspectionBytes) {
         OriginRelationshipCount = originRelationshipCount;
         OriginPartCount = originPartCount;
         HasDigitalSignatureOriginPart = originPartCount > 0;
@@ -163,6 +167,7 @@ public sealed class OfficePackageSignatureInfo {
         SignatureDiscoveryComplete = signatureDiscoveryComplete;
         SignatureParts = parts;
         Findings = findings;
+        InspectionBytes = inspectionBytes;
     }
 
     /// <summary>Number of root digital-signature-origin relationships.</summary>
@@ -181,8 +186,9 @@ public sealed class OfficePackageSignatureInfo {
     public IReadOnlyList<OfficePackageSignaturePartInfo> SignatureParts { get; }
     /// <summary>Stable structural findings.</summary>
     public IReadOnlyList<string> Findings { get; }
+    internal long InspectionBytes { get; }
     /// <summary>Whether any package signature carrier evidence exists.</summary>
-    public bool HasSignatures => HasDigitalSignatureOriginPart || HasApplicationSignatureMetadata || SignatureParts.Count > 0;
+    public bool HasSignatures => OriginRelationshipCount > 0 || HasDigitalSignatureOriginPart || HasApplicationSignatureMetadata || SignatureParts.Count > 0;
 }
 
 /// <summary>Caller policy for cryptographic OPC signature validation.</summary>

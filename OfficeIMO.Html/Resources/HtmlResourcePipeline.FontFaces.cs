@@ -60,7 +60,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         foreach (Match match in CssUrlExpression.Matches(source)) {
-            if (!IsCssFunctionNameAt(source, match.Index, "url") || IsInsideCssString(source, match.Index)) {
+            if (!IsValidCssUrlMatch(source, match) || !IsCssFunctionNameAt(source, match.Index, "url") || IsInsideCssString(source, match.Index)) {
                 continue;
             }
 
@@ -81,7 +81,7 @@ public static partial class HtmlResourcePipeline {
         var replacements = new List<(int Start, int Length, string Value)>();
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(policy);
         foreach (Match match in CssUrlExpression.Matches(css)) {
-            if (!IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) {
+            if (!IsValidCssUrlMatch(css, match) || !IsCssFunctionNameAt(css, match.Index, "url") || IsInsideCssString(css, match.Index)) {
                 continue;
             }
 

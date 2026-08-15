@@ -176,7 +176,8 @@ public sealed class OfficePackageSignatureIntegrationTests {
             OfficePackageSignatureValidationReport validation = Validate(path, "docx");
 
             Assert.False(validation.IsCryptographicallyValid);
-            Assert.Equal(0, validation.SignatureInfo.OriginRelationshipCount);
+            Assert.Equal(shape == "malformed-target" ? 1 : 0, validation.SignatureInfo.OriginRelationshipCount);
+            if (shape == "malformed-target") Assert.True(validation.SignatureInfo.HasSignatures);
             Assert.Contains(validation.SignatureInfo.SignatureParts, part => !part.IsReachableFromOrigin);
         } finally {
             if (File.Exists(path)) File.Delete(path);
@@ -344,8 +345,31 @@ public sealed class OfficePackageSignatureIntegrationTests {
         using ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update);
         archive.GetEntry("docProps/app.xml")?.Delete();
         ZipArchiveEntry entry = archive.CreateEntry("docProps/app.xml", CompressionLevel.Optimal);
-        using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false));
-        writer.Write(xml);
+        using (var writer = new StreamWriter(entry.Open(), new UTF8Encoding(false))) {
+            writer.Write(xml);
+        }
+        MutateXmlEntry(archive, "_rels/.rels", document => {
+            XNamespace relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+            if (!document.Root!.Elements(relationships + "Relationship").Any(element =>
+                string.Equals(
+                    (string?)element.Attribute("Type"),
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+                    StringComparison.Ordinal))) {
+                document.Root.Add(new XElement(relationships + "Relationship",
+                    new XAttribute("Id", "rIdOfficeImoApp"),
+                    new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties"),
+                    new XAttribute("Target", "docProps/app.xml")));
+            }
+        });
+        MutateXmlEntry(archive, "[Content_Types].xml", document => {
+            XNamespace types = "http://schemas.openxmlformats.org/package/2006/content-types";
+            if (!document.Root!.Elements(types + "Override").Any(element =>
+                string.Equals((string?)element.Attribute("PartName"), "/docProps/app.xml", StringComparison.OrdinalIgnoreCase))) {
+                document.Root.Add(new XElement(types + "Override",
+                    new XAttribute("PartName", "/docProps/app.xml"),
+                    new XAttribute("ContentType", "application/vnd.openxmlformats-officedocument.extended-properties+xml")));
+            }
+        });
     }
 
     private static void AddPackageSignatureTime(string path, string value, string format) {

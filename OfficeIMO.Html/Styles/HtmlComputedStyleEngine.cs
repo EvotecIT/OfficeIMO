@@ -51,6 +51,8 @@ public static partial class HtmlComputedStyleEngine {
         "align-content",
         "align-items",
         "align-self",
+        "animation",
+        "animation-name",
         "aspect-ratio",
         "bottom",
         "bookmark-label",
@@ -229,6 +231,24 @@ public static partial class HtmlComputedStyleEngine {
         HtmlCssMediaContext mediaContext,
         HtmlConversionLimits limits) =>
         ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false, limits).Elements;
+
+    internal static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(
+        IHtmlDocument document,
+        HtmlResourcePipelineOptions options) {
+        MediaEnvironment environment = options.MediaWidth.HasValue && options.MediaHeight.HasValue
+            ? new MediaEnvironment(options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value, options.MediaFeatures)
+            : MediaEnvironment.CreateDefault(options.MediaContext, options.MediaFeatures);
+        return ComputeStyleSet(document, environment, false, options.Limits).Elements;
+    }
+
+    internal static HtmlComputedStyleSet ComputeForProvenance(
+        IHtmlDocument document,
+        HtmlResourcePipelineOptions options) {
+        MediaEnvironment environment = options.MediaWidth.HasValue && options.MediaHeight.HasValue
+            ? new MediaEnvironment(options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value, options.MediaFeatures)
+            : MediaEnvironment.CreateDefault(options.MediaContext, options.MediaFeatures);
+        return ComputeStyleSet(document, environment, true, options.Limits);
+    }
 
     internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options, HtmlConversionLimits limits) =>
         ComputeStyleSet(

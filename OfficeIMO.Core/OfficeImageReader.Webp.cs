@@ -6,6 +6,8 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeImageReader {
     private const int MaximumWebpExifBytes = 1024 * 1024;
 
+    internal static bool TryValidateWebpContainer(byte[] data) => TryReadWebp(data, out _);
+
     private static bool TryReadWebp(
         byte[] data,
         out OfficeImageInfo info,

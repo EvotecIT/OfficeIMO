@@ -10,6 +10,7 @@ public static partial class HtmlResourcePipeline {
         string useSelector,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         ISet<string> visited,
         int depth) {
         if (depth >= MaxCustomPropertyResolutionDepth
@@ -18,7 +19,8 @@ public static partial class HtmlResourcePipeline {
             yield break;
         }
 
-        int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector, document, useElement);
+        int selectedDeclarationStart = SelectCustomPropertyDeclaration(
+            propertyName, sources, useSelector, document, useElement, computedStyles);
         if (selectedDeclarationStart < 0) {
             visited.Remove(propertyName);
             yield break;
@@ -30,7 +32,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             if (source.IsInheritedKeyword) {
-                foreach (CssCustomPropertyDefinition inheritedSource in ResolveInheritedCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, document, useElement, visited, depth)) {
+                foreach (CssCustomPropertyDefinition inheritedSource in ResolveInheritedCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, document, useElement, computedStyles, visited, depth)) {
                     yield return inheritedSource;
                 }
 
@@ -38,13 +40,13 @@ public static partial class HtmlResourcePipeline {
             }
 
             if (source.HasUrl) {
-                if (source.FallbackAlias == null || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, visited, depth + 1)) {
+                if (source.FallbackAlias == null || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, computedStyles, visited, depth + 1)) {
                     yield return source;
                 }
             }
 
             foreach (string alias in source.Aliases) {
-                foreach (CssCustomPropertyDefinition aliasSource in ResolveCustomPropertyUrlDefinitions(alias, customPropertyDefinitions, useSelector, document, useElement, visited, depth + 1)) {
+                foreach (CssCustomPropertyDefinition aliasSource in ResolveCustomPropertyUrlDefinitions(alias, customPropertyDefinitions, useSelector, document, useElement, computedStyles, visited, depth + 1)) {
                     yield return aliasSource;
                 }
             }
@@ -58,6 +60,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         ISet<string> visited,
         int depth) {
         if (useElement?.ParentElement == null) {
@@ -65,7 +68,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         visited.Remove(propertyName);
-        foreach (CssCustomPropertyDefinition inheritedSource in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, string.Empty, document, useElement.ParentElement, visited, depth + 1)) {
+        foreach (CssCustomPropertyDefinition inheritedSource in ResolveCustomPropertyUrlDefinitions(propertyName, customPropertyDefinitions, string.Empty, document, useElement.ParentElement, computedStyles, visited, depth + 1)) {
             yield return inheritedSource;
         }
 
@@ -93,8 +96,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 
@@ -116,13 +118,29 @@ public static partial class HtmlResourcePipeline {
         return false;
     }
 
-    private static int SelectCustomPropertyDeclaration(IEnumerable<CssCustomPropertyDefinition> sources, string useSelector, IHtmlDocument? document = null, IElement? useElement = null) {
+    private static int SelectCustomPropertyDeclaration(
+        string propertyName,
+        IEnumerable<CssCustomPropertyDefinition> sources,
+        string useSelector,
+        IHtmlDocument? document = null,
+        IElement? useElement = null,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
+        CssCustomPropertyDefinition[] candidates = sources.ToArray();
+        bool hasLayeredSource = candidates.Any(source =>
+            source.SourceOwner?.TextContent.IndexOf("@layer", StringComparison.OrdinalIgnoreCase) >= 0);
+        if (hasLayeredSource && useElement != null && computedStyles != null && computedStyles.TryGetValue(useElement, out HtmlComputedStyle? style)) {
+            string effectiveValue = style.GetValue(propertyName).Trim();
+            CssCustomPropertyDefinition[] effectiveMatches = candidates
+                .Where(source => string.Equals(source.ValueText.Trim(), effectiveValue, StringComparison.Ordinal))
+                .ToArray();
+            if (effectiveMatches.Length != 0) candidates = effectiveMatches;
+        }
         int selectedDeclarationStart = -1;
         int selectedRank = -1;
         int selectedSpecificity = -1;
         int selectedDistance = int.MaxValue;
         bool selectedImportant = false;
-        foreach (CssCustomPropertyDefinition source in sources) {
+        foreach (CssCustomPropertyDefinition source in candidates) {
             int rank = GetSubstitutionRank(source, useSelector, document, useElement);
             if (rank < 0) {
                 continue;
@@ -169,7 +187,12 @@ public static partial class HtmlResourcePipeline {
         int best = -1;
         foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
             string normalizedDefinition = definitionPart.Trim();
-            best = Math.Max(best, GetElementSubstitutionRank(normalizedDefinition, useElement));
+            bool samePseudoElementUse = useElement != null &&
+                SplitTopLevelList(useSelector).Any(usePart =>
+                    string.Equals(normalizedDefinition, usePart.Trim(), StringComparison.OrdinalIgnoreCase));
+            best = Math.Max(best, samePseudoElementUse
+                ? 3
+                : GetElementSubstitutionRank(normalizedDefinition, useElement));
             if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
@@ -246,13 +269,13 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static int GetInlineOwnerDistance(CssCustomPropertyDefinition source, IElement? useElement) {
-        if (!source.IsInline || source.InlineOwner == null || useElement == null) {
+        if (!source.IsInline || source.SourceOwner == null || useElement == null) {
             return int.MaxValue;
         }
 
         int distance = 0;
         for (IElement? current = useElement; current != null; current = current.ParentElement, distance++) {
-            if (ReferenceEquals(current, source.InlineOwner)) {
+            if (ReferenceEquals(current, source.SourceOwner)) {
                 return distance;
             }
         }

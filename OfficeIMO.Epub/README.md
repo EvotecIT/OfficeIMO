@@ -164,11 +164,15 @@ foreach (string warning in book.Warnings) {
 }
 ```
 
+## Content provenance
+
+`EpubDocument.InspectProvenance("book.epub")` reports C2PA and AI-specific IPTC metadata in the EPUB package and supported embedded images. `EpubDocument.RemoveProvenance("book.epub", "clean.epub")` performs a targeted bounded rewrite while preserving the required uncompressed, first `mimetype` entry. Signed-package mutation is blocked unless removal of invalidated `META-INF/signatures.xml` is requested explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
 ## Boundaries
 
 - This package owns reusable EPUB parsing primitives.
 - Reader integration belongs in `OfficeIMO.Reader.Epub`.
-- The parser is read-only and does not attempt CSS layout, scripting, DRM, or package mutation.
+- The content model is read-only. The provenance API provides only targeted carrier removal; it does not attempt CSS layout, scripting, DRM, or general package editing.
 
 ## Targets and license
 

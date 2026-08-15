@@ -96,6 +96,7 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
             PdfAssociatedFileRelationship.Data => "Data",
             PdfAssociatedFileRelationship.Alternative => "Alternative",
             PdfAssociatedFileRelationship.Supplement => "Supplement",
+            PdfAssociatedFileRelationship.C2paManifest => "C2PA_Manifest",
             _ => "Unspecified"
         };
     }

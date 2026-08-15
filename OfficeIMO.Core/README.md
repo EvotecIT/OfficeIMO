@@ -100,6 +100,31 @@ if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(svg, limits)) {
 A `true` result means the payload is well-formed SVG and stays within the input, XML nesting, viewport, path-command, element, rendered-reference, rendered-payload, projected raster-paint, and filter-work ceilings enforced for the ChartForgeX fallback. It does not authorize network access or external resource loading by another renderer, and it does not mean every SVG feature can be projected into an `OfficeDrawing`. Apply renderer-specific resource and execution policies before using another SVG engine. `TryRead(...)` performs OfficeIMO's vector projection and reports unsupported features; use it when the drawing result is required.
 
 `MaximumElements`, `MaximumViewportDimension`, and `MaximumViewportPixels` can be lowered for an application policy or raised for trusted input up to their documented hard maxima. They do not relax the fixed 8 MiB input, nesting, path-command, transform, reference-depth, conservative stylesheet/reference, or 256-viewport raster-work checks. Raster work includes projected paint bounds and the estimated cost of blur, morphology, convolution, and turbulence filter parameters.
+### Inspect and remove provenance carriers
+
+`OfficeIMO.Provenance` inspects C2PA Content Credentials and IPTC Digital Source Type declarations without loading a cryptographic provider. The bounded parsers understand the format-native carriers used by JPEG, PNG, WebP, GIF, TIFF, SVG, ZIP-based document packages, and structured or variation-selector text.
+
+```csharp
+using OfficeIMO.Provenance;
+
+OfficeProvenanceReport report = OfficeProvenanceInspector.InspectFile("generated-image.png");
+Console.WriteLine($"C2PA: {report.HasC2paManifest}");
+Console.WriteLine($"Generative AI declaration: {report.HasGenerativeAiDeclaration}");
+
+OfficeProvenanceRemovalResult removal = OfficeProvenanceRemover.RemoveFile(
+    "generated-image.png",
+    "clean-image.png");
+
+foreach (OfficeProvenanceChange change in removal.Changes) {
+    Console.WriteLine($"{change.Carrier}: {change.Location}");
+}
+```
+
+Removal is selective. It removes structurally valid C2PA carriers and AI-specific `trainedAlgorithmicMedia` or `compositeWithTrainedAlgorithmicMedia` declarations while preserving unrelated metadata and non-AI source declarations. The generic Core API blocks signed ZIP packages because rewriting the package invalidates its signatures; callers that own the complete document save must handle signature invalidation separately.
+
+Structural inspection does not claim that a manifest is authentic or trusted. Install `OfficeIMO.Security` and use its optional C2PA verifier when content binding, signature mathematics, and certificate trust must be checked.
+
+The [provenance support matrix](../Docs/officeimo.provenance-support-matrix.md) records the exact carriers, strict-removal behavior, verification boundary, and known limits.
 
 ### Encode common raster formats
 
@@ -269,6 +294,7 @@ if (font != null) {
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
 - Dependency-free `IOfficeSecurityProvider`, CMS/X.509/XML-signature requests, options, findings, and results under the `OfficeIMO.Security` namespace. The same layer owns bounded OPC, VBA, and ODF/EPUB XML package-signature structure and atomic commit policy. The optional `OfficeIMO.Security` package supplies the concrete cryptographic provider.
+- Dependency-free provenance inspection and selective removal contracts under `OfficeIMO.Provenance`, including exact C2PA carriers and IPTC AI-source declarations. Optional cryptographic verification remains in `OfficeIMO.Security`.
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.
 - `OfficeColorSpaceConverter` for dependency-free CMYK, CIE Lab/XYZ, calibrated gray, and calibrated RGB conversion to sRGB.
 - `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.

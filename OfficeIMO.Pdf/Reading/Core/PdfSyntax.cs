@@ -12,17 +12,26 @@ internal static partial class PdfSyntax {
     private static readonly Regex TrailerRootRegex = new Regex(@"/Root\s+(\d+)\s+(\d+)\s+R", RegexOptions.Compiled, RegexTimeout);
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf) {
-        return ParseObjects(pdf, null, out _);
+        return ParseObjects(pdf, null, out _, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
-        return ParseObjects(pdf, options, out _);
+        return ParseObjects(pdf, options, out _, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
         PdfReadOptions? options,
         out PdfRepairReport repairReport) {
+        return ParseObjects(pdf, options, out repairReport, out _);
+    }
+
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
+        byte[] pdf,
+        PdfReadOptions? options,
+        out PdfRepairReport repairReport,
+        out long decodedStreamBytes) {
+        decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
         PdfParsingMode parsingMode = options?.ParsingMode ?? PdfParsingMode.Lenient;
@@ -202,8 +211,9 @@ internal static partial class PdfSyntax {
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
         var xrefScanBudget = new XrefObjectScanBudget(limits);
-        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, out bool appliedClassicEntries);
-        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget) || appliedXrefStreamEntries;
+        var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
+        bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, out bool appliedClassicEntries);
+        appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget) || appliedXrefStreamEntries;
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
@@ -218,15 +228,17 @@ internal static partial class PdfSyntax {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
-                if (appliedXrefStreamEntries) {
-                    ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits);
-                }
             }
         }
 
-        if (!appliedXrefStreamEntries) {
+        if (appliedXrefStreamEntries) {
+            // Xref streams are never encrypted, but the object streams they reference can be.
+            // Materialize compressed objects only after authentication and decryption so their
+            // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
+            ApplyCompressedXrefStreamEntries(map, pdf, parsedOffsets, limits, decodedStreamBudget);
+        } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
-            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits);
+            ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget);
         }
 
         if (decryptor is null) {
@@ -240,6 +252,7 @@ internal static partial class PdfSyntax {
         ThrowIfParsingTimeExceeded(parseTimer, limits);
 
         repairReport = new PdfRepairReport(repairDiagnostics.AsReadOnly());
+        decodedStreamBytes = decodedStreamBudget.UsedBytes;
         return (map, trailerRaw);
     }
 

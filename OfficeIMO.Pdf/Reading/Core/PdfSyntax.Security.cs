@@ -520,7 +520,7 @@ internal static partial class PdfSyntax {
         return TryReadFirstReference(text, key)?.ObjectNumber;
     }
 
-    private static PdfReference? TryReadFirstReference(string text, string key) {
+    internal static PdfReference? TryReadFirstReference(string text, string key) {
         return TryFindReference(text, "/" + key, 0, out PdfReference? reference, out _)
             ? reference
             : null;

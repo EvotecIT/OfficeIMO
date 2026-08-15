@@ -1,0 +1,18 @@
+using System;
+using System.IO;
+
+namespace OfficeIMO.Provenance;
+
+/// <summary>Marks configured provenance resource limits without changing the public exception contract.</summary>
+internal static class OfficeProvenanceLimitException {
+    private const string Marker = "OfficeIMO.Provenance.ResourceLimit";
+
+    internal static InvalidDataException Create(string message) {
+        var exception = new InvalidDataException(message);
+        exception.Data[Marker] = true;
+        return exception;
+    }
+
+    internal static bool Is(Exception exception) =>
+        exception is InvalidDataException && exception.Data.Contains(Marker);
+}

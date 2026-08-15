@@ -592,75 +592,16 @@ public sealed class HtmlCoreTests {
             candidate => Assert.Equal("two.png", candidate.Url));
     }
 
-    [Fact]
-    public void HtmlSrcSetParser_SplitsCommaSeparatedCandidatesWithoutWhitespace() {
-        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("small.png,large.png 2x");
+    [Theory]
+    [InlineData("small.png,large.png 2x", "small.png,large.png")]
+    [InlineData("small.png?v=1,large.png?v=1 2x", "small.png?v=1,large.png?v=1")]
+    [InlineData("small,large 2x", "small,large")]
+    [InlineData("image?w=200,image?w=400 2x", "image?w=200,image?w=400")]
+    public void HtmlSrcSetParser_PreservesCommasInsideUrlToken(string sourceSet, string expectedUrl) {
+        HtmlSrcSetCandidate candidate = Assert.Single(HtmlSrcSetParser.Parse(sourceSet));
 
-        Assert.Collection(
-            candidates,
-            candidate => {
-                Assert.Equal("small.png", candidate.Url);
-                Assert.Equal(string.Empty, candidate.Descriptor);
-            },
-            candidate => {
-                Assert.Equal("large.png", candidate.Url);
-                Assert.Equal("2x", candidate.Descriptor);
-            });
-
-        string normalized = HtmlImageSourceResolver.ResolveNormalizedSrcSet(
-            "small.png,large.png 2x",
-            new Uri("https://example.test/images/"),
-            HtmlUrlPolicy.CreateOfficeIMOProfile());
-
-        Assert.Equal("https://example.test/images/small.png, https://example.test/images/large.png 2x", normalized);
-    }
-
-    [Fact]
-    public void HtmlSrcSetParser_SplitsQueryCandidatesAtCommaSeparators() {
-        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("small.png?v=1,large.png?v=1 2x");
-
-        Assert.Collection(
-            candidates,
-            candidate => {
-                Assert.Equal("small.png?v=1", candidate.Url);
-                Assert.Equal(string.Empty, candidate.Descriptor);
-            },
-            candidate => {
-                Assert.Equal("large.png?v=1", candidate.Url);
-                Assert.Equal("2x", candidate.Descriptor);
-            });
-    }
-
-    [Fact]
-    public void HtmlSrcSetParser_SplitsBareExtensionlessCandidatesAtCommaSeparators() {
-        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("small,large 2x");
-
-        Assert.Collection(
-            candidates,
-            candidate => {
-                Assert.Equal("small", candidate.Url);
-                Assert.Equal(string.Empty, candidate.Descriptor);
-            },
-            candidate => {
-                Assert.Equal("large", candidate.Url);
-                Assert.Equal("2x", candidate.Descriptor);
-            });
-    }
-
-    [Fact]
-    public void HtmlSrcSetParser_SplitsExtensionlessQueryCandidatesAtCommaSeparators() {
-        IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlSrcSetParser.Parse("image?w=200,image?w=400 2x");
-
-        Assert.Collection(
-            candidates,
-            candidate => {
-                Assert.Equal("image?w=200", candidate.Url);
-                Assert.Equal(string.Empty, candidate.Descriptor);
-            },
-            candidate => {
-                Assert.Equal("image?w=400", candidate.Url);
-                Assert.Equal("2x", candidate.Descriptor);
-            });
+        Assert.Equal(expectedUrl, candidate.Url);
+        Assert.Equal("2x", candidate.Descriptor);
     }
 
     [Fact]
@@ -693,6 +634,38 @@ public sealed class HtmlCoreTests {
                 Assert.Equal("https://cdn.test/fallback.png", candidate.Url);
                 Assert.Equal("2x", candidate.Descriptor);
             });
+    }
+
+    [Fact]
+    public void HtmlSrcSetParser_PreservesLiteralCommasInsideDataUriPayloads() {
+        const string dataUri = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%3E%3C!--foo,bar.png--%3E%3C/svg%3E";
+
+        HtmlSrcSetCandidate candidate = Assert.Single(HtmlSrcSetParser.Parse(dataUri + " 1x"));
+
+        Assert.Equal(dataUri, candidate.Url);
+        Assert.Equal("1x", candidate.Descriptor);
+    }
+
+    [Theory]
+    [InlineData("image.png 1x 2x")]
+    [InlineData("image.png 100w 2x")]
+    [InlineData("image.png 100h")]
+    [InlineData("image.png 0w")]
+    [InlineData("image.png 0x")]
+    [InlineData("image.png nope")]
+    public void HtmlSrcSetParser_DiscardsCandidatesWithInvalidDescriptorCombinations(string sourceSet) {
+        Assert.Empty(HtmlSrcSetParser.Parse(sourceSet));
+    }
+
+    [Theory]
+    [InlineData("image.png", "")]
+    [InlineData("image.png 1.5x", "1.5x")]
+    [InlineData("image.png 100w", "100w")]
+    [InlineData("image.png 100w 50h", "100w 50h")]
+    public void HtmlSrcSetParser_PreservesValidDescriptors(string sourceSet, string descriptor) {
+        HtmlSrcSetCandidate candidate = Assert.Single(HtmlSrcSetParser.Parse(sourceSet));
+
+        Assert.Equal(descriptor, candidate.Descriptor);
     }
 
     [Fact]

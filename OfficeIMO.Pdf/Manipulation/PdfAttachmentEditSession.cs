@@ -70,6 +70,12 @@ public sealed class PdfAttachmentEditSession {
     /// <summary>Removes an attachment by file name.</summary>
     public PdfAttachmentEditSession Remove(string fileName) {
         int index = RequireIndex(fileName);
+        return RemoveAt(index);
+    }
+
+    internal PdfAttachmentEditSession RemoveAt(int index) {
+        if (index < 0 || index >= _attachments.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        string fileName = _attachments[index].FileName;
         _attachments.RemoveAt(index);
         _sourceIdentities.RemoveAt(index);
         string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, fileName, StringComparison.Ordinal)).Key;

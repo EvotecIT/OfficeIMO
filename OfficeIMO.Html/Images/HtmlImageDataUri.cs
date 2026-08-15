@@ -6,8 +6,9 @@ namespace OfficeIMO.Html;
 public sealed class HtmlImageDataUri {
     private readonly HtmlDataUri _dataUri;
 
-    private HtmlImageDataUri(HtmlDataUri dataUri) {
+    private HtmlImageDataUri(HtmlDataUri dataUri, string fragment) {
         _dataUri = dataUri;
+        Fragment = fragment;
     }
 
     /// <summary>Data URI metadata without the leading <c>data:</c> prefix.</summary>
@@ -22,6 +23,9 @@ public sealed class HtmlImageDataUri {
     /// <summary>Indicates whether the payload is base64 encoded.</summary>
     public bool IsBase64 => _dataUri.IsBase64;
 
+    /// <summary>URL fragment suffix, including the leading hash when present.</summary>
+    public string Fragment { get; }
+
     /// <summary>Suggested file extension for the media type, including the leading dot.</summary>
     public string FileExtension => GetImageExtension(MediaType);
 
@@ -31,12 +35,17 @@ public sealed class HtmlImageDataUri {
     /// <summary>Tries to parse an image data URI.</summary>
     public static bool TryParse(string? source, out HtmlImageDataUri dataUri) {
         dataUri = null!;
-        if (!HtmlDataUri.TryParse(source, out HtmlDataUri parsed)
+        string candidate = source ?? string.Empty;
+        int commaIndex = candidate.IndexOf(',');
+        int fragmentIndex = commaIndex >= 0 ? candidate.IndexOf('#', commaIndex + 1) : -1;
+        string fragment = fragmentIndex >= 0 ? candidate.Substring(fragmentIndex) : string.Empty;
+        string dataSource = fragmentIndex >= 0 ? candidate.Substring(0, fragmentIndex) : candidate;
+        if (!HtmlDataUri.TryParse(dataSource, out HtmlDataUri parsed)
             || !parsed.MediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
-        dataUri = new HtmlImageDataUri(parsed);
+        dataUri = new HtmlImageDataUri(parsed, fragment);
         return true;
     }
 
@@ -54,6 +63,9 @@ public sealed class HtmlImageDataUri {
 
     /// <summary>Estimates decoded byte count without allocating decoded content when possible.</summary>
     public long EstimateDecodedByteCount() => _dataUri.EstimateDecodedByteCount();
+
+    /// <summary>Attempts to estimate decoded byte count without throwing for malformed payloads.</summary>
+    public bool TryEstimateDecodedByteCount(out long byteCount) => _dataUri.TryEstimateDecodedByteCount(out byteCount);
 
     private static string GetImageExtension(string mediaType) {
         return mediaType.ToLowerInvariant() switch {

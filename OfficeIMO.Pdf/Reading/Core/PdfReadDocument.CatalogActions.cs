@@ -131,13 +131,14 @@ public sealed partial class PdfReadDocument {
 
         if (source is PdfStream stream) {
             try {
-                byte[] decoded = Filters.StreamDecoder.DecodeRequired(
-                    stream.Dictionary,
-                    stream.Data,
+                byte[] decoded = _decodedStreamBudget.DecodeRequired(
+                    stream,
                     _objects,
                     Math.Min(_options.Limits.MaxJavaScriptBytes, _options.Limits.MaxDecodedStreamBytes));
                 sourceBytes = decoded.LongLength;
                 return PdfJavaScriptStringEncoding.TryDecode(decoded, out script!);
+            } catch (PdfReadLimitException) {
+                throw;
             } catch (InvalidDataException) {
                 script = null;
                 sourceBytes = 0L;

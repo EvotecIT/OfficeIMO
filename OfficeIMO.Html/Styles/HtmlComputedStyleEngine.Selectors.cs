@@ -106,7 +106,7 @@ public static partial class HtmlComputedStyleEngine {
         return string.Equals(element.TagName, selector, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool TryParsePseudoElementSelector(string selector, out string hostSelector, out HtmlPseudoElementKind kind) {
+    internal static bool TryParsePseudoElementSelector(string selector, out string hostSelector, out HtmlPseudoElementKind kind) {
         string value = selector.TrimEnd();
         if (TryTrimPseudoElement(value, "::before", out hostSelector)
             || TryTrimPseudoElement(value, ":before", out hostSelector)) {

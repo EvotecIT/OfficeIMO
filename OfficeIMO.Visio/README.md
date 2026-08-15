@@ -263,6 +263,10 @@ IReadOnlyList<OfficeImageExportResult> pages = document
     .Save("pipeline-pages");
 ```
 
+## Content provenance
+
+`VisioDocument.InspectProvenance("input.vsdx")` reports C2PA and AI-specific IPTC metadata in the drawing and its supported embedded images. `VisioDocument.RemoveProvenance("input.vsdx", "clean.vsdx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
 ## Related packages and limits
 
 - `OfficeIMO.Visio` generates and edits drawing, template, stencil, and macro-enabled Open XML Visio packages without requiring desktop Visio at runtime.

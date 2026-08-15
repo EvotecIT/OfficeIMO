@@ -65,6 +65,151 @@ internal static partial class PdfPageExtractor {
         sb.Append('\n');
         return PdfEncoding.Latin1GetBytes(sb.ToString());
     }
+
+    internal static void EnsureSerializedObjectWithinLimit(PdfObject value, SerializationContext context, long maximumBytes) {
+        if (maximumBytes < 0 || CountSerializedObjectBytes(value, context, maximumBytes) > maximumBytes) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
+    }
+
+    internal static void EnsureSerializedIndirectObjectWithinLimit(
+        PdfObject value,
+        SerializationContext context,
+        int objectNumber,
+        long maximumBytes) {
+        if (maximumBytes < 0) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
+        long total = CountSerializedObjectBytes(value, context, maximumBytes);
+        total = AddCounted(total, objectNumber.ToString(CultureInfo.InvariantCulture).Length + 14L, maximumBytes);
+        if (maximumBytes < 0 || total > maximumBytes) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
+    }
+
+    private static long CountSerializedObjectBytes(PdfObject value, SerializationContext context, long maximumBytes) {
+        if (value is PdfStream stream) return CountStreamBytes(stream, context, maximumBytes);
+        return AddCounted(CountValueBytes(value, context, maximumBytes), 1L, maximumBytes);
+    }
+
+    private static long CountValueBytes(PdfObject value, SerializationContext context, long maximumBytes) {
+        switch (value) {
+            case PdfStream:
+                throw new NotSupportedException("Direct PDF streams inside arrays or dictionaries are not supported by page extraction yet.");
+            case PdfNumber number:
+                return FormatNumber(number.Value).Length;
+            case PdfBoolean boolean:
+                return boolean.Value ? 4L : 5L;
+            case PdfName name:
+                return AddCounted(1L, CountNameBytes(name.Name, maximumBytes), maximumBytes);
+            case PdfStringObj text:
+                return context.PreserveRawStringBytes
+                    ? CountHexStringBytes(text.RawBytes.LongLength, maximumBytes)
+                    : text.UseTextStringEncoding
+                        ? CountTextStringBytes(text.Value, maximumBytes)
+                        : CountLiteralStringBytes(text.Value, maximumBytes);
+            case PdfNull:
+                return 4L;
+            case PdfReference reference:
+                ValidateReferenceGeneration(reference, context);
+                if (!context.NumberMap.TryGetValue(reference.ObjectNumber, out int newObjectNumber)) {
+                    throw new InvalidOperationException("PDF object " + reference.ObjectNumber.ToString(CultureInfo.InvariantCulture) + " was referenced but not copied.");
+                }
+                int generation = context.PreserveReferenceGenerations && newObjectNumber == reference.ObjectNumber
+                    ? reference.Generation
+                    : 0;
+                return newObjectNumber.ToString(CultureInfo.InvariantCulture).Length +
+                    generation.ToString(CultureInfo.InvariantCulture).Length + 3L;
+            case PdfArray array:
+                long arrayBytes = 2L;
+                foreach (PdfObject item in array.Items) {
+                    arrayBytes = AddCounted(arrayBytes, CountValueBytes(item, context, maximumBytes), maximumBytes);
+                    arrayBytes = AddCounted(arrayBytes, 1L, maximumBytes);
+                }
+                return AddCounted(arrayBytes, 1L, maximumBytes);
+            case PdfDictionary dictionary:
+                return CountDictionaryBytes(dictionary, context, maximumBytes, excludeLength: false);
+            default:
+                throw new NotSupportedException("Unsupported PDF object type: " + value.GetType().Name);
+        }
+    }
+
+    private static long CountStreamBytes(PdfStream stream, SerializationContext context, long maximumBytes) {
+        long dictionaryBytes = 3L;
+        foreach (KeyValuePair<string, PdfObject> entry in stream.Dictionary.Items) {
+            if (string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
+            dictionaryBytes = AddCounted(dictionaryBytes, 2L, maximumBytes);
+            dictionaryBytes = AddCounted(dictionaryBytes, CountNameBytes(entry.Key, maximumBytes), maximumBytes);
+            dictionaryBytes = AddCounted(dictionaryBytes, CountValueBytes(entry.Value, context, maximumBytes), maximumBytes);
+            dictionaryBytes = AddCounted(dictionaryBytes, 1L, maximumBytes);
+        }
+        dictionaryBytes = AddCounted(dictionaryBytes, 8L, maximumBytes); // /Length plus trailing separator.
+        dictionaryBytes = AddCounted(dictionaryBytes, stream.Data.Length.ToString(CultureInfo.InvariantCulture).Length, maximumBytes);
+        dictionaryBytes = AddCounted(dictionaryBytes, 3L, maximumBytes); //  >>
+        long total = AddCounted(dictionaryBytes, 8L, maximumBytes); // \nstream\n
+        total = AddCounted(total, stream.Data.LongLength, maximumBytes);
+        return AddCounted(total, 11L, maximumBytes); // \nendstream\n
+    }
+
+    private static long CountDictionaryBytes(PdfDictionary dictionary, SerializationContext context, long maximumBytes, bool excludeLength) {
+        long total = 3L;
+        foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
+            if (excludeLength && string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
+            total = AddCounted(total, 2L, maximumBytes);
+            total = AddCounted(total, CountNameBytes(entry.Key, maximumBytes), maximumBytes);
+            total = AddCounted(total, CountValueBytes(entry.Value, context, maximumBytes), maximumBytes);
+            total = AddCounted(total, 1L, maximumBytes);
+        }
+        return AddCounted(total, 2L, maximumBytes);
+    }
+
+    private static long CountNameBytes(string value, long maximumBytes) {
+        long total = 0L;
+        foreach (char character in value) {
+            long count = character <= 0x20 || character >= 0x7F || IsNameDelimiter(character)
+                ? 1L + CountHexDigits(character)
+                : 1L;
+            total = AddCounted(total, count, maximumBytes);
+        }
+        return total;
+    }
+
+    private static long CountLiteralStringBytes(string value, long maximumBytes) {
+        if (value.Any(character => character > byte.MaxValue)) return CountTextStringBytes(value, maximumBytes);
+        long total = 2L;
+        foreach (char character in value) {
+            long count;
+            if (character is '\\' or '(' or ')' or '\r' or '\n' or '\t' or '\b' or '\f') count = 2L;
+            else if (character < 32 || character == 127) count = 4L;
+            else count = 1L;
+            total = AddCounted(total, count, maximumBytes);
+        }
+        return total;
+    }
+
+    private static long CountTextStringBytes(string value, long maximumBytes) {
+        long encodedBytes = PdfWinAnsiEncoding.CanEncode(value, out _)
+            ? value.Length
+            : AddCounted(2L, MultiplyCounted(value.Length, 2L, maximumBytes), maximumBytes);
+        return CountHexStringBytes(encodedBytes, maximumBytes);
+    }
+
+    private static long CountHexStringBytes(long byteCount, long maximumBytes) =>
+        AddCounted(MultiplyCounted(byteCount, 2L, maximumBytes), 2L, maximumBytes);
+
+    private static int CountHexDigits(int value) => value <= 0xFF ? 2 : value <= 0xFFF ? 3 : 4;
+
+    private static bool IsNameDelimiter(char character) =>
+        character is '(' or ')' or '<' or '>' or '[' or ']' or '{' or '}' or '/' or '%' or '#';
+
+    private static long MultiplyCounted(long value, long multiplier, long maximumBytes) =>
+        value > maximumBytes / multiplier ? ExceededCount(maximumBytes) : value * multiplier;
+
+    private static long AddCounted(long current, long added, long maximumBytes) =>
+        current > maximumBytes || added > maximumBytes - current ? ExceededCount(maximumBytes) : current + added;
+
+    private static long ExceededCount(long maximumBytes) =>
+        maximumBytes == long.MaxValue ? long.MaxValue : maximumBytes + 1L;
     
     private static byte[] SerializeStream(PdfStream stream, SerializationContext context) {
         string dictionary = BuildStreamDictionary(stream, context);

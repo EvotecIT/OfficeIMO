@@ -66,6 +66,60 @@ public static partial class HtmlComputedStyleEngine {
         return false;
     }
 
+    internal static bool IsPotentiallyApplicableScreenMedia(string mediaText, HtmlRenderMediaFeatures mediaFeatures) {
+        if (mediaFeatures == null) throw new ArgumentNullException(nameof(mediaFeatures));
+        mediaFeatures.Validate();
+        if (string.IsNullOrWhiteSpace(mediaText)) return true;
+
+        var widths = new List<double> { 1D, 816D, 1000000D };
+        var heights = new List<double> { 1D, 1056D, 1000000D };
+        CollectMediaDimensionCandidates(mediaText, widths, heights, mediaFeatures);
+        foreach (double width in widths.Distinct().Take(16)) {
+            foreach (double height in heights.Distinct().Take(16)) {
+                if (IsApplicableMedia(mediaText, new MediaEnvironment(HtmlCssMediaContext.Screen, width, height, mediaFeatures))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static void CollectMediaDimensionCandidates(
+        string mediaText,
+        ICollection<double> widths,
+        ICollection<double> heights,
+        HtmlRenderMediaFeatures mediaFeatures) {
+        var defaultEnvironment = MediaEnvironment.CreateDefault(HtmlCssMediaContext.Screen, mediaFeatures);
+        int cursor = 0;
+        while (cursor < mediaText.Length) {
+            int open = mediaText.IndexOf('(', cursor);
+            if (open < 0) break;
+            int close = FindMatchingParenthesis(mediaText, open);
+            if (close <= open) break;
+            string feature = mediaText.Substring(open + 1, close - open - 1).Trim().ToLowerInvariant();
+            int colon = feature.IndexOf(':');
+            if (colon > 0) {
+                string name = feature.Substring(0, colon).Trim();
+                string value = feature.Substring(colon + 1).Trim();
+                ICollection<double>? target = name.EndsWith("width", StringComparison.Ordinal)
+                    ? widths
+                    : name.EndsWith("height", StringComparison.Ordinal) ? heights : null;
+                if (target != null && TryParseMediaLength(value, defaultEnvironment, out double boundary)) {
+                    AddMediaDimensionCandidate(target, boundary);
+                }
+            }
+            cursor = close + 1;
+        }
+    }
+
+    private static void AddMediaDimensionCandidate(ICollection<double> candidates, double boundary) {
+        if (boundary <= 0D || double.IsNaN(boundary) || double.IsInfinity(boundary)) return;
+        double delta = Math.Max(0.001D, boundary * 0.000001D);
+        candidates.Add(Math.Max(0.001D, boundary - delta));
+        candidates.Add(boundary);
+        candidates.Add(boundary + delta);
+    }
+
     private static bool IsPositiveMediaQueryApplicable(string mediaQuery, string activeType, MediaEnvironment environment) {
         bool anyBranchApplies = false;
         foreach (string branch in SplitTopLevelMediaOrBranches(mediaQuery)) {
