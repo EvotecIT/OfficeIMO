@@ -1464,6 +1464,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
+        if (colorSpace.HasUncertifiableShadingTransform ||
+            EffectiveOutputIntentColorTransform?.HasUncertifiableShadingComposition(colorSpace) == true) return false;
         if (!PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
                 functionObject,
                 colorSpace.ComponentCount,
@@ -1808,14 +1810,8 @@ public sealed partial class PdfReadPage {
         PdfObject? resolved = ResolveEffectObject(value);
         if (resolved is PdfNull) return true;
         if (resolved is not PdfName name) return false;
-        renderingIntent = name.Name switch {
-            "Perceptual" => OfficeIccRenderingIntent.Perceptual,
-            "RelativeColorimetric" => OfficeIccRenderingIntent.RelativeColorimetric,
-            "Saturation" => OfficeIccRenderingIntent.Saturation,
-            "AbsoluteColorimetric" => OfficeIccRenderingIntent.AbsoluteColorimetric,
-            _ => null
-        };
-        return renderingIntent.HasValue;
+        renderingIntent = PdfRenderingIntentResolver.FromName(name.Name);
+        return true;
     }
 
     private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(

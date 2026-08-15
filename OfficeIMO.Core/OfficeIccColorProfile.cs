@@ -99,6 +99,19 @@ public sealed partial class OfficeIccColorProfile {
     /// <summary>Gets the number of device components accepted by this profile.</summary>
     public int ComponentCount { get; }
 
+    internal bool HasUncertifiableShadingInputTransform => _deviceToPcsTransforms != null;
+
+    internal bool HasUncertifiableShadingSoftProofTransform {
+        get {
+            if (_deviceToPcsTransforms != null || _pcsToDeviceTransforms == null) return true;
+            for (int index = 0; index < _pcsToDeviceTransforms.Length; index++) {
+                if (_pcsToDeviceTransforms[index] != null &&
+                    _pcsToDeviceTransforms[index] is not MatrixTrcPcsToDeviceTransform) return true;
+            }
+            return false;
+        }
+    }
+
     /// <summary>Attempts to parse a bounded supported ICC input profile.</summary>
     public static bool TryCreate(byte[] profileBytes, out OfficeIccColorProfile? profile) {
         profile = null;

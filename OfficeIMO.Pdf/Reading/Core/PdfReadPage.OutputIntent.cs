@@ -23,7 +23,7 @@ public sealed partial class PdfReadPage {
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[index]);
             if (annotation == null || IsHiddenAnnotation(annotation) || HasNoVisibleAnnotationArea(annotation)) continue;
             if (HasNonDefaultOpacity(annotation, "CA") || HasNonNormalBlendMode(annotation)) return true;
-            if (TryGetNormalAppearanceStream(annotation, out PdfStream? appearance) && appearance != null &&
+            if (TryGetRenderableAnnotationAppearanceStream(annotation, out PdfStream? appearance, out _) && appearance != null &&
                 StreamUsesOutputIntentCompositionInteraction(appearance, resources, activeStreams, budget, type3GlyphBudget, 0)) return true;
         }
         return false;

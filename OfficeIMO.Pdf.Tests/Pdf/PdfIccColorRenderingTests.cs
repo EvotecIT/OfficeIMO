@@ -105,6 +105,25 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_DefaultsUnknownExtGStateIntentToRelativeColorimetric() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string content =
+            "/Perceptual ri /UnknownIntent gs /CsIcc cs 0 0 0 0 scn 0 0 10 10 re f\n" +
+            "/RelativeColorimetric ri /CsIcc cs 0 0 0 0 scn 20 0 10 10 re f\n" +
+            "/Perceptual ri /CsIcc cs 0 0 0 0 scn 40 0 10 10 re f";
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraResourceEntries: "/ExtGState << /UnknownIntent << /RI /VendorSpecific >> >>",
+            contentOverride: content)).Shapes.Select(shape => shape.Shape.FillColor!.Value).ToArray();
+
+        Assert.Equal(3, colors.Length);
+        Assert.Equal(colors[1], colors[0]);
+        Assert.NotEqual(colors[2], colors[0]);
+    }
+
+    [Fact]
     public void RenderPage_RestoresRenderingIntentAcrossGraphicsStateAndPropagatesIntoForm() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string twoShapes =
@@ -184,56 +203,48 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
-    public void RenderPage_AppliesRenderingIntentToIccShadingStops() {
+    public void RenderPage_FailsClosedForUncertifiableIccLutShading() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string shadingObjects =
             "7 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 8 0 R >>\nendobj\n" +
-            "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
-        OfficeDrawing perceptualDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            "8 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1000000 >>\nendobj\n";
+        byte[] pdf = BuildIccContentPdf(
             profile,
             "/N 4",
             string.Empty,
             extraObjects: shadingObjects,
             extraResourceEntries: "/Shading << /Sh 7 0 R >>",
-            contentOverride: "/Perceptual ri /Sh sh"));
-        OfficeDrawing relativeDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
-            profile,
-            "/N 4",
-            string.Empty,
-            extraObjects: shadingObjects,
-            extraResourceEntries: "/Shading << /Sh 7 0 R >>",
-            contentOverride: "/RelativeColorimetric ri /Sh sh"));
+            contentOverride: "/Sh sh");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
-        OfficeColor perceptual = Assert.Single(perceptualDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
-        OfficeColor relative = Assert.Single(relativeDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
-        Assert.NotEqual(perceptual, relative);
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.DoesNotContain(drawing.Shapes, shape => shape.Shape.FillGradient != null);
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
     }
 
     [Fact]
-    public void RenderPage_AppliesRenderingIntentToIccShadingPatternStops() {
+    public void RenderPage_FailsClosedForUncertifiableIccLutShadingPattern() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string shadingObjects =
             "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>\nendobj\n" +
             "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R >>\nendobj\n" +
             "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
-        OfficeDrawing perceptualDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+        byte[] pdf = BuildIccContentPdf(
             profile,
             "/N 4",
             string.Empty,
             extraObjects: shadingObjects,
             extraResourceEntries: "/Pattern << /Sp 7 0 R >>",
-            contentOverride: "/RelativeColorimetric ri /Pattern cs /Sp scn /Perceptual ri 0 0 100 100 re f"));
-        OfficeDrawing relativeDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
-            profile,
-            "/N 4",
-            string.Empty,
-            extraObjects: shadingObjects,
-            extraResourceEntries: "/Pattern << /Sp 7 0 R >>",
-            contentOverride: "/Perceptual ri /Pattern cs /Sp scn /RelativeColorimetric ri 0 0 100 100 re f"));
+            contentOverride: "/Pattern cs /Sp scn 0 0 100 100 re f");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
-        OfficeColor perceptual = Assert.Single(perceptualDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
-        OfficeColor relative = Assert.Single(relativeDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
-        Assert.NotEqual(perceptual, relative);
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.DoesNotContain(drawing.Shapes, shape => shape.Shape.FillGradient != null);
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
     }
 
     [Fact]
@@ -265,15 +276,15 @@ public class PdfIccColorRenderingTests {
 
     [Fact]
     public void RenderPage_IgnoresUnpaintedEarlierIntentForSameShadingPattern() {
-        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        byte[] profile = PdfIccProfiles.SrgbIec6196621;
         const string shadingObjects =
             "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>\nendobj\n" +
             "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R >>\nendobj\n" +
-            "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
+            "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>\nendobj\n";
         const string resources = "/Pattern << /Sp 7 0 R >>";
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
             profile,
-            "/N 4",
+            "/N 3",
             string.Empty,
             extraObjects: shadingObjects,
             extraResourceEntries: resources,
@@ -282,7 +293,7 @@ public class PdfIccColorRenderingTests {
                 "/RelativeColorimetric ri /Sp scn 0 0 100 100 re f"));
         OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
             profile,
-            "/N 4",
+            "/N 3",
             string.Empty,
             extraObjects: shadingObjects,
             extraResourceEntries: resources,
@@ -1690,17 +1701,17 @@ public class PdfIccColorRenderingTests {
 
     [Fact]
     public void RenderPage_ResolvesOnlyPaintedShadingPatternIntentVariants() {
-        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup dup }";
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup }";
         string objects =
             "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 9 0 R >>\nendobj\n" +
             "8 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 10 0 R >>\nendobj\n" +
             "9 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [20 80 140 80] /Function 11 0 R /Extend [true true] >>\nendobj\n" +
             "10 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [20 80 140 80] /Function 12 0 R /Extend [true true] >>\nendobj\n" +
-            "11 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n" +
-            "12 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n";
+            "11 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n" +
+            "12 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n";
         byte[] pdf = BuildIccContentPdf(
-            IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent(),
-            "/N 4",
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
             string.Empty,
             extraObjects: objects,
             extraResourceEntries: "/Pattern << /Unused 7 0 R /Painted 8 0 R >>",

@@ -63,6 +63,13 @@ internal sealed class PdfOutputIntentColorTransform {
         profile != null &&
         colorSpace.CanMapDirectlyToOutputProfile(profile.ComponentCount);
 
+    internal bool HasUncertifiableShadingComposition(PdfPageColorSpace colorSpace) {
+        if (!TryGetProfile(out OfficeIccColorProfile? profile) || profile == null) return false;
+        return colorSpace.CanMapDirectlyToOutputProfile(profile.ComponentCount)
+            ? profile.HasUncertifiableShadingInputTransform
+            : profile.HasUncertifiableShadingSoftProofTransform;
+    }
+
     internal static PdfOutputIntentColorTransform? TryCreate(
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,

@@ -310,15 +310,11 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
-    public void RenderPage_AppliesDestinationProfileToShadingStopsAndPatternTiles() {
+    public void RenderPage_RejectsUncertifiableDestinationProfileShadingAndConvertsPatternTiles() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         OfficeColor expectedBlue = ExpectedOutputConversion(
             profileBytes,
             OfficeColor.FromRgb(51, 102, 204),
-            OfficeIccRenderingIntent.RelativeColorimetric);
-        OfficeColor expectedRed = ExpectedOutputConversion(
-            profileBytes,
-            OfficeColor.Red,
             OfficeIccRenderingIntent.RelativeColorimetric);
         const string tileContent = "0.2 0.4 0.8 rg 0 0 10 10 re f";
         string resources = "/Shading << /Sh 5 0 R >> /Pattern << /P 8 0 R >>";
@@ -333,16 +329,16 @@ public class PdfOutputIntentRenderingTests {
             "/RelativeColorimetric ri /Sh sh /Pattern cs /P scn 0 20 20 20 re f",
             resources,
             extraObjects);
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 
-        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
-        OfficeLinearGradient gradient = Assert.Single(drawing.Shapes).Shape.FillGradient!;
-        OfficeColor[] stopColors = gradient.Stops.Select(stop => stop.Color).Distinct().ToArray();
+        OfficeDrawing drawing = page.ToDrawing();
         OfficeDrawing patternSurface = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>()).Drawing;
         OfficeDrawing tile = Assert.Single(patternSurface.Elements.OfType<OfficeDrawingTilingPattern>()).Tile;
 
-        Assert.Contains(expectedBlue, stopColors);
-        Assert.Contains(expectedRed, stopColors);
+        Assert.DoesNotContain(drawing.Shapes, shape => shape.Shape.FillGradient != null);
         Assert.Equal(expectedBlue, Assert.Single(tile.Shapes).Shape.FillColor);
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
     }
 
     [Fact]
@@ -703,6 +699,23 @@ public class PdfOutputIntentRenderingTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
         Assert.Equal(OfficeColor.FromRgb(51, 102, 204), FindSingleShapeColor(drawing));
+        Assert.Contains(page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
+    public void RenderPage_DiagnosesSynthesizedHighlightTransparencyBeforeSoftProofing() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg 10 10 20 20 re f",
+            extraObjects: "7 0 obj\n<< /Type /Annot /Subtype /Highlight /Rect [10 10 30 30] /C [1 1 0] >>\nendobj\n",
+            pageEntries: "/Annots [7 0 R]");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.FromRgb(51, 102, 204));
         Assert.Contains(page.GetRenderCapabilityDiagnostics(),
             diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
     }

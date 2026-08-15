@@ -36,6 +36,9 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    internal bool HasUncertifiableShadingTransform =>
+        _custom?.HasUncertifiableShadingTransform == true;
+
     internal bool IsNativeDeviceGray =>
         Kind == PdfPageColorSpaceKind.DeviceGray && _custom == null;
 
@@ -177,7 +180,8 @@ internal readonly struct PdfPageColorSpace {
                     out OfficeColor color)
                     ? color
                     : (OfficeColor?)null,
-                componentRanges: ranges));
+                componentRanges: ranges,
+                hasUncertifiableShadingTransform: profile.HasUncertifiableShadingInputTransform));
 
     public static PdfPageColorSpace IccFallback(
         PdfPageColorSpace alternate,
@@ -361,11 +365,13 @@ internal readonly struct PdfPageColorSpace {
             int componentCount,
             Func<IReadOnlyList<double>, OfficeIccRenderingIntent, OfficeColor?> colorTransform,
             bool usesIccApproximation = false,
-            IReadOnlyList<double>? componentRanges = null) {
+            IReadOnlyList<double>? componentRanges = null,
+            bool hasUncertifiableShadingTransform = false) {
             ComponentCount = componentCount;
             ColorTransform = colorTransform;
             UsesIccApproximation = usesIccApproximation;
             ComponentRanges = componentRanges;
+            HasUncertifiableShadingTransform = hasUncertifiableShadingTransform;
         }
 
         public PdfPageCustomColorSpace(IReadOnlyList<OfficeColor> palette, bool usesIccApproximation) {
@@ -381,6 +387,7 @@ internal readonly struct PdfPageColorSpace {
             IndexedLookupComponents = indexedLookupComponents;
             ComponentCount = 1;
             UsesIccApproximation = indexedBaseColorSpace.UsesIccApproximation;
+            HasUncertifiableShadingTransform = indexedBaseColorSpace.HasUncertifiableShadingTransform;
         }
 
         public PdfPageCustomColorSpace(
@@ -395,16 +402,19 @@ internal readonly struct PdfPageColorSpace {
                 (evaluationCost <= 0 || evaluationBudget == null || evaluationBudget(evaluationCost)) &&
                 transform(components, output);
             UsesIccApproximation = alternate.UsesIccApproximation;
+            HasUncertifiableShadingTransform = alternate.HasUncertifiableShadingTransform;
         }
 
         public PdfPageCustomColorSpace(PdfPageColorSpace patternBaseColorSpace) {
             ComponentCount = patternBaseColorSpace.ComponentCount;
             Alternate = patternBaseColorSpace;
             UsesIccApproximation = patternBaseColorSpace.UsesIccApproximation;
+            HasUncertifiableShadingTransform = patternBaseColorSpace.HasUncertifiableShadingTransform;
         }
 
         public int ComponentCount { get; }
         public bool UsesIccApproximation { get; }
+        public bool HasUncertifiableShadingTransform { get; }
         public IReadOnlyList<OfficeColor>? Palette { get; }
         public PdfPageColorSpace? IndexedBaseColorSpace { get; }
         public IReadOnlyList<IReadOnlyList<double>>? IndexedLookupComponents { get; }
