@@ -358,12 +358,20 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
+        return GetImages(pageNumber, imagePlacements, colorizeImageMasks, new PageContentBudget(this));
+    }
+
+    private IReadOnlyList<PdfExtractedImage> GetImages(
+        int pageNumber,
+        IReadOnlyList<PdfImagePlacement>? imagePlacements,
+        bool colorizeImageMasks,
+        PageContentBudget pageContentBudget) {
         return GetImagesForResources(
             ResolveDictionary(GetInheritedValue("Resources")),
             pageNumber,
             imagePlacements,
             colorizeImageMasks,
-            new PageContentBudget(this));
+            pageContentBudget);
     }
 
     private IReadOnlyList<PdfExtractedImage> GetImagesForResources(

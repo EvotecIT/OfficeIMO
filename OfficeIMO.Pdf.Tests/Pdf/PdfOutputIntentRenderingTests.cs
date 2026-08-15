@@ -444,6 +444,71 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntent_ConvertsTintedNativeAlternateComponentsDirectly() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        PdfOutputIntentColorTransform transform = CreateOutputIntentTransform(profileBytes);
+        PdfPageColorSpace separation = PdfPageColorSpace.Alternate(
+            PdfPageColorSpaceKind.Separation,
+            1,
+            PdfPageColorSpaceKind.DeviceRgb,
+            static (_, output) => {
+                output[0] = 0.2D;
+                output[1] = 0.4D;
+                output[2] = 0.8D;
+                return true;
+            },
+            evaluationCost: 1,
+            evaluationBudget: static _ => true);
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(
+            new[] { 0.2D, 0.4D, 0.8D },
+            OfficeIccRenderingIntent.Perceptual,
+            out OfficeColor expected));
+
+        Assert.True(transform.TryApplyDirect(
+            separation,
+            new[] { 0.5D },
+            OfficeIccRenderingIntent.Perceptual,
+            out OfficeColor actual));
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void SeparationImageNormalization_UsesTintedNativeAlternateComponentsForMatchingOutputProfile() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        PdfOutputIntentColorTransform transform = CreateOutputIntentTransform(profileBytes);
+        var function = new PdfDictionary();
+        function.Items["FunctionType"] = new PdfNumber(2);
+        function.Items["Domain"] = NumberArray(0D, 1D);
+        function.Items["C0"] = NumberArray(0.2D, 0.4D, 0.8D);
+        function.Items["C1"] = NumberArray(0.2D, 0.4D, 0.8D);
+        function.Items["N"] = new PdfNumber(1D);
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Separation"));
+        colorSpace.Items.Add(new PdfName("Spot"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(function);
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            profileBytes.Length,
+            OfficeIccRenderingIntent.Perceptual,
+            transform,
+            out PdfImageColorSpaceNormalization normalization));
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.TryConvert(
+            new[] { 0.2D, 0.4D, 0.8D },
+            OfficeIccRenderingIntent.Perceptual,
+            out OfficeColor expected));
+
+        Assert.True(normalization.TryConvertComponents(new[] { 0.5D }, out OfficeColor actual));
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void RenderPage_PublishesDestinationProfileSafelyAcrossConcurrentFirstUse() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         byte[] pdf = BuildPdf(profileBytes, "0.2 0.4 0.8 rg 10 10 20 20 re f");
@@ -729,6 +794,27 @@ public class PdfOutputIntentRenderingTests {
             intent,
             out OfficeColor expected));
         return expected;
+    }
+
+    private static PdfOutputIntentColorTransform CreateOutputIntentTransform(byte[] profileBytes) {
+        var profile = new PdfStream(new PdfDictionary(), profileBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = profile;
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        return Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(
+                catalog,
+                new Dictionary<int, PdfIndirectObject>(),
+                profileBytes.Length));
+    }
+
+    private static PdfArray NumberArray(params double[] values) {
+        var array = new PdfArray();
+        foreach (double value in values) array.Items.Add(new PdfNumber(value));
+        return array;
     }
 
     private static OfficeColor ExpectedSoftProof(

@@ -36,11 +36,54 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    internal bool IsNativeDeviceGray =>
+        Kind == PdfPageColorSpaceKind.DeviceGray && _custom == null;
+
     internal bool IsNativeDeviceRgb =>
         Kind == PdfPageColorSpaceKind.DeviceRgb && _custom == null;
 
     internal bool IsNativeDeviceCmyk =>
         Kind == PdfPageColorSpaceKind.DeviceCmyk && _custom == null;
+
+    internal bool TryGetOutputProfileComponents(
+        IReadOnlyList<double> components,
+        int profileComponentCount,
+        out IReadOnlyList<double> profileComponents) =>
+        TryGetOutputProfileComponents(components, profileComponentCount, depth: 0, out profileComponents);
+
+    private bool TryGetOutputProfileComponents(
+        IReadOnlyList<double> components,
+        int profileComponentCount,
+        int depth,
+        out IReadOnlyList<double> profileComponents) {
+        profileComponents = Array.Empty<double>();
+        if (components == null || depth > 8) return false;
+        if ((IsNativeDeviceRgb && profileComponentCount == 3) ||
+            (IsNativeDeviceCmyk && profileComponentCount == 4)) {
+            if (components.Count < profileComponentCount) return false;
+            profileComponents = components;
+            return true;
+        }
+        if (TryGetIndexedBaseComponents(components, out PdfPageColorSpace indexedBase, out IReadOnlyList<double> indexedComponents)) {
+            return indexedBase.TryGetOutputProfileComponents(
+                indexedComponents,
+                profileComponentCount,
+                depth + 1,
+                out profileComponents);
+        }
+        if (Kind is not (PdfPageColorSpaceKind.Separation or PdfPageColorSpaceKind.DeviceN) ||
+            components.Count < ComponentCount ||
+            _custom?.Alternate is not PdfPageColorSpace alternate ||
+            _custom.Transform == null) return false;
+
+        var alternateComponents = new double[alternate.ComponentCount];
+        return _custom.Transform(components, alternateComponents) &&
+            alternate.TryGetOutputProfileComponents(
+                alternateComponents,
+                profileComponentCount,
+                depth + 1,
+                out profileComponents);
+    }
 
     internal bool TryGetIndexedBaseComponents(
         IReadOnlyList<double> components,

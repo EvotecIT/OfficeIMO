@@ -50,6 +50,40 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ReusesDrawingPassBudgetForTopLevelImageExtraction() {
+        const string firstSeparation = "[/Separation /Spot1 /DeviceRGB 7 0 R]";
+        const string secondSeparation = "[/Separation /Spot2 /DeviceRGB 8 0 R]";
+        string firstImage = BuildStreamObject(
+            5,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + firstSeparation,
+            new string('@', 16));
+        string secondImage = BuildStreamObject(
+            6,
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace " + secondSeparation,
+            new string('#', 16));
+        string firstTint = BuildStreamObject(7, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        string secondTint = BuildStreamObject(8, "<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1]", "{ dup dup }");
+        byte[] pdf = BuildSingleStreamPdf(
+            "q 10 0 0 10 0 0 cm /Im1 Do Q q 10 0 0 10 20 0 cm /Im2 Do Q",
+            "<< /XObject << /Im1 5 0 R /Im2 6 0 R >> >>",
+            firstImage,
+            secondImage,
+            firstTint,
+            secondTint);
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 50 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        int normalizedImages = 0;
+        foreach (OfficeDrawingImage image in drawing.Images) {
+            if (OfficePngReader.TryDecode(image.Bytes, out _)) normalizedImages++;
+        }
+        Assert.Equal(1, normalizedImages);
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedWhenViewUsageTargetsUndeclaredOcg() {
         const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Properties << /Layer 8 0 R >> >> >>\nendobj";

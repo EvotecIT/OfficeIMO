@@ -42,21 +42,20 @@ internal sealed class PdfOutputIntentColorTransform {
         IReadOnlyList<double> components,
         OfficeColor fallbackColor,
         OfficeIccRenderingIntent renderingIntent) {
-        if (TryGetProfile(out OfficeIccColorProfile? profile) && profile != null) {
-            if (IsMatchingDeviceColorSpace(colorSpace, profile.ComponentCount) &&
-                profile.TryConvert(components, renderingIntent, out OfficeColor converted)) {
-                return converted;
-            }
-            if (colorSpace.TryGetIndexedBaseComponents(
-                    components,
-                    out PdfPageColorSpace indexedBase,
-                    out IReadOnlyList<double> indexedComponents) &&
-                IsMatchingDeviceColorSpace(indexedBase, profile.ComponentCount) &&
-                profile.TryConvert(indexedComponents, renderingIntent, out converted)) {
-                return converted;
-            }
-        }
+        if (TryApplyDirect(colorSpace, components, renderingIntent, out OfficeColor converted)) return converted;
         return Apply(fallbackColor, renderingIntent);
+    }
+
+    internal bool TryApplyDirect(
+        PdfPageColorSpace colorSpace,
+        IReadOnlyList<double> components,
+        OfficeIccRenderingIntent renderingIntent,
+        out OfficeColor color) {
+        color = OfficeColor.Black;
+        return TryGetProfile(out OfficeIccColorProfile? profile) &&
+            profile != null &&
+            colorSpace.TryGetOutputProfileComponents(components, profile.ComponentCount, out IReadOnlyList<double> profileComponents) &&
+            profile.TryConvert(profileComponents, renderingIntent, out color);
     }
 
     internal static PdfOutputIntentColorTransform? TryCreate(
@@ -126,10 +125,6 @@ internal sealed class PdfOutputIntentColorTransform {
         return resolved is PdfNull ||
                (resolved is PdfNumber componentCount && componentCount.Value == profileComponentCount);
     }
-
-    private static bool IsMatchingDeviceColorSpace(PdfPageColorSpace colorSpace, int componentCount) =>
-        (colorSpace.IsNativeDeviceRgb && componentCount == 3) ||
-        (colorSpace.IsNativeDeviceCmyk && componentCount == 4);
 
     private static bool TryResolve(
         Dictionary<int, PdfIndirectObject> objects,

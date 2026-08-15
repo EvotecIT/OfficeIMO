@@ -101,11 +101,39 @@ internal sealed class PdfImageColorSpaceNormalization {
         IReadOnlyList<double> components,
         PdfImageColorConversionBuffer conversionBuffer,
         out OfficeColor color) {
+        if (_outputIntentColorTransform != null &&
+            TryApplyDirectOutputIntent(components, conversionBuffer, _outputIntentColorTransform, out color)) return true;
         if (!TryConvertComponentsCore(components, conversionBuffer, out color)) return false;
         if (_outputIntentColorTransform != null) {
-            color = _outputIntentColorTransform.Apply(_colorSpace, components, color, _renderingIntent);
+            color = _outputIntentColorTransform.Apply(color, _renderingIntent);
         }
         return true;
+    }
+
+    private bool TryApplyDirectOutputIntent(
+        IReadOnlyList<double> components,
+        PdfImageColorConversionBuffer conversionBuffer,
+        PdfOutputIntentColorTransform outputIntentColorTransform,
+        out OfficeColor color) {
+        color = OfficeColor.Black;
+        if (components == null || components.Count < SourceColorCount) return false;
+        if (_alternateNormalization == null) {
+            return outputIntentColorTransform.TryApplyDirect(_colorSpace, components, _renderingIntent, out color);
+        }
+
+        PdfImageColorConversionBuffer? alternateBuffer = conversionBuffer.Alternate;
+        if (alternateBuffer == null) return false;
+        double[] clippedComponents = ClipComponentsToRanges(components);
+        IReadOnlyList<double> alternateComponents = clippedComponents;
+        if (_tintTransform != null) {
+            alternateComponents = alternateBuffer.Components;
+            if (!_tintTransform(clippedComponents, alternateBuffer.Components)) return false;
+        }
+        return _alternateNormalization.TryApplyDirectOutputIntent(
+            alternateComponents,
+            alternateBuffer,
+            outputIntentColorTransform,
+            out color);
     }
 
     private bool TryConvertComponentsCore(

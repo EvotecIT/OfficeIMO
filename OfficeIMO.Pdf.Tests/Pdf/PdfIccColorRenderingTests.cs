@@ -1636,6 +1636,38 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ResolvesOnlyTheInvokedShadingIntentVariant() {
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup mul exch dup }";
+        string function = "7 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1] /Length " +
+            Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + program + "\nendstream\nendobj\n";
+        byte[] pdf = BuildIccShadingPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "7 0 R",
+            function,
+            contentOperations: "q /Perceptual ri 20 80 120 40 re W n /Sh1 sh Q");
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 200_000 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.True(
+            drawing.Shapes.Any(item => item.Shape.FillGradient != null),
+            string.Join("; ", page.GetRenderCapabilityDiagnostics().Select(item => item.Code + ":" + item.Subject)));
+    }
+
+    [Fact]
+    public void RenderPage_FailsClosedForParsedIccShadingInsideType3Glyph() {
+        byte[] pdf = BuildIccType3ShadingPdf(PdfIccProfiles.SrgbIec6196621);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic =>
+            diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId && diagnostic.Subject == "FType3");
+    }
+
+    [Fact]
     public void RenderingIntentResources_DoNotUseQualifiedRelativeFallbackForMissingIntent() {
         var legacy = new Dictionary<string, int>(StringComparer.Ordinal) { ["Sh"] = 1 };
         Assert.True(PdfRenderingIntentResolver.TryGetResource(
@@ -2932,9 +2964,13 @@ public class PdfIccColorRenderingTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildIccShadingPdf(byte[] profile, string? function = null, string extraObjects = "") {
+    private static byte[] BuildIccShadingPdf(
+        byte[] profile,
+        string? function = null,
+        string extraObjects = "",
+        string contentOperations = "20 80 120 40 re\nW\nn\n/Sh1 sh") {
         function ??= "<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 1 1] /N 1 >>";
-        byte[] contentBytes = Encoding.ASCII.GetBytes("20 80 120 40 re\nW\nn\n/Sh1 sh");
+        byte[] contentBytes = Encoding.ASCII.GetBytes(contentOperations);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.4\n");
         WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
@@ -2949,6 +2985,24 @@ public class PdfIccColorRenderingTests {
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteAscii(output, extraObjects);
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildIccType3ShadingPdf(byte[] profile) {
+        const string pageContent = "BT /FType3 18 Tf 20 100 Td (A) Tj ET";
+        const string glyphContent = "500 0 d0 /Sh1 sh";
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.4\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /FType3 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + pageContent + "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << /Shading << /Sh1 7 0 R >> >> >>\nendobj\n");
+        WriteAscii(output, "6 0 obj\n<< /Length " + Encoding.ASCII.GetByteCount(glyphContent).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + glyphContent + "\nendstream\nendobj\n");
+        WriteAscii(output, "7 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 8 0 R] /Coords [0 0 500 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj\n");
+        WriteAscii(output, "8 0 obj\n<< /N 3 /Length " + profile.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(profile, 0, profile.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 
