@@ -319,6 +319,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 style.UnsupportedBookmark,
                 OfficeConversionLossKind.Approximation);
         }
+        if (style.SemanticArtifact) return;
         bool automaticHeading = HtmlRenderHeading.TryGetLevel(style.SemanticRole, out int headingLevel);
         if (!automaticHeading && !style.BookmarkLevel.HasValue) return;
         int nodeId = GetSemanticNodeId(element);

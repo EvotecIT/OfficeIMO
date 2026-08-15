@@ -72,6 +72,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
+    private readonly Dictionary<ShapedTextMeasurementKey, double?> _shapedTextMeasurementCache = new Dictionary<ShapedTextMeasurementKey, double?>();
     private readonly HashSet<string> _reportedMixedRunningElementMarginBoxes = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -100,7 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles);
         _resources = resources ?? new HtmlResourceSession();

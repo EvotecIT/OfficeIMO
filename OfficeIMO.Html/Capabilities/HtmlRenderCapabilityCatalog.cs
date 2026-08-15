@@ -24,6 +24,7 @@ public static class HtmlRenderCapabilityCatalog {
         Fallback("css-color-fallback", "Color and paint", HtmlRenderCapabilityKind.Css,
             Features("relative color syntax", "unlisted color() spaces", "unlisted color-mix() interpolation spaces"),
             "Uses the property initial value and emits a typed diagnostic when a color expression is outside the declared static contract.",
+            HtmlRenderDiagnosticCodes.ColorValueUnsupported,
             HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
             HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported),
         Full("css-backgrounds", "Color and paint", HtmlRenderCapabilityKind.Css,

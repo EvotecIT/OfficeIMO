@@ -7,14 +7,17 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlComputedStyleSet _computedStyles;
     private readonly HtmlRenderOptions _options;
+    private readonly HtmlDiagnosticReport _diagnostics;
+    private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
     private double _viewportWidth;
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
     private double _activeContainerHeight = double.NaN;
 
-    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options) {
+    internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
         _computedStyles = computedStyles;
         _options = options;
+        _diagnostics = diagnostics;
         _viewportWidth = options.Mode == HtmlRenderMode.Paged ? options.PageWidth : options.ViewportWidth;
         _viewportHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
     }
@@ -92,7 +95,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
-            Color = ResolveColor(computed.GetValue("color"), parent?.Color ?? OfficeColor.Black),
+            Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
             LetterSpacing = ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
@@ -133,7 +136,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyBoxValues(computed, containingWidth, fontSize, style);
         ApplyDimensions(element, computed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
-        ApplyPaint(computed, style);
+        ApplyPaint(element, computed, style, pseudoElement);
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(computed, style);
@@ -530,7 +533,31 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     internal static bool IsDefaultBlockElement(IElement element) => IsDefaultBlockTag(element.TagName);
 
-    private static OfficeColor ResolveColor(string value, OfficeColor fallback) => HtmlRenderCssValues.TryColor(value, out OfficeColor color) ? color : fallback;
+    private OfficeColor ResolveColor(IElement element, string value, OfficeColor fallback, bool pseudoElement, string property) {
+        string normalized = value.Trim();
+        if (normalized.Length == 0 || string.Equals(normalized, "currentcolor", StringComparison.OrdinalIgnoreCase)) return fallback;
+        if (HtmlRenderCssValues.TryColor(normalized, out OfficeColor color)) return color;
+        ReportUnsupportedColor(element, pseudoElement, property, normalized);
+        return fallback;
+    }
+
+    private void ReportUnsupportedColor(IElement element, bool pseudoElement, string property, string value) {
+        string key = (pseudoElement ? "pseudo:" : string.Empty) + property;
+        if (!_reportedUnsupportedColors.TryGetValue(element, out HashSet<string>? properties)) {
+            properties = new HashSet<string>(StringComparer.Ordinal);
+            _reportedUnsupportedColors[element] = properties;
+        }
+        if (!properties.Add(key)) return;
+        string source = DescribeSource(element) + (pseudoElement ? "::generated" : string.Empty);
+        _diagnostics.Add(
+            "OfficeIMO.Html.Renderer",
+            HtmlRenderDiagnosticCodes.ColorValueUnsupported,
+            "A CSS color value outside the static color contract used its property fallback.",
+            HtmlDiagnosticSeverity.Warning,
+            source,
+            property + "=" + value,
+            OfficeConversionLossKind.Approximation);
+    }
 
     private static OfficeTextAlignment ResolveAlignment(
         string value,
@@ -666,11 +693,17 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.MaxHeight = ReadVerticalLength(computed.GetValue("max-height"), null, reference, parentContentHeight, fontSize);
     }
 
-    private void ApplyPaint(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+    private void ApplyPaint(IElement element, HtmlComputedStyle computed, HtmlRenderBoxStyle style, bool pseudoElement) {
         string backgroundShorthand = computed.GetValue("background");
         string background = computed.GetValue("background-color");
         if (background.Length == 0) background = backgroundShorthand;
-        if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) style.BackgroundColor = backgroundColor;
+        if (string.Equals(background.Trim(), "currentcolor", StringComparison.OrdinalIgnoreCase)) {
+            style.BackgroundColor = style.Color;
+        } else if (HtmlRenderCssValues.TryColor(background, out OfficeColor backgroundColor)) {
+            style.BackgroundColor = backgroundColor;
+        } else if (computed.GetValue("background-color").Length > 0) {
+            ReportUnsupportedColor(element, pseudoElement, "background-color", computed.GetValue("background-color"));
+        }
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");

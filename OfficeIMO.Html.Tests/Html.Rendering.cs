@@ -2290,6 +2290,56 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlPdf_InlineArtifactCannotCreateABookmark() {
+        const string html = "<p>Before <span style='bookmark-level:1;bookmark-label:\"Decorative\";-officeimo-pdf-tag-type:artifact'>Hidden outline</span> after</p>";
+        var options = new HtmlPdfSaveOptions {
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
+
+        Assert.Empty(rendered.Headings);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).Outlines);
+        Assert.DoesNotContain(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderBookmarkAnchor>(),
+            anchor => anchor.Text == "Decorative");
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void HtmlPdf_InlineBookmarkAnchorDoesNotConsumeFlowWidth() {
+        const string html = "<p style='margin:0'><span id='plain'>Plain</span></p>"
+            + "<p style='margin:0'><span id='bookmarked' style='bookmark-level:1'>Plain</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-before'>X</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-bookmark' style='bookmark-level:1'>X</span></p>"
+            + "<p style='margin:0;width:1px'><span id='narrow-after'>X</span></p>";
+        var options = new HtmlPdfSaveOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] textVisuals = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Text == "Plain")
+            .OrderBy(text => text.Y)
+            .ToArray();
+        Assert.Equal(2, textVisuals.Length);
+        HtmlRenderText plain = textVisuals[0];
+        HtmlRenderText bookmarked = textVisuals[1];
+
+        Assert.Equal(plain.X, bookmarked.X, 6);
+        HtmlRenderText[] narrow = EnumerateRenderVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .Where(text => text.Text == "X")
+            .OrderBy(text => text.Y)
+            .ToArray();
+        Assert.Equal(3, narrow.Length);
+        Assert.Equal(narrow[1].Y - narrow[0].Y, narrow[2].Y - narrow[1].Y, 6);
+        Assert.Equal(new[] { "Plain", "X" }, rendered.Headings.Select(heading => heading.Text).ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlPdf_BookmarkLabelAndStateRequireAHeadingOrValidExplicitLevel() {
         const string html = "<main>"
             + "<div style='bookmark-label:\"Label only\"'>Ignored label</div>"

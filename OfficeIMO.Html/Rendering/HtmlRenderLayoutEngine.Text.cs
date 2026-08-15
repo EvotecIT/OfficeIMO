@@ -253,8 +253,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool ShouldAssignNavigationNode(HtmlRenderBoxStyle style) =>
-        HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
-        || style.BookmarkLevelSpecified;
+        !style.SemanticArtifact
+        && (HtmlRenderHeading.TryGetLevel(style.SemanticRole, out _)
+            || style.BookmarkLevelSpecified);
 
     private static bool ShouldCollectSemanticInlineRuns(HtmlRenderBoxStyle style) =>
         ShouldAssignNavigationNode(style)
@@ -278,14 +279,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string source = HtmlRenderStyleResolver.DescribeSource(element);
             var anchor = new HtmlRenderBookmarkAnchor(nodeId, bookmarkAnchorText, 0D, 0D, 0.01D, 0.01D, 0, source);
             var markerBlock = new HtmlRenderFlowBlock(
-                0.01D,
+                0D,
                 0.01D,
                 new[] { anchor },
                 HtmlPageBreakTarget.None,
                 HtmlPageBreakTarget.None,
                 false,
                 source);
-            var markerRun = new HtmlInlineRun(markerBlock, style, link, source, paintOffsetX, paintOffsetY, element);
+            var markerRun = new HtmlInlineRun(
+                markerBlock,
+                style,
+                link,
+                source,
+                paintOffsetX,
+                paintOffsetY,
+                element,
+                isBookmarkMarker: true);
             markerRun.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
             if (semanticRuns.Count == 0) AssignInlineSemanticGroup(markerRun, style, nodeId);
             destination.Add(markerRun);
@@ -320,7 +329,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 || OfficeArabicTextShaper.CanShapeAllJoiningCharacters(fallback.Text)) continue;
             HtmlRenderBoxStyle fallbackStyle = style.Clone();
             fallbackStyle.Font = fallbackStyle.Font.WithFamilyName(fallback.FamilyName);
-            if (!TryShapeWithConfiguredProvider(fallback.Text, fallbackStyle)) {
+            if (!TryMeasureWithConfiguredProvider(fallback.Text, fallbackStyle, out _)) {
                 allUnsupportedRunsShaped = false;
                 break;
             }
@@ -336,16 +345,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
             "joining-script");
     }
 
-    private bool TryShapeWithConfiguredProvider(string text, HtmlRenderBoxStyle style) {
+    private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
+        var cacheKey = new ShapedTextMeasurementKey(text, style.Font);
+        if (_shapedTextMeasurementCache.TryGetValue(cacheKey, out double? cached)) {
+            measured = cached ?? 0D;
+            return cached.HasValue;
+        }
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
-        if (provider == null) return false;
+        if (provider == null) {
+            measured = 0D;
+            _shapedTextMeasurementCache[cacheKey] = null;
+            return false;
+        }
 
         OfficeTrueTypeFont? font = _fonts.ResolveForText(
             text,
             style.Font.FamilyName,
             style.Font.Style,
             out OfficeFontStyle _);
-        if (font == null) return false;
+        if (font == null) {
+            measured = 0D;
+            _shapedTextMeasurementCache[cacheKey] = null;
+            return false;
+        }
 
         _cancellationToken.ThrowIfCancellationRequested();
         string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
@@ -360,9 +382,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _cancellationToken,
             font.CollectionIndex,
             cloneFontData: false));
-        if (result == null) return false;
+        if (result == null) {
+            measured = 0D;
+            _shapedTextMeasurementCache[cacheKey] = null;
+            return false;
+        }
 
-        _ = font.CreateShapedTextRun(logicalText, result);
+        measured = font.CreateShapedTextRun(logicalText, result).Measure(style.Font.Size);
+        _shapedTextMeasurementCache[cacheKey] = measured;
         return true;
     }
 
@@ -602,7 +629,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         for (int index = runIndex + 1; index < runs.Count; index++) {
             HtmlInlineRun candidate = runs[index];
-            if (candidate.AtomicBlock != null || candidate.FloatingBlock != null) return true;
+            if ((candidate.AtomicBlock != null && !candidate.IsBookmarkMarker) || candidate.FloatingBlock != null) return true;
             if (!string.IsNullOrWhiteSpace(candidate.Text)) return true;
         }
         return false;
@@ -1083,7 +1110,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
-        double measured = MeasureText(value, style.Font);
+        double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
+            ? shapedWidth
+            : MeasureText(value, style.Font);
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
             return Math.Max(0.01D, measured);
         }
@@ -1092,6 +1121,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         measured += style.LetterSpacing * elements.Count;
         measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
         return measured;
+    }
+
+    private readonly struct ShapedTextMeasurementKey : IEquatable<ShapedTextMeasurementKey> {
+        internal ShapedTextMeasurementKey(string text, OfficeFontInfo font) {
+            Text = text;
+            Font = font;
+        }
+
+        private string Text { get; }
+        private OfficeFontInfo Font { get; }
+
+        public bool Equals(ShapedTextMeasurementKey other) =>
+            string.Equals(Text, other.Text, StringComparison.Ordinal) && Font.Equals(other.Font);
+
+        public override bool Equals(object? obj) => obj is ShapedTextMeasurementKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                return (StringComparer.Ordinal.GetHashCode(Text) * 397) ^ Font.GetHashCode();
+            }
+        }
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {
@@ -1242,11 +1292,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void Add(InlineSegment segment) {
             Segments.Add(segment);
             Width += segment.Width;
-            if (segment.Run.RunningStringElement == null && segment.Run.RunningElementAssignment == null) _flowContentCount++;
+            if (segment.Run.RunningStringElement == null
+                && segment.Run.RunningElementAssignment == null
+                && !segment.Run.IsBookmarkMarker) _flowContentCount++;
         }
 
         internal void RemoveAt(int index) {
-            if (Segments[index].Run.RunningStringElement == null && Segments[index].Run.RunningElementAssignment == null) _flowContentCount--;
+            if (Segments[index].Run.RunningStringElement == null
+                && Segments[index].Run.RunningElementAssignment == null
+                && !Segments[index].Run.IsBookmarkMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
         }

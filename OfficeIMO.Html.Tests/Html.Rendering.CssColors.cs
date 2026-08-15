@@ -68,6 +68,22 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
     }
 
+    [Fact]
+    public void HtmlRenderer_DiagnosesUnsupportedForegroundAndBackgroundColorValues() {
+        const string html = "<div style='color:color(from red srgb r g b);background-color:color(from blue srgb r g b)'>Fallback</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+
+        Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ColorValueUnsupported));
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "color=color(from red srgb r g b)");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "background-color=color(from blue srgb r g b)");
+        Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
+            html,
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+        Assert.Contains(HtmlRenderDiagnosticCodes.ColorValueUnsupported, HtmlRenderDiagnosticCodes.All);
+        Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ColorValueUnsupported, out _));
+    }
+
     [Theory]
     [InlineData("lab(50 200 0)", "lab(50 125 0)")]
     [InlineData("lab(50 -200 0)", "lab(50 -125 0)")]

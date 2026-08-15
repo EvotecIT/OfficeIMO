@@ -39,7 +39,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (InlineDirectionalGroup group in groups) {
             double groupX = cursor;
             if (group.RightToLeft) {
-                AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
+                if (TryMeasureWithConfiguredProvider(group.Text, segment.Run.Style, out _)) {
+                    result.Add(new InlinePaintSegment(
+                        OfficeBidiTextResolver.MirrorText(group.Text),
+                        groupX,
+                        Math.Max(0.01D, group.Width),
+                        group.Width,
+                        group.LogicalOrder));
+                } else {
+                    AppendRightToLeftPaintSegments(result, group, groupX, segment.Run.Style);
+                }
             } else if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D || Math.Abs(segment.Run.Style.WordSpacing) > 0.0001D) {
                 result.AddRange(ResolveSpacedPaintSegments(
                     new InlineSegment(group.Text, group.Width, segment.Run, group.Text),
