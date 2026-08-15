@@ -774,10 +774,12 @@ public static partial class HtmlProvenance {
                 int nameStart = markup + 2;
                 int closingNameEnd = FindHtmlTagNameEnd(html, nameStart);
                 string closingName = html.Substring(nameStart, closingNameEnd - nameStart);
-                for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
-                    if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
-                    openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
-                    break;
+                if (!HandleEndTagInSelect(openElements, closingName)) {
+                    for (int elementIndex = openElements.Count - 1; elementIndex >= 0; elementIndex--) {
+                        if (!openElements[elementIndex].Name.Equals(closingName, StringComparison.OrdinalIgnoreCase)) continue;
+                        openElements.RemoveRange(elementIndex, openElements.Count - elementIndex);
+                        break;
+                    }
                 }
                 int declarationEnd = FindStartTagEnd(html, closingNameEnd, out _);
                 index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
@@ -857,6 +859,39 @@ public static partial class HtmlProvenance {
         if (tagName.Equals("select", StringComparison.OrdinalIgnoreCase)) {
             elements.RemoveRange(selectIndex, elements.Count - selectIndex);
         }
+        return true;
+    }
+
+    private static bool HandleEndTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
+        int selectIndex = -1;
+        for (int index = elements.Count - 1; index >= 0; index--) {
+            HtmlPreflightElement element = elements[index];
+            if (element.Namespace != HtmlPreflightNamespace.Html) continue;
+            if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!element.Name.Equals("select", StringComparison.OrdinalIgnoreCase)) continue;
+            selectIndex = index;
+            break;
+        }
+        if (selectIndex < 0) return false;
+
+        if (tagName.Equals("option", StringComparison.OrdinalIgnoreCase)) {
+            RemoveCurrentSelectChild(elements, "option");
+            return true;
+        }
+        if (tagName.Equals("optgroup", StringComparison.OrdinalIgnoreCase)) {
+            if (elements.Count >= 2 &&
+                elements[elements.Count - 1].Name.Equals("option", StringComparison.OrdinalIgnoreCase) &&
+                elements[elements.Count - 2].Name.Equals("optgroup", StringComparison.OrdinalIgnoreCase)) {
+                elements.RemoveAt(elements.Count - 1);
+            }
+            RemoveCurrentSelectChild(elements, "optgroup");
+            return true;
+        }
+        if (tagName.Equals("select", StringComparison.OrdinalIgnoreCase)) {
+            elements.RemoveRange(selectIndex, elements.Count - selectIndex);
+            return true;
+        }
+        if (tagName.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
         return true;
     }
 

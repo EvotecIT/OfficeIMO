@@ -51,8 +51,11 @@ public sealed partial class EpubDocument {
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+        if (archive.Entries.Any(entry => entry.FullName.IndexOf('\\') >= 0)) {
+            throw new InvalidDataException("EPUB package entry names must use forward-slash path separators.");
+        }
         ZipArchiveEntry[] containers = archive.Entries
-            .Where(entry => entry.FullName.Replace('\\', '/').Equals("META-INF/container.xml", StringComparison.Ordinal))
+            .Where(entry => entry.FullName.Equals("META-INF/container.xml", StringComparison.Ordinal))
             .ToArray();
         if (containers.Length != 1) throw new InvalidDataException("The EPUB package must contain exactly one META-INF/container.xml part.");
         using Stream containerStream = containers[0].Open();
@@ -69,7 +72,7 @@ public sealed partial class EpubDocument {
             throw new InvalidDataException("The EPUB container metadata has an unexpected root element.");
         }
         Dictionary<string, ZipArchiveEntry[]> entriesByPath = archive.Entries
-            .GroupBy(entry => entry.FullName.Replace('\\', '/'), StringComparer.Ordinal)
+            .GroupBy(entry => entry.FullName, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.Ordinal);
         XElement[] rootfileContainers = document.Root.Elements(containerNamespace + "rootfiles").ToArray();
         if (rootfileContainers.Length != 1) {
@@ -90,7 +93,7 @@ public sealed partial class EpubDocument {
                 if (string.Equals(
                     (string?)rootfile.Attribute("media-type"),
                     "application/oebps-package+xml",
-                    StringComparison.Ordinal) &&
+                    StringComparison.OrdinalIgnoreCase) &&
                     TryValidateOpfPackage(matches[0], options, ref expandedMetadataBytes)) {
                     hasValidPackageDocument = true;
                 }

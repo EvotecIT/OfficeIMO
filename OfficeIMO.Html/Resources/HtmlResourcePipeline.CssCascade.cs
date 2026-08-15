@@ -187,7 +187,12 @@ public static partial class HtmlResourcePipeline {
         int best = -1;
         foreach (string definitionPart in SplitTopLevelList(definitionSelector)) {
             string normalizedDefinition = definitionPart.Trim();
-            best = Math.Max(best, GetElementSubstitutionRank(normalizedDefinition, useElement));
+            bool samePseudoElementUse = useElement != null &&
+                SplitTopLevelList(useSelector).Any(usePart =>
+                    string.Equals(normalizedDefinition, usePart.Trim(), StringComparison.OrdinalIgnoreCase));
+            best = Math.Max(best, samePseudoElementUse
+                ? 3
+                : GetElementSubstitutionRank(normalizedDefinition, useElement));
             if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {

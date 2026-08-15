@@ -70,8 +70,14 @@ public static class MarkdownProvenance {
         string cleaned = Encoding.UTF8.GetString(utf8Result.ToArray());
         byte[] output = EncodeFileText(cleaned, encoding, hadPreamble, options.Limits.MaxAssetBytes);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), output);
+        IReadOnlyList<OfficeProvenanceChange> physicalChanges = utf8Result.Changes;
+        if (encoding.CodePage != Encoding.UTF8.CodePage) {
+            physicalChanges = utf8Result.Changes
+                .Select(change => new OfficeProvenanceChange(change.Carrier, change.Location, removedBytes: 0))
+                .ToArray();
+        }
         return new OfficeProvenanceRemovalResult(
-            output, utf8Result.Before, utf8Result.After, utf8Result.Changes, wasReserialized: true);
+            output, utf8Result.Before, utf8Result.After, physicalChanges, wasReserialized: true);
     }
 
     private static string DecodeFileText(byte[] data, out Encoding encoding, out bool hadPreamble) {
