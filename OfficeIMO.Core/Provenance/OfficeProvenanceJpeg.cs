@@ -436,7 +436,7 @@ internal static class OfficeProvenanceJpeg {
 
     private static void ReserveMarker(ref int markerCount, int maximumEntries) {
         if (markerCount >= maximumEntries) {
-            throw new InvalidDataException($"The JPEG exceeds the configured container entry limit of {maximumEntries}.");
+            throw OfficeProvenanceLimitException.Create($"The JPEG exceeds the configured container entry limit of {maximumEntries}.");
         }
         markerCount++;
     }

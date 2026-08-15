@@ -99,7 +99,9 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceReport nested;
             try {
                 nested = OfficeProvenanceInspector.InspectCore(asset, entryName, CreateNestedOptions(options));
-            } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
+            } catch (Exception exception) when (
+                (exception is InvalidDataException || exception is XmlException) &&
+                !OfficeProvenanceLimitException.Is(exception)) {
                 context.Diagnostics.Add($"ZIP/{entryName}: embedded asset was preserved because inspection failed: {exception.Message}");
                 continue;
             }
@@ -158,7 +160,9 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceRemovalResult nested;
             try {
                 nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
-            } catch (Exception exception) when (exception is InvalidDataException || exception is XmlException) {
+            } catch (Exception exception) when (
+                (exception is InvalidDataException || exception is XmlException) &&
+                !OfficeProvenanceLimitException.Is(exception)) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
                 continue;
             }
@@ -891,15 +895,16 @@ internal static class OfficeProvenanceZip {
         ref long expandedBytes,
         bool includeApplicationMetadata = true) {
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
-        bool rawSignatureEvidence = archive.Entries.Any(entry => IsNonOpcSignatureEntry(entryMetadata[entry].Name)) ||
-            archive.Entries.Any(entry => IsOpcSignatureEvidenceEntry(entryMetadata[entry].Name)) ||
-            HasOpcSignatureOriginRelationship(
+        bool rawSignatureEvidence = includeApplicationMetadata && (
+            archive.Entries.Any(entry => IsNonOpcSignatureEntry(entryMetadata[entry].Name)) ||
+            archive.Entries.Any(entry => IsOpcSignatureEvidenceEntry(entryMetadata[entry].Name)));
+        bool hasOriginRelationship = HasOpcSignatureOriginRelationship(
                 archive,
                 entryMetadata,
                 options.Limits,
                 ref expandedBytes);
         if (!entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
-            return rawSignatureEvidence;
+            return rawSignatureEvidence || hasOriginRelationship;
         }
 
         long remainingInspectionBytes = options.Limits.MaxExpandedContainerBytes - expandedBytes;
@@ -920,10 +925,9 @@ internal static class OfficeProvenanceZip {
         if (!signatureInfo.SignatureDiscoveryComplete) {
             throw new InvalidDataException("The OPC package signature state could not be determined safely.");
         }
-        return rawSignatureEvidence ||
+        return rawSignatureEvidence || hasOriginRelationship ||
             signatureInfo.OriginRelationshipCount > 0 ||
-            signatureInfo.HasDigitalSignatureOriginPart ||
-            signatureInfo.SignatureParts.Count > 0 ||
+            includeApplicationMetadata && (signatureInfo.HasDigitalSignatureOriginPart || signatureInfo.SignatureParts.Count > 0) ||
             includeApplicationMetadata && signatureInfo.HasApplicationSignatureMetadata;
     }
 

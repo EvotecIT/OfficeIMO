@@ -221,7 +221,7 @@ internal static class OfficeProvenanceSvg {
         using XmlReader reader = XmlReader.Create(stream, CreateReaderSettings(options));
         int materializedNodes = 0;
         while (reader.Read()) {
-            if (reader.Depth > 256) throw new InvalidDataException("SVG exceeds the configured XML depth limit.");
+            if (reader.Depth > 256) throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML depth limit.");
             switch (reader.NodeType) {
                 case XmlNodeType.Element:
                     ReserveMaterializedNodes(ref materializedNodes, 1 + reader.AttributeCount, options.MaxContainerEntries);
@@ -240,7 +240,7 @@ internal static class OfficeProvenanceSvg {
 
     private static void ReserveMaterializedNodes(ref int total, int count, int maximum) {
         if (count < 0 || total > maximum - count) {
-            throw new InvalidDataException("SVG exceeds the configured XML node limit.");
+            throw OfficeProvenanceLimitException.Create("SVG exceeds the configured XML node limit.");
         }
         total += count;
     }

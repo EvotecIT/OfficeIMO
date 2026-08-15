@@ -36,7 +36,7 @@ public static class OfficeProvenanceInspector {
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         if (data.LongLength > options.MaxAssetBytes) {
-            throw new InvalidDataException($"The asset exceeds the configured limit of {options.MaxAssetBytes} bytes.");
+            throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured limit of {options.MaxAssetBytes} bytes.");
         }
         return InspectCore(data, fileName, options);
     }

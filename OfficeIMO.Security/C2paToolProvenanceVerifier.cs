@@ -316,7 +316,13 @@ internal sealed class C2paToolProcessResult {
 internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     private static readonly char[] ProcessSnapshotLineSeparators = { '\r', '\n' };
     private const string UnixShellContainmentScript =
-        "set -m; \"$@\" & child=$!; cleanup() { kill -KILL -$child 2>/dev/null || true; }; " +
+        "set -m; \"$@\" & child=$!; " +
+        "child_pgid=$(ps -o pgid= -p \"$child\" 2>/dev/null | tr -d ' '); " +
+        "if [ \"$child_pgid\" != \"$child\" ]; then " +
+        "if ! kill -0 \"$child\" 2>/dev/null; then wait \"$child\"; exit $?; fi; " +
+        "kill -KILL \"$child\" 2>/dev/null || true; wait \"$child\" 2>/dev/null || true; " +
+        "printf '%s\\n' 'unable to establish a dedicated c2patool process group' >&2; exit 126; fi; " +
+        "cleanup() { kill -KILL -$child 2>/dev/null || true; }; " +
         "trap cleanup EXIT; trap 'exit 143' HUP INT TERM; wait $child; status=$?; trap - HUP INT TERM; exit $status";
     private readonly bool _useExternalUnixSessionLauncher;
 

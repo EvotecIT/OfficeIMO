@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -44,6 +45,7 @@ internal static class OfficeProvenanceRiff {
         bool allChunksHaveValidPadding = HaveValidChunkPadding(data, declaredEnd, options.MaxContainerEntries);
         bool extendedHeaderFeaturesAreConsistent = HaveConsistentExtendedHeaderFeatures(
             data, declaredEnd, options.MaxContainerEntries);
+        bool hasValidWebpContainer = OfficeImageReader.TryValidateWebpContainer(data);
         int offset = 12;
         int chunkCount = 0;
         bool hasValidExtendedHeader = false;
@@ -54,7 +56,7 @@ internal static class OfficeProvenanceRiff {
         bool foundXmp = false;
         while (offset < declaredEnd) {
             if (++chunkCount > options.MaxContainerEntries) {
-                throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+                throw OfficeProvenanceLimitException.Create("WebP exceeds the configured container entry limit.");
             }
             if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
@@ -76,13 +78,13 @@ internal static class OfficeProvenanceRiff {
                 extendedHeaderAdvertisesXmp = false;
                 output?.Write(data, offset, total);
             } else if (chunkType == "C2PA") {
-                if (payloadLength > options.MaxManifestBytes) throw new InvalidDataException("RIFF provenance chunk exceeds the configured manifest limit.");
+                if (payloadLength > options.MaxManifestBytes) throw OfficeProvenanceLimitException.Create("RIFF provenance chunk exceeds the configured manifest limit.");
                 bool isLast = offset + total == declaredEnd;
                 bool hasUnambiguousImagePayload = HasUnambiguousImagePayload(
                     lossyImagePayloads, losslessImagePayloads, animationFramePayloads);
                 bool valid = c2paChunkCount == 1 &&
                     extendedHeaderCount == 1 && hasValidExtendedHeader &&
-                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding && isLast &&
+                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding && hasValidWebpContainer && isLast &&
                     hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
@@ -103,7 +105,7 @@ internal static class OfficeProvenanceRiff {
                 Buffer.BlockCopy(data, offset + 8, packet, 0, payloadLength);
                 string location = $"WebP/XMP@{offset}";
                 bool carrierValid = xmpChunkCount == 1 && extendedHeaderCount == 1 &&
-                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding &&
+                    extendedHeaderFeaturesAreConsistent && allChunksHaveValidPadding && hasValidWebpContainer &&
                     hasValidExtendedHeader && extendedHeaderAdvertisesXmp &&
                     HasUnambiguousImagePayload(lossyImagePayloads, losslessImagePayloads, animationFramePayloads) &&
                     offset > lastImagePayloadOffset && !foundXmp;
@@ -141,7 +143,7 @@ internal static class OfficeProvenanceRiff {
         int entries = 0;
         int offset = 12;
         while (offset < declaredEnd) {
-            if (++entries > maximumEntries) throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            if (++entries > maximumEntries) throw OfficeProvenanceLimitException.Create("WebP exceeds the configured container entry limit.");
             if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
             if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");
@@ -160,7 +162,7 @@ internal static class OfficeProvenanceRiff {
         int entries = 0;
         int offset = 12;
         while (offset < declaredEnd) {
-            if (++entries > maximumEntries) throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            if (++entries > maximumEntries) throw OfficeProvenanceLimitException.Create("WebP exceeds the configured container entry limit.");
             if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
             if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");
@@ -181,7 +183,7 @@ internal static class OfficeProvenanceRiff {
         int offset = 12;
         bool valid = true;
         while (offset < declaredEnd) {
-            if (++entries > maximumEntries) throw new InvalidDataException("WebP exceeds the configured container entry limit.");
+            if (++entries > maximumEntries) throw OfficeProvenanceLimitException.Create("WebP exceeds the configured container entry limit.");
             if (declaredEnd - offset < 8) throw new InvalidDataException("RIFF contains a truncated chunk header.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset + 4, littleEndian: true);
             if (payloadValue > int.MaxValue) throw new InvalidDataException("RIFF chunk exceeds the supported size.");

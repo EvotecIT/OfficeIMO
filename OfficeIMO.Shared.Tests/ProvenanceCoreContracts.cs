@@ -120,7 +120,7 @@ public sealed partial class ProvenanceCoreContracts {
         byte[] header = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
         byte[] ihdr = CreatePngChunk("IHDR", CreateValidPngHeader());
         byte[] cabx = CreatePngChunk("caBX", manifest);
-        byte[] text = CreatePngChunk("tEXt", Encoding.ASCII.GetBytes("keep-this"));
+        byte[] text = CreatePngChunk("tEXt", Encoding.ASCII.GetBytes("keep\0this"));
         byte[] imageData = CreatePngChunk("IDAT", Array.Empty<byte>());
         byte[] iend = CreatePngChunk("IEND", Array.Empty<byte>());
         byte[] png = Join(header, ihdr, cabx, text, imageData, iend);
@@ -180,7 +180,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void WebpRemovesC2paChunkAndRecomputesRiffLength() {
         byte[] extendedHeader = CreateVp8xChunk(advertiseXmp: false);
-        byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
+        byte[] keep = CreateValidVp8Chunk();
         byte[] c2pa = CreateRiffChunk("C2PA", CreateManifestStore());
         byte[] webp = CreateWebp(extendedHeader, keep, c2pa);
 
@@ -194,7 +194,7 @@ public sealed partial class ProvenanceCoreContracts {
 
     [Fact]
     public void WebpRejectsBytesBeyondTheDeclaredRiffBoundary() {
-        byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2, 3 });
+        byte[] keep = CreateValidVp8Chunk();
         byte[] suffix = Encoding.ASCII.GetBytes("suffix");
         byte[] webp = Join(CreateWebp(keep, CreateRiffChunk("C2PA", CreateManifestStore())), suffix);
 
@@ -205,7 +205,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void WebpPreservesC2paChunkThatIsNotLastByDefault() {
         byte[] c2pa = CreateRiffChunk("C2PA", CreateManifestStore());
-        byte[] keep = CreateRiffChunk("VP8 ", new byte[] { 1, 2 });
+        byte[] keep = CreateValidVp8Chunk();
         byte[] webp = CreateWebp(c2pa, keep);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");
@@ -222,7 +222,7 @@ public sealed partial class ProvenanceCoreContracts {
             RemoveAiSourceMetadata = true
         };
         byte[] manifest = CreateManifestStore();
-        byte[] webp = CreateWebp(CreateRiffChunk("VP8 ", new byte[] { 1, 2 }), CreateRiffChunk("C2PA", manifest));
+        byte[] webp = CreateWebp(CreateValidVp8Chunk(), CreateRiffChunk("C2PA", manifest));
         byte[] tiff = CreateLittleEndianTiff(manifest);
         byte[] svg = Encoding.UTF8.GetBytes(
             $"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:c2pa=\"http://c2pa.org/manifest\"><metadata><c2pa:manifest>{Convert.ToBase64String(manifest)}</c2pa:manifest></metadata></svg>");
@@ -782,7 +782,7 @@ public sealed partial class ProvenanceCoreContracts {
     public void WebpXmpRemovalPreservesNonAiDigitalSourceType() {
         byte[] webp = CreateWebp(
             CreateVp8xChunk(advertiseXmp: true),
-            CreateRiffChunk("VP8 ", new byte[] { 1, 2 }),
+            CreateValidVp8Chunk(),
             CreateRiffChunk("XMP ", CreateXmpPacket()));
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(webp, "fixture.webp");

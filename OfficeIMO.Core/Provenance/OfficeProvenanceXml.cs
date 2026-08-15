@@ -51,13 +51,13 @@ internal static class OfficeProvenanceXml {
         int materializedNodes = 0;
         while (reader.Read()) {
             if (reader.Depth > MaximumDepth) {
-                throw new InvalidDataException($"{formatName} exceeds the configured XML depth limit.");
+                throw OfficeProvenanceLimitException.Create($"{formatName} exceeds the configured XML depth limit.");
             }
             int nodes = reader.NodeType == XmlNodeType.Element
                 ? 1 + reader.AttributeCount
                 : IsMaterializedNode(reader.NodeType) ? 1 : 0;
             if (nodes > 0 && materializedNodes > options.MaxContainerEntries - nodes) {
-                throw new InvalidDataException($"{formatName} exceeds the configured XML node limit.");
+                throw OfficeProvenanceLimitException.Create($"{formatName} exceeds the configured XML node limit.");
             }
             materializedNodes += nodes;
         }

@@ -18,7 +18,7 @@ internal sealed class OfficeProvenanceContext {
 
     internal void Add(OfficeProvenanceEvidence evidence) {
         if (Evidence.Count >= _options.MaxCarriers) {
-            throw new InvalidDataException($"The asset exceeds the configured carrier limit of {_options.MaxCarriers}.");
+            throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured carrier limit of {_options.MaxCarriers}.");
         }
         Evidence.Add(evidence);
     }

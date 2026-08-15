@@ -209,7 +209,9 @@ internal static class OfficeProvenanceGif {
             if (length == 0) break;
             if (length > data.Length - offset) throw new InvalidDataException("GIF data sub-block exceeds the asset bounds.");
             total += length;
-            if (total > maximumPayload || total > int.MaxValue) throw new InvalidDataException("GIF data sub-blocks exceed the configured limit.");
+            if (total > maximumPayload || total > int.MaxValue) {
+                throw OfficeProvenanceLimitException.Create("GIF data sub-blocks exceed the configured limit.");
+            }
             offset += length;
         }
         payloadLength = (int)total;
@@ -218,7 +220,7 @@ internal static class OfficeProvenanceGif {
 
     private static void ReserveEntry(ref int entryCount, int maximumEntries) {
         if (entryCount >= maximumEntries) {
-            throw new InvalidDataException($"The GIF exceeds the configured container entry limit of {maximumEntries}.");
+            throw OfficeProvenanceLimitException.Create($"The GIF exceeds the configured container entry limit of {maximumEntries}.");
         }
         entryCount++;
     }
@@ -271,8 +273,9 @@ internal static class OfficeProvenanceGif {
                 ReserveEntry(ref candidateEntryCount, maximumEntries);
                 int length = data[cursor++];
                 if (length == 0) return false;
-                if (length > data.Length - cursor || collected.Length > maximumPacketBytes - length) {
-                    throw new InvalidDataException("GIF XMP data sub-blocks are truncated or exceed the configured asset limit.");
+                if (length > data.Length - cursor) return false;
+                if (collected.Length > maximumPacketBytes - length) {
+                    throw OfficeProvenanceLimitException.Create("GIF XMP data sub-blocks exceed the configured asset limit.");
                 }
                 collected.Write(data, cursor, length);
                 cursor += length;

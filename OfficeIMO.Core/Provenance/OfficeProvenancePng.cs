@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -36,12 +37,12 @@ internal static class OfficeProvenancePng {
         int chunkCount = 0;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
-                throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
+                throw OfficeProvenanceLimitException.Create("PNG exceeds the configured chunk-entry limit.");
             }
             if (data.Length - offset < 12) throw new InvalidDataException("PNG contains a truncated chunk.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
             if (payloadValue > int.MaxValue || payloadValue > options.MaxManifestBytes && OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) {
-                throw new InvalidDataException("PNG provenance chunk exceeds the configured manifest limit.");
+                throw OfficeProvenanceLimitException.Create("PNG provenance chunk exceeds the configured manifest limit.");
             }
             int payloadLength = checked((int)payloadValue);
             long totalValue = 12L + payloadLength;
@@ -118,7 +119,7 @@ internal static class OfficeProvenancePng {
         byte headerColorType = byte.MaxValue;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
-                throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
+                throw OfficeProvenanceLimitException.Create("PNG exceeds the configured chunk-entry limit.");
             }
             if (data.Length - offset < 12) throw new InvalidDataException("PNG contains a truncated chunk.");
             uint payloadValue = OfficeProvenanceBinary.ReadUInt32(data, offset, littleEndian: false);
@@ -168,7 +169,8 @@ internal static class OfficeProvenancePng {
         bool requiredPalettePresent = headerColorType != 3 || paletteCount == 1;
         validStructure = headerCount == 1 && validLeadingHeader && requiredPalettePresent && paletteIsValid &&
             foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc &&
-            allChunkTypesValid && !hasUnknownCriticalChunk;
+            allChunkTypesValid && !hasUnknownCriticalChunk &&
+            OfficePngContainerValidator.TryValidate(data, out _, out _);
         return c2paCount;
     }
 

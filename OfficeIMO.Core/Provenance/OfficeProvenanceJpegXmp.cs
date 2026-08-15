@@ -39,7 +39,7 @@ internal static class OfficeProvenanceJpegXmp {
         while (offset < data.Length && OfficeProvenanceJpeg.TryReadMarker(
             data, offset, out byte marker, out int payloadOffset, out int payloadLength, out int segmentEnd)) {
             if (++markerCount > options.MaxContainerEntries) {
-                throw new InvalidDataException($"The JPEG exceeds the configured container entry limit of {options.MaxContainerEntries}.");
+                throw OfficeProvenanceLimitException.Create($"The JPEG exceeds the configured container entry limit of {options.MaxContainerEntries}.");
             }
             if (marker is 0xDA or 0xD9) break;
             if (marker == 0xE1 && Matches(data, payloadOffset, payloadLength, StandardHeader)) {

@@ -150,11 +150,11 @@ public sealed partial class ProvenanceCoreContracts {
     [Fact]
     public void WebpXmpRequiresAValidAdvertisedExtendedFormat() {
         byte[] invalid = CreateWebp(
-            CreateRiffChunk("VP8 ", new byte[] { 1, 2 }),
+            CreateValidVp8Chunk(),
             CreateRiffChunk("XMP ", CreateXmpPacket()));
         byte[] valid = CreateWebp(
             CreateVp8xChunk(advertiseXmp: true),
-            CreateRiffChunk("VP8 ", new byte[] { 1, 2 }),
+            CreateValidVp8Chunk(),
             CreateRiffChunk("XMP ", CreateXmpPacket()));
 
         OfficeProvenanceRemovalResult invalidResult = OfficeProvenanceRemover.Remove(invalid, "fixture.webp");

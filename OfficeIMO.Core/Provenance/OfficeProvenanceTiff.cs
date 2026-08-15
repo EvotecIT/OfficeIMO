@@ -159,7 +159,7 @@ internal static class OfficeProvenanceTiff {
         long key = ((long)offset << 32) | (uint)length;
         if (!processedRanges.Add(key)) return false;
         if (length < 0 || processedBytes > maximumBytes - length) {
-            throw new InvalidDataException("TIFF XMP payload processing exceeds the configured expanded-container limit.");
+            throw OfficeProvenanceLimitException.Create("TIFF XMP payload processing exceeds the configured expanded-container limit.");
         }
         processedBytes += length;
         return true;
@@ -287,7 +287,7 @@ internal static class OfficeProvenanceTiff {
         if (!TryReadSinglePositiveValue(data, ifd, ImageWidthTag) ||
             !TryReadSinglePositiveValue(data, ifd, ImageLengthTag)) return false;
 
-        bool hasImageData = false;
+        int imageDataRepresentations = 0;
         foreach ((ushort offsetsTag, ushort byteCountsTag) in new[] {
             (StripOffsetsTag, StripByteCountsTag),
             (TileOffsetsTag, TileByteCountsTag),
@@ -298,9 +298,9 @@ internal static class OfficeProvenanceTiff {
             if (offsetsEntries.Length == 0 && byteCountEntries.Length == 0) continue;
             if (offsetsEntries.Length != 1 || byteCountEntries.Length != 1 ||
                 !HasValidReferencedImageData(data, offsetsEntries[0], byteCountEntries[0], maximumContainerEntries)) return false;
-            hasImageData = true;
+            imageDataRepresentations++;
         }
-        return hasImageData;
+        return imageDataRepresentations == 1;
     }
 
     private static bool TryReadSinglePositiveValue(byte[] data, TiffIfd ifd, ushort tag) {
@@ -419,7 +419,7 @@ internal static class OfficeProvenanceTiff {
                 throw new InvalidDataException("TIFF IFD references contain a cycle or duplicate reachable directory.");
             }
             if (totalStructuralEntries >= options.MaxContainerEntries) {
-                throw new InvalidDataException("TIFF IFDs exceed the configured container-entry limit.");
+                throw OfficeProvenanceLimitException.Create("TIFF IFDs exceed the configured container-entry limit.");
             }
             totalStructuralEntries++;
             if (currentOffset > int.MaxValue || currentOffset > (ulong)(data.Length - countFieldSize)) throw new InvalidDataException("TIFF IFD offset exceeds the asset bounds.");
@@ -430,7 +430,7 @@ internal static class OfficeProvenanceTiff {
             if (countValue > int.MaxValue) throw new InvalidDataException("TIFF IFD entry count exceeds the supported limit.");
             int count = (int)countValue;
             if (count > options.MaxContainerEntries - totalStructuralEntries) {
-                throw new InvalidDataException("TIFF IFD entries exceed the configured container-entry limit.");
+                throw OfficeProvenanceLimitException.Create("TIFF IFD entries exceed the configured container-entry limit.");
             }
             totalStructuralEntries += count;
             long tableEndValue = (long)ifdOffset + countFieldSize + (long)count * entrySize + nextFieldSize;
@@ -463,7 +463,7 @@ internal static class OfficeProvenanceTiff {
                 if (!IsValidSubIfdPointerType(subIfds.Type, bigTiff) ||
                     subIfds.Count > (ulong)options.MaxContainerEntries || subIfds.Count > int.MaxValue ||
                     !TryGetValueStorageRange(data, subIfds, out int storageOffset, out _)) {
-                    throw new InvalidDataException("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
+                    throw OfficeProvenanceLimitException.Create("TIFF SubIFD references are malformed or exceed the configured container-entry limit.");
                 }
                 for (int index = 0; index < (int)subIfds.Count; index++) {
                     if (!TryReadUnsignedValue(data, subIfds, storageOffset, index, out ulong subIfdOffset)) {
@@ -486,7 +486,7 @@ internal static class OfficeProvenanceTiff {
         int maximumContainerEntries) {
         if (offset == 0) return;
         if (scheduledIfds >= maximumContainerEntries) {
-            throw new InvalidDataException("TIFF IFD references exceed the configured container-entry limit.");
+            throw OfficeProvenanceLimitException.Create("TIFF IFD references exceed the configured container-entry limit.");
         }
         scheduledIfds++;
         pending.Enqueue(offset);
