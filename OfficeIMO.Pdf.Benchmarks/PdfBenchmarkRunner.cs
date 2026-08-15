@@ -10,8 +10,11 @@ internal static class PdfBenchmarkRunner {
     internal const string SerializeForward = "serialize-forward-60";
     internal const string SerializeHarfBuzz = "serialize-harfbuzz-60";
 
-    internal static IReadOnlyList<PdfPerformanceMeasurement> Measure(byte[] corpus) {
-        (PdfPerformanceMeasurement cold, PdfPerformanceMeasurement cached) = MeasureAnalysis(corpus);
+    internal static IReadOnlyList<PdfPerformanceMeasurement> Measure(
+        byte[] corpus,
+        out double cachedSpeedup,
+        out double cachedAllocationReduction) {
+        (PdfPerformanceMeasurement cold, PdfPerformanceMeasurement cached, cachedSpeedup, cachedAllocationReduction) = MeasureAnalysis(corpus);
         PdfPerformanceMeasurement svg = MeasureWorkflow(RenderSvg, corpus, RunSvgRender, sampleCount: 5);
         PdfPerformanceMeasurement png = MeasureWorkflow(RenderPng, corpus, RunPngRender, sampleCount: 3);
         PdfPerformanceMeasurement buffered = MeasureSerialization(
@@ -30,8 +33,12 @@ internal static class PdfBenchmarkRunner {
         return new[] { cold, cached, svg, png, buffered, forward, harfBuzz };
     }
 
-    private static (PdfPerformanceMeasurement Cold, PdfPerformanceMeasurement Cached) MeasureAnalysis(byte[] corpus) {
-        const int sampleCount = 7;
+    private static (
+        PdfPerformanceMeasurement Cold,
+        PdfPerformanceMeasurement Cached,
+        double CachedSpeedup,
+        double CachedAllocationReduction) MeasureAnalysis(byte[] corpus) {
+        const int sampleCount = 11;
         RunColdAnalysis(corpus);
         RunCachedAnalysis(corpus);
 
@@ -49,7 +56,9 @@ internal static class PdfBenchmarkRunner {
 
         return (
             Summarize(AnalysisCold, coldSamples),
-            Summarize(AnalysisCached, cachedSamples));
+            Summarize(AnalysisCached, cachedSamples),
+            RatioOfMedians(coldSamples, cachedSamples, sample => sample.ElapsedMilliseconds),
+            RatioOfMedians(coldSamples, cachedSamples, sample => sample.AllocatedBytes));
     }
 
     private static PdfPerformanceMeasurement MeasureWorkflow(
@@ -67,20 +76,22 @@ internal static class PdfBenchmarkRunner {
     }
 
     private static long RunColdAnalysis(byte[] corpus) {
-        string text = PdfDocument.Open(corpus).Read.Text();
-        PdfDocumentInfo info = PdfDocument.Open(corpus).Inspect();
-        PdfDocumentPreflight preflight = PdfDocument.Open(corpus).Preflight();
-        PdfAnalysisReport analysis = PdfDocument.Open(corpus).Analyze();
-        return text.Length + info.PageCount + preflight.Diagnostics.Count + analysis.Diagnostics.ObjectCount;
+        // Keep this comparison focused on the canonical parse cache. Mixing unrelated analysis
+        // stages into the ratio hides the reuse signal behind their independent work.
+        long output = 0L;
+        for (int operation = 0; operation < 4; operation++) {
+            output += PdfDocument.Open(corpus).Inspect().PageCount;
+        }
+        return output;
     }
 
     private static long RunCachedAnalysis(byte[] corpus) {
         PdfDocument document = PdfDocument.Open(corpus);
-        string text = document.Read.Text();
-        PdfDocumentInfo info = document.Inspect();
-        PdfDocumentPreflight preflight = document.Preflight();
-        PdfAnalysisReport analysis = document.Analyze();
-        return text.Length + info.PageCount + preflight.Diagnostics.Count + analysis.Diagnostics.ObjectCount;
+        long output = 0L;
+        for (int operation = 0; operation < 4; operation++) {
+            output += document.Inspect().PageCount;
+        }
+        return output;
     }
 
     private static long RunSvgRender(byte[] corpus) =>
@@ -179,7 +190,9 @@ internal static class PdfBenchmarkRunner {
             serialization.IsForwardOnlyObjectSerialization);
     }
 
-    private static PdfPerformanceSample MeasureOnce(byte[] corpus, Func<byte[], long> operation) {
+    private static PdfPerformanceSample MeasureOnce(
+        byte[] corpus,
+        Func<byte[], long> operation) {
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         using var heap = new ManagedHeapSampler();
@@ -197,6 +210,25 @@ internal static class PdfBenchmarkRunner {
             allocated,
             output,
             PeakManagedHeapBytes: peakManagedHeapBytes);
+    }
+
+    private static double RatioOfMedians(
+        IReadOnlyList<PdfPerformanceSample> numerators,
+        IReadOnlyList<PdfPerformanceSample> denominators,
+        Func<PdfPerformanceSample, double> selector) {
+        if (numerators.Count != denominators.Count || numerators.Count == 0) {
+            throw new InvalidOperationException("PDF comparison workloads require matching samples.");
+        }
+
+        double numeratorMedian = numerators
+            .Select(selector)
+            .OrderBy(value => value)
+            .ElementAt(numerators.Count / 2);
+        double denominatorMedian = denominators
+            .Select(selector)
+            .OrderBy(value => value)
+            .ElementAt(denominators.Count / 2);
+        return numeratorMedian / Math.Max(denominatorMedian, 0.001D);
     }
 
     private static PdfPerformanceMeasurement Summarize(string name, IReadOnlyList<PdfPerformanceSample> samples) {

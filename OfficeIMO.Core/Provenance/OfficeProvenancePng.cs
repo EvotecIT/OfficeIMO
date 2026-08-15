@@ -110,6 +110,8 @@ internal static class OfficeProvenancePng {
         bool foundImageData = false;
         bool imageDataSequenceEnded = false;
         bool imageDataIsContiguous = true;
+        bool allChunkTypesValid = true;
+        bool hasUnknownCriticalChunk = false;
         int paletteCount = 0;
         bool paletteIsValid = true;
         byte headerBitDepth = 0;
@@ -125,6 +127,9 @@ internal static class OfficeProvenancePng {
             long totalValue = 12L + payloadLength;
             if (totalValue > data.Length - offset) throw new InvalidDataException("PNG chunk length exceeds the remaining asset.");
             allChunksHaveValidCrc &= HasValidCrc(data, offset, payloadLength);
+            allChunkTypesValid &= IsValidChunkType(data, offset + 4);
+            hasUnknownCriticalChunk |= IsCriticalChunk(data[offset + 4]) &&
+                !IsKnownCriticalChunk(data, offset + 4);
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "caBX")) c2paCount++;
             if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "iTXt") &&
                 HasXmpKeyword(data, offset + 8, payloadLength)) xmpCount++;
@@ -162,9 +167,28 @@ internal static class OfficeProvenancePng {
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
         bool requiredPalettePresent = headerColorType != 3 || paletteCount == 1;
         validStructure = headerCount == 1 && validLeadingHeader && requiredPalettePresent && paletteIsValid &&
-            foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc;
+            foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc &&
+            allChunkTypesValid && !hasUnknownCriticalChunk;
         return c2paCount;
     }
+
+    private static bool IsValidChunkType(byte[] data, int offset) {
+        for (int index = 0; index < 4; index++) {
+            byte value = data[offset + index];
+            if (!((value >= (byte)'A' && value <= (byte)'Z') ||
+                  (value >= (byte)'a' && value <= (byte)'z'))) return false;
+        }
+        return data[offset + 2] >= (byte)'A' && data[offset + 2] <= (byte)'Z';
+    }
+
+    private static bool IsCriticalChunk(byte firstTypeByte) =>
+        firstTypeByte >= (byte)'A' && firstTypeByte <= (byte)'Z';
+
+    private static bool IsKnownCriticalChunk(byte[] data, int offset) =>
+        OfficeProvenanceBinary.MatchesAscii(data, offset, "IHDR") ||
+        OfficeProvenanceBinary.MatchesAscii(data, offset, "PLTE") ||
+        OfficeProvenanceBinary.MatchesAscii(data, offset, "IDAT") ||
+        OfficeProvenanceBinary.MatchesAscii(data, offset, "IEND");
 
     private static bool IsValidHeader(byte[] data, int payloadOffset) {
         uint width = OfficeProvenanceBinary.ReadUInt32(data, payloadOffset, littleEndian: false);
