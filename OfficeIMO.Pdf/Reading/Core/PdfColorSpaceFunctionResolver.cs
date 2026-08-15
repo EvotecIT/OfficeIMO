@@ -483,7 +483,12 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     out children[index])) return false;
         }
 
-        double[] discontinuities = CreateStitchingDiscontinuities(domain, bounds, encode, children);
+        double[] discontinuities = CreateStitchingDiscontinuities(
+            domain,
+            bounds,
+            encode,
+            children,
+            out bool hasCompleteDiscontinuities);
         double[] requiredBreakpoints = domain.Concat(discontinuities).Distinct().ToArray();
         double[] breakpoints = CreateStitchingBreakpoints(domain, bounds, encode, children, requiredBreakpoints);
         function = new PdfColorFunction(
@@ -498,7 +503,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
             evaluationCost: children.Max(static child => child.EvaluationCost),
             requiresAdaptiveShadingSampling: children.Any(static child => child.RequiresAdaptiveShadingSampling),
             hasUnboundedDiscontinuities: children.Any(static child => child.HasUnboundedDiscontinuities),
-            hasCompleteShadingBreakpoints: children.All(static child => child.HasCompleteShadingBreakpoints));
+            hasCompleteShadingBreakpoints:
+                hasCompleteDiscontinuities &&
+                children.All(static child => child.HasCompleteShadingBreakpoints));
         return true;
     }
     private static bool EvaluateType2(
@@ -597,7 +604,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
         double[] domain,
         double[] bounds,
         double[] encode,
-        PdfColorFunction[] children) {
+        PdfColorFunction[] children,
+        out bool hasCompleteDiscontinuities) {
         var result = new List<double>(bounds.Length + 8);
         result.AddRange(bounds);
         for (int index = 0; index < children.Length; index++) {
@@ -612,10 +620,12 @@ internal static partial class PdfColorSpaceFunctionResolver {
             }
         }
         int reservedDomainBoundaries = domain.Count(boundary => !result.Contains(boundary));
+        int maximumDiscontinuities = MaxSuggestedSampleBreakpoints - reservedDomainBoundaries;
+        hasCompleteDiscontinuities = result.Distinct().Count() <= maximumDiscontinuities;
         return LimitSuggestedPoints(
             result,
             bounds,
-            MaxSuggestedSampleBreakpoints - reservedDomainBoundaries);
+            maximumDiscontinuities);
     }
 
     private static double[] LimitSuggestedPoints(

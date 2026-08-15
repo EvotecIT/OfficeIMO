@@ -45,8 +45,30 @@ public sealed partial class PdfReadPage {
                 type3GlyphBudget,
                 depth)) return true;
         bool found = false;
+        PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
+        var hiddenContentStack = new Stack<bool>();
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             if (found) return;
+            if (operation.Name == "BDC") {
+                object? tag = operation.Operands.Count > 1
+                    ? operation.Operands[operation.Operands.Count - 2]
+                    : null;
+                object? property = operation.Operands.Count > 0
+                    ? operation.Operands[operation.Operands.Count - 1]
+                    : null;
+                hiddenContentStack.Push(
+                    IsHiddenOptionalContent(tag, property, optionalContentVisibility));
+                return;
+            }
+            if (operation.Name == "BMC") {
+                hiddenContentStack.Push(false);
+                return;
+            }
+            if (operation.Name == "EMC") {
+                if (hiddenContentStack.Count > 0) hiddenContentStack.Pop();
+                return;
+            }
+            if (hiddenContentStack.Contains(true)) return;
             if (operation.InlineImage is PdfContentInlineImage inlineImage &&
                 HasImageTransparency(inlineImage.Dictionary)) {
                 found = true;
@@ -87,6 +109,18 @@ public sealed partial class PdfReadPage {
         maxOperands: _limits.MaxContentOperands,
         inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
+
+        static bool IsHiddenOptionalContent(
+            object? tag,
+            object? property,
+            PdfPageOptionalContentVisibility? visibility) =>
+            tag is string tagName &&
+            string.Equals(tagName, "OC", StringComparison.Ordinal) &&
+            ((property is string propertyName && visibility?.IsHidden(propertyName) == true) ||
+             (property is PdfInlineOptionalContentReferences references && visibility?.IsHidden(references) == true) ||
+             (property is PdfContentDictionary dictionary &&
+                dictionary.OptionalContentReferences is not null &&
+                visibility?.IsHidden(dictionary.OptionalContentReferences) == true));
     }
 
     private bool StreamUsesOutputIntentCompositionInteraction(

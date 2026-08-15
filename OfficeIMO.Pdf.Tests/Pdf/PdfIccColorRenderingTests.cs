@@ -1658,6 +1658,36 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_ResolvesOnlyPaintedShadingPatternIntentVariants() {
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup dup }";
+        string objects =
+            "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 9 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 10 0 R >>\nendobj\n" +
+            "9 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [20 80 140 80] /Function 11 0 R /Extend [true true] >>\nendobj\n" +
+            "10 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [20 80 140 80] /Function 12 0 R /Extend [true true] >>\nendobj\n" +
+            "11 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n" +
+            "12 0 obj\n<< /FunctionType 4 /Domain [0 1] /Range [0 1 0 1 0 1 0 1] /Length " + Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" + program + "\nendstream\nendobj\n";
+        byte[] pdf = BuildIccContentPdf(
+            IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent(),
+            "/N 4",
+            string.Empty,
+            extraObjects: objects,
+            extraResourceEntries: "/Pattern << /Unused 7 0 R /Painted 8 0 R >>",
+            contentOverride:
+                "/Pattern cs /Perceptual ri /Unused scn " +
+                "/RelativeColorimetric ri /Painted scn 20 80 120 40 re f");
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxContentOperations = 200_000 }
+        }).Pages[0];
+
+        OfficeDrawing drawing = page.ToDrawing();
+
+        Assert.True(
+            drawing.Shapes.Any(item => item.Shape.FillGradient != null),
+            string.Join("; ", page.GetRenderCapabilityDiagnostics().Select(item => item.Code + ":" + item.Subject)));
+    }
+
+    [Fact]
     public void RenderPage_FailsClosedForParsedIccShadingInsideType3Glyph() {
         byte[] pdf = BuildIccType3ShadingPdf(PdfIccProfiles.SrgbIec6196621);
 

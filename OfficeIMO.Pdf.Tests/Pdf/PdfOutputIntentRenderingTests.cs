@@ -224,6 +224,23 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void TextEditing_RejectsRestampingOutputManagedText() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        string resources = "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >>";
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg BT /F1 12 Tf 10 40 Td (managed) Tj ET",
+            resources);
+        PdfTextMatch match = Assert.Single(PdfDocument.Open(pdf).Text.Find(
+            "managed",
+            new PdfTextSearchOptions { MatchCase = true }));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Open(pdf).Text.Move(region, 5D, 0D));
+    }
+
+    [Fact]
     public void RenderPage_DetectsTransparencyInInvokedType3GlyphBeforeSoftProofing() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         const string glyphContent = "500 0 0 0 500 700 d1 /Transparent gs 0.2 0.4 0.8 rg 0 0 500 700 re f";
@@ -670,6 +687,53 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_IgnoresTransparencyInsideHiddenOptionalContent() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg 10 10 20 20 re f /OC /Hidden BDC /Transparent gs 40 40 20 20 re f EMC",
+            resources:
+                "/Properties << /Hidden 7 0 R >> " +
+                "/ExtGState << /Transparent << /Type /ExtGState /ca 0.5 >> >>",
+            extraObjects: "7 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj\n",
+            catalogEntries:
+                "/OCProperties << /OCGs [7 0 R] /D << /BaseState /ON /OFF [7 0 R] >> >>");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeColor expected = ExpectedOutputConversion(
+            profileBytes,
+            OfficeColor.FromRgb(51, 102, 204),
+            OfficeIccRenderingIntent.RelativeColorimetric);
+
+        OfficeColor actual = FindSingleShapeColor(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(expected, actual);
+        Assert.DoesNotContain(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotHideTransparencyInsideMalformedMarkedContent() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg 10 10 20 20 re f /OC BDC /Transparent gs 40 40 20 20 re f EMC",
+            resources: "/ExtGState << /Transparent << /Type /ExtGState /ca 0.5 >> >>");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+
+        OfficeColor[] colors = PdfPageImageRenderer.RenderPage(pdf).Shapes
+            .Where(shape => shape.Shape.FillColor.HasValue)
+            .Select(shape => shape.Shape.FillColor!.Value)
+            .ToArray();
+
+        Assert.NotEmpty(colors);
+        Assert.All(colors, color => Assert.Equal(OfficeColor.FromRgb(51, 102, 204), color));
+        Assert.Contains(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
     public void RenderPage_DiagnosesPageTransparencyGroupBeforeSoftProofing() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         byte[] pdf = BuildPdf(
@@ -874,11 +938,12 @@ public class PdfOutputIntentRenderingTests {
         string extraObjects = "",
         string profileEntries = "",
         string? outputIntents = null,
-        string pageEntries = "") {
+        string pageEntries = "",
+        string catalogEntries = "") {
         byte[] contentBytes = Encoding.ASCII.GetBytes(content);
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
-        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OutputIntents " +
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R " + catalogEntries + " /OutputIntents " +
             (outputIntents ?? "[<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 6 0 R >>]") +
             " >>\nendobj\n");
         WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");

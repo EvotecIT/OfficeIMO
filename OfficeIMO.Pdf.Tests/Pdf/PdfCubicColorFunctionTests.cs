@@ -339,6 +339,42 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Type3_RejectsStitchingDiscontinuityUnionAboveExactBudget() {
+        var parentChildren = new PdfArray();
+        for (int childIndex = 0; childIndex < 32; childIndex++) {
+            var childFunctions = new PdfArray();
+            for (int segmentIndex = 0; segmentIndex < 6; segmentIndex++) {
+                childFunctions.Items.Add(Type2(new[] { 0D }, new[] { 1D }));
+            }
+            parentChildren.Items.Add(Dictionary(
+                ("FunctionType", Number(3)),
+                ("Domain", Numbers(0D, 1D)),
+                ("Functions", childFunctions),
+                ("Bounds", Numbers(1D / 6D, 2D / 6D, 3D / 6D, 4D / 6D, 5D / 6D)),
+                ("Encode", Numbers(Enumerable.Repeat(new[] { 0D, 1D }, 6).SelectMany(static pair => pair).ToArray()))));
+        }
+        var parentEncode = new double[64];
+        for (int index = 0; index < parentEncode.Length; index += 2) parentEncode[index + 1] = 1D;
+        PdfDictionary parent = Dictionary(
+            ("FunctionType", Number(3)),
+            ("Domain", Numbers(0D, 1D)),
+            ("Functions", parentChildren),
+            ("Bounds", Numbers(Enumerable.Range(1, 31).Select(static value => value / 32D).ToArray())),
+            ("Encode", Numbers(parentEncode)));
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
+            parent,
+            1,
+            1,
+            new Dictionary<int, PdfIndirectObject>(),
+            256 * 1024,
+            out PdfColorFunction function));
+
+        Assert.False(function.HasCompleteShadingBreakpoints);
+        Assert.True(function.Discontinuities.Count <= 128);
+    }
+
+    [Fact]
     public void RenderPage_RejectsCubicSampledShadingAboveExactKnotBudget() {
         var samples = new byte[129 * 3];
         samples[64 * 3] = 255;
@@ -353,7 +389,7 @@ public sealed partial class PdfColorFunctionTests {
                 3,
                 "[129]",
                 8,
-                Convert.ToHexString(samples) + ">",
+                BitConverter.ToString(samples).Replace("-", string.Empty) + ">",
                 order: 3));
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
 

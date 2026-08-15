@@ -704,10 +704,11 @@ public sealed partial class PdfReadPage {
                 initialStrokeColorSelection: initialStrokeColorSelection,
                 outputIntentColorTransform: EffectiveOutputIntentColorTransform);
         }
-        invokedPatternIntents.UnionWith(invokedResources.PatternIntents);
+        invokedPatternIntents.UnionWith(
+            invokedResources.PatternIntents.Where(item => invokedPatternNames.Contains(item.Name)));
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(
             resources,
-            invokedResources.Patterns,
+            invokedPatternNames,
             invokedPatternIntents,
             pageContentBudget);
         Dictionary<string, PdfPageShadingResource> shadingResources = GetShadingResources(

@@ -916,6 +916,7 @@ internal static class TextContentParser {
                 !HasActiveMcid() &&
                 !HasActiveOptionalContent() &&
                 !hasActiveArtifact &&
+                outputIntentColorTransform == null &&
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
             IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
