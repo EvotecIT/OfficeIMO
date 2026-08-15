@@ -96,8 +96,7 @@ public static partial class HtmlResourcePipeline {
             }
 
             if (string.Equals(normalizedDefinition, ":root", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(normalizedDefinition, "body", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(normalizedDefinition, "html", StringComparison.OrdinalIgnoreCase)) {
                 return true;
             }
 

@@ -394,6 +394,7 @@ public static partial class HtmlResourcePipeline {
             string normalized = NormalizeSelectorForQuery(selectorPart, stripStatefulPseudoClasses: true);
             if (normalized.Length == 0) {
                 if (!IsBarePseudoElementSelector(selectorPart) && !IsStatefulPseudoClassOnlySelector(selectorPart)) yield break;
+                matchedGroups.Add(document.QuerySelectorAll("*").OfType<IElement>().ToArray());
                 continue;
             }
 
