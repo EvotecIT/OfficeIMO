@@ -216,13 +216,24 @@ public static partial class HtmlResourcePipeline {
                 if (!IsInsideContainerRule(css, index)) return true;
                 continue;
             }
-            if ((source.StartsWith("data:", StringComparison.OrdinalIgnoreCase) &&
-                    effective.IndexOf("data:", StringComparison.OrdinalIgnoreCase) >= 0) || string.Equals(
+            if (ContainsEquivalentImageSource(effective, source) || string.Equals(
                     HtmlRenderCssValues.NormalizeComponentValueWhitespace(DecodeCssEscapes(declarationValue)),
                     HtmlRenderCssValues.NormalizeComponentValueWhitespace(effective),
                     StringComparison.Ordinal)) return true;
         }
         return !sawElement;
+    }
+
+    private static bool ContainsEquivalentImageSource(string effective, string source) {
+        foreach (Match match in CssUrlExpression.Matches(effective)) {
+            if (!IsValidCssUrlMatch(effective, match)) continue;
+            string candidate = DecodeCssEscapes(match.Groups["url"].Value.Trim());
+            if (string.Equals(candidate, source, StringComparison.Ordinal)) return true;
+        }
+        foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(effective)) {
+            if (string.Equals(DecodeCssEscapes(reference.Source), source, StringComparison.Ordinal)) return true;
+        }
+        return false;
     }
 
     private static bool IsInsideContainerRule(string css, int index) {

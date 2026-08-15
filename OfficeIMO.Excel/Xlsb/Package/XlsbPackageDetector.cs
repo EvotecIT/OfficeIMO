@@ -177,6 +177,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
         private static string? NormalizePackageTarget(string target) {
             if (target.IndexOf('\\') >= 0) return null;
+            if (ContainsEncodedPathSeparator(target)) return null;
             string normalized = target;
             if (Uri.TryCreate(normalized, UriKind.Absolute, out _)) return null;
             var packageRoot = new Uri("http://package/", UriKind.Absolute);
@@ -184,6 +185,16 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             if (!string.Equals(resolved.Host, "package", StringComparison.OrdinalIgnoreCase) ||
                 resolved.Query.Length != 0 || resolved.Fragment.Length != 0) return null;
             return Uri.UnescapeDataString(resolved.AbsolutePath).TrimStart('/');
+        }
+
+        private static bool ContainsEncodedPathSeparator(string value) {
+            for (int index = 0; index <= value.Length - 3; index++) {
+                if (value[index] != '%') continue;
+                char high = char.ToLowerInvariant(value[index + 1]);
+                char low = char.ToLowerInvariant(value[index + 2]);
+                if (high == '2' && low == 'f' || high == '5' && low == 'c') return true;
+            }
+            return false;
         }
 
         private static ZipArchiveEntry? FindEntry(ZipArchive archive, string fullName) {

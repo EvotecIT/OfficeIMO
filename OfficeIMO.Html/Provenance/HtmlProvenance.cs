@@ -841,6 +841,11 @@ public static partial class HtmlProvenance {
             }
             HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
             if (elementNamespace == HtmlPreflightNamespace.Html &&
+                ShouldIgnoreNestedFormStart(openElements, tagName)) {
+                index = tagEnd + 1;
+                continue;
+            }
+            if (elementNamespace == HtmlPreflightNamespace.Html &&
                 ShouldIgnoreDuplicateDocumentElement(
                     tagName,
                     ref sawHtmlElement,
@@ -860,7 +865,7 @@ public static partial class HtmlProvenance {
             index = tagEnd + 1;
             if (elementNamespace == HtmlPreflightNamespace.Html && tagName.Equals("plaintext", StringComparison.OrdinalIgnoreCase)) return;
             if (elementNamespace == HtmlPreflightNamespace.Html && IsRawTextOrRcDataElement(tagName)) {
-                int rawTextEnd = FindRawTextClosingTag(html, index, tagName);
+                int rawTextEnd = HtmlRawTextScanner.FindClosingTag(html, index, tagName);
                 if (rawTextEnd < 0) break;
                 index = rawTextEnd;
             }
@@ -886,6 +891,17 @@ public static partial class HtmlProvenance {
         if (sawBodyElement) return true;
         sawBodyElement = true;
         return false;
+    }
+
+    private static bool ShouldIgnoreNestedFormStart(List<HtmlPreflightElement> elements, string tagName) {
+        if (!tagName.Equals("form", StringComparison.OrdinalIgnoreCase)) return false;
+        bool hasForm = false;
+        foreach (HtmlPreflightElement element in elements) {
+            if (element.Namespace != HtmlPreflightNamespace.Html) continue;
+            if (element.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) return false;
+            if (element.Name.Equals("form", StringComparison.OrdinalIgnoreCase)) hasForm = true;
+        }
+        return hasForm;
     }
 
     private static bool ShouldIgnoreStartTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
@@ -1111,67 +1127,6 @@ public static partial class HtmlProvenance {
 
     private static bool IsAsciiLetter(char value) =>
         value >= 'A' && value <= 'Z' || value >= 'a' && value <= 'z';
-
-    private static int FindRawTextClosingTag(string html, int offset, string tagName) {
-        if (tagName.Equals("script", StringComparison.OrdinalIgnoreCase)) return FindScriptClosingTag(html, offset);
-        string closingPrefix = "</" + tagName;
-        int candidate = offset;
-        while (candidate < html.Length) {
-            candidate = html.IndexOf(closingPrefix, candidate, StringComparison.OrdinalIgnoreCase);
-            if (candidate < 0) return -1;
-            int delimiter = candidate + closingPrefix.Length;
-            if (delimiter >= html.Length || IsAsciiWhitespace(html[delimiter]) || html[delimiter] is '>' or '/') return candidate;
-            candidate = delimiter;
-        }
-        return -1;
-    }
-
-    private static int FindScriptClosingTag(string html, int offset) {
-        HtmlScriptTextState state = HtmlScriptTextState.Normal;
-        for (int index = offset; index < html.Length; index++) {
-            if (state != HtmlScriptTextState.DoubleEscaped && MatchesScriptEndTag(html, index)) return index;
-            if (state == HtmlScriptTextState.Normal && StartsWithOrdinal(html, index, "<!--")) {
-                state = HtmlScriptTextState.Escaped;
-                index += 3;
-                continue;
-            }
-            if (state != HtmlScriptTextState.Normal && StartsWithOrdinal(html, index, "-->")) {
-                state = HtmlScriptTextState.Normal;
-                index += 2;
-                continue;
-            }
-            if (state == HtmlScriptTextState.Escaped && MatchesScriptStartTag(html, index)) {
-                state = HtmlScriptTextState.DoubleEscaped;
-                index += 6;
-                continue;
-            }
-            if (state == HtmlScriptTextState.DoubleEscaped && MatchesScriptEndTag(html, index)) {
-                state = HtmlScriptTextState.Escaped;
-                index += 7;
-            }
-        }
-        return -1;
-    }
-
-    private static bool MatchesScriptStartTag(string html, int offset) =>
-        MatchesScriptTag(html, offset, "<script");
-
-    private static bool MatchesScriptEndTag(string html, int offset) =>
-        MatchesScriptTag(html, offset, "</script");
-
-    private static bool MatchesScriptTag(string html, int offset, string prefix) {
-        if (!StartsWithOrdinalIgnoreCase(html, offset, prefix)) return false;
-        int delimiter = offset + prefix.Length;
-        return delimiter >= html.Length || IsAsciiWhitespace(html[delimiter]) || html[delimiter] is '>' or '/';
-    }
-
-    private static bool StartsWithOrdinal(string value, int offset, string prefix) =>
-        offset <= value.Length - prefix.Length && string.CompareOrdinal(value, offset, prefix, 0, prefix.Length) == 0;
-
-    private static bool StartsWithOrdinalIgnoreCase(string value, int offset, string prefix) =>
-        offset <= value.Length - prefix.Length && string.Compare(value, offset, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) == 0;
-
-    private enum HtmlScriptTextState { Normal, Escaped, DoubleEscaped }
 
     private static int FindTagEnd(string html, int offset) {
         char quote = '\0';

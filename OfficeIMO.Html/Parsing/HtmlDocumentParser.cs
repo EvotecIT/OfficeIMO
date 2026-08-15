@@ -117,7 +117,7 @@ internal static class HtmlDocumentParser {
                 (elementNamespace == SourceNamespace.Html ||
                  tagName.Equals("script", StringComparison.OrdinalIgnoreCase) ||
                  tagName.Equals("style", StringComparison.OrdinalIgnoreCase))) {
-                int rawTextEnd = FindRawTextClosingTag(html, cursor, tagName);
+                int rawTextEnd = HtmlRawTextScanner.FindClosingTag(html, cursor, tagName);
                 if (rawTextEnd < 0) break;
                 cursor = rawTextEnd;
             }
@@ -186,19 +186,6 @@ internal static class HtmlDocumentParser {
 
     private static bool IsRawTextOrRcDataElement(string tagName) => tagName.ToLowerInvariant() is
         "script" or "style" or "xmp" or "iframe" or "noembed" or "noframes" or "textarea" or "title";
-
-    private static int FindRawTextClosingTag(string html, int offset, string tagName) {
-        string closingPrefix = "</" + tagName;
-        int candidate = offset;
-        while (candidate < html.Length) {
-            candidate = html.IndexOf(closingPrefix, candidate, StringComparison.OrdinalIgnoreCase);
-            if (candidate < 0) return -1;
-            int delimiter = candidate + closingPrefix.Length;
-            if (delimiter >= html.Length || IsAsciiWhitespace(html[delimiter]) || html[delimiter] is '>' or '/') return candidate;
-            candidate = delimiter;
-        }
-        return -1;
-    }
 
     private enum SourceNamespace { Html, Svg, MathMl }
 

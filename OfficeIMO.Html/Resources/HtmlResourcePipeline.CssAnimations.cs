@@ -87,8 +87,9 @@ public static partial class HtmlResourcePipeline {
                     timing = true;
                     continue;
                 }
-                if (keyword.IndexOf('(') >= 0) return false;
+                if (LooksLikeAnimationTimingFunction(keyword)) return false;
             }
+            else if (LooksLikeAnimationTimingFunction(keyword)) return false;
             if (IsAnimationIterationCount(keyword)) {
                 if (!iteration) {
                     iteration = true;
@@ -194,8 +195,53 @@ public static partial class HtmlResourcePipeline {
         return true;
     }
 
-    private static bool IsAnimationTimingFunction(string token) =>
-        token is "ease" or "ease-in" or "ease-out" or "ease-in-out" or "linear" or "step-start" or "step-end" ||
+    private static bool IsAnimationTimingFunction(string token) {
+        if (token is "ease" or "ease-in" or "ease-out" or "ease-in-out" or "linear" or "step-start" or "step-end") return true;
+        if (!TryReadFunctionArguments(token, "cubic-bezier", out string[] bezier) || bezier.Length != 4) {
+            if (!TryReadFunctionArguments(token, "steps", out string[] steps)) {
+                return TryReadFunctionArguments(token, "linear", out string[] stops) && IsValidLinearStops(stops);
+            }
+            if (steps.Length is < 1 or > 2 || !int.TryParse(steps[0], NumberStyles.None, CultureInfo.InvariantCulture, out int intervals) || intervals <= 0) return false;
+            if (steps.Length == 1) return true;
+            string position = steps[1].Trim();
+            if (position is not ("jump-start" or "jump-end" or "jump-none" or "jump-both" or "start" or "end")) return false;
+            return position != "jump-none" || intervals >= 2;
+        }
+        return TryReadFiniteNumber(bezier[0], out double x1) && x1 is >= 0D and <= 1D &&
+            TryReadFiniteNumber(bezier[1], out _) &&
+            TryReadFiniteNumber(bezier[2], out double x2) && x2 is >= 0D and <= 1D &&
+            TryReadFiniteNumber(bezier[3], out _);
+    }
+
+    private static bool TryReadFunctionArguments(string token, string name, out string[] arguments) {
+        arguments = Array.Empty<string>();
+        string prefix = name + "(";
+        if (!token.StartsWith(prefix, StringComparison.Ordinal) || token.Length <= prefix.Length || token[token.Length - 1] != ')') return false;
+        string body = token.Substring(prefix.Length, token.Length - prefix.Length - 1);
+        if (body.IndexOf('(') >= 0 || body.IndexOf(')') >= 0) return false;
+        arguments = body.Split(',').Select(static item => item.Trim()).ToArray();
+        return arguments.Length != 0 && arguments.All(static item => item.Length != 0);
+    }
+
+    private static bool IsValidLinearStops(string[] stops) {
+        if (stops.Length < 2) return false;
+        foreach (string stop in stops) {
+            string[] components = stop.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (components.Length is < 1 or > 3 || !TryReadFiniteNumber(components[0], out _)) return false;
+            for (int index = 1; index < components.Length; index++) {
+                string position = components[index];
+                if (!position.EndsWith("%", StringComparison.Ordinal) ||
+                    !TryReadFiniteNumber(position.Substring(0, position.Length - 1), out _)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool TryReadFiniteNumber(string token, out double value) =>
+        double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value) &&
+        !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static bool LooksLikeAnimationTimingFunction(string token) =>
         token.StartsWith("cubic-bezier(", StringComparison.Ordinal) ||
         token.StartsWith("steps(", StringComparison.Ordinal) ||
         token.StartsWith("linear(", StringComparison.Ordinal);
