@@ -51,7 +51,7 @@
 
 .pf-api-docs .imo-header .nav-cta,
 .pf-api-docs .imo-header .nav-cta:hover {
-  color: var(--imo-void);
+  color: var(--imo-on-accent, #fff);
 }
 
 .pf-api-docs .imo-header {

@@ -44,7 +44,7 @@
     </section>
 
     <div class="imo-container imo-intent-layout">
-      <article class="imo-intent-content markdown-body">
+      <div class="imo-intent-content imo-prose markdown-body">
         {{ if page.meta.howto.steps }}
         <section class="imo-howto" aria-labelledby="conversion-steps-title">
           <p class="imo-section__eyebrow">Practical steps</p>
@@ -58,7 +58,7 @@
         </section>
         {{ end }}
 {{ content }}
-      </article>
+      </div>
       <aside class="imo-intent-sidebar">
         <h2>Route summary</h2>
         <dl>

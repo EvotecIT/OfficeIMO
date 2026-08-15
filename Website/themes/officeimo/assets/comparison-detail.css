@@ -292,7 +292,7 @@
   place-items: center;
   border-radius: 999px;
   background: var(--imo-primary);
-  color: var(--imo-void);
+  color: var(--imo-on-accent, #fff);
   content: "i";
   font-family: Georgia, serif;
   font-size: .72rem;
@@ -656,7 +656,7 @@
   padding: .8rem .9rem;
   border-radius: .75rem;
   background: var(--imo-primary);
-  color: var(--imo-void);
+  color: var(--imo-on-accent, #fff);
   font-size: .75rem;
   font-weight: 800;
   text-decoration: none;
@@ -664,7 +664,7 @@
 
 .imo-comparison-detail-sidebar__link:hover {
   background: var(--imo-primary-hover);
-  color: var(--imo-void);
+  color: var(--imo-on-accent, #fff);
 }
 
 .imo-comparison-detail-sidebar__note {

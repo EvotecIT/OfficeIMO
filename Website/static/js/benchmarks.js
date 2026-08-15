@@ -277,6 +277,7 @@
   var table = root.querySelector('[data-library-comparison-table]');
   var rows = root.querySelector('[data-library-comparison-rows]');
   var meta = root.querySelector('[data-library-comparison-meta]');
+  var coverageRows = root.querySelector('[data-library-comparison-coverage-rows]');
   var workloadButtons = root.querySelectorAll('[data-library-comparison-workload]');
   var platformButtons = root.querySelectorAll('[data-library-comparison-platform]');
   var modeButtons = root.querySelectorAll('[data-library-comparison-mode]');
@@ -366,7 +367,7 @@
     return key ? row.metrics[key] : null;
   }
 
-  function workloadName() {
+  function workloadName(comparisonId) {
     var names = {
       'markpflug-65k-csv-decoded-net10.0': 'CSV · decoded strings',
       'csv-25k-datareader-write-net10.0': 'CSV · IDataReader write',
@@ -375,7 +376,60 @@
       'xlsx-25k-datareader-write-net10.0': 'XLSX · IDataReader write',
       'markpflug-65k-xlsb-typed-net10.0': 'XLSB · typed values'
     };
-    return names[selectedComparison] || selectedComparison || 'Library comparison';
+    var id = comparisonId || selectedComparison;
+    return names[id] || id || 'Library comparison';
+  }
+
+  function evidenceEntry(comparisonId, platform, runMode) {
+    return (catalog.entries || []).find(function (candidate) {
+      return candidate.comparisonId === comparisonId &&
+        candidate.platform === platform &&
+        candidate.runMode === runMode &&
+        (runMode !== 'full' || candidate.publish === true);
+    });
+  }
+
+  function renderCoverage() {
+    var fullCount = (catalog.entries || []).filter(function (entry) {
+      return entry.runMode === 'full' && entry.publish === true;
+    }).length;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-published-full-count]'), function (element) {
+      element.textContent = fullCount + ' full artifact' + (fullCount === 1 ? '' : 's');
+    });
+
+    if (!coverageRows) return;
+    coverageRows.innerHTML = '';
+    Array.prototype.forEach.call(workloadButtons, function (button) {
+      var comparisonId = button.getAttribute('data-library-comparison-workload');
+      var row = document.createElement('div');
+      row.className = 'imo-library-comparison-coverage__row';
+      row.setAttribute('role', 'row');
+
+      var label = document.createElement('strong');
+      label.setAttribute('role', 'rowheader');
+      label.textContent = workloadName(comparisonId);
+      row.appendChild(label);
+
+      ['windows', 'linux', 'macos'].forEach(function (platform) {
+        var status = 'missing';
+        var text = 'Not published';
+        if (evidenceEntry(comparisonId, platform, 'full')) {
+          status = 'full';
+          text = 'Full';
+        } else if (evidenceEntry(comparisonId, platform, 'quick')) {
+          status = 'diagnostic';
+          text = 'Diagnostic';
+        }
+        var cell = document.createElement('span');
+        cell.className = 'imo-library-comparison-status';
+        cell.setAttribute('data-evidence-status', status);
+        cell.setAttribute('role', 'cell');
+        cell.setAttribute('aria-label', platformLabel(platform) + ': ' + text);
+        cell.textContent = text;
+        row.appendChild(cell);
+      });
+      coverageRows.appendChild(row);
+    });
   }
 
   function compatibilityValue(entry, name) {
@@ -459,13 +513,28 @@
       selectedMode,
       entry.environment && entry.environment.processorName,
       entry.environment && entry.environment.runtimeVersion,
-      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString(),
-      sourceCommit && 'source ' + sourceCommit.substring(0, 12)
+      entry.generatedUtc && new Date(entry.generatedUtc).toLocaleString()
     ].filter(Boolean).forEach(function (value) {
       var span = document.createElement('span');
       span.textContent = value;
       meta.appendChild(span);
     });
+    if (sourceCommit) {
+      var sourceLink = document.createElement('a');
+      sourceLink.href = 'https://github.com/EvotecIT/OfficeIMO/tree/' + encodeURIComponent(sourceCommit);
+      sourceLink.target = '_blank';
+      sourceLink.rel = 'noopener';
+      sourceLink.textContent = 'source ' + sourceCommit.substring(0, 12);
+      meta.appendChild(sourceLink);
+    }
+    if (entry.resultPath) {
+      var artifactLink = document.createElement('a');
+      artifactLink.href = entry.resultPath;
+      artifactLink.target = '_blank';
+      artifactLink.rel = 'noopener';
+      artifactLink.textContent = 'result artifact';
+      meta.appendChild(artifactLink);
+    }
 
     if (entry.comparable === false) {
       state.hidden = false;
@@ -543,6 +612,7 @@
     })
     .then(function (value) {
       catalog = value;
+      renderCoverage();
       renderSelection();
     })
     .catch(function (error) {

@@ -47,19 +47,19 @@
     </section>
 
     <div class="imo-container imo-intent-layout">
-      <article class="imo-intent-content markdown-body">
+      <div class="imo-intent-content imo-prose markdown-body">
 {{ content }}
-      </article>
+      </div>
       <aside class="imo-intent-sidebar">
         <p class="imo-intent-sidebar__eyebrow">Decision checklist</p>
         <h2>Why this route</h2>
-        <ul>
+        <ul class="imo-intent-sidebar__checks">
           <li>Focused .NET packages</li>
           {{ if page.meta.powershell }}<li>First-party PowerShell</li>{{ end }}
           <li>Explicit conversion fidelity</li>
           <li>Source-visible implementation</li>
         </ul>
-        <a href="/compatibility/">Verify format support</a>
+        <a class="imo-intent-sidebar__action" href="/compatibility/">Verify format support <span aria-hidden="true">&rarr;</span></a>
       </aside>
     </div>
   </main>

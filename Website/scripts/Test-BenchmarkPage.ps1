@@ -14,6 +14,7 @@ $pagePath = Join-Path $resolvedSiteRoot 'benchmarks\index.html'
 $scriptPath = Join-Path $resolvedSiteRoot 'js\benchmarks.js'
 $comparisonCatalogPath = Join-Path $resolvedSiteRoot 'data\benchmarks\library-comparisons\index.json'
 $stylePath = Join-Path $PSScriptRoot '..\themes\officeimo\assets\app.css'
+$documentationCatalogPath = Join-Path $PSScriptRoot '..\data\documentation_catalog.json'
 $evidenceHelperPath = Join-Path $PSScriptRoot '..\..\Build\BenchmarkEvidence.ps1'
 $comparisonRunnerPath = Join-Path $PSScriptRoot '..\..\Build\Run-LibraryComparisonBenchmarks.ps1'
 
@@ -38,6 +39,8 @@ if (-not (Test-Path -LiteralPath $comparisonCatalogPath -PathType Leaf)) {
 if (-not (Test-Path -LiteralPath $stylePath -PathType Leaf)) {
     throw "Benchmark layout styles were not found at '$stylePath'."
 }
+
+$sourceSuiteCount = [int] ((Get-Content -LiteralPath $documentationCatalogPath -Raw -Encoding UTF8 | ConvertFrom-Json).repository.benchmarkProjectCount)
 
 if (-not (Test-Path -LiteralPath $comparisonRunnerPath -PathType Leaf)) {
     throw "Library comparison runner was not found at '$comparisonRunnerPath'."
@@ -210,6 +213,13 @@ if ($pageHtml -notmatch 'data-excel-benchmarks' -or $pageHtml -notmatch 'data-be
 }
 
 if ($pageHtml -notmatch 'data-library-comparison-benchmarks' -or
+    $pageHtml -notmatch 'imo-benchmark-evidence-model' -or
+    $pageHtml -notmatch ([regex]::Escape("$sourceSuiteCount source suites")) -or
+    $pageHtml -notmatch 'data-published-full-count' -or
+    $pageHtml -notmatch 'data-library-comparison-coverage-rows' -or
+    $pageHtml -notmatch 'data-evidence-status="full"' -or
+    $pageHtml -notmatch 'data-evidence-status="diagnostic"' -or
+    $pageHtml -notmatch 'data-evidence-status="missing"' -or
     $pageHtml -notmatch 'data-comparison-id="markpflug-65k-csv-decoded-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="csv-25k-datareader-write-net10\.0"' -or
     $pageHtml -notmatch 'data-library-comparison-workload="markpflug-65k-xls-typed-net10\.0"' -or
@@ -275,18 +285,24 @@ if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'requestId !== activeRequestId' -or
     $scriptText -notmatch "compatibilityValue\(entry, 'gitSha'\)" -or
     $scriptText -notmatch "sourceCommit\.substring\(0, 12\)" -or
+    $scriptText -notmatch 'function renderCoverage\(\)' -or
+    $scriptText -notmatch "entry\.runMode === 'full' && entry\.publish === true" -or
+    $scriptText -notmatch "status = 'diagnostic'" -or
+    $scriptText -notmatch "status = 'missing'" -or
+    $scriptText -notmatch 'https://github\.com/EvotecIT/OfficeIMO/tree/' -or
+    $scriptText -notmatch "artifactLink\.textContent = 'result artifact'" -or
     $scriptText -notmatch 'compatibilityIssues' -or
     $scriptText -notmatch 'Results below compare libraries within the selected lane only' -or
     $scriptText -notmatch 'compatibilityIssueSummary' -or
     $scriptText -notmatch "macos:\s*'macOS'" -or
-    $scriptText -notmatch 'workloadName\(\)' -or
+    $scriptText -notmatch 'workloadName\(comparisonId\)' -or
     $scriptText -notmatch 'comparisonGroupName\(row\)' -or
     $scriptText -notmatch "\['namespace', 'type', 'fullname'\]" -or
     $scriptText -notmatch "split\('&'\)" -or
     $scriptText -notmatch 'csv-25k-datareader-write-net10\.0' -or
     $scriptText -notmatch 'xlsx-25k-datareader-write-net10\.0' -or
     $scriptText -match "scenario === 'OfficeIMO'" -or
-    $pageHtml -notmatch 'Quick results are diagnostic only') {
+    $pageHtml -notmatch 'Diagnostic results prove execution and validation only') {
     throw 'Library comparison selector does not preserve shareable state, reject stale responses, and enforce evidence safety labels.'
 }
 
@@ -295,8 +311,14 @@ if ($styleText -notmatch '\.imo-benchmark-hub\{[^}]*grid-template-columns:minmax
     throw "Benchmark hub does not constrain wide children to a responsive grid track."
 }
 
-if ($styleText -notmatch '\.imo-benchmark-explorer\{[^}]*justify-self:center[^}]*width:min\(1600px,calc\(100vw - 3rem\)\)') {
-    throw "Benchmark explorer does not own the centered wide layout."
+if ($styleText -notmatch '\.imo-benchmark-evidence-model__grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)' -or
+    $styleText -notmatch '\.imo-library-comparison-coverage__row\{[^}]*grid-template-columns:minmax\(260px,1\.5fr\)' -or
+    $styleText -notmatch 'data-evidence-status="diagnostic"') {
+    throw 'Benchmark evidence layers and platform coverage do not have the expected responsive visual treatment.'
+}
+
+if ($styleText -notmatch '\.imo-benchmark-archive\{[^}]*justify-self:center[^}]*width:min\(1600px,calc\(100vw - 3rem\)\)') {
+    throw "Benchmark archive does not own the centered wide layout."
 }
 
 if ($styleText -notmatch '\.imo-benchmark-dashboard\{width:100%;margin:0 0 3rem\}' -or
@@ -306,6 +328,12 @@ if ($styleText -notmatch '\.imo-benchmark-dashboard\{width:100%;margin:0 0 3rem\
 
 if ($pageHtml -match 'Loading benchmark data') {
     throw "Benchmark page still depends on client-side data loading."
+}
+
+$matrixPosition = $pageHtml.IndexOf('id="excel-matrix"', [System.StringComparison]::Ordinal)
+$snapshotPosition = $pageHtml.IndexOf('data-benchmark-family="excel"', [System.StringComparison]::Ordinal)
+if ($matrixPosition -lt 0 -or $snapshotPosition -lt 0 -or $matrixPosition -gt $snapshotPosition) {
+    throw 'The complete Excel matrix is not presented before the compact historical snapshots.'
 }
 
 $highlightCards = [regex]::Matches(

@@ -11,6 +11,10 @@ OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff
 
+# Published benchmark payloads are integrity-checked byte-for-byte against the
+# catalog. Keep their committed line endings unchanged on every platform.
+Website/static/data/benchmarks/library-comparisons/*.json text eol=lf -diff
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

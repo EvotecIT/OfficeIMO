@@ -182,9 +182,18 @@ function Assert-SiteOutput {
 
     $conversionRoutesCatalog = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'data/office_conversion_routes.json') -Raw | ConvertFrom-Json
     $conversionRoutesHtml = Get-Content -LiteralPath $conversionRoutesPage -Raw
+    $renderedCodeValues = [regex]::Matches(
+        $conversionRoutesHtml,
+        '<code(?:\s[^>]*)?>(?<value>.*?)</code>',
+        [System.Text.RegularExpressions.RegexOptions]::Singleline
+    ) | ForEach-Object {
+        [System.Net.WebUtility]::HtmlDecode($_.Groups['value'].Value)
+    }
     foreach ($resultContract in @($conversionRoutesCatalog.routes.resultContract | Where-Object { $_ -match '[<>]' } | Sort-Object -Unique)) {
-        $encodedContract = [System.Net.WebUtility]::HtmlEncode([string] $resultContract)
-        if (-not $conversionRoutesHtml.Contains("<code>$encodedContract</code>", [System.StringComparison]::Ordinal)) {
+        if (-not [System.Linq.Enumerable]::Contains(
+            [string[]] $renderedCodeValues,
+            [string] $resultContract,
+            [System.StringComparer]::Ordinal)) {
             throw "Build validation failed: conversion result contract '$resultContract' is not preserved as encoded code text."
         }
     }

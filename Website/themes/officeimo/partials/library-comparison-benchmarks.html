@@ -14,6 +14,30 @@
     </div>
   </div>
 
+  <section class="imo-library-comparison-coverage" aria-labelledby="library-comparison-coverage-title">
+    <div class="imo-library-comparison-coverage__heading">
+      <div>
+        <p class="imo-benchmark-eyebrow">Published evidence coverage</p>
+        <h3 id="library-comparison-coverage-title">See what exists before selecting a result.</h3>
+      </div>
+      <p>Full artifacts support public comparisons within one workload and environment. Diagnostic artifacts prove the lane runs and validates, but are not ranking evidence. Missing cells remain explicit.</p>
+    </div>
+    <div class="imo-library-comparison-coverage__table" role="table" aria-label="Published benchmark evidence by workload and operating system">
+      <div class="imo-library-comparison-coverage__row imo-library-comparison-coverage__row--header" role="row">
+        <span role="columnheader">Workload</span>
+        <span role="columnheader">Windows</span>
+        <span role="columnheader">Linux</span>
+        <span role="columnheader">macOS</span>
+      </div>
+      <div data-library-comparison-coverage-rows></div>
+    </div>
+    <div class="imo-library-comparison-coverage__legend" aria-label="Evidence coverage legend">
+      <span data-evidence-status="full">Full comparison</span>
+      <span data-evidence-status="diagnostic">Diagnostic</span>
+      <span data-evidence-status="missing">Not published</span>
+    </div>
+  </section>
+
   <div class="imo-library-comparison-controls" aria-label="Benchmark evidence selector">
     <div>
       <span class="imo-library-comparison-label">Workload</span>
@@ -38,7 +62,7 @@
       <span class="imo-library-comparison-label">Evidence</span>
       <div class="imo-library-comparison-buttons" data-library-comparison-modes>
         <button type="button" data-library-comparison-mode="full">Full</button>
-        <button type="button" data-library-comparison-mode="quick">Quick</button>
+        <button type="button" data-library-comparison-mode="quick">Diagnostic</button>
       </div>
     </div>
   </div>
@@ -62,7 +86,7 @@
     </table>
   </div>
   <p class="imo-library-comparison-methodology">
-    Full results support public comparisons. Quick results are diagnostic only. Every library is
+    Full results support public comparisons. Diagnostic results prove execution and validation only. Every library is
     a peer in the matrix; no implementation is framed as an opponent or universal baseline.
     Unsupported workload lanes are not applicable, missing platform evidence remains visible,
     and incompatible evidence is never combined.
