@@ -687,7 +687,7 @@ public static class OfficePackageSignatureService {
         } catch (Exception exception) when (
             (exception is IOException or InvalidDataException or XmlException or UriFormatException)) {
             findings.Add("Extended application properties could not be parsed: " + exception.Message);
-            return conventional;
+            return new ApplicationMetadataDiscovery(conventional.HasMetadata, false);
         }
     }
 

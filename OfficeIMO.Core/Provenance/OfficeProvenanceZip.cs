@@ -116,7 +116,9 @@ internal static class OfficeProvenanceZip {
         OfficeProvenanceRemovalOptions options,
         List<OfficeProvenanceChange> changes,
         out bool reserialized,
-        bool removeOpcManifestReferences = true) {
+        bool removeOpcManifestReferences = true,
+        Func<string, bool>? shouldReplacePackageMetadata = null,
+        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
@@ -177,6 +179,24 @@ internal static class OfficeProvenanceZip {
             if (nested.WasReserialized) reserialized = true;
         }
         if (changes.Count == 0) return (byte[])data.Clone();
+
+        if (shouldReplacePackageMetadata != null) {
+            if (replacePackageMetadata == null) throw new ArgumentNullException(nameof(replacePackageMetadata));
+            foreach (ZipArchiveEntry entry in input.Entries) {
+                string entryName = entryMetadata[entry].Name;
+                if (!shouldReplacePackageMetadata(entryName)) continue;
+                if (entry.Length > options.Limits.MaxAssetBytes || entry.Length > int.MaxValue) {
+                    throw OfficeProvenanceLimitException.Create("A package metadata entry exceeds the configured asset limit.");
+                }
+                ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
+                byte[] original = ReadEntry(entry, (int)entry.Length);
+                byte[] replacement = replacePackageMetadata(entryName, original);
+                if (replacement.LongLength > options.Limits.MaxAssetBytes) {
+                    throw OfficeProvenanceLimitException.Create("A rewritten package metadata entry exceeds the configured asset limit.");
+                }
+                if (!replacement.SequenceEqual(original)) embeddedRewrites[entry] = replacement;
+            }
+        }
 
         bool hasPackageSignature = options.SignatureMutationPolicy != OfficeIMO.OfficeSignatureMutationPolicy.PreserveSignatureMarkup &&
             HasPackageSignature(data, input, options, ref inspectionBytes);

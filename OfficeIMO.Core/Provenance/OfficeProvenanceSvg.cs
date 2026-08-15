@@ -114,10 +114,19 @@ internal static class OfficeProvenanceSvg {
 
     private static bool TryDecode(string value, long maximumBytes, out byte[] manifest) {
         manifest = Array.Empty<byte>();
-        if (value.Length == 0 || value.Length > maximumBytes * 2L) return false;
+        if (value.Length == 0) return false;
+        long maximumEncodedBytes = maximumBytes > (long.MaxValue - 2L) / 4L * 3L
+            ? long.MaxValue
+            : ((maximumBytes + 2L) / 3L) * 4L;
+        if (value.Length > maximumEncodedBytes) {
+            throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
+        }
         try {
             manifest = Convert.FromBase64String(value);
-            return manifest.LongLength <= maximumBytes;
+            if (manifest.LongLength > maximumBytes) {
+                throw OfficeProvenanceLimitException.Create("The SVG provenance manifest exceeds the configured manifest limit.");
+            }
+            return true;
         } catch (FormatException) {
             return false;
         }

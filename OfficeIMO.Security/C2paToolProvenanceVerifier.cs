@@ -356,8 +356,8 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
+            StandardOutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
+            StandardErrorEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true)
         };
         using var process = new Process { StartInfo = startInfo };
         process.Start();
@@ -389,17 +389,21 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
     }
 
     private static Task<string> ReadBoundedAsync(TextReader reader, long maximumBytes, string streamName) => Task.Run(() => {
-        var builder = new StringBuilder();
-        char[] buffer = new char[4096];
-        long bytes = 0;
-        while (true) {
-            int read = reader.Read(buffer, 0, buffer.Length);
-            if (read <= 0) break;
-            bytes += Encoding.UTF8.GetByteCount(buffer, 0, read);
-            if (bytes > maximumBytes) throw new InvalidDataException($"c2patool {streamName} exceeds the configured limit of {maximumBytes} bytes.");
-            builder.Append(buffer, 0, read);
+        try {
+            var builder = new StringBuilder();
+            char[] buffer = new char[4096];
+            long bytes = 0;
+            while (true) {
+                int read = reader.Read(buffer, 0, buffer.Length);
+                if (read <= 0) break;
+                bytes += Encoding.UTF8.GetByteCount(buffer, 0, read);
+                if (bytes > maximumBytes) throw new InvalidDataException($"c2patool {streamName} exceeds the configured limit of {maximumBytes} bytes.");
+                builder.Append(buffer, 0, read);
+            }
+            return builder.ToString();
+        } catch (DecoderFallbackException exception) {
+            throw new InvalidDataException($"c2patool {streamName} is not valid UTF-8.", exception);
         }
-        return builder.ToString();
     });
 
     private static void Terminate(Process process, C2paToolProcessContainment containment) {

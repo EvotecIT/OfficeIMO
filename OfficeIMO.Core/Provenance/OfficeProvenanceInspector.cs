@@ -236,7 +236,9 @@ public static class OfficeProvenanceRemover {
         byte[] data,
         string? fileName,
         OfficeProvenanceRemovalOptions options,
-        bool removeOpcManifestReferences) {
+        bool removeOpcManifestReferences,
+        Func<string, bool>? shouldReplacePackageMetadata = null,
+        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
         return RemoveCore(
             data,
@@ -244,7 +246,9 @@ public static class OfficeProvenanceRemover {
             options,
             inspectionOptions,
             forcedFormat: null,
-            removeOpcManifestReferences: removeOpcManifestReferences);
+            removeOpcManifestReferences: removeOpcManifestReferences,
+            shouldReplacePackageMetadata: shouldReplacePackageMetadata,
+            replacePackageMetadata: replacePackageMetadata);
     }
 
     private static OfficeProvenanceRemovalResult RemoveCore(
@@ -253,7 +257,9 @@ public static class OfficeProvenanceRemover {
         OfficeProvenanceRemovalOptions options,
         OfficeProvenanceOptions inspectionOptions,
         OfficeProvenanceAssetFormat? forcedFormat,
-        bool removeOpcManifestReferences = true) {
+        bool removeOpcManifestReferences = true,
+        Func<string, bool>? shouldReplacePackageMetadata = null,
+        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
         OfficeProvenanceReport before = forcedFormat.HasValue
             ? OfficeProvenanceInspector.InspectStructuredText(data, inspectionOptions)
             : OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);
@@ -280,7 +286,14 @@ public static class OfficeProvenanceRemover {
                 output = OfficeProvenanceSvg.Remove(data, options, changes, out reserialized);
                 break;
             case OfficeProvenanceAssetFormat.ZipPackage:
-                output = OfficeProvenanceZip.Remove(data, options, changes, out reserialized, removeOpcManifestReferences);
+                output = OfficeProvenanceZip.Remove(
+                    data,
+                    options,
+                    changes,
+                    out reserialized,
+                    removeOpcManifestReferences,
+                    shouldReplacePackageMetadata,
+                    replacePackageMetadata);
                 break;
             case OfficeProvenanceAssetFormat.StructuredText:
             case OfficeProvenanceAssetFormat.UnstructuredText:
