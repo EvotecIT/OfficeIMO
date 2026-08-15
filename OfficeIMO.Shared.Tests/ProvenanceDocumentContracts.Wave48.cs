@@ -53,7 +53,7 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
-    public void MarkdownFilesRecheckTheUtf8SizeAfterDecoding() {
+    public void MarkdownFileLimitsApplyToPhysicalEncodingRatherThanInternalUtf8() {
         byte[] input = Encoding.Unicode.GetPreamble()
             .Concat(Encoding.Unicode.GetBytes(new string('\u20AC', 10)))
             .ToArray();
@@ -69,8 +69,10 @@ public sealed partial class ProvenanceDocumentContracts {
             removalOptions.Limits.MaxAssetBytes = 24;
             removalOptions.Limits.MaxManifestBytes = 16;
 
-            Assert.Throws<InvalidDataException>(() => MarkdownProvenance.InspectFile(inputPath, inspectionOptions));
-            Assert.Throws<InvalidDataException>(() => MarkdownProvenance.RemoveFile(inputPath, outputPath, removalOptions));
+            Assert.Empty(MarkdownProvenance.InspectFile(inputPath, inspectionOptions).Evidence);
+            OfficeProvenanceRemovalResult result = MarkdownProvenance.RemoveFile(inputPath, outputPath, removalOptions);
+            Assert.False(result.WasChanged);
+            Assert.Equal(input, File.ReadAllBytes(outputPath));
         } finally {
             if (File.Exists(inputPath)) File.Delete(inputPath);
             if (File.Exists(outputPath)) File.Delete(outputPath);

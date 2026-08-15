@@ -30,7 +30,7 @@ public static class MarkdownProvenance {
         }
         string markdown = DecodeFileText(input, out _, out _);
         return OfficeProvenanceInspector.InspectStructuredText(
-            EncodeUtf8Bounded(markdown, options.MaxAssetBytes),
+            EncodeDecodedFileTextAsUtf8(markdown),
             options);
     }
 
@@ -61,7 +61,7 @@ public static class MarkdownProvenance {
         }
         string markdown = DecodeFileText(input, out Encoding encoding, out bool hadPreamble);
         OfficeProvenanceRemovalResult utf8Result = OfficeProvenanceRemover.RemoveStructuredText(
-            EncodeUtf8Bounded(markdown, options.Limits.MaxAssetBytes), inputPath, options);
+            EncodeDecodedFileTextAsUtf8(markdown), inputPath, options);
         if (!utf8Result.WasChanged) {
             OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), input);
             return new OfficeProvenanceRemovalResult(
@@ -133,6 +133,14 @@ public static class MarkdownProvenance {
             if (byteCount > maximumBytes) {
                 throw new InvalidDataException("The Markdown document exceeds the configured asset limit after decoding.");
             }
+            return StrictUtf8.GetBytes(text);
+        } catch (EncoderFallbackException exception) {
+            throw new InvalidDataException("The Markdown document contains invalid Unicode text.", exception);
+        }
+    }
+
+    private static byte[] EncodeDecodedFileTextAsUtf8(string text) {
+        try {
             return StrictUtf8.GetBytes(text);
         } catch (EncoderFallbackException exception) {
             throw new InvalidDataException("The Markdown document contains invalid Unicode text.", exception);
