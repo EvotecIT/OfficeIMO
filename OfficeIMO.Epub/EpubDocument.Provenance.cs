@@ -130,6 +130,7 @@ public sealed partial class EpubDocument {
     private static bool TryNormalizeRootfilePath(string? value, out string normalized) {
         normalized = string.Empty;
         if (string.IsNullOrWhiteSpace(value) || value!.IndexOfAny(new[] { '\\', '?', '#' }) >= 0 || value.StartsWith("/", StringComparison.Ordinal)) return false;
+        if (HasAbsoluteIriScheme(value)) return false;
         var segments = new List<string>();
         foreach (string encodedSegment in value.Split('/')) {
             if (encodedSegment.Length == 0) return false;
@@ -156,6 +157,21 @@ public sealed partial class EpubDocument {
         normalized = string.Join("/", segments);
         return true;
     }
+
+    private static bool HasAbsoluteIriScheme(string value) {
+        int colon = value.IndexOf(':');
+        int slash = value.IndexOf('/');
+        if (colon <= 0 || slash >= 0 && slash < colon || !IsAsciiLetter(value[0])) return false;
+        for (int index = 1; index < colon; index++) {
+            char character = value[index];
+            if (!IsAsciiLetter(character) && !(character >= '0' && character <= '9') &&
+                character != '+' && character != '-' && character != '.') return false;
+        }
+        return true;
+    }
+
+    private static bool IsAsciiLetter(char value) =>
+        value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
 
     private static bool IsHexDigit(char value) =>
         value is >= '0' and <= '9' or >= 'A' and <= 'F' or >= 'a' and <= 'f';

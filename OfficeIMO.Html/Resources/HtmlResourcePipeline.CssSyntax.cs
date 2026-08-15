@@ -639,6 +639,7 @@ public static partial class HtmlResourcePipeline {
             case "-webkit-mask-image":
             case "filter":
             case "clip-path":
+            case "shape-outside":
                 return true;
             default:
                 return false;

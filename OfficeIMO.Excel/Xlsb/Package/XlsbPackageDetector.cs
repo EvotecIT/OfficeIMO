@@ -149,11 +149,11 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static string NormalizeContentTypePartName(string? partName) {
-            if (string.IsNullOrWhiteSpace(partName)) {
+            if (string.IsNullOrWhiteSpace(partName) || partName!.IndexOf('\\') >= 0) {
                 return string.Empty;
             }
 
-            return "/" + partName!.Replace('\\', '/').TrimStart('/');
+            return "/" + partName.TrimStart('/');
         }
 
         private static string? ReadOfficeDocumentTarget(ZipArchiveEntry relationshipsEntry) {
@@ -203,6 +203,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
         private static IEnumerable<ZipArchiveEntry> FindEntries(ZipArchive archive, string fullName) =>
             archive.Entries.Where(entry =>
-                string.Equals(entry.FullName.Replace('\\', '/'), fullName, StringComparison.OrdinalIgnoreCase));
+                entry.FullName.IndexOf('\\') < 0 &&
+                string.Equals(entry.FullName, fullName, StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -247,7 +247,9 @@ public static partial class HtmlResourcePipeline {
         token.StartsWith("linear(", StringComparison.Ordinal);
 
     private static bool IsAnimationIterationCount(string token) =>
-        token == "infinite" || double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && value >= 0;
+        token == "infinite" ||
+        double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
+        !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0;
 
     private static bool IsCssWideKeyword(string token) =>
         token is "inherit" or "initial" or "revert" or "revert-layer" or "unset";
