@@ -570,8 +570,12 @@ public static partial class PdfProvenance {
                     maximumContainerEntries,
                     sharedVisited: structuralTraversalVisited);
             }
-            AddResourceDictionaries(objects, dictionary.Items.TryGetValue("Resources", out PdfObject? resources) ? resources : null, result, resourceSites);
-            AddResourceDictionaries(objects, dictionary.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null, result, resourceSites);
+            PdfObject? resources = dictionary.Items.TryGetValue("Resources", out PdfObject? resourceValue) ? resourceValue : null;
+            PdfObject? defaultResources = dictionary.Items.TryGetValue("DR", out PdfObject? defaultResourceValue) ? defaultResourceValue : null;
+            AddResourceDictionaries(objects, resources, result, resourceSites);
+            AddResourceDictionaries(objects, defaultResources, result, resourceSites);
+            AddIccBasedAlternateDictionaries(objects, resources, result, maximumContainerEntries, structuralTraversalVisited);
+            AddIccBasedAlternateDictionaries(objects, defaultResources, result, maximumContainerEntries, structuralTraversalVisited);
             if (string.Equals(GetResolvedName(objects, dictionary, "Type"), "EmbeddedFile", StringComparison.Ordinal)) {
                 AddResolvedDictionary(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null, result);
             }
@@ -811,7 +815,7 @@ public static partial class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "3DV", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
@@ -858,6 +862,33 @@ public static partial class PdfProvenance {
             } else if (resolved is PdfArray array) {
                 foreach (PdfObject child in array.Items) pending.Push(child);
             }
+        }
+    }
+
+    private static void AddIccBasedAlternateDictionaries(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject? resourcesValue,
+        HashSet<PdfObject> result,
+        int maximumContainerEntries,
+        HashSet<PdfObject> structuralVisited) {
+        if (PdfObjectLookup.Resolve(objects, resourcesValue) is not PdfDictionary resources ||
+            PdfObjectLookup.Resolve(objects,
+                resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesValue) ? colorSpacesValue : null) is not PdfDictionary colorSpaces) {
+            return;
+        }
+        foreach (PdfObject colorSpaceValue in colorSpaces.Items.Values) {
+            if (PdfObjectLookup.Resolve(objects, colorSpaceValue) is not PdfArray colorSpace || colorSpace.Items.Count < 2 ||
+                PdfObjectLookup.Resolve(objects, colorSpace.Items[0]) is not PdfName family ||
+                !string.Equals(family.Name, "ICCBased", StringComparison.Ordinal) ||
+                PdfObjectLookup.Resolve(objects, colorSpace.Items[1]) is not PdfStream profile) {
+                continue;
+            }
+            AddStructuralGraphDictionaries(
+                objects,
+                profile.Dictionary.Items.TryGetValue("Alternate", out PdfObject? alternate) ? alternate : null,
+                result,
+                maximumContainerEntries,
+                sharedVisited: structuralVisited);
         }
     }
 
