@@ -841,7 +841,7 @@ public static partial class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "3DA", "3DV", "OC", "Measure", "ExData", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "PA", "Movie", "3DA", "3DV", "OC", "Measure", "ExData", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
