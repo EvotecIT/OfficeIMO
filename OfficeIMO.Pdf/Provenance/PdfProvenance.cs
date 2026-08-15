@@ -550,6 +550,14 @@ public static partial class PdfProvenance {
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
                 }
+                if (string.Equals(GetResolvedName(objects, activeStream.Dictionary, "Type"), "3D", StringComparison.Ordinal)) {
+                    AddStructuralGraphDictionaries(
+                        objects,
+                        activeStream.Dictionary.Items.TryGetValue("VA", out PdfObject? threeDimensionalViews) ? threeDimensionalViews : null,
+                        result,
+                        maximumContainerEntries,
+                        sharedVisited: structuralTraversalVisited);
+                }
                 if (string.Equals(streamSubtype, "Form", StringComparison.Ordinal)) {
                     foreach (string key in new[] { "Group", "Ref", "PieceInfo", "OPI" }) {
                         AddStructuralGraphDictionaries(
@@ -831,7 +839,7 @@ public static partial class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "3DV", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "3DA", "3DV", "OC", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
