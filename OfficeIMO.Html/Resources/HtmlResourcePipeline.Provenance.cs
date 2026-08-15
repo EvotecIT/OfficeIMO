@@ -55,7 +55,11 @@ public static partial class HtmlResourcePipeline {
                 int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int sourceOrder)
                     ? sourceOrder
                     : GetDocumentCssSourceOrder(document);
-                List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(css, options, includePotentialResponsiveScreenMedia: true);
+                List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(
+                    css,
+                    options,
+                    includePotentialResponsiveScreenMedia: true,
+                    includeProvenanceImageSupports: true);
                 Dictionary<string, List<CssCustomPropertyDefinition>> definitions = MergeCustomPropertyDefinitions(
                     documentDefinitions,
                     ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
@@ -169,7 +173,11 @@ public static partial class HtmlResourcePipeline {
         HtmlProvenanceCssScope result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
         string masked = MaskCssComments(css);
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options, includePotentialResponsiveScreenMedia: true);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(
+            masked,
+            options,
+            includePotentialResponsiveScreenMedia: true,
+            includeProvenanceImageSupports: true);
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             if (!IsValidCssUrlMatch(masked, match)) continue;
             if (IsResolvedVarFallbackUrl(masked, match.Index, definitions, inlineSourceOrders, document,
@@ -196,7 +204,11 @@ public static partial class HtmlResourcePipeline {
         IDictionary<IElement, HashSet<int>> result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
         string masked = MaskCssComments(css);
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options, includePotentialResponsiveScreenMedia: true);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(
+            masked,
+            options,
+            includePotentialResponsiveScreenMedia: true,
+            includeProvenanceImageSupports: true);
         foreach (Match variable in CssVarExpression.Matches(masked)) {
             if (IsInRanges(variable.Index, inactiveRanges) ||
                 !IsCssFunctionNameAt(masked, variable.Index, "var") || IsInsideCssString(masked, variable.Index) ||
@@ -241,7 +253,8 @@ public static partial class HtmlResourcePipeline {
         List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(
             masked,
             new HtmlResourcePipelineOptions(),
-            includePotentialResponsiveScreenMedia: true);
+            includePotentialResponsiveScreenMedia: true,
+            includeProvenanceImageSupports: true);
         var emittedRanges = new HashSet<(int Start, int Length)>();
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             if (!IsValidCssUrlMatch(masked, match)) continue;

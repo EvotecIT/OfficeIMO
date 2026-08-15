@@ -107,7 +107,8 @@ internal static class HtmlDocumentParser {
                 }
             }
             bool selfClosing = IsSelfClosingTag(html, nameEnd, tagEnd);
-            bool childrenUseHtml = elementNamespace == SourceNamespace.Html || IsHtmlIntegrationPoint(tagName, elementNamespace);
+            bool childrenUseHtml = elementNamespace == SourceNamespace.Html ||
+                IsHtmlIntegrationPoint(html, nameEnd, tagEnd, tagName, elementNamespace);
             if (!selfClosing && !(elementNamespace == SourceNamespace.Html && IsHtmlVoidElement(tagName))) {
                 openElements.Add(new SourceElement(tagName, elementNamespace, childrenUseHtml));
             }
@@ -167,11 +168,39 @@ internal static class HtmlDocumentParser {
         return elements[elements.Count - 1].Namespace;
     }
 
-    private static bool IsHtmlIntegrationPoint(string tagName, SourceNamespace elementNamespace) =>
-        elementNamespace == SourceNamespace.Svg &&
-        (tagName.Equals("foreignObject", StringComparison.OrdinalIgnoreCase) ||
-         tagName.Equals("desc", StringComparison.OrdinalIgnoreCase) ||
-         tagName.Equals("title", StringComparison.OrdinalIgnoreCase));
+    private static bool IsHtmlIntegrationPoint(
+        string html,
+        int attributeStart,
+        int tagEnd,
+        string tagName,
+        SourceNamespace elementNamespace) {
+        if (elementNamespace == SourceNamespace.Svg) {
+            return tagName.Equals("foreignObject", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("desc", StringComparison.OrdinalIgnoreCase) ||
+                tagName.Equals("title", StringComparison.OrdinalIgnoreCase);
+        }
+        if (elementNamespace != SourceNamespace.MathMl) return false;
+        if (tagName.Equals("mi", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mo", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mn", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("ms", StringComparison.OrdinalIgnoreCase) ||
+            tagName.Equals("mtext", StringComparison.OrdinalIgnoreCase)) {
+            return true;
+        }
+        if (!tagName.Equals("annotation-xml", StringComparison.OrdinalIgnoreCase)) return false;
+
+        string attributes = html.Substring(attributeStart, tagEnd - attributeStart);
+        Match encoding = Regex.Match(
+            attributes,
+            "(?:^|[\\t\\n\\f\\r ])encoding[\\t\\n\\f\\r ]*=[\\t\\n\\f\\r ]*(?<value>\"[^\"]*\"|'[^']*'|[^\\t\\n\\f\\r \"'=<>]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(100));
+        if (!encoding.Success) return false;
+        string value = encoding.Groups["value"].Value.Trim('\'', '"');
+        value = System.Net.WebUtility.HtmlDecode(value).Trim();
+        return value.Equals("text/html", StringComparison.OrdinalIgnoreCase) ||
+            value.Equals("application/xhtml+xml", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool IsForeignContentHtmlBreakout(string tagName) => tagName.ToLowerInvariant() is
         "b" or "big" or "blockquote" or "body" or "br" or "center" or "code" or "dd" or "div" or "dl" or

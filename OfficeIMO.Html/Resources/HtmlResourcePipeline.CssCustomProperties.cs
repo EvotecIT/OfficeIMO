@@ -218,9 +218,10 @@ public static partial class HtmlResourcePipeline {
     private static List<SourceRange> GetInactiveCssRuleRanges(
         string css,
         HtmlResourcePipelineOptions options,
-        bool includePotentialResponsiveScreenMedia = false) {
+        bool includePotentialResponsiveScreenMedia = false,
+        bool includeProvenanceImageSupports = false) {
         List<SourceRange> ranges = GetInactiveMediaRanges(css, options, includePotentialResponsiveScreenMedia);
-        ranges.AddRange(GetInactiveSupportsRanges(css));
+        ranges.AddRange(GetInactiveSupportsRanges(css, includeProvenanceImageSupports));
         return ranges;
     }
 
@@ -268,7 +269,7 @@ public static partial class HtmlResourcePipeline {
         return ranges;
     }
 
-    private static List<SourceRange> GetInactiveSupportsRanges(string css) {
+    private static List<SourceRange> GetInactiveSupportsRanges(string css, bool includeProvenanceImageSupports) {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
@@ -294,7 +295,10 @@ public static partial class HtmlResourcePipeline {
             }
 
             string conditionText = css.Substring(preludeStart, open - preludeStart).Trim();
-            if (!HtmlComputedStyleEngine.IsApplicableSupports(conditionText)) {
+            bool applies = includeProvenanceImageSupports
+                ? HtmlComputedStyleEngine.IsApplicableProvenanceSupports(conditionText)
+                : HtmlComputedStyleEngine.IsApplicableSupports(conditionText);
+            if (!applies) {
                 ranges.Add(new SourceRange(open + 1, close));
                 index = close + 1;
             } else {

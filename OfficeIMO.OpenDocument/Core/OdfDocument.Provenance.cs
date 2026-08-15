@@ -77,12 +77,14 @@ public abstract partial class OdfDocument {
         var exactEntryNames = new HashSet<string>(StringComparer.Ordinal);
         var foldedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ZipArchiveEntry entry in archive.Entries) {
-            if (!exactEntryNames.Add(entry.FullName) || !foldedEntryNames.Add(entry.FullName)) {
-                throw new InvalidDataException($"OpenDocument package contains duplicate or case-ambiguous entry '{entry.FullName}'.");
+            string normalized = OfficeArchiveSafety.NormalizeEntryName(entry.FullName);
+            if (!string.Equals(normalized, entry.FullName, StringComparison.Ordinal) ||
+                OfficeArchiveSafety.IsUnsafePath(normalized)) {
+                throw new InvalidDataException($"OpenDocument package contains unsafe or non-canonical entry path '{entry.FullName}'.");
             }
-        }
-        if (archive.Entries.Any(entry => entry.FullName.IndexOf('\\') >= 0)) {
-            throw new InvalidDataException("OpenDocument package entry names must use forward slashes.");
+            if (!exactEntryNames.Add(normalized) || !foldedEntryNames.Add(normalized)) {
+                throw new InvalidDataException($"OpenDocument package contains duplicate or case-ambiguous entry '{normalized}'.");
+            }
         }
         ZipArchiveEntry[] manifestEntries = archive.Entries
             .Where(entry => string.Equals(entry.FullName, "META-INF/manifest.xml", StringComparison.Ordinal))

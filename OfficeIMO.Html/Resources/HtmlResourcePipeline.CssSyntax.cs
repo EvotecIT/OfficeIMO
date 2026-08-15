@@ -683,7 +683,7 @@ public static partial class HtmlResourcePipeline {
             : propertyName.ToLowerInvariant();
     }
 
-    private static bool IsSupportedCssImageUrlProperty(string propertyName) {
+    internal static bool IsSupportedCssImageUrlProperty(string propertyName) {
         switch (propertyName) {
             case "background":
             case "background-image":

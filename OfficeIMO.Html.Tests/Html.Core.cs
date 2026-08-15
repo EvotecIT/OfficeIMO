@@ -651,6 +651,7 @@ public sealed class HtmlCoreTests {
     [InlineData("image.png 100w 2x")]
     [InlineData("image.png 100h")]
     [InlineData("image.png 0w")]
+    [InlineData("image.png 0x")]
     [InlineData("image.png nope")]
     public void HtmlSrcSetParser_DiscardsCandidatesWithInvalidDescriptorCombinations(string sourceSet) {
         Assert.Empty(HtmlSrcSetParser.Parse(sourceSet));
@@ -658,7 +659,6 @@ public sealed class HtmlCoreTests {
 
     [Theory]
     [InlineData("image.png", "")]
-    [InlineData("image.png 0x", "0x")]
     [InlineData("image.png 1.5x", "1.5x")]
     [InlineData("image.png 100w", "100w")]
     [InlineData("image.png 100w 50h", "100w 50h")]

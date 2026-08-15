@@ -186,7 +186,7 @@ public static class HtmlSrcSetParser {
                 System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture,
                 out double result)) return false;
-        return result >= 0D && !double.IsInfinity(result) && !double.IsNaN(result);
+        return result > 0D && !double.IsInfinity(result) && !double.IsNaN(result);
     }
 
     private static string TrimHtmlWhitespace(string value) {
