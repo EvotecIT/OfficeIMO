@@ -576,6 +576,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 source,
                 "limit=" + _options.MaxRunningStringCharacters);
         }
+        int documentOrder = GetDocumentOrder(element);
+        ownAssignments = ownAssignments
+            .Select(assignment => assignment.InDocumentOrder(documentOrder))
+            .ToList()
+            .AsReadOnly();
         return Math.Abs(offset) <= 0.0001D
             ? ownAssignments
             : ownAssignments.Select(assignment => assignment.Translate(offset)).ToList().AsReadOnly();

@@ -40,17 +40,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IEnumerable<HtmlCssRunningStringAssignment> assignments,
         double extent) {
         List<HtmlCssRunningStringAssignment> materialized = assignments.ToList();
-        List<IGrouping<int, HtmlCssRunningStringAssignment>> runningElementGroups = materialized
+        List<IGrouping<int, HtmlCssRunningStringAssignment>> documentOrderGroups = materialized
             .Where(assignment => assignment.DocumentOrder.HasValue)
             .GroupBy(assignment => assignment.DocumentOrder!.Value)
             .OrderBy(group => group.Key)
             .ToList();
-        if (runningElementGroups.Count == 0) return materialized.OrderBy(assignment => assignment.OrderOffset).ToList();
+        if (documentOrderGroups.Count == 0) return materialized.OrderBy(assignment => assignment.OrderOffset).ToList();
 
         var logicalOffsets = new Dictionary<HtmlCssRunningStringAssignment, double>();
-        double step = Math.Max(0.01D, extent) / runningElementGroups.Count;
-        for (int index = 0; index < runningElementGroups.Count; index++) {
-            foreach (HtmlCssRunningStringAssignment assignment in runningElementGroups[index]) {
+        double step = Math.Max(0.01D, extent) / documentOrderGroups.Count;
+        for (int index = 0; index < documentOrderGroups.Count; index++) {
+            foreach (HtmlCssRunningStringAssignment assignment in documentOrderGroups[index]) {
                 logicalOffsets[assignment] = index * step;
             }
         }

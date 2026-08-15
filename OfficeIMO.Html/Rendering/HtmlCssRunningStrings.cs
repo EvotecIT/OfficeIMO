@@ -32,6 +32,10 @@ internal sealed class HtmlCssRunningStringAssignment {
     internal HtmlCssRunningStringAssignment Place(double offset, double orderOffset) =>
         new HtmlCssRunningStringAssignment(Name, Value, offset, orderOffset, DocumentOrder);
 
+    /// <summary>Associates a parsed assignment with its authored DOM position for mixed layout ordering.</summary>
+    internal HtmlCssRunningStringAssignment InDocumentOrder(int documentOrder) =>
+        new HtmlCssRunningStringAssignment(Name, Value, Offset, OrderOffset, documentOrder);
+
 }
 
 internal sealed class HtmlCssRunningStringPageContext {
