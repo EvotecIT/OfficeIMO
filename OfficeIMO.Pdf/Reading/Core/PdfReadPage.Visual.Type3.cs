@@ -1287,7 +1287,8 @@ public sealed partial class PdfReadPage {
         try {
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, pageContentBudget: pageContentBudget);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
@@ -1322,7 +1323,7 @@ public sealed partial class PdfReadPage {
                 initialStrokeLineCap: programState.StrokeLineCap,
                 initialStrokeLineJoin: programState.StrokeLineJoin,
                 maxOperations: _limits.MaxContentOperations,
-                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, pageContentBudget: pageContentBudget),
+                patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 primitiveVisitor: primitive => {

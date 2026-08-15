@@ -19,7 +19,10 @@ public sealed partial class PdfReadPage {
             1D,
             1D,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources, pageContentBudget: pageContentBudget),
+            GetColorSpaceResources(
+                resources,
+                GetInvokedResourceNames(content, resources).ColorSpaces,
+                pageContentBudget),
             null,
             null,
             null,

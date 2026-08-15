@@ -6,28 +6,38 @@ namespace OfficeIMO.Pdf;
 /// <summary>Caller-owned aggregate retention budget for distinct parsed ICC profiles.</summary>
 internal sealed class PdfIccProfileRetentionBudget {
     private readonly int _maximumRetainedBytes;
-    private readonly Dictionary<PdfStream, long> _chargedStreams = new Dictionary<PdfStream, long>();
+    private readonly Dictionary<(PdfStream Stream, PdfIccProfileCacheRepresentation Representation), long> _charges =
+        new Dictionary<(PdfStream, PdfIccProfileCacheRepresentation), long>();
     private long _retainedBytes;
 
     internal PdfIccProfileRetentionBudget(int maximumRetainedBytes) {
         _maximumRetainedBytes = Math.Max(1, maximumRetainedBytes);
     }
 
-    internal void Charge(PdfStream stream, long decodedLength) {
-        lock (_chargedStreams) {
-            _chargedStreams.TryGetValue(stream, out long priorCharge);
-            if (decodedLength <= priorCharge) return;
-            long total = checked(_retainedBytes + decodedLength - priorCharge);
+    internal void Charge(
+        PdfStream stream,
+        PdfIccProfileCacheRepresentation representation,
+        long retainedLength) {
+        lock (_charges) {
+            var key = (stream, representation);
+            _charges.TryGetValue(key, out long priorCharge);
+            if (retainedLength <= priorCharge) return;
+            long total = checked(_retainedBytes + retainedLength - priorCharge);
             if (total > _maximumRetainedBytes) {
                 throw PdfReadLimitException.Create(
                     PdfReadLimitKind.DecodedStreamBytes,
                     _maximumRetainedBytes,
                     total);
             }
-            _chargedStreams[stream] = decodedLength;
+            _charges[key] = retainedLength;
             _retainedBytes = total;
         }
     }
+}
+
+internal enum PdfIccProfileCacheRepresentation {
+    ParsedProfile,
+    DecodedBytes
 }
 
 internal static class PdfIccProfileCache {
@@ -47,7 +57,10 @@ internal static class PdfIccProfileCache {
         PdfIccProfileRetentionBudget? retentionBudget,
         out OfficeIccColorProfile? profile) {
         ProfileCacheEntry entry = GetProfileEntry(stream, objects, maxDecodedBytes);
-        if (entry.Profile != null) retentionBudget?.Charge(stream, entry.RetainedLength);
+        if (entry.Profile != null) retentionBudget?.Charge(
+            stream,
+            PdfIccProfileCacheRepresentation.ParsedProfile,
+            entry.RetainedLength);
         profile = entry.Profile;
         return profile != null;
     }
@@ -66,7 +79,10 @@ internal static class PdfIccProfileCache {
         PdfIccProfileRetentionBudget? retentionBudget,
         out byte[] bytes) {
         BytesCacheEntry entry = GetBytesEntry(stream, objects, maxDecodedBytes);
-        if (entry.Decoded) retentionBudget?.Charge(stream, entry.Bytes.LongLength);
+        if (entry.Decoded) retentionBudget?.Charge(
+            stream,
+            PdfIccProfileCacheRepresentation.DecodedBytes,
+            entry.Bytes.LongLength);
         bytes = entry.Bytes;
         return entry.Decoded;
     }

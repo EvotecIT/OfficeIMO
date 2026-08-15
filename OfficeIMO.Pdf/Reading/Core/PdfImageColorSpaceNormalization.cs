@@ -105,7 +105,12 @@ internal sealed class PdfImageColorSpaceNormalization {
         PdfImageColorConversionBuffer conversionBuffer,
         out OfficeColor color) {
         if (_outputIntentColorTransform != null &&
-            TryApplyDirectOutputIntent(components, conversionBuffer, _outputIntentColorTransform, out color)) return true;
+            TryApplyDirectOutputIntent(
+                components,
+                conversionBuffer,
+                _outputIntentColorTransform,
+                _renderingIntent,
+                out color)) return true;
         if (!TryConvertComponentsCore(components, conversionBuffer, out color)) return false;
         if (_outputIntentColorTransform != null) {
             color = _outputIntentColorTransform.Apply(color, _renderingIntent);
@@ -117,12 +122,13 @@ internal sealed class PdfImageColorSpaceNormalization {
         IReadOnlyList<double> components,
         PdfImageColorConversionBuffer conversionBuffer,
         PdfOutputIntentColorTransform outputIntentColorTransform,
+        OfficeIccRenderingIntent renderingIntent,
         out OfficeColor color) {
         color = OfficeColor.Black;
         if (components == null || components.Count < SourceColorCount) return false;
         if (!CanApplyDirectOutputIntent(outputIntentColorTransform)) return false;
         if (_alternateNormalization == null) {
-            return outputIntentColorTransform.TryApplyDirect(_colorSpace, components, _renderingIntent, out color);
+            return outputIntentColorTransform.TryApplyDirect(_colorSpace, components, renderingIntent, out color);
         }
 
         PdfImageColorConversionBuffer? alternateBuffer = conversionBuffer.Alternate;
@@ -137,6 +143,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             alternateComponents,
             alternateBuffer,
             outputIntentColorTransform,
+            renderingIntent,
             out color);
     }
 

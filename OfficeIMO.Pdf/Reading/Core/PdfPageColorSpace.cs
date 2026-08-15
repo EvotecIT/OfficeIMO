@@ -236,6 +236,23 @@ internal readonly struct PdfPageColorSpace {
     public static PdfPageColorSpace SeparationNone() =>
         new PdfPageColorSpace(PdfPageColorSpaceKind.Separation, suppressesPaint: true);
 
+    internal static PdfPageColorSpace Placeholder(int componentCount) {
+        if (componentCount == 1) return PdfPageColorSpaceKind.DeviceGray;
+        if (componentCount == 3) return PdfPageColorSpaceKind.DeviceRgb;
+        if (componentCount == 4) return PdfPageColorSpaceKind.DeviceCmyk;
+        return Alternate(
+            PdfPageColorSpaceKind.DeviceN,
+            Math.Max(1, componentCount),
+            PdfPageColorSpaceKind.DeviceGray,
+            static (_, output) => {
+                if (output.Length == 0) return false;
+                output[0] = 0D;
+                return true;
+            },
+            evaluationCost: 0,
+            evaluationBudget: null);
+    }
+
     public static PdfPageColorSpace Pattern(PdfPageColorSpace baseColorSpace) =>
         new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern, new PdfPageCustomColorSpace(baseColorSpace));
 

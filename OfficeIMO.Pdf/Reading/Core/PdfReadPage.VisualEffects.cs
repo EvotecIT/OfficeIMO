@@ -301,8 +301,9 @@ public sealed partial class PdfReadPage {
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
             : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
         var visualPageSize = (Width: projectionPageWidth, Height: projectionPageHeight);
-        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, pageContentBudget: pageContentBudget);
-        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, pageContentBudget: pageContentBudget);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
+        Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
         var type3PaintChannelCache = new Type3PaintChannelCache();
         var activeType3PaintChannelStreams = new HashSet<PdfStream>();
         var invokedPatternNames = new HashSet<string>(StringComparer.Ordinal);

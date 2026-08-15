@@ -10,16 +10,19 @@ internal sealed class PdfOutputIntentColorTransform {
     private readonly PdfStream? _profileStream;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly int _maxDecodedStreamBytes;
+    private readonly PdfIccProfileRetentionBudget? _retentionBudget;
     private readonly Lazy<OfficeIccColorProfile?> _profile;
 
     private PdfOutputIntentColorTransform(
         PdfStream? profileStream,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        string subject) {
+        string subject,
+        PdfIccProfileRetentionBudget? retentionBudget) {
         _profileStream = profileStream;
         _objects = objects;
         _maxDecodedStreamBytes = maxDecodedStreamBytes;
+        _retentionBudget = retentionBudget;
         Subject = subject;
         _profile = new Lazy<OfficeIccColorProfile?>(
             ReadProfile,
@@ -73,16 +76,17 @@ internal sealed class PdfOutputIntentColorTransform {
     internal static PdfOutputIntentColorTransform? TryCreate(
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxDecodedStreamBytes) {
+        int maxDecodedStreamBytes,
+        PdfIccProfileRetentionBudget? retentionBudget = null) {
         if (catalog == null ||
             !catalog.Items.TryGetValue("OutputIntents", out PdfObject? outputIntentsObject)) return null;
         if (!TryResolve(objects, outputIntentsObject, out PdfObject? resolvedOutputIntents)) {
-            return new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, "catalog");
+            return new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, "catalog", retentionBudget);
         }
         if (resolvedOutputIntents is PdfNull) return null;
         if (resolvedOutputIntents is PdfArray { Items.Count: 0 }) return null;
         if (resolvedOutputIntents is not PdfArray outputIntents) {
-            return new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, "catalog");
+            return new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, "catalog", retentionBudget);
         }
 
         string? malformedSubject = null;
@@ -102,14 +106,14 @@ internal sealed class PdfOutputIntentColorTransform {
             }
             if (resolvedProfile is PdfNull) continue;
             if (resolvedProfile is PdfStream profileStream) {
-                return new PdfOutputIntentColorTransform(profileStream, objects, maxDecodedStreamBytes, subject);
+                return new PdfOutputIntentColorTransform(profileStream, objects, maxDecodedStreamBytes, subject, retentionBudget);
             }
             malformedSubject ??= subject;
         }
 
         return malformedSubject == null
             ? null
-            : new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, malformedSubject);
+            : new PdfOutputIntentColorTransform(null, objects, maxDecodedStreamBytes, malformedSubject, retentionBudget);
     }
 
     private bool TryGetProfile(out OfficeIccColorProfile? profile) {
@@ -119,7 +123,12 @@ internal sealed class PdfOutputIntentColorTransform {
 
     private OfficeIccColorProfile? ReadProfile() {
         if (_profileStream == null ||
-            !PdfIccProfileCache.TryRead(_profileStream, _objects, _maxDecodedStreamBytes, out OfficeIccColorProfile? profile) ||
+            !PdfIccProfileCache.TryRead(
+                _profileStream,
+                _objects,
+                _maxDecodedStreamBytes,
+                _retentionBudget,
+                out OfficeIccColorProfile? profile) ||
             profile == null ||
             profile.ComponentCount is not (3 or 4) ||
             !HasCompatibleDeclaredComponentCount(profile.ComponentCount) ||

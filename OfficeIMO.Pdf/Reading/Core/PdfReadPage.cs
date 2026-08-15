@@ -939,6 +939,16 @@ public sealed partial class PdfReadPage {
         return TryGetImageXObject(resources, name, out objectNumber, out directStreamIdentity, out _);
     }
 
+    private bool TryGetXObjectStream(PdfDictionary? resources, string name, out PdfStream? stream) {
+        stream = null;
+        if (resources is null ||
+            !resources.Items.TryGetValue("XObject", out PdfObject? xObjectsObject) ||
+            ResolveDictionary(xObjectsObject) is not PdfDictionary xObjects ||
+            !xObjects.Items.TryGetValue(name, out PdfObject? xObject)) return false;
+        stream = ResolveObject(xObject) as PdfStream;
+        return stream != null;
+    }
+
     private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream) {
         objectNumber = 0;
         directStreamIdentity = 0;

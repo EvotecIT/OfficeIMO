@@ -88,12 +88,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string, OfficeIccRenderingIntent>? patternInvocationWithIntentVisitor = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         Action<string, OfficeIccRenderingIntent>? visibleShadingWithIntentVisitor = null,
-        Action<PdfPageGraphicsStateResource, PdfType3PaintChannels>? graphicsEffectPaintVisitor = null) {
+        Action<PdfPageGraphicsStateResource, PdfType3PaintChannels>? graphicsEffectPaintVisitor = null,
+        Action<string>? visibleColorSpaceVisitor = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor);
         return parser.Parse();
     }
 
@@ -120,6 +121,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<(bool Authored, OfficeIccRenderingIntent Intent, PdfPaintColorSelection? Fill, PdfPaintColorSelection? Stroke)> _renderingIntentStack =
             new Stack<(bool, OfficeIccRenderingIntent, PdfPaintColorSelection?, PdfPaintColorSelection?)>();
         private readonly Stack<TextState> _textStack = new Stack<TextState>();
+        private readonly Stack<(string? Fill, string? Stroke)> _colorSpaceNameStack = new Stack<(string?, string?)>();
         private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> _softMaskStack =
             new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool, PdfPageGraphicsStateResource?)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
@@ -177,6 +179,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Action<PdfPageGraphicsStateResource, PdfType3PaintChannels>? _graphicsEffectPaintVisitor;
         private readonly Action<PdfType3PaintChannels, PdfPagePatternSelection?, PdfPagePatternSelection?, bool>? _ordinaryTextPaintVisitor;
         private readonly Action<PdfPagePatternSelection>? _patternSelectionVisitor;
+        private readonly Action<string>? _visibleColorSpaceVisitor;
         private readonly bool _allowSupportedGraphicsEffects;
         private string _textFont = string.Empty;
         private double _currentPaintOrder;
@@ -195,6 +198,8 @@ internal static class PdfPageXObjectInvocationParser {
         private PdfPaintColorSelection? _strokeColorSelection;
         private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
+        private string? _fillColorSpaceResourceName;
+        private string? _strokeColorSpaceResourceName;
 
         public Parser(
             string content,
@@ -262,7 +267,8 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPaintColorSelection? initialFillColorSelection,
             PdfPaintColorSelection? initialStrokeColorSelection,
             PdfOutputIntentColorTransform? outputIntentColorTransform,
-            Func<PdfArray, int>? inlineImageArrayComponentCount) {
+            Func<PdfArray, int>? inlineImageArrayComponentCount,
+            Action<string>? visibleColorSpaceVisitor) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -304,6 +310,7 @@ internal static class PdfPageXObjectInvocationParser {
             _strokeColorSelection = initialStrokeColorSelection;
             _outputIntentColorTransform = outputIntentColorTransform;
             _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
+            _visibleColorSpaceVisitor = visibleColorSpaceVisitor;
             _pageHeight = pageHeight;
             _pageWidth = pageWidth;
             _paintOrderBase = paintOrderBase;
@@ -433,7 +440,9 @@ internal static class PdfPageXObjectInvocationParser {
             }
             if (type3PaintChannels != PdfType3PaintChannels.None ||
                 (ordinaryTextAffectsOutput && ordinaryTextPaintChannels != PdfType3PaintChannels.None)) {
-                PublishActiveGraphicsEffectUse(type3PaintChannels | ordinaryTextPaintChannels);
+                PdfType3PaintChannels visibleChannels = type3PaintChannels | ordinaryTextPaintChannels;
+                PublishVisibleColorSpaceUse(visibleChannels);
+                PublishActiveGraphicsEffectUse(visibleChannels);
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
@@ -573,7 +582,9 @@ internal static class PdfPageXObjectInvocationParser {
             }
             if (type3PaintChannels != PdfType3PaintChannels.None ||
                 (ordinaryTextAffectsOutput && ordinaryTextPaintChannels != PdfType3PaintChannels.None)) {
-                PublishActiveGraphicsEffectUse(type3PaintChannels | ordinaryTextPaintChannels);
+                PdfType3PaintChannels visibleChannels = type3PaintChannels | ordinaryTextPaintChannels;
+                PublishVisibleColorSpaceUse(visibleChannels);
+                PublishActiveGraphicsEffectUse(visibleChannels);
             }
             PublishType3GlyphBatch(glyphs);
             if (ordinaryTextAffectsOutput && glyphCount > 0 && !usesType3GlyphProgram) _unsupportedTextVisitor?.Invoke();
@@ -694,6 +705,7 @@ internal static class PdfPageXObjectInvocationParser {
                     _patternStack.Push(_patternState);
                     _renderingIntentStack.Push((_hasAuthoredRenderingIntent, _renderingIntent, _fillColorSelection, _strokeColorSelection));
                     _textStack.Push(CaptureTextState());
+                    _colorSpaceNameStack.Push((_fillColorSpaceResourceName, _strokeColorSpaceResourceName));
                     _softMaskStack.Push((
                         _softMask,
                         _softMaskTransform,
@@ -721,6 +733,14 @@ internal static class PdfPageXObjectInvocationParser {
                         _strokeColorSelection = _initialStrokeColorSelection;
                     }
                     RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
+                    if (_colorSpaceNameStack.Count > 0) {
+                        (string? Fill, string? Stroke) restoredNames = _colorSpaceNameStack.Pop();
+                        _fillColorSpaceResourceName = restoredNames.Fill;
+                        _strokeColorSpaceResourceName = restoredNames.Stroke;
+                    } else {
+                        _fillColorSpaceResourceName = null;
+                        _strokeColorSpaceResourceName = null;
+                    }
                     (PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState) restoredSoftMask = _softMaskStack.Count > 0
                         ? _softMaskStack.Pop()
                         : (null, null, OfficeColor.Black, OfficeColor.Black, false, false, null);
@@ -871,6 +891,7 @@ internal static class PdfPageXObjectInvocationParser {
                             OperatorFillsPath(op),
                             OperatorStrokesPath(op),
                             op == "f*" || op == "B*" || op == "b*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero);
+                        PublishVisibleColorSpaceUse(channels);
                         PublishDeferredPatternUse(
                             (channels & PdfType3PaintChannels.Fill) != 0,
                             (channels & PdfType3PaintChannels.Stroke) != 0);
@@ -915,6 +936,9 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[0] is string fillColorSpaceName &&
                         TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _fillColorSelection = null;
+                        _fillColorSpaceResourceName = IsNamedColorSpaceResource(fillColorSpaceName)
+                            ? fillColorSpaceName
+                            : null;
                         _state = _state.WithFillColorSpace(fillColorSpace);
                         _patternState = _patternState.WithFill(
                             null,
@@ -929,6 +953,9 @@ internal static class PdfPageXObjectInvocationParser {
                         _args[0] is string strokeColorSpaceName &&
                         TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _strokeColorSelection = null;
+                        _strokeColorSpaceResourceName = IsNamedColorSpaceResource(strokeColorSpaceName)
+                            ? strokeColorSpaceName
+                            : null;
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
                         _patternState = _patternState.WithStroke(
                             null,
@@ -1046,6 +1073,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "rg":
                     if (HasTrailingFiniteNumbers(3) && TryApplyFillColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbFill)) {
+                        _fillColorSpaceResourceName = null;
                         _state = _state.WithFillColor(rgbFill, PdfPageColorSpaceKind.DeviceRgb);
                         _patternState = _patternState.WithFill(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1055,6 +1083,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "RG":
                     if (HasTrailingFiniteNumbers(3) && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbStroke)) {
+                        _strokeColorSpaceResourceName = null;
                         _state = _state.WithStrokeColor(rgbStroke, PdfPageColorSpaceKind.DeviceRgb);
                         _patternState = _patternState.WithStroke(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1064,6 +1093,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "g":
                     if (HasTrailingFiniteNumbers(1) && TryApplyFillColor(PdfPageColorSpaceKind.DeviceGray, out OfficeColor grayFill)) {
+                        _fillColorSpaceResourceName = null;
                         _state = _state.WithFillColor(grayFill, PdfPageColorSpaceKind.DeviceGray);
                         _patternState = _patternState.WithFill(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1073,6 +1103,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "G":
                     if (HasTrailingFiniteNumbers(1) && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceGray, out OfficeColor grayStroke)) {
+                        _strokeColorSpaceResourceName = null;
                         _state = _state.WithStrokeColor(grayStroke, PdfPageColorSpaceKind.DeviceGray);
                         _patternState = _patternState.WithStroke(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1082,6 +1113,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "k":
                     if (HasTrailingFiniteNumbers(4) && TryApplyFillColor(PdfPageColorSpaceKind.DeviceCmyk, out OfficeColor cmykFill)) {
+                        _fillColorSpaceResourceName = null;
                         _state = _state.WithFillColor(cmykFill, PdfPageColorSpaceKind.DeviceCmyk);
                         _patternState = _patternState.WithFill(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1091,6 +1123,7 @@ internal static class PdfPageXObjectInvocationParser {
                     break;
                 case "K":
                     if (HasTrailingFiniteNumbers(4) && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceCmyk, out OfficeColor cmykStroke)) {
+                        _strokeColorSpaceResourceName = null;
                         _state = _state.WithStrokeColor(cmykStroke, PdfPageColorSpaceKind.DeviceCmyk);
                         _patternState = _patternState.WithStroke(null, null);
                     } else if (!HasHiddenContent()) {
@@ -1218,7 +1251,8 @@ internal static class PdfPageXObjectInvocationParser {
                             _patternState.FillDeferredVisibleUse ||
                             _patternState.StrokeDeferredVisibleUse ||
                             _graphicsEffectState.HasEffect ||
-                            _hasInexactDash;
+                            _hasInexactDash ||
+                            _visibleColorSpaceVisitor != null;
                         PdfType3PaintChannels channels = needsPaintAnalysis
                             ? IsCurrentPaintSuppressedBySoftMask()
                                 ? PdfType3PaintChannels.None
@@ -1234,6 +1268,7 @@ internal static class PdfPageXObjectInvocationParser {
                                         _state.StrokeLineCap,
                                         _state.StrokeLineJoin)) ?? PdfType3PaintChannels.Both
                             : PdfType3PaintChannels.None;
+                        PublishVisibleColorSpaceUse(channels);
                         if (_patternState.FillDeferredVisibleUse || _patternState.StrokeDeferredVisibleUse) {
                             PublishDeferredPatternUse(
                                 (channels & PdfType3PaintChannels.Fill) != 0,
@@ -1284,6 +1319,12 @@ internal static class PdfPageXObjectInvocationParser {
                             channels != PdfType3PaintChannels.None &&
                             _currentInlineImage.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) &&
                             imageMaskObject is PdfBoolean { Value: true };
+                        if (consumesFillColor) PublishVisibleColorSpaceUse(PdfType3PaintChannels.Fill);
+                        if (channels != PdfType3PaintChannels.None && !consumesFillColor &&
+                            TryGetInlineImageColorSpaceName(_currentInlineImage.Dictionary, out string? imageColorSpaceName) &&
+                            !IsBuiltInColorSpaceName(imageColorSpaceName!)) {
+                            _visibleColorSpaceVisitor?.Invoke(imageColorSpaceName!);
+                        }
                         PublishDeferredPatternUse(
                             fill: consumesFillColor,
                             stroke: false);
@@ -1530,6 +1571,38 @@ internal static class PdfPageXObjectInvocationParser {
             blendMode: _state.BlendMode,
             hasUnsupportedBlendMode: _state.HasUnsupportedBlendMode);
 
+        private void PublishVisibleColorSpaceUse(PdfType3PaintChannels channels) {
+            if ((channels & PdfType3PaintChannels.Fill) != 0 &&
+                !string.IsNullOrEmpty(_fillColorSpaceResourceName)) {
+                _visibleColorSpaceVisitor?.Invoke(_fillColorSpaceResourceName!);
+            }
+            if ((channels & PdfType3PaintChannels.Stroke) != 0 &&
+                !string.IsNullOrEmpty(_strokeColorSpaceResourceName)) {
+                _visibleColorSpaceVisitor?.Invoke(_strokeColorSpaceResourceName!);
+            }
+        }
+
+        private static bool IsBuiltInColorSpaceName(string name) =>
+            name is "DeviceRGB" or "RGB" or "DeviceCMYK" or "CMYK" or
+            "DeviceGray" or "G" or "CalGray" or "CalRGB" or "Lab" or "Pattern";
+
+        private bool IsNamedColorSpaceResource(string name) =>
+            _colorSpaces?.ContainsKey(name) == true || !IsBuiltInColorSpaceName(name);
+
+        private static bool TryGetInlineImageColorSpaceName(
+            PdfDictionary dictionary,
+            out string? name) {
+            name = null;
+            PdfObject? value = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace)
+                ? colorSpace
+                : dictionary.Items.TryGetValue("CS", out PdfObject? abbreviated)
+                    ? abbreviated
+                    : null;
+            if (value is not PdfName colorSpaceName) return false;
+            name = colorSpaceName.Name;
+            return true;
+        }
+
         private void PublishActiveGraphicsEffectUse(PdfType3PaintChannels channels) {
             if (!_graphicsEffectState.HasEffect && _graphicsEffectPaintVisitor == null) return;
             PdfPageGraphicsStateResource effect = _graphicsEffectState.ToResource();
@@ -1683,6 +1756,9 @@ internal static class PdfPageXObjectInvocationParser {
         }
 
         private bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
+            if (_colorSpaces != null && _colorSpaces.TryGetValue(name, out colorSpace)) {
+                return true;
+            }
             switch (name) {
                 case "DeviceRGB":
                 case "RGB":
@@ -1709,10 +1785,6 @@ internal static class PdfPageXObjectInvocationParser {
                     colorSpace = PdfPageColorSpaceKind.Pattern;
                     return true;
                 default:
-                    if (_colorSpaces != null && _colorSpaces.TryGetValue(name, out colorSpace)) {
-                        return true;
-                    }
-
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
                     return false;
             }

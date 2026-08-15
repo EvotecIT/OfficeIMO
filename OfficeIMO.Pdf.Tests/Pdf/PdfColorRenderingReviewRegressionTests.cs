@@ -142,6 +142,93 @@ public class PdfColorRenderingReviewRegressionTests {
     }
 
     [Fact]
+    public void IccProfileCache_ChargesParsedProfileAndDecodedBytesCumulatively() {
+        byte[] profileBytes = CreateRgbProfileWithSharedSampledCurves(sampleCount: 4096);
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        PdfStream profileStream = CreateIccProfileStream(profileBytes);
+        long retainedProfileBytes = Math.Max(profileBytes.LongLength, profile!.RetainedByteCount);
+        int retainedLimit = checked((int)(retainedProfileBytes + profileBytes.LongLength - 1L));
+        var budget = new PdfIccProfileRetentionBudget(retainedLimit);
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.True(PdfIccProfileCache.TryRead(
+            profileStream,
+            objects,
+            retainedLimit,
+            budget,
+            out OfficeIccColorProfile? cachedProfile));
+        Assert.NotNull(cachedProfile);
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfIccProfileCache.TryReadBytes(profileStream, objects, retainedLimit, budget, out _));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(retainedLimit, exception.Limit);
+        Assert.Equal(retainedProfileBytes + profileBytes.LongLength, exception.Actual);
+    }
+
+    [Fact]
+    public void SeparationImageDirectOutputConversion_PreservesAuthoredRenderingIntent() {
+        byte[] outputProfileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        var outputProfileStream = new PdfStream(new PdfDictionary(), outputProfileBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = outputProfileStream;
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        PdfOutputIntentColorTransform transform = Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(
+                catalog,
+                new Dictionary<int, PdfIndirectObject>(),
+                PdfReadLimits.DefaultMaxDecodedStreamBytes));
+
+        var tintTransform = new PdfDictionary();
+        tintTransform.Items["FunctionType"] = new PdfNumber(2);
+        tintTransform.Items["Domain"] = NumberArray(0, 1);
+        tintTransform.Items["C0"] = NumberArray(0.1, 0.2, 0.3);
+        tintTransform.Items["C1"] = NumberArray(0.6, 0.7, 0.8);
+        tintTransform.Items["N"] = new PdfNumber(1);
+        var colorSpace = new PdfArray();
+        colorSpace.Items.Add(new PdfName("Separation"));
+        colorSpace.Items.Add(new PdfName("Spot"));
+        colorSpace.Items.Add(new PdfName("DeviceRGB"));
+        colorSpace.Items.Add(tintTransform);
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            colorSpace,
+            string.Empty,
+            new Dictionary<int, PdfIndirectObject>(),
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            OfficeIccRenderingIntent.Saturation,
+            transform,
+            out PdfImageColorSpaceNormalization normalization));
+        Assert.True(OfficeIccColorProfile.TryCreate(outputProfileBytes, out OfficeIccColorProfile? outputProfile));
+        Assert.True(outputProfile!.TryConvert(
+            new[] { 0.35D, 0.45D, 0.55D },
+            OfficeIccRenderingIntent.Saturation,
+            out OfficeColor expected));
+
+        Assert.True(normalization.TryConvertComponents(new[] { 0.5D }, out OfficeColor actual));
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotMaterializeOverwrittenUnusedColorSpace() {
+        byte[] outputProfile = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] unusedProfile = CreateRgbProfileWithSharedSampledCurves(sampleCount: 4096);
+        Assert.True(unusedProfile.Length > outputProfile.Length);
+        byte[] pdf = BuildOverwrittenColorSpaceOutputIntentPdf(outputProfile, unusedProfile);
+        var options = new PdfReadOptions {
+            Limits = new PdfReadLimits { MaxDecodedStreamBytes = unusedProfile.Length - 1 }
+        };
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(document);
+
+        Assert.Single(drawing.Shapes);
+    }
+
+    [Fact]
     public void TextParser_PreservesNoneSeparationAsLogicalNonMarkingText() {
         var colorSpaces = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal) {
             ["NoneSpot"] = PdfPageColorSpace.SeparationNone()
@@ -258,6 +345,25 @@ public class PdfColorRenderingReviewRegressionTests {
         WriteAscii(output, "\nendstream\nendobj\n");
         WriteProfile(output, 6, outputProfile, includeComponentCount: false);
         WriteProfile(output, 7, sourceProfile, includeComponentCount: true);
+        WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] BuildOverwrittenColorSpaceOutputIntentPdf(
+        byte[] outputProfile,
+        byte[] unusedProfile) {
+        string content = "/Unused cs 0 scn /DeviceRGB cs 0.2 0.4 0.8 scn 10 10 20 20 re f";
+        byte[] contentBytes = Encoding.ASCII.GetBytes(content);
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /OutputIntents [<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 6 0 R >>] >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /Unused [/ICCBased 7 0 R] >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + contentBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n");
+        output.Write(contentBytes, 0, contentBytes.Length);
+        WriteAscii(output, "\nendstream\nendobj\n");
+        WriteProfile(output, 6, outputProfile, includeComponentCount: false);
+        WriteProfile(output, 7, unusedProfile, includeComponentCount: true);
         WriteAscii(output, "trailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }

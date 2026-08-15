@@ -53,7 +53,8 @@ public sealed partial class PdfReadDocument {
         _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
             FindCatalog(),
             _objects,
-            _options.Limits.MaxDecodedStreamBytes);
+            _options.Limits.MaxDecodedStreamBytes,
+            _outputIntentMetadataRetentionBudget);
         Pages = CollectPages();
         RepairReport = repairReport.Append(PdfSemanticRepairDiagnostics.AnalyzeAndRepair(_objects, FindCatalog(), Pages, _options));
         _metadata = ExtractMetadata();

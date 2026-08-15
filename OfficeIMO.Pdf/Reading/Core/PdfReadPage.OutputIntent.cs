@@ -170,6 +170,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> fonts = resources == null
             ? new Dictionary<string, PdfFontResource>(StringComparer.Ordinal)
             : ResourceResolver.GetFontsForResources(resources, _objects);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
 
         bool found = false;
         PdfPageXObjectInvocationParser.Parse(
@@ -177,7 +178,7 @@ public sealed partial class PdfReadPage {
             Matrix2D.Identity,
             GetVisualPageSize().Height,
             GetGraphicsStateResources(resources),
-            GetColorSpaceResources(resources, pageContentBudget: budget),
+            GetColorSpaceResources(resources, invokedResources.ColorSpaces, budget),
             GetOptionalContentVisibility(resources),
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,

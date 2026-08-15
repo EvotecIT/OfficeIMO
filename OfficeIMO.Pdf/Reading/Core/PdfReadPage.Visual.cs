@@ -1884,25 +1884,53 @@ public sealed partial class PdfReadPage {
         string content,
         PdfDictionary? resources) {
         var names = new PdfPageInvokedResourceNames();
-        PdfContentStreamInterpreter.Interpret(
+        Dictionary<string, PdfPageColorSpace> placeholders = GetColorSpaceResourcePlaceholders(resources);
+        (double Width, double Height) pageSize = GetVisualPageSize();
+        _ = PdfPageXObjectInvocationParser.Parse(
             content,
-            _limits.MaxContentOperations,
-            operation => {
-                if ((operation.Name == "cs" || operation.Name == "CS") &&
-                    operation.Operands.Count > 0 &&
-                    operation.Operands[operation.Operands.Count - 1] is string name) {
-                    names.ColorSpaces.Add(name);
-                } else if (operation.InlineImage is PdfContentInlineImage inlineImage &&
-                    inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) &&
-                    colorSpaceObject is PdfName colorSpaceName) {
-                    names.ColorSpaces.Add(colorSpaceName.Name);
-                }
-            },
-            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
+            Matrix2D.Identity,
+            pageSize.Height,
+            GetGraphicsStateResources(resources),
+            placeholders,
+            GetOptionalContentVisibility(resources),
+            maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+            pageWidth: pageSize.Width,
+            xObjectPaintChannelResolver: (name, paintState) => {
+                if (!TryGetXObjectStream(resources, name, out PdfStream? xObject) ||
+                    xObject == null ||
+                    xObject.Dictionary.Get<PdfName>("Subtype")?.Name != "Image") {
+                    return PdfType3PaintChannels.Both;
+                }
+                return PdfImageMaskNormalizer.IsImageMask(xObject, _objects)
+                    ? PdfType3PaintChannels.Fill
+                    : PdfType3PaintChannels.Visible;
+            },
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name));
         return names;
+    }
+
+    private Dictionary<string, PdfPageColorSpace> GetColorSpaceResourcePlaceholders(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
+        if (resources == null ||
+            !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
+            ResolveDictionary(colorSpacesObject) is not PdfDictionary colorSpaces) return result;
+        if (colorSpaces.Items.Count > _limits.MaxColorSpaceResourcesPerPage) {
+            throw new InvalidDataException(
+                $"The page declares more than {_limits.MaxColorSpaceResourcesPerPage} color-space resources.");
+        }
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            PdfObject? resolved = ResolveObject(entry.Value);
+            bool isPattern = resolved is PdfName { Name: "Pattern" } ||
+                resolved is PdfArray { Items.Count: > 0 } array &&
+                ResolveObject(array.Items[0]) is PdfName { Name: "Pattern" };
+            result[entry.Key] = isPattern
+                ? new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern)
+                : PdfPageColorSpace.Placeholder(GetDeclaredColorSpaceComponentCount(resources, entry.Key));
+        }
+        return result;
     }
 
     private int GetDeclaredColorSpaceComponentCount(PdfDictionary? resources, string name) {
