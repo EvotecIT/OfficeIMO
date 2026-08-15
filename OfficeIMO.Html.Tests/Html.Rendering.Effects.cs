@@ -286,6 +286,30 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("opacity:.5")]
+    [InlineData("transform:translateX(1px)")]
+    [InlineData("clip-path:inset(0)")]
+    public void HtmlEffects_NonAtomicInlineStackingPreservesAuthoredTextOrder(string effect) {
+        string html = "<p style='margin:0'><span style='" + effect + "'>A</span>B</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options) {
+            PdfOptions = new PdfCore.PdfOptions { TaggedStructureMode = PdfCore.PdfTaggedStructureMode.CatalogMarkers }
+        });
+
+        Assert.Equal("AB", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))));
+        Assert.Equal("AB", string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character))));
+        Assert.True(PdfCore.PdfReadDocument.Open(pdf).HasTaggedContent);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void HtmlClipPath_BasicShapesShareOneVectorSceneAcrossRasterAndSvg() {
         const string html = "<div id='polygon' style='width:20px;height:20px;margin:0;background:red;clip-path:polygon(0 0,100% 0,0 100%)'></div>"

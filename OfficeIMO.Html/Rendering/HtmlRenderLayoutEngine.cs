@@ -26,6 +26,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderBoxStyle? _viewportOverflowStyle;
     private int _paintOrder;
     private int _positionedSourceOrder;
+    private int _nextLogicalTextOrder;
     private int _nextSemanticNodeId;
     private long _backgroundImageTileCount;
     private long _layoutOperationCount;
@@ -72,7 +73,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<string> _reportedStaticRepeatedControlGroups = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<IElement> _reportedBidiElements = new HashSet<IElement>();
-    private readonly Dictionary<ShapedTextMeasurementKey, double?> _shapedTextMeasurementCache = new Dictionary<ShapedTextMeasurementKey, double?>();
+    private readonly HtmlShapedTextMeasurementCache _shapedTextMeasurementCache = new HtmlShapedTextMeasurementCache();
     private readonly HashSet<string> _reportedMixedRunningElementMarginBoxes = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedPageContinuationReflow = new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _runningStringValues = new Dictionary<string, string>(StringComparer.Ordinal);

@@ -208,11 +208,43 @@ internal static partial class PdfWriter {
 
         private void RenderCanvasActualText(PdfCanvasActualTextItem item) {
             EnsurePage();
-            sb.Append("/Span << /ActualText ")
-                .Append(PdfSyntaxEscaper.TextString(item.Text))
-                .Append(" >> BDC\n");
-            RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            sb.Append("/Artifact BMC\n");
+            bool previousAccessibility = _suppressCanvasAccessibilityWrappers;
+            bool previousStructure = _suppressCanvasStructureRegistration;
+            bool previousActualTextChildren = _suppressCanvasActualTextChildren;
+            _suppressCanvasAccessibilityWrappers = true;
+            _suppressCanvasStructureRegistration = true;
+            _suppressCanvasActualTextChildren = true;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _suppressCanvasAccessibilityWrappers = previousAccessibility;
+                _suppressCanvasStructureRegistration = previousStructure;
+                _suppressCanvasActualTextChildren = previousActualTextChildren;
+            }
             sb.Append("EMC\n");
+
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetFontResourceName(font, null, font);
+            int? markedContentId = RegisterTextStructureElement("Span", _canvasStructureParentElement);
+            var content = new ContentStreamBuilder(sb)
+                .SaveState()
+                .BeginText()
+                .Font(fontResource, 1D)
+                .TextRenderingMode(3)
+                .TextMatrix(0D, 0D);
+            sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(item.Text));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+            sb.Append(" >> BDC\n");
+            content.ShowText(EncodeTextShowCommand(" ", font, currentOpts), 1D);
+            sb.Append("EMC\n");
+            content.EndText().RestoreState();
+            MarkSimpleFont(font);
+            pageDirty = true;
         }
 
         private void RenderCanvasStructure(PdfCanvasStructureItem item) {

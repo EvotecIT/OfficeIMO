@@ -99,6 +99,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    private void AssignLogicalTextOrders(IEnumerable<HtmlInlineRun> runs) {
+        foreach (HtmlInlineRun run in runs) {
+            if (run.Text.Length == 0 || run.LogicalTextOrder.HasValue) continue;
+            run.AssignLogicalTextOrder(_nextLogicalTextOrder++);
+        }
+    }
+
     private void CollectInlineRuns(
         INode node,
         double width,
@@ -142,6 +149,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             link = ResolveSafeLink(element.GetAttribute("href"), element);
         }
         if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
+            AssignLogicalTextOrders(runs);
             runs.Add(new HtmlInlineRun(
                 CaptureRunningElement(element, runningElementName, width, style, inheritedStyle, depth + 1),
                 style,
@@ -165,11 +173,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         if (style.FloatSide != "none") {
+            AssignLogicalTextOrders(runs);
             AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
             return;
         }
 
         if (IsFormControlElement(tag)) {
+            AssignLogicalTextOrders(runs);
             if (!string.IsNullOrWhiteSpace(style.StringSet)) {
                 runs.Add(new HtmlInlineRun(
                     element,
@@ -199,14 +209,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag != "img" && tag != "math" && style.Display == "inline-block") {
+            AssignLogicalTextOrders(runs);
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
         if (tag != "img" && tag != "math" && style.Display == "inline-flex") {
+            AssignLogicalTextOrders(runs);
             AddInlineFlexRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
         if (tag != "img" && tag != "math" && style.Display == "inline-grid") {
+            AssignLogicalTextOrders(runs);
             AddInlineGridRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
             return;
         }
@@ -239,9 +252,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
             return;
         }
-        if (tag == "math" && TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
-            AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
-            return;
+        if (tag == "math") {
+            AssignLogicalTextOrders(runs);
+            if (!ReferenceEquals(targetRuns, runs)) AssignLogicalTextOrders(targetRuns);
+            if (TryAddInlineMathRun(element, width, style, link, paintOffsetX, paintOffsetY, targetRuns)) {
+                AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
+                return;
+            }
         }
 
         foreach (INode child in element.ChildNodes) {
@@ -346,17 +363,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private bool TryMeasureWithConfiguredProvider(string text, HtmlRenderBoxStyle style, out double measured) {
-        var cacheKey = new ShapedTextMeasurementKey(text, style.Font);
-        if (_shapedTextMeasurementCache.TryGetValue(cacheKey, out double? cached)) {
-            measured = cached ?? 0D;
-            return cached.HasValue;
-        }
         IOfficeTextShapingProvider? provider = _options.TextShapingProvider;
         if (provider == null) {
             measured = 0D;
-            _shapedTextMeasurementCache[cacheKey] = null;
             return false;
         }
+        if (_shapedTextMeasurementCache.TryGet(text, style.Font, out measured)) return true;
 
         OfficeTrueTypeFont? font = _fonts.ResolveForText(
             text,
@@ -365,7 +377,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             out OfficeFontStyle _);
         if (font == null) {
             measured = 0D;
-            _shapedTextMeasurementCache[cacheKey] = null;
             return false;
         }
 
@@ -384,12 +395,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             cloneFontData: false));
         if (result == null) {
             measured = 0D;
-            _shapedTextMeasurementCache[cacheKey] = null;
             return false;
         }
 
         measured = font.CreateShapedTextRun(logicalText, result).Measure(style.Font.Size);
-        _shapedTextMeasurementCache[cacheKey] = measured;
+        _shapedTextMeasurementCache.Store(text, style.Font, measured);
         return true;
     }
 
@@ -399,6 +409,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle paragraphStyle,
         IElement? formattingContainer = null,
         int skipLogicalCharacters = 0) {
+        AssignLogicalTextOrders(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         if (runs.Any(run => run.FloatingBlock != null)) {
             return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer);
@@ -992,6 +1003,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source.OwnerElement,
             logicalText: "\u2026");
         if (source.SemanticNodeId.HasValue) run.AssignSemanticNode(source.SemanticRole, source.SemanticNodeId.Value, source.BookmarkAnchorText, source.SemanticFragmentOrder);
+        if (source.LogicalTextOrder.HasValue) run.AssignLogicalTextOrder(source.LogicalTextOrder.Value);
         if (source.InlineSemanticGroupRole.HasValue && source.InlineSemanticGroupKey != null) {
             run.AssignInlineSemanticGroup(source.InlineSemanticGroupRole.Value, source.InlineSemanticGroupKey);
         }
@@ -1121,27 +1133,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         measured += style.LetterSpacing * elements.Count;
         measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
         return measured;
-    }
-
-    private readonly struct ShapedTextMeasurementKey : IEquatable<ShapedTextMeasurementKey> {
-        internal ShapedTextMeasurementKey(string text, OfficeFontInfo font) {
-            Text = text;
-            Font = font;
-        }
-
-        private string Text { get; }
-        private OfficeFontInfo Font { get; }
-
-        public bool Equals(ShapedTextMeasurementKey other) =>
-            string.Equals(Text, other.Text, StringComparison.Ordinal) && Font.Equals(other.Font);
-
-        public override bool Equals(object? obj) => obj is ShapedTextMeasurementKey other && Equals(other);
-
-        public override int GetHashCode() {
-            unchecked {
-                return (StringComparer.Ordinal.GetHashCode(Text) * 397) ^ Font.GetHashCode();
-            }
-        }
     }
 
     private string? ResolveSafeLink(string? rawHref, IElement element) {

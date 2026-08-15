@@ -336,9 +336,18 @@ internal static partial class HtmlPdfRenderedConverter {
         };
         bool childTextAsSpan = textAsSpan || IsTextContentGroup(group.Role);
         canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
-            foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                AddVisual(nested, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan, activeClip);
+            void AddChildren(PdfCore.PdfPageCanvas target) {
+                foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    AddVisual(target, child, webFonts, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls, cancellationToken, childTextAsSpan, activeClip);
+                }
+            }
+
+            if (IsTextContentGroup(group.Role)
+                && TryResolveReorderedLogicalText(group.Visuals, out string logicalText)) {
+                nested.ActualText(logicalText, AddChildren);
+            } else {
+                AddChildren(nested);
             }
         }, options);
     }

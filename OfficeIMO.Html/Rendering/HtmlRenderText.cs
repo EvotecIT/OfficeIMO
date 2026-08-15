@@ -44,7 +44,8 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         int? semanticNodeId,
         double? textAdvanceWidth,
         bool bidiVisualOrderResolved = false,
-        int? semanticFragmentOrder = null)
+        int? semanticFragmentOrder = null,
+        int? logicalTextOrder = null)
         : base(HtmlRenderVisualKind.Text, x, y, width, height, paintOrder, linkUri, source, layoutY) {
         if (textAdvanceWidth.HasValue && (double.IsNaN(textAdvanceWidth.Value) || double.IsInfinity(textAdvanceWidth.Value))) {
             throw new ArgumentOutOfRangeException(nameof(textAdvanceWidth));
@@ -57,6 +58,7 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
         SemanticRole = semanticRole;
         SemanticNodeId = semanticNodeId;
         SemanticFragmentOrder = semanticFragmentOrder;
+        LogicalTextOrder = logicalTextOrder;
         TextAdvanceWidth = textAdvanceWidth;
         BidiVisualOrderResolved = bidiVisualOrderResolved;
     }
@@ -84,14 +86,16 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
 
     internal int? SemanticFragmentOrder { get; }
 
+    internal int? LogicalTextOrder { get; }
+
     /// <summary>Resolved signed glyph advance for positioned inline text, distinct from its non-negative clipping frame.</summary>
     public double? TextAdvanceWidth { get; }
 
     internal bool BidiVisualOrderResolved { get; }
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder);
+        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, BidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder);
 }

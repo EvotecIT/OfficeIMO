@@ -108,6 +108,23 @@ public sealed partial class HtmlRenderingTests {
             request.Language == "ar-SA");
     }
 
+    [Fact]
+    public void HtmlRenderer_ShapedMeasurementCacheRetainsOnlyBoundedSuccessfulShortKeys() {
+        var cache = new HtmlShapedTextMeasurementCache();
+        var font = new OfficeFontInfo("OfficeIMO Shaping Test", 12D);
+
+        for (int index = 0; index < HtmlShapedTextMeasurementCache.MaximumEntries * 2; index++) {
+            cache.Store("token-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture), font, index);
+        }
+        cache.Store(new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1), font, 1D);
+
+        Assert.Equal(HtmlShapedTextMeasurementCache.MaximumEntries, cache.Count);
+        Assert.InRange(cache.RetainedTextCharacters, 1, HtmlShapedTextMeasurementCache.MaximumRetainedTextCharacters);
+        Assert.True(cache.TryGet("token-0", font, out double measured));
+        Assert.Equal(0D, measured);
+        Assert.False(cache.TryGet(new string('x', HtmlShapedTextMeasurementCache.MaximumCacheableTextCharacters + 1), font, out _));
+    }
+
     private sealed class FixedAdvanceTextShapingProvider : IOfficeTextShapingProvider {
         private readonly int _advanceWidth;
 

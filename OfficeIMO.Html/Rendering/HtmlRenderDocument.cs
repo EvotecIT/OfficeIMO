@@ -64,7 +64,7 @@ public sealed class HtmlRenderDocument {
     public string Text => string.Join("\n", _pages.SelectMany(page => EnumerateLogicalText(page.Scene)));
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
-        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderVisual visual in OrderForLogicalText(visuals)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -86,6 +86,56 @@ public sealed class HtmlRenderDocument {
             if (children == null) continue;
             foreach (string textValue in EnumerateLogicalText(children)) yield return textValue;
         }
+    }
+
+    private static IEnumerable<HtmlRenderVisual> OrderForLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
+        List<HtmlRenderVisual> ordered = visuals.OrderBy(item => item.PaintOrder).ToList();
+        var logicalOrders = new Dictionary<HtmlRenderVisual, int?>();
+        bool hasLogicalText = false;
+        bool allTextIsOrdered = true;
+        foreach (HtmlRenderVisual visual in ordered) {
+            int? logicalOrder = ResolveLogicalTextOrder(visual, out bool containsText);
+            logicalOrders[visual] = logicalOrder;
+            hasLogicalText |= containsText;
+            if (containsText && !logicalOrder.HasValue) allTextIsOrdered = false;
+        }
+        if (!hasLogicalText || !allTextIsOrdered) return ordered;
+        return ordered
+            .OrderBy(visual => logicalOrders[visual] ?? int.MaxValue)
+            .ThenBy(visual => visual.PaintOrder);
+    }
+
+    private static int? ResolveLogicalTextOrder(HtmlRenderVisual visual, out bool containsText) {
+        if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
+            containsText = false;
+            return null;
+        }
+        if (visual is HtmlRenderText text) {
+            containsText = true;
+            return text.LogicalTextOrder;
+        }
+        if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+            int? logicalOrder = null;
+            foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) {
+                int? childOrder = ResolveLogicalTextOrder(child, out _);
+                if (childOrder.HasValue && (!logicalOrder.HasValue || childOrder.Value < logicalOrder.Value)) logicalOrder = childOrder;
+            }
+            containsText = true;
+            return logicalOrder;
+        }
+        IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+        if (children == null) {
+            containsText = false;
+            return null;
+        }
+        containsText = false;
+        int? order = null;
+        foreach (HtmlRenderVisual child in children) {
+            int? childOrder = ResolveLogicalTextOrder(child, out bool childContainsText);
+            containsText |= childContainsText;
+            if (childOrder.HasValue && (!order.HasValue || childOrder.Value < order.Value)) order = childOrder;
+        }
+        return order;
     }
 
     private static bool ContainsArtifactVisual(IEnumerable<HtmlRenderVisual> visuals) {

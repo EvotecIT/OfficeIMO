@@ -285,6 +285,20 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas.ActualText("AB", logical => logical
+                .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", 20D, 10D, 10D, 20D))
+                .Text("B", 35D, 10D, 10D, 20D)))
+            .ToBytes();
+
+        Assert.Equal("AB", string.Concat(PdfReadDocument.Open(bytes).ExtractText().Where(character => !char.IsWhiteSpace(character))));
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
+        Assert.Contains(tagged.StructureElements, element => element.StructureType == "Span");
+    }
+
+    [Fact]
     public void CanvasActualText_RejectsInvalidArgumentsAndEmptyBuilders() {
         var canvas = new PdfPageCanvas();
 

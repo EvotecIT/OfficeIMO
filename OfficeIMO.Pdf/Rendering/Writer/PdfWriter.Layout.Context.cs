@@ -33,6 +33,7 @@ internal static partial class PdfWriter {
         private int _canvasClipDepth;
         private bool _suppressCanvasAccessibilityWrappers;
         private bool _suppressCanvasStructureRegistration;
+        private bool _suppressCanvasActualTextChildren;
         private PageStructElement? _canvasStructureParentElement;
         private bool stopDocumentFlow;
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
