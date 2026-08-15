@@ -78,6 +78,7 @@ public static class PdfProvenance {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         long maximumManifestBytes = Math.Min(
             options.Limits.MaxExpandedContainerBytes,
             MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers));
@@ -481,6 +482,13 @@ public static class PdfProvenance {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue("Trans", out PdfObject? transition) ? transition : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("VP", out PdfObject? viewports) ? viewports : null,
                     result,
                     maximumContainerEntries,
                     pageTreeObjectNumbers,
