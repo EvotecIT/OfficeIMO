@@ -101,7 +101,7 @@ internal static class PdfProvenanceGraphEditor {
             }
             completePairCount = names.Items.Count / 2;
             if (completePairCount == 0) {
-                if (changed) dictionary.Items.Remove("Names");
+                if (changed && names.Items.Count == 0) dictionary.Items.Remove("Names");
             } else {
                 firstName = names.Items[0];
                 lastName = names.Items[(completePairCount - 1) * 2];

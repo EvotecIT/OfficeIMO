@@ -20,6 +20,12 @@ public static partial class PdfProvenance {
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfReadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
+        PdfC2paAssociationProfile associations = CollectAssociationProfile(
+            document,
+            pageTreeObjectNumbers,
+            options.MaxContainerEntries,
+            out HashSet<int> reachableObjectNumbers);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
@@ -27,9 +33,8 @@ public static partial class PdfProvenance {
             options.MaxManifestBytes,
             options.MaxCarriers,
             options.MaxContainerEntries,
-            requireSuccessfulDecoding: true);
-        HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
-        PdfC2paAssociationProfile associations = CollectAssociationProfile(document, pageTreeObjectNumbers, options.MaxContainerEntries);
+            requireSuccessfulDecoding: true,
+            allowedObjectNumbers: reachableObjectNumbers);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
             if (!IsCandidate(attachment)) continue;
@@ -89,6 +94,12 @@ public static partial class PdfProvenance {
         }
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.Limits.MaxContainerEntries);
+        _ = CollectAssociationProfile(
+            document,
+            pageTreeObjectNumbers,
+            options.Limits.MaxContainerEntries,
+            out HashSet<int> reachableObjectNumbers);
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
             document,
             IsCandidate,
@@ -96,7 +107,8 @@ public static partial class PdfProvenance {
             options.Limits.MaxManifestBytes,
             options.Limits.MaxCarriers,
             options.Limits.MaxContainerEntries,
-            requireSuccessfulDecoding: true);
+            requireSuccessfulDecoding: true,
+            allowedObjectNumbers: reachableObjectNumbers);
         var removeFileSpecifications = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
@@ -166,37 +178,42 @@ public static partial class PdfProvenance {
     private static PdfC2paAssociationProfile CollectAssociationProfile(
         PdfReadDocument document,
         HashSet<int> pageTreeObjectNumbers,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        out HashSet<int> reachableObjectNumbers) {
         var documentLevel = new HashSet<int>();
         var objectLevel = new HashSet<int>();
         var secondaryDocumentReferences = new HashSet<int>();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(document.Objects, document.TrailerRaw);
-        if (catalog == null) return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences, new HashSet<int>());
+        if (catalog == null) {
+            reachableObjectNumbers = new HashSet<int>();
+            return new PdfC2paAssociationProfile(documentLevel, objectLevel, secondaryDocumentReferences, new HashSet<int>());
+        }
         AddReferencesFromArray(document.Objects, catalog.Items.TryGetValue("AF", out PdfObject? catalogAf) ? catalogAf : null, documentLevel);
         CollectEmbeddedFilesNameTreeReferences(document.Objects, catalog, secondaryDocumentReferences, maximumContainerEntries);
         PdfIndirectObject catalogObject = document.Objects.Values.First(item => ReferenceEquals(item.Value, catalog));
-        HashSet<int> reachableObjectNumbers = CollectReachableObjectNumbers(
+        HashSet<int> reachableObjects = CollectReachableObjectNumbers(
             document.Objects,
             new PdfReference(catalogObject.ObjectNumber, catalogObject.Generation),
             maximumContainerEntries);
+        reachableObjectNumbers = reachableObjects;
         HashSet<PdfObject> structuralAssociationSites = CollectStructuralAssociationSites(
             document.Objects,
             catalog,
             PdfSyntax.TryReadFirstReference(document.TrailerRaw, "Info"),
             document.Security.EncryptObjectNumber,
-            reachableObjectNumbers,
+            reachableObjects,
             pageTreeObjectNumbers,
             new HashSet<int>(document.Pages.Select(static page => page.ObjectNumber)),
             maximumContainerEntries);
         var structuralObjectNumbers = new HashSet<int>(document.Objects.Values
-            .Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))
+            .Where(item => reachableObjects.Contains(item.ObjectNumber))
             .Where(item => {
                 PdfDictionary? dictionary = item.Value is PdfStream stream ? stream.Dictionary : item.Value as PdfDictionary;
                 return dictionary != null && structuralAssociationSites.Contains(dictionary);
             })
             .Select(item => item.ObjectNumber));
         var visited = new HashSet<PdfObject>();
-        foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
+        foreach (PdfIndirectObject item in document.Objects.Values.Where(item => reachableObjects.Contains(item.ObjectNumber))) {
             CollectObjectAssociations(document.Objects, item.Value, catalog, objectLevel, visited, structuralAssociationSites);
         }
         CollectPageAnnotationReferences(
@@ -543,7 +560,7 @@ public static partial class PdfProvenance {
                             sharedVisited: structuralTraversalVisited);
                     }
                 } else if (string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
-                    foreach (string key in new[] { "ColorSpace", "Alternates" }) {
+                    foreach (string key in new[] { "ColorSpace", "Alternates", "OPI" }) {
                         AddStructuralGraphDictionaries(
                             objects,
                             activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? imageValue) ? imageValue : null,

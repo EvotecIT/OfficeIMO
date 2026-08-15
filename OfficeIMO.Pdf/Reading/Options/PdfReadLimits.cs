@@ -38,7 +38,7 @@ public sealed class PdfReadLimits {
     public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
 
     /// <summary>Maximum aggregate decoded stream bytes cached while parsing one document. Default: 512 MiB.</summary>
-    internal long MaxTotalDecodedStreamBytes { get; init; } = DefaultMaxTotalDecodedStreamBytes;
+    public long MaxTotalDecodedStreamBytes { get; init; } = DefaultMaxTotalDecodedStreamBytes;
 
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
@@ -249,6 +249,10 @@ public sealed class PdfReadLimits {
 
         if (MaxDecodedStreamBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxDecodedStreamBytes), MaxDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+
+        if (MaxTotalDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalDecodedStreamBytes), MaxTotalDecodedStreamBytes, "Maximum aggregate decoded stream bytes must be positive.");
         }
 
         ValidatePositive(MaxPageContentBytes, nameof(MaxPageContentBytes), "Maximum aggregate page content bytes must be positive.");

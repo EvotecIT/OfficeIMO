@@ -103,7 +103,8 @@ internal static class PdfAttachmentExtractor {
         long? maxDecodedBytesPerAttachment = null,
         int? maxSelectedAttachments = null,
         int? maxStructuralEntries = null,
-        bool requireSuccessfulDecoding = false) {
+        bool requireSuccessfulDecoding = false,
+        ISet<int>? allowedObjectNumbers = null) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(predicate, nameof(predicate));
         Guard.Positive(maxDecodedBytes, nameof(maxDecodedBytes));
@@ -120,7 +121,8 @@ internal static class PdfAttachmentExtractor {
             maxDecodedBytesPerAttachment,
             maxStructuralEntries,
             document.DecodedStreamBytes,
-            document.DecodedStreamBudget);
+            document.DecodedStreamBudget,
+            allowedObjectNumbers);
         var attachments = new List<PdfExtractedAttachment>();
         foreach (AttachmentDescriptor descriptor in descriptors) {
             if (!predicate(descriptor.ToAttachmentInfo())) continue;
@@ -156,7 +158,8 @@ internal static class PdfAttachmentExtractor {
         long? maxDecodedBytesPerAttachment = null,
         int? maxStructuralEntries = null,
         long initialDecodedStreamBytes = 0,
-        PdfDecodedStreamBudget? sharedDecodedStreamBudget = null) {
+        PdfDecodedStreamBudget? sharedDecodedStreamBudget = null,
+        ISet<int>? allowedObjectNumbers = null) {
         Guard.NotNull(objects, nameof(objects));
         PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
         effectiveLimits.Validate();
@@ -179,11 +182,11 @@ internal static class PdfAttachmentExtractor {
             ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, discoveredFileSpecs, visitedTrees, budget, effectiveLimits, 0, ref traversedNameTreeNodes);
         }
 
-        foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects)) {
+        foreach (PdfArray associatedFiles in PdfAssociatedFileGraph.FindAssociatedFileArrays(objects, allowedObjectNumbers)) {
             ReadAssociatedFiles(objects, associatedFiles, attachments, discoveredFileSpecs, budget);
         }
 
-        ReadFileAttachmentAnnotations(objects, attachments, discoveredFileSpecs, budget);
+        ReadFileAttachmentAnnotations(objects, attachments, discoveredFileSpecs, budget, allowedObjectNumbers);
 
         return attachments.Count == 0 ? Array.Empty<AttachmentDescriptor>() : attachments.AsReadOnly();
     }
@@ -192,9 +195,11 @@ internal static class PdfAttachmentExtractor {
         Dictionary<int, PdfIndirectObject> objects,
         List<AttachmentDescriptor> attachments,
         ISet<PdfDictionary> discoveredFileSpecs,
-        AttachmentExtractionBudget budget) {
+        AttachmentExtractionBudget budget,
+        ISet<int>? allowedObjectNumbers) {
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject indirect in objects.Values) {
+            if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(indirect.ObjectNumber)) continue;
             ReadFileAttachmentAnnotations(objects, indirect.Value, attachments, discoveredFileSpecs, visited, budget);
         }
     }
