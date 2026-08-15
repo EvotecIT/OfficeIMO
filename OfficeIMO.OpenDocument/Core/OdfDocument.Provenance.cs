@@ -42,8 +42,7 @@ public abstract partial class OdfDocument {
         OfficeProvenanceRemovalOptions? options = null) {
         options ??= new OfficeProvenanceRemovalOptions();
         ValidatePackage(packageBytes, options.Limits);
-        bool hadManifest = OfficeProvenanceZip.HasEntry(packageBytes, path => path == ProvenanceManifestPath);
-        OfficeProvenanceRemovalResult result = OfficeProvenancePackageMutation.Remove(
+        return OfficeProvenancePackageMutation.Remove(
             packageBytes,
             fileName,
             options,
@@ -51,24 +50,10 @@ public abstract partial class OdfDocument {
             HasPackageSignatures,
             ValidatePackage,
             removeOpcManifestReferences: false,
-            validateOpcMetadata: false);
-        byte[] output = result.ToArray();
-        if (!hadManifest || OfficeProvenanceZip.HasEntry(output, path => path == ProvenanceManifestPath)) return result;
-        OfficeProvenanceSignatureStripResult cleaned = OfficeProvenanceZip.RemoveEntries(
-            output,
-            _ => false,
-            options.Limits.MaxExpandedContainerBytes,
-            path => path == "META-INF/manifest.xml",
-            (_, manifest) => RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath),
-            options.Limits.MaxAssetBytes);
-        byte[] cleanedData = cleaned.Data;
-        return new OfficeProvenanceRemovalResult(
-            cleanedData,
-            result.Before,
-            result.After,
-            result.Changes,
-            wasReserialized: true,
-            wereInvalidatedSignaturesRemoved: result.WereInvalidatedSignaturesRemoved);
+            validateOpcMetadata: false,
+            shouldReplacePackageMetadata: path => path == "META-INF/manifest.xml",
+            replacePackageMetadata: (_, manifest) =>
+                RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath));
     }
 
     private static readonly string[] SupportedMimetypes = {
@@ -89,6 +74,13 @@ public abstract partial class OdfDocument {
         string mediaType = OfficeProvenanceZip.ReadValidatedMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+        var exactEntryNames = new HashSet<string>(StringComparer.Ordinal);
+        var foldedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (!exactEntryNames.Add(entry.FullName) || !foldedEntryNames.Add(entry.FullName)) {
+                throw new InvalidDataException($"OpenDocument package contains duplicate or case-ambiguous entry '{entry.FullName}'.");
+            }
+        }
         if (archive.Entries.Any(entry => entry.FullName.IndexOf('\\') >= 0)) {
             throw new InvalidDataException("OpenDocument package entry names must use forward slashes.");
         }

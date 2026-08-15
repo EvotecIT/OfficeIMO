@@ -115,8 +115,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
             string expectedPartName = "/" + workbookPartName.TrimStart('/');
-            string?[] overrides = document
-                .Descendants(XName.Get("Override", PackageContentTypesNamespace))
+            string?[] overrides = document.Root
+                .Elements(XName.Get("Override", PackageContentTypesNamespace))
                 .Where(element => string.Equals(
                     NormalizeContentTypePartName((string?)element.Attribute("PartName")),
                     expectedPartName,
@@ -129,8 +129,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
             if (string.IsNullOrWhiteSpace(contentType)) {
                 string extension = Path.GetExtension(workbookPartName).TrimStart('.');
-                string?[] defaults = document
-                    .Descendants(XName.Get("Default", PackageContentTypesNamespace))
+                string?[] defaults = document.Root
+                    .Elements(XName.Get("Default", PackageContentTypesNamespace))
                     .Where(element => string.Equals(
                         (string?)element.Attribute("Extension"),
                         extension,
@@ -165,8 +165,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
-            XElement[] relationships = document
-                .Descendants(XName.Get("Relationship", PackageRelationshipsNamespace))
+            XElement[] relationships = document.Root
+                .Elements(XName.Get("Relationship", PackageRelationshipsNamespace))
                 .Where(element =>
                     string.Equals((string?)element.Attribute("Type"), OfficeDocumentRelationship, StringComparison.Ordinal)
                     && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase))
@@ -177,6 +177,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
 
         private static string? NormalizePackageTarget(string target) {
             if (target.IndexOf('\\') >= 0) return null;
+            if (ContainsMalformedPercentEscape(target)) return null;
             if (ContainsEncodedPathSeparator(target)) return null;
             string normalized = target;
             if (Uri.TryCreate(normalized, UriKind.Absolute, out _)) return null;
@@ -186,6 +187,20 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 resolved.Query.Length != 0 || resolved.Fragment.Length != 0) return null;
             return Uri.UnescapeDataString(resolved.AbsolutePath).TrimStart('/');
         }
+
+        private static bool ContainsMalformedPercentEscape(string value) {
+            for (int index = 0; index < value.Length; index++) {
+                if (value[index] != '%') continue;
+                if (index > value.Length - 3 || !IsHex(value[index + 1]) || !IsHex(value[index + 2])) return true;
+                index += 2;
+            }
+            return false;
+        }
+
+        private static bool IsHex(char value) =>
+            value >= '0' && value <= '9' ||
+            value >= 'a' && value <= 'f' ||
+            value >= 'A' && value <= 'F';
 
         private static bool ContainsEncodedPathSeparator(string value) {
             for (int index = 0; index <= value.Length - 3; index++) {

@@ -952,7 +952,9 @@ public sealed partial class ProvenanceDocumentContracts {
                     "<manifest/><spine/></package>", CompressionLevel.Optimal);
             }
             WriteEntry(archive, signaturePath, "<signatures/>", CompressionLevel.Optimal);
-            WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
+            if (extension != "odt") {
+                WriteEntry(archive, signaturePath, "<signatures duplicate=\"true\"/>", CompressionLevel.Optimal);
+            }
             WriteEntry(archive, "media/provenance.png", image, CompressionLevel.Optimal);
         }
         return RewriteFixtureWithStoredMimetype(output.ToArray());
