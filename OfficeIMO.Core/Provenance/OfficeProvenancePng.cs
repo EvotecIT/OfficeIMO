@@ -110,6 +110,10 @@ internal static class OfficeProvenancePng {
         bool foundImageData = false;
         bool imageDataSequenceEnded = false;
         bool imageDataIsContiguous = true;
+        int paletteCount = 0;
+        bool paletteIsValid = true;
+        byte headerBitDepth = 0;
+        byte headerColorType = byte.MaxValue;
         while (offset < data.Length) {
             if (++chunkCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("PNG exceeds the configured chunk-entry limit.");
@@ -128,6 +132,19 @@ internal static class OfficeProvenancePng {
                 headerCount++;
                 validLeadingHeader = headerCount == 1 && offset == SignatureLength && payloadLength == 13 &&
                     HasValidCrc(data, offset, payloadLength) && IsValidHeader(data, offset + 8);
+                if (payloadLength == 13) {
+                    headerBitDepth = data[offset + 16];
+                    headerColorType = data[offset + 17];
+                }
+            }
+            if (OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "PLTE")) {
+                paletteCount++;
+                int maximumPaletteLength = headerColorType == 3 && headerBitDepth <= 8
+                    ? 3 * (1 << headerBitDepth)
+                    : 768;
+                paletteIsValid &= headerCount == 1 && !foundImageData && paletteCount == 1 &&
+                    headerColorType is not (0 or 4) && payloadLength >= 3 && payloadLength <= maximumPaletteLength &&
+                    payloadLength % 3 == 0;
             }
             bool isImageData = OfficeProvenanceBinary.MatchesAscii(data, offset + 4, "IDAT");
             if (isImageData) {
@@ -143,8 +160,9 @@ internal static class OfficeProvenancePng {
             if (isEnd) { foundEnd = true; break; }
         }
         if (!foundEnd) throw new InvalidDataException("PNG does not contain an IEND chunk.");
-        validStructure = headerCount == 1 && validLeadingHeader && foundImageData && imageDataIsContiguous &&
-            validEnd && allChunksHaveValidCrc;
+        bool requiredPalettePresent = headerColorType != 3 || paletteCount == 1;
+        validStructure = headerCount == 1 && validLeadingHeader && requiredPalettePresent && paletteIsValid &&
+            foundImageData && imageDataIsContiguous && validEnd && allChunksHaveValidCrc;
         return c2paCount;
     }
 
