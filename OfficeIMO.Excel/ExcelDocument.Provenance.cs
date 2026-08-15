@@ -37,11 +37,27 @@ public partial class ExcelDocument {
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options);
         ValidateXlsbDetectionMetadata(data, options);
         if (XlsbPackageDetector.TryFindWorkbookPart(
-            data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) return;
+            data, options.MaxAssetBytes, options.MaxAssetBytes, out _)) {
+            ValidateUniqueXlsbPartNames(data);
+            return;
+        }
         using var stream = new MemoryStream(data, writable: false);
         using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
         if (document.WorkbookPart == null || !IsSupportedWorkbookContentType(document.WorkbookPart.ContentType)) {
             throw new InvalidDataException("The package is not an Excel workbook.");
+        }
+    }
+
+    private static void ValidateUniqueXlsbPartNames(byte[] data) {
+        using var stream = new MemoryStream(data, writable: false);
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
+        var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (string.IsNullOrEmpty(entry.Name)) continue;
+            string normalized = NormalizePartName(entry.FullName);
+            if (!entries.Add(normalized)) {
+                throw new InvalidDataException($"The XLSB package contains duplicate part name '{normalized}'.");
+            }
         }
     }
 

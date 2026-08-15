@@ -31,34 +31,129 @@ public static partial class HtmlResourcePipeline {
     internal static bool IsActivePictureFallbackImage(IElement element) =>
         !HasSelectedPictureSourceBeforeFallback(element, baseUri: null, new HtmlResourcePipelineOptions());
 
-    internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(IHtmlDocument document) {
+    internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(
+        IHtmlDocument document,
+        long maximumStylesheetBytes,
+        long maximumExpandedBytes) {
         var options = new HtmlResourcePipelineOptions();
-        HtmlComputedStyleSet computedStyleSet = HtmlComputedStyleEngine.ComputeForProvenance(document, options);
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = computedStyleSet.Elements;
-        Dictionary<string, List<CssCustomPropertyDefinition>> documentDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
-        Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
-        var result = new HtmlProvenanceCssScope(computedStyleSet);
+        List<HtmlProvenanceDataStylesheet> dataStylesheets = MaterializeDataStylesheets(
+            document, maximumStylesheetBytes, maximumExpandedBytes, out long decodedStylesheetBytes);
+        try {
+            HtmlComputedStyleSet computedStyleSet = HtmlComputedStyleEngine.ComputeForProvenance(document, options);
+            IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = computedStyleSet.Elements;
+            Dictionary<string, List<CssCustomPropertyDefinition>> documentDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
+            Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
+            var result = new HtmlProvenanceCssScope(computedStyleSet);
 
-        foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement) || !IsPotentiallyApplicableProvenanceMedia(styleElement.GetAttribute("media") ?? string.Empty)) continue;
-            CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, result.UsedCustomPropertyDeclarations);
-            CollectResolvedVarFallbackStarts(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, "css", styleElement, result);
+            foreach (IElement styleElement in document.QuerySelectorAll("style")) {
+                if (!IsCssStyleElement(styleElement) || !IsPotentiallyApplicableProvenanceMedia(styleElement.GetAttribute("media") ?? string.Empty)) continue;
+                CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, result.UsedCustomPropertyDeclarations);
+                CollectResolvedVarFallbackStarts(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, "css", styleElement, result);
+            }
+            foreach (IElement element in document.QuerySelectorAll("[style]")) {
+                string css = element.GetAttribute("style") ?? string.Empty;
+                int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int sourceOrder)
+                    ? sourceOrder
+                    : GetDocumentCssSourceOrder(document);
+                List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(css, options, includePotentialResponsiveScreenMedia: true);
+                Dictionary<string, List<CssCustomPropertyDefinition>> definitions = MergeCustomPropertyDefinitions(
+                    documentDefinitions,
+                    ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
+                definitions = MergeCustomPropertyDefinitions(definitions,
+                    ExtractCustomPropertyDefinitions(css, inactiveRanges, sourceOrderBase, isInline: true, sourceOwner: element));
+                CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, computedStyles, options, result.UsedCustomPropertyDeclarations);
+                CollectResolvedVarFallbackStarts(css, definitions, inlineSourceOrders, document, element, computedStyles, options, "style", element, result);
+            }
+            result.DecodedStylesheetBytes = decodedStylesheetBytes;
+            foreach (HtmlProvenanceDataStylesheet stylesheet in dataStylesheets) {
+                result.DataStylesheets.Add(stylesheet.Link, stylesheet);
+                RemapStylesheetOwner(result.UsedCustomPropertyDeclarations, stylesheet.MaterializedStyle, stylesheet.Link);
+                RemapStylesheetOwner(result.ResolvedVarFallbackStarts, stylesheet.MaterializedStyle, stylesheet.Link);
+            }
+            return result;
+        } finally {
+            foreach (HtmlProvenanceDataStylesheet stylesheet in dataStylesheets) stylesheet.MaterializedStyle.Remove();
         }
-        foreach (IElement element in document.QuerySelectorAll("[style]")) {
-            string css = element.GetAttribute("style") ?? string.Empty;
-            int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int sourceOrder)
-                ? sourceOrder
-                : GetDocumentCssSourceOrder(document);
-            List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(css, options, includePotentialResponsiveScreenMedia: true);
-            Dictionary<string, List<CssCustomPropertyDefinition>> definitions = MergeCustomPropertyDefinitions(
-                documentDefinitions,
-                ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
-            definitions = MergeCustomPropertyDefinitions(definitions,
-                ExtractCustomPropertyDefinitions(css, inactiveRanges, sourceOrderBase, isInline: true, sourceOwner: element));
-            CollectResolvedCustomPropertyDeclarations(css, definitions, inlineSourceOrders, document, element, computedStyles, options, result.UsedCustomPropertyDeclarations);
-            CollectResolvedVarFallbackStarts(css, definitions, inlineSourceOrders, document, element, computedStyles, options, "style", element, result);
+    }
+
+    private static List<HtmlProvenanceDataStylesheet> MaterializeDataStylesheets(
+        IHtmlDocument document,
+        long maximumStylesheetBytes,
+        long maximumExpandedBytes,
+        out long decodedStylesheetBytes) {
+        var stylesheets = new List<HtmlProvenanceDataStylesheet>();
+        long expandedBytes = 0;
+        decodedStylesheetBytes = 0;
+        try {
+            foreach (IElement link in document.QuerySelectorAll("link[href]")) {
+                if (!IsHtmlStylesheetLink(link) ||
+                    !IsPotentiallyApplicableProvenanceMedia(link.GetAttribute("media") ?? string.Empty) ||
+                    !HtmlDataUri.TryParse(link.GetAttribute("href"), out HtmlDataUri dataUri) ||
+                    !string.Equals(dataUri.MediaType, "text/css", StringComparison.OrdinalIgnoreCase)) continue;
+
+                long decodedByteCount;
+                string css;
+                try {
+                    decodedByteCount = dataUri.EstimateDecodedByteCount();
+                    if (decodedByteCount > maximumStylesheetBytes) {
+                        throw new InvalidDataException("An embedded HTML stylesheet exceeds the configured asset limit.");
+                    }
+                    expandedBytes = checked(expandedBytes + decodedByteCount);
+                    if (expandedBytes > maximumExpandedBytes) {
+                        throw new InvalidDataException("Embedded HTML stylesheets exceed the configured expanded-container limit.");
+                    }
+                    css = dataUri.DecodeText();
+                    decodedStylesheetBytes = expandedBytes;
+                } catch (OverflowException exception) {
+                    throw new InvalidDataException("Embedded HTML stylesheets declare an invalid expanded size.", exception);
+                } catch (UriFormatException) {
+                    continue;
+                } catch (FormatException) {
+                    continue;
+                } catch (ArgumentException) {
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(css) || link.Parent == null) continue;
+
+                IElement style = document.CreateElement("style");
+                style.TextContent = css;
+                string media = link.GetAttribute("media") ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(media)) style.SetAttribute("media", media);
+                INode parent = link.Parent;
+                INode? next = link.NextSibling;
+                if (next == null) parent.AppendChild(style);
+                else parent.InsertBefore(style, next);
+                stylesheets.Add(new HtmlProvenanceDataStylesheet(
+                    link, style, css, dataUri.Metadata));
+            }
+            return stylesheets;
+        } catch {
+            foreach (HtmlProvenanceDataStylesheet stylesheet in stylesheets) stylesheet.MaterializedStyle.Remove();
+            throw;
         }
-        return result;
+    }
+
+    private static bool IsHtmlStylesheetLink(IElement link) {
+        if (!string.Equals(link.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) return false;
+        bool stylesheet = (link.GetAttribute("rel") ?? string.Empty)
+            .Split(new[] { '\t', '\n', '\f', '\r', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Any(token => token.Equals("stylesheet", StringComparison.OrdinalIgnoreCase));
+        if (!stylesheet) return false;
+        string type = link.GetAttribute("type") ?? string.Empty;
+        int parameter = type.IndexOf(';');
+        if (parameter >= 0) type = type.Substring(0, parameter);
+        type = type.Trim(' ', '\t', '\n', '\f', '\r');
+        return type.Length == 0 || type.Equals("text/css", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void RemapStylesheetOwner(
+        IDictionary<IElement, HashSet<int>> owners,
+        IElement materializedStyle,
+        IElement link) {
+        if (!owners.TryGetValue(materializedStyle, out HashSet<int>? starts)) return;
+        owners.Remove(materializedStyle);
+        if (!owners.TryGetValue(link, out HashSet<int>? existing)) owners.Add(link, starts);
+        else existing.UnionWith(starts);
     }
 
     private static void CollectResolvedVarFallbackStarts(
@@ -282,25 +377,37 @@ public static partial class HtmlResourcePipeline {
         HtmlComputedStyle elementStyle,
         string selector,
         HtmlComputedStyleSet? computedStyleSet) {
-        bool yieldedPseudo = false;
+        bool targetsPseudoElement = false;
+        bool targetsElement = selector.Length == 0;
         if (computedStyleSet != null && selector.Length != 0) {
             foreach (string selectorPart in SplitTopLevelList(selector)) {
                 if (!HtmlComputedStyleEngine.TryParsePseudoElementSelector(
-                        selectorPart, out string hostSelector, out HtmlPseudoElementKind kind)) continue;
+                        selectorPart, out string hostSelector, out HtmlPseudoElementKind kind)) {
+                    targetsElement = true;
+                    continue;
+                }
+                targetsPseudoElement = true;
                 string normalized = NormalizeSelectorForQuery(hostSelector, stripStatefulPseudoClasses: true);
                 if (normalized.Length == 0) normalized = "*";
                 bool matches;
                 try { matches = element.Matches(normalized); } catch { matches = false; }
-                if (!matches || !computedStyleSet.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle)) continue;
-                yieldedPseudo = true;
+                if (!matches || !computedStyleSet.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudoStyle) ||
+                    !IsGeneratedPseudoElement(pseudoStyle)) continue;
                 yield return pseudoStyle;
             }
         }
-        if (!yieldedPseudo) yield return elementStyle;
+        if (targetsElement || !targetsPseudoElement) yield return elementStyle;
     }
 
     private static bool IsDisplayNone(HtmlComputedStyle style) =>
         string.Equals(style.GetValue("display").Trim(), "none", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsGeneratedPseudoElement(HtmlComputedStyle style) {
+        string content = style.GetValue("content").Trim();
+        return content.Length != 0 &&
+            !content.Equals("normal", StringComparison.OrdinalIgnoreCase) &&
+            !content.Equals("none", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool ContainsEquivalentImageSource(string effective, string source) {
         foreach (Match match in CssUrlExpression.Matches(effective)) {
@@ -374,6 +481,8 @@ internal sealed class HtmlProvenanceCssScope {
     internal IReadOnlyDictionary<IElement, HtmlComputedStyle> ComputedStyles => ComputedStyleSet.Elements;
     internal Dictionary<IElement, HashSet<int>> UsedCustomPropertyDeclarations { get; } = new();
     internal Dictionary<IElement, HashSet<int>> ResolvedVarFallbackStarts { get; } = new();
+    internal Dictionary<IElement, HtmlProvenanceDataStylesheet> DataStylesheets { get; } = new();
+    internal long DecodedStylesheetBytes { get; set; }
 
     internal void AddResolvedFallback(IElement owner, int start) {
         if (!ResolvedVarFallbackStarts.TryGetValue(owner, out HashSet<int>? starts)) {
@@ -382,6 +491,24 @@ internal sealed class HtmlProvenanceCssScope {
         }
         starts.Add(start);
     }
+}
+
+internal sealed class HtmlProvenanceDataStylesheet {
+    internal HtmlProvenanceDataStylesheet(
+        IElement link,
+        IElement materializedStyle,
+        string css,
+        string metadata) {
+        Link = link;
+        MaterializedStyle = materializedStyle;
+        Css = css;
+        Metadata = metadata;
+    }
+
+    internal IElement Link { get; }
+    internal IElement MaterializedStyle { get; }
+    internal string Css { get; }
+    internal string Metadata { get; }
 }
 
 internal readonly struct HtmlCssImageReference {

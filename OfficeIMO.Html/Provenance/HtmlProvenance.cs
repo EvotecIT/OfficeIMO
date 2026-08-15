@@ -229,12 +229,18 @@ public static partial class HtmlProvenance {
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets) {
             IElement[] elements = GetEmbeddedImageElements(document, options).ToArray();
-            HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
+            HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(
+                document,
+                options.MaxAssetBytes,
+                options.MaxExpandedContainerBytes - expandedBytes);
+            ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
+                cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
                 foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles, cssScope.ComputedStyleSet)) {
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles,
+                    cssScope.ComputedStyleSet, dataStylesheet)) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                     int index = count++;
@@ -294,12 +300,18 @@ public static partial class HtmlProvenance {
         if (options.ProcessEmbeddedAssets && options.Limits.ProcessEmbeddedAssets) {
             int maxEmbeddedAssets = Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets);
             IElement[] elements = GetEmbeddedImageElements(document, options.Limits).ToArray();
-            HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(document);
+            HtmlProvenanceCssScope cssScope = HtmlResourcePipeline.CollectProvenanceCssImageScope(
+                document,
+                options.Limits.MaxAssetBytes,
+                options.Limits.MaxExpandedContainerBytes - expandedBytes);
+            ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.Limits.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
+                cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
                 EmbeddedImageReference[] references = GetEmbeddedImageReferences(
-                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles, cssScope.ComputedStyleSet).ToArray();
+                    document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles,
+                    cssScope.ComputedStyleSet, dataStylesheet).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
@@ -361,12 +373,29 @@ public static partial class HtmlProvenance {
         ISet<int>? usedImageProperties,
         ISet<int>? resolvedVarFallbacks,
         IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
-        HtmlComputedStyleSet computedStyleSet) {
+        HtmlComputedStyleSet computedStyleSet,
+        HtmlProvenanceDataStylesheet? dataStylesheet) {
         const string htmlNamespace = "http://www.w3.org/1999/xhtml";
         const string svgNamespace = "http://www.w3.org/2000/svg";
         string localName = element.LocalName.ToLowerInvariant();
         bool isHtmlElement = string.Equals(element.NamespaceUri, htmlNamespace, StringComparison.Ordinal);
         bool isSvgElement = string.Equals(element.NamespaceUri, svgNamespace, StringComparison.Ordinal);
+        if (dataStylesheet != null) {
+            foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
+                document,
+                "css",
+                dataStylesheet.Css,
+                usedImageProperties,
+                resolvedVarFallbacks,
+                computedStyles,
+                computedStyleSet,
+                element)) {
+                yield return new EmbeddedImageReference(
+                    "stylesheet-css", reference.Value, reference.Start, reference.Length,
+                    dataStylesheet.Css, dataStylesheet.Metadata);
+            }
+            yield break;
+        }
         if (localName == "style") {
             if (!HtmlResourcePipeline.IsActiveProvenanceStyleElement(element)) yield break;
             foreach (HtmlCssImageReference reference in HtmlResourcePipeline.EnumerateProvenanceCssImageReferences(
@@ -717,14 +746,36 @@ public static partial class HtmlProvenance {
         List<(EmbeddedImageReference Reference, string Value)> replacements) {
         foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
             IAttr? exactAttribute = group.Key is "href" or "xlink:href" ? HtmlDocumentParser.GetExactAttribute(element, group.Key) : null;
-            string value = group.Key == "css" ? element.TextContent : exactAttribute?.Value ?? element.GetAttribute(group.Key) ?? string.Empty;
+            string value = group.Key == "css"
+                ? element.TextContent
+                : group.Key == "stylesheet-css"
+                    ? group.First().Reference.ContainerText ?? string.Empty
+                    : exactAttribute?.Value ?? element.GetAttribute(group.Key) ?? string.Empty;
             foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
                 value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
             }
             if (group.Key == "css") element.TextContent = value;
+            else if (group.Key == "stylesheet-css") {
+                string metadata = CreateRewrittenCssDataUriMetadata(group.First().Reference.ContainerMetadata ?? "text/css");
+                element.SetAttribute("href", "data:" + metadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+            }
             else if (exactAttribute != null) exactAttribute.Value = value;
             else element.SetAttribute(group.Key, value);
         }
+    }
+
+    private static string CreateRewrittenCssDataUriMetadata(string originalMetadata) {
+        var metadata = new List<string>();
+        foreach (string part in originalMetadata.Split(';')) {
+            string trimmed = TrimAsciiWhitespace(part);
+            if (trimmed.Length == 0 || trimmed.Equals("base64", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.StartsWith("charset=", StringComparison.OrdinalIgnoreCase)) continue;
+            metadata.Add(trimmed);
+        }
+        if (metadata.Count == 0) metadata.Add("text/css");
+        metadata.Add("charset=utf-8");
+        metadata.Add("base64");
+        return string.Join(";", metadata);
     }
 
     private static bool TryDecodeManifest(
@@ -1376,16 +1427,26 @@ public static partial class HtmlProvenance {
     }
 
     private sealed class EmbeddedImageReference {
-        internal EmbeddedImageReference(string attributeName, string value, int start, int length) {
+        internal EmbeddedImageReference(
+            string attributeName,
+            string value,
+            int start,
+            int length,
+            string? containerText = null,
+            string? containerMetadata = null) {
             AttributeName = attributeName;
             Value = value;
             Start = start;
             Length = length;
+            ContainerText = containerText;
+            ContainerMetadata = containerMetadata;
         }
 
         internal string AttributeName { get; }
         internal string Value { get; }
         internal int Start { get; }
         internal int Length { get; }
+        internal string? ContainerText { get; }
+        internal string? ContainerMetadata { get; }
     }
 }
