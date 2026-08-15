@@ -51,8 +51,11 @@ public sealed partial class EpubDocument {
         OfficeProvenanceZip.ValidateMimetypeEntry(data, "application/epub+zip", options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
-        if (archive.Entries.Any(entry => entry.FullName.IndexOf('\\') >= 0)) {
-            throw new InvalidDataException("EPUB package entry names must use forward-slash path separators.");
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            if (!EpubReader.TryNormalizeArchiveEntryPath(entry.FullName, out string normalized) ||
+                !string.Equals(normalized, entry.FullName, StringComparison.Ordinal)) {
+                throw new InvalidDataException($"EPUB package contains unsafe or non-canonical entry path '{entry.FullName}'.");
+            }
         }
         ZipArchiveEntry[] containers = archive.Entries
             .Where(entry => entry.FullName.Equals("META-INF/container.xml", StringComparison.Ordinal))

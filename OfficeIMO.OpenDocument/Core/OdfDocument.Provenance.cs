@@ -52,8 +52,10 @@ public abstract partial class OdfDocument {
             removeOpcManifestReferences: false,
             validateOpcMetadata: false,
             shouldReplacePackageMetadata: path => path == "META-INF/manifest.xml",
-            replacePackageMetadata: (_, manifest) =>
-                RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath));
+            replacePackageMetadata: (_, manifest, nativeManifestRemoved) =>
+                nativeManifestRemoved
+                    ? RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath)
+                    : manifest);
     }
 
     private static readonly string[] SupportedMimetypes = {

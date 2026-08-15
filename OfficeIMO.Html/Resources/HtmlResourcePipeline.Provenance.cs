@@ -20,16 +20,40 @@ public static partial class HtmlResourcePipeline {
     }
 
     internal static bool IsActivePictureImageSource(IElement element) {
-        var options = new HtmlResourcePipelineOptions();
         if (!string.Equals(element.ParentElement?.LocalName, "picture", StringComparison.OrdinalIgnoreCase)) return true;
-        return IsFirstApplicablePictureSource(element, baseUri: null, options) &&
+        return AppearsBeforePictureFallback(element) &&
             HasPictureSourceCandidate(element) &&
-            IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, options) &&
+            IsPotentiallyApplicableProvenanceMedia(element.GetAttribute("media") ?? string.Empty) &&
             IsSupportedPictureSourceType(element.GetAttribute("type"));
     }
 
     internal static bool IsActivePictureFallbackImage(IElement element) =>
-        !HasSelectedPictureSourceBeforeFallback(element, baseUri: null, new HtmlResourcePipelineOptions());
+        !HasUnconditionalPictureSourceBeforeFallback(element);
+
+    private static bool AppearsBeforePictureFallback(IElement element) {
+        IElement? parent = element.ParentElement;
+        if (parent == null) return true;
+        foreach (IElement sibling in parent.Children) {
+            if (ReferenceEquals(sibling, element)) return true;
+            if (string.Equals(sibling.LocalName, "img", StringComparison.OrdinalIgnoreCase)) return false;
+        }
+        return false;
+    }
+
+    private static bool HasUnconditionalPictureSourceBeforeFallback(IElement element) {
+        IElement? parent = element.ParentElement;
+        if (parent == null || !string.Equals(parent.LocalName, "picture", StringComparison.OrdinalIgnoreCase)) return false;
+        foreach (IElement sibling in parent.Children) {
+            if (ReferenceEquals(sibling, element)) return false;
+            if (!string.Equals(sibling.LocalName, "source", StringComparison.OrdinalIgnoreCase) ||
+                !HasPictureSourceCandidate(sibling) ||
+                !IsSupportedPictureSourceType(sibling.GetAttribute("type"))) continue;
+            string media = (sibling.GetAttribute("media") ?? string.Empty).Trim(' ', '\t', '\n', '\f', '\r');
+            if (media.Length == 0 || media.Equals("all", StringComparison.OrdinalIgnoreCase) ||
+                media.Equals("screen", StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
+    }
 
     internal static HtmlProvenanceCssScope CollectProvenanceCssImageScope(
         IHtmlDocument document,
@@ -90,9 +114,14 @@ public static partial class HtmlResourcePipeline {
         decodedStylesheetBytes = 0;
         try {
             foreach (IElement link in document.QuerySelectorAll("link[href]")) {
+                string href = link.GetAttribute("href") ?? string.Empty;
+                int commaIndex = href.IndexOf(',');
+                int fragmentIndex = commaIndex >= 0 ? href.IndexOf('#', commaIndex + 1) : -1;
+                string fragment = fragmentIndex >= 0 ? href.Substring(fragmentIndex) : string.Empty;
+                string dataSource = fragmentIndex >= 0 ? href.Substring(0, fragmentIndex) : href;
                 if (!IsHtmlStylesheetLink(link) ||
                     !IsPotentiallyApplicableProvenanceMedia(link.GetAttribute("media") ?? string.Empty) ||
-                    !HtmlDataUri.TryParse(link.GetAttribute("href"), out HtmlDataUri dataUri) ||
+                    !HtmlDataUri.TryParse(dataSource, out HtmlDataUri dataUri) ||
                     !string.Equals(dataUri.MediaType, "text/css", StringComparison.OrdinalIgnoreCase)) continue;
 
                 long decodedByteCount;
@@ -128,7 +157,7 @@ public static partial class HtmlResourcePipeline {
                 if (next == null) parent.AppendChild(style);
                 else parent.InsertBefore(style, next);
                 stylesheets.Add(new HtmlProvenanceDataStylesheet(
-                    link, style, css, dataUri.Metadata));
+                    link, style, css, dataUri.Metadata, fragment));
             }
             return stylesheets;
         } catch {
@@ -511,17 +540,20 @@ internal sealed class HtmlProvenanceDataStylesheet {
         IElement link,
         IElement materializedStyle,
         string css,
-        string metadata) {
+        string metadata,
+        string fragment) {
         Link = link;
         MaterializedStyle = materializedStyle;
         Css = css;
         Metadata = metadata;
+        Fragment = fragment;
     }
 
     internal IElement Link { get; }
     internal IElement MaterializedStyle { get; }
     internal string Css { get; }
     internal string Metadata { get; }
+    internal string Fragment { get; }
 }
 
 internal readonly struct HtmlCssImageReference {

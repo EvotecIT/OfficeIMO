@@ -392,7 +392,7 @@ public static partial class HtmlProvenance {
                 element)) {
                 yield return new EmbeddedImageReference(
                     "stylesheet-css", reference.Value, reference.Start, reference.Length,
-                    dataStylesheet.Css, dataStylesheet.Metadata);
+                    dataStylesheet.Css, dataStylesheet.Metadata, dataStylesheet.Fragment);
             }
             yield break;
         }
@@ -757,7 +757,10 @@ public static partial class HtmlProvenance {
             if (group.Key == "css") element.TextContent = value;
             else if (group.Key == "stylesheet-css") {
                 string metadata = CreateRewrittenCssDataUriMetadata(group.First().Reference.ContainerMetadata ?? "text/css");
-                element.SetAttribute("href", "data:" + metadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)));
+                element.SetAttribute(
+                    "href",
+                    "data:" + metadata + "," + Convert.ToBase64String(Encoding.UTF8.GetBytes(value)) +
+                    (group.First().Reference.ContainerFragment ?? string.Empty));
             }
             else if (exactAttribute != null) exactAttribute.Value = value;
             else element.SetAttribute(group.Key, value);
@@ -1433,13 +1436,15 @@ public static partial class HtmlProvenance {
             int start,
             int length,
             string? containerText = null,
-            string? containerMetadata = null) {
+            string? containerMetadata = null,
+            string? containerFragment = null) {
             AttributeName = attributeName;
             Value = value;
             Start = start;
             Length = length;
             ContainerText = containerText;
             ContainerMetadata = containerMetadata;
+            ContainerFragment = containerFragment;
         }
 
         internal string AttributeName { get; }
@@ -1448,5 +1453,6 @@ public static partial class HtmlProvenance {
         internal int Length { get; }
         internal string? ContainerText { get; }
         internal string? ContainerMetadata { get; }
+        internal string? ContainerFragment { get; }
     }
 }
