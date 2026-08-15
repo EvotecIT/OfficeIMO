@@ -238,7 +238,7 @@ public static class OfficeProvenanceRemover {
         OfficeProvenanceRemovalOptions options,
         bool removeOpcManifestReferences,
         Func<string, bool>? shouldReplacePackageMetadata = null,
-        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
+        Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
         return RemoveCore(
             data,
@@ -259,7 +259,7 @@ public static class OfficeProvenanceRemover {
         OfficeProvenanceAssetFormat? forcedFormat,
         bool removeOpcManifestReferences = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
-        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
+        Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         OfficeProvenanceReport before = forcedFormat.HasValue
             ? OfficeProvenanceInspector.InspectStructuredText(data, inspectionOptions)
             : OfficeProvenanceInspector.InspectCore(data, fileName, inspectionOptions);

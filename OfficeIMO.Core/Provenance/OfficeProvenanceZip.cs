@@ -118,7 +118,7 @@ internal static class OfficeProvenanceZip {
         out bool reserialized,
         bool removeOpcManifestReferences = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
-        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
+        Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         reserialized = false;
         if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
@@ -190,7 +190,7 @@ internal static class OfficeProvenanceZip {
                 }
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] original = ReadEntry(entry, (int)entry.Length);
-                byte[] replacement = replacePackageMetadata(entryName, original);
+                byte[] replacement = replacePackageMetadata(entryName, original, removable.Count != 0);
                 if (replacement.LongLength > options.Limits.MaxAssetBytes) {
                     throw OfficeProvenanceLimitException.Create("A rewritten package metadata entry exceeds the configured asset limit.");
                 }

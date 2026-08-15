@@ -42,7 +42,7 @@ internal static class OfficeProvenancePackageMutation {
         bool removeOpcManifestReferences = true,
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
-        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
+        Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
@@ -74,11 +74,14 @@ internal static class OfficeProvenancePackageMutation {
         bool removeOpcManifestReferences = true,
         bool validateOpcMetadata = true,
         Func<string, bool>? shouldReplacePackageMetadata = null,
-        Func<string, byte[], byte[]>? replacePackageMetadata = null) {
+        Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (stripSignatures == null) throw new ArgumentNullException(nameof(stripSignatures));
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
+        if (data.LongLength > options.Limits.MaxAssetBytes) {
+            throw new InvalidDataException("The package exceeds the configured asset limit.");
+        }
         validatePackage?.Invoke(data, options.Limits);
         if (options.SignatureMutationPolicy == OfficeSignatureMutationPolicy.PreserveSignatureMarkup) {
             return OfficeProvenanceRemover.RemoveZipPackage(

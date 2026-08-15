@@ -707,6 +707,10 @@ public static class OfficePackageSignatureService {
             }
             byte[] propertyBytes = ReadInspectionPart(
                 archive, partUri, options.MaxSignatureBytes, options.MaxTotalDigestBytes, ref totalInspectionBytes);
+            // System.IO.Packaging can emit an owned but empty extended-properties part
+            // (notably for newly created Visio packages). It carries no signature
+            // metadata, but it is not an incomplete XML discovery.
+            if (propertyBytes.Length == 0) return new ApplicationMetadataDiscovery(false, true);
             XDocument properties = LoadXml(propertyBytes);
             XNamespace extendedProperties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
             bool hasMetadata = properties.Root?.Name == extendedProperties + "Properties" &&
@@ -718,7 +722,7 @@ public static class OfficePackageSignatureService {
         } catch (Exception exception) when (
             exception is IOException or InvalidDataException or XmlException or UriFormatException) {
             findings.Add("An extended application properties target could not be parsed: " + exception.Message);
-            return new ApplicationMetadataDiscovery(false, true);
+            return new ApplicationMetadataDiscovery(false, false);
         }
     }
 
