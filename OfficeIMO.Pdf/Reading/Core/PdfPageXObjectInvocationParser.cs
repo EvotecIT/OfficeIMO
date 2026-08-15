@@ -1595,6 +1595,8 @@ internal static class PdfPageXObjectInvocationParser {
                 _optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
         private int ResolveInlineImageComponentCount(string colorSpaceName) {
+            if (colorSpaceName is "RGB" or "CalRGB" or "Lab") return 3;
+            if (colorSpaceName is "CMYK") return 4;
             if (_colorSpaces != null &&
                 _colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)) {
                 return GetComponentCount(colorSpace);

@@ -9,12 +9,14 @@ internal sealed class PdfColorFunctionResolutionContext {
     internal PdfColorFunctionResolutionContext(int maximumRetainedBytes) {
         MaximumRetainedBytes = Math.Max(1, maximumRetainedBytes);
         RemainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
+        IccProfileRetentionBudget = new PdfIccProfileRetentionBudget(MaximumRetainedBytes);
     }
 
     internal int MaximumRetainedBytes { get; }
     internal int ParsedFunctionNodes;
     internal long RetainedFunctionBytes;
     internal long RemainingCalculatorValidationWork;
+    internal PdfIccProfileRetentionBudget IccProfileRetentionBudget { get; }
     internal Dictionary<PdfObject, Dictionary<long, PdfColorFunction>> FunctionCache { get; } =
         new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfColorSpaceFunctionResolver.PdfObjectReferenceComparer.Instance);
 }
@@ -142,7 +144,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
         if (!TryResolveObject(value, objects, out PdfObject? resolved)) return false;
         if (resolved is not PdfArray functions) {
             return TryCreateFunction(resolved, 1, outputCount, objects, effectiveMaximumBytes, resolutionContext, out function) &&
-                !function.HasUnboundedDiscontinuities;
+                !function.HasUnboundedDiscontinuities &&
+                function.HasCompleteShadingBreakpoints;
         }
         if (functions.Items.Count != outputCount || outputCount < 1) return false;
 
@@ -203,8 +206,9 @@ internal static partial class PdfColorSpaceFunctionResolver {
             breakpoints,
             discontinuities,
             evaluationCost: SumEvaluationCost(components),
-            requiresAdaptiveShadingSampling: components.Any(static component => component.RequiresAdaptiveShadingSampling));
-        return true;
+            requiresAdaptiveShadingSampling: components.Any(static component => component.RequiresAdaptiveShadingSampling),
+            hasCompleteShadingBreakpoints: components.All(static component => component.HasCompleteShadingBreakpoints));
+        return function.HasCompleteShadingBreakpoints;
     }
 
     private static bool TryCreateFunction(
@@ -360,7 +364,12 @@ internal static partial class PdfColorSpaceFunctionResolver {
                     out PdfColorFunctionEvaluator evaluator,
                     out int cubicEvaluationCost)) return false;
             retainedFunctionBytes = totalRetainedBytes;
-            double[] breakpoints = CreateSampleBreakpoints(domain, encode, sizes, order);
+            double[] breakpoints = CreateSampleBreakpoints(
+                domain,
+                encode,
+                sizes,
+                order,
+                out bool hasCompleteShadingBreakpoints);
 
             function = new PdfColorFunction(
                 inputCount,
@@ -370,7 +379,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
                 evaluator,
                 breakpoints,
                 evaluationCost: cubicEvaluationCost,
-                requiresAdaptiveShadingSampling: order != 1 || sizes.Any(static size => size > MaxSuggestedSampleBreakpoints));
+                requiresAdaptiveShadingSampling: order != 1 || sizes.Any(static size => size > MaxSuggestedSampleBreakpoints),
+                hasCompleteShadingBreakpoints: hasCompleteShadingBreakpoints);
             return true;
         } catch (OverflowException) {
             return false;
@@ -487,7 +497,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             discontinuities,
             evaluationCost: children.Max(static child => child.EvaluationCost),
             requiresAdaptiveShadingSampling: children.Any(static child => child.RequiresAdaptiveShadingSampling),
-            hasUnboundedDiscontinuities: children.Any(static child => child.HasUnboundedDiscontinuities));
+            hasUnboundedDiscontinuities: children.Any(static child => child.HasUnboundedDiscontinuities),
+            hasCompleteShadingBreakpoints: children.All(static child => child.HasCompleteShadingBreakpoints));
         return true;
     }
     private static bool EvaluateType2(

@@ -449,6 +449,7 @@ internal static class PdfPageContentVisualParser {
                         GetPaintOrder(operation.OperatorOffset),
                         operation.HasInvalidOperands);
                 },
+                inlineImageComponentCount: ResolveInlineImageComponentCount,
                 maxNestingDepth: _maxNestingDepth,
                 maxOperands: _maxOperands,
                 dispatchInvalidOperations: _unsupportedOperatorVisitor != null,
@@ -2047,6 +2048,16 @@ internal static class PdfPageContentVisualParser {
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
                     return false;
             }
+        }
+
+        private int ResolveInlineImageComponentCount(string colorSpaceName) {
+            if (colorSpaceName is "RGB" or "CalRGB" or "Lab") return 3;
+            if (colorSpaceName is "CMYK") return 4;
+            if (_colorSpaces != null &&
+                _colorSpaces.TryGetValue(colorSpaceName, out PdfPageColorSpace colorSpace)) {
+                return colorSpace.ComponentCount;
+            }
+            return 1;
         }
 
         private static OfficeStrokeLineCap? ReadLineCap(double value) {

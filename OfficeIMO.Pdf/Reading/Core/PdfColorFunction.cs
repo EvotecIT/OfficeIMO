@@ -21,6 +21,7 @@ internal sealed class PdfColorFunction {
         int evaluationCost = 0,
         bool requiresAdaptiveShadingSampling = false,
         bool hasUnboundedDiscontinuities = false,
+        bool hasCompleteShadingBreakpoints = true,
         bool rangeClippingProvenAbsent = false) {
         InputCount = inputCount;
         OutputCount = outputCount;
@@ -34,6 +35,7 @@ internal sealed class PdfColorFunction {
         RequiresAdaptiveShadingSampling = requiresAdaptiveShadingSampling ||
             (!rangeClippingProvenAbsent && inputCount == 1 && outputCount > 0 && _range != null);
         HasUnboundedDiscontinuities = hasUnboundedDiscontinuities;
+        HasCompleteShadingBreakpoints = hasCompleteShadingBreakpoints;
 
         double[] points = breakpoints == null
             ? Array.Empty<double>()
@@ -55,6 +57,8 @@ internal sealed class PdfColorFunction {
     internal bool RequiresAdaptiveShadingSampling { get; }
 
     internal bool HasUnboundedDiscontinuities { get; }
+
+    internal bool HasCompleteShadingBreakpoints { get; }
 
     internal IReadOnlyList<double> Domain => _domain;
 

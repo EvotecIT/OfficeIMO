@@ -543,7 +543,7 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
-    public void ShadingFunctionArray_RetainsAuthoredDiscontinuitiesBeforeSampleKnots() {
+    public void ShadingFunctionArray_RejectsSubsampledLinearKnotsEvenWithAuthoredDiscontinuities() {
         PdfStream sampled = SampledFunction(1, 1, new[] { 1000 }, 8, new byte[1000]);
         PdfObject[] stitchedChildren = Enumerable.Range(0, 8)
             .Select(index => (PdfObject)Type2(new[] { index / 8D }, new[] { index / 8D }))
@@ -557,16 +557,12 @@ public sealed partial class PdfColorFunctionTests {
             ("Bounds", Numbers(bounds)),
             ("Encode", Numbers(encode)));
 
-        Assert.True(PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
             Array(sampled, stitching),
             2,
             new Dictionary<int, PdfIndirectObject>(),
             2048,
-            out PdfColorFunction function));
-
-        Assert.True(function.Breakpoints.Count <= 128);
-        Assert.All(function.Discontinuities, discontinuity => Assert.Contains(discontinuity, function.Breakpoints));
-        Assert.All(bounds, bound => Assert.Contains(bound, function.Breakpoints));
+            out _));
     }
 
     [Fact]

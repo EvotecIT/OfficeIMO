@@ -377,7 +377,12 @@ internal sealed class PdfImageColorSpaceNormalization {
 
         double[]? ranges = TryReadIccRanges(profileStream.Dictionary, componentCount, objects, out bool rangeIsValid);
         if (!rangeIsValid) return false;
-        if (PdfIccProfileCache.TryRead(profileStream, objects, maxDecodedStreamBytes, out OfficeIccColorProfile? profile) &&
+        if (PdfIccProfileCache.TryRead(
+                profileStream,
+                objects,
+                maxDecodedStreamBytes,
+                functionResolutionContext?.IccProfileRetentionBudget,
+                out OfficeIccColorProfile? profile) &&
             profile != null && profile.ComponentCount == componentCount) {
             PdfPageColorSpace output = PdfPageColorSpace.IccBased(profile, ranges);
             normalization = new PdfImageColorSpaceNormalization(output, 2, profile, ranges, renderingIntent: renderingIntent);

@@ -13,6 +13,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageDrawingEffectTransition>();
@@ -74,6 +75,7 @@ internal static class PdfPageGraphicsEffectTimelineParser {
                         break;
                 }
             },
+            inlineImageComponentCount: inlineImageComponentCount,
             maxNestingDepth: maxNestingDepth,
             maxOperands: maxOperands,
             inlineImageArrayComponentCount: inlineImageArrayComponentCount);

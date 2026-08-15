@@ -63,11 +63,13 @@ if (profile?.HasOutputTransform == true &&
 ```
 
 The managed contract accepts bounded RGB and Gray matrix/TRC input-device and display-device profiles
-plus intent-invariant A2B0
-LUT transforms: RGB or CMYK LUT8 with a Lab profile connection space, and RGB or CMYK LUT16 with an
-XYZ or Lab profile connection space. It also accepts bounded ICC v4 RGB and CMYK A2B `mAB` input
-transforms and B2A `mBA` output transforms using the specification-defined curve, variable-grid CLUT,
-matrix, and offset combinations. Output conversion is available through a valid `B2A0` transform or
+plus RGB or CMYK LUT8 input transforms with a Lab profile connection space and RGB or CMYK LUT16
+input transforms with an XYZ or Lab profile connection space. For LUT and ICC v4 `mAB` profiles,
+conversion selects `A2B1` for relative or absolute colorimetric intent and `A2B2` for saturation intent,
+falling back to `A2B0` when the intent-specific transform is absent. It also accepts bounded ICC v4
+RGB and CMYK A2B `mAB` input transforms and B2A `mBA` output transforms using the
+specification-defined curve, variable-grid CLUT, matrix, and offset combinations. Output conversion is
+available through a valid `B2A0` transform or
 the synthesized inverse of a supported RGB matrix/TRC profile; optional intent-specific tags fall back
 to `B2A0` when that transform is present. `TryCreate` returns `false` for unsupported
 input profile classes and transform types, while malformed or unsupported optional output transforms

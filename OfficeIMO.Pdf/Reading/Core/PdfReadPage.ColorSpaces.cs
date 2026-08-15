@@ -101,7 +101,12 @@ public sealed partial class PdfReadPage {
         }
 
         if (resolvedProfile is PdfStream profileStream) {
-            if (PdfIccProfileCache.TryRead(profileStream, _objects, _limits.MaxDecodedStreamBytes, out OfficeIccColorProfile? parsedProfile) &&
+            if (PdfIccProfileCache.TryRead(
+                    profileStream,
+                    _objects,
+                    _limits.MaxDecodedStreamBytes,
+                    functionResolutionContext?.IccProfileRetentionBudget,
+                    out OfficeIccColorProfile? parsedProfile) &&
                 parsedProfile != null && parsedProfile.ComponentCount == components) {
                 colorSpace = PdfPageColorSpace.IccBased(parsedProfile, ranges);
                 return true;

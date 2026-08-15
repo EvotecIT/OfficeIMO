@@ -327,7 +327,13 @@ internal static partial class PdfColorSpaceFunctionResolver {
         return value;
     }
 
-    private static double[] CreateSampleBreakpoints(double[] domain, double[] encode, int[] sizes, int order) {
+    private static double[] CreateSampleBreakpoints(
+        double[] domain,
+        double[] encode,
+        int[] sizes,
+        int order,
+        out bool hasCompleteShadingBreakpoints) {
+        hasCompleteShadingBreakpoints = true;
         if (sizes.Length != 1 || encode[0] == encode[1]) return domain.Distinct().ToArray();
         double encodedMinimum = Math.Max(0D, Math.Min(encode[0], encode[1]));
         double encodedMaximum = Math.Min(sizes[0] - 1D, Math.Max(encode[0], encode[1]));
@@ -357,6 +363,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
                         : firstSample + point * (reachablePointCount - 1D) / (pointCount - 1D);
                     AddMappedSampleBreakpoint(result, sample, domain, encode);
                 }
+                hasCompleteShadingBreakpoints = reachablePointCount <= MaxSuggestedSampleBreakpoints &&
+                    result.Distinct().Count() <= MaxSuggestedSampleBreakpoints;
             }
         }
         return LimitSuggestedPoints(result, domain);

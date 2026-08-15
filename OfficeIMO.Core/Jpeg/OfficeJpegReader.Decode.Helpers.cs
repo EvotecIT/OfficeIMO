@@ -115,9 +115,9 @@ internal static partial class OfficeJpegReader {
                         var crVal = SampleComponent(states, ycckCr, x, y, maxH, maxV, 128, highQualityChroma);
                         YccToRgb(yVal, cbVal, crVal, out byte r, out byte g, out byte b);
                         if (adobeTransform.HasValue) {
-                            c = r;
-                            m = g;
-                            y0 = b;
+                            c = (byte)(255 - r);
+                            m = (byte)(255 - g);
+                            y0 = (byte)(255 - b);
                             kVal = 255 - kVal;
                         } else {
                             c = (byte)(255 - r);
