@@ -492,6 +492,27 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void OutputIntent_DirectEligibilityDoesNotEvaluateTintTransform() {
+        int evaluations = 0;
+        PdfPageColorSpace separation = PdfPageColorSpace.Alternate(
+            PdfPageColorSpaceKind.Separation,
+            1,
+            PdfPageColorSpaceKind.DeviceGray,
+            (_, output) => {
+                evaluations++;
+                output[0] = 0.5D;
+                return true;
+            },
+            evaluationCost: 1,
+            evaluationBudget: static _ => true);
+
+        bool eligible = separation.CanMapDirectlyToOutputProfile(profileComponentCount: 3);
+
+        Assert.False(eligible);
+        Assert.Equal(0, evaluations);
+    }
+
+    [Fact]
     public void SeparationImageNormalization_UsesTintedNativeAlternateComponentsForMatchingOutputProfile() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         PdfOutputIntentColorTransform transform = CreateOutputIntentTransform(profileBytes);
@@ -698,6 +719,30 @@ public class PdfOutputIntentRenderingTests {
             extraObjects: "7 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj\n",
             catalogEntries:
                 "/OCProperties << /OCGs [7 0 R] /D << /BaseState /ON /OFF [7 0 R] >> >>");
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        OfficeColor expected = ExpectedOutputConversion(
+            profileBytes,
+            OfficeColor.FromRgb(51, 102, 204),
+            OfficeIccRenderingIntent.RelativeColorimetric);
+
+        OfficeColor actual = FindSingleShapeColor(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(expected, actual);
+        Assert.DoesNotContain(
+            page.GetRenderCapabilityDiagnostics(),
+            diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresTransparencyStateOverwrittenBeforePaint() {
+        byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        byte[] pdf = BuildPdf(
+            profileBytes,
+            "0.2 0.4 0.8 rg /Transparent gs /Opaque gs 10 10 20 20 re f",
+            resources:
+                "/ExtGState << " +
+                "/Transparent << /Type /ExtGState /ca 0.5 >> " +
+                "/Opaque << /Type /ExtGState /ca 1 >> >>");
         PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
         OfficeColor expected = ExpectedOutputConversion(
             profileBytes,

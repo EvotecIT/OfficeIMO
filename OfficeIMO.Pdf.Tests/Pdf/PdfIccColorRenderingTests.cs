@@ -264,6 +264,37 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
+    public void RenderPage_IgnoresUnpaintedEarlierIntentForSameShadingPattern() {
+        byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
+        const string shadingObjects =
+            "7 0 obj\n<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>\nendobj\n" +
+            "8 0 obj\n<< /ShadingType 2 /ColorSpace [/ICCBased 5 0 R] /Coords [0 0 100 0] /Function 9 0 R >>\nendobj\n" +
+            "9 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 1 1 1] /N 1 >>\nendobj\n";
+        const string resources = "/Pattern << /Sp 7 0 R >>";
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: resources,
+            contentOverride:
+                "/Perceptual ri /Pattern cs /Sp scn " +
+                "/RelativeColorimetric ri /Sp scn 0 0 100 100 re f"));
+        OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(BuildIccContentPdf(
+            profile,
+            "/N 4",
+            string.Empty,
+            extraObjects: shadingObjects,
+            extraResourceEntries: resources,
+            contentOverride: "/RelativeColorimetric ri /Pattern cs /Sp scn 0 0 100 100 re f"));
+
+        OfficeColor actual = Assert.Single(drawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+        OfficeColor expected = Assert.Single(expectedDrawing.Shapes).Shape.FillGradient!.Stops[0].Color;
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void RenderPage_RendersSharedSoftMaskUnderEachInheritedRenderingIntent() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string maskContent = "/CsIcc cs 0 0 0 0 scn 0 0 240 200 re f";

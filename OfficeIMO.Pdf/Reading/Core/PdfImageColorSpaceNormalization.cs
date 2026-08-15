@@ -117,6 +117,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         out OfficeColor color) {
         color = OfficeColor.Black;
         if (components == null || components.Count < SourceColorCount) return false;
+        if (!CanApplyDirectOutputIntent(outputIntentColorTransform)) return false;
         if (_alternateNormalization == null) {
             return outputIntentColorTransform.TryApplyDirect(_colorSpace, components, _renderingIntent, out color);
         }
@@ -135,6 +136,10 @@ internal sealed class PdfImageColorSpaceNormalization {
             outputIntentColorTransform,
             out color);
     }
+
+    private bool CanApplyDirectOutputIntent(PdfOutputIntentColorTransform outputIntentColorTransform) =>
+        _alternateNormalization?.CanApplyDirectOutputIntent(outputIntentColorTransform) ??
+        outputIntentColorTransform.CanApplyDirect(_colorSpace);
 
     private bool TryConvertComponentsCore(
         IReadOnlyList<double> components,

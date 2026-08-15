@@ -58,6 +58,11 @@ internal sealed class PdfOutputIntentColorTransform {
             profile.TryConvert(profileComponents, renderingIntent, out color);
     }
 
+    internal bool CanApplyDirect(PdfPageColorSpace colorSpace) =>
+        TryGetProfile(out OfficeIccColorProfile? profile) &&
+        profile != null &&
+        colorSpace.CanMapDirectlyToOutputProfile(profile.ComponentCount);
+
     internal static PdfOutputIntentColorTransform? TryCreate(
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,

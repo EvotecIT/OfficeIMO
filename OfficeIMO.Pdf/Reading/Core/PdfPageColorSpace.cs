@@ -51,6 +51,23 @@ internal readonly struct PdfPageColorSpace {
         out IReadOnlyList<double> profileComponents) =>
         TryGetOutputProfileComponents(components, profileComponentCount, depth: 0, out profileComponents);
 
+    internal bool CanMapDirectlyToOutputProfile(int profileComponentCount) =>
+        CanMapDirectlyToOutputProfile(profileComponentCount, depth: 0);
+
+    private bool CanMapDirectlyToOutputProfile(int profileComponentCount, int depth) {
+        if (depth > 8) return false;
+        if ((IsNativeDeviceRgb && profileComponentCount == 3) ||
+            (IsNativeDeviceCmyk && profileComponentCount == 4)) return true;
+        if (Kind == PdfPageColorSpaceKind.Indexed &&
+            _custom?.IndexedBaseColorSpace is PdfPageColorSpace indexedBase) {
+            return indexedBase.CanMapDirectlyToOutputProfile(profileComponentCount, depth + 1);
+        }
+        return Kind is PdfPageColorSpaceKind.Separation or PdfPageColorSpaceKind.DeviceN &&
+            _custom?.Alternate is PdfPageColorSpace alternate &&
+            _custom.Transform != null &&
+            alternate.CanMapDirectlyToOutputProfile(profileComponentCount, depth + 1);
+    }
+
     private bool TryGetOutputProfileComponents(
         IReadOnlyList<double> components,
         int profileComponentCount,

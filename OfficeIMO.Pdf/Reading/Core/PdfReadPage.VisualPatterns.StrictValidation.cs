@@ -109,6 +109,7 @@ public sealed partial class PdfReadPage {
                 }
                 return !malformed;
             },
+            inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             dispatchInvalidOperations: true);

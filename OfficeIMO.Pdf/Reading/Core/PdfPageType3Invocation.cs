@@ -19,7 +19,8 @@ internal readonly struct PdfPagePatternSelection {
         PdfPageTilingPatternResource? tilingPattern,
         PdfPageShadingPatternResource? shadingPattern,
         Matrix2D paintTransform,
-        int componentCount = 0) {
+        int componentCount = 0,
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
         Name = name;
         Tint = tint;
         BaseColorSpace = baseColorSpace;
@@ -27,6 +28,7 @@ internal readonly struct PdfPagePatternSelection {
         ShadingPattern = shadingPattern;
         PaintTransform = paintTransform;
         ComponentCount = componentCount;
+        RenderingIntent = renderingIntent;
     }
 
     internal string Name { get; }
@@ -36,6 +38,7 @@ internal readonly struct PdfPagePatternSelection {
     internal PdfPageShadingPatternResource? ShadingPattern { get; }
     internal Matrix2D PaintTransform { get; }
     internal int ComponentCount { get; }
+    internal OfficeIccRenderingIntent RenderingIntent { get; }
 
     internal PdfPagePatternSelection Translate(double offsetX, double offsetY, double sourceHeight, double targetHeight) {
         var sourceFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, sourceHeight);
@@ -52,7 +55,8 @@ internal readonly struct PdfPagePatternSelection {
             TilingPattern,
             ShadingPattern,
             translatedPaintTransform,
-            ComponentCount);
+            ComponentCount,
+            RenderingIntent);
     }
 }
 

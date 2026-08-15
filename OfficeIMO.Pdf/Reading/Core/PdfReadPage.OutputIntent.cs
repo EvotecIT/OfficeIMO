@@ -47,6 +47,7 @@ public sealed partial class PdfReadPage {
         bool found = false;
         PdfPageOptionalContentVisibility? optionalContentVisibility = GetOptionalContentVisibility(resources);
         var hiddenContentStack = new Stack<bool>();
+        var malformedOptionalContentStack = new Stack<bool>();
         PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
             if (found) return;
             if (operation.Name == "BDC") {
@@ -58,14 +59,17 @@ public sealed partial class PdfReadPage {
                     : null;
                 hiddenContentStack.Push(
                     IsHiddenOptionalContent(tag, property, optionalContentVisibility));
+                malformedOptionalContentStack.Push(IsMalformedOptionalContent(tag, property));
                 return;
             }
             if (operation.Name == "BMC") {
                 hiddenContentStack.Push(false);
+                malformedOptionalContentStack.Push(false);
                 return;
             }
             if (operation.Name == "EMC") {
                 if (hiddenContentStack.Count > 0) hiddenContentStack.Pop();
+                if (malformedOptionalContentStack.Count > 0) malformedOptionalContentStack.Pop();
                 return;
             }
             if (hiddenContentStack.Contains(true)) return;
@@ -77,7 +81,7 @@ public sealed partial class PdfReadPage {
             if (resources == null || operation.Operands.Count == 0) return;
             string? name = operation.Operands[operation.Operands.Count - 1] as string;
             if (name == null) return;
-            if (operation.Name == "gs") {
+            if (operation.Name == "gs" && malformedOptionalContentStack.Contains(true)) {
                 PdfDictionary? states = ResolveDictionary(
                     resources.Items.TryGetValue("ExtGState", out PdfObject? statesObject) ? statesObject : null);
                 PdfDictionary? state = states?.Items.TryGetValue(name, out PdfObject? stateObject) == true
@@ -94,14 +98,6 @@ public sealed partial class PdfReadPage {
                     found = StreamUsesOutputIntentCompositionInteraction(stream, resources, activeStreams, budget, type3GlyphBudget, depth + 1);
                 }
                 return;
-            }
-            if (operation.Name is "scn" or "SCN") {
-                PdfDictionary? patterns = ResolveDictionary(
-                    resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ? patternsObject : null);
-                if (patterns?.Items.TryGetValue(name, out PdfObject? patternObject) == true &&
-                    PdfObjectLookup.ResolveChain(_objects, patternObject) is PdfStream pattern) {
-                    found = StreamUsesOutputIntentCompositionInteraction(pattern, resources, activeStreams, budget, type3GlyphBudget, depth + 1);
-                }
             }
         },
         inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
@@ -121,6 +117,13 @@ public sealed partial class PdfReadPage {
              (property is PdfContentDictionary dictionary &&
                 dictionary.OptionalContentReferences is not null &&
                 visibility?.IsHidden(dictionary.OptionalContentReferences) == true));
+
+        static bool IsMalformedOptionalContent(object? tag, object? property) =>
+            tag is string tagName &&
+            string.Equals(tagName, "OC", StringComparison.Ordinal) &&
+            property is not string and
+            not PdfInlineOptionalContentReferences and
+            not PdfContentDictionary { OptionalContentReferences: not null };
     }
 
     private bool StreamUsesOutputIntentCompositionInteraction(
@@ -164,9 +167,9 @@ public sealed partial class PdfReadPage {
         PageContentBudget budget,
         Type3GlyphBudget type3GlyphBudget,
         int depth) {
-        if (resources == null) return false;
-        Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
-        if (!fonts.Values.Any(font => font.Type3 != null)) return false;
+        Dictionary<string, PdfFontResource> fonts = resources == null
+            ? new Dictionary<string, PdfFontResource>(StringComparer.Ordinal)
+            : ResourceResolver.GetFontsForResources(resources, _objects);
 
         bool found = false;
         PdfPageXObjectInvocationParser.Parse(
@@ -180,7 +183,9 @@ public sealed partial class PdfReadPage {
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
             fonts: fonts,
-            fontWidthProviders: ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
+            fontWidthProviders: resources == null
+                ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
+                : ResourceResolver.GetFontWidthProvidersForResources(resources, _objects),
             type3TextVisitor: invocation => {
                 for (int index = 0; index < invocation.Glyphs.Count && !found; index++) {
                     PdfPageType3GlyphInvocation glyph = invocation.Glyphs[index];
@@ -198,6 +203,24 @@ public sealed partial class PdfReadPage {
                 return false;
             },
             type3GlyphBudgetConsumer: type3GlyphBudget.Consume,
+            patternInvocationVisitor: name => {
+                if (found || resources == null) return;
+                PdfDictionary? patterns = ResolveDictionary(
+                    resources.Items.TryGetValue("Pattern", out PdfObject? patternsObject) ? patternsObject : null);
+                if (patterns?.Items.TryGetValue(name, out PdfObject? patternObject) == true &&
+                    PdfObjectLookup.ResolveChain(_objects, patternObject) is PdfStream pattern) {
+                    found = StreamUsesOutputIntentCompositionInteraction(
+                        pattern,
+                        resources,
+                        activeStreams,
+                        budget,
+                        type3GlyphBudget,
+                        depth + 1);
+                }
+            },
+            graphicsEffectPaintVisitor: (state, channels) => {
+                if (HasExplicitTransparency(state, channels)) found = true;
+            },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
         return found;
     }
@@ -221,6 +244,16 @@ public sealed partial class PdfReadPage {
         } finally {
             activeStreams.Remove(stream);
         }
+    }
+
+    private static bool HasExplicitTransparency(
+        PdfPageGraphicsStateResource state,
+        PdfType3PaintChannels channels) {
+        if ((channels & PdfType3PaintChannels.Fill) != 0 && state.FillOpacity.HasValue && state.FillOpacity.Value != 1D) return true;
+        if ((channels & PdfType3PaintChannels.Stroke) != 0 && state.StrokeOpacity.HasValue && state.StrokeOpacity.Value != 1D) return true;
+        if ((state.BlendMode.HasValue && state.BlendMode.Value != OfficeIMO.Drawing.OfficeBlendMode.Normal) ||
+            state.HasUnsupportedBlendMode || state.HasUnsupportedSoftMask) return true;
+        return state.SoftMaskEnabled == true && state.SoftMask != null;
     }
 
     private bool HasExplicitTransparency(PdfDictionary dictionary) {
