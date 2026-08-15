@@ -3,16 +3,7 @@
   "steps": [
     {
       "task": "cloudflare",
-      "id": "purge-cache",
-      "operation": "purge",
-      "siteConfig": "./site.json",
-      "zoneIdEnv": "CLOUDFLARE_ZONE_ID",
-      "tokenEnv": "CLOUDFLARE_API_TOKEN"
-    },
-    {
-      "task": "cloudflare",
       "id": "verify-cache",
-      "dependsOn": "purge-cache",
       "operation": "verify",
       "siteConfig": "./site.json",
       "warmupRequests": 1,
