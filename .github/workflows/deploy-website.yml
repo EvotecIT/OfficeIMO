@@ -18,6 +18,7 @@ on:
 permissions:
   actions: write
   contents: read
+  deployments: read
   packages: read
   pages: write
   id-token: write
@@ -43,7 +44,7 @@ jobs:
 
   website-deploy:
     needs: resolve-post-deploy
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@683531aed9652851a03b1301624b9c769ce62d52
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@8fd0b2204844bbdcebed5fbfab4cdc65289c702c
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -54,7 +55,7 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 683531aed9652851a03b1301624b9c769ce62d52
+      powerforge_ref: 8fd0b2204844bbdcebed5fbfab4cdc65289c702c
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}

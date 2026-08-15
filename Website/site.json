@@ -289,7 +289,7 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "hostname"
+    "PurgeMode": "incremental"
   },
   "EditLinks": {
     "Enabled": true,
