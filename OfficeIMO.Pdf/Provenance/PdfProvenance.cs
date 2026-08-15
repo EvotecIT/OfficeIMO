@@ -431,6 +431,11 @@ public static class PdfProvenance {
             maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
+            catalog.Items.TryGetValue("Requirements", out PdfObject? requirements) ? requirements : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
             catalog.Items.TryGetValue("Threads", out PdfObject? threads) ? threads : null,
             result,
             maximumContainerEntries,
@@ -629,6 +634,11 @@ public static class PdfProvenance {
         }
         AddStructuralGraphDictionaries(
             objects,
+            acroForm.Items.TryGetValue("DR", out PdfObject? defaultResources) ? defaultResources : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
             acroForm.Items.TryGetValue("XFA", out PdfObject? xfaValue) ? xfaValue : null,
             result,
             maximumContainerEntries);
@@ -805,7 +815,7 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "RichMediaContent", "RichMediaSettings" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "RichMediaContent", "RichMediaSettings", "FixedPrint" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,

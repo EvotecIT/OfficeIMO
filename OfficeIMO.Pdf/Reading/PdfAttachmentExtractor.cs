@@ -212,7 +212,12 @@ internal static class PdfAttachmentExtractor {
             return;
         }
         if (value is PdfDictionary dictionary) {
-            if (string.Equals(dictionary.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal) &&
+            if (string.Equals(
+                    PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is PdfName resolvedSubtype
+                        ? resolvedSubtype.Name
+                        : null,
+                    "FileAttachment",
+                    StringComparison.Ordinal) &&
                 dictionary.Items.TryGetValue("FS", out PdfObject? fileSpecObject)) {
                 string name = TryReadFileSpecName(objects, fileSpecObject) ?? "FileAttachment";
                 AttachmentDescriptor? attachment = TryBuildAttachment(
