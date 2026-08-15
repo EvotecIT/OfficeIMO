@@ -425,6 +425,11 @@ public static class PdfProvenance {
             maximumContainerEntries);
         AddStructuralGraphDictionaries(
             objects,
+            catalog.Items.TryGetValue("SpiderInfo", out PdfObject? spiderInfo) ? spiderInfo : null,
+            result,
+            maximumContainerEntries);
+        AddStructuralGraphDictionaries(
+            objects,
             catalog.Items.TryGetValue("Threads", out PdfObject? threads) ? threads : null,
             result,
             maximumContainerEntries,
@@ -494,6 +499,13 @@ public static class PdfProvenance {
                     maximumContainerEntries,
                     pageTreeObjectNumbers,
                     structuralTraversalVisited);
+                AddStructuralGraphDictionaries(
+                    objects,
+                    dictionary.Items.TryGetValue("PresSteps", out PdfObject? presentationSteps) ? presentationSteps : null,
+                    result,
+                    maximumContainerEntries,
+                    pageTreeObjectNumbers,
+                    structuralTraversalVisited);
                 AddPageAnnotationDictionaries(objects, dictionary, result, maximumContainerEntries, annotationStructuralVisited);
             }
             if (item.Value is PdfStream activeStream) {
@@ -529,12 +541,14 @@ public static class PdfProvenance {
                         maximumContainerEntries,
                         sharedVisited: structuralTraversalVisited);
                 } else if (string.Equals(streamSubtype, "Image", StringComparison.Ordinal)) {
-                    AddStructuralGraphDictionaries(
-                        objects,
-                        activeStream.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace) ? colorSpace : null,
-                        result,
-                        maximumContainerEntries,
-                        sharedVisited: structuralTraversalVisited);
+                    foreach (string key in new[] { "ColorSpace", "Alternates" }) {
+                        AddStructuralGraphDictionaries(
+                            objects,
+                            activeStream.Dictionary.Items.TryGetValue(key, out PdfObject? imageValue) ? imageValue : null,
+                            result,
+                            maximumContainerEntries,
+                            sharedVisited: structuralTraversalVisited);
+                    }
                 }
                 if (activeStream.Dictionary.Items.ContainsKey("ShadingType")) {
                     foreach (string key in new[] { "Function", "ColorSpace" }) {
@@ -783,7 +797,7 @@ public static class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary == null) continue;
             result.Add(dictionary);
-            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "RichMediaContent", "RichMediaSettings" }) {
+            foreach (string key in new[] { "AP", "BS", "BE", "MK", "Dest", "Movie", "RichMediaContent", "RichMediaSettings" }) {
                 AddStructuralGraphDictionaries(
                     objects,
                     dictionary.Items.TryGetValue(key, out PdfObject? structuralValue) ? structuralValue : null,
