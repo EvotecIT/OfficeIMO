@@ -30,7 +30,11 @@ public sealed class PdfImagePlacement {
         OfficeBlendMode? blendMode = null,
         bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false,
-        bool hasAuthoredRenderingIntent = false) {
+        bool hasAuthoredRenderingIntent = false,
+        PdfContentOrderKey? contentOrderKey = null,
+        PdfPagePatternSelection? fillPattern = null,
+        PdfDictionary? effectiveResources = null,
+        bool requireExactProjection = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -55,6 +59,10 @@ public sealed class PdfImagePlacement {
         HasUnsupportedBlendMode = hasUnsupportedBlendMode;
         HasSoftMask = hasSoftMask;
         HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
+        ContentOrderKey = contentOrderKey;
+        FillPattern = fillPattern;
+        EffectiveResources = effectiveResources;
+        RequireExactProjection = requireExactProjection;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -120,6 +128,87 @@ public sealed class PdfImagePlacement {
     internal bool HasAuthoredRenderingIntent { get; }
 
     internal string? SourceDocumentIdentity { get; set; }
+
+    internal PdfContentOrderKey? ContentOrderKey { get; }
+
+    internal PdfPagePatternSelection? FillPattern { get; }
+
+    internal PdfDictionary? EffectiveResources { get; }
+
+    internal bool RequireExactProjection { get; }
+
+    internal PdfImagePlacement WithPaintOrder(double paintOrder) =>
+        Copy(ImageMaskColor, paintOrder);
+
+    internal PdfImagePlacement WithImageMaskColor(OfficeColor imageMaskColor) =>
+        Copy(imageMaskColor, PaintOrder);
+
+    internal PdfImagePlacement WithContentOrderKey(PdfContentOrderKey contentOrderKey) =>
+        new PdfImagePlacement(
+            PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
+            A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
+            ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
+            PaintOrder,
+            blendMode: BlendMode,
+            hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasSoftMask: HasSoftMask,
+            hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
+            contentOrderKey: contentOrderKey,
+            fillPattern: FillPattern,
+            effectiveResources: EffectiveResources,
+            requireExactProjection: RequireExactProjection) {
+            SourceDocumentIdentity = this.SourceDocumentIdentity
+        };
+
+    internal PdfImagePlacement WithExactProjection() =>
+        new PdfImagePlacement(
+            PageNumber, ResourceName, ObjectNumber, DirectStreamIdentity,
+            A, B, C, D, E, F, X, Y, Width, Height, ClipPath,
+            ImageMaskColor, ImageOpacity, InlineImageStream, InlineImageResources,
+            PaintOrder,
+            blendMode: BlendMode,
+            hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasSoftMask: HasSoftMask,
+            hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
+            contentOrderKey: ContentOrderKey,
+            fillPattern: FillPattern,
+            effectiveResources: EffectiveResources,
+            requireExactProjection: true) {
+            SourceDocumentIdentity = this.SourceDocumentIdentity
+        };
+
+    private PdfImagePlacement Copy(OfficeColor imageMaskColor, double paintOrder) =>
+        new PdfImagePlacement(
+            PageNumber,
+            ResourceName,
+            ObjectNumber,
+            DirectStreamIdentity,
+            A,
+            B,
+            C,
+            D,
+            E,
+            F,
+            X,
+            Y,
+            Width,
+            Height,
+            ClipPath,
+            imageMaskColor,
+            ImageOpacity,
+            InlineImageStream,
+            InlineImageResources,
+            paintOrder,
+            blendMode: BlendMode,
+            hasUnsupportedBlendMode: HasUnsupportedBlendMode,
+            hasSoftMask: HasSoftMask,
+            hasAuthoredRenderingIntent: HasAuthoredRenderingIntent,
+            contentOrderKey: ContentOrderKey,
+            fillPattern: FillPattern,
+            effectiveResources: EffectiveResources,
+            requireExactProjection: RequireExactProjection) {
+            SourceDocumentIdentity = this.SourceDocumentIdentity
+        };
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

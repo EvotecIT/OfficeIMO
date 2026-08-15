@@ -23,7 +23,6 @@ namespace OfficeIMO.Tests {
                             title: "Members",
                             configure: options => {
                                 options.Columns = new[] { "Enabled", "ADState", "Endpoint", "Missing" };
-                                options.MaxCells = 1;
                             },
                             style: ExcelTableStyle.TableStyleMedium2,
                             visuals: options => options.ShowRowStripes = false);
@@ -74,17 +73,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableUsesExcelRowBoundaryInsteadOfGenericCellLimit() {
+        public void SheetComposer_DataTableEnforcesConfiguredCellLimitBeforeWriting() {
             DataTable members = CreateMembersTable();
             using ExcelDocument document = ExcelDocument.Create();
 
-            document.Compose("Members", composer => {
-                string range = composer.TableFrom(
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Members", composer => composer.TableFrom(
                     members,
+                    title: "Members",
                     configure: options => options.MaxCells = 1,
-                    freezeHeaderRow: false);
-                Assert.Equal("A1:D3", range);
-            });
+                    freezeHeaderRow: false)));
+
+            Assert.Contains("requires 12 cells", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("MaxCells = 12", exception.Message, StringComparison.Ordinal);
+            Assert.False(document["Members"].TryGetCellText(1, 1, out _));
+        }
+
+        [Fact]
+        public void SheetComposer_DataTableEnforcesConfiguredRowLimitBeforeWriting() {
+            DataTable members = CreateMembersTable();
+            using ExcelDocument document = ExcelDocument.Create();
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                document.Compose("Members", composer => composer.TableFrom(
+                    members,
+                    title: "Members",
+                    configure: options => options.MaxRows = 1,
+                    freezeHeaderRow: false)));
+
+            Assert.Contains("requires 2 data rows", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("MaxRows = 2", exception.Message, StringComparison.Ordinal);
+            Assert.False(document["Members"].TryGetCellText(1, 1, out _));
         }
 
         [Fact]
@@ -345,7 +364,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SheetComposer_DataTableFiltersCaseDistinctColumnsByExactSchemaIdentity() {
+        public void SheetComposer_DataTableRedactionFiltersRemoveAllCaseVariants() {
             var table = new DataTable("CaseDistinct");
             table.Columns.Add("Name", typeof(string));
             table.Columns.Add("name", typeof(string));
@@ -373,20 +392,33 @@ namespace OfficeIMO.Tests {
                     },
                     freezeHeaderRow: false));
                 ExcelSheet sheet = excludeDocument["Data"];
-                Assert.True(sheet.TryGetCellText(2, 1, out string? lower));
-                Assert.True(sheet.TryGetCellText(2, 2, out string? number));
-                Assert.Equal("Lower", lower);
+                Assert.True(sheet.TryGetCellText(2, 1, out string? number));
                 Assert.Equal("42", number);
+                Assert.False(sheet.TryGetCellText(1, 2, out _));
             }
 
-            using var ambiguousDocument = ExcelDocument.Create();
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ambiguousDocument.Compose("Data", composer => composer.TableFrom(
-                    table,
-                    configure: options => options.ExcludeProperties = new[] { "NAME" },
-                    freezeHeaderRow: false)));
-            Assert.Contains("ambiguous", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("ExcludeProperties", exception.Message, StringComparison.Ordinal);
+            using var caseInsensitiveDocument = ExcelDocument.Create();
+            caseInsensitiveDocument.Compose("Data", composer => composer.TableFrom(
+                table,
+                configure: options => options.ExcludeProperties = new[] { "NAME" },
+                freezeHeaderRow: false));
+            ExcelSheet caseInsensitiveSheet = caseInsensitiveDocument["Data"];
+            Assert.True(caseInsensitiveSheet.TryGetCellText(2, 1, out string? caseInsensitiveNumber));
+            Assert.Equal("42", caseInsensitiveNumber);
+            Assert.False(caseInsensitiveSheet.TryGetCellText(1, 2, out _));
+
+            using var explicitDocument = ExcelDocument.Create();
+            explicitDocument.Compose("Data", composer => composer.TableFrom(
+                table,
+                configure: options => {
+                    options.Columns = new[] { "Name", "name", "Value" };
+                    options.ExcludeProperties = new[] { "Name" };
+                },
+                freezeHeaderRow: false));
+            ExcelSheet explicitSheet = explicitDocument["Data"];
+            Assert.True(explicitSheet.TryGetCellText(2, 1, out string? explicitNumber));
+            Assert.Equal("42", explicitNumber);
+            Assert.False(explicitSheet.TryGetCellText(1, 2, out _));
         }
 
         [Fact]

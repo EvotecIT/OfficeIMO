@@ -1,18 +1,35 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfInlineOptionalContentReferences {
-    public PdfInlineOptionalContentReferences(IReadOnlyList<int> objectNumbers, bool isMembershipDictionary = false, string? policy = null, string? visibilityExpression = null) {
+    public PdfInlineOptionalContentReferences(
+        IReadOnlyList<PdfReference> objectReferences,
+        bool isMembershipDictionary = false,
+        string? policy = null,
+        string? visibilityExpression = null,
+        bool hasInvalidPolicy = false,
+        bool hasInvalidGroupContainer = false) {
+        ObjectReferences = objectReferences;
+        var objectNumbers = new int[objectReferences.Count];
+        for (int index = 0; index < objectReferences.Count; index++) objectNumbers[index] = objectReferences[index].ObjectNumber;
         ObjectNumbers = objectNumbers;
         IsMembershipDictionary = isMembershipDictionary;
         Policy = string.IsNullOrWhiteSpace(policy) ? null : policy;
         VisibilityExpression = string.IsNullOrWhiteSpace(visibilityExpression) ? null : visibilityExpression;
+        HasInvalidPolicy = hasInvalidPolicy;
+        HasInvalidGroupContainer = hasInvalidGroupContainer;
     }
 
     public IReadOnlyList<int> ObjectNumbers { get; }
 
+    public IReadOnlyList<PdfReference> ObjectReferences { get; }
+
     public bool IsMembershipDictionary { get; }
 
     public string? Policy { get; }
+
+    public bool HasInvalidPolicy { get; }
+
+    public bool HasInvalidGroupContainer { get; }
 
     public string? VisibilityExpression { get; }
 }
@@ -25,26 +42,84 @@ internal static class PdfInlineOptionalContentReferenceParser {
     }
 
     public static PdfInlineOptionalContentReferences Parse(string content, int start, int length) {
-        IReadOnlyList<int> objectNumbers = ExtractObjectNumbers(content, start, length);
         bool isMembershipDictionary = TryReadNameValue(content, start, length, "Type", out string? type) &&
             string.Equals(type, "OCMD", StringComparison.Ordinal);
-        string? policy = isMembershipDictionary && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
+        string? groupsValue = null;
+        bool hasGroupsValue = isMembershipDictionary && TryReadObjectValue(content, start, length, "OCGs", out groupsValue);
+        IReadOnlyList<PdfReference> objectReferences = Array.Empty<PdfReference>();
+        bool hasInvalidGroupContainer = hasGroupsValue &&
+            !TryReadMembershipGroups(groupsValue!, out objectReferences);
+        string? policyValue = null;
+        bool hasPolicyValue = isMembershipDictionary && TryReadObjectValue(content, start, length, "P", out policyValue);
+        string? policy = hasPolicyValue && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
             ? parsedPolicy
             : null;
-        string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression)
-            ? parsedExpression
-            : null;
-        return new PdfInlineOptionalContentReferences(objectNumbers, isMembershipDictionary, policy, visibilityExpression);
+        bool hasInvalidPolicy = hasPolicyValue &&
+            !string.Equals(policyValue?.Trim(), "null", StringComparison.Ordinal) &&
+            !IsSupportedMembershipPolicy(policy);
+        string? visibilityExpression = isMembershipDictionary && TryReadObjectValue(content, start, length, "VE", out string? parsedExpression) &&
+            !string.Equals(parsedExpression?.Trim(), "null", StringComparison.Ordinal)
+                ? parsedExpression
+                : null;
+        return new PdfInlineOptionalContentReferences(objectReferences, isMembershipDictionary, policy, visibilityExpression, hasInvalidPolicy, hasInvalidGroupContainer);
     }
 
+    private static bool TryReadMembershipGroups(string content, out IReadOnlyList<PdfReference> references) {
+        references = Array.Empty<PdfReference>();
+        int index = 0;
+        int end = content.Length;
+        SkipWhitespace(content, ref index, end);
+        if (index + 4 <= end &&
+            string.CompareOrdinal(content, index, "null", 0, 4) == 0 &&
+            IsTokenBoundary(content, index + 4, end)) {
+            index += 4;
+            SkipWhitespace(content, ref index, end);
+            return index == end;
+        }
+
+        bool isArray = index < end && content[index] == '[';
+        if (isArray) index++;
+        var parsed = new List<PdfReference>();
+        while (true) {
+            SkipWhitespace(content, ref index, end);
+            if (isArray && index < end && content[index] == ']') {
+                index++;
+                break;
+            }
+            if (!TryReadIndirectReference(content, ref index, end, out PdfReference reference)) return false;
+            parsed.Add(reference);
+            if (!isArray) break;
+        }
+
+        SkipWhitespace(content, ref index, end);
+        if (index != end) return false;
+        references = parsed.Count == 0 ? Array.Empty<PdfReference>() : parsed.AsReadOnly();
+        return true;
+    }
+
+    private static bool IsSupportedMembershipPolicy(string? policy) =>
+        policy is "AnyOn" or "AllOn" or "AnyOff" or "AllOff";
+
     public static IReadOnlyList<int> ExtractObjectNumbers(string content, int start, int length) {
+        IReadOnlyList<PdfReference> references = ExtractReferences(content, start, length);
+        if (references.Count == 0) return Array.Empty<int>();
+        var objectNumbers = new int[references.Count];
+        for (int index = 0; index < references.Count; index++) objectNumbers[index] = references[index].ObjectNumber;
+        return objectNumbers;
+    }
+
+    private static IReadOnlyList<PdfReference> ExtractReferences(string content) =>
+        ExtractReferences(content, 0, content.Length);
+
+    private static IReadOnlyList<PdfReference> ExtractReferences(string content, int start, int length) {
         if (string.IsNullOrEmpty(content) || length <= 0 || start < 0 || start >= content.Length) {
-            return Array.Empty<int>();
+            return Array.Empty<PdfReference>();
         }
 
         int end = Math.Min(content.Length, start + length);
-        var objectNumbers = new List<int>();
         int index = start;
+        MoveInsideOuterDictionary(content, ref index, end);
+        var references = new List<PdfReference>();
         while (index < end) {
             SkipWhitespace(content, ref index, end);
             if (index >= end) {
@@ -58,54 +133,60 @@ internal static class PdfInlineOptionalContentReferenceParser {
 
             int afterObjectNumber = index;
             SkipWhitespace(content, ref index, end);
-            if (!TryReadInteger(content, ref index, end, out _)) {
+            if (!TryReadInteger(content, ref index, end, out int generation)) {
                 index = afterObjectNumber;
                 continue;
             }
 
             SkipWhitespace(content, ref index, end);
-            if (index < end && content[index] == 'R') {
-                objectNumbers.Add(objectNumber);
+            if (index < end && content[index] == 'R' && IsTokenBoundary(content, index + 1, end)) {
+                if (objectNumber > 0 && generation >= 0) references.Add(new PdfReference(objectNumber, generation));
                 index++;
             }
         }
 
-        return objectNumbers.Count == 0 ? Array.Empty<int>() : objectNumbers.AsReadOnly();
+        return references.Count == 0 ? Array.Empty<PdfReference>() : references.AsReadOnly();
     }
 
     public static IReadOnlyList<int> ExtractObjectNumbers(string content) =>
         ExtractObjectNumbers(content, 0, content.Length);
 
     private static void SkipInlineDictionary(string content, ref int index) {
-        if (index + 1 >= content.Length || content[index] != '<' || content[index + 1] != '<') {
+        SkipInlineDictionary(content, ref index, content.Length);
+    }
+
+    private static void SkipInlineDictionary(string content, ref int index, int end) {
+        if (index + 1 >= end || content[index] != '<' || content[index + 1] != '<') {
             return;
         }
 
         index += 2;
         int depth = 1;
-        while (index < content.Length && depth > 0) {
+        while (index < end && depth > 0) {
             char ch = content[index];
             if (ch == '(') {
-                SkipLiteralString(content, ref index);
-            } else if (ch == '<' && index + 1 < content.Length && content[index + 1] == '<') {
+                SkipLiteralString(content, ref index, end);
+            } else if (ch == '<' && index + 1 < end && content[index + 1] == '<') {
                 depth++;
                 index += 2;
-            } else if (ch == '>' && index + 1 < content.Length && content[index + 1] == '>') {
+            } else if (ch == '>' && index + 1 < end && content[index + 1] == '>') {
                 depth--;
                 index += 2;
             } else if (ch == '<') {
-                SkipHexString(content, ref index);
+                SkipHexString(content, ref index, end);
+            } else if (ch == '%') {
+                SkipComment(content, ref index, end);
             } else {
                 index++;
             }
         }
     }
 
-    private static void SkipLiteralString(string content, ref int index) {
+    private static void SkipLiteralString(string content, ref int index, int end) {
         int depth = 1;
         bool escaped = false;
         index++;
-        while (index < content.Length && depth > 0) {
+        while (index < end && depth > 0) {
             char ch = content[index++];
             if (escaped) {
                 escaped = false;
@@ -119,22 +200,39 @@ internal static class PdfInlineOptionalContentReferenceParser {
         }
     }
 
-    private static void SkipHexString(string content, ref int index) {
+    private static void SkipHexString(string content, ref int index, int end) {
         index++;
-        while (index < content.Length && content[index] != '>') {
+        while (index < end && content[index] != '>') {
             index++;
         }
 
-        if (index < content.Length) {
+        if (index < end) {
             index++;
         }
     }
 
     private static void SkipWhitespace(string content, ref int index, int end) {
-        while (index < end && char.IsWhiteSpace(content[index])) {
+        while (index < end) {
+            while (index < end && IsPdfWhitespace(content[index])) {
+                index++;
+            }
+
+            if (index >= end || content[index] != '%') {
+                return;
+            }
+
+            SkipComment(content, ref index, end);
+        }
+    }
+
+    private static void SkipComment(string content, ref int index, int end) {
+        while (index < end && content[index] != '\r' && content[index] != '\n') {
             index++;
         }
     }
+
+    private static bool IsPdfWhitespace(char ch) =>
+        ch == '\0' || ch == '\t' || ch == '\n' || ch == '\f' || ch == '\r' || ch == ' ';
 
     private static bool TryReadInteger(string content, ref int index, int end, out int value) {
         value = 0;
@@ -167,6 +265,7 @@ internal static class PdfInlineOptionalContentReferenceParser {
 
         int end = Math.Min(content.Length, start + length);
         int index = start;
+        MoveInsideOuterDictionary(content, ref index, end);
         while (index < end) {
             SkipWhitespace(content, ref index, end);
             if (index >= end) {
@@ -180,6 +279,7 @@ internal static class PdfInlineOptionalContentReferenceParser {
 
             string name = ReadNameToken(content, ref index, end);
             if (!string.Equals(name, key, StringComparison.Ordinal)) {
+                SkipObject(content, ref index, end);
                 continue;
             }
 
@@ -203,6 +303,7 @@ internal static class PdfInlineOptionalContentReferenceParser {
 
         int end = Math.Min(content.Length, start + length);
         int index = start;
+        MoveInsideOuterDictionary(content, ref index, end);
         while (index < end) {
             SkipWhitespace(content, ref index, end);
             if (index >= end) {
@@ -234,6 +335,13 @@ internal static class PdfInlineOptionalContentReferenceParser {
         return false;
     }
 
+    private static void MoveInsideOuterDictionary(string content, ref int index, int end) {
+        SkipWhitespace(content, ref index, end);
+        if (index + 1 < end && content[index] == '<' && content[index + 1] == '<') {
+            index += 2;
+        }
+    }
+
     private static string ReadNameToken(string content, ref int index, int end) {
         if (index >= end || content[index] != '/') {
             return string.Empty;
@@ -243,7 +351,7 @@ internal static class PdfInlineOptionalContentReferenceParser {
         int start = index;
         while (index < end) {
             char ch = content[index];
-            if (char.IsWhiteSpace(ch) ||
+            if (IsPdfWhitespace(ch) ||
                 ch == '%' ||
                 ch == '/' ||
                 ch == '[' ||
@@ -258,28 +366,38 @@ internal static class PdfInlineOptionalContentReferenceParser {
             index++;
         }
 
-        return content.Substring(start, index - start);
+        return PdfSyntax.DecodeName(content.Substring(start, index - start));
     }
 
     private static void SkipToken(string content, ref int index, int end) {
         char ch = content[index];
+        if (ch == '%') {
+            SkipComment(content, ref index, end);
+            return;
+        }
+
+        if (ch == '[' || ch == ']') {
+            index++;
+            return;
+        }
+
         if (ch == '(') {
-            SkipLiteralString(content, ref index);
+            SkipLiteralString(content, ref index, end);
             return;
         }
 
         if (ch == '<') {
-            if (index + 1 < content.Length && content[index + 1] == '<') {
-                SkipInlineDictionary(content, ref index);
+            if (index + 1 < end && content[index + 1] == '<') {
+                SkipInlineDictionary(content, ref index, end);
             } else {
-                SkipHexString(content, ref index);
+                SkipHexString(content, ref index, end);
             }
 
             return;
         }
 
         index++;
-        while (index < end && !char.IsWhiteSpace(content[index])) {
+        while (index < end && !IsPdfWhitespace(content[index])) {
             char current = content[index];
             if (current == '[' || current == ']' || current == '/' || current == '<' || current == '>' || current == '(' || current == ')' || current == '%') {
                 break;
@@ -296,17 +414,83 @@ internal static class PdfInlineOptionalContentReferenceParser {
         }
 
         char ch = content[index];
+        if (TrySkipIndirectReference(content, ref index, end)) {
+            return;
+        }
+
         if (ch == '[') {
             SkipArray(content, ref index, end);
         } else if (ch == '<') {
             if (index + 1 < end && content[index + 1] == '<') {
-                SkipInlineDictionary(content, ref index);
+                SkipInlineDictionary(content, ref index, end);
             } else {
-                SkipHexString(content, ref index);
+                SkipHexString(content, ref index, end);
             }
         } else {
             SkipToken(content, ref index, end);
         }
+    }
+
+    private static bool TrySkipIndirectReference(string content, ref int index, int end) {
+        int start = index;
+        if (!TryReadInteger(content, ref index, end, out _)) {
+            index = start;
+            return false;
+        }
+
+        SkipWhitespace(content, ref index, end);
+        if (!TryReadInteger(content, ref index, end, out _)) {
+            index = start;
+            return false;
+        }
+
+        SkipWhitespace(content, ref index, end);
+        if (index >= end || content[index] != 'R' || !IsTokenBoundary(content, index + 1, end)) {
+            index = start;
+            return false;
+        }
+
+        index++;
+        return true;
+    }
+
+    private static bool TryReadIndirectReference(string content, ref int index, int end, out PdfReference reference) {
+        reference = null!;
+        int start = index;
+        if (!TryReadInteger(content, ref index, end, out int objectNumber)) {
+            index = start;
+            return false;
+        }
+
+        SkipWhitespace(content, ref index, end);
+        if (!TryReadInteger(content, ref index, end, out int generation)) {
+            index = start;
+            return false;
+        }
+
+        SkipWhitespace(content, ref index, end);
+        if (index >= end || content[index] != 'R' || !IsTokenBoundary(content, index + 1, end)) {
+            index = start;
+            return false;
+        }
+
+        index++;
+        if (objectNumber <= 0 || generation < 0) {
+            index = start;
+            return false;
+        }
+        reference = new PdfReference(objectNumber, generation);
+        return true;
+    }
+
+    private static bool IsTokenBoundary(string content, int index, int end) {
+        if (index >= end) {
+            return true;
+        }
+
+        char ch = content[index];
+        return IsPdfWhitespace(ch) || ch == '%' || ch == '(' || ch == ')' || ch == '<' || ch == '>' ||
+            ch == '[' || ch == ']' || ch == '{' || ch == '}' || ch == '/';
     }
 
     private static void SkipArray(string content, ref int index, int end) {

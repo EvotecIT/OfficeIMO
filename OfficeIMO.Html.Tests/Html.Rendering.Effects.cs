@@ -356,6 +356,30 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlClipPath_SignedInsetCrossingFarPageEdgesConvertsToPdf() {
+        const string html = "<x-box id='far-edge' style='display:block;width:20px;height:20px;margin:15px 0 0 15px;background:red;clip-path:inset(-5px)'></x-box>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 30D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D),
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderPathClipGroup clip = Assert.Single(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>(),
+            group => group.Source == "x-box#far-edge");
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions(options));
+
+        Assert.True(clip.ClipX >= 0D && clip.ClipY >= 0D);
+        Assert.True(clip.ClipPath.Width > 20D && clip.ClipPath.Height > 20D);
+        Assert.True(clip.ClipX + clip.ClipPath.Width > rendered.Pages[0].Width);
+        Assert.True(clip.ClipY + clip.ClipPath.Height > rendered.Pages[0].Height);
+        Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void HtmlClipPath_GeometryBoxesResolveShapePercentagesAndOrigins() {
         const string shared = "width:40px;height:20px;padding:10px;border:2px solid black;margin:5px;background:red;";
         string html = "<div id='content' style='" + shared + "clip-path:inset(0) content-box'></div>"

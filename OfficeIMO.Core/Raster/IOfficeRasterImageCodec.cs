@@ -22,6 +22,8 @@ public sealed class OfficeDrawingRasterRenderOptions {
     public System.Collections.Generic.ICollection<OfficeImageExportDiagnostic>? DiagnosticSink { get; set; }
     /// <summary>Optional source label attached to rasterization diagnostics.</summary>
     public string? DiagnosticSource { get; set; }
+    /// <summary>Maximum pixels allowed for the output and every nested raster surface.</summary>
+    public long MaximumRasterPixels { get; set; } = OfficeImageExportOptions.DefaultMaximumRasterPixels;
     /// <summary>Cancellation observed between drawing elements and nested render stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 }

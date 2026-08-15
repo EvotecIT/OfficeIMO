@@ -72,6 +72,9 @@ public sealed class PdfExtractedImage {
     /// <summary>Bits per color component.</summary>
     public int BitsPerComponent { get; }
 
+    /// <summary>Whether the PDF requests interpolation while scaling the image.</summary>
+    public bool Interpolate { get; }
+
     /// <summary>PDF color space name when available.</summary>
     public string ColorSpace { get; }
 
@@ -110,8 +113,6 @@ public sealed class PdfExtractedImage {
     public bool IsImageMask { get; }
 
     internal OfficeColor ImageMaskColor { get; }
-
-    internal bool Interpolate { get; }
 
     internal bool HasExplicitDecode { get; }
 

@@ -151,6 +151,30 @@ public class CsvMappingTests
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Transient_Record_Projection_Preserves_StringAccessAfterPreHeaderCommentFallback(
+        int degreeOfParallelism)
+    {
+        CsvSchema schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Done()
+            .Build();
+
+        string[] rows = CsvDocument.ReadTextRowsAsParallel<string>(
+            "# generated export\nId\n001\n",
+            _ => record => $"{record.GetString(0)}:{record.GetSpan(0).ToString()}",
+            readerOptions: new CsvDataReaderOptions { Schema = schema },
+            parallelOptions: new ParallelRowMappingOptions
+            {
+                MaxDegreeOfParallelism = degreeOfParallelism,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(new[] { "001:001" }, rows);
+    }
+
+    [Theory]
     [InlineData("A,B\n1\n")]
     [InlineData("A,B\n1,2,3\n")]
     [InlineData("A,B\n1")]

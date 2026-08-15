@@ -442,7 +442,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         segment.Run.Style,
                         lineY));
                 } else if (segment.Run.RunningElementAssignment != null) {
-                    runningStringAssignments.Add(segment.Run.RunningElementAssignment.Translate(lineY));
+                    runningStringAssignments.AddRange(segment.Run.RunningElementAssignments.Select(assignment => assignment.Translate(lineY)));
                 } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);

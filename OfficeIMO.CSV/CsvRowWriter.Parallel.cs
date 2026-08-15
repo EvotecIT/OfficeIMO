@@ -38,7 +38,7 @@ public sealed partial class CsvRowWriter
 
         parallelOptions ??= new CsvWriteParallelOptions();
         int degreeOfParallelism = parallelOptions.GetDegreeOfParallelism();
-        int batchSize = parallelOptions.GetBatchSize();
+        parallelOptions.GetBatchSize();
         if (degreeOfParallelism == 1)
         {
             WriteDataReader(reader, cancellationToken);
@@ -51,10 +51,9 @@ public sealed partial class CsvRowWriter
         {
             throw new InvalidOperationException("Data reader must expose at least one field.");
         }
+        int batchSize = parallelOptions.GetBatchSize(fieldCount);
 
-        if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(
-                reader,
-                out bool[] cloneColumns))
+        if (!ParallelRowMappingExtensions.TryCreateIndependentSnapshotPlan(reader, out bool[] cloneColumns))
         {
             WriteDataReader(reader, cancellationToken);
             return;

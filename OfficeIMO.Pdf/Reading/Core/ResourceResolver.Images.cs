@@ -30,6 +30,110 @@ internal static partial class ResourceResolver {
             out _);
     }
 
+    /// <summary>Determines whether an authored image decode array has the exact shape required by its color space.</summary>
+    internal static bool HasValidImageDecode(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decode) return false;
+        PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        int bitsPerComponent = (int)(image.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        int componentCount;
+        if (PdfIndexedImageNormalizer.CanNormalizeColorSpace(effectiveColorSpace, bitsPerComponent, objects)) {
+            componentCount = 1;
+        } else {
+            string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+            if (!PdfImageColorSpaceNormalization.TryResolve(
+                    effectiveColorSpace,
+                    colorSpaceName,
+                    objects,
+                    out PdfImageColorSpaceNormalization normalization)) {
+                return false;
+            }
+            componentCount = normalization.SourceColorCount;
+        }
+
+        if (decode.Items.Count != componentCount * 2) return false;
+        for (int i = 0; i < decode.Items.Count; i++) {
+            if (ResolveObject(decode.Items[i], objects) is not PdfNumber number ||
+                double.IsNaN(number.Value) ||
+                double.IsInfinity(number.Value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>Determines whether a DCT image can be passed through without losing authored decode semantics.</summary>
+    internal static bool CanPassThroughDctDecode(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects,
+        bool allowInlineColorSpaceAbbreviations = false) {
+        PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
+        int componentCount = colorSpaceName switch {
+            "DeviceGray" => 1,
+            "DeviceRGB" => 3,
+            "DeviceCMYK" => 4,
+            "G" when allowInlineColorSpaceAbbreviations => 1,
+            "RGB" when allowInlineColorSpaceAbbreviations => 3,
+            "CMYK" when allowInlineColorSpaceAbbreviations => 4,
+            _ => 0
+        };
+        if (componentCount == 0) {
+            return false;
+        }
+
+        if (!HasPassThroughDctDecodeParameters(image, objects)) {
+            return false;
+        }
+
+        if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
+        PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
+        if (resolvedDecode is PdfNull) return true;
+        if (resolvedDecode is not PdfArray decode ||
+            decode.Items.Count != componentCount * 2) {
+            return false;
+        }
+
+        for (int component = 0; component < componentCount; component++) {
+            if (ResolveObject(decode.Items[component * 2], objects) is not PdfNumber { Value: 0D } ||
+                ResolveObject(decode.Items[component * 2 + 1], objects) is not PdfNumber { Value: 1D }) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasPassThroughDctDecodeParameters(
+        PdfDictionary image,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (!image.Items.TryGetValue("DecodeParms", out PdfObject? value)) return true;
+        PdfObject? resolved = ResolveObject(value, objects);
+        if (resolved is PdfNull) return true;
+        if (resolved is null) return false;
+        if (resolved is PdfArray array) {
+            if (array.Items.Count != 1) return false;
+            resolved = ResolveObject(array.Items[0], objects);
+            if (resolved is PdfNull) return true;
+            if (resolved is null) return false;
+        }
+        if (resolved is not PdfDictionary parameters) return false;
+        if (!parameters.Items.TryGetValue("ColorTransform", out PdfObject? colorTransform)) return true;
+        return ResolveObject(colorTransform, objects) is PdfNull;
+    }
+
     private static bool TryBuildExtractedImageMaskPng(
         PdfStream stream,
         int width,
@@ -107,7 +211,7 @@ internal static partial class ResourceResolver {
 
         int baseColors;
         int outputColorType;
-        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
+        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
         PdfColorKeyMask? colorKeyMask = TryReadColorKeyMask(stream.Dictionary, colorType == 0 ? 1 : 3, objects, out PdfColorKeyMask parsedColorKeyMask)
             ? parsedColorKeyMask
             : null;
@@ -189,7 +293,7 @@ internal static partial class ResourceResolver {
             return false;
         }
         int expectedSampleCount = width * height;
-        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
+        bool hasSoftMask = HasSoftMask(stream.Dictionary, objects);
         byte[]? alphaPixels = null;
         if (hasSoftMask &&
             !TryDecodeSoftMask(stream, width, height, 8, objects, out alphaPixels)) {

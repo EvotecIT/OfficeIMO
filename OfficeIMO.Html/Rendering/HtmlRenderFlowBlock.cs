@@ -486,10 +486,11 @@ internal sealed class HtmlRenderLineBreakGroup {
 
 internal sealed class HtmlInlineRun {
     internal HtmlInlineRun(
-        HtmlCssRunningStringAssignment runningElementAssignment,
+        IEnumerable<HtmlCssRunningStringAssignment> runningElementAssignments,
         HtmlRenderBoxStyle style,
         string source) {
-        RunningElementAssignment = runningElementAssignment;
+        RunningElementAssignments = new List<HtmlCssRunningStringAssignment>(runningElementAssignments).AsReadOnly();
+        RunningElementAssignment = RunningElementAssignments.FirstOrDefault();
         Text = string.Empty;
         LogicalText = string.Empty;
         Style = style;
@@ -588,6 +589,7 @@ internal sealed class HtmlInlineRun {
     internal IElement? PositionedMarkerElement { get; }
     internal IElement? RunningStringElement { get; }
     internal HtmlCssRunningStringAssignment? RunningElementAssignment { get; }
+    internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
     internal string SemanticRole { get; private set; }

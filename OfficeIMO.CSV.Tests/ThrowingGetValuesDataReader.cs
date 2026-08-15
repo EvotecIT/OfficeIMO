@@ -18,6 +18,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
 
     public int GetValueCallCount { get; private set; }
 
+    public int GetFieldTypeCallCount { get; private set; }
+
     public ThrowingGetValuesDataReader(
         string[] headers,
         object?[][] rows,
@@ -75,7 +77,11 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         }
     }
 
-    public override Type GetFieldType(int ordinal) => _fieldTypes[ordinal];
+    public override Type GetFieldType(int ordinal)
+    {
+        GetFieldTypeCallCount++;
+        return _fieldTypes[ordinal];
+    }
 
     public override float GetFloat(int ordinal) => ReadTypedValue<float>(ordinal);
 

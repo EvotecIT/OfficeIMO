@@ -56,7 +56,7 @@ public sealed partial class OfficeDrawing {
                     rotationCenterY: frame.CenterY,
                     flipHorizontal: frame.FlipHorizontal,
                     flipVertical: frame.FlipVertical);
-                var image = new OfficeDrawingImage(pattern.EncodedBytes, pattern.ContentType, projection, alternativeText: null, opacity: pattern.Opacity, useDataSnapshot: true);
+                var image = new OfficeDrawingImage(pattern.EncodedBytes, pattern.ContentType, projection, alternativeText: null, opacity: pattern.Opacity, interpolate: true, useDataSnapshot: true);
                 _images.Add(image);
                 _elements.Add(image);
             }

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private const double VisualGeometryEpsilon = 0.000001D;
 
-    private sealed class VisualGeometryBudget {
+    internal sealed class VisualGeometryBudget {
         private const int MaximumOperations = 250000;
         private const int MaximumFlattenedPoints = 32768;
         private int _operations;
@@ -295,6 +295,9 @@ public sealed partial class PdfReadPage {
                 }
             }
 
+            // The fixed interior samples are a proof of intersection, not a proof of
+            // separation. A narrow common strip can lie between them, so remain
+            // conservative when every individual fill intersects the stroke.
             return true;
         }
 

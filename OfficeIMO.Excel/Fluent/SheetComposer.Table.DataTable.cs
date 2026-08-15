@@ -5,14 +5,21 @@ using OfficeIMO.Data;
 namespace OfficeIMO.Excel.Fluent {
     public sealed partial class SheetComposer {
         /// <summary>
+        /// Default maximum number of cells written by the fixed-schema <see cref="DataTable"/> overload,
+        /// including the header row.
+        /// </summary>
+        public const long DefaultDataTableMaxCells = 5_000_000L;
+
+        /// <summary>
         /// Renders a fixed-schema <see cref="DataTable"/> as an editable Excel table without generic object flattening.
         /// The DataTable schema order is preserved unless the projection configuration selects another order.
         /// </summary>
         /// <param name="table">Source table whose rows and schema are already materialized.</param>
         /// <param name="title">Optional section title and table name.</param>
         /// <param name="configure">
-        /// Optional column selection, exclusion, ordering, and header configuration. Generic object-expansion and
-        /// cell-materialization limits are not used by this fixed-schema overload.
+        /// Optional column selection, exclusion, ordering, header, and materialization-limit configuration.
+        /// The fixed-schema overload defaults <see cref="ObjectFlattenerOptions.MaxCells"/> to
+        /// <see cref="DefaultDataTableMaxCells"/> instead of the lower generic object-flattening limit.
         /// </param>
         /// <param name="style">Built-in Excel table style.</param>
         /// <param name="autoFilter">Whether table filter buttons are included.</param>
@@ -28,16 +35,24 @@ namespace OfficeIMO.Excel.Fluent {
             bool freezeHeaderRow = true,
             Action<TableVisualOptions>? visuals = null) {
             if (table == null) throw new ArgumentNullException(nameof(table));
-            if (!string.IsNullOrWhiteSpace(title)) Section(title!);
 
             if (table.Rows.Count == 0) {
+                if (!string.IsNullOrWhiteSpace(title)) Section(title!);
                 Sheet.Cell(_row, 1, "(no data)");
                 _row++;
                 return $"A{_row - 1}:A{_row - 1}";
             }
 
-            var options = new ObjectFlattenerOptions();
+            var options = new ObjectFlattenerOptions {
+                MaxCells = DefaultDataTableMaxCells
+            };
             configure?.Invoke(options);
+            if (options.MaxRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxRows), "MaxRows must be greater than zero.");
+            }
+            if (options.MaxCells <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(options.MaxCells), "MaxCells must be greater than zero.");
+            }
             int configuredMaxColumns = options.MaxColumns;
             if (configuredMaxColumns <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(options.MaxColumns), "MaxColumns must be greater than zero.");
@@ -71,12 +86,13 @@ namespace OfficeIMO.Excel.Fluent {
                     configuredMaxColumns);
             }
             if (paths.Count == 0) {
+                if (!string.IsNullOrWhiteSpace(title)) Section(title!);
                 Sheet.Cell(_row, 1, "(no tabular columns for the DataTable schema)");
                 _row++;
                 return $"A{_row - 1}:A{_row - 1}";
             }
 
-            int headerRow = _row;
+            int headerRow = checked(_row + (string.IsNullOrWhiteSpace(title) ? 0 : 1));
             int lastRow = checked(headerRow + table.Rows.Count);
             if (lastRow > A1.MaxRows) {
                 throw new InvalidDataException(
@@ -84,6 +100,9 @@ namespace OfficeIMO.Excel.Fluent {
                     + "Split the data across multiple worksheets or start the table earlier; Excel's worksheet row limit cannot be overridden.");
             }
 
+            EnsureDataTableMaterializationLimits(table.Rows.Count, paths.Count, options);
+
+            if (!string.IsNullOrWhiteSpace(title)) Section(title!);
             List<string> headers = BuildTransformedHeaders(paths, options);
             EnsureUniqueTableHeaders(headers);
             var source = new DataTableTabularRowSource(table, paths, headers);
@@ -172,12 +191,14 @@ namespace OfficeIMO.Excel.Fluent {
                 sourceColumnNames,
                 options.Ignore,
                 nameof(options.Ignore),
-                prefixMatch: true);
+                prefixMatch: true,
+                removeAllCaseVariants: true);
             var excluded = ResolveDataTableFilterMatches(
                 sourceColumnNames,
                 options.ExcludeProperties,
                 nameof(options.ExcludeProperties),
-                prefixMatch: false);
+                prefixMatch: false,
+                removeAllCaseVariants: true);
             var removed = new HashSet<string>(ignored, StringComparer.Ordinal);
             removed.UnionWith(excluded);
             selected.RemoveAll(removed.Contains);
@@ -188,7 +209,8 @@ namespace OfficeIMO.Excel.Fluent {
                         sourceColumnNames,
                         options.IncludeProperties,
                         nameof(options.IncludeProperties),
-                        prefixMatch: false),
+                        prefixMatch: false,
+                        removeAllCaseVariants: false),
                     StringComparer.Ordinal);
                 selected.RemoveAll(path => !included.Contains(path));
             }
@@ -200,11 +222,24 @@ namespace OfficeIMO.Excel.Fluent {
             IReadOnlyList<string> paths,
             IEnumerable<string>? rules,
             string optionName,
-            bool prefixMatch) {
+            bool prefixMatch,
+            bool removeAllCaseVariants) {
             var result = new List<string>();
             var added = new HashSet<string>(StringComparer.Ordinal);
             foreach (string rule in rules ?? Array.Empty<string>()) {
                 if (string.IsNullOrWhiteSpace(rule)) continue;
+
+                if (removeAllCaseVariants) {
+                    foreach (string path in paths.Where(path =>
+                        (prefixMatch
+                            ? path.StartsWith(rule, StringComparison.OrdinalIgnoreCase)
+                            : string.Equals(path, rule, StringComparison.OrdinalIgnoreCase))
+                        || (!prefixMatch
+                            && string.Equals(GetLastSegment(path), rule, StringComparison.OrdinalIgnoreCase)))) {
+                        if (added.Add(path)) result.Add(path);
+                    }
+                    continue;
+                }
 
                 List<string> exactPaths = paths
                     .Where(path => prefixMatch
@@ -362,6 +397,25 @@ namespace OfficeIMO.Excel.Fluent {
             throw new InvalidDataException(
                 $"TableFrom(DataTable) requires at least {requiredColumns} columns, exceeding the {configuredMaxColumns}-column materialization limit (MaxColumns). "
                 + $"If this projection is intentional, raise the limit with configure: options => options.MaxColumns = {requiredColumns}.");
+        }
+
+        private static void EnsureDataTableMaterializationLimits(
+            int requiredRows,
+            int requiredColumns,
+            ObjectFlattenerOptions options) {
+            if (requiredRows > options.MaxRows) {
+                throw new InvalidDataException(
+                    $"TableFrom(DataTable) requires {requiredRows} data rows, exceeding the {options.MaxRows}-row materialization limit (MaxRows). "
+                    + $"If this materialization is intentional, raise the limit with configure: options => options.MaxRows = {requiredRows}.");
+            }
+
+            long requiredCells = checked(((long)requiredRows + 1L) * requiredColumns);
+            if (requiredCells > options.MaxCells) {
+                throw new InvalidDataException(
+                    $"TableFrom(DataTable) requires {requiredCells} cells including the header row, exceeding the {options.MaxCells}-cell "
+                    + "fixed-schema materialization limit (MaxCells). "
+                    + $"If this materialization is intentional, raise the limit with configure: options => options.MaxCells = {requiredCells}.");
+            }
         }
 
         private static InvalidDataException CreateExcelColumnLimitException(int requiredColumns) =>

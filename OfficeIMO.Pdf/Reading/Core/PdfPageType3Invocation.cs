@@ -2,15 +2,72 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
+[Flags]
+internal enum PdfType3PaintChannels {
+    None = 0,
+    Fill = 1,
+    Stroke = 2,
+    Both = Fill | Stroke,
+    Visible = 4
+}
+
+internal readonly struct PdfPagePatternSelection {
+    internal PdfPagePatternSelection(
+        string name,
+        OfficeColor? tint,
+        PdfPageColorSpace? baseColorSpace,
+        PdfPageTilingPatternResource? tilingPattern,
+        PdfPageShadingPatternResource? shadingPattern,
+        Matrix2D paintTransform,
+        int componentCount = 0) {
+        Name = name;
+        Tint = tint;
+        BaseColorSpace = baseColorSpace;
+        TilingPattern = tilingPattern;
+        ShadingPattern = shadingPattern;
+        PaintTransform = paintTransform;
+        ComponentCount = componentCount;
+    }
+
+    internal string Name { get; }
+    internal OfficeColor? Tint { get; }
+    internal PdfPageColorSpace? BaseColorSpace { get; }
+    internal PdfPageTilingPatternResource? TilingPattern { get; }
+    internal PdfPageShadingPatternResource? ShadingPattern { get; }
+    internal Matrix2D PaintTransform { get; }
+    internal int ComponentCount { get; }
+
+    internal PdfPagePatternSelection Translate(double offsetX, double offsetY, double sourceHeight, double targetHeight) {
+        var sourceFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, sourceHeight);
+        var targetFlip = new Matrix2D(1D, 0D, 0D, -1D, 0D, targetHeight);
+        Matrix2D translatedPaintTransform = Matrix2D.Multiply(
+            targetFlip,
+            Matrix2D.Multiply(
+                Matrix2D.Translation(-offsetX, -offsetY),
+                Matrix2D.Multiply(sourceFlip, PaintTransform)));
+        return new PdfPagePatternSelection(
+            Name,
+            Tint,
+            BaseColorSpace,
+            TilingPattern,
+            ShadingPattern,
+            translatedPaintTransform,
+            ComponentCount);
+    }
+}
+
 internal readonly struct PdfPageType3TextInvocation {
-    internal PdfPageType3TextInvocation(IReadOnlyList<PdfPageType3GlyphInvocation> glyphs, double paintOrder) {
+    internal PdfPageType3TextInvocation(IReadOnlyList<PdfPageType3GlyphInvocation> glyphs, double paintOrder, int sourceOperatorIndex) {
         Glyphs = glyphs;
         PaintOrder = paintOrder;
+        SourceOperatorIndex = sourceOperatorIndex;
     }
 
     internal IReadOnlyList<PdfPageType3GlyphInvocation> Glyphs { get; }
 
     internal double PaintOrder { get; }
+
+    internal int SourceOperatorIndex { get; }
 }
 
 internal readonly struct PdfPageType3GlyphInvocation {
@@ -21,10 +78,16 @@ internal readonly struct PdfPageType3GlyphInvocation {
         PdfPageClipPath? clipPath,
         OfficeColor fillColor,
         PdfPageColorSpace fillColorSpace,
+        PdfPagePatternSelection? fillPattern,
+        PdfPageColorSpace? fillPatternBaseColorSpace,
         double? fillOpacity,
         OfficeColor strokeColor,
         PdfPageColorSpace strokeColorSpace,
+        PdfPagePatternSelection? strokePattern,
+        PdfPageColorSpace? strokePatternBaseColorSpace,
         double? strokeOpacity,
+        string? fillPatternName,
+        string? strokePatternName,
         double strokeWidth,
         OfficeStrokeDashStyle? strokeDashStyle,
         OfficeStrokeLineCap? strokeLineCap,
@@ -35,10 +98,16 @@ internal readonly struct PdfPageType3GlyphInvocation {
         ClipPath = clipPath;
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
+        FillPattern = fillPattern;
+        FillPatternBaseColorSpace = fillPatternBaseColorSpace;
         FillOpacity = fillOpacity;
         StrokeColor = strokeColor;
         StrokeColorSpace = strokeColorSpace;
+        StrokePattern = strokePattern;
+        StrokePatternBaseColorSpace = strokePatternBaseColorSpace;
         StrokeOpacity = strokeOpacity;
+        FillPatternName = fillPatternName;
+        StrokePatternName = strokePatternName;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
         StrokeLineCap = strokeLineCap;
@@ -51,10 +120,16 @@ internal readonly struct PdfPageType3GlyphInvocation {
     internal PdfPageClipPath? ClipPath { get; }
     internal OfficeColor FillColor { get; }
     internal PdfPageColorSpace FillColorSpace { get; }
+    internal PdfPagePatternSelection? FillPattern { get; }
+    internal PdfPageColorSpace? FillPatternBaseColorSpace { get; }
     internal double? FillOpacity { get; }
     internal OfficeColor StrokeColor { get; }
     internal PdfPageColorSpace StrokeColorSpace { get; }
+    internal PdfPagePatternSelection? StrokePattern { get; }
+    internal PdfPageColorSpace? StrokePatternBaseColorSpace { get; }
     internal double? StrokeOpacity { get; }
+    internal string? FillPatternName { get; }
+    internal string? StrokePatternName { get; }
     internal double StrokeWidth { get; }
     internal OfficeStrokeDashStyle? StrokeDashStyle { get; }
     internal OfficeStrokeLineCap? StrokeLineCap { get; }

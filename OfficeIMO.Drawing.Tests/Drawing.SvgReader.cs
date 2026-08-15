@@ -176,6 +176,136 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgSafetyPredicateAllowsExactPathBudgetAndRejectsAnOverrun() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 1; index < 20_000; index++) path.Append(" L1 1");
+        string withinBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='"
+            + path + "'/><foreignObject/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(withinBudget)));
+
+        path.Append(" L1 1");
+        string overBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><path d='"
+            + path + "'/><foreignObject/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(overBudget)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsPathsInsideReferencedDefinitions() {
+        var clipPath = new StringBuilder("M0 0");
+        for (int index = 1; index < 20_000; index++) clipPath.Append(" L1 1");
+        string withinBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='clip'><path d='" + clipPath + "'/></clipPath></defs>"
+            + "<rect width='16' height='8' clip-path='url(#clip)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(withinBudget)));
+
+        clipPath.Append(" L1 1");
+        string overBudget = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='clip'><path d='" + clipPath + "'/></clipPath></defs>"
+            + "<rect width='16' height='8' clip-path='url(#clip)'/></svg>";
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(overBudget)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateAllowsBoundedGeometryThatCannotBeVectorProjected() {
+        const string degeneratePolygon = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><polygon points='1,1 2,1 3,1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(degeneratePolygon)));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateChargesRepeatedUsePathsToOneRenderedCommandBudget() {
+        var path = new StringBuilder("M0 0");
+        for (int index = 0; index < 1000; index++) path.Append(" L1 1");
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs><path id='p' d='")
+            .Append(path).Append("'/></defs>");
+        for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
+        svg.Append("</svg>");
+
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(svg.ToString())));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicatePreservesExactUseDepthAndRejectsAnOverrun() {
+        static string BuildUseChain(int referencedElements) {
+            var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'><defs>");
+            for (int index = 0; index < referencedElements; index++) {
+                svg.Append("<g id='r").Append(index).Append("'>");
+                if (index + 1 < referencedElements) {
+                    svg.Append("<use href='#r").Append(index + 1).Append("'/>");
+                } else {
+                    svg.Append("<rect width='1' height='1'/>");
+                }
+                svg.Append("</g>");
+            }
+            return svg.Append("</defs><use href='#r0'/></svg>").ToString();
+        }
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildUseChain(16))));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(BuildUseChain(17))));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsRepeatedUseElementsAgainstRenderedBudget() {
+        const string oneUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='tiles'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></g></defs>"
+            + "<use href='#tiles'/></svg>";
+        const string twoUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><g id='tiles'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></g></defs>"
+            + "<use href='#tiles'/><use href='#tiles'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsRepeatedMaskElementsAgainstRenderedBudget() {
+        const string oneMaskUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><mask id='m' maskUnits='userSpaceOnUse'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></mask></defs>"
+            + "<rect width='4' height='4' mask='url(#m)'/></svg>";
+        const string twoMaskUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><mask id='m' maskUnits='userSpaceOnUse'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></mask></defs>"
+            + "<rect width='4' height='4' mask='url(#m)'/><rect x='5' width='4' height='4' mask='url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneMaskUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoMaskUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsRepeatedClipPathElementsAgainstRenderedBudget() {
+        const string oneClipUse = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' clip-path='url(#c)'/></svg>";
+        const string twoClipUses = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><clipPath id='c'><rect width='1' height='1'/><rect x='2' width='1' height='1'/></clipPath></defs>"
+            + "<rect width='4' height='4' clip-path='url(#c)'/><rect x='5' width='4' height='4' clip-path='url(#c)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 6 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneClipUse), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoClipUses), options));
+    }
+
+    [Fact]
+    public void SvgSafetyPredicateCountsInlineStyleFilterAndMarkerReferences() {
+        const string oneReferencedShape = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><filter id='f'><feGaussianBlur stdDeviation='1'/></filter><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1' style='filter:url(#f);marker-end:url(#m)'/></svg>";
+        const string twoReferencedShapes = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='8'>"
+            + "<defs><filter id='f'><feGaussianBlur stdDeviation='1'/></filter><marker id='m'><rect width='1' height='1'/></marker></defs>"
+            + "<path d='M0 0 L1 1' style='filter:url(#f);marker-end:url(#m)'/>"
+            + "<path d='M1 0 L2 1' style='filter:url(#f);marker-end:url(#m)'/></svg>";
+        var options = new OfficeSvgDrawingReaderOptions { MaximumElements = 8 };
+
+        Assert.True(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(oneReferencedShape), options));
+        Assert.False(OfficeSvgDrawingReader.IsWithinSafetyLimits(Encoding.UTF8.GetBytes(twoReferencedShapes), options));
+    }
+
+    [Fact]
     public void SvgReaderConvertsRotatedEllipticalArcsToBoundedCubicPaths() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<path fill='none' stroke='blue' d='M2 10 A8 6 30 0 1 18 10 A8 6 30 1 1 2 10 Z'/></svg>";

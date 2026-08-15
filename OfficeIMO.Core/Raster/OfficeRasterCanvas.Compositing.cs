@@ -4,9 +4,12 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
     /// <summary>Draws an affine image with managed opacity and blend-mode compositing.</summary>
-    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode) {
+    public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode) =>
+        DrawAffineImage(image, transform, opacity, blendMode, interpolate: true);
+
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode, bool interpolate) {
         if (blendMode == OfficeBlendMode.Normal) {
-            DrawAffineImage(image, transform, opacity);
+            DrawAffineImage(image, transform, opacity, interpolate);
             return;
         }
 
@@ -26,7 +29,11 @@ public sealed partial class OfficeRasterCanvas {
                 if (!IsPixelInsideClip(x, y)) continue;
                 OfficePoint sourcePoint = inverse.TransformPoint(new OfficePoint(x + 0.5D, y + 0.5D));
                 if (sourcePoint.X < 0D || sourcePoint.X >= image.Width || sourcePoint.Y < 0D || sourcePoint.Y >= image.Height) continue;
-                OfficeColor source = SampleBilinear(image, sourcePoint.X - 0.5D, sourcePoint.Y - 0.5D);
+                OfficeColor source = interpolate
+                    ? SampleBilinear(image, sourcePoint.X - 0.5D, sourcePoint.Y - 0.5D)
+                    : image.GetPixel(
+                        Clamp((int)Math.Floor(sourcePoint.X), 0, image.Width - 1),
+                        Clamp((int)Math.Floor(sourcePoint.Y), 0, image.Height - 1));
                 if (opacity < 1D) source = OfficeColor.FromRgba(source.R, source.G, source.B, (byte)Math.Round(source.A * opacity));
                 CompositeBlendPixel(x, y, source, blendMode);
             }

@@ -114,5 +114,14 @@ public enum PdfReadLimitKind {
     RetainedContentBytes = 36,
 
     /// <summary>Text-search matches materialized by one Find or ReplaceAll operation.</summary>
-    TextSearchMatches = 37
+    TextSearchMatches = 37,
+
+    /// <summary>Text clipping paths retained while parsing one page content tree.</summary>
+    TextClippingPaths = 38,
+
+    /// <summary>Estimated contour comparisons spent intersecting text clipping paths on one page content tree.</summary>
+    TextClippingIntersectionWork = 39,
+
+    /// <summary>Aggregate work spent intersecting ordinary clipping paths on one page content tree.</summary>
+    ClippingIntersectionWork = 40
 }

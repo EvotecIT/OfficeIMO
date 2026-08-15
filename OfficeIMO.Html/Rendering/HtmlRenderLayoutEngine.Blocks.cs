@@ -59,7 +59,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     flowHeight += inlineHeight;
                     if (inlineHeight > 0D) adjoiningMargins.Clear();
-                    HtmlCssRunningStringAssignment assignment = CaptureRunningElement(
+                    IReadOnlyList<HtmlCssRunningStringAssignment> assignments = CaptureRunningElement(
                         element,
                         runningElementName,
                         width,
@@ -74,7 +74,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         HtmlPageBreakTarget.None,
                         false,
                         HtmlRenderStyleResolver.DescribeSource(element),
-                        runningStringAssignments: new[] { assignment },
+                        runningStringAssignments: assignments,
                         layoutViewportWidth: ActiveSurfaceWidth,
                         layoutViewportHeight: _activePageGeometry.Height));
                     adjoiningMargins.Clear();

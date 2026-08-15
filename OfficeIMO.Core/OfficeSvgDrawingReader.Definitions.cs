@@ -18,7 +18,7 @@ public static partial class OfficeSvgDrawingReader {
             var definitions = new Dictionary<string, XElement>(StringComparer.Ordinal);
             var ambiguousIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (XElement element in root.Descendants()) {
-                string? id = element.Attribute("id")?.Value.Trim();
+                string? id = ReadRasterElementId(element);
                 if (string.IsNullOrEmpty(id)) continue;
                 if (definitions.ContainsKey(id!)) {
                     ambiguousIds.Add(id!);
@@ -33,5 +33,19 @@ public static partial class OfficeSvgDrawingReader {
             element = null;
             return !_ambiguousIds.Contains(id) && _definitions.TryGetValue(id, out element);
         }
+    }
+
+    private static string? ReadRasterElementId(XElement element) {
+        string? id = ReadRasterProjectedAttribute(element, "id")?.Trim();
+        return string.IsNullOrEmpty(id) ? null : id;
+    }
+
+    private static string? ReadRasterProjectedAttribute(XElement element, string localName) {
+        string? value = null;
+        foreach (XAttribute attribute in element.Attributes()) {
+            if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace == XNamespace.Xml) continue;
+            if (attribute.Name.LocalName.Equals(localName, StringComparison.Ordinal)) value = attribute.Value;
+        }
+        return value;
     }
 }

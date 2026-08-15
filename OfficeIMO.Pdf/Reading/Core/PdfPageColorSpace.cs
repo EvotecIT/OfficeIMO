@@ -36,6 +36,8 @@ internal readonly struct PdfPageColorSpace {
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
 
+    public bool HasPatternBaseColorSpace => Kind == PdfPageColorSpaceKind.Pattern && _custom?.Alternate != null;
+
     public static PdfPageColorSpace CalRgb(
         double whiteX,
         double whiteY,
@@ -56,6 +58,9 @@ internal readonly struct PdfPageColorSpace {
         PdfPageColorSpace alternate,
         Func<IReadOnlyList<double>, IReadOnlyList<double>?> transform) =>
         new PdfPageColorSpace(kind, new PdfPageCustomColorSpace(componentCount, alternate, transform));
+
+    public static PdfPageColorSpace Pattern(PdfPageColorSpace baseColorSpace) =>
+        new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern, new PdfPageCustomColorSpace(baseColorSpace));
 
     public OfficeColor ConvertCalRgb(double red, double green, double blue) {
         PdfPageCalRgbParameters parameters = _calRgb ?? PdfPageCalRgbParameters.Default;
@@ -149,6 +154,12 @@ internal readonly struct PdfPageColorSpace {
             Alternate = alternate;
             Transform = transform;
             UsesIccApproximation = alternate.UsesIccApproximation;
+        }
+
+        public PdfPageCustomColorSpace(PdfPageColorSpace patternBaseColorSpace) {
+            ComponentCount = patternBaseColorSpace.ComponentCount;
+            Alternate = patternBaseColorSpace;
+            UsesIccApproximation = patternBaseColorSpace.UsesIccApproximation;
         }
 
         public int ComponentCount { get; }

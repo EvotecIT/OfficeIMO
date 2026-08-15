@@ -148,8 +148,23 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             throw new IndexOutOfRangeException();
         }
 
-        return _textRowSource?.GetString(ordinal)
-            ?? throw new InvalidOperationException("The current CSV row is not backed by decoded source text.");
+        if (_textRowSource is not null)
+        {
+            return _textRowSource.GetString(ordinal);
+        }
+        if (_currentStringRow is not null)
+        {
+            return ordinal < _currentStringRow.Count ? _currentStringRow[ordinal] : string.Empty;
+        }
+
+        if (_rawRowsAreParsedStringsOnly)
+        {
+            object? value = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+            return value as string ?? string.Empty;
+        }
+
+        throw new InvalidOperationException(
+            "The current CSV row is not backed by decoded source text.");
     }
 #endif
 

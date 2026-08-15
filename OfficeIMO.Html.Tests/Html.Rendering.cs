@@ -1770,6 +1770,52 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("block")]
+    [InlineData("inline")]
+    [InlineData("flex")]
+    [InlineData("grid")]
+    public void HtmlRender_Paged_CapturedRunningElementsPropagateOwnAndNestedAssignments(string layout) {
+        const string captured = "<span class='outer'>OuterMarker <span class='nested'>NestedMarker</span></span>";
+        string body = layout switch {
+            "inline" => "<p>Before " + captured + " After</p>",
+            "flex" => "<div style='display:flex'>" + captured + "<span>Body</span></div>",
+            "grid" => "<div style='display:grid;grid-template-columns:1fr'>" + captured + "<span>Body</span></div>",
+            _ => captured + "<p>Body</p>"
+        };
+        string html = """
+            <style>
+              @page {
+                size:320px 180px;
+                margin:32px;
+                @top-left { content:string(title); }
+                @top-center { content:element(outer); }
+                @top-right { content:element(nested); }
+              }
+              .outer { position:running(outer); string-set:title 'TitleMarker'; }
+              .nested { position:running(nested); }
+            </style>
+            """ + body;
+
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        string marginText = string.Concat(
+            EnumerateRenderVisuals(rendered.Pages[0].Scene)
+                .OfType<HtmlRenderText>()
+                .Select(text => text.Text));
+
+        Assert.Contains("TitleMarker", marginText, StringComparison.Ordinal);
+        Assert.Contains("OuterMarker", marginText, StringComparison.Ordinal);
+        Assert.Contains("NestedMarker", marginText, StringComparison.Ordinal);
+        Assert.Empty(rendered.Diagnostics);
+        PdfCore.PdfDocumentConversionResult pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPdfDocumentResult(new HtmlPdfSaveOptions(options));
+        Assert.DoesNotContain(pdf.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+    }
+
     [Fact]
     public void HtmlRender_Paged_DirectFlexAndGridRunningItemsPreserveCaseAndContainerLayout() {
         const string html = """

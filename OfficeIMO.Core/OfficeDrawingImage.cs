@@ -17,10 +17,20 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <param name="alternativeText">Optional semantic label used by adapters and diagnostics.</param>
     /// <param name="opacity">Element opacity from 0 transparent to 1 opaque.</param>
     public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D)
-        : this(bytes, contentType, projection, alternativeText, opacity, useDataSnapshot: false) {
+        : this(bytes, contentType, projection, alternativeText, opacity, interpolate: true, useDataSnapshot: false) {
     }
 
-    internal OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool useDataSnapshot) {
+    /// <summary>Creates an image drawing element with explicit scaling interpolation behavior.</summary>
+    public static OfficeDrawingImage CreateWithInterpolation(
+        byte[] bytes,
+        string? contentType,
+        OfficeImageProjection projection,
+        bool interpolate,
+        string? alternativeText = null,
+        double opacity = 1D) =>
+        new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity, interpolate, useDataSnapshot: false);
+
+    internal OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool interpolate, bool useDataSnapshot) {
         if (bytes == null) {
             throw new ArgumentNullException(nameof(bytes));
         }
@@ -40,6 +50,7 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
         Projection = projection;
         AlternativeText = alternativeText;
         Opacity = opacity;
+        Interpolate = interpolate;
     }
 
     /// <summary>Embedded source image bytes.</summary>
@@ -57,8 +68,11 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <summary>Element opacity from 0 transparent to 1 opaque.</summary>
     public double Opacity { get; }
 
+    /// <summary>Whether renderers may smooth pixels while scaling the image.</summary>
+    public bool Interpolate { get; }
+
     internal byte[] EncodedBytes => _bytes;
 
     internal override OfficeDrawingElement CloneElement() =>
-        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText, Opacity, useDataSnapshot: true);
+        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText, Opacity, Interpolate, useDataSnapshot: true);
 }

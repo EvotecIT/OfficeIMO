@@ -262,7 +262,10 @@ internal static partial class HtmlPdfRenderedConverter {
         double height = field.Height * PointsPerCssPixel;
         double fontSize = Math.Max(1D, field.Font.Size * PointsPerCssPixel);
         if (field.FieldKind == HtmlRenderFormFieldKind.Text) {
-            if (field.Value.Length == 0 && field.Placeholder.Length > 0) {
+            if (field.IsPassword && field.Value.Length > 0) {
+                string maskedValue = new('*', field.Value.Length);
+                canvas.TextFieldWithInitialAppearance(field.Name, string.Empty, maskedValue, x, y, width, height, fontSize, style, style);
+            } else if (field.Value.Length == 0 && field.Placeholder.Length > 0) {
                 PdfCore.PdfFormFieldStyle appearanceStyle = style.Clone();
                 appearanceStyle.TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.PlaceholderTextColor) ?? PdfCore.PdfColor.Black;
                 canvas.TextFieldWithInitialAppearance(field.Name, field.Value, field.Placeholder, x, y, width, height, fontSize, style, appearanceStyle);

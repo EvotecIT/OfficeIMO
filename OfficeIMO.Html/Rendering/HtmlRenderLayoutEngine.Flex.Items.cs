@@ -25,14 +25,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.Display == "none") return true;
         if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
             if (runningElementAssignments != null) {
-                runningElementAssignments.Add(CaptureRunningElement(
+                foreach (HtmlCssRunningStringAssignment assignment in CaptureRunningElement(
                     element,
                     runningElementName,
                     containingWidth,
                     style,
                     parentStyle,
                     depth + 1,
-                    sourceIndex));
+                    sourceIndex)) {
+                    runningElementAssignments.Add(assignment);
+                }
             }
             sourceIndex++;
             return true;

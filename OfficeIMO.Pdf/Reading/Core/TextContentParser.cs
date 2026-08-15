@@ -205,6 +205,7 @@ internal static class TextContentParser {
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
+        public int SourceOperatorIndex { get; }
         public bool HasUnsupportedEffect { get; }
         public bool FillColorResolved { get; }
 
@@ -220,6 +221,7 @@ internal static class TextContentParser {
             double? strokeOpacity = null,
             int textRenderingMode = 0,
             PdfPageClipPath? clipPath = null,
+            int sourceOperatorIndex = 0,
             bool hasUnsupportedEffect = false,
             bool fillColorResolved = true) {
             Name = name;
@@ -233,6 +235,7 @@ internal static class TextContentParser {
             StrokeOpacity = strokeOpacity;
             TextRenderingMode = textRenderingMode;
             ClipPath = clipPath;
+            SourceOperatorIndex = sourceOperatorIndex;
             HasUnsupportedEffect = hasUnsupportedEffect;
             FillColorResolved = fillColorResolved;
         }
@@ -270,7 +273,10 @@ internal static class TextContentParser {
         int maxActualTextCharacters = PdfReadLimits.DefaultMaxActualTextCharacters,
         int maxDecodedTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters,
         TextOutputBudget? textOutputBudget = null,
+        PdfTextClippingBudget? textClippingBudget = null,
         System.Func<string, byte[], int, string>? decodeWithFontWithinLimit = null,
+        PdfContentOrderKey? contentOrderPrefix = null,
+        int contentOrderOffset = 0,
         bool initialUnsupportedEffect = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -285,6 +291,7 @@ internal static class TextContentParser {
 #endif
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
+        textClippingBudget ??= new PdfTextClippingBudget();
 
         var spans = new List<PdfTextSpan>();
         // Text state
@@ -314,6 +321,7 @@ internal static class TextContentParser {
         double pendingGapPt = 0;
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
+        PdfContentOrderKey? currentContentOrderKey = null;
         int textObjectFirstSpanIndex = 0;
         PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
         bool textObjectHasCollateralVisual = false;
@@ -324,6 +332,7 @@ internal static class TextContentParser {
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
+            currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
             if (string.Equals(op, "ri", StringComparison.Ordinal)) hasUnsupportedEffect = true;
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
@@ -471,7 +480,7 @@ internal static class TextContentParser {
                 case "W":
                 case "W*":
                     if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
                     }
 
                     args.Clear();
@@ -903,6 +912,7 @@ internal static class TextContentParser {
                     pendingLineBreaks,
                     logicalLeadingSpace,
                     logicalTrailingSpace,
+                    currentContentOrderKey,
                     string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) ? transformedCharacterAdvances : null,
                     textRenderingMode,
                     canRestamp && visibleGlyphsMatchLogicalText,
@@ -927,13 +937,14 @@ internal static class TextContentParser {
             var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
             textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
             if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                textClippingBudget.ChargePath();
                 pendingTextClipPaths.Add(textClipPath);
             }
         }
 
         void ApplyPendingTextClippingPath() {
             if (PdfPageClipPath.TryCombineTextClippingPaths(pendingTextClipPaths, out PdfPageClipPath textClipPath)) {
-                clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
+                clipPath = textClippingBudget.ResolveActiveClip(clipPath, textClipPath);
             }
             pendingTextClipPaths.Clear();
         }
@@ -1209,7 +1220,9 @@ internal static class TextContentParser {
         System.Func<string, bool>? hasMcidForProperty = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        PdfTextClippingBudget? textClippingBudget = null) {
+        textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
@@ -1353,7 +1366,7 @@ internal static class TextContentParser {
                 case "W":
                 case "W*":
                     if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                        clipPath = textClippingBudget.ResolveActiveClip(clipPath, parsedClipPath);
                     }
 
                     args.Clear();
@@ -1482,7 +1495,21 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect || HasUnsupportedRestampContent(), fillColorResolved));
+                            invocations.Add(new FormInvocation(
+                                name,
+                                ctm,
+                                paintOrder,
+                                fillColor,
+                                fillColorSpace,
+                                strokeColor,
+                                strokeColorSpace,
+                                fillOpacity,
+                                strokeOpacity,
+                                textRenderingMode,
+                                clipPath,
+                                operation.OperatorOffset,
+                                hasUnsupportedEffect || HasUnsupportedRestampContent(),
+                                fillColorResolved));
                         }
                     }
                     args.Clear();

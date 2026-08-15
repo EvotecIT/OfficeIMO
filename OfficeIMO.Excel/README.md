@@ -727,9 +727,11 @@ document.Save();
 ```
 
 When rows already have a fixed schema, pass a `DataTable` directly. This keeps
-its column order, avoids generic object flattening, and does not apply the
-generic `MaxCells` materialization guard. Excel's worksheet row and column
-limits still apply; select or split data that exceeds them.
+its column order and avoids generic object flattening. Fixed-schema tables allow
+up to 5,000,000 cells by default, including the header row. Set `MaxRows`,
+`MaxColumns`, or `MaxCells` in the configuration callback when a report needs a
+different bounded limit. Excel's worksheet row and column limits still apply;
+select or split data that exceeds them.
 
 ```csharp
 using System.Data;

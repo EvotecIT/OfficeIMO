@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private HtmlCssRunningStringAssignment CaptureRunningElement(
+    private IReadOnlyList<HtmlCssRunningStringAssignment> CaptureRunningElement(
         IElement element,
         string name,
         double containingWidth,
@@ -17,29 +17,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock snapshot = LayoutElement(element, containingWidth, captureStyle, parentStyle, depth);
         int snapshotId = ++_nextRunningElementSnapshotId;
         _runningElementSnapshots[snapshotId] = new HtmlCssRunningElementSnapshot(snapshot, element, parentStyle, depth);
-        return new HtmlCssRunningStringAssignment(
-            HtmlCssRunningElementKeys.ForName(name),
-            HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
-            0D,
-            orderOffset,
-            GetDocumentOrder(element));
+        int documentOrder = GetDocumentOrder(element);
+        var assignments = new List<HtmlCssRunningStringAssignment>(snapshot.RunningStringAssignments.Count + 1) {
+            new HtmlCssRunningStringAssignment(
+                HtmlCssRunningElementKeys.ForName(name),
+                HtmlCssRunningElementParser.FormatSnapshotId(snapshotId),
+                0D,
+                orderOffset,
+                documentOrder)
+        };
+        assignments.AddRange(snapshot.RunningStringAssignments.Select(assignment =>
+            new HtmlCssRunningStringAssignment(
+                assignment.Name,
+                assignment.Value,
+                0D,
+                orderOffset,
+                documentOrder)));
+        return assignments.AsReadOnly();
     }
 
     private static IReadOnlyList<HtmlCssRunningStringAssignment> NormalizeRunningElementAssignmentOrder(
         IEnumerable<HtmlCssRunningStringAssignment> assignments,
         double extent) {
         List<HtmlCssRunningStringAssignment> materialized = assignments.ToList();
-        List<HtmlCssRunningStringAssignment> runningElements = materialized
+        List<IGrouping<int, HtmlCssRunningStringAssignment>> runningElementGroups = materialized
             .Where(assignment => assignment.DocumentOrder.HasValue)
-            .OrderBy(assignment => assignment.DocumentOrder)
-            .ThenBy(assignment => assignment.OrderOffset)
+            .GroupBy(assignment => assignment.DocumentOrder!.Value)
+            .OrderBy(group => group.Key)
             .ToList();
-        if (runningElements.Count == 0) return materialized.OrderBy(assignment => assignment.OrderOffset).ToList();
+        if (runningElementGroups.Count == 0) return materialized.OrderBy(assignment => assignment.OrderOffset).ToList();
 
         var logicalOffsets = new Dictionary<HtmlCssRunningStringAssignment, double>();
-        double step = Math.Max(0.01D, extent) / runningElements.Count;
-        for (int index = 0; index < runningElements.Count; index++) {
-            logicalOffsets[runningElements[index]] = index * step;
+        double step = Math.Max(0.01D, extent) / runningElementGroups.Count;
+        for (int index = 0; index < runningElementGroups.Count; index++) {
+            foreach (HtmlCssRunningStringAssignment assignment in runningElementGroups[index]) {
+                logicalOffsets[assignment] = index * step;
+            }
         }
 
         return materialized

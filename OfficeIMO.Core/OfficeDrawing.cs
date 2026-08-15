@@ -203,17 +203,27 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds an image using a shared placement/crop/transform projection and returns this drawing.</summary>
     public OfficeDrawing AddImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D) {
-        return AddImageCore(bytes, contentType, projection, alternativeText, opacity, allowOverflow: false);
+        return AddImageCore(bytes, contentType, projection, alternativeText, opacity, interpolate: true, allowOverflow: false);
+    }
+
+    /// <summary>Adds an image using explicit scaling interpolation behavior.</summary>
+    public OfficeDrawing AddImageWithInterpolation(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, string? alternativeText = null, double opacity = 1D) {
+        return AddImageCore(bytes, contentType, projection, alternativeText, opacity, interpolate, allowOverflow: false);
     }
 
     internal OfficeDrawing AddImageShared(byte[] bytes, string? contentType, OfficeImageProjection projection,
         string? alternativeText = null, double opacity = 1D) {
-        return AddImageCore(bytes, contentType, projection, alternativeText, opacity,
+        return AddImageCore(bytes, contentType, projection, alternativeText, opacity, interpolate: true,
             allowOverflow: false, useDataSnapshot: true);
     }
 
     /// <summary>Adds an image clipped by a drawing-local clipping path.</summary>
     public OfficeDrawing AddClippedImage(byte[] bytes, string? contentType, OfficeImageProjection projection, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
+        return AddClippedImageWithInterpolation(bytes, contentType, projection, true, clipX, clipY, clipPath, alternativeText, opacity);
+    }
+
+    /// <summary>Adds an image with explicit scaling interpolation behavior, clipped by a drawing-local path.</summary>
+    public OfficeDrawing AddClippedImageWithInterpolation(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
         if (clipPath == null) {
             throw new ArgumentNullException(nameof(clipPath));
         }
@@ -225,7 +235,7 @@ public sealed partial class OfficeDrawing {
         }
 
         var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
-        clipped.AddImageCore(bytes, contentType, projection.Translate(-clipX, -clipY), alternativeText, opacity, allowOverflow: true);
+        clipped.AddImageCore(bytes, contentType, projection.Translate(-clipX, -clipY), alternativeText, opacity, interpolate, allowOverflow: true);
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
@@ -270,9 +280,9 @@ public sealed partial class OfficeDrawing {
     }
 
     private OfficeDrawing AddImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection,
-        string? alternativeText, double opacity, bool allowOverflow, bool useDataSnapshot = false) {
+        string? alternativeText, double opacity, bool interpolate, bool allowOverflow, bool useDataSnapshot = false) {
         var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity,
-            useDataSnapshot);
+            interpolate, useDataSnapshot);
         (double left, double top, double right, double bottom) = item.Projection.GetDestinationBounds();
         if (!allowOverflow && (left < 0D || top < 0D || right > Width || bottom > Height)) {
             throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");
@@ -568,11 +578,11 @@ public sealed partial class OfficeDrawing {
         }
 
         if (allowOverflow) {
-            var item = new OfficeDrawingImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity, useDataSnapshot: true);
+            var item = new OfficeDrawingImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity, image.Interpolate, useDataSnapshot: true);
             _images.Add(item);
             _elements.Add(item);
         } else {
-            AddImage(image.EncodedBytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
+            AddImageWithInterpolation(image.EncodedBytes, image.ContentType, projection, image.Interpolate, image.AlternativeText, image.Opacity);
         }
     }
 
