@@ -76,7 +76,9 @@ public sealed partial class ProvenanceDocumentContracts {
         }
     }
 
-    private static byte[] CreateWave33XlsbProvenancePackage(bool signed) {
+    private static byte[] CreateWave33XlsbProvenancePackage(
+        bool signed,
+        string officeDocumentTarget = "xl/workbook.bin") {
         string signatureTypes = signed
             ? "<Override PartName=\"/_xmlsignatures/origin.sigs\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-origin\"/>" +
               "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>"
@@ -94,7 +96,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 signatureTypes + "</Types>");
             WriteWave33Entry(archive, "_rels/.rels",
                 "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"" + officeDocumentTarget + "\"/>" +
                 "<Relationship Id=\"rApp\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>" +
                 signatureRelationship + "</Relationships>");
             WriteWave33Entry(archive, "xl/workbook.bin", new byte[] { 0x83, 0x01, 0x00, 0x84, 0x01, 0x00 });

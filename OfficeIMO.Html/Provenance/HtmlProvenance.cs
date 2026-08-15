@@ -773,6 +773,9 @@ public static partial class HtmlProvenance {
     private static void ValidatePotentialElementCount(string html, int maximumEntries) {
         int count = 0;
         int index = 0;
+        bool sawHtmlElement = false;
+        bool sawHeadElement = false;
+        bool sawBodyElement = false;
         var openElements = new List<HtmlPreflightElement>();
         while (index < html.Length - 1) {
             int markup = html.IndexOf('<', index);
@@ -836,10 +839,19 @@ public static partial class HtmlProvenance {
                 index = tagEnd + 1;
                 continue;
             }
+            HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
+            if (elementNamespace == HtmlPreflightNamespace.Html &&
+                ShouldIgnoreDuplicateDocumentElement(
+                    tagName,
+                    ref sawHtmlElement,
+                    ref sawHeadElement,
+                    ref sawBodyElement)) {
+                index = tagEnd + 1;
+                continue;
+            }
             if (++count > maximumEntries) {
                 throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
             }
-            HtmlPreflightNamespace elementNamespace = ChildNamespace(openElements, tagName);
             bool childrenUseHtml = elementNamespace == HtmlPreflightNamespace.Html ||
                 IsHtmlIntegrationPoint(html, tagName, elementNamespace, nameEnd, tagEnd);
             if (!selfClosing && !(elementNamespace == HtmlPreflightNamespace.Html && IsHtmlVoidElement(tagName))) {
@@ -853,6 +865,27 @@ public static partial class HtmlProvenance {
                 index = rawTextEnd;
             }
         }
+    }
+
+    private static bool ShouldIgnoreDuplicateDocumentElement(
+        string tagName,
+        ref bool sawHtmlElement,
+        ref bool sawHeadElement,
+        ref bool sawBodyElement) {
+        if (tagName.Equals("html", StringComparison.OrdinalIgnoreCase)) {
+            if (sawHtmlElement) return true;
+            sawHtmlElement = true;
+            return false;
+        }
+        if (tagName.Equals("head", StringComparison.OrdinalIgnoreCase)) {
+            if (sawHeadElement || sawBodyElement) return true;
+            sawHeadElement = true;
+            return false;
+        }
+        if (!tagName.Equals("body", StringComparison.OrdinalIgnoreCase)) return false;
+        if (sawBodyElement) return true;
+        sawBodyElement = true;
+        return false;
     }
 
     private static bool ShouldIgnoreStartTagInSelect(List<HtmlPreflightElement> elements, string tagName) {
