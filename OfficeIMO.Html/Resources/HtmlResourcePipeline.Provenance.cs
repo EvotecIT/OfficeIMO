@@ -8,10 +8,16 @@ namespace OfficeIMO.Html;
 public static partial class HtmlResourcePipeline {
     private const char CssCommentMask = '\u0001';
     internal static bool IsActiveProvenanceStyleElement(IElement element) =>
-        IsCssStyleElement(element) && IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
+        IsCssStyleElement(element) && IsPotentiallyApplicableProvenanceMedia(element.GetAttribute("media") ?? string.Empty);
 
     internal static bool IsApplicableProvenanceMedia(IElement element) =>
-        IsApplicableMedia(element.GetAttribute("media") ?? string.Empty, new HtmlResourcePipelineOptions());
+        IsPotentiallyApplicableProvenanceMedia(element.GetAttribute("media") ?? string.Empty);
+
+    private static bool IsPotentiallyApplicableProvenanceMedia(string mediaText) {
+        var options = new HtmlResourcePipelineOptions();
+        return IsApplicableMedia(mediaText, options) ||
+            HtmlComputedStyleEngine.IsPotentiallyApplicableScreenMedia(mediaText, options.MediaFeatures);
+    }
 
     internal static bool IsActivePictureImageSource(IElement element) {
         var options = new HtmlResourcePipelineOptions();
@@ -34,7 +40,7 @@ public static partial class HtmlResourcePipeline {
         var result = new HtmlProvenanceCssScope(computedStyleSet);
 
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
-            if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) continue;
+            if (!IsCssStyleElement(styleElement) || !IsPotentiallyApplicableProvenanceMedia(styleElement.GetAttribute("media") ?? string.Empty)) continue;
             CollectResolvedCustomPropertyDeclarations(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, result.UsedCustomPropertyDeclarations);
             CollectResolvedVarFallbackStarts(styleElement.TextContent, documentDefinitions, inlineSourceOrders, document, null, computedStyles, options, "css", styleElement, result);
         }
@@ -43,7 +49,7 @@ public static partial class HtmlResourcePipeline {
             int sourceOrderBase = inlineSourceOrders.TryGetValue(element, out int sourceOrder)
                 ? sourceOrder
                 : GetDocumentCssSourceOrder(document);
-            List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(css, options);
+            List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(css, options, includePotentialResponsiveScreenMedia: true);
             Dictionary<string, List<CssCustomPropertyDefinition>> definitions = MergeCustomPropertyDefinitions(
                 documentDefinitions,
                 ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false));
@@ -68,7 +74,7 @@ public static partial class HtmlResourcePipeline {
         HtmlProvenanceCssScope result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
         string masked = MaskCssComments(css);
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options, includePotentialResponsiveScreenMedia: true);
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             if (!IsValidCssUrlMatch(masked, match)) continue;
             if (IsResolvedVarFallbackUrl(masked, match.Index, definitions, inlineSourceOrders, document,
@@ -95,7 +101,7 @@ public static partial class HtmlResourcePipeline {
         IDictionary<IElement, HashSet<int>> result) {
         if (string.IsNullOrWhiteSpace(css) || definitions.Count == 0) return;
         string masked = MaskCssComments(css);
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options);
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, options, includePotentialResponsiveScreenMedia: true);
         foreach (Match variable in CssVarExpression.Matches(masked)) {
             if (IsInRanges(variable.Index, inactiveRanges) ||
                 !IsCssFunctionNameAt(masked, variable.Index, "var") || IsInsideCssString(masked, variable.Index) ||
@@ -137,7 +143,10 @@ public static partial class HtmlResourcePipeline {
         IElement? sourceOwner = null) {
         if (string.IsNullOrWhiteSpace(css)) yield break;
         string masked = MaskCssComments(css);
-        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(masked, new HtmlResourcePipelineOptions());
+        List<SourceRange> inactiveRanges = GetInactiveCssRuleRanges(
+            masked,
+            new HtmlResourcePipelineOptions(),
+            includePotentialResponsiveScreenMedia: true);
         var emittedRanges = new HashSet<(int Start, int Length)>();
         foreach (Match match in CssUrlExpression.Matches(masked)) {
             if (!IsValidCssUrlMatch(masked, match)) continue;
@@ -192,6 +201,7 @@ public static partial class HtmlResourcePipeline {
         if (TryGetEnclosingKeyframesName(css, index, out _, out _)) return true;
         string propertyName = GetCssDeclarationPropertyName(css, index);
         if (propertyName.Length == 0) return true;
+        propertyName = HtmlComputedStyleEngine.GetImageSourcePropertyName(propertyName);
         int declarationStart = GetDeclarationStart(css, index);
         int colon = css.IndexOf(':', declarationStart, Math.Max(0, index - declarationStart));
         if (colon < 0) return true;
@@ -202,6 +212,8 @@ public static partial class HtmlResourcePipeline {
             declarationValue = declarationValue.Substring(0, important).TrimEnd();
         }
         computedStyles ??= computedStyleSet?.Elements ?? HtmlComputedStyleEngine.Compute(document);
+        if (IsInsidePotentialResponsiveMedia(css, index) ||
+            sourceOwner != null && IsPotentialResponsiveMediaAttribute(sourceOwner)) return true;
         IEnumerable<IElement> elements;
         string selector = string.Empty;
         if (string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
@@ -230,6 +242,39 @@ public static partial class HtmlResourcePipeline {
             }
         }
         return !sawElement;
+    }
+
+    private static bool IsPotentialResponsiveMediaAttribute(IElement element) {
+        string mediaText = element.GetAttribute("media") ?? string.Empty;
+        var options = new HtmlResourcePipelineOptions();
+        return !IsApplicableMedia(mediaText, options) &&
+            HtmlComputedStyleEngine.IsPotentiallyApplicableScreenMedia(mediaText, options.MediaFeatures);
+    }
+
+    private static bool IsInsidePotentialResponsiveMedia(string css, int sourceIndex) {
+        var options = new HtmlResourcePipelineOptions();
+        int index = 0;
+        while (index < css.Length) {
+            int mediaStart = css.IndexOf("@media", index, StringComparison.OrdinalIgnoreCase);
+            if (mediaStart < 0) return false;
+            if (IsInsideCssString(css, mediaStart) || !HasAtRuleTokenBoundary(css, mediaStart, "@media")) {
+                index = mediaStart + 6;
+                continue;
+            }
+            int open = FindNextTopLevelBlockStart(css, mediaStart + 6);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close <= open) return false;
+            if (sourceIndex > open && sourceIndex < close) {
+                string mediaText = css.Substring(mediaStart + 6, open - mediaStart - 6).Trim();
+                if (!IsApplicableMedia(mediaText, options) &&
+                    HtmlComputedStyleEngine.IsPotentiallyApplicableScreenMedia(mediaText, options.MediaFeatures)) return true;
+                index = open + 1;
+                continue;
+            }
+            index = sourceIndex >= close ? close + 1 : open + 1;
+        }
+        return false;
     }
 
     private static IEnumerable<HtmlComputedStyle> GetDeclarationStyles(

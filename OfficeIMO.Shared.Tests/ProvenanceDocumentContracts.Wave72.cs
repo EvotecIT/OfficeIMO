@@ -39,7 +39,7 @@ public sealed partial class ProvenanceDocumentContracts {
     public void OdfRejectsDuplicateAndCaseAmbiguousEntries(string duplicateName) {
         byte[] package = CreateZipPackage(
             "odt",
-            "META-INF/customsignatures.xml",
+            "META-INF/documentsignatures.xml",
             CreatePngWithManifest(CreateManifestStore()));
         using var stream = new MemoryStream();
         stream.Write(package, 0, package.Length);
@@ -58,7 +58,7 @@ public sealed partial class ProvenanceDocumentContracts {
     public void SignatureRemovalSharesThePackageRewriteExpansionBudget() {
         byte[] package = CreateZipPackage(
             "odt",
-            "META-INF/customsignatures.xml",
+            "META-INF/documentsignatures.xml",
             CreatePngWithManifest(CreateManifestStore()));
         OfficeProvenanceRemovalResult preview = OdfDocument.RemoveProvenance(
             package,

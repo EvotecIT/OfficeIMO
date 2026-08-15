@@ -48,7 +48,7 @@ public sealed partial class ProvenanceDocumentContracts {
 
     [Fact]
     public void OdfSignatureManifestRewriteCountsOutputBytesOnlyOnce() {
-        const string signaturePath = "META-INF/customsignatures.xml";
+        const string signaturePath = "META-INF/documentsignatures.xml";
         const string manifestPath = "META-INF/manifest.xml";
         byte[] cleanedManifest = Encoding.UTF8.GetBytes(
             "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\"/>");

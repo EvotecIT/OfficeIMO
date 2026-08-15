@@ -215,13 +215,19 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
-    private static List<SourceRange> GetInactiveCssRuleRanges(string css, HtmlResourcePipelineOptions options) {
-        List<SourceRange> ranges = GetInactiveMediaRanges(css, options);
+    private static List<SourceRange> GetInactiveCssRuleRanges(
+        string css,
+        HtmlResourcePipelineOptions options,
+        bool includePotentialResponsiveScreenMedia = false) {
+        List<SourceRange> ranges = GetInactiveMediaRanges(css, options, includePotentialResponsiveScreenMedia);
         ranges.AddRange(GetInactiveSupportsRanges(css));
         return ranges;
     }
 
-    private static List<SourceRange> GetInactiveMediaRanges(string css, HtmlResourcePipelineOptions options) {
+    private static List<SourceRange> GetInactiveMediaRanges(
+        string css,
+        HtmlResourcePipelineOptions options,
+        bool includePotentialResponsiveScreenMedia) {
         var ranges = new List<SourceRange>();
         int index = 0;
         while (index < css.Length) {
@@ -247,7 +253,11 @@ public static partial class HtmlResourcePipeline {
             }
 
             string mediaText = css.Substring(preludeStart, open - preludeStart).Trim();
-            if (!IsApplicableMedia(mediaText, options)) {
+            bool applies = IsApplicableMedia(mediaText, options) ||
+                includePotentialResponsiveScreenMedia &&
+                options.MediaContext == HtmlCssMediaContext.Screen &&
+                HtmlComputedStyleEngine.IsPotentiallyApplicableScreenMedia(mediaText, options.MediaFeatures);
+            if (!applies) {
                 ranges.Add(new SourceRange(open + 1, close));
                 index = close + 1;
             } else {

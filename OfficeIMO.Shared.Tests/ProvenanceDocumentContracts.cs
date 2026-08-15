@@ -597,7 +597,7 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Theory]
-    [InlineData("odt", "META-INF/customsignatures.xml")]
+    [InlineData("odt", "META-INF/documentsignatures.xml")]
     [InlineData("epub", "META-INF/signatures.xml")]
     public void ZipDocumentOwnersRemoveInvalidatedNativeSignatures(string extension, string signaturePath) {
         byte[] package = CreateZipPackage(extension, signaturePath, CreatePngWithManifest(CreateManifestStore()));
@@ -618,8 +618,8 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
-    public void OdfDefaultPolicyBlocksProducerSpecificNativeSignature() {
-        byte[] package = CreateZipPackage("odt", "META-INF/customsignatures.xml", CreatePngWithManifest(CreateManifestStore()));
+    public void OdfDefaultPolicyBlocksNativeDocumentSignature() {
+        byte[] package = CreateZipPackage("odt", "META-INF/documentsignatures.xml", CreatePngWithManifest(CreateManifestStore()));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             OdfDocument.RemoveProvenance(package, "document.odt"));
@@ -662,7 +662,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
                 WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
                 WriteEntry(archive, "content.xml", "<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\"/>", CompressionLevel.Optimal);
-                WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
+                WriteEntry(archive, "META-INF/documentsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "META-INF/content_credential.c2pa", CreateManifestStore(), CompressionLevel.Optimal);
                 WriteEntry(archive, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()), CompressionLevel.Optimal);
             }
@@ -688,7 +688,7 @@ public sealed partial class ProvenanceDocumentContracts {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
                 WriteEntry(archive, "mimetype", "application/vnd.oasis.opendocument.text", CompressionLevel.NoCompression);
                 WriteEntry(archive, "META-INF/manifest.xml", ValidOdfManifestXml, CompressionLevel.Optimal);
-                WriteEntry(archive, "META-INF/customsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
+                WriteEntry(archive, "META-INF/documentsignatures.xml", "<signatures/>", CompressionLevel.Optimal);
                 WriteEntry(archive, "media/first.png", image, CompressionLevel.Optimal);
                 WriteEntry(archive, "media/second.png", image, CompressionLevel.Optimal);
             }

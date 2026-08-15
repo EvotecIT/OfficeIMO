@@ -48,6 +48,11 @@ public static partial class HtmlComputedStyleEngine {
             && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
             ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder);
         }
+        string imageSourceProperty = GetImageSourcePropertyName(name);
+        if (!string.Equals(imageSourceProperty, name, StringComparison.OrdinalIgnoreCase)
+            && IsSupportedDeclarationValue(name, value)) {
+            ApplyDeclaration(properties, parentProperties, imageSourceProperty, value, isImportant, specificity, order, layerOrder);
+        }
 
         CascadedProperty? existing;
         properties.TryGetValue(name, out existing);
@@ -89,6 +94,11 @@ public static partial class HtmlComputedStyleEngine {
     private static string? TryGetCascadedValue(IDictionary<string, CascadedProperty> properties, string name) {
         if (!properties.TryGetValue(name, out CascadedProperty? property)) return null;
         return ResolveLayerRevert(property)?.HasValue == true ? ResolveLayerRevert(property)!.Value : null;
+    }
+
+    internal static string GetImageSourcePropertyName(string propertyName) {
+        if (string.Equals(propertyName, "background", StringComparison.OrdinalIgnoreCase)) return "background-image";
+        return propertyName;
     }
 
     private static bool TryExpandContainerShorthand(string value, out string containerName, out string containerType) {

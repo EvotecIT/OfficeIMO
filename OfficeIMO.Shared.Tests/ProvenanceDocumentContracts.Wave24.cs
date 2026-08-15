@@ -49,7 +49,7 @@ public sealed partial class ProvenanceDocumentContracts {
 
     [Fact]
     public void OdfSignatureManifestCleanupHonorsTheConfiguredXmlNodeBudget() {
-        const string signaturePath = "META-INF/customsignatures.xml";
+        const string signaturePath = "META-INF/documentsignatures.xml";
         string entries = string.Concat(Enumerable.Range(0, 32).Select(index =>
             $"<manifest:file-entry manifest:full-path=\"Pictures/{index}.png\" manifest:media-type=\"image/png\"/>"));
         string manifestXml =

@@ -37,7 +37,7 @@ public sealed partial class ProvenanceDocumentContracts {
 
     [Fact]
     public void OdfSignatureRemovalCleansManifestFileEntries() {
-        const string signaturePath = "META-INF/customsignatures.xml";
+        const string signaturePath = "META-INF/documentsignatures.xml";
         byte[] package;
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {

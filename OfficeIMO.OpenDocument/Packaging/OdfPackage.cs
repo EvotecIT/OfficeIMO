@@ -398,8 +398,8 @@ internal sealed class OdfPackage {
     }
 
     internal static bool IsSignaturePath(string path) {
-        return path.StartsWith("META-INF/", StringComparison.Ordinal) &&
-            path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(path, "META-INF/documentsignatures.xml", StringComparison.Ordinal) ||
+            string.Equals(path, "META-INF/macrosignatures.xml", StringComparison.Ordinal);
     }
 
     private static string GuessMediaType(string path) {
