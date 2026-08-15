@@ -568,7 +568,7 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
-    public void OpenXmlOwnerFailsClosedWhenOrphanSignatureEvidenceCannotBeRemoved() {
+    public void OpenXmlOwnerIgnoresOrphanNativeSignatureEvidence() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-Provenance-{Guid.NewGuid():N}.docx");
         try {
             CreateOpenXmlPackage(path, "docx");
@@ -584,12 +584,13 @@ public sealed partial class ProvenanceDocumentContracts {
             AddZipEntry(path, "media/provenance.png", CreatePngWithManifest(CreateManifestStore()));
             byte[] package = File.ReadAllBytes(path);
 
-            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                WordDocument.RemoveProvenance(package, options: new OfficeProvenanceRemovalOptions {
-                    SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
-                }));
+            OfficeProvenanceRemovalResult result = WordDocument.RemoveProvenance(package, options: new OfficeProvenanceRemovalOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
 
-            Assert.Contains("could not remove", exception.Message, StringComparison.Ordinal);
+            Assert.True(result.WasChanged);
+            Assert.False(result.WereInvalidatedSignaturesRemoved);
+            Assert.Empty(result.After.Evidence);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

@@ -133,6 +133,13 @@ public sealed partial class EpubDocument {
         var segments = new List<string>();
         foreach (string encodedSegment in value.Split('/')) {
             if (encodedSegment.Length == 0) return false;
+            for (int index = 0; index < encodedSegment.Length; index++) {
+                if (encodedSegment[index] != '%') continue;
+                if (index > encodedSegment.Length - 3 ||
+                    !IsHexDigit(encodedSegment[index + 1]) ||
+                    !IsHexDigit(encodedSegment[index + 2])) return false;
+                index += 2;
+            }
             string segment;
             try { segment = Uri.UnescapeDataString(encodedSegment); }
             catch (UriFormatException) { return false; }
@@ -149,6 +156,9 @@ public sealed partial class EpubDocument {
         normalized = string.Join("/", segments);
         return true;
     }
+
+    private static bool IsHexDigit(char value) =>
+        value is >= '0' and <= '9' or >= 'A' and <= 'F' or >= 'a' and <= 'f';
 
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) => OfficeProvenanceZip.HasEntry(data, path =>
         path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));

@@ -258,7 +258,9 @@ public static partial class HtmlProvenance {
                         OfficeProvenanceReport nested = OfficeProvenanceInspector.Inspect(image, "asset" + dataUri.FileExtension, CreateNestedOptions(options));
                         foreach (OfficeProvenanceEvidence item in nested.Evidence) AddEvidence(evidence, options, Prefix(location, item));
                         foreach (string diagnostic in nested.Diagnostics) diagnostics.Add($"{location}: {diagnostic}");
-                    } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
+                    } catch (Exception exception) when (
+                        (exception is InvalidDataException || exception is System.Xml.XmlException) &&
+                        !OfficeProvenanceLimitException.Is(exception)) {
                         diagnostics.Add($"{location}: embedded image was preserved because inspection failed: {exception.Message}");
                     }
                 }
@@ -326,7 +328,9 @@ public static partial class HtmlProvenance {
                                 $"{documentLocation}/{element.LocalName}[{reference.AttributeName}][{index}]/{change.Location}",
                                 0));
                         }
-                    } catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {
+                    } catch (Exception exception) when (
+                        (exception is InvalidDataException || exception is System.Xml.XmlException) &&
+                        !OfficeProvenanceLimitException.Is(exception)) {
                         // Preserve malformed embedded data; structural diagnostics are available through Inspect.
                     }
                 }
@@ -396,7 +400,7 @@ public static partial class HtmlProvenance {
             yield return CreateDirectUrlReference("background", background);
         }
 
-        if (localName is "img" or "source" or "video" or "input" or "link" && !isHtmlElement) yield break;
+        if (localName is "img" or "source" or "video" or "input" or "link" or "object" or "embed" && !isHtmlElement) yield break;
         if (localName is "image" or "feimage" or "use" && !isSvgElement) yield break;
         if (localName == "source" && !IsSupportedPictureSource(element)) yield break;
         if (localName == "img" && !HtmlResourcePipeline.IsActivePictureFallbackImage(element)) yield break;
@@ -430,7 +434,12 @@ public static partial class HtmlProvenance {
         } else if (localName is "feimage" or "use") {
             attributeNames = new[] { "href", "xlink:href" };
         } else if (localName == "link" && IsImageLink(element)) {
-            attributeNames = new[] { "href" };
+            if (IsPreloadedImage(element) && HasUsableImageSourceSet(element)) attributeNames = Array.Empty<string>();
+            else attributeNames = new[] { "href" };
+        } else if (localName == "object" && HasSupportedDeclaredImageType(element)) {
+            attributeNames = new[] { "data" };
+        } else if (localName == "embed" && HasSupportedDeclaredImageType(element)) {
+            attributeNames = new[] { "src" };
         } else {
             yield break;
         }
@@ -458,7 +467,7 @@ public static partial class HtmlProvenance {
         string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal);
 
     private static IEnumerable<IElement> GetEmbeddedImageElements(IHtmlDocument document) =>
-        document.QuerySelectorAll("img,source,video,input,image,feImage,use,link,[background],style,[style]")
+        document.QuerySelectorAll("img,source,video,input,object,embed,image,feImage,use,link,[background],style,[style]")
             .Where(element => !element.LocalName.Equals("style", StringComparison.OrdinalIgnoreCase) ||
                 HtmlResourcePipeline.IsActiveProvenanceStyleElement(element))
             .Where(element => !element.LocalName.Equals("source", StringComparison.OrdinalIgnoreCase) ||
@@ -562,6 +571,18 @@ public static partial class HtmlProvenance {
         HasRelationship(element.GetAttribute("rel"), "preload") &&
         string.Equals(TrimAsciiWhitespace(element.GetAttribute("as")), "image", StringComparison.OrdinalIgnoreCase) &&
         HtmlResourcePipeline.IsApplicableProvenanceMedia(element);
+
+    private static bool HasUsableImageSourceSet(IElement element) {
+        string? sourceSet = element.GetAttribute("imagesrcset");
+        return !string.IsNullOrEmpty(sourceSet) && HtmlSrcSetParser.Enumerate(sourceSet).Any();
+    }
+
+    private static bool HasSupportedDeclaredImageType(IElement element) {
+        string value = TrimAsciiWhitespace(element.GetAttribute("type"));
+        int parameter = value.IndexOf(';');
+        if (parameter >= 0) value = TrimAsciiWhitespace(value.Substring(0, parameter));
+        return IsSupportedProvenanceImage(value);
+    }
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(sourceSet)) {

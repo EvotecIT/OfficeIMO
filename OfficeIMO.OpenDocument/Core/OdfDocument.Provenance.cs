@@ -89,12 +89,15 @@ public abstract partial class OdfDocument {
         string mediaType = OfficeProvenanceZip.ReadValidatedMimetypeEntry(data, SupportedMimetypes, options.MaxContainerEntries);
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
+        if (archive.Entries.Any(entry => entry.FullName.IndexOf('\\') >= 0)) {
+            throw new InvalidDataException("OpenDocument package entry names must use forward slashes.");
+        }
         ZipArchiveEntry[] manifestEntries = archive.Entries
-            .Where(entry => string.Equals(entry.FullName.Replace('\\', '/'), "META-INF/manifest.xml", StringComparison.Ordinal))
+            .Where(entry => string.Equals(entry.FullName, "META-INF/manifest.xml", StringComparison.Ordinal))
             .ToArray();
         if (manifestEntries.Length != 1) throw new InvalidDataException("OpenDocument package must contain exactly one 'META-INF/manifest.xml'.");
         int contentEntryCount = archive.Entries.Count(entry =>
-            string.Equals(entry.FullName.Replace('\\', '/'), "content.xml", StringComparison.Ordinal));
+            string.Equals(entry.FullName, "content.xml", StringComparison.Ordinal));
         if (contentEntryCount != 1) throw new InvalidDataException("OpenDocument package must contain exactly one 'content.xml'.");
 
         long maximumManifestBytes = Math.Min(options.MaxAssetBytes, options.MaxExpandedContainerBytes);
