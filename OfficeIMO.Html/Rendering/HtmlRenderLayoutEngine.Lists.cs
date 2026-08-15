@@ -3,7 +3,7 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element) {
+    private static HtmlRenderFlowBlock ApplyListSemantics(HtmlRenderFlowBlock block, IElement element, string? structureElementKey = null) {
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "ul" || tag == "ol") {
             return block.WithVisuals(new[] {
@@ -15,7 +15,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     Math.Max(0.01D, block.Height),
                     block.Visuals,
                     0,
-                    HtmlRenderStyleResolver.DescribeSource(element))
+                    HtmlRenderStyleResolver.DescribeSource(element),
+                    structureElementKey: structureElementKey == null ? null : structureElementKey + ":list")
             });
         }
 
@@ -33,7 +34,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 height,
                 markerVisuals,
                 itemVisuals.Count,
-                "list-marker"));
+                "list-marker",
+                structureElementKey: structureElementKey == null ? null : structureElementKey + ":label"));
         }
 
         if (bodyVisuals.Count > 0) {
@@ -45,7 +47,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, block.Height),
                 bodyVisuals,
                 itemVisuals.Count,
-                HtmlRenderStyleResolver.DescribeSource(element)));
+                HtmlRenderStyleResolver.DescribeSource(element),
+                structureElementKey: structureElementKey == null ? null : structureElementKey + ":body"));
         }
 
         if (itemVisuals.Count == 0) return block;
@@ -58,7 +61,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Math.Max(0.01D, block.Height),
                 itemVisuals,
                 0,
-                HtmlRenderStyleResolver.DescribeSource(element))
+                HtmlRenderStyleResolver.DescribeSource(element),
+                structureElementKey: structureElementKey == null ? null : structureElementKey + ":item")
         });
     }
 
@@ -158,7 +162,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 semantic.ColumnSpan,
                 semantic.RowSpan,
                 semantic.HeaderScope,
-                semantic.LayoutY);
+                semantic.LayoutY,
+                semantic.StructureElementKey);
         }
 
         HtmlRenderLogicalTextGroup logicalText = (HtmlRenderLogicalTextGroup)visual;

@@ -277,7 +277,7 @@ public sealed class HtmlRenderPage {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(nested, child, nested.Width, nested.Height, fonts, cancellationToken);
         }
-        drawing.AddClippedDrawing(nested, group.ClipX, group.ClipY, group.ClipPath, -group.ClipX, -group.ClipY);
+        drawing.AddClippedDrawingForRendering(nested, group.ClipX, group.ClipY, group.ClipPath, -group.ClipX, -group.ClipY);
     }
 
     private static double MaximumRight(IEnumerable<HtmlRenderVisual> visuals) => visuals

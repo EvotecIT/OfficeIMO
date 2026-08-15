@@ -418,6 +418,20 @@ document.ToImage()
 
 The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns sizing, pixels, and encoding. The same fit limit applies to SVG and raster output. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
 
+## Content provenance
+
+Inspect C2PA and AI-specific IPTC metadata in the package and its supported embedded images, then remove only the selected carriers:
+
+```csharp
+using OfficeIMO.Provenance;
+using OfficeIMO.Word;
+
+OfficeProvenanceReport report = WordDocument.InspectProvenance("input.docx");
+OfficeProvenanceRemovalResult result = WordDocument.RemoveProvenance("input.docx", "clean.docx");
+```
+
+Mutation of a signed package is blocked by default. Set `SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the now-invalid package signature is intentional. Optional cryptographic C2PA verification is provided by `OfficeIMO.Security`.
+
 ## Adjacent packages
 
 `OfficeIMO.Word` owns the Word model. Conversion and export packages stay separate so consumers only take the dependencies they need:

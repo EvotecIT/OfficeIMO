@@ -29,6 +29,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         IReadOnlyList<SourceRange> inactiveRanges,
         HtmlResourcePipelineOptions options,
         string attributeName) {
@@ -64,11 +65,11 @@ public static partial class HtmlResourcePipeline {
             if (document != null && useElement == null && !string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
                 IElement[] matchedElements = GetElementsMatchingSelectorList(document, useSelector).ToArray();
                 if (matchedElements.Length > 0) {
-                    return matchedElements.All(matchedElement => HasResolvedCustomProperty(propertyName, customPropertyDefinitions, inlineSourceOrders, document, matchedElement, options, useSelector));
+                    return matchedElements.All(matchedElement => HasResolvedCustomProperty(propertyName, customPropertyDefinitions, inlineSourceOrders, document, matchedElement, computedStyles, options, useSelector));
                 }
             }
 
-            return HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
+            return HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
         }
 
         return false;
@@ -80,13 +81,14 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
         IHtmlDocument document,
         IElement useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         HtmlResourcePipelineOptions options,
         string useSelector) {
         Dictionary<string, List<CssCustomPropertyDefinition>> inlineDefinitions = ExtractInlineCustomPropertyDefinitions(useElement, inlineSourceOrders, options, includeSelf: true);
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> mergedDefinitions = inlineDefinitions.Count == 0
             ? customPropertyDefinitions
             : MergeCustomPropertyDefinitions(customPropertyDefinitions, inlineDefinitions);
-        return HasResolvedCustomProperty(propertyName, mergedDefinitions, document, useElement, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
+        return HasResolvedCustomProperty(propertyName, mergedDefinitions, document, useElement, computedStyles, new HashSet<string>(StringComparer.Ordinal), depth: 0, useSelector: useSelector);
     }
 
     private static bool HasResolvedCustomProperty(
@@ -94,6 +96,7 @@ public static partial class HtmlResourcePipeline {
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions,
         IHtmlDocument? document,
         IElement? useElement,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles,
         ISet<string> visited,
         int depth,
         string useSelector = "") {
@@ -104,7 +107,8 @@ public static partial class HtmlResourcePipeline {
         }
 
         bool resolved = false;
-        int selectedDeclarationStart = SelectCustomPropertyDeclaration(sources, useSelector, document, useElement);
+        int selectedDeclarationStart = SelectCustomPropertyDeclaration(
+            propertyName, sources, useSelector, document, useElement, computedStyles);
         if (selectedDeclarationStart >= 0) {
             foreach (CssCustomPropertyDefinition source in sources) {
                 if (source.DeclarationStart != selectedDeclarationStart || !CanSubstituteCustomProperty(source, useSelector, document, useElement)) {
@@ -114,17 +118,17 @@ public static partial class HtmlResourcePipeline {
                 if (source.IsInheritedKeyword) {
                     if (useElement?.ParentElement != null) {
                         visited.Remove(propertyName);
-                        resolved = HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement.ParentElement, visited, depth + 1);
+                        resolved = HasResolvedCustomProperty(propertyName, customPropertyDefinitions, document, useElement.ParentElement, computedStyles, visited, depth + 1);
                         visited.Add(propertyName);
                     }
                 } else if (source.HasUrl) {
                     resolved = source.FallbackAlias == null
-                        || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, visited, depth + 1, useSelector);
+                        || !HasResolvedCustomProperty(source.FallbackAlias, customPropertyDefinitions, document, useElement, computedStyles, visited, depth + 1, useSelector);
                 } else if (source.Aliases.Count == 0 && !source.IsCssWideInvalidatingKeyword) {
                     resolved = true;
                 } else {
                     foreach (string alias in source.Aliases) {
-                        if (HasResolvedCustomProperty(alias, customPropertyDefinitions, document, useElement, visited, depth + 1, useSelector)) {
+                        if (HasResolvedCustomProperty(alias, customPropertyDefinitions, document, useElement, computedStyles, visited, depth + 1, useSelector)) {
                             resolved = true;
                             break;
                         }
@@ -226,7 +230,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         char next = useSelector[definitionSelector.Length];
-        return char.IsWhiteSpace(next) || next == '>';
+        return IsCssWhitespace(next) || next == '>';
     }
 
     private static bool IsSameElementSelectorPrefix(string definitionSelector, string useSelector) {
@@ -246,24 +250,38 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string GetDeclarationSelector(string css, int index) {
-        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
+        FindPreviousCssStructuralTokens(css, index, out int blockStart, out _, out _);
         if (blockStart < 0) {
             return string.Empty;
         }
 
-        int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, blockStart - 1));
-        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, blockStart - 1));
+        FindPreviousCssStructuralTokens(css, blockStart, out _, out int previousBlockEnd, out int previousStatementEnd);
         int selectorStart = Math.Max(0, Math.Max(previousBlockEnd, previousStatementEnd) + 1);
-        string selector = css.Substring(selectorStart, blockStart - selectorStart).Trim();
+        string selector = css.Substring(selectorStart, blockStart - selectorStart)
+            .Replace(CssCommentMask.ToString(), string.Empty)
+            .Trim();
         int groupingStart = selector.LastIndexOf('{');
         return groupingStart >= 0
             ? selector.Substring(groupingStart + 1).Trim()
             : selector;
     }
 
-    private static bool IsCssReferenceForMatchingSelector(IHtmlDocument? document, string attributeName, string css, int index) {
+    private static bool IsCssReferenceForMatchingSelector(
+        IHtmlDocument? document,
+        string attributeName,
+        string css,
+        int index,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle>? computedStyles = null) {
         if (document == null || string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) {
             return true;
+        }
+
+        if (TryGetEnclosingKeyframesName(css, index, out string keyframesName, out int keyframesStart)) {
+            if (!IsLastActiveKeyframesDefinition(css, keyframesName, keyframesStart)) return false;
+            computedStyles ??= HtmlComputedStyleEngine.Compute(document);
+            return computedStyles.Values.Any(style =>
+                ContainsAnimationLonghandName(style.GetValue("animation-name"), keyframesName) ||
+                ContainsAnimationShorthandName(style.GetValue("animation"), keyframesName));
         }
 
         string selector = GetDeclarationSelector(css, index);
@@ -271,26 +289,97 @@ public static partial class HtmlResourcePipeline {
             return true;
         }
 
-        foreach (string selectorPart in SplitTopLevelList(selector)) {
+        string[] selectorParts = SplitTopLevelList(selector).ToArray();
+        if (selectorParts.Length == 0 || selectorParts.Any(string.IsNullOrWhiteSpace)) return false;
+        bool potentiallyActive = false;
+        foreach (string selectorPart in selectorParts) {
             string normalized = NormalizeSelectorForQuery(selectorPart, stripStatefulPseudoClasses: true);
             if (normalized.Length == 0) {
                 if (IsBarePseudoElementSelector(selectorPart) || IsStatefulPseudoClassOnlySelector(selectorPart)) {
-                    return true;
+                    potentiallyActive = true;
+                    continue;
                 }
 
-                continue;
+                return false;
             }
 
             try {
                 if (document.QuerySelector(normalized) != null) {
-                    return true;
+                    potentiallyActive = true;
                 }
             } catch {
-                return true;
+                return false;
             }
         }
 
+        return potentiallyActive;
+    }
+
+    private static bool TryGetEnclosingKeyframesName(string css, int index, out string name, out int definitionStart) {
+        name = string.Empty;
+        definitionStart = -1;
+        if (index < 0 || index >= css.Length) return false;
+
+        int search = 0;
+        while (search < index) {
+            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            if (atRule < 0 || atRule >= index) return false;
+
+            string atRuleName = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
+            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, atRuleName)) {
+                search = atRule + atRuleName.Length;
+                continue;
+            }
+
+            int open = FindNextTopLevelBlockStart(css, atRule + atRuleName.Length);
+            if (open < 0) return false;
+            int close = FindMatchingCssBrace(css, open);
+            if (close < 0) return false;
+            if (index > open && index < close) {
+                string prelude = css.Substring(atRule + atRuleName.Length, open - atRule - atRuleName.Length).Trim();
+                if (prelude.Length >= 2 && prelude[0] == prelude[prelude.Length - 1] && prelude[0] is '\'' or '"') {
+                    prelude = prelude.Substring(1, prelude.Length - 2);
+                }
+                name = DecodeCssEscapes(prelude).Trim();
+                definitionStart = atRule;
+                return name.Length != 0;
+            }
+
+            search = close + 1;
+        }
+
         return false;
+    }
+
+    private static bool IsLastActiveKeyframesDefinition(string css, string name, int definitionStart) {
+        List<SourceRange> inactive = GetInactiveCssRuleRanges(css, new HtmlResourcePipelineOptions());
+        int search = definitionStart + 1;
+        while (search < css.Length) {
+            int standard = css.IndexOf("@keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int prefixed = css.IndexOf("@-webkit-keyframes", search, StringComparison.OrdinalIgnoreCase);
+            int atRule = standard < 0 ? prefixed : prefixed < 0 ? standard : Math.Min(standard, prefixed);
+            if (atRule < 0) return true;
+            string token = atRule == prefixed ? "@-webkit-keyframes" : "@keyframes";
+            if (IsInsideCssString(css, atRule) || !HasAtRuleTokenBoundary(css, atRule, token)) {
+                search = atRule + token.Length;
+                continue;
+            }
+            int open = FindNextTopLevelBlockStart(css, atRule + token.Length);
+            if (open < 0) return true;
+            int close = FindMatchingCssBrace(css, open);
+            if (close < 0) return true;
+            string candidate = css.Substring(atRule + token.Length, open - atRule - token.Length).Trim();
+            if (candidate.Length >= 2 && candidate[0] == candidate[candidate.Length - 1] && candidate[0] is '\'' or '"') {
+                candidate = candidate.Substring(1, candidate.Length - 2);
+            }
+            if (!IsInRanges(open + 1, inactive) && string.Equals(DecodeCssEscapes(candidate).Trim(), name, StringComparison.Ordinal)) {
+                return false;
+            }
+            search = close + 1;
+        }
+        return true;
     }
 
     private static IEnumerable<IElement> GetElementsMatchingSelectorList(IHtmlDocument document, string selector) {
@@ -298,20 +387,26 @@ public static partial class HtmlResourcePipeline {
             yield break;
         }
 
-        var seen = new HashSet<IElement>();
-        foreach (string selectorPart in SplitTopLevelList(selector)) {
+        string[] selectorParts = SplitTopLevelList(selector).ToArray();
+        if (selectorParts.Length == 0 || selectorParts.Any(string.IsNullOrWhiteSpace)) yield break;
+        var matchedGroups = new List<IElement[]>();
+        foreach (string selectorPart in selectorParts) {
             string normalized = NormalizeSelectorForQuery(selectorPart, stripStatefulPseudoClasses: true);
             if (normalized.Length == 0) {
+                if (!IsBarePseudoElementSelector(selectorPart) && !IsStatefulPseudoClassOnlySelector(selectorPart)) yield break;
+                matchedGroups.Add(document.QuerySelectorAll("*").OfType<IElement>().ToArray());
                 continue;
             }
 
-            IEnumerable<IElement> matches;
             try {
-                matches = document.QuerySelectorAll(normalized).OfType<IElement>().ToArray();
+                matchedGroups.Add(document.QuerySelectorAll(normalized).OfType<IElement>().ToArray());
             } catch {
-                continue;
+                yield break;
             }
+        }
 
+        var seen = new HashSet<IElement>();
+        foreach (IElement[] matches in matchedGroups) {
             foreach (IElement match in matches) {
                 if (seen.Add(match)) {
                     yield return match;
@@ -376,7 +471,7 @@ public static partial class HtmlResourcePipeline {
 
     private static string NormalizeSelectorForQuery(string selector, bool stripPseudoElements = true, bool stripStatefulPseudoClasses = false) {
         string normalized = selector.Trim();
-        int pseudoElement = stripPseudoElements ? normalized.IndexOf("::", StringComparison.Ordinal) : -1;
+        int pseudoElement = stripPseudoElements ? FindPseudoElementStart(normalized) : -1;
         if (pseudoElement >= 0) {
             normalized = normalized.Substring(0, pseudoElement).TrimEnd();
         }
@@ -386,6 +481,40 @@ public static partial class HtmlResourcePipeline {
         }
 
         return normalized;
+    }
+
+    private static int FindPseudoElementStart(string selector) {
+        int parenthesisDepth = 0;
+        int bracketDepth = 0;
+        char quote = '\0';
+        for (int index = 0; index < selector.Length; index++) {
+            char current = selector[index];
+            if (current == '\\') {
+                index++;
+                continue;
+            }
+            if (quote != '\0') {
+                if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') { quote = current; continue; }
+            if (current == '[') { bracketDepth++; continue; }
+            if (current == ']') { bracketDepth = Math.Max(0, bracketDepth - 1); continue; }
+            if (current == '(') { parenthesisDepth++; continue; }
+            if (current == ')') { parenthesisDepth = Math.Max(0, parenthesisDepth - 1); continue; }
+            if (current != ':' || parenthesisDepth != 0 || bracketDepth != 0) continue;
+            if (index + 1 < selector.Length && selector[index + 1] == ':') return index;
+            if (IsLegacyPseudoElement(selector, index + 1, "before") ||
+                IsLegacyPseudoElement(selector, index + 1, "after")) return index;
+        }
+        return -1;
+    }
+
+    private static bool IsLegacyPseudoElement(string selector, int start, string name) {
+        if (start > selector.Length - name.Length ||
+            !selector.Substring(start, name.Length).Equals(name, StringComparison.OrdinalIgnoreCase)) return false;
+        int end = start + name.Length;
+        return end == selector.Length || !(char.IsLetterOrDigit(selector[end]) || selector[end] is '-' or '_');
     }
 
     private static bool IsBarePseudoElementSelector(string selector) {
@@ -401,18 +530,72 @@ public static partial class HtmlResourcePipeline {
     private static string StripStatefulPseudoClasses(string selector) {
         var result = new StringBuilder(selector.Length);
         for (int i = 0; i < selector.Length; i++) {
-            if (selector[i] == ':'
-                && (i + 1 >= selector.Length || selector[i + 1] != ':')
-                && TryReadPseudoClassName(selector, i + 1, out string pseudoClassName, out int nameEnd)
-                && IsStatefulPseudoClass(pseudoClassName)) {
-                i = nameEnd - 1;
-                continue;
+            if (selector[i] == ':' && (i + 1 >= selector.Length || selector[i + 1] != ':') &&
+                TryReadPseudoClassName(selector, i + 1, out string pseudoClassName, out int nameEnd)) {
+                if (IsStatefulPseudoClass(pseudoClassName)) {
+                    i = nameEnd - 1;
+                    continue;
+                }
+                if (nameEnd < selector.Length && selector[nameEnd] == '(' && IsSelectorListPseudoClass(pseudoClassName) &&
+                    TryFindMatchingParenthesis(selector, nameEnd, out int closingParenthesis) &&
+                    ContainsStatefulPseudoClass(selector, nameEnd + 1, closingParenthesis)) {
+                    string arguments = selector.Substring(nameEnd + 1, closingParenthesis - nameEnd - 1);
+                    string[] branches = SplitTopLevelList(arguments).ToArray();
+                    var retained = new List<string>(branches.Length);
+                    bool negation = pseudoClassName.Equals("not", StringComparison.OrdinalIgnoreCase);
+                    foreach (string branch in branches) {
+                        string stripped = StripStatefulPseudoClasses(branch).Trim();
+                        if (stripped.Length != 0) retained.Add(stripped);
+                        else if (!negation) retained.Add("*");
+                    }
+                    if (retained.Count != 0) {
+                        result.Append(':').Append(pseudoClassName).Append('(')
+                            .Append(string.Join(", ", retained)).Append(')');
+                    }
+                    i = closingParenthesis;
+                    continue;
+                }
             }
 
             result.Append(selector[i]);
         }
 
         return result.ToString();
+    }
+
+    private static bool IsSelectorListPseudoClass(string name) =>
+        name.Equals("is", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("not", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("where", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("has", StringComparison.OrdinalIgnoreCase);
+
+    private static bool ContainsStatefulPseudoClass(string selector, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (selector[i] == ':' && (i + 1 >= end || selector[i + 1] != ':') &&
+                TryReadPseudoClassName(selector, i + 1, out string name, out _) && IsStatefulPseudoClass(name)) return true;
+        }
+        return false;
+    }
+
+    private static bool TryFindMatchingParenthesis(string selector, int opening, out int closing) {
+        int depth = 0;
+        char quote = '\0';
+        for (int i = opening; i < selector.Length; i++) {
+            char current = selector[i];
+            if (quote != '\0') {
+                if (current == '\\') i++;
+                else if (current == quote) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') quote = current;
+            else if (current == '(') depth++;
+            else if (current == ')' && --depth == 0) {
+                closing = i;
+                return true;
+            }
+        }
+        closing = -1;
+        return false;
     }
 
     private static bool TryReadPseudoClassName(string selector, int start, out string name, out int end) {

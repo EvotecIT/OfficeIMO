@@ -29,7 +29,8 @@ public sealed class PdfExtractedImage {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         bool hasExplicitDecode = false,
         bool hasDecodeParameters = false,
-        bool interpolate = false) {
+        bool interpolate = false,
+        bool hasAuthoredRenderingIntent = false) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -48,6 +49,7 @@ public sealed class PdfExtractedImage {
         IsImageMask = isImageMask;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
         RenderingIntent = renderingIntent;
+        HasAuthoredRenderingIntent = hasAuthoredRenderingIntent;
         HasExplicitDecode = hasExplicitDecode;
         HasDecodeParameters = hasDecodeParameters;
         Interpolate = interpolate;
@@ -117,6 +119,8 @@ public sealed class PdfExtractedImage {
     internal OfficeColor ImageMaskColor { get; }
 
     internal OfficeIccRenderingIntent RenderingIntent { get; }
+
+    internal bool HasAuthoredRenderingIntent { get; }
 
     internal bool HasExplicitDecode { get; }
 

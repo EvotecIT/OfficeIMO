@@ -14,7 +14,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
 - structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
-- bounded CSS length math, caller stylesheets, deterministic media preferences, running strings, and Unicode-range-aware WOFF 1/OpenType fonts
+- bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware WOFF 1/OpenType fonts
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
 - executable target capability contracts, preflight analysis, and source-to-target diagnostic provenance
@@ -55,6 +55,19 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .AsWebp()
     .Save("status-pages");
 ```
+
+Set `FidelityPolicy` when diagnosed fallback is not acceptable. The renderer collects the complete report, then rejects any warning, error, approximation, omission, or failure instead of returning a silently simplified scene.
+
+```csharp
+var strict = new HtmlRenderOptions {
+    ViewportWidth = 720,
+    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+};
+
+OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, strict);
+```
+
+The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All` or the generated support matrix for the exact declared subset.
 
 The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
 
@@ -213,7 +226,7 @@ foreach (HtmlFeaturePreflightResult feature in excel.Features) {
 
 The generated [HTML support matrix](../Docs/officeimo.html-support-matrix.md) is checked against those executable contracts in the test suite. Run `Build/Export-HtmlSupportMatrix.ps1 -Check` to verify it or omit `-Check` to regenerate it.
 
-Applications can inspect the same contract through `HtmlRenderCapabilityCatalog.All`. The catalog distinguishes full, partial, fallback, ignored, and rejected behavior and links partial behavior to stable diagnostic codes.
+Applications can inspect the same contract through `HtmlRenderCapabilityCatalog.All`. The catalog lists each declared supported subset as `Full` and records unsupported boundaries separately as `Fallback`, `Ignored`, or `Rejected`, linked to stable diagnostic codes where content can change.
 
 ## Resource sessions
 
@@ -277,3 +290,7 @@ if (HtmlImageDataUri.TryParse(source, out var dataUri) && dataUri.IsBase64) {
 ```
 
 Use `HtmlDataUri` when the payload is textual. Its `DecodeText()` method honors a declared `charset` and uses UTF-8 only when the data URI does not declare one.
+
+## Content provenance
+
+`HtmlProvenance.Inspect(html)` reports embedded `<script type="application/c2pa">` carriers, external `<link rel="c2pa-manifest">` references, and provenance inside supported embedded image data URIs. `HtmlProvenance.Remove(html)` removes only selected, structurally valid carriers by default. Inspection and removal never fetch external resources. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.

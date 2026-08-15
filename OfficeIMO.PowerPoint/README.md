@@ -606,6 +606,10 @@ presentation.ToImages()
 
 PowerPoint owns slide semantics and scene construction; `OfficeIMO.Drawing` owns sizing and the common raster encoders. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
 
+## Content provenance
+
+`PowerPointPresentation.InspectProvenance("input.pptx")` reports C2PA and AI-specific IPTC metadata in the presentation and its supported embedded images. `PowerPointPresentation.RemoveProvenance("input.pptx", "clean.pptx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
 ## Adjacent packages
 
 | Package | Use it for |

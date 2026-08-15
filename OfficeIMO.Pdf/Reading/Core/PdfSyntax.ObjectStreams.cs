@@ -6,7 +6,8 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         Dictionary<int, int> parsedOffsets,
         HashSet<int>? allowedObjectStreamNumbers,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        PdfDecodedStreamBudget decodedStreamBudget) {
         // Snapshot keys to avoid modifying during enumeration
         var keys = new List<int>(map.Keys);
         keys.Sort((left, right) => GetSourceOffset(left).CompareTo(GetSourceOffset(right)));
@@ -24,7 +25,7 @@ internal static partial class PdfSyntax {
             int objectStreamOffset = GetSourceOffset(id);
 
             // Decode object stream bytes (flate only for now)
-            var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, map, limits.MaxDecodedStreamBytes);
+            var data = decodedStreamBudget.Decode(s, map);
             if (!TryReadObjectStreamLayout(s.Dictionary, data.Length, limits, out int n, out int first)) continue;
             // Header: pairs of objectNumber and offset (ASCII)
             var headerBytes = new byte[first];

@@ -800,6 +800,10 @@ chart.ToImage()
 chart.SaveAsSvg("revenue-chart.svg");
 ```
 
+## Content provenance
+
+`ExcelDocument.InspectProvenance("input.xlsx")` reports C2PA and AI-specific IPTC metadata in the workbook and its supported embedded images. `ExcelDocument.RemoveProvenance("input.xlsx", "clean.xlsx")` removes the selected carriers. Signed-package mutation is blocked unless `OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures` is selected explicitly. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
 ## Adjacent packages
 
 | Package | Use it for |

@@ -18,10 +18,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool row = style.FlexDirection == "row" || style.FlexDirection == "row-reverse";
         bool column = style.FlexDirection == "column" || style.FlexDirection == "column-reverse";
         if (!row && !column) return false;
-        if (!TryCollectFlexItems(element, containingWidth, style, depth, out List<FlexItem> items)) return false;
-        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, out block);
+        if (!TryCollectFlexItems(element, containingWidth, style, depth, captureRunningElements: true, out List<FlexItem> items, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
+        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, out block);
 
-        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, continuationTarget, out block);
+        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, out block);
     }
 
     private bool TryCollectFlexItems(
@@ -29,12 +29,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double containingWidth,
         HtmlRenderBoxStyle style,
         int depth,
-        out List<FlexItem> items) {
+        bool captureRunningElements,
+        out List<FlexItem> items,
+        out List<HtmlCssRunningStringAssignment> runningElementAssignments) {
         items = new List<FlexItem>();
+        runningElementAssignments = new List<HtmlCssRunningStringAssignment>();
         int sourceIndex = 0;
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
         foreach (INode node in element.ChildNodes) {
-            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items)) return false;
+            if (!TryAddFlexNode(node, containingWidth, style, depth + 1, ref sourceIndex, items, captureRunningElements ? runningElementAssignments : null)) return false;
         }
         AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
 
@@ -47,6 +50,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         List<FlexItem> items,
+        IReadOnlyList<HtmlCssRunningStringAssignment> runningElementAssignments,
         IElement? continuationTarget,
         out HtmlRenderFlowBlock block) {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
@@ -153,10 +157,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderStyleResolver.DescribeSource(element),
             breakOffsets,
             pageName: style.PageName,
-            runningStringAssignments: itemPaintLayers.SelectMany(layer =>
-                    layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y)))
-                .Concat(positionedRunningStringAssignments)
-                .OrderBy(assignment => assignment.OrderOffset),
+            runningStringAssignments: NormalizeRunningElementAssignmentOrder(
+                PlaceDirectRunningElementAssignments(
+                        runningElementAssignments,
+                        lines.SelectMany(line => line.Items.Select(item =>
+                            new RunningElementFlowAnchor(item.SourceIndex, contentY + line.CrossOffset + item.CrossOffset))),
+                        contentY,
+                        contentY + crossSize)
+                    .Concat(itemPaintLayers.SelectMany(layer =>
+                        layer.Block.RunningStringAssignments.Select(assignment => assignment.Translate(layer.Y))))
+                    .Concat(positionedRunningStringAssignments),
+                outerHeight),
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
         return true;
@@ -413,6 +424,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Source { get; }
         internal string? Link { get; }
         internal bool PaintAnonymousBox { get; }
+        internal List<FlattenedSemanticPlacement> FlattenedSemanticPlacements { get; } = new List<FlattenedSemanticPlacement>();
         internal HtmlRenderBoxStyle Style { get; set; }
         internal int SourceIndex { get; }
         internal double Basis { get; set; }

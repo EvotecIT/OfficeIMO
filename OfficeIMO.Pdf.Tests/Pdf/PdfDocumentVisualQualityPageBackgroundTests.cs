@@ -196,6 +196,27 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void BackgroundShape_EmptyClipSuppressesPaintShadowAndTransform() {
+        var shape = OfficeShape.Rectangle(40, 20);
+        shape.FillColor = OfficeColor.Magenta;
+        shape.Shadow = new OfficeShadow(OfficeColor.Lime, 0.5, 3, 4);
+        shape.Transform = OfficeTransform.Translate(10, 5);
+        shape.ClipPath = OfficeClipPath.Empty();
+
+        byte[] bytes = PdfDocument.Create()
+            .BackgroundShape(new PdfPageBackgroundShape(shape, 36, 640))
+            .Paragraph(p => p.Text("Empty clip background proof"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+
+        Assert.DoesNotContain("1 0 1 rg", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 1 0 rg", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("Empty clip background proof", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BackgroundShape_CanBeScopedAndClearedPerComposedPage() {
         byte[] bytes = PdfDocument.Create()
             .BackgroundRectangle(36, 640, 540, 86, PdfColor.FromRgb(238, 242, 255))

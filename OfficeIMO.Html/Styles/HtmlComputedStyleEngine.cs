@@ -51,8 +51,13 @@ public static partial class HtmlComputedStyleEngine {
         "align-content",
         "align-items",
         "align-self",
+        "animation",
+        "animation-name",
         "aspect-ratio",
         "bottom",
+        "bookmark-label",
+        "bookmark-level",
+        "bookmark-state",
         "box-shadow",
         "border",
         "border-bottom",
@@ -87,6 +92,7 @@ public static partial class HtmlComputedStyleEngine {
         "break-inside",
         "caption-side",
         "clear",
+        "clip-path",
         "color",
         "column-gap",
         "column-count",
@@ -209,6 +215,7 @@ public static partial class HtmlComputedStyleEngine {
         "word-spacing",
         "line-clamp",
         "-webkit-line-clamp",
+        "-officeimo-pdf-tag-type",
         "z-index"
     };
 
@@ -224,6 +231,24 @@ public static partial class HtmlComputedStyleEngine {
         HtmlCssMediaContext mediaContext,
         HtmlConversionLimits limits) =>
         ComputeStyleSet(document, MediaEnvironment.CreateDefault(mediaContext), false, limits).Elements;
+
+    internal static IReadOnlyDictionary<IElement, HtmlComputedStyle> Compute(
+        IHtmlDocument document,
+        HtmlResourcePipelineOptions options) {
+        MediaEnvironment environment = options.MediaWidth.HasValue && options.MediaHeight.HasValue
+            ? new MediaEnvironment(options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value, options.MediaFeatures)
+            : MediaEnvironment.CreateDefault(options.MediaContext, options.MediaFeatures);
+        return ComputeStyleSet(document, environment, false, options.Limits).Elements;
+    }
+
+    internal static HtmlComputedStyleSet ComputeForProvenance(
+        IHtmlDocument document,
+        HtmlResourcePipelineOptions options) {
+        MediaEnvironment environment = options.MediaWidth.HasValue && options.MediaHeight.HasValue
+            ? new MediaEnvironment(options.MediaContext, options.MediaWidth.Value, options.MediaHeight.Value, options.MediaFeatures)
+            : MediaEnvironment.CreateDefault(options.MediaContext, options.MediaFeatures);
+        return ComputeStyleSet(document, environment, true, options.Limits);
+    }
 
     internal static HtmlComputedStyleSet ComputeForRendering(IHtmlDocument document, HtmlRenderOptions options, HtmlConversionLimits limits) =>
         ComputeStyleSet(

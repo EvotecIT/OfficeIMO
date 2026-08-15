@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Resource budgets applied while parsing PDF syntax and object graphs.</summary>
 public sealed class PdfReadLimits {
     internal const int DefaultMaxDecodedStreamBytes = 256 * 1024 * 1024;
+    internal const long DefaultMaxTotalDecodedStreamBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxContentOperations = 1_000_000;
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
@@ -35,6 +36,9 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum decoded byte count produced from one filtered stream. Default: 256 MiB.</summary>
     public int MaxDecodedStreamBytes { get; init; } = DefaultMaxDecodedStreamBytes;
+
+    /// <summary>Maximum aggregate decoded stream bytes cached while parsing one document. Default: 512 MiB.</summary>
+    public long MaxTotalDecodedStreamBytes { get; init; } = DefaultMaxTotalDecodedStreamBytes;
 
     /// <summary>Maximum aggregate decoded content-stream bytes materialized for one page. Default: 256 MiB.</summary>
     public int MaxPageContentBytes { get; init; } = DefaultMaxPageContentBytes;
@@ -132,6 +136,7 @@ public sealed class PdfReadLimits {
             MaxIndirectObjects = MaxIndirectObjects,
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = MaxDecodedStreamBytes,
+            MaxTotalDecodedStreamBytes = MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,
@@ -165,6 +170,81 @@ public sealed class PdfReadLimits {
         };
     }
 
+    internal PdfReadLimits WithMaximumContainerEntries(
+        int maximumContainerEntries,
+        long? maximumDecodedStreamBytes = null,
+        long? maximumTotalDecodedStreamBytes = null,
+        long? maximumTotalAttachmentBytes = null,
+        bool preserveExistingDecodedStreamLimit = true,
+        long? maximumRawStreamBytes = null,
+        bool preserveExistingRawStreamLimit = true) {
+        if (maximumContainerEntries <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
+        }
+        if (maximumDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumDecodedStreamBytes), maximumDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+        if (maximumTotalDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumTotalDecodedStreamBytes), maximumTotalDecodedStreamBytes, "Maximum aggregate decoded stream bytes must be positive.");
+        }
+        if (maximumTotalAttachmentBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumTotalAttachmentBytes), maximumTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
+        }
+        if (maximumRawStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumRawStreamBytes), maximumRawStreamBytes, "Maximum raw stream bytes must be positive.");
+        }
+        int requestedRawStreamBytes = maximumRawStreamBytes.HasValue
+            ? (int)Math.Min(maximumRawStreamBytes.Value, int.MaxValue)
+            : MaxRawStreamBytes;
+        int effectiveRawStreamBytes = preserveExistingRawStreamLimit
+            ? Math.Min(MaxRawStreamBytes, requestedRawStreamBytes)
+            : requestedRawStreamBytes;
+        int requestedDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
+            ? (int)Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue)
+            : MaxDecodedStreamBytes;
+        int effectiveDecodedStreamBytes = preserveExistingDecodedStreamLimit
+            ? Math.Min(MaxDecodedStreamBytes, requestedDecodedStreamBytes)
+            : requestedDecodedStreamBytes;
+        return new PdfReadLimits {
+            MaxInputBytes = MaxInputBytes,
+            MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
+            MaxRawStreamBytes = effectiveRawStreamBytes,
+            MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
+            MaxTotalDecodedStreamBytes = maximumTotalDecodedStreamBytes ?? maximumDecodedStreamBytes
+                ?? MaxTotalDecodedStreamBytes,
+            MaxPageContentBytes = MaxPageContentBytes,
+            MaxRetainedContentBytes = MaxRetainedContentBytes,
+            MaxActualTextCharacters = MaxActualTextCharacters,
+            MaxDecodedTextCharacters = MaxDecodedTextCharacters,
+            MaxTextSearchMatches = MaxTextSearchMatches,
+            MaxObjectCharacters = MaxObjectCharacters,
+            MaxTokensPerObject = MaxTokensPerObject,
+            MaxObjectNestingDepth = MaxObjectNestingDepth,
+            MaxObjectParsingTime = MaxObjectParsingTime,
+            MaxRevisions = Math.Min(MaxRevisions, maximumContainerEntries),
+            MaxPageTreeNodes = Math.Min(MaxPageTreeNodes, maximumContainerEntries),
+            MaxPageTreeDepth = MaxPageTreeDepth,
+            MaxPages = Math.Min(MaxPages, maximumContainerEntries),
+            MaxFormFields = Math.Min(MaxFormFields, maximumContainerEntries),
+            MaxFormFieldDepth = MaxFormFieldDepth,
+            MaxNameTreeNodes = Math.Min(MaxNameTreeNodes, maximumContainerEntries),
+            MaxNameTreeDepth = MaxNameTreeDepth,
+            MaxJavaScriptBytes = MaxJavaScriptBytes,
+            MaxJavaScripts = Math.Min(MaxJavaScripts, maximumContainerEntries),
+            MaxWidgetActions = Math.Min(MaxWidgetActions, maximumContainerEntries),
+            MaxTotalJavaScriptBytes = MaxTotalJavaScriptBytes,
+            MaxAttachments = Math.Min(MaxAttachments, maximumContainerEntries),
+            MaxTotalAttachmentBytes = maximumTotalAttachmentBytes ?? MaxTotalAttachmentBytes,
+            MaxFormFieldAppearanceStates = Math.Min(MaxFormFieldAppearanceStates, maximumContainerEntries),
+            MaxAnnotationsPerPage = Math.Min(MaxAnnotationsPerPage, maximumContainerEntries),
+            MaxColorSpaceResourcesPerPage = Math.Min(MaxColorSpaceResourcesPerPage, maximumContainerEntries),
+            MaxContentOperations = MaxContentOperations,
+            MaxContentOperands = MaxContentOperands,
+            MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+        };
+    }
+
     internal void Validate() {
         if (MaxInputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxInputBytes), MaxInputBytes, "Maximum input bytes must be positive.");
@@ -180,6 +260,10 @@ public sealed class PdfReadLimits {
 
         if (MaxDecodedStreamBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxDecodedStreamBytes), MaxDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
+        }
+
+        if (MaxTotalDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxTotalDecodedStreamBytes), MaxTotalDecodedStreamBytes, "Maximum aggregate decoded stream bytes must be positive.");
         }
 
         ValidatePositive(MaxPageContentBytes, nameof(MaxPageContentBytes), "Maximum aggregate page content bytes must be positive.");

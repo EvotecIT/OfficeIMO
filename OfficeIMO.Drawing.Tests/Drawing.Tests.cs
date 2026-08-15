@@ -1732,6 +1732,40 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeClipPathKindPreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)OfficeClipPathKind.Rectangle);
+        Assert.Equal(1, (int)OfficeClipPathKind.RoundedRectangle);
+        Assert.Equal(2, (int)OfficeClipPathKind.Path);
+        Assert.Equal(3, (int)OfficeClipPathKind.Empty);
+    }
+
+    [Fact]
+    public void OfficeClipPathEmptySuppressesGroupAndShapePaintAcrossRasterAndSvg() {
+        OfficeClipPath empty = OfficeClipPath.Empty();
+        OfficeClipPath scaled = empty.Scale(2D, 3D);
+        OfficeShape childShape = OfficeShape.Rectangle(20D, 20D);
+        childShape.FillColor = OfficeColor.Red;
+        var child = new OfficeDrawing(20D, 20D).AddShape(childShape, 0D, 0D);
+        var drawing = new OfficeDrawing(40D, 20D)
+            .AddClippedDrawing(child, 0D, 0D, empty);
+        OfficeShape shape = OfficeShape.Rectangle(20D, 20D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.ClipPath = empty;
+        drawing.AddShape(shape, 20D, 0D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Equal(OfficeClipPathKind.Empty, scaled.Kind);
+        Assert.Equal(0D, scaled.Width);
+        Assert.Equal(0D, scaled.Height);
+        Assert.Empty(scaled.Commands);
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 10));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(30, 10));
+        Assert.Contains("<path d=\"\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeLinearGradientStoresReusableFillIntent() {
         var gradient = OfficeLinearGradient.DiagonalDown(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
         var multiStop = new OfficeLinearGradient(

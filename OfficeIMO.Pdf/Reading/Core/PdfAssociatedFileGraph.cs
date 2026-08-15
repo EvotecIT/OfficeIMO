@@ -1,10 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfAssociatedFileGraph {
-    internal static IReadOnlyList<PdfArray> FindAssociatedFileArrays(Dictionary<int, PdfIndirectObject> objects) {
+    internal static IReadOnlyList<PdfArray> FindAssociatedFileArrays(
+        Dictionary<int, PdfIndirectObject> objects,
+        ISet<int>? allowedObjectNumbers = null) {
         var arrays = new List<PdfArray>();
         var visited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values) {
+            if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(item.ObjectNumber)) continue;
             CollectAssociatedFileArrays(objects, item.Value, arrays, visited);
         }
 

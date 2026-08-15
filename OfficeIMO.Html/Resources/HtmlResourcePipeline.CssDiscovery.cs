@@ -16,7 +16,8 @@ public static partial class HtmlResourcePipeline {
             .ToList();
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
             string propertyName = GetCssDeclarationPropertyName(normalized, match.Index);
-            if (IsCssFunctionNameAt(normalized, match.Index, "url")
+            if (IsValidCssUrlMatch(normalized, match)
+                && IsCssFunctionNameAt(normalized, match.Index, "url")
                 && !IsInsideCssString(normalized, match.Index)
                 && !IsImportUrl(match.Index, importRanges)
                 && ClassifyCssUrl(normalized, match.Index) != HtmlResourceKind.Font
@@ -32,12 +33,13 @@ public static partial class HtmlResourcePipeline {
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {
         Dictionary<string, List<CssCustomPropertyDefinition>> documentCustomPropertyDefinitions = ExtractDocumentCustomPropertyDefinitions(document, options);
         Dictionary<IElement, int> inlineSourceOrders = GetInlineStyleSourceOrders(document, GetDocumentCssSourceOrder(document));
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles = HtmlComputedStyleEngine.Compute(document, options);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement) || !IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, options)) {
                 continue;
             }
 
-            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, inlineSourceOrders, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
+            AddCssReferences(manifest, styleElement, "css", styleElement.TextContent, documentCustomPropertyDefinitions, inlineSourceOrders, computedStyles, sourceOrderBase: 0, includeLocalDefinitions: false, baseUri, options, document);
         }
 
         foreach (IElement element in document.QuerySelectorAll("[style]")) {
@@ -46,7 +48,7 @@ public static partial class HtmlResourcePipeline {
                 : GetDocumentCssSourceOrder(document);
             Dictionary<string, List<CssCustomPropertyDefinition>> inheritedDefinitions = ExtractInlineCustomPropertyDefinitions(element, inlineSourceOrders, options, includeSelf: false);
             Dictionary<string, List<CssCustomPropertyDefinition>> ambientDefinitions = MergeCustomPropertyDefinitions(documentCustomPropertyDefinitions, inheritedDefinitions);
-            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, inlineSourceOrders, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
+            AddCssReferences(manifest, element, "style", element.GetAttribute("style") ?? string.Empty, ambientDefinitions, inlineSourceOrders, computedStyles, sourceOrderBase, includeLocalDefinitions: true, baseUri, options, document);
         }
     }
 
@@ -58,6 +60,7 @@ public static partial class HtmlResourcePipeline {
         string css,
         IReadOnlyDictionary<string, List<CssCustomPropertyDefinition>> ambientCustomPropertyDefinitions,
         IReadOnlyDictionary<IElement, int> inlineSourceOrders,
+        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         int sourceOrderBase,
         bool includeLocalDefinitions,
         Uri? baseUri,
@@ -74,7 +77,7 @@ public static partial class HtmlResourcePipeline {
             ? element
             : null;
         Dictionary<string, List<CssCustomPropertyDefinition>> customPropertyDefinitions = includeLocalDefinitions
-            ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase, isInline: string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase), inlineOwner: inlineUseElement))
+            ? MergeCustomPropertyDefinitions(ambientCustomPropertyDefinitions, ExtractCustomPropertyDefinitions(css, inactiveMediaRanges, sourceOrderBase, isInline: string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase), sourceOwner: inlineUseElement))
             : CloneCustomPropertyDefinitions(ambientCustomPropertyDefinitions);
         var importRanges = new List<SourceRange>();
         if (scanImports) {
@@ -89,32 +92,33 @@ public static partial class HtmlResourcePipeline {
             }
         }
 
-        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inlineSourceOrders, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
+        AddUsedCustomPropertyUrls(manifest, element, attributeName, css, customPropertyDefinitions, inlineSourceOrders, computedStyles, inactiveMediaRanges, baseUri, options, document, inlineUseElement);
         foreach (CssStringUrlReference reference in ExtractImageSetStringUrls(css)) {
             string source = DecodeCssEscapes(reference.Source);
             if (!IsInRanges(reference.Start, inactiveMediaRanges)
                 && !IsFragmentOnlyReference(source)
                 && !TryGetCustomPropertyName(css, reference.Start, out _)
                 && IsSupportedCssUrlDeclaration(css, reference.Start)
-                && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start)) {
+                && IsCssReferenceForMatchingSelector(document, attributeName, css, reference.Start, computedStyles)) {
                 AddRaw(manifest, ClassifyCssUrl(css, reference.Start), element, attributeName + "-image-set", source, baseUri, options);
             }
         }
 
         foreach (Match match in CssUrlExpression.Matches(css)) {
+            if (!IsValidCssUrlMatch(css, match)) continue;
             string source = DecodeCssEscapes(match.Groups["url"].Value.Trim().Trim('\'', '"'));
             if (!string.IsNullOrWhiteSpace(source)
                 && !IsFragmentOnlyReference(source)
                 && IsCssFunctionNameAt(css, match.Index, "url")
                 && !IsImportUrl(match.Index, importRanges)
-                && !IsResolvedVarFallbackUrl(css, match.Index, customPropertyDefinitions, inlineSourceOrders, document, inlineUseElement, inactiveMediaRanges, options, attributeName)
+                && !IsResolvedVarFallbackUrl(css, match.Index, customPropertyDefinitions, inlineSourceOrders, document, inlineUseElement, computedStyles, inactiveMediaRanges, options, attributeName)
                 && !IsInRanges(match.Index, inactiveMediaRanges)
                 && !IsImportAtRuleUrl(css, match.Index)
                 && !IsAtRulePreludeUrl(css, match.Index)
                 && !IsInsideCssString(css, match.Index)
                 && !IsCustomPropertyUrl(css, match.Index)
                 && IsSupportedCssUrlDeclaration(css, match.Index)
-                && IsCssReferenceForMatchingSelector(document, attributeName, css, match.Index)) {
+                && IsCssReferenceForMatchingSelector(document, attributeName, css, match.Index, computedStyles)) {
                 AddRaw(manifest, ClassifyCssUrl(css, match.Index), element, attributeName + "-url", source, baseUri, options);
             }
         }

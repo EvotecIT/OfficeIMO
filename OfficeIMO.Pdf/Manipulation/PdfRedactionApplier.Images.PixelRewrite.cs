@@ -17,6 +17,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         List<PdfRedactionMatch> removedMatches,
         PdfReadLimits limits,
+        bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         if (targets.Length == 0) {
@@ -41,7 +42,7 @@ internal static partial class PdfRedactionApplier {
             }
 
             string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, maximumDecodedStreamBytes));
-            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, contentState, referenceCounts, new HashSet<int>(), removedMatches, limits, ref nextObjectNumber);
+            ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, resources, xObjects, content, targets, options, contentState, referenceCounts, new HashSet<int>(), removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
             if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
                 PdfReference targetReference = reference;
                 if (IsSharedReference(referenceCounts, reference)) {
@@ -73,6 +74,7 @@ internal static partial class PdfRedactionApplier {
         HashSet<int> activeForms,
         List<PdfRedactionMatch> removedMatches,
         PdfReadLimits limits,
+        bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         bool changed = false;
@@ -104,7 +106,7 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, ref nextObjectNumber)) {
+                if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber)) {
                     AddRemovedImageTargets(new[] { target }, removedMatches, null);
                     changed = true;
                 }
@@ -128,7 +130,7 @@ internal static partial class PdfRedactionApplier {
                     xObjects.Items[resourceName] = formReference;
                     formStream = (PdfStream)objects[formReference.ObjectNumber].Value;
 
-                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber);
+                    ImagePixelRewriteContentResult repeatedResult = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
                     if (repeatedResult.HasChanges) {
                         rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
                         changed = true;
@@ -145,7 +147,7 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber).HasChanges || changed;
+                changed = RewriteImagePixelsInForm(objects, resources, formReference, formStream, targets, options, invocationTransform, referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber).HasChanges || changed;
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
@@ -166,6 +168,7 @@ internal static partial class PdfRedactionApplier {
         HashSet<int> activeForms,
         List<PdfRedactionMatch> removedMatches,
         PdfReadLimits limits,
+        bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;
         PdfDictionary formResources;
@@ -178,7 +181,7 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
         Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, maximumDecodedStreamBytes));
-        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, new ImageContentGraphicsState(formTransform), referenceCounts, activeForms, removedMatches, limits, ref nextObjectNumber);
+        ImagePixelRewriteContentResult result = RewriteImagePixelsInContent(objects, formResources, formXObjects, formContent, targets, options, new ImageContentGraphicsState(formTransform), referenceCounts, activeForms, removedMatches, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber);
         if (!string.Equals(result.Content, formContent, StringComparison.Ordinal)) {
             objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
         }
@@ -359,8 +362,13 @@ internal static partial class PdfRedactionApplier {
         ImageRedactionTarget target,
         Matrix2D transform,
         PdfRedactionApplyOptions options,
+        bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         if (!TryGetSimpleWritableImage(imageStream, objects, options.MaximumDecodedImageBytes, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
+            if (hasEffectiveOutputIntentColorTransform &&
+                ResourceResolver.HasIccBasedImageColorSpace(imageStream.Dictionary, resources, objects)) {
+                return false;
+            }
             return TryRewriteNormalizedImagePixels(objects, resources, resourceName, imageReference, imageStream, target, transform, options, ref nextObjectNumber);
         }
 

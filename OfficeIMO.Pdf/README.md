@@ -736,6 +736,18 @@ The Word, Excel, PowerPoint, Markdown, HTML, RTF, OneNote, AsciiDoc, and LaTeX P
 
 The text-capable adapters also expose `TextFallbacks`. `PdfTextFallbackFeatures.Default` enables document, monospace, symbol, and emoji groups. Add `PdfTextFallbackFeatures.MultilingualFonts` for CJK, Arabic, and other non-Latin family candidates; OneNote adds that candidate group unless fallbacks are `None`. Candidate selection does not read installed fonts unless the resource policy allows it.
 
+### Inspect and remove content provenance
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Provenance;
+
+OfficeProvenanceReport report = PdfProvenance.InspectFile("input.pdf");
+OfficeProvenanceRemovalResult result = PdfProvenance.RemoveFile("input.pdf", "clean.pdf");
+```
+
+The PDF owner recognizes the standards-defined embedded file with media type `application/c2pa` and `/AFRelationship /C2PA_Manifest`. Removal uses a bounded, targeted object-graph rewrite that leaves unrelated attachment associations in place. Malformed indirect-object candidates remain untouched unless the caller disables `RequireStructurallyValidCarrier`; direct file-spec dictionaries are inspected but cannot be removed safely. A signed PDF is never silently rewritten or stripped; handle its signature through an explicit PDF signature workflow first. Optional cryptographic C2PA verification is provided by `OfficeIMO.Security`.
+
 ### Generate a formal e-invoice carrier
 
 ```csharp

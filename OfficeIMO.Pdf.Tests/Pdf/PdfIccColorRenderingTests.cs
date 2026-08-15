@@ -1433,7 +1433,7 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
-    public void ExtractImages_ExplicitImageIntentOverridesEachInheritedIntent() {
+    public void ExtractImages_ExplicitImageIntentCollapsesEquivalentInheritedIntentVariants() {
         byte[] profile = IccLutTestProfiles.CreateCmykLut8WithDistinctRelativeIntent();
         const string content =
             "q /Perceptual ri 40 0 0 40 40 80 cm /Im1 Do Q\n" +
@@ -1445,13 +1445,11 @@ public class PdfIccColorRenderingTests {
             imageEntries: "/Intent /Perceptual",
             contentOperations: content);
 
-        OfficeColor[] colors = PdfReadDocument.Open(pdf).Pages[0].GetImages().Select(image => {
-            Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
-            return raster!.GetPixel(0, 0);
-        }).ToArray();
+        PdfExtractedImage image = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetImages());
 
-        Assert.Equal(2, colors.Length);
-        Assert.Equal(colors[0], colors[1]);
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.NotNull(raster);
+        Assert.Equal(OfficeIccRenderingIntent.Perceptual, image.RenderingIntent);
     }
 
     [Fact]

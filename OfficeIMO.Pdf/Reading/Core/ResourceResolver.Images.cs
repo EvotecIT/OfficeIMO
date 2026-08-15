@@ -3,6 +3,18 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
+    internal static bool HasIccBasedImageColorSpace(
+        PdfDictionary image,
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? authoredColorSpace = image.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)
+            ? colorSpaceObject
+            : null;
+        PdfObject? effectiveColorSpace = ResolveColorSpaceResource(authoredColorSpace, resources, objects);
+        return effectiveColorSpace is PdfArray { Items.Count: > 0 } colorSpaceArray &&
+            ResolveObject(colorSpaceArray.Items[0], objects) is PdfName { Name: "ICCBased" };
+    }
+
     internal static bool CanProjectImageColorSpace(
         PdfDictionary image,
         PdfDictionary? resources,

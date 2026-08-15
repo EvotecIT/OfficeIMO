@@ -5,9 +5,42 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
     private static int GetDeclarationStart(string css, int index) {
-        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
-        int previousStatementEnd = css.LastIndexOf(';', Math.Max(0, index - 1));
+        FindPreviousCssStructuralTokens(css, index, out int blockStart, out _, out int previousStatementEnd);
         return Math.Max(0, Math.Max(blockStart, previousStatementEnd) + 1);
+    }
+
+    private static void FindPreviousCssStructuralTokens(
+        string css,
+        int beforeIndex,
+        out int blockStart,
+        out int blockEnd,
+        out int statementEnd) {
+        blockStart = -1;
+        blockEnd = -1;
+        statementEnd = -1;
+        char quote = '\0';
+        int parenthesesDepth = 0;
+        int limit = Math.Min(Math.Max(beforeIndex, 0), css.Length);
+        for (int index = 0; index < limit; index++) {
+            char current = css[index];
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, index)) quote = '\0';
+                continue;
+            }
+            if (current is '\'' or '"') { quote = current; continue; }
+            if (current == '/' && index + 1 < limit && css[index + 1] == '*') {
+                index += 2;
+                while (index + 1 < limit && !(css[index] == '*' && css[index + 1] == '/')) index++;
+                if (index + 1 < limit) index++;
+                continue;
+            }
+            if (current == '(') { parenthesesDepth++; continue; }
+            if (current == ')' && parenthesesDepth > 0) { parenthesesDepth--; continue; }
+            if (parenthesesDepth != 0) continue;
+            if (current == '{') blockStart = index;
+            else if (current == '}') blockEnd = index;
+            else if (current == ';') statementEnd = index;
+        }
     }
 
     private static IEnumerable<CssStringUrlReference> ExtractImageSetStringUrls(string css) {
@@ -27,69 +60,178 @@ public static partial class HtmlResourcePipeline {
                 yield break;
             }
 
-            int valueCursor = open + 1;
-            while (valueCursor < close) {
-                char current = css[valueCursor];
-                if ((current == '"' || current == '\'') && !IsCssTypeFunctionString(css, valueCursor)) {
-                    if (TryReadCssQuotedValue(css, valueCursor, out string source, out int end)) {
-                        if (!string.IsNullOrWhiteSpace(source)) {
-                            yield return new CssStringUrlReference(functionStart, end, source);
-                        }
-
-                        valueCursor = end;
-                        continue;
-                    }
-                }
-
-                valueCursor++;
+            if (TryParseImageSetOptions(css, functionStart, open + 1, close, out List<CssStringUrlReference> references)) {
+                foreach (CssStringUrlReference reference in references) yield return reference;
             }
 
             index = close + 1;
         }
     }
 
-    private static bool IsCssTypeFunctionString(string css, int quoteIndex) {
-        int cursor = quoteIndex - 1;
-        cursor = SkipCssWhitespaceAndCommentsBackward(css, cursor);
-
-        if (cursor < 0 || css[cursor] != '(') {
-            return false;
+    private static bool TryParseImageSetOptions(
+        string css,
+        int functionStart,
+        int contentStart,
+        int contentEnd,
+        out List<CssStringUrlReference> references) {
+        references = new List<CssStringUrlReference>();
+        int optionStart = contentStart;
+        int depth = 0;
+        char quote = '\0';
+        for (int cursor = contentStart; cursor <= contentEnd; cursor++) {
+            char current = cursor < contentEnd ? css[cursor] : ',';
+            if (quote != '\0') {
+                if (current == quote && !IsEscaped(css, cursor)) quote = '\0';
+                continue;
+            }
+            if (current is '"' or '\'') { quote = current; continue; }
+            if (current == '(') { depth++; continue; }
+            if (current == ')' && depth > 0) { depth--; continue; }
+            if (current != ',' || depth != 0) continue;
+            if (!TryParseImageSetOption(css, functionStart, optionStart, cursor, references)) {
+                references.Clear();
+                return false;
+            }
+            optionStart = cursor + 1;
         }
-
-        cursor--;
-        cursor = SkipCssWhitespaceAndCommentsBackward(css, cursor);
-
-        int end = cursor + 1;
-        while (cursor >= 0 && (IsCssIdentifierCharacter(css[cursor]) || css[cursor] == '\\')) {
-            cursor--;
-        }
-
-        string functionName = css.Substring(cursor + 1, end - cursor - 1);
-        return CssFunctionNameEquals(functionName, "type");
+        return references.Count > 0 || SkipCssTrivia(css, contentStart, contentEnd) < contentEnd;
     }
 
-    private static int SkipCssWhitespaceAndCommentsBackward(string css, int cursor) {
-        while (cursor >= 0) {
-            if (char.IsWhiteSpace(css[cursor])) {
-                cursor--;
-                continue;
-            }
-
-            if (cursor > 0 && css[cursor - 1] == '*' && css[cursor] == '/') {
-                int commentStart = css.LastIndexOf("/*", cursor - 2, StringComparison.Ordinal);
-                if (commentStart < 0) {
-                    return cursor;
-                }
-
-                cursor = commentStart - 1;
-                continue;
-            }
-
-            break;
+    private static bool TryParseImageSetOption(
+        string css,
+        int functionStart,
+        int start,
+        int end,
+        ICollection<CssStringUrlReference> references) {
+        int cursor = SkipCssTrivia(css, start, end);
+        if (cursor >= end) return false;
+        CssStringUrlReference? stringReference = null;
+        if (css[cursor] is '"' or '\'') {
+            int quote = cursor;
+            if (!TryReadCssQuotedValue(css, cursor, out string source, out int sourceEnd) || sourceEnd > end ||
+                string.IsNullOrWhiteSpace(source)) return false;
+            stringReference = new CssStringUrlReference(functionStart, sourceEnd, quote + 1, source);
+            cursor = sourceEnd;
+        } else {
+            int nameStart = cursor;
+            while (cursor < end && (IsCssIdentifierCharacter(css[cursor]) || css[cursor] == '-')) cursor++;
+            if (cursor == nameStart) return false;
+            string functionName = css.Substring(nameStart, cursor - nameStart);
+            cursor = SkipCssTrivia(css, cursor, end);
+            if (cursor >= end || css[cursor] != '(' || !IsSupportedCssImageFunction(functionName)) return false;
+            int close = FindMatchingCssParenthesis(css, cursor);
+            if (close < cursor || close >= end) return false;
+            cursor = close + 1;
         }
 
+        bool sawResolution = false;
+        bool sawType = false;
+        while ((cursor = SkipCssTrivia(css, cursor, end)) < end) {
+            if (IsCssFunctionNameAt(css, cursor, "type")) {
+                if (sawType) return false;
+                int open = css.IndexOf('(', cursor);
+                int close = open >= 0 ? FindMatchingCssParenthesis(css, open) : -1;
+                if (close < open || close >= end) return false;
+                int valueStart = SkipCssTrivia(css, open + 1, close);
+                if (valueStart >= close || css[valueStart] is not ('"' or '\'') ||
+                    !TryReadCssQuotedValue(css, valueStart, out string mediaType, out int valueEnd) ||
+                    valueEnd > close || SkipCssTrivia(css, valueEnd, close) != close ||
+                    string.IsNullOrWhiteSpace(mediaType)) return false;
+                sawType = true;
+                cursor = close + 1;
+                continue;
+            }
+
+            int tokenEnd = cursor;
+            while (tokenEnd < end && !IsCssWhitespace(css[tokenEnd]) && css[tokenEnd] != CssCommentMask) tokenEnd++;
+            if (sawResolution || !IsValidCssResolution(css.Substring(cursor, tokenEnd - cursor))) return false;
+            sawResolution = true;
+            cursor = tokenEnd;
+        }
+
+        if (stringReference != null) references.Add(stringReference);
+        return true;
+    }
+
+    private static int SkipCssTrivia(string css, int cursor, int end) {
+        while (cursor < end && (IsCssWhitespace(css[cursor]) || css[cursor] == CssCommentMask)) cursor++;
         return cursor;
     }
+
+    private static bool IsSupportedCssImageFunction(string name) =>
+        name.Equals("url", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("image", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("image-set", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("cross-fade", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("element", StringComparison.OrdinalIgnoreCase) ||
+        name.EndsWith("gradient", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("-webkit-gradient", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("paint", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsValidCssResolution(string token) {
+        string unit;
+        if (token.EndsWith("dppx", StringComparison.OrdinalIgnoreCase)) unit = "dppx";
+        else if (token.EndsWith("dpcm", StringComparison.OrdinalIgnoreCase)) unit = "dpcm";
+        else if (token.EndsWith("dpi", StringComparison.OrdinalIgnoreCase)) unit = "dpi";
+        else if (token.EndsWith("x", StringComparison.OrdinalIgnoreCase)) unit = "x";
+        else return false;
+        string number = token.Substring(0, token.Length - unit.Length);
+        return double.TryParse(
+                number,
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out double value) &&
+            value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
+    }
+
+    private static bool IsCssWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
+
+    private static bool IsValidCssUrlMatch(string css, Match match) {
+        Group source = match.Groups["url"];
+        if (!source.Success) return false;
+        int open = css.IndexOf('(', match.Index, source.Index - match.Index + 1);
+        if (open < 0) return false;
+        int tokenStart = open + 1;
+        while (tokenStart < source.Index && IsCssWhitespace(css[tokenStart])) tokenStart++;
+        bool quoted = tokenStart < css.Length && (css[tokenStart] == '\'' || css[tokenStart] == '"');
+        int start = source.Index;
+        int end = source.Index + source.Length;
+        if (!quoted) {
+            while (start < end && IsCssWhitespace(css[start])) start++;
+            while (end > start && IsCssWhitespace(css[end - 1])) end--;
+        }
+        if (start == end) return false;
+        for (int index = start; index < end; index++) {
+            char value = css[index];
+            if (value == '\\') {
+                if (++index >= end || css[index] is '\r' or '\n' or '\f') return false;
+                if (IsCssHexDigit(css[index])) {
+                    int digits = 1;
+                    while (digits < 6 && index + 1 < end && IsCssHexDigit(css[index + 1])) {
+                        index++;
+                        digits++;
+                    }
+                    if (index + 1 < end && IsCssWhitespace(css[index + 1])) {
+                        index++;
+                        if (css[index] == '\r' && index + 1 < end && css[index + 1] == '\n') index++;
+                    }
+                }
+                continue;
+            }
+            if (quoted) {
+                if (value is '\r' or '\n' or '\f') return false;
+                continue;
+            }
+            if (IsCssWhitespace(value) || value is '\'' or '"' or '(' ||
+                value <= '\u0008' || value == '\u000B' || value is >= '\u000E' and <= '\u001F' || value == '\u007F') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsCssHexDigit(char value) =>
+        value is >= '0' and <= '9' or >= 'a' and <= 'f' or >= 'A' and <= 'F';
 
     private static int FindMatchingCssParenthesis(string css, int open) {
         int depth = 0;
@@ -164,7 +306,7 @@ public static partial class HtmlResourcePipeline {
                 }
             } else {
                 int sourceStart = cursor;
-                while (cursor < css.Length && !char.IsWhiteSpace(css[cursor]) && css[cursor] != ';') {
+                while (cursor < css.Length && !IsCssWhitespace(css[cursor]) && css[cursor] != ';') {
                     cursor++;
                 }
 
@@ -293,7 +435,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static int SkipWhitespace(string text, int index) {
-        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+        while (index < text.Length && IsCssWhitespace(text[index])) {
             index++;
         }
 
@@ -324,7 +466,7 @@ public static partial class HtmlResourcePipeline {
         for (open = css.IndexOf('(', Math.Max(0, startIndex)); open >= 0; open = css.IndexOf('(', open + 1)) {
             int nameEnd = open;
             int cursor = nameEnd - 1;
-            while (cursor >= 0 && char.IsWhiteSpace(css[cursor])) {
+            while (cursor >= 0 && IsCssWhitespace(css[cursor])) {
                 cursor--;
             }
 
@@ -541,7 +683,7 @@ public static partial class HtmlResourcePipeline {
             : propertyName.ToLowerInvariant();
     }
 
-    private static bool IsSupportedCssImageUrlProperty(string propertyName) {
+    internal static bool IsSupportedCssImageUrlProperty(string propertyName) {
         switch (propertyName) {
             case "background":
             case "background-image":
@@ -557,6 +699,7 @@ public static partial class HtmlResourcePipeline {
             case "-webkit-mask-image":
             case "filter":
             case "clip-path":
+            case "shape-outside":
                 return true;
             default:
                 return false;
@@ -582,7 +725,7 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static string DecodeCssEscapes(string source) {
-        return HtmlCssEscapeDecoder.Decode(source);
+        return HtmlCssEscapeDecoder.Decode(source.Replace(CssCommentMask.ToString(), string.Empty));
     }
 
 }

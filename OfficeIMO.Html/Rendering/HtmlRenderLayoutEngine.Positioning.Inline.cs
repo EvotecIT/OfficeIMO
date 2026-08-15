@@ -30,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IDictionary<IElement, InlineContainingBounds> bounds) {
         for (IElement? current = run.OwnerElement; current != null; current = current.ParentElement) {
-            if (_localPositionedElements.ContainsKey(current)
+            if ((_localPositionedElements.ContainsKey(current) || _inlineStackingElements.Contains(current))
                 && _layoutStyles.TryGetValue(current, out HtmlRenderBoxStyle? style)
                 && style.Display == "inline") {
                 if (!bounds.TryGetValue(current, out InlineContainingBounds? currentBounds)) {
@@ -96,6 +96,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (KeyValuePair<IElement, InlineContainingBounds> entry in bounds) {
             InlineContainingRect rect = entry.Value.ToRect(formattingContainer);
             _inlineContainingRects[entry.Key] = rect;
+            if (nodes.TryGetValue(entry.Key, out InlineStackingNode? node)) node.Bounds = rect;
             if (!_localPositionedElements.TryGetValue(entry.Key, out List<PositionedElementRequest>? requests)) continue;
             foreach (PositionedElementRequest request in requests.Where(item => ReferenceEquals(item.ContainingBlock, entry.Key))) {
                 positionedPlacements.Add(new InlinePositionedPlacement(request, rect));
@@ -134,7 +135,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (nodes.TryGetValue(element, out InlineStackingNode? existing)) return existing;
         HtmlRenderBoxStyle style = _layoutStyles[element];
         var node = new InlineStackingNode(
+            this,
             element,
+            style,
             ResolvePositionedZIndex(element, style),
             GetPositionedSourceOrder(element),
             ownedVisuals.TryGetValue(element, out List<HtmlRenderVisual>? regular) ? regular : new List<HtmlRenderVisual>());
@@ -217,8 +220,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class InlineStackingNode {
-        internal InlineStackingNode(IElement element, int zIndex, int sourceOrder, IReadOnlyList<HtmlRenderVisual> regularVisuals) {
+        private readonly HtmlRenderLayoutEngine _owner;
+        private readonly HtmlRenderBoxStyle _style;
+
+        internal InlineStackingNode(HtmlRenderLayoutEngine owner, IElement element, HtmlRenderBoxStyle style, int zIndex, int sourceOrder, IReadOnlyList<HtmlRenderVisual> regularVisuals) {
+            _owner = owner;
             Element = element;
+            _style = style;
             ZIndex = zIndex;
             SourceOrder = sourceOrder;
             RegularVisuals = regularVisuals;
@@ -227,9 +235,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
         internal IReadOnlyList<HtmlRenderVisual> RegularVisuals { get; }
+        internal InlineContainingRect? Bounds { get; set; }
         internal InlineStackingNode? Parent { get; set; }
         internal List<InlinePaintLayer> Children { get; } = new List<InlinePaintLayer>();
-        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() => ComposeInlineLayers(RegularVisuals, Children);
+        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() =>
+            _owner.ApplyInlineElementPaintEffects(Element, _style, Bounds, ComposeInlineLayers(RegularVisuals, Children));
     }
 
     private sealed class InlinePaintLayer {

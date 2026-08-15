@@ -39,7 +39,9 @@ public enum HtmlRenderSemanticGroupRole {
     /// <summary>Table data cell.</summary>
     TableCell,
     /// <summary>Table or figure caption.</summary>
-    Caption
+    Caption,
+    /// <summary>Decorative content intentionally excluded from tagged-PDF structure.</summary>
+    Artifact
 }
 
 /// <summary>Resolved scope of a semantic HTML table header.</summary>
@@ -68,9 +70,11 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         int columnSpan = 1,
         int rowSpan = 1,
         HtmlRenderTableHeaderScope? headerScope = null,
-        double? layoutY = null)
+        double? layoutY = null,
+        string? structureElementKey = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY) {
         Role = role;
+        StructureElementKey = structureElementKey;
         ColumnSpan = columnSpan;
         RowSpan = rowSpan;
         HeaderScope = headerScope;
@@ -82,6 +86,8 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
 
     /// <summary>Semantic role of this group.</summary>
     public HtmlRenderSemanticGroupRole Role { get; }
+
+    internal string? StructureElementKey { get; }
 
     /// <summary>Table column span, or one for non-cell groups.</summary>
     public int ColumnSpan { get; }
@@ -96,8 +102,8 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
     internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey);
 
     internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY);
+        new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey);
 }

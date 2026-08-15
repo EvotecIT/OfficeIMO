@@ -41,6 +41,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedRowGap = string.Empty;
     internal string UnsupportedColumnGap = string.Empty;
     internal bool ColumnGapWasSpecified;
+    internal bool RowGapWasSpecified;
     internal int? ColumnCount;
     internal double? ColumnWidth;
     internal string ColumnFill = "balance";
@@ -161,6 +162,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string UnsupportedOverflowClipMargin = string.Empty;
     internal string Transform = "none";
     internal string TransformOrigin = "50% 50%";
+    internal string ClipPath = "none";
     internal bool OpacityWasSpecified;
     internal string UnsupportedOpacity = string.Empty;
     internal int BoxShadowLayerCount;
@@ -178,6 +180,15 @@ internal sealed class HtmlRenderBoxStyle {
     internal int Widows = 2;
     internal string? PageName;
     internal string SemanticRole = "block";
+    internal HtmlRenderSemanticGroupRole? SemanticGroupRoleOverride;
+    internal bool SemanticArtifact;
+    internal string UnsupportedSemanticTag = string.Empty;
+    internal bool BookmarkLevelSpecified;
+    internal bool BookmarkSuppressed;
+    internal int? BookmarkLevel;
+    internal string? BookmarkLabel;
+    internal HtmlRenderBookmarkState BookmarkState;
+    internal string UnsupportedBookmark = string.Empty;
     internal double Opacity = 1D;
 
     internal double HorizontalInsets => BorderLeftWidth + BorderRightWidth + PaddingLeft + PaddingRight;

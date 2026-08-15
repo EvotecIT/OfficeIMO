@@ -241,6 +241,15 @@ internal static class StreamDecoder {
         return unsupported;
     }
 
+    internal static bool HasNoEffectiveFilters(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        if (!dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) return true;
+        return TryGetFilterNames(filterObject, objects, out List<string> filterNames) &&
+            filterNames.Count == 0 &&
+            HasValidDecodeParmsDeclaration(dictionary, filterCount: 0, objects);
+    }
+
     internal static bool IsSupportedFilter(string filterName) {
         return GetFilterKind(filterName) != DecodeFilterKind.Unsupported;
     }
@@ -536,7 +545,7 @@ internal static class StreamDecoder {
             return true;
         }
 
-        if (resolved is not PdfArray filterArray || filterArray.Items.Count == 0) {
+        if (resolved is not PdfArray filterArray) {
             return false;
         }
 

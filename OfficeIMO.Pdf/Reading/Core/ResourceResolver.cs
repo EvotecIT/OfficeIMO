@@ -341,8 +341,19 @@ internal static partial class ResourceResolver {
 
                         result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext));
                     } else {
+                        bool hasAuthoredImageIntent = PdfRenderingIntentResolver.TryRead(
+                            stream.Dictionary,
+                            "Intent",
+                            objects,
+                            out OfficeIccRenderingIntent authoredImageIntent);
+                        var emittedIntents = new HashSet<OfficeIccRenderingIntent>();
                         for (int placementIndex = 0; placementIndex < matchingPlacements.Count; placementIndex++) {
-                            OfficeIccRenderingIntent renderingIntent = matchingPlacements[placementIndex].RenderingIntent;
+                            OfficeIccRenderingIntent renderingIntent = hasAuthoredImageIntent
+                                ? authoredImageIntent
+                                : matchingPlacements[placementIndex].RenderingIntent;
+                            if (!emittedIntents.Add(renderingIntent)) {
+                                continue;
+                            }
                             if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity, renderingIntent))) {
                                 continue;
                             }
@@ -1083,11 +1094,14 @@ internal static partial class ResourceResolver {
         bool hasMalformedFilterDeclaration = Filters.StreamDecoder
             .GetUnsupportedFilters(stream.Dictionary, objects)
             .Contains("MalformedFilterDeclaration");
-        OfficeIccRenderingIntent renderingIntent = PdfRenderingIntentResolver.Read(
+        bool hasAuthoredRenderingIntent = PdfRenderingIntentResolver.TryRead(
             stream.Dictionary,
             "Intent",
             objects,
-            inheritedRenderingIntent);
+            out OfficeIccRenderingIntent authoredRenderingIntent);
+        OfficeIccRenderingIntent renderingIntent = hasAuthoredRenderingIntent
+            ? authoredRenderingIntent
+            : inheritedRenderingIntent;
         bool hasSupportedOutputIntent = !isImageMask && outputIntentColorTransform?.IsSupported == true;
 
         byte[] bytes = stream.Data;
@@ -1177,11 +1191,12 @@ internal static partial class ResourceResolver {
             directStreamIdentity,
             isImageMask,
             imageMaskColor ?? OfficeColor.Black,
-            inheritedRenderingIntent,
+            renderingIntent,
             hasExplicitDecode: stream.Dictionary.Items.ContainsKey("Decode"),
             hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
-                ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true });
+                ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
+            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent);
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {

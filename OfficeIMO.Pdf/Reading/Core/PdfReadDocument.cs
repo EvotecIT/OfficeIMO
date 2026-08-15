@@ -8,6 +8,8 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly string _trailerRaw;
     private readonly PdfReadOptions _options;
+    private readonly long _decodedStreamBytes;
+    private readonly PdfDecodedStreamBudget _decodedStreamBudget;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
     private readonly PdfFontResourceCache _fontResourceCache = new();
@@ -40,14 +42,18 @@ public sealed partial class PdfReadDocument {
     internal PdfReadOptions ReadOptions => _options;
     internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
     internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
+    internal long DecodedStreamBytes => _decodedStreamBytes;
+    internal PdfDecodedStreamBudget DecodedStreamBudget => _decodedStreamBudget;
 
     private PdfReadDocument(
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo security,
         PdfRepairReport repairReport,
-        PdfReadOptions? options) {
+        PdfReadOptions? options,
+        long decodedStreamBytes) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;
         _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
@@ -80,6 +86,7 @@ public sealed partial class PdfReadDocument {
         CatalogPageLayout = ExtractCatalogName("PageLayout");
         CatalogVersion = ExtractCatalogName("Version");
         CatalogLanguage = ExtractCatalogString("Lang");
+        _decodedStreamBytes = _decodedStreamBudget.UsedBytes;
     }
 
     /// <summary>All page objects discovered in document order.</summary>

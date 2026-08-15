@@ -9,7 +9,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         int depth,
         ref int sourceIndex,
-        ICollection<FlexItem> items) {
+        ICollection<FlexItem> items,
+        ICollection<HtmlCssRunningStringAssignment>? runningElementAssignments) {
         if (node is IText text) {
             if (string.IsNullOrWhiteSpace(text.Data)) return true;
             string source = HtmlRenderStyleResolver.DescribeSource(text.ParentElement ?? throw new InvalidOperationException("A flex text node has no parent element.")) + "::anonymous-flex-item";
@@ -22,12 +23,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
         EnsureDepth(depth, element);
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, containingWidth, parentStyle);
         if (style.Display == "none") return true;
-        if (style.Display == "contents") {
-            AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, items);
-            foreach (INode child in element.ChildNodes) {
-                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, items)) return false;
+        if (HtmlCssRunningElementParser.TryParsePosition(style.Position, out string runningElementName)) {
+            if (runningElementAssignments != null) {
+                foreach (HtmlCssRunningStringAssignment assignment in CaptureRunningElement(
+                    element,
+                    runningElementName,
+                    containingWidth,
+                    style,
+                    parentStyle,
+                    depth + 1,
+                    sourceIndex)) {
+                    runningElementAssignments.Add(assignment);
+                }
             }
-            AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, items);
+            sourceIndex++;
+            return true;
+        }
+        if (style.Display == "contents") {
+            FlattenedSemanticBoundary boundary = CreateFlattenedSemanticBoundary(element, style);
+            var flattenedItems = new List<FlexItem>();
+            AddGeneratedFlexItem(element, HtmlPseudoElementKind.Before, containingWidth, style, ref sourceIndex, flattenedItems);
+            foreach (INode child in element.ChildNodes) {
+                if (!TryAddFlexNode(child, containingWidth, style, depth + 1, ref sourceIndex, flattenedItems, runningElementAssignments)) return false;
+            }
+            AddGeneratedFlexItem(element, HtmlPseudoElementKind.After, containingWidth, style, ref sourceIndex, flattenedItems);
+            for (int index = 0; index < flattenedItems.Count; index++) {
+                FlexItem flattenedItem = flattenedItems[index];
+                flattenedItem.FlattenedSemanticPlacements.Add(new FlattenedSemanticPlacement(boundary, index == 0));
+                items.Add(flattenedItem);
+            }
             return true;
         }
 
@@ -66,8 +90,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
-        if (item.Element != null) return LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth);
-        return LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        HtmlRenderFlowBlock block = item.Element != null
+            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth)
+            : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
+        foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
+            block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
+        }
+        return block;
     }
 
     private HtmlRenderFlowBlock LayoutAnonymousFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle) {

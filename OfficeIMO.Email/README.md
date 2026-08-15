@@ -100,9 +100,10 @@ foreach (EmailAttachment attachment in result.Document.Attachments) {
 ```
 
 Dispose the `EmailReadResult` after consuming its file-backed content. Its temporary files and attachment sources
-belong to that result and become unavailable after disposal. `Write` and `WriteAsync` consume `ContentSource`
-attachments in chunks; the async path uses asynchronous source and destination I/O rather than wrapping the
-synchronous writer in a task.
+belong to that result and become unavailable after disposal. `Save`, `SaveAsync`, `Write`, and `WriteAsync` consume
+`ContentSource` attachments through the same bounded writer pipelines instead of first materializing the complete
+artifact. The async path uses asynchronous source and destination I/O rather than wrapping the synchronous writer
+in a task.
 
 The same model can be written as EML, MSG, OFT, or TNEF. Conversion is a load followed by a save:
 

@@ -9,11 +9,12 @@ if (budget.MinimumCachedAllocatedBytesSaved <= 0L) {
 }
 
 byte[] corpus = PdfBenchmarkCorpus.Create();
-IReadOnlyList<PdfPerformanceMeasurement> measurements = PdfBenchmarkRunner.Measure(corpus);
+IReadOnlyList<PdfPerformanceMeasurement> measurements = PdfBenchmarkRunner.Measure(
+    corpus,
+    out double speedup,
+    out double allocationReduction);
 PdfPerformanceMeasurement cold = measurements.Single(measurement => measurement.Name == PdfBenchmarkRunner.AnalysisCold);
 PdfPerformanceMeasurement cached = measurements.Single(measurement => measurement.Name == PdfBenchmarkRunner.AnalysisCached);
-double speedup = cold.ElapsedMilliseconds / Math.Max(cached.ElapsedMilliseconds, 0.001D);
-double allocationReduction = cold.AllocatedBytes / (double)Math.Max(cached.AllocatedBytes, 1L);
 long allocatedBytesSaved = cold.AllocatedBytes - cached.AllocatedBytes;
 
 Console.WriteLine($"Corpus: {corpus.Length:N0} bytes, {PdfBenchmarkCorpus.PageCount} mixed pages");

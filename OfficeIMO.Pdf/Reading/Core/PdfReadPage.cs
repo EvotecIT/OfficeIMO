@@ -54,6 +54,9 @@ public sealed partial class PdfReadPage {
             ? _outputIntentColorTransform
             : null;
 
+    internal bool HasEffectiveOutputIntentColorTransform =>
+        EffectiveOutputIntentColorTransform?.IsSupported == true;
+
     /// <summary>Underlying object number for the page.</summary>
     public int ObjectNumber { get; }
 

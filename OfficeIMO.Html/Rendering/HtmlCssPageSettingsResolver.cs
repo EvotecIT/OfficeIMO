@@ -96,10 +96,7 @@ internal static class HtmlCssPageSettingsResolver {
     }
 
     private static bool IsCssStyleElement(IElement element) {
-        string type = (element.GetAttribute("type") ?? string.Empty).Trim();
-        int separator = type.IndexOf(';');
-        if (separator >= 0) type = type.Substring(0, separator).Trim();
-        return type.Length == 0 || string.Equals(type, "text/css", StringComparison.OrdinalIgnoreCase);
+        return HtmlResourcePipeline.IsCssStyleElement(element);
     }
 
     private static bool IsApplicablePrintMedia(string mediaText, HtmlRenderOptions options) =>

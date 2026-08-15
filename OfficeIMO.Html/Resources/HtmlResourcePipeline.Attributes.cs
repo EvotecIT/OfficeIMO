@@ -59,6 +59,14 @@ public static partial class HtmlResourcePipeline {
         }
     }
 
+    private static void AddPreferredSvgHref(HtmlResourceManifest manifest, HtmlResourceKind kind, IElement element, Uri? baseUri, HtmlResourcePipelineOptions options) {
+        string attributeName = HtmlDocumentParser.GetExactAttributeValue(element, "href") != null ? "href" : "xlink:href";
+        string? source = HtmlDocumentParser.GetExactAttributeValue(element, attributeName);
+        if (!IsFragmentOnlyReference(source) && !string.IsNullOrWhiteSpace(source)) {
+            AddRaw(manifest, kind, element, attributeName, source!, baseUri, options);
+        }
+    }
+
     private static bool IsFragmentOnlyReference(string? source) {
         return !string.IsNullOrWhiteSpace(source) && source!.TrimStart().StartsWith("#", StringComparison.Ordinal);
     }

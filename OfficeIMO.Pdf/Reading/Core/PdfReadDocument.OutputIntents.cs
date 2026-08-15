@@ -53,13 +53,12 @@ public sealed partial class PdfReadDocument {
         return result.Count == 0 ? Array.Empty<PdfOutputIntentInfo>() : result.AsReadOnly();
     }
 
-    private PdfOutputIntentProfileMetadata? ReadOutputIntentProfileMetadata(PdfStream profileStream) {
-        if (!PdfIccProfileCache.TryReadBytes(
-                profileStream,
-                _objects,
-                _options.Limits.MaxDecodedStreamBytes,
-                _outputIntentMetadataRetentionBudget,
-                out byte[] profileBytes)) return null;
+    private PdfOutputIntentProfileMetadata ReadOutputIntentProfileMetadata(PdfStream profileStream) {
+        byte[] profileBytes = _decodedStreamBudget.Decode(profileStream, _objects);
+        _outputIntentMetadataRetentionBudget.Charge(
+            profileStream,
+            PdfIccProfileCacheRepresentation.DecodedBytes,
+            profileBytes.LongLength);
         return new PdfOutputIntentProfileMetadata(
             profileBytes.Length,
             TryReadIccDeclaredSize(profileBytes),

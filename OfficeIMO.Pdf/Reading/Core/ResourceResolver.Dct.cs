@@ -233,6 +233,20 @@ internal static partial class ResourceResolver {
         PdfObject? resolvedDecodeParms = PdfObjectLookup.ResolveChain(objects, decodeParmsObject);
         if (resolvedDecodeParms is null or PdfNull) return true;
         if (filters.Count == 1) {
+            PdfObject? filterObject = imageDictionary.Items.TryGetValue("Filter", out PdfObject? fullFilterName)
+                ? fullFilterName
+                : imageDictionary.Items.TryGetValue("F", out PdfObject? abbreviatedFilterName)
+                    ? abbreviatedFilterName
+                    : null;
+            bool filterWasAuthoredAsArray = PdfObjectLookup.ResolveChain(objects, filterObject) is PdfArray;
+            if (filterWasAuthoredAsArray) {
+                if (resolvedDecodeParms is not PdfArray { Items.Count: 1 } singleDecodeParmsArray) return false;
+                PdfObject? resolvedSingleDecodeParms = PdfObjectLookup.ResolveChain(objects, singleDecodeParmsArray.Items[0]);
+                if (resolvedSingleDecodeParms is null or PdfNull) return true;
+                decodeParms = resolvedSingleDecodeParms as PdfDictionary;
+                return decodeParms is not null;
+            }
+
             decodeParms = resolvedDecodeParms as PdfDictionary;
             return decodeParms is not null;
         }

@@ -38,6 +38,12 @@ internal static partial class PdfPageExtractor {
         }
     
         private void CollectObject(int objectNumber, bool isPageObject) {
+            var pending = new Stack<TraversalItem>();
+            QueueObject(objectNumber, isPageObject, pending);
+            TraversePending(pending);
+        }
+
+        private void QueueObject(int objectNumber, bool isPageObject, Stack<TraversalItem> pending) {
             if (!_visited.Add(objectNumber)) {
                 return;
             }
@@ -52,11 +58,22 @@ internal static partial class PdfPageExtractor {
     
             _objectIds.Add(objectNumber);
             _pageOverrides.TryGetValue(objectNumber, out var pageOverrides);
-            CollectReferences(indirect.Value, isPageObject, pageOverrides);
+            pending.Push(new TraversalItem(indirect.Value, isPageObject, pageOverrides));
         }
     
         private void CollectReferences(PdfObject value, bool isPageObject, Dictionary<string, PdfObject>? pageOverrides = null) {
-            switch (value) {
+            var pending = new Stack<TraversalItem>();
+            pending.Push(new TraversalItem(value, isPageObject, pageOverrides));
+            TraversePending(pending);
+        }
+
+        private void TraversePending(Stack<TraversalItem> pending) {
+            while (pending.Count != 0) {
+                TraversalItem current = pending.Pop();
+                PdfObject value = current.Value;
+                bool isPageObject = current.IsPageObject;
+                Dictionary<string, PdfObject>? pageOverrides = current.PageOverrides;
+                switch (value) {
                 case PdfReference reference:
                     if (reference.ObjectNumber >= 0 &&
                         _sourceObjects.TryGetValue(reference.ObjectNumber, out var referenced) &&
@@ -64,40 +81,41 @@ internal static partial class PdfPageExtractor {
                         throw BuildGenerationMismatchException(reference, referenced.Generation);
                     }
     
-                    CollectObject(reference.ObjectNumber, isPageObject: false);
+                    QueueObject(reference.ObjectNumber, isPageObject: false, pending);
                     break;
                 case PdfArray array:
-                    foreach (var item in array.Items) {
-                        CollectReferences(item, isPageObject: false);
+                    for (int index = array.Items.Count - 1; index >= 0; index--) {
+                        pending.Push(new TraversalItem(array.Items[index], isPageObject: false, pageOverrides: null));
                     }
     
                     break;
                 case PdfDictionary dictionary:
-                    foreach (var entry in dictionary.Items) {
+                    if (isPageObject && pageOverrides is not null) {
+                        foreach (var entry in pageOverrides.Reverse()) {
+                            pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
+                        }
+                    }
+
+                    foreach (var entry in dictionary.Items.Reverse()) {
                         if (isPageObject &&
                             (string.Equals(entry.Key, "Parent", StringComparison.Ordinal) ||
                             (pageOverrides is not null && pageOverrides.ContainsKey(entry.Key)))) {
                             continue;
                         }
     
-                        CollectReferences(entry.Value, isPageObject: false);
-                    }
-    
-                    if (isPageObject && pageOverrides is not null) {
-                        foreach (var entry in pageOverrides) {
-                            CollectReferences(entry.Value, isPageObject: false);
-                        }
+                        pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
                     }
     
                     break;
                 case PdfStream stream:
-                    foreach (var entry in stream.Dictionary.Items) {
+                    foreach (var entry in stream.Dictionary.Items.Reverse()) {
                         if (!string.Equals(entry.Key, "Length", StringComparison.Ordinal)) {
-                            CollectReferences(entry.Value, isPageObject: false);
+                            pending.Push(new TraversalItem(entry.Value, isPageObject: false, pageOverrides: null));
                         }
                     }
     
                     break;
+                }
             }
         }
     
@@ -141,6 +159,18 @@ internal static partial class PdfPageExtractor {
             }
     
             return null;
+        }
+
+        private readonly struct TraversalItem {
+            internal TraversalItem(PdfObject value, bool isPageObject, Dictionary<string, PdfObject>? pageOverrides) {
+                Value = value;
+                IsPageObject = isPageObject;
+                PageOverrides = pageOverrides;
+            }
+
+            internal PdfObject Value { get; }
+            internal bool IsPageObject { get; }
+            internal Dictionary<string, PdfObject>? PageOverrides { get; }
         }
     }
 }

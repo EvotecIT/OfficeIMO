@@ -80,7 +80,7 @@ internal static partial class EpubReader {
         return path.Replace('\\', '/').Trim();
     }
 
-    private static bool TryNormalizeArchiveEntryPath(string path, out string normalizedPath) {
+    internal static bool TryNormalizeArchiveEntryPath(string path, out string normalizedPath) {
         normalizedPath = NormalizePath(path);
         if (normalizedPath.Length == 0 || normalizedPath.StartsWith("/", StringComparison.Ordinal)) return false;
         if (normalizedPath.Length >= 2 && normalizedPath[1] == ':') return false;

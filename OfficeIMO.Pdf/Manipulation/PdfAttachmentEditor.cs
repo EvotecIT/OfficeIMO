@@ -5,10 +5,29 @@ namespace OfficeIMO.Pdf;
 /// <summary>Adds, replaces, renames, and removes embedded and associated files in existing PDFs.</summary>
 internal static class PdfAttachmentEditor {
     /// <summary>Applies a collection edit through the shared full-rewrite planner and validates attachment readback.</summary>
-    public static PdfAttachmentEditResult Edit(byte[] pdf, Action<PdfAttachmentEditSession> edit, PdfReadOptions? readOptions = null) {
+    public static PdfAttachmentEditResult Edit(
+        byte[] pdf,
+        Action<PdfAttachmentEditSession> edit,
+        PdfReadOptions? readOptions = null,
+        long? maxDecodedAttachmentBytes = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(edit, nameof(edit));
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
-        IReadOnlyList<PdfExtractedAttachment> existing = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        IReadOnlyList<PdfExtractedAttachment> existing = maxDecodedAttachmentBytes.HasValue
+            ? PdfAttachmentExtractor.ExtractAttachments(document, static _ => true, maxDecodedAttachmentBytes.Value)
+            : PdfAttachmentExtractor.ExtractAttachments(document);
+        if (maxDecodedAttachmentBytes.HasValue) {
+            long projectedBytes = 0;
+            foreach (PdfExtractedAttachment attachment in existing) {
+                if (projectedBytes > maxDecodedAttachmentBytes.Value - attachment.ByteLength) {
+                    throw PdfReadLimitException.Create(
+                        PdfReadLimitKind.AttachmentBytes,
+                        maxDecodedAttachmentBytes.Value,
+                        projectedBytes + attachment.ByteLength);
+                }
+                projectedBytes += attachment.ByteLength;
+            }
+        }
         var session = new PdfAttachmentEditSession(existing.Select(static attachment =>
             new PdfAttachmentEditSource(
                 new PdfEmbeddedFile(attachment.FileName, attachment.Bytes, attachment.MimeType,

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
         }
 
         private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
         }
 
         private int? EnsurePageStructureContainer(string structureType, ref int? structureElementIndex, ref LayoutResult.Page? structurePage, int? parentElementIndex = null) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
         }
 
         private int? RegisterTextStructureElement(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
         }
 
         private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -84,7 +84,7 @@ internal static partial class PdfWriter {
         }
 
         private int? RegisterFigureStructureElement(string alternativeText, int? parentElementIndex = null) {
-            if (!emitGeneratedStructure || currentPage == null) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
 
@@ -94,6 +94,21 @@ internal static partial class PdfWriter {
                 StructureType = "Figure",
                 AlternativeText = alternativeText,
                 ParentElementIndex = parentElementIndex
+            });
+            return markedContentId;
+        }
+
+        private int? RegisterFigureStructureElement(string alternativeText, PageStructElement? parentElement) {
+            if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
+                return null;
+            }
+
+            int markedContentId = currentPage.NextMarkedContentId++;
+            currentPage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = "Figure",
+                AlternativeText = alternativeText,
+                ParentElement = parentElement
             });
             return markedContentId;
         }

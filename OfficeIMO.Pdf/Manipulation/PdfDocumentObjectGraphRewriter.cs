@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Serializes the active catalog-rooted object graph into a normalized full-rewrite PDF.</summary>
@@ -6,12 +8,17 @@ internal static class PdfDocumentObjectGraphRewriter {
         byte[] sourcePdf,
         PdfReadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
-        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null) {
+        Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
+        long? maximumOutputBytes = null) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
+        if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(sourcePdf, sourceReadOptions);
         var parsed = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
         Dictionary<int, PdfIndirectObject> objects = parsed.Map;
+        byte[]? permanentFileId = outputEncryption == null
+            ? PdfSyntax.ReadPermanentTrailerIdentifier(parsed.TrailerRaw)
+            : null;
         int rootObjectNumber = RequireRootObjectNumber(security, objects);
         int? infoObjectNumber = mutateObjectGraph is null
             ? FindInfoObjectNumber(security, objects)
@@ -68,21 +75,130 @@ internal static class PdfDocumentObjectGraphRewriter {
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects,
             preserveRawStringBytes: true);
+        if (maximumOutputBytes.HasValue) {
+            return RewriteBounded(
+                objects,
+                reachableObjectNumbers,
+                context,
+                numberMap[rootObjectNumber],
+                infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0,
+                fileVersion,
+                outputEncryption,
+                permanentFileId,
+                maximumOutputBytes.Value);
+        }
+
         var serializedObjects = new List<byte[]>(reachableObjectNumbers.Count);
+        long serializedObjectBytes = 0L;
         for (int i = 0; i < reachableObjectNumbers.Count; i++) {
             int sourceObjectNumber = reachableObjectNumbers[i];
             byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
-            serializedObjects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, body));
+            byte[] serializedObject = PdfObjectBytes.WrapIndirectObject(i + 1, body);
+            serializedObjectBytes = AddWithinOutputLimit(serializedObjectBytes, serializedObject.LongLength, maximumOutputBytes: null);
+            serializedObjects.Add(serializedObject);
         }
 
         int rewrittenRootObjectNumber = numberMap[rootObjectNumber];
         int rewrittenInfoObjectNumber = infoObjectNumber.HasValue ? numberMap[infoObjectNumber.Value] : 0;
-        return PdfFileAssembler.Assemble(
-            serializedObjects,
-            rewrittenRootObjectNumber,
-            rewrittenInfoObjectNumber,
-            fileVersion,
-            outputEncryption);
+        return permanentFileId == null
+            ? PdfFileAssembler.Assemble(
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption)
+            : PdfFileAssembler.AssemblePreservingPermanentId(
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                permanentFileId);
+    }
+
+    private static byte[] RewriteBounded(
+        Dictionary<int, PdfIndirectObject> objects,
+        IReadOnlyList<int> reachableObjectNumbers,
+        PdfPageExtractor.SerializationContext context,
+        int rewrittenRootObjectNumber,
+        int rewrittenInfoObjectNumber,
+        PdfFileVersion fileVersion,
+        PdfStandardEncryptionOptions? outputEncryption,
+        byte[]? permanentFileId,
+        long maximumOutputBytes) {
+        using var serializedObjects = new PdfObjectStore(memoryLimitBytes: 0L);
+        long serializedObjectBytes = 0L;
+        byte[] suffix = PdfEncoding.Latin1GetBytes("endobj\n");
+        for (int i = 0; i < reachableObjectNumbers.Count; i++) {
+            int rewrittenObjectNumber = i + 1;
+            int sourceObjectNumber = reachableObjectNumbers[i];
+            long remaining = maximumOutputBytes - serializedObjectBytes;
+            PdfPageExtractor.EnsureSerializedIndirectObjectWithinLimit(
+                objects[sourceObjectNumber].Value,
+                context,
+                rewrittenObjectNumber,
+                remaining);
+            byte[] body = PdfPageExtractor.SerializeObject(objects[sourceObjectNumber].Value, context);
+            byte[] prefix = PdfEncoding.Latin1GetBytes(
+                rewrittenObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n");
+            long objectBytes = AddWithinOutputLimit(prefix.LongLength, body.LongLength, maximumOutputBytes);
+            objectBytes = AddWithinOutputLimit(objectBytes, suffix.LongLength, maximumOutputBytes);
+            serializedObjectBytes = AddWithinOutputLimit(serializedObjectBytes, objectBytes, maximumOutputBytes);
+            serializedObjects.AddSegments(prefix, body, suffix);
+        }
+
+        using FileStream output = PdfTemporaryFile.Create(".rewrite", FileOptions.RandomAccess, out _);
+        using var boundedOutput = new PdfBoundedWriteStream(output, maximumOutputBytes);
+        if (permanentFileId == null) {
+            PdfFileAssembler.Assemble(
+                boundedOutput,
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                objectMemoryLimitBytes: 0L);
+        } else {
+            PdfFileAssembler.AssemblePreservingPermanentId(
+                boundedOutput,
+                serializedObjects,
+                rewrittenRootObjectNumber,
+                rewrittenInfoObjectNumber,
+                fileVersion,
+                outputEncryption,
+                permanentFileId,
+                objectMemoryLimitBytes: 0L);
+        }
+        boundedOutput.Flush();
+        return ReadBoundedOutput(output, maximumOutputBytes);
+    }
+
+    private static byte[] ReadBoundedOutput(FileStream output, long maximumOutputBytes) {
+        ThrowIfOutputLimitExceeded(output.Length, maximumOutputBytes);
+        if (output.Length > int.MaxValue) {
+            throw new InvalidDataException("The rewritten PDF exceeds the supported in-memory result size.");
+        }
+        var bytes = new byte[(int)output.Length];
+        output.Position = 0L;
+        int read = 0;
+        while (read < bytes.Length) {
+            int count = output.Read(bytes, read, bytes.Length - read);
+            if (count == 0) throw new EndOfStreamException("The temporary rewritten PDF ended unexpectedly.");
+            read += count;
+        }
+        return bytes;
+    }
+
+    private static long AddWithinOutputLimit(long current, long added, long? maximumOutputBytes) {
+        long total = current > long.MaxValue - added ? long.MaxValue : current + added;
+        ThrowIfOutputLimitExceeded(total, maximumOutputBytes);
+        return total;
+    }
+
+    private static void ThrowIfOutputLimitExceeded(long observedBytes, long? maximumOutputBytes) {
+        if (maximumOutputBytes.HasValue && observedBytes > maximumOutputBytes.Value) {
+            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+        }
     }
 
     private static bool CatalogDeclaresAtLeast(
@@ -134,5 +250,40 @@ internal static class PdfDocumentObjectGraphRewriter {
         return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
             ? security.InfoObjectNumber
             : null;
+    }
+
+    private sealed class PdfBoundedWriteStream : Stream {
+        private readonly Stream _inner;
+        private readonly long? _maximumBytes;
+
+        internal PdfBoundedWriteStream(Stream inner, long? maximumBytes) {
+            _inner = inner;
+            _maximumBytes = maximumBytes;
+        }
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => throw new NotSupportedException(); }
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            AddWithinOutputLimit(_inner.Position, count, _maximumBytes);
+            _inner.Write(buffer, offset, count);
+        }
+
+        public override void WriteByte(byte value) {
+            AddWithinOutputLimit(_inner.Position, 1L, _maximumBytes);
+            _inner.WriteByte(value);
+        }
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Flush();
+            base.Dispose(disposing);
+        }
     }
 }

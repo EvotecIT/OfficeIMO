@@ -221,6 +221,7 @@ internal static partial class PdfWriter {
         public bool IsComboBox { get; set; }
         public bool AllowsMultipleSelection { get; set; }
         public int? StructureParentElementIndex { get; set; }
+        public PageStructElement? StructureParentElement { get; set; }
         public System.Collections.Generic.List<RadioButtonWidgetAnnotation> RadioWidgets { get; } = new();
     }
 
@@ -243,6 +244,7 @@ internal static partial class PdfWriter {
         public string Option { get; set; } = string.Empty;
         public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
         public int? StructureParentElementIndex { get; set; }
+        public PageStructElement? StructureParentElement { get; set; }
     }
 
     private sealed class PositionedRadioButtonSerializationPlan {
@@ -322,6 +324,8 @@ internal static partial class PdfWriter {
         public int Level { get; set; }
         public string Title { get; set; } = string.Empty;
         public double Y { get; set; }
+        public PdfOutlineState OutlineState { get; set; }
+        public int? DocumentOrder { get; set; }
     }
 
     private sealed class PageNamedDestination {
@@ -423,6 +427,7 @@ internal static partial class PdfWriter {
         public int PageIndex { get; set; }
         public double Y { get; set; }
         public string Title { get; set; } = string.Empty;
+        public PdfOutlineState OutlineState { get; set; }
         public OutlineNode? Parent { get; set; }
         public System.Collections.Generic.List<OutlineNode> Children { get; } = new();
     }
@@ -456,6 +461,7 @@ internal static partial class PdfWriter {
         public string? AlternativeText { get; set; }
         public bool SuppressAccessibilityWrapper { get; set; }
         public int? StructureParentElementIndex { get; set; }
+        public PageStructElement? StructureParentElement { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }

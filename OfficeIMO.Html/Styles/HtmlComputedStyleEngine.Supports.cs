@@ -18,30 +18,41 @@ public static partial class HtmlComputedStyleEngine {
         return EvaluateSupportsCondition(conditionText.Trim());
     }
 
-    private static bool EvaluateSupportsCondition(string conditionText) {
+    internal static bool IsApplicableProvenanceSupports(string conditionText) {
+        if (string.IsNullOrWhiteSpace(conditionText)) {
+            return true;
+        }
+
+        return EvaluateSupportsCondition(conditionText.Trim(), includeProvenanceImageProperties: true);
+    }
+
+    private static bool EvaluateSupportsCondition(string conditionText) =>
+        EvaluateSupportsCondition(conditionText, includeProvenanceImageProperties: false);
+
+    private static bool EvaluateSupportsCondition(string conditionText, bool includeProvenanceImageProperties) {
         string normalized = conditionText.Trim();
         if (normalized.Length == 0) {
             return true;
         }
 
         if (StartsWithLogicalNot(normalized)) {
-            return !EvaluateSupportsCondition(normalized.Substring(3).TrimStart());
+            return !EvaluateSupportsCondition(normalized.Substring(3).TrimStart(), includeProvenanceImageProperties);
         }
 
         List<string> orParts = SplitTopLevelLogical(normalized, "or").ToList();
         if (orParts.Count > 1) {
-            return orParts.Any(EvaluateSupportsCondition);
+            return orParts.Any(part => EvaluateSupportsCondition(part, includeProvenanceImageProperties));
         }
 
         List<string> andParts = SplitTopLevelLogical(normalized, "and").ToList();
         if (andParts.Count > 1) {
-            return andParts.All(EvaluateSupportsCondition);
+            return andParts.All(part => EvaluateSupportsCondition(part, includeProvenanceImageProperties));
         }
 
         if (normalized[0] == '(') {
             int close = FindMatchingParenthesis(normalized, 0);
             if (close == normalized.Length - 1) {
-                return EvaluateSupportsCondition(normalized.Substring(1, normalized.Length - 2));
+                return EvaluateSupportsCondition(normalized.Substring(1, normalized.Length - 2), includeProvenanceImageProperties);
             }
         }
 
@@ -52,10 +63,28 @@ public static partial class HtmlComputedStyleEngine {
 
         string propertyName = normalized.Substring(0, separator).Trim();
         string value = normalized.Substring(separator + 1).Trim();
-        return IsSupportedSupportsConditionValue(propertyName, value);
+        if (IsSupportedSupportsConditionValue(propertyName, value)) {
+            return true;
+        }
+
+        return includeProvenanceImageProperties &&
+            !SupportedProperties.Contains(propertyName) &&
+            !string.IsNullOrWhiteSpace(value) &&
+            HtmlResourcePipeline.IsSupportedCssImageUrlProperty(propertyName.ToLowerInvariant());
     }
 
     private static bool IsSupportedSupportsConditionValue(string propertyName, string value) {
+        if (propertyName.StartsWith("--", StringComparison.Ordinal)) {
+            return !string.IsNullOrWhiteSpace(value);
+        }
+        if (!SupportedProperties.Contains(propertyName) || string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+        if (HtmlCssCustomPropertyResolver.HasValidVarFunctionSyntax(value)
+            || IsCssWideKeyword(value.Trim().ToLowerInvariant())) {
+            return true;
+        }
+
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
@@ -179,6 +208,23 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "transform-origin", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssTransformParser.IsSupportedOriginSyntax(normalized);
         }
+        if (string.Equals(propertyName, "clip-path", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlCssClipPathParser.IsSupportedSyntax(normalized);
+        }
+        if (string.Equals(propertyName, "-officeimo-pdf-tag-type", StringComparison.OrdinalIgnoreCase)) {
+            return HtmlRenderStyleResolver.IsSupportedPdfTagType(normalized);
+        }
+        if (string.Equals(propertyName, "bookmark-level", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "none"
+                || int.TryParse(normalized, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int level)
+                && level >= 1 && level <= 64;
+        }
+        if (string.Equals(propertyName, "bookmark-state", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "open" || normalized == "closed";
+        }
+        if (string.Equals(propertyName, "bookmark-label", StringComparison.OrdinalIgnoreCase)) {
+            return normalized == "content(text)" || IsQuotedCssString(value.Trim());
+        }
         if (string.Equals(propertyName, "border-radius", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBorderRadiusParser.IsSupportedShorthandSyntax(normalized);
         }
@@ -277,6 +323,11 @@ public static partial class HtmlComputedStyleEngine {
         }
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "position":
+                return IsKnownKeyword(normalized, "static", "relative", "absolute", "fixed", "sticky")
+                    || HtmlCssRunningElementParser.TryParsePosition(value, out _);
+            case "animation":
+                return HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out _);
             case "container-type":
                 return IsKnownKeyword(normalized, "normal", "size", "inline-size");
             case "container-name":
@@ -351,6 +402,9 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool IsCssWideKeyword(string value) =>
         IsKnownKeyword(value, "inherit", "initial", "revert", "revert-layer", "unset");
+
+    private static bool IsQuotedCssString(string value) =>
+        value.Length >= 2 && (value[0] == '\'' || value[0] == '"') && value[value.Length - 1] == value[0];
 
     private static bool IsSupportedHyphenateCharacterSyntax(string value) {
         if (string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase)) return true;

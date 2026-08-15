@@ -142,6 +142,10 @@ foreach (var heading in parsed.GetHeadingInfos()) {
 File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 ```
 
+## Content provenance
+
+`MarkdownProvenance.Inspect(markdown)` reports standards-defined structured C2PA blocks and unstructured C2PA text wrappers. `MarkdownProvenance.Remove(markdown)` removes selected, structurally valid carriers while preserving surrounding Markdown text. File overloads use bounded reads and atomic writes. Optional cryptographic C2PA verification remains in `OfficeIMO.Security`.
+
 ## Adjacent packages
 
 | Package | Use it for |

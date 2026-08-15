@@ -2981,7 +2981,7 @@ public sealed partial class PdfReadPage {
             if (string.Equals(image.ResourceName, placement.ResourceName, StringComparison.Ordinal) &&
                 image.ObjectNumber == placement.ObjectNumber &&
                 image.DirectStreamIdentity == placement.DirectStreamIdentity &&
-                (image.IsImageMask || image.RenderingIntent == placement.RenderingIntent) &&
+                (image.IsImageMask || image.HasAuthoredRenderingIntent || image.RenderingIntent == placement.RenderingIntent) &&
                 (!image.IsImageMask || image.ImageMaskColor.Equals(placement.ImageMaskColor))) {
                 return image;
             }
