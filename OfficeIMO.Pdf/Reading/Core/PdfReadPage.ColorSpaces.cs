@@ -233,10 +233,10 @@ public sealed partial class PdfReadPage {
         PdfColorFunctionResolutionContext? functionResolutionContext,
         out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
-        if (array.Items.Count < 4 || componentCount < 1 || componentCount > MaxDeviceNComponents ||
+        if ((kind == PdfPageColorSpaceKind.Separation ? array.Items.Count != 4 : array.Items.Count < 4) ||
+            componentCount < 1 || componentCount > MaxDeviceNComponents ||
             (kind == PdfPageColorSpaceKind.Separation &&
-             (ResolveColorSpaceDeclaration(array.Items[1]) is not PdfName colorant ||
-              string.Equals(colorant.Name, "None", StringComparison.Ordinal))) ||
+             ResolveColorSpaceDeclaration(array.Items[1]) is not PdfName) ||
             !TryReadExtendedColorSpaceResource(array.Items[2], depth + 1, evaluationBudget, functionResolutionContext, out PdfPageColorSpace alternate) ||
             alternate.Kind is PdfPageColorSpaceKind.Pattern or PdfPageColorSpaceKind.Indexed ||
             !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
@@ -249,6 +249,13 @@ public sealed partial class PdfReadPage {
                 out PdfColorSpaceTintTransform transform,
                 out int evaluationCost)) {
             return false;
+        }
+
+        if (kind == PdfPageColorSpaceKind.Separation &&
+            ResolveColorSpaceDeclaration(array.Items[1]) is PdfName colorant &&
+            string.Equals(colorant.Name, "None", StringComparison.Ordinal)) {
+            colorSpace = PdfPageColorSpace.SeparationNone();
+            return true;
         }
 
         colorSpace = PdfPageColorSpace.Alternate(

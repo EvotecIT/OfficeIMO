@@ -102,7 +102,10 @@ public class PdfColorRenderingReviewRegressionTests {
         PdfArray firstColorSpace = IccColorSpace(first);
         PdfArray secondColorSpace = IccColorSpace(second);
         var objects = new Dictionary<int, PdfIndirectObject>();
-        var context = new PdfColorFunctionResolutionContext(profileBytes.Length * 2 - 1);
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? parsedProfile));
+        long retainedProfileBytes = Math.Max(profileBytes.LongLength, parsedProfile!.RetainedByteCount);
+        int retainedLimit = checked((int)(retainedProfileBytes * 2L - 1L));
+        var context = new PdfColorFunctionResolutionContext(retainedLimit);
 
         Assert.True(TryResolve(firstColorSpace, objects, context, out PdfImageColorSpaceNormalization firstNormalization));
         Assert.True(TryResolve(firstColorSpace, objects, context, out PdfImageColorSpaceNormalization aliasNormalization));
@@ -111,8 +114,49 @@ public class PdfColorRenderingReviewRegressionTests {
             TryResolve(secondColorSpace, objects, context, out _));
 
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
-        Assert.Equal(profileBytes.Length * 2 - 1, exception.Limit);
-        Assert.Equal(profileBytes.Length * 2, exception.Actual);
+        Assert.Equal(retainedLimit, exception.Limit);
+        Assert.Equal(retainedProfileBytes * 2L, exception.Actual);
+    }
+
+    [Fact]
+    public void ImageIccProfiles_ChargeExpandedSharedSampledCurvesToRetentionBudget() {
+        byte[] profileBytes = CreateRgbProfileWithSharedSampledCurves(sampleCount: 4096);
+        PdfStream profileStream = CreateIccProfileStream(profileBytes);
+        PdfArray colorSpace = IccColorSpace(profileStream);
+        int retainedLimit = checked(profileBytes.Length * 2);
+        var context = new PdfColorFunctionResolutionContext(retainedLimit);
+        Assert.True(PdfIccProfileCache.TryReadBytes(
+            profileStream,
+            new Dictionary<int, PdfIndirectObject>(),
+            retainedLimit,
+            context.IccProfileRetentionBudget,
+            out byte[] cachedBytes));
+        Assert.Equal(profileBytes.Length, cachedBytes.Length);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            TryResolve(colorSpace, new Dictionary<int, PdfIndirectObject>(), context, out _));
+
+        Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
+        Assert.Equal(retainedLimit, exception.Limit);
+        Assert.True(exception.Actual > retainedLimit);
+    }
+
+    [Fact]
+    public void TextParser_PreservesNoneSeparationAsLogicalNonMarkingText() {
+        var colorSpaces = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal) {
+            ["NoneSpot"] = PdfPageColorSpace.SeparationNone()
+        };
+
+        PdfTextSpan span = Assert.Single(TextContentParser.Parse(
+            "BT /F1 12 Tf /NoneSpot cs 1 scn (Hidden paint) Tj ET",
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (_, bytes) => bytes.Length * 500D,
+            colorSpaces: colorSpaces));
+
+        Assert.Equal("Hidden paint", span.Text);
+        Assert.False(span.IsVisible);
+        Assert.False(span.CanRestamp);
+        Assert.Equal(0, span.Color!.Value.A);
     }
 
     private static bool TryResolve(
@@ -148,6 +192,54 @@ public class PdfColorRenderingReviewRegressionTests {
         var array = new PdfArray();
         foreach (double value in values) array.Items.Add(new PdfNumber(value));
         return array;
+    }
+
+    private static byte[] CreateRgbProfileWithSharedSampledCurves(int sampleCount) {
+        byte[] source = PdfIccProfiles.SrgbIec6196621;
+        int curveLength = checked(12 + sampleCount * 2);
+        int paddedCurveLength = checked((curveLength + 3) & ~3);
+        int curveOffset = checked((source.Length + 3) & ~3);
+        var profile = new byte[checked(curveOffset + paddedCurveLength)];
+        Buffer.BlockCopy(source, 0, profile, 0, source.Length);
+        WriteUInt32(profile, 0, (uint)profile.Length);
+        WriteUInt32(profile, curveOffset, 0x63757276U); // curv
+        WriteUInt32(profile, curveOffset + 8, (uint)sampleCount);
+        for (int index = 0; index < sampleCount; index++) {
+            ushort sample = (ushort)Math.Round(index * 65535D / (sampleCount - 1));
+            int offset = curveOffset + 12 + index * 2;
+            profile[offset] = (byte)(sample >> 8);
+            profile[offset + 1] = (byte)sample;
+        }
+        RedirectTag(profile, "rTRC", curveOffset, curveLength);
+        RedirectTag(profile, "gTRC", curveOffset, curveLength);
+        RedirectTag(profile, "bTRC", curveOffset, curveLength);
+        return profile;
+    }
+
+    private static void RedirectTag(byte[] profile, string signature, int offset, int length) {
+        uint target = ((uint)signature[0] << 24) | ((uint)signature[1] << 16) | ((uint)signature[2] << 8) | signature[3];
+        int count = checked((int)ReadUInt32(profile, 128));
+        for (int index = 0; index < count; index++) {
+            int entry = 132 + index * 12;
+            if (ReadUInt32(profile, entry) != target) continue;
+            WriteUInt32(profile, entry + 4, (uint)offset);
+            WriteUInt32(profile, entry + 8, (uint)length);
+            return;
+        }
+        throw new InvalidOperationException("ICC tag was not found: " + signature + ".");
+    }
+
+    private static uint ReadUInt32(byte[] bytes, int offset) =>
+        unchecked(((uint)bytes[offset] << 24) |
+                  ((uint)bytes[offset + 1] << 16) |
+                  ((uint)bytes[offset + 2] << 8) |
+                  bytes[offset + 3]);
+
+    private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        bytes[offset] = (byte)(value >> 24);
+        bytes[offset + 1] = (byte)(value >> 16);
+        bytes[offset + 2] = (byte)(value >> 8);
+        bytes[offset + 3] = (byte)value;
     }
 
     private static byte[] BuildNamedInlineImageOutputIntentPdf(byte[] outputProfile, string payload) {

@@ -2642,7 +2642,7 @@ public class PdfIccColorRenderingTests {
     }
 
     [Fact]
-    public void RenderPage_RejectsNoneSeparationAcrossContentAndImageProjection() {
+    public void RenderPage_TreatsNoneSeparationAsNonMarkingAcrossContentAndImages() {
         const string function =
             "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0] /C1 [1 0 0] /N 1 >>\nendobj\n";
         byte[] contentPdf = BuildIccContentPdf(
@@ -2650,21 +2650,34 @@ public class PdfIccColorRenderingTests {
             "/N 3",
             "1 scn",
             extraObjects: function,
-            colorSpaceResources: "/CsIcc [/Separation /None /DeviceRGB 7 0 R]");
+            colorSpaceResources: "/CsIcc [/Separation /None /DeviceRGB 7 0 R]",
+            contentOverride: "1 0 0 rg /CsIcc cs 1 scn 40 80 70 40 re f");
         byte[] imagePdf = BuildIccImagePdf(
             PdfIccProfiles.SrgbIec6196621,
             new byte[] { 255 },
             "/N 3",
             imageColorSpace: "[/Separation /None /DeviceRGB 7 0 R]",
             extraObjects: function);
+        byte[] strokePdf = BuildIccContentPdf(
+            PdfIccProfiles.SrgbIec6196621,
+            "/N 3",
+            "1 scn",
+            extraObjects: function,
+            colorSpaceResources: "/CsIcc [/Separation /None /DeviceRGB 7 0 R]",
+            contentOverride: "1 0 0 RG /CsIcc CS 1 SCN 40 80 m 110 80 l S");
 
-        Assert.Contains(
+        Assert.Empty(PdfPageImageRenderer.RenderPage(contentPdf).Shapes);
+        Assert.Empty(PdfPageImageRenderer.RenderPage(strokePdf).Shapes);
+        Assert.DoesNotContain(
             PdfReadDocument.Open(contentPdf).Pages[0].GetRenderCapabilityDiagnostics(),
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
-        Assert.Contains(
+        Assert.DoesNotContain(
             PdfReadDocument.Open(imagePdf).Pages[0].GetRenderCapabilityDiagnostics(),
             diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
-        Assert.False(Assert.Single(PdfImageExtractor.ExtractImages(imagePdf)).IsImageFile);
+        PdfExtractedImage image = Assert.Single(PdfImageExtractor.ExtractImages(imagePdf));
+        Assert.True(image.IsImageFile);
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? raster));
+        Assert.Equal(0, raster!.GetPixel(0, 0).A);
     }
 
     [Fact]

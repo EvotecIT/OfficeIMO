@@ -155,7 +155,17 @@ public sealed partial class OfficeIccColorProfile {
     }
 
     private interface IPcsToDeviceTransform {
+        long RetainedByteCount { get; }
         bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components);
+    }
+
+    private static long RetainedTransformBytes(IPcsToDeviceTransform?[]? transforms) {
+        if (transforms == null) return 0L;
+        long total = checked(24L + transforms.LongLength * 8L);
+        for (int index = 0; index < transforms.Length; index++) {
+            if (transforms[index] != null) total = checked(total + transforms[index]!.RetainedByteCount);
+        }
+        return total;
     }
 
     private sealed class MatrixTrcPcsToDeviceTransform : IPcsToDeviceTransform {
@@ -198,6 +208,8 @@ public sealed partial class OfficeIccColorProfile {
             _m21 = m21;
             _m22 = m22;
         }
+
+        public long RetainedByteCount => 128L;
 
         internal static bool TryCreate(
             ToneCurve redCurve,

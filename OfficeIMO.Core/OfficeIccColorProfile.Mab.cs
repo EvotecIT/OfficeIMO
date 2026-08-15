@@ -373,6 +373,14 @@ public sealed partial class OfficeIccColorProfile {
             _pcsIsLab = pcsIsLab;
         }
 
+        public long RetainedByteCount => checked(
+            96L +
+            RetainedCurveBytes(_aCurves) +
+            (_clut?.RetainedByteCount ?? 0L) +
+            RetainedCurveBytes(_mCurves) +
+            (_matrix == null ? 0L : 24L + _matrix.LongLength * 8L) +
+            RetainedCurveBytes(_bCurves));
+
         public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
             if (components.Count < _inputChannels) return false;
@@ -479,6 +487,14 @@ public sealed partial class OfficeIccColorProfile {
             _pcsIsLab = pcsIsLab;
         }
 
+        public long RetainedByteCount => checked(
+            96L +
+            RetainedCurveBytes(_bCurves) +
+            (_matrix == null ? 0L : 24L + _matrix.LongLength * 8L) +
+            RetainedCurveBytes(_mCurves) +
+            (_clut?.RetainedByteCount ?? 0L) +
+            RetainedCurveBytes(_aCurves));
+
         public bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components) {
             components = default;
             double value0;
@@ -576,6 +592,8 @@ public sealed partial class OfficeIccColorProfile {
             _precision = precision;
         }
 
+        internal long RetainedByteCount => checked(64L + _payload.LongLength);
+
         internal void Interpolate(
             double input0,
             double input1,
@@ -623,5 +641,14 @@ public sealed partial class OfficeIccColorProfile {
         private double ReadNormalized(int offset) => _precision == 1
             ? _payload[offset] / 255D
             : ReadUInt16(_payload, offset) / 65535D;
+    }
+
+    private static long RetainedCurveBytes(ToneCurve[]? curves) {
+        if (curves == null) return 0L;
+        long total = checked(24L + curves.LongLength * 8L);
+        for (int index = 0; index < curves.Length; index++) {
+            total = checked(total + curves[index].RetainedByteCount);
+        }
+        return total;
     }
 }

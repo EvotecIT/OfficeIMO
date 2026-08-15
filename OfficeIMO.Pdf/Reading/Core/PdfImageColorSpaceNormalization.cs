@@ -49,9 +49,12 @@ internal sealed class PdfImageColorSpaceNormalization {
 
     internal int PngColorType { get; }
 
+    internal bool ProducesTransparency => _colorSpace.SuppressesPaint;
+
     internal PdfPageColorSpaceKind Kind => _colorSpace.Kind;
 
     internal bool RequiresColorConversion => _outputIntentColorTransform != null || _iccProfile != null || _alternateNormalization != null ||
+        _colorSpace.SuppressesPaint ||
         _colorSpace.Kind is PdfPageColorSpaceKind.CalGray or PdfPageColorSpaceKind.CalRgb or
         PdfPageColorSpaceKind.Lab or PdfPageColorSpaceKind.Indexed || HasNonUnitComponentRange();
 
@@ -379,8 +382,16 @@ internal sealed class PdfImageColorSpaceNormalization {
                 return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out normalization);
             case "Separation":
                 if (colorSpaceArray.Items.Count < 2 ||
-                    ResolveObject(colorSpaceArray.Items[1], objects) is not PdfName colorant ||
-                    string.Equals(colorant.Name, "None", StringComparison.Ordinal)) return false;
+                    ResolveObject(colorSpaceArray.Items[1], objects) is not PdfName colorant) return false;
+                if (string.Equals(colorant.Name, "None", StringComparison.Ordinal)) {
+                    if (!TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out _)) return false;
+                    normalization = new PdfImageColorSpaceNormalization(
+                        PdfPageColorSpace.SeparationNone(),
+                        2,
+                        sourceColorCount: 1,
+                        renderingIntent: renderingIntent);
+                    return true;
+                }
                 return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out normalization);
             case "DeviceN":
             case "NChannel":

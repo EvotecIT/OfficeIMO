@@ -1586,17 +1586,19 @@ internal static partial class ResourceResolver {
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         int sourceColorCount = colorNormalization.SourceColorCount;
-        int pngColorType = colorNormalization.RequiresColorConversion ? 2 : colorNormalization.PngColorType;
+        int pngColorType = colorNormalization.ProducesTransparency
+            ? 6
+            : colorNormalization.RequiresColorConversion ? 2 : colorNormalization.PngColorType;
         if (pixels.Length == 0) {
             return false;
         }
 
         if (!HasSupportedPngSourceColorCount(colorNormalization) ||
-            (pngColorType != 0 && pngColorType != 2)) {
+            (pngColorType != 0 && pngColorType != 2 && pngColorType != 6)) {
             return false;
         }
 
-        int outputChannels = pngColorType == 0 ? 1 : 3;
+        int outputChannels = pngColorType == 0 ? 1 : pngColorType == 6 ? 4 : 3;
         if (!PdfImageBufferLimits.TryGetScanlineBufferSize(
                 width,
                 height,
@@ -1634,11 +1636,12 @@ internal static partial class ResourceResolver {
             if (colorNormalization.RequiresColorConversion) {
                 for (int pixel = 0; pixel < width; pixel++) {
                     int sourcePixel = sourceRow + pixel * sourceColorCount;
-                    int targetPixel = outputRow + 1 + pixel * 3;
+                    int targetPixel = outputRow + 1 + pixel * outputChannels;
                     if (!colorNormalization.TryConvertPixel(pixels, sourcePixel, decodeTransform, colorComponents!, out OfficeColor color)) return false;
                     scanlines[targetPixel] = color.R;
                     scanlines[targetPixel + 1] = color.G;
                     scanlines[targetPixel + 2] = color.B;
+                    if (outputChannels == 4) scanlines[targetPixel + 3] = color.A;
                 }
             } else if (sourceColorCount == 4) {
                 CopyDeviceCmykRowAsRgb(pixels, sourceRow, scanlines, outputRow + 1, width, decodeTransform);
@@ -1726,17 +1729,22 @@ internal static partial class ResourceResolver {
                     scanlines[outputPixel] = color.R;
                     scanlines[outputPixel + 1] = color.G;
                     scanlines[outputPixel + 2] = color.B;
+                    scanlines[outputPixel + outputBaseColors] = colorKeyMask.IsTransparent(pixels, sourcePixel)
+                        ? (byte)0
+                        : color.A;
                 } else if (sourceColorCount == 4) {
                     CopyDeviceCmykRowAsRgb(pixels, sourcePixel, scanlines, outputPixel, 1, decodeTransform);
+                    scanlines[outputPixel + outputBaseColors] = colorKeyMask.IsTransparent(pixels, sourcePixel)
+                        ? (byte)0
+                        : (byte)255;
                 } else {
                     for (int channel = 0; channel < outputBaseColors; channel++) {
                         scanlines[outputPixel + channel] = TransformColorComponent(pixels[sourcePixel + channel], channel, decodeTransform);
                     }
+                    scanlines[outputPixel + outputBaseColors] = colorKeyMask.IsTransparent(pixels, sourcePixel)
+                        ? (byte)0
+                        : (byte)255;
                 }
-
-                scanlines[outputPixel + outputBaseColors] = colorKeyMask.IsTransparent(pixels, sourcePixel)
-                    ? (byte)0
-                    : (byte)255;
             }
         }
 
@@ -1912,15 +1920,17 @@ internal static partial class ResourceResolver {
                     scanlines[outputPixel] = color.R;
                     scanlines[outputPixel + 1] = color.G;
                     scanlines[outputPixel + 2] = color.B;
+                    byte maskAlpha = TransformColorComponent(alphaPixels[alphaRow + pixel], 0, alphaDecodeTransform);
+                    scanlines[outputPixel + outputBaseColors] = (byte)Math.Round(color.A * maskAlpha / 255D);
                 } else if (sourceColorCount == 4) {
                     CopyDeviceCmykRowAsRgb(basePixels, basePixel, scanlines, outputPixel, 1, decodeTransform);
+                    scanlines[outputPixel + outputBaseColors] = TransformColorComponent(alphaPixels[alphaRow + pixel], 0, alphaDecodeTransform);
                 } else {
                     for (int channel = 0; channel < outputBaseColors; channel++) {
                         scanlines[outputPixel + channel] = TransformColorComponent(basePixels[basePixel + channel], channel, decodeTransform);
                     }
+                    scanlines[outputPixel + outputBaseColors] = TransformColorComponent(alphaPixels[alphaRow + pixel], 0, alphaDecodeTransform);
                 }
-
-                scanlines[outputPixel + outputBaseColors] = TransformColorComponent(alphaPixels[alphaRow + pixel], 0, alphaDecodeTransform);
             }
         }
 

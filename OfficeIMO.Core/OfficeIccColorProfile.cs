@@ -75,6 +75,12 @@ public sealed partial class OfficeIccColorProfile {
         _mediaWhitePoint = mediaWhitePoint;
         _deviceToPcsTransforms = null;
         _pcsToDeviceTransforms = pcsToDeviceTransforms;
+        RetainedByteCount = checked(
+            256L +
+            redCurve.RetainedByteCount +
+            greenCurve.RetainedByteCount +
+            blueCurve.RetainedByteCount +
+            RetainedTransformBytes(pcsToDeviceTransforms));
     }
 
     private OfficeIccColorProfile(
@@ -94,10 +100,17 @@ public sealed partial class OfficeIccColorProfile {
         _mediaWhitePoint = mediaWhitePoint;
         _deviceToPcsTransforms = deviceToPcsTransforms;
         _pcsToDeviceTransforms = pcsToDeviceTransforms;
+        RetainedByteCount = checked(
+            256L +
+            RetainedTransformBytes(deviceToPcsTransforms) +
+            RetainedTransformBytes(pcsToDeviceTransforms));
     }
 
     /// <summary>Gets the number of device components accepted by this profile.</summary>
     public int ComponentCount { get; }
+
+    /// <summary>Gets a conservative byte count for the retained parsed representation.</summary>
+    internal long RetainedByteCount { get; }
 
     internal bool HasUncertifiableShadingInputTransform => _deviceToPcsTransforms != null;
 
@@ -224,6 +237,15 @@ public sealed partial class OfficeIccColorProfile {
         signature == InputDeviceClassSignature ||
         signature == DisplayDeviceClassSignature ||
         signature == OutputDeviceClassSignature;
+
+    private static long RetainedTransformBytes(IDeviceToPcsTransform?[]? transforms) {
+        if (transforms == null) return 0L;
+        long total = checked(24L + transforms.LongLength * 8L);
+        for (int index = 0; index < transforms.Length; index++) {
+            if (transforms[index] != null) total = checked(total + transforms[index]!.RetainedByteCount);
+        }
+        return total;
+    }
 
     /// <summary>Attempts to convert device components through the ICC profile to sRGB.</summary>
     public bool TryConvert(IReadOnlyList<double> components, out OfficeColor color) {
@@ -602,6 +624,7 @@ public sealed partial class OfficeIccColorProfile {
     }
 
     private interface IDeviceToPcsTransform {
+        long RetainedByteCount { get; }
         bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz);
         bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz);
     }
@@ -644,6 +667,8 @@ public sealed partial class OfficeIccColorProfile {
             _outputOffset = outputOffset;
             _pcsIsLab = pcsIsLab;
         }
+
+        public long RetainedByteCount => checked(96L + _payload.LongLength);
 
         public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
@@ -782,6 +807,8 @@ public sealed partial class OfficeIccColorProfile {
         internal static ToneCurve FromGamma(double gamma) => new ToneCurve(-1, new[] { gamma });
         internal static ToneCurve FromSamples(double[] samples) => new ToneCurve(-2, samples);
         internal static ToneCurve FromParameters(int functionType, double[] parameters) => new ToneCurve(functionType, parameters);
+
+        internal long RetainedByteCount => checked(32L + _values.LongLength * 8L);
 
         internal double Evaluate(double value) {
             if (_functionType == 0 && _values.Length == 0) return value;

@@ -949,6 +949,13 @@ internal static class PdfPageContentVisualParser {
                 return;
             }
 
+            fill &= !_state.FillColorSpace.SuppressesPaint;
+            stroke &= !_state.StrokeColorSpace.SuppressesPaint;
+            if (!fill && !stroke) {
+                ClearPath();
+                return;
+            }
+
             if (stroke && _hasInexactDash) _unsupportedOperatorVisitor?.Invoke("d");
             bool isAxisAlignedRectangle = TryCreateAxisAlignedRectangle(
                 requireExactCoordinates: _requireExactType3ShadingProjection,

@@ -884,7 +884,9 @@ internal static class TextContentParser {
             bool hasActiveArtifact = HasActiveArtifact();
             bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
             bool isHidden = HasActiveHiddenContent();
-            bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
+            bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
+            bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
+            bool isVisibleText = usesVisibleFill || usesVisibleStroke;
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
             string textOut = sbOut.ToString();
             var textOrigin = textMatrix.Transform(0, textRise);
@@ -912,6 +914,7 @@ internal static class TextContentParser {
                 blendMode == OfficeBlendMode.Normal &&
                 !hasSoftMask &&
                 !hasUnsupportedEffect &&
+                isVisibleText &&
                 fillColorResolved &&
                 !HasActiveMcid() &&
                 !HasActiveOptionalContent() &&
@@ -922,8 +925,9 @@ internal static class TextContentParser {
             IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
                 ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
-            OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
-            OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
+            bool useStrokePaint = !usesVisibleFill && usesVisibleStroke;
+            OfficeColor paintColor = useStrokePaint ? strokeColor : fillColor;
+            OfficeColor visibleColor = ApplyTextOpacity(paintColor, useStrokePaint);
             PdfPageClipPath? spanClipPath = clipPath;
             if (isHidden) {
                 // Hidden optional-content still advances text state but should not emit visible/logical spans.
@@ -1135,8 +1139,8 @@ internal static class TextContentParser {
                 strokeColorSpace = strokeColorSelection.ColorSpace;
             }
         }
-        OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
-            double? opacity = UsesStrokeTextPaint(renderingMode) ? strokeOpacity : fillOpacity;
+        OfficeColor ApplyTextOpacity(OfficeColor color, bool useStrokePaint) {
+            double? opacity = useStrokePaint ? strokeOpacity : fillOpacity;
             if (!opacity.HasValue) {
                 return color;
             }
@@ -1184,14 +1188,11 @@ internal static class TextContentParser {
             int mode = (int)Math.Round(value);
             return mode < 0 || mode > 7 ? 0 : mode;
         }
-        static OfficeColor ResolveTextPaintColor(int renderingMode, OfficeColor fill, OfficeColor stroke) =>
-            UsesStrokeTextPaint(renderingMode) ? stroke : fill;
-
         static bool UsesStrokeTextPaint(int renderingMode) =>
-            renderingMode == 1 || renderingMode == 5;
+            renderingMode is 1 or 2 or 5 or 6;
 
-        static bool IsTextRenderingModeVisible(int renderingMode) =>
-            renderingMode != 3 && renderingMode != 7;
+        static bool UsesFillTextPaint(int renderingMode) =>
+            renderingMode is 0 or 2 or 4 or 6;
 
         static bool AddsTextToClippingPath(int renderingMode) =>
             renderingMode >= 4 && renderingMode <= 7;

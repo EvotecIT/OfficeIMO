@@ -7,23 +7,34 @@ internal readonly struct PdfPageColorSpace {
     private static readonly double[] IdentityMatrix = { 1D, 0D, 0D, 0D, 1D, 0D, 0D, 0D, 1D };
     private readonly PdfPageCalRgbParameters? _calRgb;
     private readonly PdfPageCustomColorSpace? _custom;
+    private readonly bool _suppressesPaint;
 
     public PdfPageColorSpace(PdfPageColorSpaceKind kind) {
         Kind = kind;
         _calRgb = null;
         _custom = null;
+        _suppressesPaint = false;
     }
 
     private PdfPageColorSpace(PdfPageCalRgbParameters calRgb) {
         Kind = PdfPageColorSpaceKind.CalRgb;
         _calRgb = calRgb;
         _custom = null;
+        _suppressesPaint = false;
     }
 
     private PdfPageColorSpace(PdfPageColorSpaceKind kind, PdfPageCustomColorSpace custom) {
         Kind = kind;
         _calRgb = null;
         _custom = custom;
+        _suppressesPaint = false;
+    }
+
+    private PdfPageColorSpace(PdfPageColorSpaceKind kind, bool suppressesPaint) {
+        Kind = kind;
+        _calRgb = null;
+        _custom = null;
+        _suppressesPaint = suppressesPaint;
     }
 
     public PdfPageColorSpaceKind Kind { get; }
@@ -35,6 +46,8 @@ internal readonly struct PdfPageColorSpace {
     };
 
     public bool UsesIccApproximation => _custom?.UsesIccApproximation == true;
+
+    internal bool SuppressesPaint => _suppressesPaint;
 
     internal bool HasUncertifiableShadingTransform =>
         _custom?.HasUncertifiableShadingTransform == true;
@@ -220,6 +233,9 @@ internal readonly struct PdfPageColorSpace {
             kind,
             new PdfPageCustomColorSpace(componentCount, alternate, transform, evaluationCost, evaluationBudget));
 
+    public static PdfPageColorSpace SeparationNone() =>
+        new PdfPageColorSpace(PdfPageColorSpaceKind.Separation, suppressesPaint: true);
+
     public static PdfPageColorSpace Pattern(PdfPageColorSpace baseColorSpace) =>
         new PdfPageColorSpace(PdfPageColorSpaceKind.Pattern, new PdfPageCustomColorSpace(baseColorSpace));
 
@@ -242,6 +258,10 @@ internal readonly struct PdfPageColorSpace {
         color = OfficeColor.Black;
         if (components == null || components.Count < ComponentCount || Kind == PdfPageColorSpaceKind.Pattern) return false;
         for (int index = 0; index < ComponentCount; index++) if (!IsFinite(components[index])) return false;
+        if (_suppressesPaint) {
+            color = OfficeColor.Transparent;
+            return true;
+        }
 
         if (_custom?.ColorTransform != null) {
             OfficeColor? transformed = _custom.ColorTransform(components, renderingIntent);
@@ -312,8 +332,8 @@ internal readonly struct PdfPageColorSpace {
     public static bool operator ==(PdfPageColorSpaceKind left, PdfPageColorSpace right) => left == right.Kind;
     public static bool operator !=(PdfPageColorSpaceKind left, PdfPageColorSpace right) => left != right.Kind;
 
-    public override bool Equals(object? obj) => obj is PdfPageColorSpace other && Kind == other.Kind && ReferenceEquals(_calRgb, other._calRgb) && ReferenceEquals(_custom, other._custom);
-    public override int GetHashCode() => (((int)Kind * 397) ^ (_calRgb?.GetHashCode() ?? 0)) * 397 ^ (_custom?.GetHashCode() ?? 0);
+    public override bool Equals(object? obj) => obj is PdfPageColorSpace other && Kind == other.Kind && _suppressesPaint == other._suppressesPaint && ReferenceEquals(_calRgb, other._calRgb) && ReferenceEquals(_custom, other._custom);
+    public override int GetHashCode() => ((((int)Kind * 397) ^ (_calRgb?.GetHashCode() ?? 0)) * 397 ^ (_custom?.GetHashCode() ?? 0)) * 397 ^ (_suppressesPaint ? 1 : 0);
 
     private static int ComponentCountFor(PdfPageColorSpaceKind kind) => kind switch {
         PdfPageColorSpaceKind.DeviceRgb => 3,
