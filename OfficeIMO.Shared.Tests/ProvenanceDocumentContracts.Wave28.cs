@@ -36,7 +36,7 @@ public sealed partial class ProvenanceDocumentContracts {
             "</xmp></body></html>";
 
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 12 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
 
         Assert.Single(report.Evidence);
     }

@@ -143,7 +143,7 @@ public sealed partial class EpubDocument {
             string segment;
             try { segment = Uri.UnescapeDataString(encodedSegment); }
             catch (UriFormatException) { return false; }
-            if (segment.IndexOfAny(new[] { '/', '\\', '?', '#' }) >= 0 || segment.Length == 0) return false;
+            if (segment.IndexOfAny(new[] { '/', '\\' }) >= 0 || segment.Length == 0) return false;
             if (segment == ".") continue;
             if (segment == "..") {
                 if (segments.Count == 0) return false;

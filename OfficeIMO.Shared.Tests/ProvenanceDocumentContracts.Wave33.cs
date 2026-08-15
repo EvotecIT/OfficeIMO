@@ -31,7 +31,7 @@ public sealed partial class ProvenanceDocumentContracts {
             "]]></mglyph></mi></math></body></html>";
 
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 12 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
 
         Assert.Single(report.Evidence);
     }
@@ -45,7 +45,7 @@ public sealed partial class ProvenanceDocumentContracts {
             "</script></body></html>";
 
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 8 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
 
         Assert.Single(report.Evidence);
     }

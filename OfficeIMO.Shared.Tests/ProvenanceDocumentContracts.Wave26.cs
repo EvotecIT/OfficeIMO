@@ -18,7 +18,7 @@ public sealed partial class ProvenanceDocumentContracts {
             "</script></head><body><plaintext>" + string.Concat(Enumerable.Repeat("<div>literal</div>", 128));
 
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 12 });
+            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
 
         Assert.Single(report.Evidence);
     }

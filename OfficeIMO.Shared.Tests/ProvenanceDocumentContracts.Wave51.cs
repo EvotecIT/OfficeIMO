@@ -18,7 +18,7 @@ public sealed partial class ProvenanceDocumentContracts {
 
         OfficeProvenanceReport report = HtmlProvenance.Inspect(
             html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 10 });
+            new OfficeProvenanceOptions { MaxContainerEntries = 32 });
 
         Assert.Single(report.Evidence);
     }

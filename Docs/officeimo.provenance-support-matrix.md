@@ -31,7 +31,7 @@ Structural inspection reports whether the carrier shape is safe to interpret or 
 | `OfficeIMO.PowerPoint` | PPTX, PPTM, POTX, POTM, PPSX, PPSM, PPAM and supported embedded images | Removes only relationship- and content-type-owned signature parts when explicitly requested |
 | `OfficeIMO.Visio` | VSDX-family OPC packages and supported embedded images | Resolves Visio application metadata and signature relationships through the package graph before cleanup |
 | `OfficeIMO.Html` | Native manifest scripts/links, recursive `iframe srcdoc`, active CSS image carriers, responsive image carriers, and embedded supported images | Preserves document encoding for byte APIs; the string API returns UTF-8 and normalizes only exact charset declarations |
-| `OfficeIMO.Markdown` | Structured-text carriers | Strict UTF-8 decoding for the string/document owner; preserves unrelated Markdown text |
+| `OfficeIMO.Markdown` | Structured-text carriers | String and byte APIs require strict UTF-8; file APIs also accept and preserve BOM-marked UTF-16 LE/BE and UTF-32 LE/BE; preserves unrelated Markdown text |
 | `OfficeIMO.OpenDocument` | Native ODF manifest entry, supported package images, and native document signatures | Requires valid ODF identity and an unencrypted package; explicit cleanup removes owned signature entries and manifest declarations |
 | `OfficeIMO.Epub` | Native EPUB manifest entry, supported package images, and native EPUB signatures | Requires valid EPUB identity and OPF ownership; explicit cleanup removes only EPUB-owned signature entries |
 

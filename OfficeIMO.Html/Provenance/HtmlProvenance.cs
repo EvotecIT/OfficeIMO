@@ -436,9 +436,9 @@ public static partial class HtmlProvenance {
         } else if (localName == "link" && IsImageLink(element)) {
             if (IsPreloadedImage(element) && HasUsableImageSourceSet(element)) attributeNames = Array.Empty<string>();
             else attributeNames = new[] { "href" };
-        } else if (localName == "object" && HasSupportedDeclaredImageType(element)) {
+        } else if (localName == "object" && HasSupportedDeclaredOrInferredImageType(element, "data")) {
             attributeNames = new[] { "data" };
-        } else if (localName == "embed" && HasSupportedDeclaredImageType(element)) {
+        } else if (localName == "embed" && HasSupportedDeclaredOrInferredImageType(element, "src")) {
             attributeNames = new[] { "src" };
         } else {
             yield break;
@@ -584,6 +584,14 @@ public static partial class HtmlProvenance {
         int parameter = value.IndexOf(';');
         if (parameter >= 0) value = TrimAsciiWhitespace(value.Substring(0, parameter));
         return IsSupportedProvenanceImage(value);
+    }
+
+    private static bool HasSupportedDeclaredOrInferredImageType(IElement element, string sourceAttribute) {
+        string declaredType = TrimAsciiWhitespace(element.GetAttribute("type"));
+        if (declaredType.Length != 0) return HasSupportedDeclaredImageType(element);
+        string? source = element.GetAttribute(sourceAttribute);
+        return source != null && HtmlImageDataUri.TryParse(source, out HtmlImageDataUri dataUri) &&
+               IsSupportedProvenanceImage(dataUri.MediaType);
     }
 
     private static IEnumerable<EmbeddedImageReference> ParseSrcset(string attributeName, string sourceSet) {
