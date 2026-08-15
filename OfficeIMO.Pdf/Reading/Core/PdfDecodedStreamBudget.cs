@@ -80,7 +80,9 @@ internal sealed class PdfDecodedStreamBudget {
         if (_used > _maximumTotal) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.TotalDecodedStreamBytes, _maximumTotal, _used);
         }
-        _decoded.Add(stream, new DecodedEntry(decoded, requireSupportedFilters));
+        bool requiredValidated = requireSupportedFilters ||
+            Filters.StreamDecoder.HasNoEffectiveFilters(stream.Dictionary, objects);
+        _decoded.Add(stream, new DecodedEntry(decoded, requiredValidated));
         return decoded;
     }
 

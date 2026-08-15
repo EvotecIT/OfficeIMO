@@ -116,7 +116,13 @@ internal static partial class PdfSyntax {
                 formatted = "/" + name.Name;
                 return true;
             case PdfStringObj text:
-                formatted = "(" + text.Value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)") + ")";
+                var hex = new System.Text.StringBuilder(text.RawBytes.Length * 2 + 2);
+                hex.Append('<');
+                foreach (byte valueByte in text.RawBytes) {
+                    hex.Append(valueByte.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+                }
+                hex.Append('>');
+                formatted = hex.ToString();
                 return true;
             case PdfArray array:
                 var items = new List<string>();

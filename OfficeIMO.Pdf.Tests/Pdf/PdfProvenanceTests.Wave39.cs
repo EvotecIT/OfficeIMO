@@ -9,19 +9,21 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed partial class PdfProvenanceTests {
     [Fact]
     public void RequiredCacheRevalidationConsumesAdditionalExpandedByteBudget() {
-        var stream = new PdfStream(new PdfDictionary(), new byte[] { 1, 2, 3 });
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("ASCIIHexDecode");
+        var stream = new PdfStream(dictionary, Encoding.ASCII.GetBytes("010203>"));
         var budget = new PdfDecodedStreamBudget(new PdfReadLimits {
             MaxDecodedStreamBytes = 16,
             MaxTotalDecodedStreamBytes = 5
         });
         var objects = new Dictionary<int, PdfIndirectObject>();
 
-        Assert.Equal(stream.Data, budget.Decode(stream, objects, maximumRequestedBytes: 16));
+        Assert.Equal(new byte[] { 1, 2, 3 }, budget.Decode(stream, objects, maximumRequestedBytes: 16));
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             budget.DecodeRequired(stream, objects, maximumRequestedBytes: 16));
 
         Assert.Equal(PdfReadLimitKind.TotalDecodedStreamBytes, exception.Kind);
-        Assert.Equal(stream.Data.Length, budget.UsedBytes);
+        Assert.Equal(3, budget.UsedBytes);
     }
 
     [Fact]

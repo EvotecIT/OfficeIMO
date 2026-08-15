@@ -241,6 +241,13 @@ internal static class StreamDecoder {
         return unsupported;
     }
 
+    internal static bool HasNoEffectiveFilters(
+        PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        if (!dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject)) return true;
+        return ResolveObject(filterObject, objects) is PdfNull;
+    }
+
     internal static bool IsSupportedFilter(string filterName) {
         return GetFilterKind(filterName) != DecodeFilterKind.Unsupported;
     }
