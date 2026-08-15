@@ -175,7 +175,9 @@ public sealed class PdfReadLimits {
         long? maximumDecodedStreamBytes = null,
         long? maximumTotalDecodedStreamBytes = null,
         long? maximumTotalAttachmentBytes = null,
-        bool preserveExistingDecodedStreamLimit = true) {
+        bool preserveExistingDecodedStreamLimit = true,
+        long? maximumRawStreamBytes = null,
+        bool preserveExistingRawStreamLimit = true) {
         if (maximumContainerEntries <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
         }
@@ -188,6 +190,15 @@ public sealed class PdfReadLimits {
         if (maximumTotalAttachmentBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumTotalAttachmentBytes), maximumTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
         }
+        if (maximumRawStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumRawStreamBytes), maximumRawStreamBytes, "Maximum raw stream bytes must be positive.");
+        }
+        int requestedRawStreamBytes = maximumRawStreamBytes.HasValue
+            ? (int)Math.Min(maximumRawStreamBytes.Value, int.MaxValue)
+            : MaxRawStreamBytes;
+        int effectiveRawStreamBytes = preserveExistingRawStreamLimit
+            ? Math.Min(MaxRawStreamBytes, requestedRawStreamBytes)
+            : requestedRawStreamBytes;
         int requestedDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
             ? (int)Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue)
             : MaxDecodedStreamBytes;
@@ -197,7 +208,7 @@ public sealed class PdfReadLimits {
         return new PdfReadLimits {
             MaxInputBytes = MaxInputBytes,
             MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
-            MaxRawStreamBytes = MaxRawStreamBytes,
+            MaxRawStreamBytes = effectiveRawStreamBytes,
             MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
             MaxTotalDecodedStreamBytes = maximumTotalDecodedStreamBytes ?? maximumDecodedStreamBytes
                 ?? MaxTotalDecodedStreamBytes,
