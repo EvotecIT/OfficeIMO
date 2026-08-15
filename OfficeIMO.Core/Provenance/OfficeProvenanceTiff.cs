@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Provenance;
 
@@ -9,6 +10,7 @@ internal static class OfficeProvenanceTiff {
     private const ushort C2paTag = 0xCD41;
     private const ushort XmpTag = 700;
     private const ushort ByteType = 1;
+    private const ushort ShortType = 3;
     private const ushort LongType = 4;
     private const ushort UndefinedType = 7;
     private const ushort IfdType = 13;
@@ -18,6 +20,11 @@ internal static class OfficeProvenanceTiff {
     private const ushort StripByteCountsTag = 279;
     private const ushort ImageWidthTag = 256;
     private const ushort ImageLengthTag = 257;
+    private const ushort BitsPerSampleTag = 258;
+    private const ushort CompressionTag = 259;
+    private const ushort PhotometricInterpretationTag = 262;
+    private const ushort SamplesPerPixelTag = 277;
+    private const ushort RowsPerStripTag = 278;
     private const ushort TileOffsetsTag = 324;
     private const ushort TileByteCountsTag = 325;
     private const ushort JpegInterchangeFormatTag = 513;
@@ -50,7 +57,7 @@ internal static class OfficeProvenanceTiff {
                 }
                 if (entry.Tag != C2paTag) continue;
                 bool valid = allEntriesHaveValidStorage && ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
-                    HasCompletePrimaryImage(data, ifd, options.MaxContainerEntries) &&
+                    HasCompletePrimaryImage(data, ifd, options) &&
                     entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
@@ -125,7 +132,7 @@ internal static class OfficeProvenanceTiff {
                 }
                 if (entry.Tag != C2paTag) { retained.Add(entry); continue; }
                 bool valid = allEntriesHaveValidStorage && ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
-                    HasCompletePrimaryImage(data, ifd, options.Limits.MaxContainerEntries) &&
+                    HasCompletePrimaryImage(data, ifd, options.Limits) &&
                     entry.Type == UndefinedType && TryGetPayload(data, entry, options.Limits.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, out _);
@@ -285,11 +292,13 @@ internal static class OfficeProvenanceTiff {
         return false;
     }
 
-    private static bool HasCompletePrimaryImage(byte[] data, TiffIfd ifd, int maximumContainerEntries) {
+    private static bool HasCompletePrimaryImage(byte[] data, TiffIfd ifd, OfficeProvenanceOptions options) {
         if (!TryReadSinglePositiveValue(data, ifd, ImageWidthTag) ||
             !TryReadSinglePositiveValue(data, ifd, ImageLengthTag)) return false;
 
         int imageDataRepresentations = 0;
+        TiffEntry? stripOffsets = null;
+        TiffEntry? stripByteCounts = null;
         foreach ((ushort offsetsTag, ushort byteCountsTag) in new[] {
             (StripOffsetsTag, StripByteCountsTag),
             (TileOffsetsTag, TileByteCountsTag),
@@ -299,10 +308,104 @@ internal static class OfficeProvenanceTiff {
             TiffEntry[] byteCountEntries = ifd.Entries.Where(entry => entry.Tag == byteCountsTag).ToArray();
             if (offsetsEntries.Length == 0 && byteCountEntries.Length == 0) continue;
             if (offsetsEntries.Length != 1 || byteCountEntries.Length != 1 ||
-                !HasValidReferencedImageData(data, offsetsEntries[0], byteCountEntries[0], maximumContainerEntries)) return false;
+                !HasValidReferencedImageData(data, offsetsEntries[0], byteCountEntries[0], options.MaxContainerEntries)) return false;
+            if (offsetsTag == StripOffsetsTag) {
+                stripOffsets = offsetsEntries[0];
+                stripByteCounts = byteCountEntries[0];
+            }
             imageDataRepresentations++;
         }
-        return imageDataRepresentations == 1;
+        return imageDataRepresentations == 1 &&
+            (stripOffsets == null || HasValidSupportedStripPayload(data, ifd, stripOffsets, stripByteCounts!, options));
+    }
+
+    private static bool HasValidSupportedStripPayload(
+        byte[] data,
+        TiffIfd ifd,
+        TiffEntry stripOffsets,
+        TiffEntry stripByteCounts,
+        OfficeProvenanceOptions options) {
+        if (ifd.BigTiff ||
+            !TryReadOptionalSingleValue(data, ifd, CompressionTag, 1, out ulong compression) ||
+            !TryReadOptionalSingleValue(data, ifd, PhotometricInterpretationTag, 2, out ulong photometric) ||
+            !TryReadOptionalSingleValue(data, ifd, RowsPerStripTag, 0, out ulong rowsPerStrip) ||
+            !TryReadOptionalSingleValue(data, ifd, SamplesPerPixelTag, 0, out ulong samplesPerPixel)) return false;
+        if (compression is not (1 or 8 or 32946 or 32773)) return true;
+
+        ulong baseSamples = photometric switch {
+            0 or 1 or 3 => 1,
+            2 => 3,
+            5 => 4,
+            _ => 0
+        };
+        if (baseSamples == 0) return true;
+        if (!TryReadSinglePositiveUnsignedValue(data, ifd, ImageWidthTag, out ulong width) ||
+            !TryReadSinglePositiveUnsignedValue(data, ifd, ImageLengthTag, out ulong height)) return false;
+        if (rowsPerStrip == 0) rowsPerStrip = height;
+        if (samplesPerPixel == 0) samplesPerPixel = baseSamples;
+        if (samplesPerPixel != baseSamples && samplesPerPixel != baseSamples + 1) return true;
+
+        TiffEntry[] bitsEntries = ifd.Entries.Where(entry => entry.Tag == BitsPerSampleTag).ToArray();
+        if (bitsEntries.Length != 1 || bitsEntries[0].Type != ShortType || bitsEntries[0].Count != samplesPerPixel ||
+            !TryGetValueStorageRange(data, bitsEntries[0], out int bitsStorage, out _)) return true;
+        for (int index = 0; index < (int)samplesPerPixel; index++) {
+            if (!TryReadUnsignedValue(data, bitsEntries[0], bitsStorage, index, out ulong bits) || bits != 8) return true;
+        }
+
+        ulong expectedStripCount = (height + rowsPerStrip - 1) / rowsPerStrip;
+        if (stripOffsets.Count != expectedStripCount || stripByteCounts.Count != expectedStripCount ||
+            expectedStripCount > int.MaxValue ||
+            !TryGetValueStorageRange(data, stripOffsets, out int offsetsStorage, out _) ||
+            !TryGetValueStorageRange(data, stripByteCounts, out int byteCountsStorage, out _)) return false;
+
+        ulong totalDecodedBytes = 0;
+        for (int index = 0; index < (int)expectedStripCount; index++) {
+            ulong rowStart = (ulong)index * rowsPerStrip;
+            ulong rows = Math.Min(rowsPerStrip, height - rowStart);
+            if (width > ulong.MaxValue / samplesPerPixel || width * samplesPerPixel > ulong.MaxValue / rows) return false;
+            ulong expectedBytes = rows * width * samplesPerPixel;
+            if (expectedBytes == 0 || expectedBytes > int.MaxValue ||
+                expectedBytes > (ulong)options.MaxExpandedContainerBytes ||
+                totalDecodedBytes > (ulong)options.MaxExpandedContainerBytes - expectedBytes) {
+                throw OfficeProvenanceLimitException.Create("TIFF decoded pixel data exceeds the configured expanded-container limit.");
+            }
+            totalDecodedBytes += expectedBytes;
+            if (!TryReadUnsignedValue(data, stripOffsets, offsetsStorage, index, out ulong offset) ||
+                !TryReadUnsignedValue(data, stripByteCounts, byteCountsStorage, index, out ulong count) ||
+                offset > int.MaxValue || count > int.MaxValue ||
+                !OfficeTiffCodec.TryValidateStripPayload(
+                    data,
+                    (int)offset,
+                    (int)count,
+                    (int)compression,
+                    (int)expectedBytes)) return false;
+        }
+        return true;
+    }
+
+    private static bool TryReadOptionalSingleValue(
+        byte[] data,
+        TiffIfd ifd,
+        ushort tag,
+        ulong defaultValue,
+        out ulong value) {
+        value = 0;
+        TiffEntry[] entries = ifd.Entries.Where(entry => entry.Tag == tag).ToArray();
+        if (entries.Length == 0) {
+            value = defaultValue;
+            return true;
+        }
+        return entries.Length == 1 && entries[0].Count == 1 &&
+            TryGetValueStorageRange(data, entries[0], out int storageOffset, out _) &&
+            TryReadUnsignedValue(data, entries[0], storageOffset, 0, out value);
+    }
+
+    private static bool TryReadSinglePositiveUnsignedValue(byte[] data, TiffIfd ifd, ushort tag, out ulong value) {
+        value = 0;
+        TiffEntry[] entries = ifd.Entries.Where(entry => entry.Tag == tag).ToArray();
+        return entries.Length == 1 && entries[0].Count == 1 &&
+            TryGetValueStorageRange(data, entries[0], out int storageOffset, out _) &&
+            TryReadUnsignedValue(data, entries[0], storageOffset, 0, out value) && value > 0;
     }
 
     private static bool TryReadSinglePositiveValue(byte[] data, TiffIfd ifd, ushort tag) {

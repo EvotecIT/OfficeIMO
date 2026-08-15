@@ -224,11 +224,17 @@ internal static class OfficeProvenanceText {
             bool hasMagic = decoded.Count >= WrapperMagic.Length;
             for (int index = 0; hasMagic && index < WrapperMagic.Length; index++) hasMagic = decoded[index] == WrapperMagic[index];
             if (!hasMagic) { offset += prefixBytes; continue; }
+            if (exceededLimit) {
+                throw OfficeProvenanceLimitException.Create("The variation-selector manifest exceeds the configured manifest limit.");
+            }
             bool valid = false;
             long manifestLength = 0;
-            if (!exceededLimit && decoded.Count >= 13 && decoded[8] == 1) {
+            if (decoded.Count >= 13 && decoded[8] == 1) {
                 uint declared = ((uint)decoded[9] << 24) | ((uint)decoded[10] << 16) | ((uint)decoded[11] << 8) | decoded[12];
                 manifestLength = declared;
+                if (declared > maximumManifestBytes) {
+                    throw OfficeProvenanceLimitException.Create("The variation-selector manifest exceeds the configured manifest limit.");
+                }
                 if (declared <= maximumManifestBytes && decoded.Count == 13L + declared) {
                     byte[] manifest = decoded.GetRange(13, (int)declared).ToArray();
                     valid = OfficeC2paManifestStore.IsValid(

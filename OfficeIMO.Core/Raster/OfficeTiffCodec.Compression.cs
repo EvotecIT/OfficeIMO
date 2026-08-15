@@ -6,6 +6,25 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeTiffCodec {
+    internal static bool TryValidateStripPayload(
+        byte[] input,
+        int inputOffset,
+        int inputCount,
+        int compression,
+        int expectedCount) {
+        if (input == null || inputOffset < 0 || inputCount < 0 || expectedCount <= 0 ||
+            inputOffset > input.Length - inputCount) return false;
+        try {
+            var output = new byte[expectedCount];
+            return TryDecodeStrip(input, inputOffset, inputCount, compression, output, 0, expectedCount);
+        } catch (Exception exception) when (
+            exception is ArgumentException ||
+            exception is InvalidDataException ||
+            exception is OverflowException) {
+            return false;
+        }
+    }
+
     private static bool TryDecodeStrip(
         byte[] input,
         int inputOffset,

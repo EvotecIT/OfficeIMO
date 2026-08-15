@@ -297,17 +297,13 @@ public sealed partial class ProvenanceReviewRegressionContracts {
     }
 
     [Fact]
-    public void MalformedOversizedTextWrapperIsRemovedAsOneCompleteRun() {
+    public void OversizedTextWrapperCannotBeRemovedPermissively() {
         byte[] wrapper = CreateTextWrapper(CreateManifestStore());
-        byte[] suffix = Encoding.UTF8.GetBytes("tail");
-        byte[] text = Join(wrapper, suffix);
         var options = new OfficeProvenanceRemovalOptions { RequireStructurallyValidCarrier = false };
         options.Limits.MaxManifestBytes = 1;
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(text, "fixture.txt", options);
-
-        Assert.Equal(suffix, result.ToArray());
-        Assert.Single(result.Changes);
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceRemover.Remove(wrapper, "fixture.txt", options));
     }
 
     [Fact]
