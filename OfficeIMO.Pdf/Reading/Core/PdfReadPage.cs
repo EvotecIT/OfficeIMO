@@ -382,7 +382,8 @@ public sealed partial class PdfReadPage {
                 colorizeImageMasks,
                 _limits,
                 EffectiveOutputIntentColorTransform,
-                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations));
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
+                pageContentBudget?.ColorFunctionResolutionContext));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
@@ -403,7 +404,8 @@ public sealed partial class PdfReadPage {
                     _limits.MaxDecodedStreamBytes,
                     placement.RenderingIntent,
                     EffectiveOutputIntentColorTransform,
-                    pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations));
+                    pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
+                    pageContentBudget?.ColorFunctionResolutionContext));
             }
         }
 
@@ -1711,7 +1713,11 @@ public sealed partial class PdfReadPage {
         internal PageContentBudget(PdfReadPage page) {
             _page = page;
             _remainingColorFunctionEvaluationWork = Math.Max(1, page._limits.MaxContentOperations);
+            ColorFunctionResolutionContext = new PdfColorFunctionResolutionContext(
+                Math.Min(page._limits.MaxDecodedStreamBytes, page._limits.MaxPageContentBytes));
         }
+
+        internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
 
         internal bool TryConsumeColorFunctionEvaluation(int evaluationCost) =>
             TryConsumeColorFunctionEvaluations(evaluationCost, 1L);

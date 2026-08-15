@@ -570,6 +570,41 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void ShadingFunctionArray_RejectsAuthoredDiscontinuityUnionAboveTheExactLimit() {
+        PdfObject[] components = Enumerable.Range(0, 5)
+            .Select(component => (PdfObject)Dictionary(
+                ("FunctionType", Number(3)),
+                ("Domain", Numbers(0D, 1D)),
+                ("Functions", Array(Enumerable.Range(0, 32)
+                    .Select(index => (PdfObject)Type2(new[] { (component * 32 + index) / 160D }, new[] { (component * 32 + index) / 160D }))
+                    .ToArray())),
+                ("Bounds", Numbers(Enumerable.Range(1, 31).Select(index => (component * 32 + index) / 160D).ToArray())),
+                ("Encode", Numbers(Enumerable.Range(0, 32).SelectMany(static _ => new[] { 0D, 1D }).ToArray()))))
+            .ToArray();
+
+        Assert.False(PdfColorSpaceFunctionResolver.TryCreateShadingFunction(
+            Array(components),
+            5,
+            new Dictionary<int, PdfIndirectObject>(),
+            1024 * 1024,
+            out _));
+    }
+
+    [Fact]
+    public void FunctionResolutionContext_CachesAliasesAndAggregatesRetainedBytesAcrossResources() {
+        PdfStream first = SampledFunction(1, 1, new[] { 64 }, 8, new byte[64]);
+        PdfStream second = SampledFunction(1, 1, new[] { 64 }, 8, new byte[64]);
+        var context = new PdfColorFunctionResolutionContext(100);
+        var objects = new Dictionary<int, PdfIndirectObject>();
+
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(first, 1, 1, objects, 1024, context, out PdfColorFunction cached));
+        Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(first, 1, 1, objects, 1024, context, out PdfColorFunction alias));
+        Assert.Same(cached, alias);
+        Assert.Throws<PdfReadLimitException>(() =>
+            PdfColorSpaceFunctionResolver.TryCreateFunction(second, 1, 1, objects, 1024, context, out _));
+    }
+
+    [Fact]
     public void Type0_HandlesExtremeFiniteEncodeValuesWithoutIndexingOutsideSamples() {
         PdfStream sampled = SampledFunction(
             1,

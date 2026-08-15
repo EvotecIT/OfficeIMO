@@ -206,6 +206,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             PdfReadLimits.DefaultMaxDecodedStreamBytes,
             OfficeIccRenderingIntent.RelativeColorimetric,
             colorFunctionEvaluationBudget: null,
+            functionResolutionContext: null,
             depth: 0,
             out normalization);
 
@@ -222,6 +223,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             maxDecodedStreamBytes,
             OfficeIccRenderingIntent.RelativeColorimetric,
             colorFunctionEvaluationBudget: null,
+            functionResolutionContext: null,
             depth: 0,
             out normalization);
 
@@ -239,6 +241,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             maxDecodedStreamBytes,
             renderingIntent,
             colorFunctionEvaluationBudget: null,
+            functionResolutionContext: null,
             depth: 0,
             out normalization);
 
@@ -269,6 +272,20 @@ internal sealed class PdfImageColorSpaceNormalization {
         PdfOutputIntentColorTransform? outputIntentColorTransform,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         out PdfImageColorSpaceNormalization normalization) {
+        return TryResolve(colorSpaceObj, colorSpaceName, objects, maxDecodedStreamBytes, renderingIntent,
+            outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext: null, out normalization);
+    }
+
+    internal static bool TryResolve(
+        PdfObject? colorSpaceObj,
+        string colorSpaceName,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        OfficeIccRenderingIntent renderingIntent,
+        PdfOutputIntentColorTransform? outputIntentColorTransform,
+        Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
+        out PdfImageColorSpaceNormalization normalization) {
         if (!TryResolve(
                 colorSpaceObj,
                 colorSpaceName,
@@ -276,6 +293,7 @@ internal sealed class PdfImageColorSpaceNormalization {
                 maxDecodedStreamBytes,
                 renderingIntent,
                 colorFunctionEvaluationBudget,
+                functionResolutionContext,
                 depth: 0,
                 out normalization)) return false;
         if (outputIntentColorTransform != null) {
@@ -291,6 +309,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -319,23 +338,24 @@ internal sealed class PdfImageColorSpaceNormalization {
                     maxDecodedStreamBytes,
                     renderingIntent,
                     colorFunctionEvaluationBudget,
+                    functionResolutionContext,
                     depth,
                     out normalization);
             case "Indexed":
             case "I":
-                return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth, out normalization);
+                return TryCreateIndexed(colorSpaceArray, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out normalization);
             case "Separation":
                 if (colorSpaceArray.Items.Count < 2 ||
                     ResolveObject(colorSpaceArray.Items[1], objects) is not PdfName colorant ||
                     string.Equals(colorant.Name, "None", StringComparison.Ordinal)) return false;
-                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth, out normalization);
+                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.Separation, 1, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out normalization);
             case "DeviceN":
             case "NChannel":
                 if (colorSpaceArray.Items.Count < 2 ||
                     ResolveObject(colorSpaceArray.Items[1], objects) is not PdfArray names ||
                     names.Items.Count < 1 || names.Items.Count > 32 ||
                     names.Items.Any(item => ResolveObject(item, objects) is not PdfName)) return false;
-                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth, out normalization);
+                return TryCreateSpecial(colorSpaceArray, PdfPageColorSpaceKind.DeviceN, names.Items.Count, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth, out normalization);
             default:
                 return false;
         }
@@ -347,6 +367,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -358,9 +379,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         if (!rangeIsValid) return false;
         if (PdfIccProfileCache.TryRead(profileStream, objects, maxDecodedStreamBytes, out OfficeIccColorProfile? profile) &&
             profile != null && profile.ComponentCount == componentCount) {
-            PdfPageColorSpace output = profile.ComponentCount == 1
-                ? PdfPageColorSpaceKind.DeviceGray
-                : PdfPageColorSpaceKind.DeviceRgb;
+            PdfPageColorSpace output = PdfPageColorSpace.IccBased(profile, ranges);
             normalization = new PdfImageColorSpaceNormalization(output, 2, profile, ranges, renderingIntent: renderingIntent);
             return true;
         }
@@ -370,7 +389,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             if (resolvedAlternate == null) return false;
             if (resolvedAlternate is not PdfNull) {
                 string alternateName = resolvedAlternate is PdfName name ? name.Name : string.Empty;
-                if (!TryResolve(resolvedAlternate, alternateName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
+                if (!TryResolve(resolvedAlternate, alternateName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
                     alternate.SourceColorCount != componentCount) return false;
                 normalization = new PdfImageColorSpaceNormalization(
                     alternate._colorSpace,
@@ -450,6 +469,7 @@ internal sealed class PdfImageColorSpaceNormalization {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
@@ -458,7 +478,7 @@ internal sealed class PdfImageColorSpaceNormalization {
             highValue < 0 || highValue > 255) return false;
         PdfObject? baseObject = colorSpaceArray.Items[1];
         string baseName = ResolveObject(baseObject, objects) is PdfName name ? name.Name : string.Empty;
-        if (!TryResolve(baseObject, baseName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth + 1, out PdfImageColorSpaceNormalization baseColorSpace) ||
+        if (!TryResolve(baseObject, baseName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, out PdfImageColorSpaceNormalization baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
         int paletteCount = highValue + 1;
         if (!baseColorSpace.TryConsumeEvaluationWork(paletteCount, colorFunctionEvaluationBudget)) return false;
@@ -494,19 +514,21 @@ internal sealed class PdfImageColorSpaceNormalization {
         int maxDecodedStreamBytes,
         OfficeIccRenderingIntent renderingIntent,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         int depth,
         out PdfImageColorSpaceNormalization normalization) {
         normalization = null!;
         if (colorSpaceArray.Items.Count < 4) return false;
         PdfObject? alternateObject = colorSpaceArray.Items[2];
         string alternateName = ResolveObject(alternateObject, objects) is PdfName name ? name.Name : string.Empty;
-        if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
+        if (!TryResolve(alternateObject, alternateName, objects, maxDecodedStreamBytes, renderingIntent, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, out PdfImageColorSpaceNormalization alternate) ||
             !PdfColorSpaceFunctionResolver.TryCreateTintTransform(
                 colorSpaceArray.Items[3],
                 componentCount,
                 alternate.SourceColorCount,
                 objects,
                 maxDecodedStreamBytes,
+                functionResolutionContext,
                 out PdfColorSpaceTintTransform transform,
                 out int evaluationCost)) return false;
         int aggregateEvaluationCost = checked(evaluationCost + alternate._evaluationCost);

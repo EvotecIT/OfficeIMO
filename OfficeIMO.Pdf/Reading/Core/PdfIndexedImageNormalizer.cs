@@ -16,7 +16,8 @@ internal static class PdfIndexedImageNormalizer {
         int bitsPerComponent,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
-        Func<int, long, bool>? colorFunctionEvaluationBudget = null) =>
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) =>
         TryResolveIndexedPaletteDeclaration(
             colorSpaceObj,
             bitsPerComponent,
@@ -25,6 +26,7 @@ internal static class PdfIndexedImageNormalizer {
             OfficeIccRenderingIntent.RelativeColorimetric,
             outputIntentColorTransform: null,
             colorFunctionEvaluationBudget,
+            functionResolutionContext,
             out _,
             out _,
             out _);
@@ -71,6 +73,7 @@ internal static class PdfIndexedImageNormalizer {
             outputIntentColorTransform: null,
             colorFunctionEvaluationBudget: null,
             decodedPixels: null,
+            functionResolutionContext: null,
             out pngBytes);
     }
 
@@ -97,6 +100,7 @@ internal static class PdfIndexedImageNormalizer {
             outputIntentColorTransform,
             colorFunctionEvaluationBudget: null,
             decodedPixels: null,
+            functionResolutionContext: null,
             out pngBytes);
 
     internal static bool TryBuildPngFile(
@@ -123,6 +127,7 @@ internal static class PdfIndexedImageNormalizer {
             outputIntentColorTransform,
             colorFunctionEvaluationBudget,
             decodedPixels: null,
+            functionResolutionContext: null,
             out pngBytes);
 
     internal static bool TryBuildPngFile(
@@ -148,6 +153,7 @@ internal static class PdfIndexedImageNormalizer {
             outputIntentColorTransform: null,
             colorFunctionEvaluationBudget: null,
             decodedPixels,
+            functionResolutionContext: null,
             out pngBytes);
 
     internal static bool TryBuildPngFile(
@@ -162,11 +168,12 @@ internal static class PdfIndexedImageNormalizer {
         PdfOutputIntentColorTransform? outputIntentColorTransform,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
         byte[]? decodedPixels,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 ||
             height <= 0 ||
-            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, out var indexedPalette)) {
+            !TryResolveIndexedPalette(colorSpaceObj, bitsPerComponent, objects, maxDecodedStreamBytes, renderingIntent, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, out var indexedPalette)) {
             return false;
         }
 
@@ -212,6 +219,7 @@ internal static class PdfIndexedImageNormalizer {
         OfficeIccRenderingIntent renderingIntent,
         PdfOutputIntentColorTransform? outputIntentColorTransform,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         out byte[] rgbPalette) {
         rgbPalette = Array.Empty<byte>();
         if (!TryResolveIndexedPaletteDeclaration(
@@ -222,6 +230,7 @@ internal static class PdfIndexedImageNormalizer {
                 renderingIntent,
                 outputIntentColorTransform,
                 colorFunctionEvaluationBudget,
+                functionResolutionContext,
                 out PdfImageColorSpaceNormalization baseColorSpace,
                 out int paletteEntryCount,
                 out byte[] lookupBytes)) return false;
@@ -255,6 +264,7 @@ internal static class PdfIndexedImageNormalizer {
         OfficeIccRenderingIntent renderingIntent,
         PdfOutputIntentColorTransform? outputIntentColorTransform,
         Func<int, long, bool>? colorFunctionEvaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         out PdfImageColorSpaceNormalization baseColorSpace,
         out int paletteEntryCount,
         out byte[] lookupBytes) {
@@ -283,6 +293,7 @@ internal static class PdfIndexedImageNormalizer {
                 renderingIntent,
                 outputIntentColorTransform,
                 colorFunctionEvaluationBudget,
+                functionResolutionContext,
                 out baseColorSpace) ||
             baseColorSpace.Kind is PdfPageColorSpaceKind.Indexed or PdfPageColorSpaceKind.Pattern) return false;
 

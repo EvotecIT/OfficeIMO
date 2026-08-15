@@ -392,12 +392,14 @@ public sealed partial class PdfReadPage {
                 _objects,
                 _limits.MaxDecodedStreamBytes,
                 EffectiveOutputIntentColorTransform,
-                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations) &&
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
+                pageContentBudget?.ColorFunctionResolutionContext) &&
             ResourceResolver.HasValidImageDecode(
                 imageDictionary,
                 resources,
                 _objects,
-                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations) &&
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
+                pageContentBudget?.ColorFunctionResolutionContext) &&
             (!string.Equals(image.Filter, "DCTDecode", StringComparison.Ordinal) ||
              ResourceResolver.CanPassThroughDctDecode(
                  imageDictionary,
@@ -492,7 +494,8 @@ public sealed partial class PdfReadPage {
                 mask,
                 resources,
                 _objects,
-                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations)) {
+                pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
+                pageContentBudget?.ColorFunctionResolutionContext)) {
             return false;
         }
         return IsAbsentOrExplicitNull(mask, "SMask") && IsAbsentOrExplicitNull(mask, "Mask");

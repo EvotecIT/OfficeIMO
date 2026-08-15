@@ -15,14 +15,16 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        Func<int, long, bool>? colorFunctionEvaluationBudget = null) =>
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) =>
         CanProjectImageColorSpace(
             new PdfStream(image, Array.Empty<byte>()),
             resources,
             objects,
             maxDecodedStreamBytes,
             outputIntentColorTransform,
-            colorFunctionEvaluationBudget);
+            colorFunctionEvaluationBudget,
+            functionResolutionContext);
 
     /// <summary>Determines whether the managed image projection can normalize an authored image color space.</summary>
     internal static bool CanProjectImageColorSpace(
@@ -31,7 +33,8 @@ internal static partial class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        Func<int, long, bool>? colorFunctionEvaluationBudget = null) {
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) {
         PdfDictionary dictionary = image.Dictionary;
         if (Filters.StreamDecoder.GetUnsupportedFilters(dictionary, objects).Contains("MalformedFilterDeclaration")) {
             return false;
@@ -72,7 +75,8 @@ internal static partial class ResourceResolver {
                 bitsPerComponent,
                 objects,
                 maxDecodedStreamBytes,
-                colorFunctionEvaluationBudget)) {
+                colorFunctionEvaluationBudget,
+                functionResolutionContext)) {
             if (!PdfImageDecodeTransform.TryCreateIndexedDeclaration(dictionary, objects, out _) ||
                 !PdfImageColorKeyMask.TryCreateDeclaration(dictionary, 1, bitsPerComponent, objects, out _)) {
                 return false;
@@ -106,6 +110,7 @@ internal static partial class ResourceResolver {
                 renderingIntent,
                 outputIntentColorTransform,
                 colorFunctionEvaluationBudget,
+                functionResolutionContext,
                 out PdfImageColorSpaceNormalization normalization)) {
             return false;
         }
@@ -159,7 +164,8 @@ internal static partial class ResourceResolver {
         PdfDictionary image,
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects,
-        Func<int, long, bool>? colorFunctionEvaluationBudget = null) {
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null) {
         if (!image.Items.TryGetValue("Decode", out PdfObject? decodeObject)) return true;
         PdfObject? resolvedDecode = ResolveObject(decodeObject, objects);
         if (resolvedDecode is PdfNull) return true;
@@ -175,7 +181,8 @@ internal static partial class ResourceResolver {
                 bitsPerComponent,
                 objects,
                 PdfReadLimits.DefaultMaxDecodedStreamBytes,
-                colorFunctionEvaluationBudget)) {
+                colorFunctionEvaluationBudget,
+                functionResolutionContext)) {
             componentCount = 1;
         } else {
             string colorSpaceName = GetNameOrEmpty(effectiveColorSpace, objects);
@@ -187,6 +194,7 @@ internal static partial class ResourceResolver {
                     OfficeIccRenderingIntent.RelativeColorimetric,
                     outputIntentColorTransform: null,
                     colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
+                    functionResolutionContext: functionResolutionContext,
                     out PdfImageColorSpaceNormalization normalization)) {
                 return false;
             }

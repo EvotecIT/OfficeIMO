@@ -56,7 +56,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
             double domainMaximum = Math.Max(domain[0], domain[1]);
             double[] conditionalBoundaries = Array.Empty<double>();
             if (program.HasConditional &&
-                !program.TryGetOneInputConditionalBoundaries(domainMinimum, domainMaximum, out conditionalBoundaries)) {
+                (!TryConsumeCalculatorAnalysisWork(program, ref remainingCalculatorValidationWork) ||
+                 !program.TryGetOneInputConditionalBoundaries(domainMinimum, domainMaximum, out conditionalBoundaries))) {
                 return false;
             }
             double[] authoredPoints = program.NumericConstants
@@ -84,7 +85,15 @@ internal static partial class PdfColorSpaceFunctionResolver {
         double[] affineCoefficients = Array.Empty<double>();
         double[] affineConstants = Array.Empty<double>();
         bool hasAffineOutput = inputCount == 1 &&
+            TryConsumeCalculatorAnalysisWork(program, ref remainingCalculatorValidationWork) &&
             program.TryGetOneInputAffineOutput(outputCount, out affineCoefficients, out affineConstants);
+        bool hasCertifiedMonotonicOutput = hasAffineOutput ||
+            (inputCount == 1 &&
+             TryConsumeCalculatorAnalysisWork(program, ref remainingCalculatorValidationWork) &&
+             program.TryCertifyOneInputMonotonicOutput(
+                 Math.Min(domain[0], domain[1]),
+                 Math.Max(domain[0], domain[1]),
+                 outputCount));
         bool affineRangeClippingAbsent = hasAffineOutput &&
             IsAffineRangeClippingAbsent(domain, range, affineCoefficients, affineConstants);
         function = new PdfColorFunction(
@@ -98,8 +107,17 @@ internal static partial class PdfColorSpaceFunctionResolver {
             discontinuities,
             evaluationCost: program.MaximumEvaluationWork,
             requiresAdaptiveShadingSampling: inputCount != 1 || !hasAffineOutput,
-            hasUnboundedDiscontinuities: program.HasUnboundedDiscontinuities,
+            hasUnboundedDiscontinuities: program.HasUnboundedDiscontinuities || !hasCertifiedMonotonicOutput,
             rangeClippingProvenAbsent: affineRangeClippingAbsent);
+        return true;
+    }
+
+    private static bool TryConsumeCalculatorAnalysisWork(
+        PdfCalculatorProgram program,
+        ref long remainingCalculatorValidationWork) {
+        int work = Math.Max(1, program.InstructionCount);
+        if (work > remainingCalculatorValidationWork) return false;
+        remainingCalculatorValidationWork -= work;
         return true;
     }
 

@@ -1267,6 +1267,7 @@ public sealed partial class PdfReadPage {
             !TryReadColorSpaceResource(
                 colorSpaceObject,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                pageContentBudget?.ColorFunctionResolutionContext,
                 out PdfPageColorSpace colorSpace)) return false;
 
         bool exactColorInterpolation =
@@ -1452,6 +1453,7 @@ public sealed partial class PdfReadPage {
                 colorSpace.ComponentCount,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
+                pageContentBudget.ColorFunctionResolutionContext,
                 out PdfColorFunction function)) return false;
 
         var inputs = new SortedSet<double> { domainStart, domainEnd };
@@ -1519,6 +1521,7 @@ public sealed partial class PdfReadPage {
                 colorSpace.ComponentCount,
                 _objects,
                 _limits.MaxDecodedStreamBytes,
+                pageContentBudget.ColorFunctionResolutionContext,
                 out PdfColorFunction child)) return false;
         return TryEvaluateShadingColor(
             child,
@@ -1822,6 +1825,7 @@ public sealed partial class PdfReadPage {
             if (TryReadColorSpaceResource(
                     entry.Value,
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    pageContentBudget?.ColorFunctionResolutionContext,
                     out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
@@ -1853,6 +1857,7 @@ public sealed partial class PdfReadPage {
                 !TryReadColorSpaceResource(
                     array.Items[1],
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluation,
+                    pageContentBudget?.ColorFunctionResolutionContext,
                     out PdfPageColorSpace baseColorSpace) ||
                 baseColorSpace == PdfPageColorSpaceKind.Pattern) {
                 continue;
@@ -1943,13 +1948,14 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) =>
-        TryReadColorSpaceResource(value, evaluationBudget: null, out colorSpace);
+        TryReadColorSpaceResource(value, evaluationBudget: null, functionResolutionContext: null, out colorSpace);
 
     private bool TryReadColorSpaceResource(
         PdfObject? value,
         Func<int, bool>? evaluationBudget,
+        PdfColorFunctionResolutionContext? functionResolutionContext,
         out PdfPageColorSpace colorSpace) =>
-        TryReadExtendedColorSpaceResource(value, 0, evaluationBudget, out colorSpace);
+        TryReadExtendedColorSpaceResource(value, 0, evaluationBudget, functionResolutionContext, out colorSpace);
 
     private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
         colorSpace = PdfPageColorSpaceKind.DeviceGray;
@@ -2937,6 +2943,7 @@ public sealed partial class PdfReadPage {
             if (string.Equals(image.ResourceName, placement.ResourceName, StringComparison.Ordinal) &&
                 image.ObjectNumber == placement.ObjectNumber &&
                 image.DirectStreamIdentity == placement.DirectStreamIdentity &&
+                (image.IsImageMask || image.RenderingIntent == placement.RenderingIntent) &&
                 (!image.IsImageMask || image.ImageMaskColor.Equals(placement.ImageMaskColor))) {
                 return image;
             }

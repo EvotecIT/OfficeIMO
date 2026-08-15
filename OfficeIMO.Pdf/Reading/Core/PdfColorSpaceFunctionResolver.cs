@@ -4,6 +4,21 @@ namespace OfficeIMO.Pdf;
 
 internal delegate bool PdfColorSpaceTintTransform(IReadOnlyList<double> components, double[] output);
 
+/// <summary>Caller-owned cache and aggregate work budget for resolving page color functions.</summary>
+internal sealed class PdfColorFunctionResolutionContext {
+    internal PdfColorFunctionResolutionContext(int maximumRetainedBytes) {
+        MaximumRetainedBytes = Math.Max(1, maximumRetainedBytes);
+        RemainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
+    }
+
+    internal int MaximumRetainedBytes { get; }
+    internal int ParsedFunctionNodes;
+    internal long RetainedFunctionBytes;
+    internal long RemainingCalculatorValidationWork;
+    internal Dictionary<PdfObject, Dictionary<long, PdfColorFunction>> FunctionCache { get; } =
+        new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfColorSpaceFunctionResolver.PdfObjectReferenceComparer.Instance);
+}
+
 /// <summary>Resolves bounded PDF functions shared by content, image, and shading color projection.</summary>
 internal static partial class PdfColorSpaceFunctionResolver {
     private const int MaxFunctionDepth = 16;
@@ -29,6 +44,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             outputCount,
             objects,
             maxDecodedStreamBytes,
+            resolutionContext: null,
             out transform,
             out _);
 
@@ -39,10 +55,29 @@ internal static partial class PdfColorSpaceFunctionResolver {
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
         out PdfColorSpaceTintTransform transform,
+        out int evaluationCost) =>
+        TryCreateTintTransform(
+            value,
+            inputCount,
+            outputCount,
+            objects,
+            maxDecodedStreamBytes,
+            resolutionContext: null,
+            out transform,
+            out evaluationCost);
+
+    internal static bool TryCreateTintTransform(
+        PdfObject? value,
+        int inputCount,
+        int outputCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        PdfColorFunctionResolutionContext? resolutionContext,
+        out PdfColorSpaceTintTransform transform,
         out int evaluationCost) {
         transform = null!;
         evaluationCost = 0;
-        if (!TryCreateFunction(value, inputCount, outputCount, objects, maxDecodedStreamBytes, out PdfColorFunction function) ||
+        if (!TryCreateFunction(value, inputCount, outputCount, objects, maxDecodedStreamBytes, resolutionContext, out PdfColorFunction function) ||
             !HasUnitIntervals(function.Domain, inputCount)) return false;
 
         transform = function.TryEvaluate;
@@ -56,24 +91,33 @@ internal static partial class PdfColorSpaceFunctionResolver {
         int outputCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        out PdfColorFunction function) =>
+        TryCreateFunction(value, inputCount, outputCount, objects, maxDecodedStreamBytes, resolutionContext: null, out function);
+
+    internal static bool TryCreateFunction(
+        PdfObject? value,
+        int inputCount,
+        int outputCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        PdfColorFunctionResolutionContext? resolutionContext,
         out PdfColorFunction function) {
         function = null!;
         if (inputCount < 1 || outputCount < 1 || maxDecodedStreamBytes <= 0) return false;
-        long retainedFunctionBytes = 0L;
-        long remainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
-        int parsedFunctionNodes = 0;
+        resolutionContext ??= new PdfColorFunctionResolutionContext(maxDecodedStreamBytes);
+        int effectiveMaximumBytes = Math.Min(maxDecodedStreamBytes, resolutionContext.MaximumRetainedBytes);
         return TryCreateFunction(
             value,
             inputCount,
             outputCount,
             objects,
-            maxDecodedStreamBytes,
+            effectiveMaximumBytes,
             depth: 0,
             new HashSet<PdfObject>(),
-            new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfObjectReferenceComparer.Instance),
-            ref parsedFunctionNodes,
-            ref retainedFunctionBytes,
-            ref remainingCalculatorValidationWork,
+            resolutionContext.FunctionCache,
+            ref resolutionContext.ParsedFunctionNodes,
+            ref resolutionContext.RetainedFunctionBytes,
+            ref resolutionContext.RemainingCalculatorValidationWork,
             out function);
     }
 
@@ -82,34 +126,41 @@ internal static partial class PdfColorSpaceFunctionResolver {
         int outputCount,
         Dictionary<int, PdfIndirectObject> objects,
         int maxDecodedStreamBytes,
+        out PdfColorFunction function) =>
+        TryCreateShadingFunction(value, outputCount, objects, maxDecodedStreamBytes, resolutionContext: null, out function);
+
+    internal static bool TryCreateShadingFunction(
+        PdfObject? value,
+        int outputCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxDecodedStreamBytes,
+        PdfColorFunctionResolutionContext? resolutionContext,
         out PdfColorFunction function) {
         function = null!;
+        resolutionContext ??= new PdfColorFunctionResolutionContext(maxDecodedStreamBytes);
+        int effectiveMaximumBytes = Math.Min(maxDecodedStreamBytes, resolutionContext.MaximumRetainedBytes);
         if (!TryResolveObject(value, objects, out PdfObject? resolved)) return false;
         if (resolved is not PdfArray functions) {
-            return TryCreateFunction(resolved, 1, outputCount, objects, maxDecodedStreamBytes, out function) &&
+            return TryCreateFunction(resolved, 1, outputCount, objects, effectiveMaximumBytes, resolutionContext, out function) &&
                 !function.HasUnboundedDiscontinuities;
         }
         if (functions.Items.Count != outputCount || outputCount < 1) return false;
 
         var components = new PdfColorFunction[outputCount];
         var activeFunctions = new HashSet<PdfObject>();
-        var functionCache = new Dictionary<PdfObject, Dictionary<long, PdfColorFunction>>(PdfObjectReferenceComparer.Instance);
-        long retainedFunctionBytes = 0L;
-        long remainingCalculatorValidationWork = PdfCalculatorProgram.MaxValidationWork;
-        int parsedFunctionNodes = 0;
         for (int index = 0; index < components.Length; index++) {
             if (!TryCreateFunction(
                     functions.Items[index],
                     1,
                     1,
                     objects,
-                    maxDecodedStreamBytes,
+                    effectiveMaximumBytes,
                     depth: 0,
                     activeFunctions,
-                    functionCache,
-                    ref parsedFunctionNodes,
-                    ref retainedFunctionBytes,
-                    ref remainingCalculatorValidationWork,
+                    resolutionContext.FunctionCache,
+                    ref resolutionContext.ParsedFunctionNodes,
+                    ref resolutionContext.RetainedFunctionBytes,
+                    ref resolutionContext.RemainingCalculatorValidationWork,
                     out components[index])) return false;
         }
         if (components.Any(static component => component.HasUnboundedDiscontinuities)) return false;
@@ -131,6 +182,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
             .ToArray();
         int reservedDomainBoundaries = componentDomainBoundaries.Count(
             boundary => !authoredDiscontinuities.Contains(boundary));
+        if (authoredDiscontinuities.Length > MaxSuggestedSampleBreakpoints - reservedDomainBoundaries) return false;
         double[] discontinuities = LimitSuggestedPoints(
             authoredDiscontinuities,
             required: null,
@@ -737,7 +789,7 @@ internal static partial class PdfColorSpaceFunctionResolver {
     }
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private sealed class PdfObjectReferenceComparer : IEqualityComparer<PdfObject> {
+    internal sealed class PdfObjectReferenceComparer : IEqualityComparer<PdfObject> {
         internal static readonly PdfObjectReferenceComparer Instance = new PdfObjectReferenceComparer();
         public bool Equals(PdfObject? left, PdfObject? right) => ReferenceEquals(left, right);
         public int GetHashCode(PdfObject value) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(value);

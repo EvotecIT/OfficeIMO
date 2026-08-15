@@ -72,6 +72,45 @@ public class PdfOutputIntentRenderingTests {
     }
 
     [Fact]
+    public void ImageIccProfile_IsConvertedBeforeDestinationOutputProfile() {
+        byte[] sourceBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        byte[] destinationBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
+        var sourceStream = new PdfStream(new PdfDictionary(), sourceBytes);
+        sourceStream.Dictionary.Items["N"] = new PdfNumber(4);
+        var sourceSpace = new PdfArray();
+        sourceSpace.Items.Add(new PdfName("ICCBased"));
+        sourceSpace.Items.Add(sourceStream);
+        var destinationStream = new PdfStream(new PdfDictionary(), destinationBytes);
+        var outputIntent = new PdfDictionary();
+        outputIntent.Items["DestOutputProfile"] = new PdfReference(6, 0);
+        var outputIntents = new PdfArray();
+        outputIntents.Items.Add(outputIntent);
+        var catalog = new PdfDictionary();
+        catalog.Items["OutputIntents"] = outputIntents;
+        var objects = new Dictionary<int, PdfIndirectObject> {
+            [6] = new PdfIndirectObject(6, 0, destinationStream)
+        };
+        PdfOutputIntentColorTransform transform = Assert.IsType<PdfOutputIntentColorTransform>(
+            PdfOutputIntentColorTransform.TryCreate(catalog, objects, PdfReadLimits.DefaultMaxDecodedStreamBytes));
+        Assert.True(PdfImageColorSpaceNormalization.TryResolve(
+            sourceSpace,
+            string.Empty,
+            objects,
+            PdfReadLimits.DefaultMaxDecodedStreamBytes,
+            OfficeIccRenderingIntent.RelativeColorimetric,
+            transform,
+            out PdfImageColorSpaceNormalization normalization));
+        double[] components = { 0.1D, 0.2D, 0.3D, 0.4D };
+        Assert.True(OfficeIccColorProfile.TryCreate(sourceBytes, out OfficeIccColorProfile? sourceProfile));
+        Assert.NotNull(sourceProfile);
+        Assert.True(sourceProfile!.TryConvert(components, OfficeIccRenderingIntent.RelativeColorimetric, out OfficeColor sourceColor));
+
+        Assert.True(normalization.TryConvertComponents(components, out OfficeColor actual));
+
+        Assert.Equal(transform.Apply(sourceColor, OfficeIccRenderingIntent.RelativeColorimetric), actual);
+    }
+
+    [Fact]
     public void OutputIntent_ConvertsNativeDeviceRgbComponentsDirectly() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();
         var profile = new PdfStream(new PdfDictionary(), profileBytes);
