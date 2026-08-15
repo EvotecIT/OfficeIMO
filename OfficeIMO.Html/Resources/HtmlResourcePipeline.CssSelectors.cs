@@ -539,6 +539,19 @@ public static partial class HtmlResourcePipeline {
                 if (nameEnd < selector.Length && selector[nameEnd] == '(' && IsSelectorListPseudoClass(pseudoClassName) &&
                     TryFindMatchingParenthesis(selector, nameEnd, out int closingParenthesis) &&
                     ContainsStatefulPseudoClass(selector, nameEnd + 1, closingParenthesis)) {
+                    string arguments = selector.Substring(nameEnd + 1, closingParenthesis - nameEnd - 1);
+                    string[] branches = SplitTopLevelList(arguments).ToArray();
+                    var retained = new List<string>(branches.Length);
+                    bool negation = pseudoClassName.Equals("not", StringComparison.OrdinalIgnoreCase);
+                    foreach (string branch in branches) {
+                        string stripped = StripStatefulPseudoClasses(branch).Trim();
+                        if (stripped.Length != 0) retained.Add(stripped);
+                        else if (!negation) retained.Add("*");
+                    }
+                    if (retained.Count != 0) {
+                        result.Append(':').Append(pseudoClassName).Append('(')
+                            .Append(string.Join(", ", retained)).Append(')');
+                    }
                     i = closingParenthesis;
                     continue;
                 }

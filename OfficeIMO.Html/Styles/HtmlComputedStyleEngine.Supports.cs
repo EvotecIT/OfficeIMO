@@ -308,6 +308,8 @@ public static partial class HtmlComputedStyleEngine {
             case "position":
                 return IsKnownKeyword(normalized, "static", "relative", "absolute", "fixed", "sticky")
                     || HtmlCssRunningElementParser.TryParsePosition(value, out _);
+            case "animation":
+                return HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out _);
             case "container-type":
                 return IsKnownKeyword(normalized, "normal", "size", "inline-size");
             case "container-name":

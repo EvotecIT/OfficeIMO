@@ -169,6 +169,7 @@ public static partial class HtmlComputedStyleEngine {
                 RestoreProtectedDeclarationValue(propertyValue),
                 string.Equals(styleRule.Style.GetPropertyPriority(propertyName), "important", StringComparison.OrdinalIgnoreCase));
         }
+        RemoveSyntheticAnimationName(styleRule.CssText, declarations);
         AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
 
         foreach (string selector in selectors) {
@@ -688,6 +689,23 @@ public static partial class HtmlComputedStyleEngine {
                 SetDeclarationInSourceOrder(declarations, propertyName, value, important);
             }
         }
+    }
+
+    private static void RemoveSyntheticAnimationName(
+        string cssText,
+        IDictionary<string, StyleDeclaration> declarations) {
+        if (!declarations.ContainsKey("animation-name")) return;
+        int open = cssText.IndexOf('{');
+        int close = cssText.LastIndexOf('}');
+        if (open < 0 || close <= open) return;
+        foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(cssText.Substring(open + 1, close - open - 1)))) {
+            int separator = declaration.IndexOf(':');
+            if (separator > 0 && string.Equals(
+                declaration.Substring(0, separator).Trim(),
+                "animation-name",
+                StringComparison.OrdinalIgnoreCase)) return;
+        }
+        declarations.Remove("animation-name");
     }
 
     private static void SetDeclarationInSourceOrder(

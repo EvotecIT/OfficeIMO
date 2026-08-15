@@ -43,6 +43,11 @@ public static partial class HtmlComputedStyleEngine {
             ApplyDeclaration(properties, parentProperties, "container-name", containerName, isImportant, specificity, order, layerOrder);
             ApplyDeclaration(properties, parentProperties, "container-type", containerType, isImportant, specificity, order, layerOrder);
         }
+        if (string.Equals(name, "animation", StringComparison.OrdinalIgnoreCase)
+            && IsSupportedDeclarationValue(name, value)
+            && HtmlResourcePipeline.TryExpandAnimationShorthandNames(value, out string animationNames)) {
+            ApplyDeclaration(properties, parentProperties, "animation-name", animationNames, isImportant, specificity, order, layerOrder);
+        }
 
         CascadedProperty? existing;
         properties.TryGetValue(name, out existing);

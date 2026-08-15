@@ -430,9 +430,9 @@ public static partial class HtmlProvenance {
             StringComparison.Ordinal)) {
             attributeNames = new[] { "src", "data-src" };
         } else if (localName == "image") {
-            attributeNames = new[] { "href", "xlink:href" };
+            attributeNames = HtmlDocumentParser.GetExactAttributeValue(element, "href") != null ? new[] { "href" } : new[] { "xlink:href" };
         } else if (localName is "feimage" or "use") {
-            attributeNames = new[] { "href", "xlink:href" };
+            attributeNames = HtmlDocumentParser.GetExactAttributeValue(element, "href") != null ? new[] { "href" } : new[] { "xlink:href" };
         } else if (localName == "link" && IsImageLink(element)) {
             if (IsPreloadedImage(element) && HasUsableImageSourceSet(element)) attributeNames = Array.Empty<string>();
             else attributeNames = new[] { "href" };
@@ -445,7 +445,9 @@ public static partial class HtmlProvenance {
         }
 
         foreach (string attributeName in attributeNames) {
-            string? source = element.GetAttribute(attributeName);
+            string? source = attributeName is "href" or "xlink:href"
+                ? HtmlDocumentParser.GetExactAttributeValue(element, attributeName)
+                : element.GetAttribute(attributeName);
             if (source != null) yield return CreateDirectUrlReference(attributeName, source);
         }
         if (localName == "link" && IsPreloadedImage(element)) {
@@ -647,11 +649,13 @@ public static partial class HtmlProvenance {
         IElement element,
         List<(EmbeddedImageReference Reference, string Value)> replacements) {
         foreach (IGrouping<string, (EmbeddedImageReference Reference, string Value)> group in replacements.GroupBy(item => item.Reference.AttributeName)) {
-            string value = group.Key == "css" ? element.TextContent : element.GetAttribute(group.Key) ?? string.Empty;
+            IAttr? exactAttribute = group.Key is "href" or "xlink:href" ? HtmlDocumentParser.GetExactAttribute(element, group.Key) : null;
+            string value = group.Key == "css" ? element.TextContent : exactAttribute?.Value ?? element.GetAttribute(group.Key) ?? string.Empty;
             foreach ((EmbeddedImageReference reference, string replacement) in group.OrderByDescending(item => item.Reference.Start)) {
                 value = value.Substring(0, reference.Start) + replacement + value.Substring(reference.Start + reference.Length);
             }
             if (group.Key == "css") element.TextContent = value;
+            else if (exactAttribute != null) exactAttribute.Value = value;
             else element.SetAttribute(group.Key, value);
         }
     }

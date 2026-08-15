@@ -16,16 +16,44 @@ public static partial class HtmlResourcePipeline {
     private static bool ContainsAnimationShorthandName(string value, string name) {
         if (string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(name)) return false;
         foreach (string item in SplitTopLevelList(value)) {
-            string? candidate = GetAnimationShorthandName(item);
+            TryParseAnimationShorthand(item, out string? candidate);
             if (string.Equals(candidate, name, StringComparison.Ordinal)) return true;
         }
         return false;
     }
 
-    private static string? GetAnimationShorthandName(string item) {
+    internal static bool TryExpandAnimationShorthandNames(string value, out string names) {
+        if (HtmlCssCustomPropertyResolver.ContainsVarFunction(value)) {
+            names = string.Empty;
+            return false;
+        }
+        var expanded = new List<string>();
+        string[] items = SplitTopLevelList(value).ToArray();
+        foreach (string item in items) {
+            string normalized = DecodeCssEscapes(item).Trim();
+            if (IsCssWideKeyword(normalized.ToLowerInvariant())) {
+                if (items.Length != 1) {
+                    names = string.Empty;
+                    return false;
+                }
+                expanded.Add(normalized);
+                continue;
+            }
+            if (!TryParseAnimationShorthand(item, out string? name)) {
+                names = string.Empty;
+                return false;
+            }
+            expanded.Add(name ?? "none");
+        }
+        names = string.Join(", ", expanded);
+        return expanded.Count != 0;
+    }
+
+    private static bool TryParseAnimationShorthand(string item, out string? name) {
         string[] tokens = SplitAnimationTokens(item).ToArray();
-        if (tokens.Length == 0) return null;
-        if (tokens.Length == 1 && IsCssWideKeyword(DecodeCssEscapes(tokens[0]).Trim())) return null;
+        name = null;
+        if (tokens.Length == 0) return false;
+        if (tokens.Length == 1 && IsCssWideKeyword(DecodeCssEscapes(tokens[0]).Trim())) return true;
 
         bool duration = false;
         bool delay = false;
@@ -34,22 +62,24 @@ public static partial class HtmlResourcePipeline {
         bool direction = false;
         bool fill = false;
         bool play = false;
-        string? name = null;
         foreach (string rawToken in tokens) {
             string token = DecodeCssEscapes(rawToken).Trim();
             bool quotedName = rawToken.Length >= 2 &&
                 rawToken[0] == rawToken[rawToken.Length - 1] &&
                 rawToken[0] is '\'' or '"';
             if (quotedName) {
-                if (name != null) return null;
+                if (name != null) return false;
                 name = DecodeAnimationName(rawToken);
                 continue;
             }
             string keyword = token.ToLowerInvariant();
-            if (IsAnimationTime(keyword)) {
-                if (!duration) duration = true;
+            if (TryReadAnimationTime(keyword, out double seconds)) {
+                if (!duration) {
+                    if (seconds < 0D) return false;
+                    duration = true;
+                }
                 else if (!delay) delay = true;
-                else return null;
+                else return false;
                 continue;
             }
             if (IsAnimationTimingFunction(keyword)) {
@@ -57,14 +87,14 @@ public static partial class HtmlResourcePipeline {
                     timing = true;
                     continue;
                 }
-                if (keyword.IndexOf('(') >= 0) return null;
+                if (keyword.IndexOf('(') >= 0) return false;
             }
             if (IsAnimationIterationCount(keyword)) {
                 if (!iteration) {
                     iteration = true;
                     continue;
                 }
-                if (keyword != "infinite") return null;
+                if (keyword != "infinite") return false;
             }
             if (keyword is "normal" or "reverse" or "alternate" or "alternate-reverse") {
                 if (!direction) {
@@ -77,7 +107,7 @@ public static partial class HtmlResourcePipeline {
                     fill = true;
                     continue;
                 }
-                if (keyword == "none") return null;
+                if (keyword == "none") return false;
             }
             if (keyword is "running" or "paused") {
                 if (!play) {
@@ -85,10 +115,10 @@ public static partial class HtmlResourcePipeline {
                     continue;
                 }
             }
-            if (IsCssWideKeyword(keyword) || name != null) return null;
+            if (IsCssWideKeyword(keyword) || name != null) return false;
             name = DecodeAnimationName(token);
         }
-        return name;
+        return true;
     }
 
     private static IEnumerable<string> SplitAnimationTokens(string value) {
@@ -142,12 +172,26 @@ public static partial class HtmlResourcePipeline {
         return DecodeCssEscapes(trimmed);
     }
 
-    private static bool IsAnimationTime(string token) {
+    private static bool TryReadAnimationTime(string token, out double seconds) {
         string number;
-        if (token.EndsWith("ms", StringComparison.Ordinal)) number = token.Substring(0, token.Length - 2);
-        else if (token.EndsWith("s", StringComparison.Ordinal)) number = token.Substring(0, token.Length - 1);
-        else return false;
-        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+        double divisor;
+        if (token.EndsWith("ms", StringComparison.Ordinal)) {
+            number = token.Substring(0, token.Length - 2);
+            divisor = 1000D;
+        } else if (token.EndsWith("s", StringComparison.Ordinal)) {
+            number = token.Substring(0, token.Length - 1);
+            divisor = 1D;
+        } else {
+            seconds = 0D;
+            return false;
+        }
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) ||
+            double.IsNaN(parsed) || double.IsInfinity(parsed)) {
+            seconds = 0D;
+            return false;
+        }
+        seconds = parsed / divisor;
+        return true;
     }
 
     private static bool IsAnimationTimingFunction(string token) =>

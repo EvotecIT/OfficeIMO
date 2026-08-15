@@ -15,14 +15,12 @@ public static partial class HtmlResourcePipeline {
                 AddImage(manifest, element, baseUri, options);
                 break;
             case "image":
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options, skipFragmentOnly: true);
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options, skipFragmentOnly: true);
+                AddPreferredSvgHref(manifest, HtmlResourceKind.Image, element, baseUri, options);
                 AddAttribute(manifest, HtmlResourceKind.Image, element, "src", baseUri, options);
                 break;
             case "feimage":
             case "use":
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "href", baseUri, options, skipFragmentOnly: true);
-                AddAttribute(manifest, HtmlResourceKind.Image, element, "xlink:href", baseUri, options, skipFragmentOnly: true);
+                AddPreferredSvgHref(manifest, HtmlResourceKind.Image, element, baseUri, options);
                 break;
             case "source":
                 AddSource(manifest, element, baseUri, options);
@@ -59,8 +57,7 @@ public static partial class HtmlResourcePipeline {
             case "script":
                 if (IsExecutableScriptElement(element)) {
                     AddAttribute(manifest, HtmlResourceKind.Script, element, "src", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Script, element, "href", baseUri, options);
-                    AddAttribute(manifest, HtmlResourceKind.Script, element, "xlink:href", baseUri, options);
+                    AddPreferredSvgHref(manifest, HtmlResourceKind.Script, element, baseUri, options);
                 }
 
                 break;
