@@ -173,27 +173,34 @@ public sealed class PdfReadLimits {
     internal PdfReadLimits WithMaximumContainerEntries(
         int maximumContainerEntries,
         long? maximumDecodedStreamBytes = null,
-        long? maximumTotalAttachmentBytes = null) {
+        long? maximumTotalDecodedStreamBytes = null,
+        long? maximumTotalAttachmentBytes = null,
+        bool preserveExistingDecodedStreamLimit = true) {
         if (maximumContainerEntries <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
         }
         if (maximumDecodedStreamBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumDecodedStreamBytes), maximumDecodedStreamBytes, "Maximum decoded stream bytes must be positive.");
         }
+        if (maximumTotalDecodedStreamBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maximumTotalDecodedStreamBytes), maximumTotalDecodedStreamBytes, "Maximum aggregate decoded stream bytes must be positive.");
+        }
         if (maximumTotalAttachmentBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumTotalAttachmentBytes), maximumTotalAttachmentBytes, "Maximum aggregate attachment bytes must be positive.");
         }
-        int effectiveDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
-            ? (int)Math.Min(MaxDecodedStreamBytes, Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue))
+        int requestedDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
+            ? (int)Math.Min(maximumDecodedStreamBytes.Value, int.MaxValue)
             : MaxDecodedStreamBytes;
+        int effectiveDecodedStreamBytes = preserveExistingDecodedStreamLimit
+            ? Math.Min(MaxDecodedStreamBytes, requestedDecodedStreamBytes)
+            : requestedDecodedStreamBytes;
         return new PdfReadLimits {
             MaxInputBytes = MaxInputBytes,
             MaxIndirectObjects = Math.Min(MaxIndirectObjects, maximumContainerEntries),
             MaxRawStreamBytes = MaxRawStreamBytes,
             MaxDecodedStreamBytes = effectiveDecodedStreamBytes,
-            MaxTotalDecodedStreamBytes = maximumDecodedStreamBytes.HasValue
-                ? maximumDecodedStreamBytes.Value
-                : MaxTotalDecodedStreamBytes,
+            MaxTotalDecodedStreamBytes = maximumTotalDecodedStreamBytes ?? maximumDecodedStreamBytes
+                ?? MaxTotalDecodedStreamBytes,
             MaxPageContentBytes = MaxPageContentBytes,
             MaxRetainedContentBytes = MaxRetainedContentBytes,
             MaxActualTextCharacters = MaxActualTextCharacters,

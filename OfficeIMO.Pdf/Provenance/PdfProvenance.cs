@@ -76,14 +76,13 @@ public static partial class PdfProvenance {
         long maximumManifestBytes = Math.Min(
             options.Limits.MaxExpandedContainerBytes,
             MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers));
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMaximumContainerEntries(
-            readOptions,
+        PdfReadOptions effectiveReadOptions = CreateReadOptions(
+            options.Limits.MaxAssetBytes,
             options.Limits.MaxContainerEntries,
             options.Limits.MaxExpandedContainerBytes,
-            maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
-        if (readOptions == null) {
-            effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(effectiveReadOptions, options.Limits.MaxAssetBytes);
-        }
+            options.Limits.MaxManifestBytes,
+            maximumManifestBytes,
+            readOptions);
         OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult((byte[])pdf.Clone(), before, before, Array.Empty<OfficeProvenanceChange>(), false);

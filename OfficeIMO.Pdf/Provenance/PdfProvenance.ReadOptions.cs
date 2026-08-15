@@ -16,6 +16,7 @@ public static partial class PdfProvenance {
             options.MaxAssetBytes,
             options.MaxContainerEntries,
             options.MaxExpandedContainerBytes,
+            options.MaxManifestBytes,
             GetMaximumManifestBytes(options),
             readOptions);
     }
@@ -24,13 +25,20 @@ public static partial class PdfProvenance {
         long maximumAssetBytes,
         int maximumContainerEntries,
         long maximumExpandedContainerBytes,
-        long maximumManifestBytes,
+        long maximumSingleManifestBytes,
+        long maximumTotalManifestBytes,
         PdfReadOptions? readOptions) {
         PdfReadOptions effective = PdfReadOptions.WithMaximumContainerEntries(
             readOptions,
             maximumContainerEntries,
-            maximumExpandedContainerBytes,
-            maximumTotalAttachmentBytes: readOptions == null ? maximumManifestBytes : null);
+            maximumDecodedStreamBytes: readOptions == null
+                ? Math.Min(
+                    maximumExpandedContainerBytes,
+                    Math.Max(PdfReadLimits.Default.MaxDecodedStreamBytes, maximumSingleManifestBytes))
+                : maximumSingleManifestBytes,
+            maximumTotalDecodedStreamBytes: readOptions == null ? maximumExpandedContainerBytes : null,
+            maximumTotalAttachmentBytes: readOptions == null ? maximumTotalManifestBytes : null,
+            preserveExistingDecodedStreamLimit: readOptions != null);
         return readOptions == null
             ? PdfReadOptions.WithMinimumInputBytes(effective, maximumAssetBytes)
             : effective;

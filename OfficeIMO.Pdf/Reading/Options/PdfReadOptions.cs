@@ -58,7 +58,9 @@ public sealed class PdfReadOptions {
         PdfReadOptions? options,
         int maximumContainerEntries,
         long? maximumDecodedStreamBytes = null,
-        long? maximumTotalAttachmentBytes = null) {
+        long? maximumTotalDecodedStreamBytes = null,
+        long? maximumTotalAttachmentBytes = null,
+        bool preserveExistingDecodedStreamLimit = true) {
         PdfReadOptions effective = Resolve(options);
         if (maximumContainerEntries <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maximumContainerEntries), maximumContainerEntries, "Maximum container entries must be positive.");
@@ -68,7 +70,9 @@ public sealed class PdfReadOptions {
             Limits = effective.Limits.WithMaximumContainerEntries(
                 maximumContainerEntries,
                 maximumDecodedStreamBytes,
-                maximumTotalAttachmentBytes),
+                maximumTotalDecodedStreamBytes,
+                maximumTotalAttachmentBytes,
+                preserveExistingDecodedStreamLimit),
             Password = effective.Password,
             PermissionPolicy = effective.PermissionPolicy,
             PreferToUnicode = effective.PreferToUnicode,
