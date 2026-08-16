@@ -29,15 +29,15 @@ The following Windows Release measurements use native WebAssembly linking and Ch
 
 | Measurement | Observed |
 | --- | ---: |
-| Published app | 80,174,362 bytes |
-| Startup to interactive converter | 1,216 ms |
-| Maximum observed browser heap | 150,684,747 bytes |
+| Published app | 80,172,522 bytes |
+| Startup to interactive converter | 1,430 ms |
+| Maximum observed browser heap | 150,422,596 bytes |
 
 | Conversion | Time | Observed browser heap | Peak retained PDF buffers | Result |
 | --- | ---: | ---: | ---: | ---: |
-| DOCX to PDF | 515 ms | 53,500,077 bytes | 12,694 bytes | 200,643 bytes |
-| XLSX to PDF | 480 ms | 103,062,671 bytes | 3,805 bytes | 440,298 bytes |
-| PPTX to PDF | 522 ms | 150,684,747 bytes | 30 bytes | 769 bytes |
+| DOCX to PDF | 497 ms | 54,244,928 bytes | 12,694 bytes | 200,643 bytes |
+| XLSX to PDF | 503 ms | 102,801,842 bytes | 3,805 bytes | 440,298 bytes |
+| PPTX to PDF | 389 ms | 150,422,596 bytes | 30 bytes | 769 bytes |
 
 The browser-heap value is Chromium's highest sampled JavaScript heap before, during, or immediately after a conversion. Peak retained PDF buffers measure page-content and object buffers retained by the converter; they are not whole-process memory.
 

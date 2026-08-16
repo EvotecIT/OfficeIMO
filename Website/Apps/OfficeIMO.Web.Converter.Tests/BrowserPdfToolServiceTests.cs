@@ -123,7 +123,7 @@ public sealed class BrowserPdfToolServiceTests {
     [Fact]
     public void Redact_CaseInsensitiveSearchRejectsConcreteCaseVariantResidue() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Public SECRET public"))))
+                .Paragraph(paragraph => paragraph.Text("Public secret public"))))
             .Meta(title: "SECRET")
             .ToBytes();
 

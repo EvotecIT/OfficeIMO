@@ -89,18 +89,20 @@ internal sealed partial class BrowserPdfToolService {
         if (outputDocuments > BrowserPdfPolicy.MaxSplitDocuments) {
             throw new InvalidDataException($"Split would create {outputDocuments} files; the browser limit is {BrowserPdfPolicy.MaxSplitDocuments}.");
         }
-        IReadOnlyList<PdfDocument> parts = source.Pages.Split(request.PagesPerDocument);
         long serializedBytes = 0;
         using var buffer = new MemoryStream();
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true)) {
-            for (int index = 0; index < parts.Count; index++) {
-                ZipArchiveEntry entry = archive.CreateEntry($"{Path.GetFileNameWithoutExtension(file.Name)}.part-{index + 1:000}.pdf", CompressionLevel.Optimal);
-                using Stream destination = entry.Open();
-                byte[] bytes = parts[index].ToBytes();
+            for (int index = 0; index < outputDocuments; index++) {
+                int firstPage = checked(index * request.PagesPerDocument + 1);
+                int lastPage = Math.Min(sourcePages, checked(firstPage + request.PagesPerDocument - 1));
+                PdfPageSelector selector = PdfPageSelector.Parse(firstPage == lastPage ? firstPage.ToString(System.Globalization.CultureInfo.InvariantCulture) : $"{firstPage}-{lastPage}");
+                byte[] bytes = source.Pages.Extract(selector).ToBytes();
                 serializedBytes = checked(serializedBytes + bytes.LongLength);
                 if (serializedBytes > BrowserPdfPolicy.MaxSplitSerializedBytes) {
                     throw new InvalidDataException($"Split outputs exceed the browser serialization limit of {FormatBytes(BrowserPdfPolicy.MaxSplitSerializedBytes)}.");
                 }
+                ZipArchiveEntry entry = archive.CreateEntry($"{Path.GetFileNameWithoutExtension(file.Name)}.part-{index + 1:000}.pdf", CompressionLevel.Optimal);
+                using Stream destination = entry.Open();
                 destination.Write(bytes, 0, bytes.Length);
             }
         }
@@ -110,13 +112,13 @@ internal sealed partial class BrowserPdfToolService {
         var artifact = new BrowserConversionArtifact(buffer.ToArray(), OutputName(file, "split", ".zip"), "application/zip");
         return new PdfToolExecution(
             artifact,
-            $"Split {sourcePages} pages into {parts.Count} PDF files.",
+            $"Split {sourcePages} pages into {outputDocuments} PDF files.",
             sourcePages,
-            [new("Split complete", $"The ZIP contains {parts.Count} PDFs with up to {request.PagesPerDocument} pages each.", "ocx-dot--good")],
+            [new("Split complete", $"The ZIP contains {outputDocuments} PDFs with up to {request.PagesPerDocument} pages each.", "ocx-dot--good")],
             new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["sourcePages"] = sourcePages.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["pagesPerDocument"] = request.PagesPerDocument.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["outputDocuments"] = parts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["outputDocuments"] = outputDocuments.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["serializedPdfBytes"] = serializedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
             },
             PreviewInBrowser: false);
@@ -219,7 +221,7 @@ internal sealed partial class BrowserPdfToolService {
             throw new InvalidOperationException("No matching text was found; no PDF was produced.");
         }
         PdfDocument redacted = source.Redactions.Apply(plan);
-        var verificationOptions = new PdfRedactionVerificationOptions();
+        var verificationOptions = new PdfRedactionVerificationOptions { MatchCase = false };
         verificationOptions.RequireRemovedText(FindConcreteRedactionMarkers(plan, request.RedactionText));
         PdfRedactionVerificationReport verification = redacted.Redactions.Verify(verificationOptions);
         verification.ThrowIfFailed();

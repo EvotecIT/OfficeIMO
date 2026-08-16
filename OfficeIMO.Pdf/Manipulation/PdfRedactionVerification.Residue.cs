@@ -5,16 +5,16 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfRedactionVerification {
     private const int MaxDecodedRedactionVerificationStreamBytes = 16 * 1024 * 1024;
 
-    private static bool ContainsEncodedPdfMarker(byte[] pdf, string marker) {
+    private static bool ContainsEncodedPdfMarker(byte[] pdf, string marker, bool matchCase) {
         if (string.IsNullOrEmpty(marker)) {
             return false;
         }
 
-        byte[][] encodings = BuildMarkerEncodings(marker);
+        byte[][] encodings = BuildMarkerEncodings(marker, matchCase);
         for (int i = 0; i < encodings.Length; i++) {
-            if (ContainsBytes(pdf, encodings[i]) ||
-                ContainsLiteralStringBytes(pdf, encodings[i]) ||
-                ContainsHexStringBytes(pdf, encodings[i])) {
+            if (ContainsBytes(pdf, encodings[i], matchCase) ||
+                ContainsLiteralStringBytes(pdf, encodings[i], matchCase) ||
+                ContainsHexStringBytes(pdf, encodings[i], matchCase)) {
                 return true;
             }
         }
@@ -22,7 +22,7 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker, PdfReadOptions readOptions) {
+    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker, bool matchCase, PdfReadOptions readOptions) {
         if (string.IsNullOrEmpty(marker)) {
             return false;
         }
@@ -34,7 +34,7 @@ internal static partial class PdfRedactionVerification {
             return false;
         }
 
-        byte[][] encodings = BuildMarkerEncodings(marker);
+        byte[][] encodings = BuildMarkerEncodings(marker, matchCase);
         foreach (PdfIndirectObject indirect in objects.Values) {
             if (indirect.Value is not PdfStream stream || stream.DecodingFailed) {
                 continue;
@@ -46,9 +46,9 @@ internal static partial class PdfRedactionVerification {
             }
 
             for (int i = 0; i < encodings.Length; i++) {
-                if (ContainsBytes(decoded, encodings[i]) ||
-                    ContainsLiteralStringBytes(decoded, encodings[i]) ||
-                    ContainsHexStringBytes(decoded, encodings[i])) {
+                if (ContainsBytes(decoded, encodings[i], matchCase) ||
+                    ContainsLiteralStringBytes(decoded, encodings[i], matchCase) ||
+                    ContainsHexStringBytes(decoded, encodings[i], matchCase)) {
                     return true;
                 }
             }
@@ -99,13 +99,21 @@ internal static partial class PdfRedactionVerification {
             "PDF stream object " + objectReference + " could not be decoded during redaction verification; hidden removed content cannot be ruled out. " + reason);
     }
 
-    private static byte[][] BuildMarkerEncodings(string marker) {
+    private static byte[][] BuildMarkerEncodings(string marker, bool matchCase) {
         var encodings = new List<byte[]>();
+        AddMarkerEncodings(encodings, marker);
+        if (!matchCase) {
+            AddMarkerEncodings(encodings, marker.ToUpperInvariant());
+            AddMarkerEncodings(encodings, marker.ToLowerInvariant());
+        }
+        return encodings.ToArray();
+    }
+
+    private static void AddMarkerEncodings(List<byte[]> encodings, string marker) {
         AddEncoding(encodings, PdfEncoding.Latin1GetBytes(marker));
         AddEncoding(encodings, System.Text.Encoding.UTF8.GetBytes(marker));
         AddEncoding(encodings, System.Text.Encoding.BigEndianUnicode.GetBytes(marker));
         AddEncoding(encodings, System.Text.Encoding.Unicode.GetBytes(marker));
-        return encodings.ToArray();
     }
 
     private static void AddEncoding(List<byte[]> encodings, byte[] candidate) {
@@ -118,14 +126,14 @@ internal static partial class PdfRedactionVerification {
         encodings.Add(candidate);
     }
 
-    private static bool ContainsBytes(byte[] haystack, byte[] needle) {
+    private static bool ContainsBytes(byte[] haystack, byte[] needle, bool matchCase) {
         if (needle.Length == 0 || needle.Length > haystack.Length) {
             return false;
         }
 
         for (int i = 0; i <= haystack.Length - needle.Length; i++) {
             int j = 0;
-            while (j < needle.Length && haystack[i + j] == needle[j]) {
+            while (j < needle.Length && BytesEqual(haystack[i + j], needle[j], matchCase)) {
                 j++;
             }
 
@@ -137,14 +145,14 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static bool ContainsLiteralStringBytes(byte[] pdf, byte[] markerBytes) {
+    private static bool ContainsLiteralStringBytes(byte[] pdf, byte[] markerBytes, bool matchCase) {
         for (int i = 0; i < pdf.Length; i++) {
             if (pdf[i] != (byte)'(') {
                 continue;
             }
 
             if (TryReadLiteralStringBytes(pdf, i, out byte[] literalBytes, out int end)) {
-                if (ContainsBytes(literalBytes, markerBytes)) {
+                if (ContainsBytes(literalBytes, markerBytes, matchCase)) {
                     return true;
                 }
 
@@ -265,8 +273,7 @@ internal static partial class PdfRedactionVerification {
         }
     }
 
-    private static bool ContainsHexStringBytes(byte[] pdf, byte[] markerBytes) {
-        string markerHex = ToUpperHex(markerBytes);
+    private static bool ContainsHexStringBytes(byte[] pdf, byte[] markerBytes, bool matchCase) {
         for (int i = 0; i < pdf.Length; i++) {
             if (pdf[i] != (byte)'<' || (i + 1 < pdf.Length && pdf[i + 1] == (byte)'<')) {
                 continue;
@@ -277,7 +284,7 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
-            if (HexStringContains(pdf, i + 1, end, markerHex)) {
+            if (HexStringContains(pdf, i + 1, end, markerBytes, matchCase)) {
                 return true;
             }
 
@@ -301,7 +308,7 @@ internal static partial class PdfRedactionVerification {
         return -1;
     }
 
-    private static bool HexStringContains(byte[] pdf, int start, int end, string markerHex) {
+    private static bool HexStringContains(byte[] pdf, int start, int end, byte[] markerBytes, bool matchCase) {
         var builder = new System.Text.StringBuilder(end - start);
         for (int i = start; i < end; i++) {
             byte value = pdf[i];
@@ -310,16 +317,9 @@ internal static partial class PdfRedactionVerification {
             }
         }
 
-        return builder.ToString().Contains(markerHex);
-    }
-
-    private static string ToUpperHex(byte[] bytes) {
-        var builder = new System.Text.StringBuilder(bytes.Length * 2);
-        for (int i = 0; i < bytes.Length; i++) {
-            builder.Append(bytes[i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        return builder.ToString();
+        if ((builder.Length & 1) != 0) builder.Append('0');
+        byte[] decoded = Convert.FromHexString(builder.ToString());
+        return ContainsBytes(decoded, markerBytes, matchCase);
     }
 
     private static bool BytesEqual(byte[] left, byte[] right) {
@@ -335,6 +335,12 @@ internal static partial class PdfRedactionVerification {
 
         return true;
     }
+
+    private static bool BytesEqual(byte left, byte right, bool matchCase) =>
+        left == right || (!matchCase && ToUpperAsciiLetter(left) == ToUpperAsciiLetter(right));
+
+    private static byte ToUpperAsciiLetter(byte value) =>
+        value >= (byte)'a' && value <= (byte)'z' ? (byte)(value - 32) : value;
 
     private static bool IsHexDigit(byte value) {
         return (value >= (byte)'0' && value <= (byte)'9') ||

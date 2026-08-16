@@ -28,28 +28,28 @@ internal static partial class PdfRedactionVerification {
 
         for (int i = 0; i < options.RemovedTextMarkers.Count; i++) {
             string marker = options.RemovedTextMarkers[i];
-            if (ContainsOrdinal(extractedText, marker)) {
+            if (ContainsMarker(extractedText, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedTextMarker",
                     marker,
                     "Removed text marker remains extractable after redaction: " + marker));
             }
 
-            if (options.CheckRawPdfBytes && ContainsOrdinal(rawPdf, marker)) {
+            if (options.CheckRawPdfBytes && ContainsMarker(rawPdf, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedRawMarker",
                     marker,
                     "Removed text marker remains in raw rewritten PDF bytes: " + marker));
             }
 
-            if (options.CheckEncodedPdfStrings && ContainsEncodedPdfMarker(redactedPdf, marker)) {
+            if (options.CheckEncodedPdfStrings && ContainsEncodedPdfMarker(redactedPdf, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedEncodedMarker",
                     marker,
                     "Removed text marker remains in encoded rewritten PDF string bytes: " + marker));
             }
 
-            if (options.CheckDecodedPdfStreams && ContainsDecodedStreamMarker(redactedPdf, marker, effectiveReadOptions)) {
+            if (options.CheckDecodedPdfStreams && ContainsDecodedStreamMarker(redactedPdf, marker, options.MatchCase, effectiveReadOptions)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedDecodedStreamMarker",
                     marker,
@@ -59,7 +59,7 @@ internal static partial class PdfRedactionVerification {
 
         for (int i = 0; i < options.RetainedTextMarkers.Count; i++) {
             string marker = options.RetainedTextMarkers[i];
-            if (!ContainsOrdinal(extractedText, marker)) {
+            if (!ContainsMarker(extractedText, marker, options.MatchCase)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RetainedTextMarker",
                     marker,
@@ -92,7 +92,9 @@ internal static partial class PdfRedactionVerification {
         return report;
     }
 
-    private static bool ContainsOrdinal(string text, string marker) {
-        return !string.IsNullOrEmpty(marker) && text.Contains(marker);
+    private static bool ContainsMarker(string text, string marker, bool matchCase) {
+        return !string.IsNullOrEmpty(marker) && text.Contains(
+            marker,
+            matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
     }
 }
