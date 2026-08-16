@@ -97,8 +97,15 @@ $caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
         FullName = 'ignored'
         Affinity = '11111111111111111111111111111111'
     }
-}) -VariableName @('rowcount')
+}) -VariableName @('rowcount', 'shape')
+$pdfCaseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
+    Scenario = 'OfficeIMO'
+    Variables = [ordered]@{
+        Scale = 'Easy&Producer=OfficeIMO'
+    }
+}) -VariableName @('producer', 'scale')
 if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
+    $pdfCaseIdentity -ne 'OfficeIMO|Producer=OfficeIMO&Scale=Easy' -or
     $comparisonRunnerText -notmatch "Filter = '\*CsvDataReaderWriteBenchmarks\*\(RowCount: 25000,\*'" -or
     $comparisonRunnerText -notmatch "foreach \(\`$shape in @\('Mixed', 'Quoted', 'Multiline'\)\)" -or
     $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReader'" -or

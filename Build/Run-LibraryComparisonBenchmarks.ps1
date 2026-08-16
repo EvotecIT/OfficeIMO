@@ -80,7 +80,7 @@ $definitions = [ordered]@{
         Filter = '*CsvDataReaderWriteBenchmarks*(RowCount: 25000,*'
         ComparisonId = "csv-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
-        IdentityVariables = @('rowcount')
+        IdentityVariables = @('rowcount', 'shape')
         ExpectedCases = @(
             foreach ($shape in @('Mixed', 'Quoted', 'Multiline')) {
                 foreach ($scenario in @(
