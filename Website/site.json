@@ -289,7 +289,8 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "incremental"
+    "PurgeMode": "incremental",
+    "SmartTieredCache": true
   },
   "EditLinks": {
     "Enabled": true,
