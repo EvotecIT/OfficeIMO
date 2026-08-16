@@ -41,19 +41,35 @@ function Get-BenchmarkEvidenceCaseIdentity {
 
     $ignoredVariables = @('namespace', 'type', 'fullname')
     $restrictVariables = $PSBoundParameters.ContainsKey('VariableName')
-    $variableParts = @(
+    $variables = @(
         if ($null -ne $Row.Variables) {
-            $Row.Variables.GetEnumerator() |
-                Where-Object {
-                    $key = ([string] $_.Key).ToLowerInvariant()
-                    $key -notin $ignoredVariables -and
-                    (-not $restrictVariables -or $key -in $VariableName)
-                } |
-                Sort-Object { [string] $_.Key } |
-                ForEach-Object {
-                    '{0}={1}' -f ([string] $_.Key), ([string] $_.Value)
+            foreach ($variable in $Row.Variables.GetEnumerator()) {
+                $combined = '{0}={1}' -f ([string] $variable.Key), ([string] $variable.Value)
+                foreach ($part in [regex]::Split($combined, '&(?=[^=&]+=)')) {
+                    $equalsIndex = $part.IndexOf('=')
+                    if ($equalsIndex -lt 1) {
+                        continue
+                    }
+
+                    [pscustomobject]@{
+                        Key = $part.Substring(0, $equalsIndex)
+                        Value = $part.Substring($equalsIndex + 1)
+                    }
                 }
+            }
         }
+    )
+    $variableParts = @(
+        $variables |
+            Where-Object {
+                $key = ([string] $_.Key).ToLowerInvariant()
+                $key -notin $ignoredVariables -and
+                (-not $restrictVariables -or $key -in $VariableName)
+            } |
+            Sort-Object { [string] $_.Key } |
+            ForEach-Object {
+                '{0}={1}' -f ([string] $_.Key), ([string] $_.Value)
+            }
     )
 
     if ($variableParts.Count -eq 0) {

@@ -123,7 +123,11 @@ try {
 } finally {
     $npxCommand = Get-Command npx -ErrorAction SilentlyContinue
     if ($npxCommand) { & $npxCommand.Source --yes --package $playwrightPackage playwright-cli "-s=$session" close 2>$null | Out-Null }
-    if ($server -and -not $server.HasExited) { Stop-Process -Id $server.Id -Force }
+    if ($server -and -not $server.HasExited) {
+        Stop-Process -Id $server.Id -Force
+        $server.WaitForExit(5000) | Out-Null
+    }
+    if ($server) { $server.Dispose() }
     [System.IO.File]::Delete($serverStandardOutputPath)
     [System.IO.File]::Delete($serverStandardErrorPath)
 }

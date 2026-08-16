@@ -77,17 +77,19 @@ $definitions = [ordered]@{
     }
     csvwrite = [pscustomobject]@{
         Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
-        Filter = '*CsvDataReaderWriteBenchmarks*'
+        Filter = '*CsvDataReaderWriteBenchmarks*(RowCount: 25000,*'
         ComparisonId = "csv-25k-datareader-write-$Framework"
         Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
-        IdentityVariables = @('rowcount')
+        IdentityVariables = @('rowcount', 'shape')
         ExpectedCases = @(
-            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed'
-            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Quoted'
-            'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Multiline'
-            'Sylvan_WriteDataReader|RowCount=25000&Shape=Mixed'
-            'Sylvan_WriteDataReader|RowCount=25000&Shape=Quoted'
-            'Sylvan_WriteDataReader|RowCount=25000&Shape=Multiline'
+            foreach ($shape in @('Mixed', 'Quoted', 'Multiline')) {
+                foreach ($scenario in @(
+                    'OfficeIMO_WriteDataReader'
+                    'OfficeIMO_WriteDataReaderParallel'
+                    'Sylvan_WriteDataReader')) {
+                    "$scenario|RowCount=25000&Shape=$shape"
+                }
+            }
         )
     }
     xls = [pscustomobject]@{

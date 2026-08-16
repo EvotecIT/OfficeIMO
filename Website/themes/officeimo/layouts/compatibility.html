@@ -50,7 +50,10 @@
                 <p class="imo-capability-card__package">{{ family.package }}</p>
                 <h2>{{ family.title }}</h2>
               </div>
-              <span class="imo-capability-card__count">{{ family.contract.capabilityCount }} tracked behaviors</span>
+              <div class="imo-capability-card__meta">
+                <span class="imo-capability-card__count">{{ family.contract.capabilityCount }} tracked behaviors</span>
+                <span class="imo-capability-card__source">Current source contract</span>
+              </div>
             </div>
 
             <div class="imo-capability-format-groups">
@@ -87,7 +90,7 @@
                     <strong>{{ operation.label }}</strong>
                     <div>
                       {{ for state in operation.states }}
-                      <span title="{{ state.description }}">{{ state.label }} <b>{{ state.count }}</b></span>
+                      <span class="imo-capability-state" data-state="{{ state.label }}" title="{{ state.description }}"><span>{{ state.label }}</span><b>{{ state.count }}</b></span>
                       {{ end }}
                     </div>
                   </div>

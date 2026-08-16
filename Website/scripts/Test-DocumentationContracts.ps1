@@ -345,6 +345,11 @@ foreach ($expectedHome in $expectedApiDocsHomes.GetEnumerator()) {
     }
 }
 
+$converterPublishStep = @($pipeline.steps | Where-Object id -eq 'publish-browser-converter')
+if ($converterPublishStep.Count -ne 1 -or $converterPublishStep[0].clean -ne $true) {
+    Add-Failure 'The browser converter publish step must clean its output so stale fingerprinted WebAssembly assets cannot be deployed or counted by the size gate.'
+}
+
 $aotMatrixPath = Join-Path $SiteRoot 'static\data\aot-compatibility.json'
 $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {

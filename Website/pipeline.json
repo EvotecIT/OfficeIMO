@@ -592,9 +592,26 @@
       "workingDirectory": "."
     },
     {
+      "task": "exec",
+      "id": "verify-website-presentation",
+      "dependsOn": ["deploy-theme-css"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-WebsitePresentation.ps1",
+        "-SiteRoot",
+        "./_site",
+        "-SourceRoot",
+        "."
+      ],
+      "workingDirectory": "."
+    },
+    {
       "task": "verify",
       "id": "verify-site",
-      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page"],
+      "dependsOn": ["deploy-theme-css", "verify-excel-benchmark-page", "verify-website-presentation"],
       "config": "./site.json"
     },
     {
@@ -1355,6 +1372,7 @@
       "dependsOn": "test-browser-converter",
       "project": "./Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj",
       "out": "./_temp/converter-publish",
+      "clean": true,
       "configuration": "Release",
       "baseHref": "/apps/officeimo-converter/"
     },
