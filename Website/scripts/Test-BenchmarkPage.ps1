@@ -99,14 +99,13 @@ $caseIdentity = Get-BenchmarkEvidenceCaseIdentity -Row ([pscustomobject]@{
     }
 }) -VariableName @('rowcount')
 if ($caseIdentity -ne 'OfficeIMO_WriteDataReader|RowCount=25000&Shape=Mixed' -or
-    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Mixed' -or
-    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Quoted' -or
-    $comparisonRunnerText -notmatch 'OfficeIMO_WriteDataReader\|RowCount=25000&Shape=Multiline' -or
-    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Mixed' -or
-    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Quoted' -or
-    $comparisonRunnerText -notmatch 'Sylvan_WriteDataReader\|RowCount=25000&Shape=Multiline' -or
+    $comparisonRunnerText -notmatch "Filter = '\*CsvDataReaderWriteBenchmarks\*\(RowCount: 25000,\*'" -or
+    $comparisonRunnerText -notmatch "foreach \(\`$shape in @\('Mixed', 'Quoted', 'Multiline'\)\)" -or
+    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReader'" -or
+    $comparisonRunnerText -notmatch "'OfficeIMO_WriteDataReaderParallel'" -or
+    $comparisonRunnerText -notmatch "'Sylvan_WriteDataReader'" -or
     $comparisonRunnerText -notmatch 'Get-BenchmarkEvidenceCaseIdentity') {
-    throw 'Parameterized CSV write evidence does not require every scenario and shape combination.'
+    throw 'Parameterized CSV write evidence does not require every 25K scenario and shape combination.'
 }
 
 if ($rowCount -lt 1) {
