@@ -9,7 +9,21 @@ public sealed class DrawingConversionCapabilities {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count,
             OfficeConversionCapabilityCatalog.All.Select(static route => route.Id).Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(51, OfficeConversionCapabilityCatalog.All.Count);
-        Assert.Equal(7, OfficeConversionCapabilityCatalog.BrowserRoutes.Count);
+        Assert.Equal(
+            [
+                "docx-pdf",
+                "xlsx-pdf",
+                "pptx-pdf",
+                "html-pdf",
+                "markdown-html",
+                "html-markdown",
+                "markdown-docx",
+                "pdf-docx",
+                "pdf-xlsx",
+                "pdf-pptx",
+                "pdf-html"
+            ],
+            OfficeConversionCapabilityCatalog.BrowserRoutes.Select(static route => route.Id));
         Assert.All(OfficeConversionCapabilityCatalog.All, static route => {
             Assert.NotEmpty(route.SourceExtensions);
             Assert.All(route.SourceExtensions, static extension => Assert.StartsWith(".", extension, StringComparison.Ordinal));
