@@ -22,6 +22,14 @@
       "allowStatuses": "HIT,REVALIDATED,EXPIRED,STALE",
       "reportPath": "./_reports/cloudflare-cache.json",
       "summaryPath": "./_reports/cloudflare-cache.md"
+    },
+    {
+      "task": "agent-ready",
+      "id": "verify-agent-readiness-live",
+      "dependsOn": "verify-cache",
+      "operation": "scan",
+      "config": "./site.json",
+      "failOnFailures": true
     }
   ]
 }
