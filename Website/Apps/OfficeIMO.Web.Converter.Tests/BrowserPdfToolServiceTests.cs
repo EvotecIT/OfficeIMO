@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Pdf;
@@ -30,6 +31,13 @@ public sealed class BrowserPdfToolServiceTests {
         Assert.True(report.RootElement.GetProperty("browserLocal").GetBoolean());
         Assert.Equal("True", report.RootElement.GetProperty("details").GetProperty("canRead").GetString());
         Assert.Equal(1, result.PageCount);
+        Assert.NotNull(result.Report);
+        using JsonDocument operationReport = JsonDocument.Parse(result.Report!.Bytes);
+        JsonElement output = operationReport.RootElement.GetProperty("output");
+        Assert.Equal(result.Artifact.Bytes.LongLength, output.GetProperty("bytes").GetInt64());
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(result.Artifact.Bytes)).ToLowerInvariant(),
+            output.GetProperty("sha256").GetString());
     }
 
     [Fact]
@@ -45,6 +53,10 @@ public sealed class BrowserPdfToolServiceTests {
         using var archive = new ZipArchive(new MemoryStream(split.Artifact.Bytes), ZipArchiveMode.Read);
         Assert.Equal(2, archive.Entries.Count);
         Assert.All(archive.Entries, static entry => Assert.EndsWith(".pdf", entry.Name, StringComparison.OrdinalIgnoreCase));
+
+        InvalidDataException tooManyParts = Assert.Throws<InvalidDataException>(() =>
+            _service.Execute(Request("split", [Document(CreatePdfWithPages(BrowserPdfPolicy.MaxSplitDocuments + 1))])));
+        Assert.Contains("browser limit", tooManyParts.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -79,6 +91,12 @@ public sealed class BrowserPdfToolServiceTests {
             userPassword: "reader-2026",
             ownerPassword: "owner-2026"));
         Assert.True(PdfDocument.Preflight(protectedPdf.Artifact.Bytes).Probe.Security.HasEncryption);
+        using (JsonDocument protectionReport = JsonDocument.Parse(protectedPdf.Report!.Bytes)) {
+            JsonElement details = protectionReport.RootElement.GetProperty("details");
+            Assert.Equal("True", details.GetProperty("preservationVerified").GetString());
+            Assert.Equal("0", details.GetProperty("preservationIssueCount").GetString());
+            Assert.Contains("passed", details.GetProperty("preservationSummary").GetString(), StringComparison.OrdinalIgnoreCase);
+        }
 
         PdfToolResult unlocked = _service.Execute(Request(
             "unlock",
@@ -100,6 +118,33 @@ public sealed class BrowserPdfToolServiceTests {
         Assert.DoesNotContain(marker, PdfReadDocument.Open(result.Artifact.Bytes).ExtractText(), StringComparison.OrdinalIgnoreCase);
         using JsonDocument report = JsonDocument.Parse(result.Report!.Bytes);
         Assert.Equal("True", report.RootElement.GetProperty("details").GetProperty("verified").GetString());
+    }
+
+    [Fact]
+    public void Redact_CaseInsensitiveSearchRejectsConcreteCaseVariantResidue() {
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
+                .Paragraph(paragraph => paragraph.Text("Public SECRET public"))))
+            .Meta(title: "SECRET")
+            .ToBytes();
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => _service.Execute(Request(
+            "redact",
+            [Document(source)],
+            redactionText: "secret",
+            confirmed: true)));
+
+        Assert.Contains("verification", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BrowserReadPolicy_UsesWebAssemblyScaleBudgets() {
+        PdfReadOptions options = BrowserPdfPolicy.CreateReadOptions();
+
+        Assert.Equal(BrowserPdfPolicy.MaxInputBytes, options.Limits.MaxInputBytes);
+        Assert.Equal(BrowserPdfPolicy.MaxPages, options.Limits.MaxPages);
+        Assert.True(options.Limits.MaxDecodedStreamBytes <= 32 * 1024 * 1024);
+        Assert.True(options.Limits.MaxTotalDecodedStreamBytes <= 96L * 1024L * 1024L);
+        Assert.True(options.Limits.MaxIndirectObjects <= 50_000);
     }
 
     [Fact]
@@ -150,4 +195,14 @@ public sealed class BrowserPdfToolServiceTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page three"))))
             .ToBytes();
+
+    private static byte[] CreatePdfWithPages(int pageCount) {
+        if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        return PdfDocument.Create(pdf => pdf.Content(content => {
+            for (int page = 1; page <= pageCount; page++) {
+                content.Paragraph(paragraph => paragraph.Text($"Page {page}"));
+                if (page < pageCount) content.PageBreak();
+            }
+        })).ToBytes();
+    }
 }

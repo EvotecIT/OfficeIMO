@@ -104,7 +104,7 @@
                     } else if (Output.ContentType == "application/pdf" && PreviewOutput) {
                         <iframe class="ocx-pdf-preview" src="@OutputUrl" title="Converted PDF preview"></iframe>
                     } else if (!string.IsNullOrWhiteSpace(Output.HtmlPreview)) {
-                        <iframe class="ocx-html-preview" srcdoc="@Output.HtmlPreview" title="Converted HTML preview"></iframe>
+                        <iframe class="ocx-html-preview" srcdoc="@Output.HtmlPreview" sandbox title="Converted HTML preview"></iframe>
                     } else {
                         <pre class="ocx-text-output"><code>@Output.Text</code></pre>
                     }

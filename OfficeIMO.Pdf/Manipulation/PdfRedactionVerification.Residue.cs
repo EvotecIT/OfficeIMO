@@ -22,14 +22,14 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker) {
+    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker, PdfReadOptions readOptions) {
         if (string.IsNullOrEmpty(marker)) {
             return false;
         }
 
         Dictionary<int, PdfIndirectObject> objects;
         try {
-            objects = PdfSyntax.ParseObjects(pdf).Map;
+            objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         } catch (Exception ex) when (ex is not OutOfMemoryException) {
             return false;
         }
@@ -40,7 +40,8 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, MaxDecodedRedactionVerificationStreamBytes, out byte[] decoded, objects)) {
+            int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
+            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out byte[] decoded, objects)) {
                 continue;
             }
 
@@ -56,11 +57,11 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static List<PdfRedactionVerificationIssue> FindUndecodableStreamIssues(byte[] pdf) {
+    private static List<PdfRedactionVerificationIssue> FindUndecodableStreamIssues(byte[] pdf, PdfReadOptions readOptions) {
         var issues = new List<PdfRedactionVerificationIssue>();
         Dictionary<int, PdfIndirectObject> objects;
         try {
-            objects = PdfSyntax.ParseObjects(pdf).Map;
+            objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         } catch (Exception ex) when (ex is not OutOfMemoryException) {
             issues.Add(new PdfRedactionVerificationIssue(
                 "DecodedPdfStreamInspection",
@@ -80,7 +81,8 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
-            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, MaxDecodedRedactionVerificationStreamBytes, out _, objects)) {
+            int maximumDecodedBytes = Math.Min(MaxDecodedRedactionVerificationStreamBytes, readOptions.Limits.MaxDecodedStreamBytes);
+            if (!StreamDecoder.TryDecode(stream.Dictionary, stream.Data, maximumDecodedBytes, out _, objects)) {
                 issues.Add(CreateUndecodableStreamIssue(
                     objectReference,
                     "The stream filter is unsupported, uses active decode parameters, exceeds the verification size limit, or failed decoding."));

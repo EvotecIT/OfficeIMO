@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using System.Text.Json;
 using OfficeIMO.Pdf;
 using OfficeIMO.Web.Converter.Models;
 
@@ -8,7 +9,7 @@ namespace OfficeIMO.Web.Converter.Services;
 internal sealed partial class BrowserPdfToolService {
     private static PdfToolExecution Inspect(PdfToolRequest request) {
         SelectedDocument file = request.Files[0];
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(file.Bytes);
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(file.Bytes, BrowserPdfPolicy.CreateReadOptions());
         var details = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["canRead"] = preflight.CanRead.ToString(),
             ["canRewrite"] = preflight.CanRewrite.ToString(),
@@ -38,16 +39,26 @@ internal sealed partial class BrowserPdfToolService {
             messages.Add(new("Diagnostic", diagnostic, "ocx-dot--warn"));
         }
 
-        var placeholder = new BrowserConversionArtifact([], OutputName(file, "inspection", ".json"), "application/json");
-        var execution = new PdfToolExecution(
-            placeholder,
-            pageCount.HasValue ? $"Inspected {pageCount.Value} PDF page{(pageCount.Value == 1 ? string.Empty : "s")}." : "Created a bounded PDF preflight report.",
+        string summary = pageCount.HasValue
+            ? $"Inspected {pageCount.Value} PDF page{(pageCount.Value == 1 ? string.Empty : "s")}."
+            : "Created a bounded PDF preflight report.";
+        byte[] inspection = JsonSerializer.SerializeToUtf8Bytes(new {
+            schemaVersion = 1,
+            tool = request.Tool.Id,
+            engine = "OfficeIMO.Pdf",
+            browserLocal = true,
+            source = new { fileName = file.Name, bytes = file.Bytes.LongLength },
+            summary,
+            details,
+            messages = messages.Select(static message => new { title = message.Title, message = message.Message })
+        }, new JsonSerializerOptions { WriteIndented = true });
+        return new PdfToolExecution(
+            new BrowserConversionArtifact(inspection, OutputName(file, "inspection", ".json"), "application/json"),
+            summary,
             pageCount,
             messages,
             details,
             PreviewInBrowser: false);
-        BrowserConversionArtifact report = CreateReport(request, execution);
-        return execution with { Artifact = report, ReportDetails = null };
     }
 
     private static PdfToolExecution Merge(PdfToolRequest request) {
@@ -74,15 +85,27 @@ internal sealed partial class BrowserPdfToolService {
         SelectedDocument file = request.Files[0];
         PdfDocument source = Open(file);
         int sourcePages = source.Inspect().PageCount;
+        int outputDocuments = (int)Math.Ceiling(sourcePages / (double)request.PagesPerDocument);
+        if (outputDocuments > BrowserPdfPolicy.MaxSplitDocuments) {
+            throw new InvalidDataException($"Split would create {outputDocuments} files; the browser limit is {BrowserPdfPolicy.MaxSplitDocuments}.");
+        }
         IReadOnlyList<PdfDocument> parts = source.Pages.Split(request.PagesPerDocument);
+        long serializedBytes = 0;
         using var buffer = new MemoryStream();
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true)) {
             for (int index = 0; index < parts.Count; index++) {
                 ZipArchiveEntry entry = archive.CreateEntry($"{Path.GetFileNameWithoutExtension(file.Name)}.part-{index + 1:000}.pdf", CompressionLevel.Optimal);
                 using Stream destination = entry.Open();
                 byte[] bytes = parts[index].ToBytes();
+                serializedBytes = checked(serializedBytes + bytes.LongLength);
+                if (serializedBytes > BrowserPdfPolicy.MaxSplitSerializedBytes) {
+                    throw new InvalidDataException($"Split outputs exceed the browser serialization limit of {FormatBytes(BrowserPdfPolicy.MaxSplitSerializedBytes)}.");
+                }
                 destination.Write(bytes, 0, bytes.Length);
             }
+        }
+        if (buffer.Length > BrowserPdfPolicy.MaxSplitSerializedBytes) {
+            throw new InvalidDataException($"The split archive exceeds the browser output limit of {FormatBytes(BrowserPdfPolicy.MaxSplitSerializedBytes)}.");
         }
         var artifact = new BrowserConversionArtifact(buffer.ToArray(), OutputName(file, "split", ".zip"), "application/zip");
         return new PdfToolExecution(
@@ -93,7 +116,8 @@ internal sealed partial class BrowserPdfToolService {
             new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["sourcePages"] = sourcePages.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["pagesPerDocument"] = request.PagesPerDocument.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["outputDocuments"] = parts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                ["outputDocuments"] = parts.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["serializedPdfBytes"] = serializedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
             },
             PreviewInBrowser: false);
     }
@@ -160,7 +184,12 @@ internal sealed partial class BrowserPdfToolService {
             new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["algorithm"] = encryption.Algorithm.ToString(),
                 ["outputEncrypted"] = result.IsEncrypted.ToString(),
-                ["mutation"] = result.Kind.ToString()
+                ["mutation"] = result.Kind.ToString(),
+                ["preservationVerified"] = result.PreservationReport.IsPreserved.ToString(),
+                ["preservationIssueCount"] = result.PreservationReport.Issues.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["preservationSummary"] = result.PreservationReport.Summary,
+                ["sourcePages"] = result.PreservationReport.Original.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["outputPages"] = result.PreservationReport.Rewritten.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
             },
             PreviewInBrowser: false);
     }
@@ -191,7 +220,7 @@ internal sealed partial class BrowserPdfToolService {
         }
         PdfDocument redacted = source.Redactions.Apply(plan);
         var verificationOptions = new PdfRedactionVerificationOptions();
-        verificationOptions.RequireRemovedText(request.RedactionText);
+        verificationOptions.RequireRemovedText(FindConcreteRedactionMarkers(plan, request.RedactionText));
         PdfRedactionVerificationReport verification = redacted.Redactions.Verify(verificationOptions);
         verification.ThrowIfFailed();
         byte[] bytes = redacted.ToBytes();
@@ -205,6 +234,7 @@ internal sealed partial class BrowserPdfToolService {
                 ["searchMode"] = "literal-case-insensitive",
                 ["areas"] = plan.Areas.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["matches"] = plan.Matches.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["verifiedMarkerVariants"] = verificationOptions.RemovedTextMarkers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["verified"] = verification.IsVerified.ToString(),
                 ["rawBytesChecked"] = verification.RawPdfBytesChecked.ToString(),
                 ["encodedStringsChecked"] = verification.EncodedPdfStringsChecked.ToString(),
@@ -221,7 +251,12 @@ internal sealed partial class BrowserPdfToolService {
             MaxTotalPixels = 50_000_000,
             MaxTotalOutputBytes = 64L * 1024L * 1024L
         };
-        PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(expected.Bytes, actual.Bytes, options: options);
+        PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
+            expected.Bytes,
+            actual.Bytes,
+            options: options,
+            expectedReadOptions: BrowserPdfPolicy.CreateReadOptions(),
+            actualReadOptions: BrowserPdfPolicy.CreateReadOptions());
         string html = comparison.ToHtmlGallery($"{expected.Name} compared with {actual.Name}");
         var artifact = new BrowserConversionArtifact(
             Encoding.UTF8.GetBytes(html),
@@ -243,5 +278,22 @@ internal sealed partial class BrowserPdfToolService {
                 ["channelTolerance"] = options.ChannelTolerance.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["allowedDifferenceRatio"] = options.AllowedDifferenceRatio.ToString(System.Globalization.CultureInfo.InvariantCulture)
             });
+    }
+
+    private static string[] FindConcreteRedactionMarkers(PdfRedactionPlan plan, string requestedMarker) {
+        var markers = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfRedactionMatch match in plan.Matches) {
+            string? text = match.Text;
+            if (string.IsNullOrEmpty(text)) continue;
+            int start = 0;
+            while (start <= text.Length - requestedMarker.Length) {
+                int index = text.IndexOf(requestedMarker, start, StringComparison.OrdinalIgnoreCase);
+                if (index < 0) break;
+                markers.Add(text.Substring(index, requestedMarker.Length));
+                start = index + requestedMarker.Length;
+            }
+        }
+        if (markers.Count == 0) markers.Add(requestedMarker);
+        return markers.ToArray();
     }
 }

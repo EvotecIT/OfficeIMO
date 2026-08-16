@@ -80,7 +80,7 @@ foreach (PdfConversionWarning warning in result.Report.Warnings) {
 
 ## Important boundaries
 
-- Browser files are limited to 25 MiB each, ten PDFs and 75 MiB combined for multi-file tools, and 25 pages per visual comparison.
+- Browser files are limited to 25 MiB each, ten PDFs and 75 MiB combined for multi-file tools, 500 parsed pages, 100 split outputs, and 25 pages per visual comparison. Generated artifacts are capped at 96 MiB, with a 64 MiB serialized-PDF ceiling for split archives.
 - Optimization is deliberately lossless. Scan-oriented image downsampling and other lossy compression need a separate policy and evidence contract.
 - OCR and searchable-PDF generation are provider-bound roadmap work. The core package remains dependency-light and does not pretend that image-only pages contain readable text.
 - Password protection is not a digital signature. CMS-backed signing, timestamping, trust validation, and revision inspection remain .NET workflows through `OfficeIMO.Pdf` and `OfficeIMO.Security`.

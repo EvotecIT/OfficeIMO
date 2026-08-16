@@ -22,7 +22,7 @@
         } else if (Result.PreviewInBrowser && Result.Artifact.ContentType == "application/pdf") {
             <iframe class="ocx-pdf-preview" src="@ArtifactUrl" title="@Tool.Label PDF preview"></iframe>
         } else if (Result.PreviewInBrowser && Result.Artifact.ContentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)) {
-            <iframe class="ocx-html-preview" src="@ArtifactUrl" title="@Tool.Label review"></iframe>
+            <iframe class="ocx-html-preview" src="@ArtifactUrl" sandbox title="@Tool.Label review"></iframe>
         } else {
             <div class="ocx-empty-state"><div class="pdf-result-panel__mark pdf-result-panel__mark--ready" aria-hidden="true">✓</div><strong>Result ready</strong><p>@Result.Summary</p></div>
         }

@@ -15,7 +15,7 @@ Files remain in the current browser tab. OfficeIMO does not send them to a serve
 ## Browser limits
 
 - File uploads are limited to 25 MiB and 5,000 package parts.
-- Multi-file PDF tools accept no more than ten PDFs or 75 MiB combined; visual comparison is capped at 25 pages.
+- Multi-file PDF tools accept no more than ten PDFs or 75 MiB combined. PDF parsing is capped at 500 pages, split at 100 outputs and 64 MiB of serialized PDFs, visual comparison at 25 pages, and generated artifacts at 96 MiB.
 - Text input is limited to 500,000 characters.
 - The XLSX browser-safe preview can limit processing to 250 rows and omit sheet layout and media.
 - Conversion reports identify substitutions, approximations, blocked content, and other fidelity warnings.
@@ -29,15 +29,15 @@ The following Windows Release measurements use native WebAssembly linking and Ch
 
 | Measurement | Observed |
 | --- | ---: |
-| Published app | 80,158,821 bytes |
-| Startup to interactive converter | 1,101 ms |
-| Maximum observed browser heap | 151,187,486 bytes |
+| Published app | 80,174,362 bytes |
+| Startup to interactive converter | 1,216 ms |
+| Maximum observed browser heap | 150,684,747 bytes |
 
 | Conversion | Time | Observed browser heap | Peak retained PDF buffers | Result |
 | --- | ---: | ---: | ---: | ---: |
-| DOCX to PDF | 506 ms | 53,489,577 bytes | 12,694 bytes | 200,643 bytes |
-| XLSX to PDF | 468 ms | 102,785,222 bytes | 3,805 bytes | 440,298 bytes |
-| PPTX to PDF | 490 ms | 151,187,486 bytes | 30 bytes | 769 bytes |
+| DOCX to PDF | 515 ms | 53,500,077 bytes | 12,694 bytes | 200,643 bytes |
+| XLSX to PDF | 480 ms | 103,062,671 bytes | 3,805 bytes | 440,298 bytes |
+| PPTX to PDF | 522 ms | 150,684,747 bytes | 30 bytes | 769 bytes |
 
 The browser-heap value is Chromium's highest sampled JavaScript heap before, during, or immediately after a conversion. Peak retained PDF buffers measure page-content and object buffers retained by the converter; they are not whole-process memory.
 

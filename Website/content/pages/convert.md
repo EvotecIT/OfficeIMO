@@ -20,7 +20,7 @@ meta.head_html: '<link rel="alternate" hreflang="en" href="https://officeimo.com
       <article><strong>Review and secure</strong><p>Inspect, compare, optimize, protect, unlock, and redact with operation evidence.</p></article>
       <article><strong>Know the boundary</strong><p>OCR, lossy scan compression, and cryptographic signing stay outside the generic browser workflow.</p></article>
     </div>
-    <p class="imo-converter-launch__boundary">Each file is limited to 25 MiB. Multi-file PDF workflows accept up to ten files and 75 MiB combined; visual comparison is limited to 25 pages. <a href="/docs/converters/browser-playground/">Read the complete browser contract</a>.</p>
+    <p class="imo-converter-launch__boundary">Each file is limited to 25 MiB. Multi-file PDF workflows accept up to ten files and 75 MiB combined; PDF parsing is capped at 500 pages, split at 100 outputs, and visual comparison at 25 pages. <a href="/docs/converters/browser-playground/">Read the complete browser contract</a>.</p>
   </section>
   <noscript><div class="imo-container"><p><a href="/apps/officeimo-converter/">Open the document workspace</a></p></div></noscript>
 </section>

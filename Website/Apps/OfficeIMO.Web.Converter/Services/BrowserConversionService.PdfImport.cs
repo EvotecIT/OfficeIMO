@@ -51,7 +51,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToWord(SelectedDocument file) {
-        PdfDocument pdf = PdfDocument.Open(file.Bytes);
+        PdfDocument pdf = BrowserPdfPolicy.Open(file);
         PdfWordConversionResult conversion = pdf.ToWordDocumentResult();
         using var document = conversion.Value;
         byte[] bytes = document.ToBytes();
@@ -68,7 +68,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToExcel(SelectedDocument file) {
-        PdfDocument pdf = PdfDocument.Open(file.Bytes);
+        PdfDocument pdf = BrowserPdfPolicy.Open(file);
         PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult();
         using var document = conversion.Value;
         byte[] bytes = document.ToBytes();
@@ -100,7 +100,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToPowerPoint(SelectedDocument file) {
-        PdfDocument pdf = PdfDocument.Open(file.Bytes);
+        PdfDocument pdf = BrowserPdfPolicy.Open(file);
         PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult();
         using var presentation = conversion.Value;
         byte[] bytes = presentation.ToBytes();
@@ -117,7 +117,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
-        PdfDocument pdf = PdfDocument.Open(file.Bytes);
+        PdfDocument pdf = BrowserPdfPolicy.Open(file);
         PdfHtmlConversionResult conversion = pdf.ToHtmlResult();
         byte[] bytes = Encoding.UTF8.GetBytes(conversion.Value);
         return new PdfImportPayload(

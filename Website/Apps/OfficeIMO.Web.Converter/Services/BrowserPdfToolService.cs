@@ -30,6 +30,10 @@ internal sealed partial class BrowserPdfToolService {
             _ => throw new ArgumentOutOfRangeException(nameof(request), request.Tool.Kind, "Unsupported browser PDF tool.")
         };
 
+        if (execution.Artifact.Bytes.LongLength > BrowserPdfPolicy.MaxOutputBytes) {
+            throw new InvalidDataException($"The generated artifact exceeds the browser output limit of {FormatBytes(BrowserPdfPolicy.MaxOutputBytes)}.");
+        }
+
         BrowserConversionArtifact? report = execution.ReportDetails is null
             ? null
             : CreateReport(request, execution);
@@ -63,6 +67,9 @@ internal sealed partial class BrowserPdfToolService {
             if (!string.Equals(file.Extension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidDataException($"{file.Name} is not a PDF file.");
             }
+            if (file.Bytes.LongLength > BrowserPdfPolicy.MaxInputBytes) {
+                throw new InvalidDataException($"{file.Name} exceeds the browser PDF limit of {FormatBytes(BrowserPdfPolicy.MaxInputBytes)}.");
+            }
             EnsurePdf(file.Bytes, file.Name);
             aggregateBytes = checked(aggregateBytes + file.Bytes.LongLength);
         }
@@ -93,10 +100,7 @@ internal sealed partial class BrowserPdfToolService {
         }
     }
 
-    private static PdfDocument Open(SelectedDocument file, string? password = null) =>
-        PdfDocument.Open(
-            file.Bytes,
-            password is null ? null : new PdfReadOptions { Password = password });
+    private static PdfDocument Open(SelectedDocument file, string? password = null) => BrowserPdfPolicy.Open(file, password);
 
     private static PdfPageSelector Selector(PdfToolRequest request) => PdfPageSelector.Parse(request.PageSelection);
 

@@ -7,11 +7,15 @@ internal static partial class PdfRedactionVerification {
     /// <summary>
     /// Verifies a redacted PDF using the supplied redaction verification profile.
     /// </summary>
-    public static PdfRedactionVerificationReport Verify(byte[] redactedPdf, PdfRedactionVerificationOptions options) {
+    public static PdfRedactionVerificationReport Verify(
+        byte[] redactedPdf,
+        PdfRedactionVerificationOptions options,
+        PdfReadOptions? readOptions = null) {
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
 
-        string extractedText = PdfReadDocument.Open(redactedPdf).ExtractText();
+        PdfReadOptions effectiveReadOptions = PdfReadOptions.Resolve(readOptions);
+        string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions).ExtractText();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
         var externalResults = new List<PdfRedactionExternalValidationResult>();
@@ -19,7 +23,7 @@ internal static partial class PdfRedactionVerification {
         if (options.CheckDecodedPdfStreams &&
             options.FailOnUndecodablePdfStreams &&
             options.RemovedTextMarkers.Count > 0) {
-            issues.AddRange(FindUndecodableStreamIssues(redactedPdf));
+            issues.AddRange(FindUndecodableStreamIssues(redactedPdf, effectiveReadOptions));
         }
 
         for (int i = 0; i < options.RemovedTextMarkers.Count; i++) {
@@ -45,7 +49,7 @@ internal static partial class PdfRedactionVerification {
                     "Removed text marker remains in encoded rewritten PDF string bytes: " + marker));
             }
 
-            if (options.CheckDecodedPdfStreams && ContainsDecodedStreamMarker(redactedPdf, marker)) {
+            if (options.CheckDecodedPdfStreams && ContainsDecodedStreamMarker(redactedPdf, marker, effectiveReadOptions)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedDecodedStreamMarker",
                     marker,
@@ -64,7 +68,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         if (options.CheckManagedRendering) {
-            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true });
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions);
             for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
         }
 
@@ -79,8 +83,11 @@ internal static partial class PdfRedactionVerification {
     /// <summary>
     /// Verifies a redacted PDF and throws when removed text remains or retained text disappears.
     /// </summary>
-    public static PdfRedactionVerificationReport AssertVerified(byte[] redactedPdf, PdfRedactionVerificationOptions options) {
-        PdfRedactionVerificationReport report = Verify(redactedPdf, options);
+    public static PdfRedactionVerificationReport AssertVerified(
+        byte[] redactedPdf,
+        PdfRedactionVerificationOptions options,
+        PdfReadOptions? readOptions = null) {
+        PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions);
         report.ThrowIfFailed();
         return report;
     }

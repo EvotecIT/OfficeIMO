@@ -212,7 +212,7 @@ public partial class PdfWorkbench {
     }
 
     private static string DescribeFailure(Exception ex) => ex switch {
-        IOException => "The browser workbench accepts PDFs up to 25 MB each.",
+        IOException when ex is not InvalidDataException => "The browser workbench accepts PDFs up to 25 MB each.",
         _ => ex.Message
     };
 
