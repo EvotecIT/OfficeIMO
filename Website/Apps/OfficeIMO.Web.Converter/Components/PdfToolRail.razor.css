@@ -1,0 +1,74 @@
+.pdf-tool-rail {
+    display: flex;
+    gap: .75rem;
+    margin: 0 auto 1rem;
+    width: min(100% - 2rem, 1312px);
+    overflow-x: auto;
+    padding: .7rem;
+    border: 1px solid var(--ocx-border, #dfe5ef);
+    border-radius: 13px;
+    background: var(--ocx-panel, #fff);
+    box-shadow: 0 8px 24px rgba(20, 33, 58, .05);
+    box-sizing: border-box;
+}
+
+@media (max-width: 720px) {
+    .pdf-tool-rail { width: min(100% - 1rem, 1312px); }
+}
+
+.pdf-tool-rail section {
+    flex: 0 0 auto;
+}
+
+.pdf-tool-rail h2 {
+    color: #667085;
+    font-size: .68rem;
+    letter-spacing: .08em;
+    margin: 0 0 .35rem;
+    text-transform: uppercase;
+}
+
+.pdf-tool-rail section > div {
+    display: flex;
+    gap: .35rem;
+}
+
+.pdf-tool-rail button {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dfe5ef;
+    border-radius: .7rem;
+    color: #344054;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: .4rem;
+    padding: .55rem .7rem;
+    white-space: nowrap;
+}
+
+.pdf-tool-rail button span {
+    color: #1264a3;
+    font-size: 1rem;
+}
+
+.pdf-tool-rail button strong {
+    font-size: .78rem;
+}
+
+.pdf-tool-rail button.is-active {
+    background: #eaf5ff;
+    border-color: #6db7e8;
+    color: #0b568f;
+}
+
+:global([data-theme="dark"]) .pdf-tool-rail button {
+    background: #182433;
+    border-color: #344256;
+    color: #d8e2ef;
+}
+
+:global([data-theme="dark"]) .pdf-tool-rail button.is-active {
+    background: #123a58;
+    border-color: #3f8fc4;
+}

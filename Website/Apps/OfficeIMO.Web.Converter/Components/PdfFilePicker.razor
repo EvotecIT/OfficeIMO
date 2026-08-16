@@ -1,0 +1,47 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<div class="pdf-file-picker">
+    <label class="ocx-dropzone">
+        <InputFile class="ocx-hidden-input" OnChange="OnFilesSelected" accept=".pdf,application/pdf" multiple="@AllowsMultiple" />
+        <span class="ocx-dropzone__icon pdf-file-picker__icon"><i></i><b>PDF</b></span>
+        <strong>@DropzoneTitle</strong>
+        <small>Files stay in this browser tab · up to @ConverterWorkspace.FormatBytes(MaxFileBytes) each</small>
+        <span class="ocx-button ocx-button--choose">Choose PDF@(AllowsMultiple ? "s" : null)</span>
+    </label>
+
+    @if (Files.Count > 0) {
+        <ol class="pdf-file-list">
+            @for (int index = 0; index < Files.Count; index++) {
+                SelectedDocument file = Files[index];
+                int fileIndex = index;
+                <li @key="file">
+                    <span class="pdf-file-list__order">@(index + 1)</span>
+                    <span><strong>@file.Name</strong><small>@ConverterWorkspace.FormatBytes(file.Size)</small></span>
+                    <div>
+                        @if (Tool.InputMode == PdfToolInputMode.Multiple) {
+                            <button type="button" disabled="@(index == 0)" title="Move earlier" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, -1))">↑</button>
+                            <button type="button" disabled="@(index == Files.Count - 1)" title="Move later" @onclick="() => OnMove.InvokeAsync(new PdfFileMoveRequest(fileIndex, 1))">↓</button>
+                        }
+                        <button type="button" title="Remove file" @onclick="() => OnRemove.InvokeAsync(fileIndex)">×</button>
+                    </div>
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PdfToolDefinition Tool { get; set; } = PdfToolCatalog.Default;
+    [Parameter, EditorRequired] public IReadOnlyList<SelectedDocument> Files { get; set; } = [];
+    [Parameter] public long MaxFileBytes { get; set; } = BrowserConversionService.MaxPackageBytes;
+    [Parameter] public EventCallback<InputFileChangeEventArgs> OnFilesSelected { get; set; }
+    [Parameter] public EventCallback<int> OnRemove { get; set; }
+    [Parameter] public EventCallback<PdfFileMoveRequest> OnMove { get; set; }
+
+    private bool AllowsMultiple => Tool.InputMode != PdfToolInputMode.Single;
+    private string DropzoneTitle => Tool.InputMode switch {
+        PdfToolInputMode.Pair => Files.Count == 0 ? "Choose the expected and actual PDFs" : $"{Files.Count} of 2 PDFs selected",
+        PdfToolInputMode.Multiple => Files.Count == 0 ? "Choose two or more PDFs" : $"{Files.Count} PDFs selected",
+        _ => Files.Count == 0 ? "Drop a PDF here" : Files[0].Name
+    };
+}

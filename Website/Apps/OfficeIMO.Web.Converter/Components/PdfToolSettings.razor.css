@@ -1,0 +1,62 @@
+.pdf-tool-settings {
+    background: #f8fafc;
+    border: 1px solid #e4e9f1;
+    border-radius: .8rem;
+    display: grid;
+    gap: .8rem;
+    padding: .9rem;
+}
+
+.pdf-tool-settings label {
+    display: grid;
+    gap: .35rem;
+}
+
+.pdf-tool-settings label > span {
+    color: #344054;
+    font-size: .78rem;
+    font-weight: 750;
+}
+
+.pdf-tool-settings input:not([type="checkbox"]),
+.pdf-tool-settings select {
+    background: #fff;
+    border: 1px solid #cfd7e4;
+    border-radius: .5rem;
+    color: #101828;
+    font: inherit;
+    min-height: 2.55rem;
+    padding: .55rem .65rem;
+    width: 100%;
+}
+
+.pdf-tool-settings small {
+    color: #667085;
+    line-height: 1.45;
+}
+
+.pdf-tool-settings__confirmation {
+    align-items: flex-start;
+    display: flex !important;
+    grid-template-columns: auto 1fr;
+}
+
+.pdf-tool-settings__confirmation input {
+    margin-top: .15rem;
+}
+
+:global([data-theme="dark"]) .pdf-tool-settings {
+    background: #172231;
+    border-color: #344256;
+}
+
+:global([data-theme="dark"]) .pdf-tool-settings label > span {
+    color: #d8e2ef;
+}
+
+:global([data-theme="dark"]) .pdf-tool-settings input:not([type="checkbox"]),
+:global([data-theme="dark"]) .pdf-tool-settings select {
+    background: #101926;
+    border-color: #435166;
+    color: #eef4fb;
+}

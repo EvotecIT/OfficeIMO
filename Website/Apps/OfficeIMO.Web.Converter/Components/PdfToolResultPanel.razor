@@ -1,0 +1,55 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<section class="ocx-output-panel pdf-result-panel" aria-labelledby="pdf-output-title">
+    <div class="ocx-panel-heading ocx-panel-heading--output">
+        <div><p>Result</p><h2 id="pdf-output-title">@(Result?.Artifact.FileName ?? $"{Tool.ShortLabel} output")</h2></div>
+    </div>
+
+    <div class="ocx-output-actions">
+        @if (!string.IsNullOrWhiteSpace(ReportUrl) && Result?.Report is not null) {
+            <a class="ocx-button ocx-button--secondary" href="@ReportUrl" download="@Result.Report.FileName">Operation report</a>
+        }
+        @if (!string.IsNullOrWhiteSpace(ArtifactUrl) && Result is not null) {
+            <a class="ocx-button ocx-button--primary" href="@ArtifactUrl" download="@Result.Artifact.FileName">Download result</a>
+        }
+    </div>
+
+    <div class="ocx-preview-stage pdf-result-panel__preview">
+        @if (IsBusy) {
+            <div class="ocx-empty-state"><span class="ocx-spinner" aria-hidden="true"></span><strong>Running locally</strong><p>OfficeIMO.Pdf is processing the selected document.</p></div>
+        } else if (Result is null) {
+            <div class="ocx-empty-state"><div class="pdf-result-panel__mark" aria-hidden="true">PDF</div><strong>Your result will appear here</strong><p>Select the PDFs and run @Tool.Label.ToLowerInvariant().</p></div>
+        } else if (Result.PreviewInBrowser && Result.Artifact.ContentType == "application/pdf") {
+            <iframe class="ocx-pdf-preview" src="@ArtifactUrl" title="@Tool.Label PDF preview"></iframe>
+        } else if (Result.PreviewInBrowser && Result.Artifact.ContentType.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)) {
+            <iframe class="ocx-html-preview" src="@ArtifactUrl" title="@Tool.Label review"></iframe>
+        } else {
+            <div class="ocx-empty-state"><div class="pdf-result-panel__mark pdf-result-panel__mark--ready" aria-hidden="true">✓</div><strong>Result ready</strong><p>@Result.Summary</p></div>
+        }
+    </div>
+
+    @if (Result is not null) {
+        <div class="ocx-output-summary"
+             data-pdf-tool-result="true"
+             data-tool="@Tool.Id"
+             data-result-bytes="@Result.Artifact.Bytes.LongLength">
+            <span><small>FILE</small><strong>@Result.Artifact.FileName</strong></span>
+            <span><small>SIZE</small><strong>@ConverterWorkspace.FormatBytes(Result.Artifact.Bytes.LongLength)</strong></span>
+            <span><small>PAGES</small><strong>@(Result.PageCount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "—")</strong></span>
+        </div>
+        <div class="pdf-result-panel__summary" role="status">@Result.Summary</div>
+        <div class="ocx-diagnostics" aria-live="polite">
+            @foreach (PdfToolMessage message in Result.Messages) {
+                <div @key="message" class="ocx-diagnostic"><span class="ocx-dot @message.ToneClass"></span><div><strong>@message.Title</strong><span>@message.Message</span></div></div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public PdfToolDefinition Tool { get; set; } = PdfToolCatalog.Default;
+    [Parameter] public PdfToolResult? Result { get; set; }
+    [Parameter] public string? ArtifactUrl { get; set; }
+    [Parameter] public string? ReportUrl { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+}

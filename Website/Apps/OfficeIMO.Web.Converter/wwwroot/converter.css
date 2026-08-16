@@ -666,6 +666,7 @@
 .ocx-route-tab.ocx-route-card--powerpoint .ocx-route-tab__icon { color: #e25024; }
 .ocx-route-tab.ocx-route-card--markdown .ocx-route-tab__icon { color: #6d28d9; }
 .ocx-route-tab.ocx-route-card--html .ocx-route-tab__icon { color: #c2410c; }
+.ocx-route-tab.ocx-route-card--pdf .ocx-route-tab__icon { color: #c92a2a; }
 
 .ocx-route-tab__label {
   overflow: hidden;

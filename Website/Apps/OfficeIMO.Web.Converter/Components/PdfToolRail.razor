@@ -1,0 +1,45 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<nav class="pdf-tool-rail" aria-label="Choose a PDF tool">
+    @foreach (IGrouping<string, PdfToolDefinition> group in Tools.GroupBy(static tool => tool.Group)) {
+        <section @key="group.Key">
+            <h2>@group.Key</h2>
+            <div>
+                @foreach (PdfToolDefinition tool in group) {
+                    <button @key="tool.Id"
+                            type="button"
+                            data-pdf-tool="@tool.Id"
+                            class="@(ActiveTool.Id == tool.Id ? "is-active" : null)"
+                            aria-pressed="@(ActiveTool.Id == tool.Id)"
+                            title="@tool.Description"
+                            @onclick="() => OnSelected.InvokeAsync(tool)">
+                        <span>@ToolIcon(tool.Kind)</span>
+                        <strong>@tool.ShortLabel</strong>
+                    </button>
+                }
+            </div>
+        </section>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<PdfToolDefinition> Tools { get; set; } = [];
+    [Parameter, EditorRequired] public PdfToolDefinition ActiveTool { get; set; } = PdfToolCatalog.Default;
+    [Parameter] public EventCallback<PdfToolDefinition> OnSelected { get; set; }
+
+    private static string ToolIcon(PdfToolKind kind) => kind switch {
+        PdfToolKind.Inspect => "⌕",
+        PdfToolKind.Compare => "≠",
+        PdfToolKind.Merge => "⊕",
+        PdfToolKind.Split => "⑂",
+        PdfToolKind.Extract => "↗",
+        PdfToolKind.Delete => "−",
+        PdfToolKind.Reorder => "↕",
+        PdfToolKind.Rotate => "↻",
+        PdfToolKind.Optimize => "⇣",
+        PdfToolKind.Protect => "⌾",
+        PdfToolKind.Unlock => "○",
+        PdfToolKind.Redact => "▰",
+        _ => "PDF"
+    };
+}

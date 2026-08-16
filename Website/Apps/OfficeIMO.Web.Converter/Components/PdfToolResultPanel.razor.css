@@ -1,0 +1,42 @@
+.pdf-result-panel {
+    min-width: 0;
+}
+
+.pdf-result-panel__preview {
+    min-height: 24rem;
+}
+
+.pdf-result-panel__mark {
+    align-items: center;
+    background: #fff0f0;
+    border-radius: 1rem;
+    color: #b42318;
+    display: flex;
+    font-size: 1rem;
+    font-weight: 850;
+    height: 4.5rem;
+    justify-content: center;
+    margin-bottom: .9rem;
+    width: 4.5rem;
+}
+
+.pdf-result-panel__mark--ready {
+    background: #e8f8ef;
+    color: #087443;
+    font-size: 1.8rem;
+}
+
+.pdf-result-panel__summary {
+    background: #f5faff;
+    border-left: 3px solid #2f8cc8;
+    color: #344054;
+    font-size: .85rem;
+    line-height: 1.5;
+    margin-top: .7rem;
+    padding: .65rem .8rem;
+}
+
+:global([data-theme="dark"]) .pdf-result-panel__summary {
+    background: #142b3d;
+    color: #d8e2ef;
+}

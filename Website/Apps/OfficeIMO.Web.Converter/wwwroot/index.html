@@ -4,10 +4,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OfficeIMO Browser Conversion Playground</title>
-    <meta name="description" content="Convert DOCX, XLSX, and PPTX files to PDF locally in your browser with OfficeIMO WebAssembly, then preview and download results without uploading documents." />
-    <meta property="og:description" content="Convert DOCX, XLSX, and PPTX files to PDF locally in your browser with OfficeIMO WebAssembly, then preview and download results without uploading documents." />
-    <meta name="twitter:description" content="Convert DOCX, XLSX, and PPTX files to PDF locally in your browser with OfficeIMO WebAssembly, then preview and download results without uploading documents." />
+    <title>OfficeIMO Browser Document Workspace</title>
+    <meta name="description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
+    <meta property="og:description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
+    <meta name="twitter:description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
     <base href="/apps/officeimo-converter/" />
     <link rel="canonical" href="https://officeimo.com/apps/officeimo-converter/" />
     <link rel="alternate" hreflang="en" href="https://officeimo.com/apps/officeimo-converter/" />
@@ -15,6 +15,7 @@
     <link rel="preload" id="webassembly" />
     <script>(function(){function a(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}a();if(new URLSearchParams(location.search).get('embedded')==='1'){document.documentElement.classList.add('ocx-embedded');}addEventListener('storage',function(e){if(e.key==='imo-theme'){a();}});})();</script>
     <link rel="stylesheet" href="converter.css" />
+    <link rel="stylesheet" href="OfficeIMO.Web.Converter.styles.css" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="importmap"></script>
 </head>
@@ -23,7 +24,7 @@
     <div id="app">
         <main class="ocx-shell">
             <div class="ocx-container">
-                <h1 class="ocx-loading">Loading OfficeIMO converter...</h1>
+                <h1 class="ocx-loading">Loading OfficeIMO document workspace...</h1>
             </div>
         </main>
     </div>

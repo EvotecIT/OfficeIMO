@@ -628,7 +628,7 @@
       "description":"Import PDF logical content into an editable Word document with diagnostics.",
       "fidelity":"Editable",
       "resultContract":"PdfWordConversionResult",
-      "browserAvailable":false,
+      "browserAvailable":true,
       "agentDiscoverable":true
     },
     {
@@ -643,7 +643,7 @@
       "description":"Import detected PDF tables into an editable workbook with diagnostics.",
       "fidelity":"Editable",
       "resultContract":"PdfExcelTableImportResult",
-      "browserAvailable":false,
+      "browserAvailable":true,
       "agentDiscoverable":true
     },
     {
@@ -658,7 +658,7 @@
       "description":"Import PDF pages into an editable presentation profile with diagnostics.",
       "fidelity":"Editable",
       "resultContract":"PdfPowerPointConversionResult",
-      "browserAvailable":false,
+      "browserAvailable":true,
       "agentDiscoverable":true
     },
     {
@@ -673,7 +673,7 @@
       "description":"Project PDF logical content into reviewable HTML.",
       "fidelity":"Semantic",
       "resultContract":"PdfHtmlConversionResult",
-      "browserAvailable":false,
+      "browserAvailable":true,
       "agentDiscoverable":true
     },
     {

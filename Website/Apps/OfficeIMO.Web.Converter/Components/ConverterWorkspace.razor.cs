@@ -99,7 +99,12 @@ This **Markdown** becomes a browser preview or an editable Word document.
         GenerateDebugOverlay = false;
         IncludeDocumentContentInSupportBundle = false;
         Diagnostics.Clear();
-        Navigation.NavigateTo($"?route={Uri.EscapeDataString(route.Id)}", replace: true);
+        var values = new Dictionary<string, object?> {
+            ["workspace"] = null,
+            ["tool"] = null,
+            ["route"] = route.Id
+        };
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(values), replace: true);
     }
 
     private async Task HandleFileSelectedAsync(InputFileChangeEventArgs args) {
@@ -130,6 +135,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     private async Task LoadSampleAsync() {
         SampleDocument sample = ActiveRoute.Id switch {
+            "pdf-docx" or "pdf-xlsx" or "pdf-pptx" or "pdf-html" => new("Sample PDF", "samples/showcase-dashboard.pdf", "OfficeIMO-Showcase.pdf", ".pdf"),
             "xlsx-pdf" => new("Sample XLSX", "samples/basic.xlsx", "OfficeIMO-Basic.xlsx", ".xlsx"),
             "pptx-pdf" => new("Sample PPTX", "samples/basic.pptx", "OfficeIMO-Basic.pptx", ".pptx"),
             _ => new("Sample DOCX", "samples/basic.docx", "OfficeIMO-Basic.docx", ".docx")
@@ -299,6 +305,11 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     : $"Document · {warning.Construct}",
                 StringComparer.Ordinal)
             .OrderBy(static group => group.Key, StringComparer.Ordinal);
+
+    private static string WarningTitle(ConversionWarningView warning) =>
+        string.Equals(warning.Construct, warning.Code, StringComparison.OrdinalIgnoreCase)
+            ? warning.Code
+            : $"{warning.Construct} · {warning.Code}";
 
     public async ValueTask DisposeAsync() {
         if (_interop is not null) {

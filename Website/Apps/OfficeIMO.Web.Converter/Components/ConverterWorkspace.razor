@@ -1,20 +1,7 @@
 @namespace OfficeIMO.Web.Converter.Components
 @implements IAsyncDisposable
 
-<main class="ocx-shell" data-converter-ready="true" data-active-route="@ActiveRoute.Id">
-    <header class="ocx-appbar">
-        <a class="ocx-brand" href="/" target="_top" aria-label="OfficeIMO home">
-            <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
-            <span>OfficeIMO</span>
-        </a>
-        <nav aria-label="Converter links"><a href="/products/word/" target="_top">Products</a><a href="/docs/" target="_top">Docs</a><a href="/api/" target="_top">API</a><a href="/downloads/" target="_top">Packages</a><a class="ocx-nav-cta" href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
-    </header>
-
-    <section class="ocx-product-heading" aria-labelledby="converter-title">
-        <h1 id="converter-title">Convert documents</h1>
-        <p><span class="ocx-local-dot" aria-hidden="true"></span>Runs locally in this tab</p>
-    </section>
-
+<div class="ocx-conversion-workspace" data-converter-ready="true" data-active-route="@ActiveRoute.Id">
     <nav class="ocx-route-rail" aria-label="Choose a conversion route">
         @foreach (ConversionRoute route in Routes) {
             <button @key="route.Id"
@@ -137,7 +124,7 @@
                         <div class="ocx-diagnostic-group">
                             <strong>@group.Key</strong>
                             @foreach (ConversionWarningView warning in group) {
-                                <div class="ocx-diagnostic ocx-diagnostic--warning"><span class="ocx-dot ocx-dot--warn"></span><div><strong>@warning.Construct · @warning.Code</strong><span>@warning.Message@(warning.CanChangePagination ? " May affect text fit or pagination." : null)</span></div></div>
+                                <div class="ocx-diagnostic ocx-diagnostic--warning"><span class="ocx-dot ocx-dot--warn"></span><div><strong>@WarningTitle(warning)</strong><span>@warning.Message@(warning.CanChangePagination ? " May affect text fit or pagination." : null)</span></div></div>
                             }
                         </div>
                     }
@@ -145,7 +132,7 @@
                         <div class="ocx-diagnostic-group">
                             <strong>@group.Key</strong>
                             @foreach (ConversionWarningView information in group) {
-                                <div class="ocx-diagnostic"><span class="ocx-dot ocx-dot--good"></span><div><strong>@information.Construct · @information.Code</strong><span>@information.Message</span></div></div>
+                                <div class="ocx-diagnostic"><span class="ocx-dot ocx-dot--good"></span><div><strong>@WarningTitle(information)</strong><span>@information.Message</span></div></div>
                             }
                         </div>
                     }
@@ -171,4 +158,4 @@
         <div><span class="ocx-utility-icon" aria-hidden="true">&lt;/&gt;</span><span><strong>OfficeIMO engine</strong><small>WebAssembly</small></span></div>
         <a href="/convert/guides/" target="_top"><strong>Need server or legacy formats?</strong><span>View conversion guides →</span></a>
     </section>
-</main>
+</div>
