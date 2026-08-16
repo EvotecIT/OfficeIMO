@@ -93,8 +93,18 @@ internal static partial class PdfRedactionVerification {
     }
 
     private static bool ContainsMarker(string text, string marker, bool matchCase) {
-        return !string.IsNullOrEmpty(marker) && text.Contains(
+        if (string.IsNullOrEmpty(marker)) {
+            return false;
+        }
+
+#if NETSTANDARD2_0 || NETFRAMEWORK
+        return text.IndexOf(
+            marker,
+            matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) >= 0;
+#else
+        return text.Contains(
             marker,
             matchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase);
+#endif
     }
 }

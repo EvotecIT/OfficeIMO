@@ -1,6 +1,6 @@
 ---
 title: Browser Document Workspace
-description: Run supported OfficeIMO conversions and focused PDF workflows locally through the WebAssembly app on OfficeIMO.com.
+description: Run supported OfficeIMO conversions and focused PDF workflows locally in your browser through the WebAssembly app on OfficeIMO.com.
 order: 90
 ---
 

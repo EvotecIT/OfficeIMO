@@ -318,7 +318,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         if ((builder.Length & 1) != 0) builder.Append('0');
-        byte[] decoded = Convert.FromHexString(builder.ToString());
+        byte[] decoded = PdfTextString.DecodeHexBytes(builder.ToString());
         return ContainsBytes(decoded, markerBytes, matchCase);
     }
 
