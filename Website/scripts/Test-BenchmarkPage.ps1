@@ -277,8 +277,10 @@ if ($scriptText -notmatch 'OfficeImoBenchmarkMatrix' -or $scriptText -notmatch '
 if ($scriptText -notmatch 'benchmark-workload' -or
     $scriptText -notmatch 'benchmark-os' -or
     $scriptText -notmatch 'benchmark-mode' -or
-    $scriptText -notmatch "queryValue\('benchmark-os'\)" -or
-    $scriptText -notmatch "queryValue\('benchmark-mode'\)" -or
+    $scriptText -notmatch "queryValue\('benchmark-os', 'windows'\)" -or
+    $scriptText -notmatch "queryValue\('benchmark-mode', 'full'\)" -or
+    $scriptText -notmatch "queryValue\('matrix-os'\)" -or
+    $scriptText -notmatch "queryValue\('matrix-mode'\)" -or
     $scriptText -notmatch "filterValue\('platform'\)" -or
     $scriptText -notmatch "filterValue\('runMode'\)" -or
     $scriptText -notmatch "row\.getAttribute\('data-platform'\)" -or

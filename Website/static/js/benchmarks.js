@@ -259,8 +259,11 @@
     sortBy: sortBy
   };
 
-  var requestedPlatform = queryValue('benchmark-os');
-  var requestedMode = queryValue('benchmark-mode');
+  // The current-source selector below owns benchmark-os/benchmark-mode.
+  // Keep historical matrix deep links separate so current evidence defaults
+  // cannot hide all legacy rows whose provenance is intentionally unrecorded.
+  var requestedPlatform = queryValue('matrix-os');
+  var requestedMode = queryValue('matrix-mode');
   var platformFilter = root.querySelector('[data-benchmark-filter="platform"]');
   var modeFilter = root.querySelector('[data-benchmark-filter="runMode"]');
   if (platformFilter && requestedPlatform) platformFilter.value = requestedPlatform;

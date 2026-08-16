@@ -1372,6 +1372,7 @@
       "dependsOn": "test-browser-converter",
       "project": "./Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj",
       "out": "./_temp/converter-publish",
+      "clean": true,
       "configuration": "Release",
       "baseHref": "/apps/officeimo-converter/"
     },
