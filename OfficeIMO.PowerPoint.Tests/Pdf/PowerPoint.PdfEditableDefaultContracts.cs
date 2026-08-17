@@ -67,6 +67,34 @@ public sealed class PowerPointPdfEditableDefaultContracts {
     }
 
     [Fact]
+    public void DefaultEditableImportPreservesTableTextInsideTightProducerClip() {
+        byte[] pdf = BuildSingleStreamPdf(string.Join("\n", new[] {
+            "BT /F1 10 Tf",
+            "50 700 Td (Name) Tj 100 0 Td (Value) Tj 100 0 Td (Status) Tj",
+            "-200 -20 Td (Alpha) Tj 100 0 Td (42) Tj 100 0 Td (Ready) Tj",
+            "ET",
+            "q 45 655 310 14 re W n",
+            "BT /F1 10 Tf 50 660 Td (Beta) Tj 100 0 Td (64) Tj 100 0 Td (Pending) Tj ET",
+            "Q",
+            "BT /F1 10 Tf 50 640 Td (Gamma) Tj 100 0 Td (84) Tj 100 0 Td (Done) Tj ET"
+        }));
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+            .ToPowerPointPresentationResult();
+
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        Assert.NotEmpty(package.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));
+        string[] text = package.PresentationPart.SlideParts
+            .SelectMany(part => part.Slide.Descendants<A.Text>())
+            .Select(value => value.Text ?? string.Empty)
+            .ToArray();
+        Assert.Contains(text, value => value.Contains("Beta", StringComparison.Ordinal));
+        Assert.Contains(text, value => value.Contains("64", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void DefaultEditableImportDoesNotExposePartiallyClippedTableCellText() {
         byte[] pdf = BuildSingleStreamPdf(string.Join("\n", new[] {
             "BT /F1 10 Tf",

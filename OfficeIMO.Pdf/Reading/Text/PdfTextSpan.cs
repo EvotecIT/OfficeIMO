@@ -67,10 +67,13 @@ public sealed class PdfTextSpan {
 
         PdfPageClipPath clip = ClipPath.Value;
         if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) return false;
-        double width = Math.Max(Advance, Text.Length * FontSize * 0.55D);
-        double height = Math.Max(1D, FontSize * 1.25D);
+        // Extracted spans expose a baseline rather than font ascent/descent metrics. Use the painted
+        // glyph box approximation here so tight producer cell clips do not look like partial text.
+        const double approximateAscentFactor = 0.8D;
+        double width = Advance > 0D ? Advance : Text.Length * FontSize * 0.55D;
+        double height = Math.Max(1D, FontSize);
         double left = X;
-        double top = pageHeight.Value - Y - FontSize;
+        double top = pageHeight.Value - Y - FontSize * approximateAscentFactor;
         const double tolerance = 0.05D;
         return left + tolerance >= clip.X &&
                top + tolerance >= clip.Y &&
