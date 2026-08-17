@@ -5,7 +5,7 @@ This repo-local Codex plugin exposes compact OfficeIMO tools for working with lo
 The bundled STDIO MCP server runs from the versioned `OfficeIMO.Tool` package:
 
 ```powershell
-dotnet dnx OfficeIMO.Tool@3.2.2 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.2.3 mcp serve --stdio
 ```
 
 It exposes five bounded tools:
