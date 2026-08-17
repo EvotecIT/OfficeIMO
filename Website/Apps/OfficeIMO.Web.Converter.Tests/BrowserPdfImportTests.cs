@@ -80,7 +80,13 @@ public sealed class BrowserPdfImportTests {
             case "pdf-html":
                 string html = Encoding.UTF8.GetString(result.Bytes);
                 Assert.Contains("Quarterly report", html, StringComparison.Ordinal);
+                Assert.Contains("class=\"pdf-page\"", html, StringComparison.Ordinal);
                 Assert.Equal(html, result.HtmlPreview);
+                Assert.Contains("positioned PDF review reconstruction", result.ProvenanceSummary, StringComparison.Ordinal);
+                Assert.DoesNotContain("semantic PDF reconstruction", result.ProvenanceSummary, StringComparison.Ordinal);
+                using (JsonDocument report = JsonDocument.Parse(result.CompanionReport!.Bytes)) {
+                    Assert.Equal("pdf-html-positioned-review", report.RootElement.GetProperty("projection").GetString());
+                }
                 break;
             case "pdf-png":
                 Assert.Equal("image/png", result.ContentType);

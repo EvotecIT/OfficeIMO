@@ -1,5 +1,5 @@
 {
-  "schemaVersion":1,
+  "schemaVersion":2,
   "routes": [
     {
       "id":"docx-pdf",
@@ -12,6 +12,9 @@
       "api":"WordDocument.Load(stream).ToPdfDocumentResult(options)",
       "description":"Convert a Word document into a fixed-layout PDF with diagnostics.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Advanced",
+      "supportEvidence":"Realistic DOCX fixtures cover paragraphs, lists, tables, drawings, pagination, tagged output, portable fonts, and deterministic conversion reports.",
+      "knownLimitations":"Complex floating layout, advanced DrawingML, SmartArt, field behavior, and exact Microsoft Word pagination are not fully reproduced.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -27,6 +30,9 @@
       "api":"ExcelDocument.Load(stream).ToPdfDocumentResult(options)",
       "description":"Render workbook sheets with layout and conversion diagnostics.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Advanced",
+      "supportEvidence":"Structured workbook fixtures cover tables, values, formulas, styles, print layout, pagination, tagged output, and deterministic diagnostics.",
+      "knownLimitations":"Pivot tables, advanced conditional formatting, charts, external links, and exact Excel print-layout behavior remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -42,6 +48,9 @@
       "api":"PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)",
       "description":"Render presentation slides into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Advanced",
+      "supportEvidence":"Slide fixtures cover text, tables, basic shapes, images, charts, themes, page geometry, tagged output, and deterministic diagnostics.",
+      "knownLimitations":"SmartArt, animation, media playback, advanced effects, uncommon DrawingML, and exact PowerPoint composition remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -57,6 +66,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
       "description":"Render bounded HTML and CSS into a tagged PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative HTML documents cover headings, lists, tables, links, images, pagination, tagged output, portable fonts, and conversion reports.",
+      "knownLimitations":"The renderer supports bounded HTML and CSS, not a full browser layout engine; scripts, dynamic layout, and advanced CSS are intentionally unsupported.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -72,6 +84,9 @@
       "api":"MarkdownRenderer.RenderBodyHtml(markdown, options)",
       "description":"Render typed Markdown through an explicit safe HTML profile.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Typed Markdown fixtures cover common block and inline constructs, safe profiles, deterministic HTML, and explicit diagnostics.",
+      "knownLimitations":"Raw HTML, extension-specific syntax, and browser-dependent styling are governed by the selected safety and rendering profile.",
       "resultContract":"string",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -87,6 +102,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)",
       "description":"Project HTML into portable Markdown with explicit resource and loss policy.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative HTML fixtures cover portable text structure, lists, tables, links, resources, and deterministic loss reporting.",
+      "knownLimitations":"CSS layout, scripting, arbitrary embedded content, and presentation-only markup are simplified or omitted.",
       "resultContract":"HtmlToMarkdownResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -102,6 +120,9 @@
       "api":"MarkdownReader.Parse(markdown).ToWordDocumentResult(options)",
       "description":"Create an editable Word document from typed Markdown.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative Markdown fixtures reopen as editable DOCX and verify headings, paragraphs, lists, tables, links, and images with diagnostics.",
+      "knownLimitations":"Raw HTML, extension-specific syntax, and constructs without a Word equivalent may be simplified.",
       "resultContract":"MarkdownToWordResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -117,6 +138,9 @@
       "api":"WordDocument.Load(stream).ToHtmlResult(options)",
       "description":"Project a Word document into reviewable HTML.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
+      "knownLimitations":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output.",
       "resultContract":"HtmlTextConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -132,6 +156,9 @@
       "api":"WordDocument.Load(stream).ToMarkdownDocumentResult(options)",
       "description":"Convert a Word document into portable Markdown for editing, publishing, or version control.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
+      "knownLimitations":"Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output.",
       "resultContract":"WordToMarkdownResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -147,6 +174,9 @@
       "api":"WordDocument.Load(stream).ToOpenDocumentResult(options)",
       "description":"Convert editable Word content to OpenDocument Text.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
+      "knownLimitations":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete.",
       "resultContract":"OdfConversionResult<OdtDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -162,6 +192,9 @@
       "api":"OdtDocument.Load(stream).ToWordDocumentResult(options)",
       "description":"Convert OpenDocument Text into an editable Word document.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify common paragraphs, runs, lists, tables, links, and basic images with explicit approximation diagnostics.",
+      "knownLimitations":"Fields, notes, section-specific layout, advanced drawings, nested styles, and producer-specific extensions remain incomplete.",
       "resultContract":"OdfConversionResult<WordDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -177,6 +210,9 @@
       "api":"WordDocument.Load(stream).ToRtfDocumentResult()",
       "description":"Convert editable Word content to semantic RTF.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"RtfConversionResult<RtfDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -192,6 +228,9 @@
       "api":"RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)",
       "description":"Convert bounded RTF into an editable Word document while retaining read and conversion diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"RtfConversionResult<WordDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -207,6 +246,9 @@
       "api":"ExcelDocument.Load(stream).ToHtmlResult(options)",
       "description":"Project workbook content into reviewable HTML.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative workbooks verify sheets, values, formulas, tables, and styles in deterministic review HTML.",
+      "knownLimitations":"Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML.",
       "resultContract":"HtmlTextConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -222,6 +264,9 @@
       "api":"ExcelDocument.Load(stream).ToOpenDocumentResult(options)",
       "description":"Convert an editable workbook to OpenDocument Spreadsheet.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
+      "knownLimitations":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete.",
       "resultContract":"OdfConversionResult<OdsDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -237,6 +282,9 @@
       "api":"OdsDocument.Load(stream).ToExcelDocumentResult(options)",
       "description":"Convert OpenDocument Spreadsheet into an editable workbook.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify typed values, formulas, annotations, basic styles, tables, and validation subsets with diagnostics.",
+      "knownLimitations":"Advanced validation, conditional formatting, charts, pivots, external links, macros, and complex styles remain incomplete.",
       "resultContract":"OdfConversionResult<ExcelDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -252,6 +300,9 @@
       "api":"PowerPointPresentation.Load(stream).ToHtmlResult(options)",
       "description":"Project presentation slides into reviewable HTML.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative presentations verify slide order, text, tables, images, and geometry hints in deterministic review HTML.",
+      "knownLimitations":"The result is review HTML rather than a slide renderer; animations, media, SmartArt, and advanced effects are simplified.",
       "resultContract":"PowerPointToHtmlResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -267,6 +318,9 @@
       "api":"PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)",
       "description":"Convert an editable presentation to OpenDocument Presentation.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
+      "knownLimitations":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete.",
       "resultContract":"OdfConversionResult<OdpPresentation>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -282,6 +336,9 @@
       "api":"OdpPresentation.Load(stream).ToPowerPointPresentationResult(options)",
       "description":"Convert OpenDocument Presentation into an editable presentation.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify common slide text, tables, basic shapes, images, and page geometry with explicit approximation diagnostics.",
+      "knownLimitations":"Masters, advanced DrawingML, SmartArt, media, transitions, animations, and theme inheritance remain incomplete.",
       "resultContract":"OdfConversionResult<PowerPointPresentation>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -297,6 +354,9 @@
       "api":"MarkdownReader.Parse(markdown).ToPdfDocumentResult(options)",
       "description":"Render Markdown into PDF with structured conversion warnings.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Established",
+      "supportEvidence":"Typed Markdown fixtures cover common structure, pagination, tagged PDF output, portable fonts, and conversion diagnostics.",
+      "knownLimitations":"Raw HTML and extension-specific constructs are bounded by the Markdown profile and the managed PDF layout engine.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -312,6 +372,9 @@
       "api":"RtfDocument.Load(stream, readOptions).Document.ToMarkdownResult(options)",
       "description":"Project bounded RTF into portable Markdown.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"RtfConversionResult<string>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -327,6 +390,9 @@
       "api":"RtfDocument.Load(stream, readOptions).Document.ToPdfDocumentResult(options)",
       "description":"Render bounded RTF into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -342,6 +408,9 @@
       "api":"MarkdownReader.Parse(markdown).ToRtfDocumentResult(options)",
       "description":"Convert typed Markdown into semantic RTF with loss diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"RtfConversionResult<RtfDocument>",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -357,6 +426,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToWordDocumentResult(options)",
       "description":"Convert bounded HTML into an editable Word document.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative bounded HTML fixtures reopen in the destination format and verify native text, tables, links, and deterministic diagnostics.",
+      "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"HtmlToWordResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -372,6 +444,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToExcelDocumentResult(options)",
       "description":"Convert bounded HTML tables and content into an editable workbook.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative bounded HTML fixtures reopen in the destination format and verify native text, tables, links, and deterministic diagnostics.",
+      "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"HtmlToExcelResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -387,6 +462,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(options)",
       "description":"Convert bounded HTML into an editable presentation.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative bounded HTML fixtures reopen in the destination format and verify native text, tables, links, and deterministic diagnostics.",
+      "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"HtmlToPowerPointResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -402,6 +480,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options)",
       "description":"Convert bounded HTML into semantic RTF.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Representative bounded HTML fixtures reopen in the destination format and verify native text, tables, links, and deterministic diagnostics.",
+      "knownLimitations":"CSS layout, scripts, complex web components, and constructs without a native destination equivalent are simplified or omitted.",
       "resultContract":"HtmlToRtfResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -417,6 +498,9 @@
       "api":"RtfDocument.Load(stream, readOptions).Document.ToHtmlResult(options)",
       "description":"Render bounded RTF through an explicit safe HTML profile.",
       "fidelity":"Semantic",
+      "supportLevel":"Established",
+      "supportEvidence":"Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
+      "knownLimitations":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported.",
       "resultContract":"RtfToHtmlResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -432,6 +516,9 @@
       "api":"AsciiDocDocument.Parse(source).Document.ToMarkdownDocumentResult(options)",
       "description":"Project AsciiDoc into typed Markdown with diagnostics.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded AsciiDoc subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"AsciiDocToMarkdownResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -447,6 +534,9 @@
       "api":"MarkdownReader.Parse(markdown).ToAsciiDocDocumentResult(options)",
       "description":"Project typed Markdown into canonical AsciiDoc with diagnostics.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded AsciiDoc subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"MarkdownToAsciiDocResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -462,6 +552,9 @@
       "api":"AsciiDocDocument.Parse(source).Document.ToPdfDocumentResult(options)",
       "description":"Render bounded AsciiDoc into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded AsciiDoc subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Includes, extensions, macros, complex attributes, custom processors, and unsupported inline or block syntax are not a full AsciiDoc implementation.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -477,6 +570,9 @@
       "api":"LatexDocument.Parse(source).Document.ToMarkdownDocumentResult(options)",
       "description":"Project LaTeX into typed Markdown with diagnostics.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded LaTeX subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"LatexToMarkdownResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -492,6 +588,9 @@
       "api":"MarkdownReader.Parse(markdown).ToLatexDocumentResult(options)",
       "description":"Project typed Markdown into canonical LaTeX with diagnostics.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded LaTeX subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"MarkdownToLatexResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -507,6 +606,9 @@
       "api":"LatexDocument.Parse(source).Document.ToPdfDocumentResult(options)",
       "description":"Render bounded LaTeX into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed fixtures verify the documented bounded LaTeX subset, deterministic output, and explicit diagnostics.",
+      "knownLimitations":"Macro expansion, package execution, TeX layout, arbitrary mathematics, and unsupported environments are intentionally outside the managed subset.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -522,6 +624,9 @@
       "api":"section.ToHtmlDocumentResult(projectionOptions, htmlOptions)",
       "description":"Project a OneNote section into reviewable HTML.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"HtmlTextConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -537,6 +642,9 @@
       "api":"HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(options)",
       "description":"Convert bounded HTML into an editable OneNote section model.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"HtmlToOneNoteSectionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -552,6 +660,9 @@
       "api":"section.ToMarkdownDocumentResult(options)",
       "description":"Project a OneNote section into typed Markdown.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"OneNoteMarkdownConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -567,6 +678,9 @@
       "api":"section.ToPdfDocumentResult(options)",
       "description":"Render a OneNote section into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed section-model fixtures verify common page text, hierarchy, tables, images, and deterministic projection diagnostics.",
+      "knownLimitations":"The API targets the OfficeIMO section model; full .one binary fidelity, ink, embedded files, rich positioning, and OneNote application rendering remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -582,6 +696,9 @@
       "api":"OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
       "description":"Render OpenDocument Text into a fixed-layout PDF with source diagnostics.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -597,6 +714,9 @@
       "api":"OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
       "description":"Render an OpenDocument spreadsheet into a fixed-layout PDF with source diagnostics.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -612,6 +732,9 @@
       "api":"OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
       "description":"Render an OpenDocument presentation into a fixed-layout PDF with source diagnostics.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Representative OpenDocument fixtures verify the supported typed model, fixed-layout output, and source diagnostics.",
+      "knownLimitations":"Inherited styles, advanced drawings, charts, media, nested inline syntax, and exact office-suite pagination remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -627,6 +750,9 @@
       "api":"PdfDocument.Open(stream).ToWordDocumentResult(options)",
       "description":"Import PDF logical content into an editable Word document with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify parser-supported text, headings, lists, and detected tables in an editable Word document with loss diagnostics.",
+      "knownLimitations":"This is semantic reconstruction, not page-layout recovery; scans need OCR and complex graphics, columns, clipping, annotations, and exact pagination are not preserved.",
       "resultContract":"PdfWordConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -642,6 +768,9 @@
       "api":"PdfDocument.Open(stream).ImportTablesToExcelDocumentResult(options)",
       "description":"Import detected PDF tables into an editable workbook with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify detected PDF tables as editable worksheet cells with source-page evidence and loss diagnostics.",
+      "knownLimitations":"Only table-shaped content is in scope; arbitrary page layout, charts, free text, scans without OCR, and workbook formulas are not reconstructed.",
       "resultContract":"PdfExcelTableImportResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -657,6 +786,9 @@
       "api":"PdfDocument.Open(stream).ToPowerPointPresentationResult(options)",
       "description":"Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Established",
+      "supportEvidence":"Reopen tests verify explicit editable, tables-only, hybrid, and visual page modes with native objects, pixel-pinned visual fallback, and loss reports.",
+      "knownLimitations":"Editable reconstruction is bounded to supported text, tables, basic shapes, and images; complex graphics, clipping, reading order, and effects remain incomplete.",
       "resultContract":"PdfPowerPointConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -670,8 +802,11 @@
       "targetExtension":".html",
       "packageId":"OfficeIMO.Html.Pdf",
       "api":"PdfDocument.Open(stream).ToHtmlResult(options)",
-      "description":"Project PDF logical content into reviewable HTML.",
+      "description":"Project PDF content into semantic or positioned-review HTML with explicit diagnostics.",
       "fidelity":"Semantic",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Semantic and positioned-review profiles verify readable text, detected tables, page geometry hints, images, links, forms, and deterministic diagnostics.",
+      "knownLimitations":"The result is review HTML, not a full PDF renderer; complex graphics, optional content, scans without OCR, and pixel-perfect composition are not preserved.",
       "resultContract":"PdfHtmlConversionResult",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -687,6 +822,9 @@
       "api":"PdfDocument.Open(stream).Read.ExportImages(OfficeImageExportFormat.Png, options)",
       "description":"Render every PDF page as a detailed PNG with page-level diagnostics; multi-page results are packaged as a ZIP.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Advanced",
+      "supportEvidence":"Pixel-pinned page-render tests cover text, drawings, tables, images, portable fonts, and deterministic multi-page packaging.",
+      "knownLimitations":"Type 3 glyph programs, advanced color profiles, patterns, masks, transparency groups, optional content, and scanned-text OCR remain incomplete.",
       "resultContract":"IReadOnlyList<OfficeImageExportResult>",
       "browserAvailable":true,
       "agentDiscoverable":true
@@ -702,6 +840,9 @@
       "api":"PdfDocument.Open(stream).ToRtfDocumentResult(options)",
       "description":"Import PDF logical content into semantic RTF with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify parser-supported logical text and basic structure in an editable text-document destination with loss diagnostics.",
+      "knownLimitations":"Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed.",
       "resultContract":"PdfRtfConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -717,6 +858,9 @@
       "api":"PdfDocument.Open(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)",
       "description":"Import PDF logical content into OpenDocument Text with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify parser-supported logical text and basic structure in an editable text-document destination with loss diagnostics.",
+      "knownLimitations":"Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed.",
       "resultContract":"PdfOdtConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -732,6 +876,9 @@
       "api":"PdfDocument.Open(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)",
       "description":"Import detected PDF tables into an OpenDocument spreadsheet with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify detected tables as editable OpenDocument spreadsheet cells with source-page diagnostics.",
+      "knownLimitations":"Only table-shaped content is in scope; arbitrary layout, charts, formulas, and scans without OCR are not reconstructed.",
       "resultContract":"PdfOdsConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -747,6 +894,9 @@
       "api":"PdfDocument.Open(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)",
       "description":"Import PDF pages into an OpenDocument presentation profile with diagnostics.",
       "fidelity":"Editable",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Reopen tests verify bounded PDF page content in an editable OpenDocument presentation profile with explicit loss diagnostics.",
+      "knownLimitations":"Complex graphics, clipping, reading order, effects, annotations, and exact visual reconstruction remain incomplete.",
       "resultContract":"PdfOdpConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -762,6 +912,9 @@
       "api":"MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
       "description":"Render a bounded MHTML archive into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Bounded archive fixtures verify MIME resource resolution, safe HTML projection, PDF output, and deterministic diagnostics.",
+      "knownLimitations":"Scripts, remote execution, browser-only layout, malformed multipart edge cases, and advanced CSS are not a full browser/MHTML engine.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true
@@ -777,6 +930,9 @@
       "api":"VisioDocument.Load(stream).ToPdfDocumentResult(options)",
       "description":"Render a Visio drawing into a fixed-layout PDF.",
       "fidelity":"FixedLayout",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Typed drawing fixtures verify supported pages, shapes, connectors, text, geometry, and fixed-layout diagnostics.",
+      "knownLimitations":"Advanced masters, data graphics, themes, layers, embedded objects, and exact Visio rendering remain incomplete.",
       "resultContract":"PdfDocumentConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true

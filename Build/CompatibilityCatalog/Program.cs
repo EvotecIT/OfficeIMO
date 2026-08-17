@@ -12,6 +12,10 @@ string outputDirectory = GetOption(args, "--output")
 string websiteDataPath = GetOption(args, "--website-data")
     ?? Path.Combine(Directory.GetCurrentDirectory(), "Website", "data", "office_conversion_routes.json");
 bool verify = args.Contains("--verify", StringComparer.OrdinalIgnoreCase);
+string converterSamplePath = GetOption(args, "--converter-sample")
+    ?? Path.Combine(
+        Directory.GetCurrentDirectory(),
+        "Website", "Apps", "OfficeIMO.Web.Converter", "wwwroot", "samples", "conversion-proof.pptx");
 
 var capabilityCatalogs = new (string Name, OfficeCapabilityCatalog Catalog)[] {
     ("word-legacy-doc", WordCompatibilityCatalog.Current),
@@ -47,7 +51,12 @@ if (verify) {
         Environment.ExitCode = 1;
         return;
     }
-    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts and website route data.");
+    if (!VerifyConverterPowerPointSample(converterSamplePath, out string sampleError)) {
+        Console.Error.WriteLine("Converter proof sample is missing or stale: " + sampleError);
+        Environment.ExitCode = 1;
+        return;
+    }
+    Console.WriteLine($"Verified {outputs.Count} compatibility catalog artifacts, website route data, and the converter proof sample.");
     return;
 }
 
@@ -58,6 +67,7 @@ foreach ((string fileName, string content) in outputs) {
 string? websiteDataDirectory = Path.GetDirectoryName(websiteDataPath);
 if (!string.IsNullOrEmpty(websiteDataDirectory)) Directory.CreateDirectory(websiteDataDirectory);
 File.WriteAllText(websiteDataPath, Normalize(outputs["conversion-routes.json"]), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+GenerateConverterPowerPointSample(converterSamplePath);
 Console.WriteLine($"Generated {outputs.Count} compatibility catalog artifacts in {Path.GetFullPath(outputDirectory)}.");
 
 static string SerializeFormats() {
@@ -91,15 +101,15 @@ static string CreateReadme(IEnumerable<(string Name, OfficeCapabilityCatalog Cat
     markdown.AppendLine("Regenerate:");
     markdown.AppendLine();
     markdown.AppendLine("```powershell");
-    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated");
+    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --converter-sample Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/conversion-proof.pptx");
     markdown.AppendLine("```");
     markdown.AppendLine();
-    markdown.AppendLine("Use the [conversion route catalog](conversion-routes.md) to find the focused package, representative API, fidelity model, browser availability, and result type for each route.");
+    markdown.AppendLine("Use the [conversion route catalog](conversion-routes.md) to find the focused package, output model, proven support level, known limits, browser availability, and result type for each route.");
     markdown.AppendLine();
     markdown.AppendLine("Verify:");
     markdown.AppendLine();
     markdown.AppendLine("```powershell");
-    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --verify");
+    markdown.AppendLine("dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --converter-sample Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/conversion-proof.pptx --verify");
     markdown.AppendLine("```");
     markdown.AppendLine();
     markdown.AppendLine("| Contract | Schema | Rows | JSON | Markdown |");
@@ -123,6 +133,153 @@ static string? GetOption(string[] values, string name) {
         return values[index + 1];
     }
     return null;
+}
+
+static void GenerateConverterPowerPointSample(string outputPath) {
+    string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+    if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+
+    using PowerPointPresentation presentation = PowerPointPresentation.Create(outputPath);
+    presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
+
+    PowerPointSlide overview = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+    AddText(overview, "OfficeIMO conversion proof", 42, 28, 650, 46, 28, bold: true, color: "17324D");
+    AddText(overview, "Editable PowerPoint content rendered locally to PDF", 42, 76, 650, 26, 14, color: "52657A");
+    AddMetric(
+        overview,
+        OfficeConversionCapabilityCatalog.BrowserRoutes.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        "browser routes",
+        42,
+        126,
+        "E8F0FF",
+        "2563EB");
+    AddMetric(overview, "100%", "local processing", 244, 126, "E9F8F0", "07875B");
+    AddMetric(overview, "0", "server uploads", 446, 126, "FFF2E8", "C2410C");
+
+    PowerPointTable table = overview.AddTablePoints(4, 3, 42, 252, 646, 190);
+    table.GetCell(0, 0).Text = "Workstream";
+    table.GetCell(0, 1).Text = "Owner";
+    table.GetCell(0, 2).Text = "Status";
+    table.GetCell(1, 0).Text = "PDF rendering";
+    table.GetCell(1, 1).Text = "Drawing core";
+    table.GetCell(1, 2).Text = "Advanced";
+    table.GetCell(2, 0).Text = "Editable imports";
+    table.GetCell(2, 1).Text = "Format adapters";
+    table.GetCell(2, 2).Text = "Targeted";
+    table.GetCell(3, 0).Text = "Browser workbench";
+    table.GetCell(3, 1).Text = "WebAssembly";
+    table.GetCell(3, 2).Text = "Local";
+
+    PowerPointSlide chartSlide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
+    AddText(chartSlide, "Quarterly conversion volume", 42, 28, 650, 46, 28, bold: true, color: "17324D");
+    AddText(chartSlide, "Native chart data, title, axes, legend, and series", 42, 76, 650, 26, 14, color: "52657A");
+    var chartData = new OfficeChartData(
+        new[] { "Q1", "Q2", "Q3", "Q4" },
+        new[] {
+            new OfficeChartSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
+            new OfficeChartSeries("Reports", new[] { 42D, 68D, 96D, 132D })
+        });
+    PowerPointChart chart = chartSlide.AddChartPoints(
+        OfficeChartKind.ColumnClustered,
+        chartData,
+        66,
+        128,
+        600,
+        310,
+        new PowerPointChartAccessibilityOptions {
+            Name = "Quarterly conversion volume",
+            AlternativeText = "Document and report conversion volume increases from Q1 through Q4.",
+            IncludeDataSummaryInAlternativeText = true
+        });
+    chart.SetTitle("Completed conversions");
+    chart.SetLegend(OfficeChartLegendPosition.Bottom);
+
+    presentation.Save();
+}
+
+static bool VerifyConverterPowerPointSample(string inputPath, out string error) {
+    if (!File.Exists(inputPath)) {
+        error = Path.GetFullPath(inputPath);
+        return false;
+    }
+
+    try {
+        using var stream = File.OpenRead(inputPath);
+        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
+        if (presentation.Slides.Count != 2) {
+            error = $"expected 2 slides, found {presentation.Slides.Count}";
+            return false;
+        }
+        if (!presentation.Slides.Any(static slide => slide.Shapes.OfType<PowerPointTable>().Any())) {
+            error = "the table proof is absent";
+            return false;
+        }
+        if (!presentation.Slides.Any(static slide => slide.Shapes.OfType<PowerPointChart>().Any())) {
+            error = "the native chart proof is absent";
+            return false;
+        }
+
+        string[] text = presentation.Slides
+            .SelectMany(static slide => slide.TextBoxes)
+            .Select(static textBox => textBox.Text)
+            .ToArray();
+        string expectedRouteCount = OfficeConversionCapabilityCatalog.BrowserRoutes.Count
+            .ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string[] requiredText = [
+            "OfficeIMO conversion proof",
+            expectedRouteCount,
+            "browser routes",
+            "Quarterly conversion volume"
+        ];
+        string? missingText = requiredText.FirstOrDefault(required =>
+            !text.Contains(required, StringComparer.Ordinal));
+        if (missingText is not null) {
+            error = $"required text '{missingText}' is absent";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    } catch (Exception exception) {
+        error = $"{Path.GetFullPath(inputPath)} could not be opened: {exception.Message}";
+        return false;
+    }
+}
+
+static void AddMetric(
+    PowerPointSlide slide,
+    string value,
+    string label,
+    double left,
+    double top,
+    string fill,
+    string accent) {
+    PowerPointAutoShape card = slide.AddRectanglePoints(left, top, 180, 92, label);
+    card.FillColor = fill;
+    card.OutlineColor = accent;
+    card.OutlineWidthPoints = 1.25;
+    AddText(slide, value, left + 14, top + 12, 150, 34, 24, bold: true, color: accent);
+    AddText(slide, label, left + 14, top + 52, 150, 24, 12, color: "52657A");
+}
+
+static PowerPointTextBox AddText(
+    PowerPointSlide slide,
+    string text,
+    double left,
+    double top,
+    double width,
+    double height,
+    int fontSize,
+    bool bold = false,
+    string color = "17324D") {
+    PowerPointTextBox box = slide.AddTextBoxPoints(text, left, top, width, height);
+    box.FontName = "Carlito";
+    box.FontSize = fontSize;
+    box.Bold = bold;
+    box.Color = color;
+    box.SetTextMarginsPoints(0, 0, 0, 0);
+    box.TextAutoFit = PowerPointTextAutoFit.Normal;
+    return box;
 }
 
 static string EnsureFinalNewline(string value) => Normalize(value).TrimEnd('\n') + "\n";

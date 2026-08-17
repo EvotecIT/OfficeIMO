@@ -19,6 +19,6 @@
     { "routeId": "pdf-docx", "slug": "pdf-to-word", "title": "PDF to DOCX", "summary": "Import PDF logical content into an editable Word document with diagnostics." },
     { "routeId": "pdf-xlsx", "slug": "pdf-tables-to-excel", "title": "PDF to XLSX", "summary": "Import detected PDF tables into an editable workbook with diagnostics." },
     { "routeId": "pdf-pptx", "slug": "pdf-to-powerpoint", "title": "PDF to PPTX", "summary": "Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics." },
-    { "routeId": "pdf-html", "slug": "pdf-to-html", "title": "PDF to HTML", "summary": "Project PDF logical content into reviewable HTML." }
+    { "routeId": "pdf-html", "slug": "pdf-to-html", "title": "PDF to HTML", "summary": "Project PDF content into semantic or positioned-review HTML with explicit diagnostics." }
   ]
 }

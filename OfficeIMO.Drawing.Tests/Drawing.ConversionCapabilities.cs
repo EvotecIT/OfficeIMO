@@ -5,6 +5,27 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingConversionCapabilities {
     [Fact]
+    public void CapabilityCatalog_PreservesTheOriginalPublicConstructorSignature() {
+        Type[] originalParameters = [
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionInputKind),
+            typeof(IEnumerable<string>),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(string),
+            typeof(OfficeConversionFidelityKind),
+            typeof(string),
+            typeof(bool),
+            typeof(bool)
+        ];
+
+        Assert.NotNull(typeof(OfficeConversionCapability).GetConstructor(originalParameters));
+    }
+
+    [Fact]
     public void SharedCatalog_HasStableUniqueRoutesAndNormalizedExtensions() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count,
             OfficeConversionCapabilityCatalog.All.Select(static route => route.Id).Distinct(StringComparer.Ordinal).Count());
@@ -30,7 +51,13 @@ public sealed class DrawingConversionCapabilities {
             Assert.StartsWith(".", route.TargetExtension, StringComparison.Ordinal);
             Assert.False(string.IsNullOrWhiteSpace(route.PackageId));
             Assert.False(string.IsNullOrWhiteSpace(route.ResultContract));
+            Assert.False(string.IsNullOrWhiteSpace(route.SupportEvidence));
+            Assert.False(string.IsNullOrWhiteSpace(route.KnownLimitations));
         });
+        Assert.DoesNotContain(
+            OfficeConversionCapabilityCatalog.All,
+            static route => route.SupportLevel == OfficeConversionSupportLevel.ReferenceVerified);
+        Assert.Equal(4, OfficeConversionCapabilityCatalog.All.Count(static route => route.SupportLevel == OfficeConversionSupportLevel.Advanced));
     }
 
     [Theory]
@@ -65,7 +92,23 @@ public sealed class DrawingConversionCapabilities {
         Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf |", first, StringComparison.Ordinal);
         Assert.Contains("PdfDocumentConversionResult", first, StringComparison.Ordinal);
         Assert.Contains("What it does", first, StringComparison.Ordinal);
+        Assert.Contains("| Support | Evidence | Known limits |", first, StringComparison.Ordinal);
+        Assert.Contains("| docx-pdf | DOCX | PDF | OfficeIMO.Word.Pdf | FixedLayout | Advanced |", first, StringComparison.Ordinal);
         Assert.DoesNotContain("RtfDocument.Parse", first, StringComparison.Ordinal);
         Assert.Contains("RtfDocument.Load(stream, readOptions).ToWordDocumentResult(sourcePath)", first, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SharedCatalog_SeparatesOutputModelFromSupportDepth() {
+        OfficeConversionCapability pdfToWord = Assert.IsType<OfficeConversionCapability>(
+            OfficeConversionCapabilityCatalog.Find("pdf-docx"));
+        OfficeConversionCapability pdfToPng = Assert.IsType<OfficeConversionCapability>(
+            OfficeConversionCapabilityCatalog.Find("pdf-png"));
+
+        Assert.Equal(OfficeConversionFidelityKind.Editable, pdfToWord.Fidelity);
+        Assert.Equal(OfficeConversionSupportLevel.Targeted, pdfToWord.SupportLevel);
+        Assert.Equal(OfficeConversionFidelityKind.FixedLayout, pdfToPng.Fidelity);
+        Assert.Equal(OfficeConversionSupportLevel.Advanced, pdfToPng.SupportLevel);
+        Assert.Contains("not page-layout recovery", pdfToWord.KnownLimitations, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -25,10 +25,16 @@ public sealed class BrowserConversionServiceTests {
             Assert.False(string.IsNullOrWhiteSpace(route.Source));
             Assert.False(string.IsNullOrWhiteSpace(route.Target));
             Assert.False(string.IsNullOrWhiteSpace(route.EnginePath));
+            Assert.False(string.IsNullOrWhiteSpace(route.SupportLabel));
+            Assert.False(string.IsNullOrWhiteSpace(route.KnownLimitations));
         });
         Assert.Equal(
             OfficeConversionCapabilityCatalog.BrowserRoutes.Select(static route => route.Id),
             ConversionRouteCatalog.All.Select(static route => route.Id));
+        Assert.Equal("Advanced support", ConversionRouteCatalog.Find("pptx-pdf").SupportLabel);
+        Assert.Equal("Targeted support", ConversionRouteCatalog.Find("pdf-html").SupportLabel);
+        Assert.Equal("PDF to review HTML", ConversionRouteCatalog.Find("pdf-html").Title);
+        Assert.Equal("Positioned review projection", ConversionRouteCatalog.Find("pdf-html").OutputModel);
     }
 
     [Fact]
@@ -649,6 +655,32 @@ public sealed class BrowserConversionServiceTests {
         BrowserConversionArtifact report = Assert.IsType<BrowserConversionArtifact>(result.CompanionReport);
         Assert.Equal("readiness.conversion.json", report.FileName);
         Assert.Contains("OfficeIMO.PowerPoint.Pdf", Encoding.UTF8.GetString(report.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PowerPointSample_ProvesVisibleMultiFeaturePdfOutput() {
+        string samplePath = Path.Combine(AppContext.BaseDirectory, "samples", "conversion-proof.pptx");
+        byte[] bytes = File.ReadAllBytes(samplePath);
+        using (PowerPointPresentation presentation = PowerPointPresentation.Load(new MemoryStream(bytes))) {
+            Assert.Equal(2, presentation.Slides.Count);
+            Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointTable>().Any());
+            Assert.Contains(presentation.Slides, slide => slide.Shapes.OfType<PowerPointChart>().Any());
+        }
+
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("pptx-pdf"),
+            new SelectedDocument("OfficeIMO-Conversion-Proof.pptx", ".pptx", "PPTX", bytes.LongLength, bytes),
+            limitExcelRows: false);
+
+        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        Assert.Equal(2, pdf.Pages.Count);
+        string text = pdf.ExtractText();
+        Assert.Contains("OfficeIMO conversion proof", text, StringComparison.Ordinal);
+        Assert.Contains("Browser workbench", text, StringComparison.Ordinal);
+        Assert.Contains("Quarterly conversion volume", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.StructuredWarnings, warning => warning.Code == "invalid-shape-bounds");
+        Assert.DoesNotContain(result.StructuredWarnings, warning => warning.Code == "text-box-overflow");
+        Assert.True(result.Bytes.Length > 10_000, "The showcase PDF should contain visible page content, not an empty shell.");
     }
 
     private static byte[] CreateBusinessDocument() {

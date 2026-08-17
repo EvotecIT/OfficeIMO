@@ -13,6 +13,7 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Expand cross-producer fixture corpora with producer/version provenance and stable package or semantic diff policies.
 - [ ] Add reproducible correctness, file-size, elapsed-time, peak-memory, allocation, cancellation, and deterministic-output evidence for representative workloads on every supported operating system.
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
+- [ ] Promote conversion routes from Targeted to Established, Advanced, or ReferenceVerified only when the owning package adds the required reopen, realistic-fixture, visual or structural regression, and independent-producer evidence. Prioritize reverse PDF adapters, OpenDocument bridges, and OneNote, AsciiDoc, LaTeX, MHTML, and Visio routes that remain Targeted in the generated conversion catalog.
 
 ## PDF engine and conversion fidelity
 

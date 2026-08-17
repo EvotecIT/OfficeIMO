@@ -801,6 +801,36 @@
   box-shadow: 0 22px 58px rgba(20, 33, 58, 0.12);
 }
 
+.ocx-route-contract {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--ocx-border);
+  background: color-mix(in srgb, var(--ocx-blue) 3%, var(--ocx-panel));
+}
+
+.ocx-route-contract > div { display: grid; gap: 0.18rem; }
+.ocx-route-contract strong { font-size: 0.84rem; }
+.ocx-route-contract span,
+.ocx-route-contract small { color: var(--ocx-muted); font-size: 0.72rem; line-height: 1.42; }
+.ocx-route-contract small b { color: var(--ocx-text); }
+
+.ocx-support-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--ocx-blue) 24%, var(--ocx-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ocx-blue) 8%, var(--ocx-panel));
+  color: var(--ocx-blue) !important;
+  font-size: 0.66rem !important;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .ocx-workspace {
   position: relative;
   grid-template-columns: repeat(2, minmax(0, 1fr));

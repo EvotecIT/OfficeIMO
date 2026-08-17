@@ -7,6 +7,7 @@
         <th>Conversion</th>
         <th>Package</th>
         <th>Output model</th>
+        <th>Support</th>
         <th>Where it runs</th>
         <th>Result type</th>
       </tr>
@@ -17,6 +18,7 @@
 <td><strong>{{ route.source }} to {{ route.target }}</strong><br><small>{{ route.description }}</small></td>
 <td><code>{{ route.packageId }}</code></td>
 <td>{{ if route.fidelity == "FixedLayout" }}Fixed layout{{ else if route.fidelity == "Editable" }}Editable document{{ else }}Semantic content{{ end }}</td>
+<td><strong>{{ route.supportLevel }}</strong><br><small>{{ route.supportEvidence }} Known limits: {{ route.knownLimitations }}</small></td>
 <td>{{ if route.browserAvailable }}Browser or .NET{{ else }}.NET application{{ end }}</td>
 <td><code>{{ route.resultContract | html.escape }}</code></td>
 </tr>
