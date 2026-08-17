@@ -97,6 +97,7 @@ public static partial class PowerPointPdfConverterExtensions {
             AddEditablePageWarnings(
                 warnings,
                 page.PageNumber,
+                textImport.Omitted,
                 omittedVectors,
                 imageImport.Omitted,
                 shapeImport.LimitReached || imageImport.LimitReached || textImport.LimitReached || tableImport.LimitReached);
@@ -299,6 +300,10 @@ public static partial class PowerPointPdfConverterExtensions {
         bool limitReached = false;
         for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
+            if (!CanReconstructEditableTextBlock(block, page.Height)) {
+                omitted++;
+                continue;
+            }
             if (IsTextInsideTable(block, tables)) continue;
             if (imported >= limit) {
                 omitted++;
@@ -337,6 +342,12 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         return new EditableImportCount(imported, omitted, limitReached);
     }
+
+    private static bool CanReconstructEditableTextBlock(
+        PdfCore.PdfLogicalTextBlock block,
+        double pageHeight) =>
+        block.Spans.Count > 0 &&
+        block.Spans.All(span => span.CanProjectCompleteText(pageHeight));
 
     private static void ApplyEditableTextRuns(
         PptCore.PowerPointTextBox textBox,
@@ -527,10 +538,19 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void AddEditablePageWarnings(
         ICollection<PdfCore.PdfConversionWarning> warnings,
         int pageNumber,
+        int omittedText,
         int omittedVectors,
         int omittedImages,
         bool limitReached) {
         string source = "PDF page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (omittedText > 0) {
+            warnings.Add(CreateEditableOmissionWarning(
+                "PdfTextNotReconstructed",
+                source,
+                "Text blocks",
+                omittedText,
+                pageNumber));
+        }
         if (omittedVectors > 0) {
             warnings.Add(CreateEditableOmissionWarning(
                 "PdfVectorsNotReconstructed",

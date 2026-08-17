@@ -255,8 +255,9 @@ public sealed class PdfPowerPointConversionReport {
     /// <summary>Gets whether source content exists outside editable table overlays, even when retained in the hybrid visual layer.</summary>
     public bool HasNonEditablePageContent => SourceScope?.HasOmittedPageContent == true;
 
-    /// <summary>Gets whether table reconstruction truncated data or visual rendering reported a failure/simplification.</summary>
+    /// <summary>Gets whether the selected projection omitted, truncated, simplified, or failed to render source content.</summary>
     public bool HasLoss =>
+        _hasOmittedPageContent ||
         TableEntries.Any(static entry => entry.Truncated) ||
         EditablePages.Any(static page => page.HasOmittedContent) ||
         VisualPages.Any(static page =>

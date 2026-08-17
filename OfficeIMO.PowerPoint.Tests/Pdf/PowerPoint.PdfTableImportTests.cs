@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests;
 
 public class PowerPointPdfTableImportTests {
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_DefaultsToOneVisualSlidePerPage() {
+    public void PdfDocument_ToPowerPointPresentation_VisualProfileCreatesOnePageImagePerSlide() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 360,
                 PageHeight = 240,
@@ -26,7 +26,8 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(pdf);
-        PdfPowerPointConversionResult result = opened.ToPowerPointPresentationResult();
+        PdfPowerPointConversionResult result = opened.ToPowerPointPresentationResult(
+            PdfPowerPointImportOptions.CreateVisualPages());
 
         Assert.Equal(PdfPowerPointImportMode.VisualPages, result.Report.Mode);
         Assert.Equal(new[] { 1, 2 }, result.Report.VisualPages.Select(page => page.PageNumber).ToArray());
@@ -49,7 +50,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_EditableContentCreatesNativeTextAndTableObjects() {
+    public void PdfDocument_ToPowerPointPresentation_DefaultCreatesNativeEditableObjects() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
@@ -72,8 +73,10 @@ public class PowerPointPdfTableImportTests {
             })
             .ToBytes();
 
+        Assert.Equal(PdfPowerPointImportMode.Auto, new PdfPowerPointImportOptions().Mode);
+
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
-            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+            .ToPowerPointPresentationResult();
 
         Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.Mode);
         PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
@@ -137,6 +140,7 @@ public class PowerPointPdfTableImportTests {
     [InlineData(PdfPowerPointImportMode.EditableTables)]
     [InlineData(PdfPowerPointImportMode.HybridVisualAndEditableTables)]
     [InlineData(PdfPowerPointImportMode.EditableContent)]
+    [InlineData(PdfPowerPointImportMode.Auto)]
     public void PdfDocument_ToPowerPointPresentation_EnforcesPageLimitInEveryMode(
         PdfPowerPointImportMode mode) {
         byte[] pdf = PdfCore.PdfDocument.Create()

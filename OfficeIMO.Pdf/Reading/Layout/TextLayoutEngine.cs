@@ -512,6 +512,10 @@ public static class PdfReadPageExtensions {
         }
 
         var engineOpts = options?.ToEngineOptions();
-        return ContentStructureExtractor.Extract(spans, engineOpts ?? new TextLayoutEngine.Options());
+        var (_, pageHeight) = page.GetPageSize();
+        return ContentStructureExtractor.Extract(
+            spans,
+            engineOpts ?? new TextLayoutEngine.Options(),
+            pageHeight);
     }
 }

@@ -36,8 +36,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 
 PdfDocument pdf = PdfDocument.Open("briefing.pdf");
-PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult(
-    PdfPowerPointImportOptions.CreateEditableContent());
+PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult();
 using var presentation = result.Value;
 
 File.WriteAllBytes("briefing.pptx", presentation.ToBytes());
@@ -46,7 +45,7 @@ foreach (PdfConversionWarning warning in result.Warnings) {
 }
 ```
 
-The browser defaults to editable-content reconstruction and also exposes three explicit alternatives:
+The .NET API and browser default to editable-content reconstruction. The browser also exposes three explicit alternatives:
 
 - **Editable content** creates native text boxes, detected tables, safe basic shapes, and separate supported images.
 - **Visual pages** creates one page-sized image per slide. Its text, shapes, charts, and tables are not editable.

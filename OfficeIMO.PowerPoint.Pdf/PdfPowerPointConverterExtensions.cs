@@ -23,16 +23,19 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfPowerPointImportOptions operation = options ?? new PdfPowerPointImportOptions();
-        if (operation.Mode == PdfPowerPointImportMode.EditableTables) {
+        PdfPowerPointImportMode mode = operation.Mode == PdfPowerPointImportMode.Auto
+            ? PdfPowerPointImportMode.EditableContent
+            : operation.Mode;
+        if (mode == PdfPowerPointImportMode.EditableTables) {
             PdfCore.PdfLogicalDocument logical = ReadBoundedLogicalDocument(document, operation);
             return logical.ToPowerPointPresentationResult(operation);
         }
 
-        if (operation.Mode == PdfPowerPointImportMode.HybridVisualAndEditableTables) {
+        if (mode == PdfPowerPointImportMode.HybridVisualAndEditableTables) {
             return ImportHybridPages(document, operation);
         }
 
-        if (operation.Mode == PdfPowerPointImportMode.EditableContent) {
+        if (mode == PdfPowerPointImportMode.EditableContent) {
             return ImportEditableContent(document, operation);
         }
 
@@ -164,8 +167,11 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
-        if (operation.Mode != PdfPowerPointImportMode.EditableTables) {
-            throw new InvalidOperationException("Visual PDF page import requires the opened PdfDocument so page rendering can use the original PDF bytes.");
+        if (operation.Mode != PdfPowerPointImportMode.EditableTables &&
+            operation.Mode != PdfPowerPointImportMode.Auto) {
+            throw new InvalidOperationException(
+                "The logical PDF model supports Auto (resolved to editable tables) or EditableTables. " +
+                "Visual, hybrid, and editable-content projections require the opened PdfDocument and its original page content.");
         }
         if (operation.MaxPages <= 0) {
             throw new ArgumentOutOfRangeException(nameof(operation.MaxPages), "The page limit must be positive.");

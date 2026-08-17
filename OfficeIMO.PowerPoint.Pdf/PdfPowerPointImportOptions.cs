@@ -11,15 +11,20 @@ public enum PdfPowerPointImportMode {
     /// <summary>Keeps a rendered visual page and overlays detected tables as editable PowerPoint tables.</summary>
     HybridVisualAndEditableTables,
     /// <summary>Reconstructs text, detected tables, safe vector primitives, and supported images as editable slide objects.</summary>
-    EditableContent
+    EditableContent,
+    /// <summary>
+    /// Selects the richest safe projection available from the supplied source model. An opened PDF resolves to
+    /// <see cref="EditableContent"/>; an already reduced logical PDF model resolves to <see cref="EditableTables"/>.
+    /// </summary>
+    Auto
 }
 
 /// <summary>
 /// Options for importing PDF content into a PowerPoint presentation.
 /// </summary>
 public sealed class PdfPowerPointImportOptions {
-    /// <summary>Import strategy. Defaults to one visual slide per PDF page.</summary>
-    public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.VisualPages;
+    /// <summary>Import strategy. Defaults to the richest safe projection available from the supplied source model.</summary>
+    public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.Auto;
 
     /// <summary>Optional caller-ordered page selection used by all import modes.</summary>
     public OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
@@ -38,6 +43,11 @@ public sealed class PdfPowerPointImportOptions {
 
     /// <summary>Maximum aggregate encoded PNG bytes retained by visual-page import.</summary>
     public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+
+    /// <summary>Creates the visual-page profile that places one rendered PDF page image on each slide.</summary>
+    public static PdfPowerPointImportOptions CreateVisualPages() => new PdfPowerPointImportOptions {
+        Mode = PdfPowerPointImportMode.VisualPages
+    };
 
     /// <summary>Creates the editable-table reconstruction profile.</summary>
     public static PdfPowerPointImportOptions CreateEditableTables() => new PdfPowerPointImportOptions {

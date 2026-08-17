@@ -59,4 +59,22 @@ public sealed class PdfTextSpan {
         Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
         ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance);
+
+    internal bool CanProjectCompleteText(double? pageHeight) {
+        if (!IsVisible || string.IsNullOrEmpty(Text)) return false;
+        if (!ClipPath.HasValue) return true;
+        if (!pageHeight.HasValue || Math.Abs(RotationDegrees) > 0.01D) return false;
+
+        PdfPageClipPath clip = ClipPath.Value;
+        if (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping) return false;
+        double width = Math.Max(Advance, Text.Length * FontSize * 0.55D);
+        double height = Math.Max(1D, FontSize * 1.25D);
+        double left = X;
+        double top = pageHeight.Value - Y - FontSize;
+        const double tolerance = 0.05D;
+        return left + tolerance >= clip.X &&
+               top + tolerance >= clip.Y &&
+               left + width <= clip.X + clip.Width + tolerance &&
+               top + height <= clip.Y + clip.Height + tolerance;
+    }
 }
