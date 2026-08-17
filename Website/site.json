@@ -298,7 +298,7 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "incremental",
+    "PurgeMode": "hostname",
     "SmartTieredCache": true
   },
   "EditLinks": {

@@ -677,6 +677,21 @@
       "agentDiscoverable":true
     },
     {
+      "id":"pdf-png",
+      "source":"PDF",
+      "target":"PNG",
+      "inputKind":"File",
+      "sourceExtensions":[ ".pdf" ],
+      "targetExtension":".png",
+      "packageId":"OfficeIMO.Pdf",
+      "api":"PdfDocument.Open(stream).Read.ExportImages(OfficeImageExportFormat.Png, options)",
+      "description":"Render every PDF page as a detailed PNG with page-level diagnostics; multi-page results are packaged as a ZIP.",
+      "fidelity":"FixedLayout",
+      "resultContract":"IReadOnlyList<OfficeImageExportResult>",
+      "browserAvailable":true,
+      "agentDiscoverable":true
+    },
+    {
       "id":"pdf-rtf",
       "source":"PDF",
       "target":"RTF",

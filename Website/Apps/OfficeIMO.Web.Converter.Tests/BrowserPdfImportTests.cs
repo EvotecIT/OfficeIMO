@@ -1,7 +1,9 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -22,6 +24,7 @@ public sealed class BrowserPdfImportTests {
     [InlineData("pdf-xlsx", ".xlsx")]
     [InlineData("pdf-pptx", ".pptx")]
     [InlineData("pdf-html", ".html")]
+    [InlineData("pdf-png", ".png")]
     public void PdfImportRoutes_ProduceRealArtifactsAndReports(string routeId, string extension) {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .H1("Quarterly report")
@@ -79,7 +82,52 @@ public sealed class BrowserPdfImportTests {
                 Assert.Contains("Quarterly report", html, StringComparison.Ordinal);
                 Assert.Equal(html, result.HtmlPreview);
                 break;
+            case "pdf-png":
+                Assert.Equal("image/png", result.ContentType);
+                Assert.Contains("visual PDF page rendering", result.ProvenanceSummary, StringComparison.Ordinal);
+                Assert.DoesNotContain("logical PDF import", result.ProvenanceSummary, StringComparison.Ordinal);
+                Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? raster));
+                Assert.NotNull(raster);
+                Assert.True(raster!.Width > 0);
+                Assert.True(raster.Height > 0);
+                using (JsonDocument report = JsonDocument.Parse(result.CompanionReport!.Bytes)) {
+                    Assert.Equal("visual-page-images", report.RootElement.GetProperty("projection").GetString());
+                }
+                break;
         }
+    }
+
+    [Fact]
+    public void PdfToPng_MultiplePages_ReturnsNumberedPngArchive() {
+        PdfDocument document = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Column(column =>
+                column.Item().Paragraph(paragraph => paragraph.Text("First page")))));
+            compose.Page(page => page.Content(content => content.Column(column =>
+                column.Item().Paragraph(paragraph => paragraph.Text("Second page")))));
+        });
+        byte[] pdf = document.ToBytes();
+        var source = new SelectedDocument("pages.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
+
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("pdf-png"),
+            source,
+            limitExcelRows: false);
+
+        Assert.Equal("pages.zip", result.FileName);
+        Assert.Equal("application/zip", result.ContentType);
+        Assert.Equal(2, result.PageCount);
+        Assert.Contains("visual PDF page rendering", result.ProvenanceSummary, StringComparison.Ordinal);
+        using var archive = new ZipArchive(new MemoryStream(result.Bytes), ZipArchiveMode.Read);
+        Assert.Equal(["pages.page-001.png", "pages.page-002.png"], archive.Entries.Select(static entry => entry.FullName));
+        foreach (ZipArchiveEntry entry in archive.Entries) {
+            using Stream stream = entry.Open();
+            using var image = new MemoryStream();
+            stream.CopyTo(image);
+            Assert.True(OfficeRasterImageDecoder.TryDecode(image.ToArray(), out OfficeRasterImage? raster));
+            Assert.NotNull(raster);
+        }
+        using JsonDocument report = JsonDocument.Parse(result.CompanionReport!.Bytes);
+        Assert.Equal("pages.zip", report.RootElement.GetProperty("output").GetProperty("fileName").GetString());
     }
 
     [Theory]
@@ -125,10 +173,24 @@ public sealed class BrowserPdfImportTests {
     }
 
     [Fact]
-    public void PdfToPowerPoint_VisualMode_RendersShowcaseBase14FontsWithPinnedBrowserFallback() {
+    public void PdfToPowerPoint_VisualMode_PreservesShowcaseBase14PositionedText() {
         string sourcePath = Path.Combine(AppContext.BaseDirectory, "samples", "showcase-dashboard.pdf");
         byte[] pdf = File.ReadAllBytes(sourcePath);
         var source = new SelectedDocument("OfficeIMO-Showcase.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
+
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf);
+        OfficeDrawing drawing = readDocument.Pages[0].ToDrawing();
+        OfficeDrawingText[] sourceText = EnumerateText(drawing).ToArray();
+        Assert.Contains(sourceText, static text => text.Text == "Quarterly");
+        Assert.Contains(sourceText, static text => text.Text == "Operations");
+        Assert.Contains(sourceText, static text => text.Text == "Dashboard");
+        Assert.Contains(sourceText, static text => text.Text == "OfficeIMO.Pdf");
+        Assert.All(
+            sourceText.Where(static text => Math.Abs(text.RotationDegrees) <= 0.0001D),
+            static text => {
+                Assert.Equal(OfficeTextOverflowBehavior.Clip, text.OverflowBehavior);
+                Assert.True(text.TextAdvanceWidth.HasValue && text.TextAdvanceWidth.Value > 0D);
+            });
 
         ConversionResult result = _service.ConvertFile(
             ConversionRouteCatalog.Find("pdf-pptx"),
@@ -151,8 +213,45 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1684, raster!.Width);
         Assert.Equal(1190, raster.Height);
         Assert.Equal(
-            "6c411c6d326d43635bafa49a36c785a2f83b57f3c8c9e957e4317f2e0acb7234",
+            "86c8cc7de11d99412b02da94067779a58c19fca2e38e54456dc0bdd1c5d39abb",
             Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
+    }
+
+    [Fact]
+    public void PdfToPng_MatchesTheShowcaseVisualPowerPointPagePixels() {
+        string sourcePath = Path.Combine(AppContext.BaseDirectory, "samples", "showcase-dashboard.pdf");
+        byte[] pdf = File.ReadAllBytes(sourcePath);
+        var source = new SelectedDocument("OfficeIMO-Showcase.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
+
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("pdf-png"),
+            source,
+            limitExcelRows: false);
+
+        Assert.Equal("OfficeIMO-Showcase.png", result.FileName);
+        Assert.Equal("image/png", result.ContentType);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? raster));
+        Assert.NotNull(raster);
+        Assert.Equal(1684, raster!.Width);
+        Assert.Equal(1190, raster.Height);
+
+        ConversionResult visualSlides = _service.ConvertFile(
+            ConversionRouteCatalog.Find("pdf-pptx"),
+            source,
+            limitExcelRows: false,
+            pdfPowerPointMode: PdfPowerPointImportMode.VisualPages);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(visualSlides.Bytes), false);
+        ImagePart image = Assert.Single(package.PresentationPart!.SlideParts.Single().ImageParts);
+        using Stream imageStream = image.GetStream(FileMode.Open, FileAccess.Read);
+        using var imageBuffer = new MemoryStream();
+        imageStream.CopyTo(imageBuffer);
+        Assert.True(OfficeRasterImageDecoder.TryDecode(imageBuffer.ToArray(), out OfficeRasterImage? slideRaster));
+        Assert.NotNull(slideRaster);
+        Assert.Equal(slideRaster!.Width, raster.Width);
+        Assert.Equal(slideRaster.Height, raster.Height);
+        Assert.Equal(
+            Convert.ToHexString(SHA256.HashData(slideRaster.GetPixels())),
+            Convert.ToHexString(SHA256.HashData(raster.GetPixels())));
     }
 
     [Fact]
@@ -192,7 +291,19 @@ public sealed class BrowserPdfImportTests {
         Assert.Equal(1000, raster!.Width);
         Assert.Equal(1200, raster.Height);
         Assert.Equal(
-            "574df561387079ee1a12baac59682f1456a8086e02dfd150a2ab3557419298f2",
+            "b545034ba0c75db86e6fbff8333115e1ca6cd42fbe86e70fb1ac1da0324f00df",
             Convert.ToHexString(SHA256.HashData(renderedPage)).ToLowerInvariant());
+    }
+
+    private static IEnumerable<OfficeDrawingText> EnumerateText(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingText text) {
+                yield return text;
+            } else if (element is OfficeDrawingGroup group) {
+                foreach (OfficeDrawingText child in EnumerateText(group.Drawing)) {
+                    yield return child;
+                }
+            }
+        }
     }
 }

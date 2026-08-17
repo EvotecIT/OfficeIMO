@@ -279,6 +279,76 @@ public sealed partial class OfficeDrawing {
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
+    /// <summary>
+    /// Adds an already-positioned single text run clipped by a drawing-local clipping path.
+    /// The clipping frame is independent from the resolved glyph advance retained for rendering.
+    /// </summary>
+    /// <param name="text">Text content to draw.</param>
+    /// <param name="x">Horizontal frame position in drawing units.</param>
+    /// <param name="y">Vertical frame position in drawing units.</param>
+    /// <param name="width">Text frame width in drawing units.</param>
+    /// <param name="height">Text frame height in drawing units.</param>
+    /// <param name="clipX">Horizontal clip position in drawing units.</param>
+    /// <param name="clipY">Vertical clip position in drawing units.</param>
+    /// <param name="clipPath">Clip path relative to <paramref name="clipX"/> and <paramref name="clipY"/>.</param>
+    /// <param name="font">Optional font descriptor.</param>
+    /// <param name="color">Optional text color.</param>
+    /// <param name="alignment">Horizontal alignment inside the frame.</param>
+    /// <param name="lineHeight">Optional resolved line height.</param>
+    /// <param name="textAdvanceWidth">Resolved horizontal glyph advance, or <see langword="null"/> to use <paramref name="width"/>.</param>
+    /// <returns>The current drawing.</returns>
+    public OfficeDrawing AddClippedPositionedText(
+        string text,
+        double x,
+        double y,
+        double width,
+        double height,
+        double clipX,
+        double clipY,
+        OfficeClipPath clipPath,
+        OfficeFontInfo? font = null,
+        OfficeColor? color = null,
+        OfficeTextAlignment alignment = OfficeTextAlignment.Left,
+        double? lineHeight = null,
+        double? textAdvanceWidth = null) {
+        if (clipPath == null) {
+            throw new ArgumentNullException(nameof(clipPath));
+        }
+
+        ValidateFiniteNonNegative(clipX, nameof(clipX));
+        ValidateFiniteNonNegative(clipY, nameof(clipY));
+        if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(clipPath), "Text clip must fit inside the drawing bounds.");
+        }
+
+        var clipped = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
+        clipped.AddTextCore(
+            text,
+            x - clipX,
+            y - clipY,
+            width,
+            height,
+            font,
+            color,
+            alignment,
+            lineHeight,
+            OfficeTextVerticalAlignment.Top,
+            0D,
+            null,
+            null,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            OfficeTextOverflowBehavior.Clip,
+            textAdvanceWidth ?? width,
+            allowOverflow: true);
+        return AddClippedDrawing(clipped, clipX, clipY, clipPath);
+    }
+
     private OfficeDrawing AddImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection,
         string? alternativeText, double opacity, bool interpolate, bool allowOverflow, bool useDataSnapshot = false) {
         var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity,

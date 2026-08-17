@@ -121,6 +121,8 @@
                         <div class="ocx-empty-state"><div class="ocx-empty-state__files" aria-hidden="true"><i class="@ActiveRoute.AccentClass">@ActiveRoute.Source</i><b>→</b><i>@ActiveRoute.Target</i></div><strong>Your result will appear here</strong><p>Run the conversion to preview and download it.</p></div>
                     } else if (Output.ContentType == "application/pdf" && PreviewOutput) {
                         <iframe class="ocx-pdf-preview" src="@OutputUrl" title="Converted PDF preview"></iframe>
+                    } else if (Output.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+                        <img class="ocx-image-preview" src="@OutputUrl" alt="Rendered PDF page preview" />
                     } else if (!string.IsNullOrWhiteSpace(Output.HtmlPreview)) {
                         <iframe class="ocx-html-preview" srcdoc="@Output.HtmlPreview" sandbox title="Converted HTML preview"></iframe>
                     } else {

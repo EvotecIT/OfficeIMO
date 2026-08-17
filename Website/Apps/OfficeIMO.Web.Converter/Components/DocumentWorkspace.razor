@@ -1,14 +1,9 @@
 @namespace OfficeIMO.Web.Converter.Components
 @inject NavigationManager Navigation
 
-<main class="ocx-shell" data-workspace-ready="true" data-workspace="@WorkspaceId">
-    <header class="ocx-appbar">
-        <a class="ocx-brand" href="/" target="_top" aria-label="OfficeIMO home">
-            <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
-            <span>OfficeIMO</span>
-        </a>
-        <nav aria-label="Workspace links"><a href="/products/pdf/" target="_top">PDF</a><a href="/docs/" target="_top">Docs</a><a href="/api/" target="_top">API</a><a href="/downloads/" target="_top">Packages</a><a class="ocx-nav-cta" href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
-    </header>
+<StandaloneSiteHeader />
+
+<main id="converter-main" class="ocx-shell" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1">
 
     <section class="ocx-product-heading" aria-labelledby="workspace-title">
         <div>
@@ -27,6 +22,8 @@
         <ConverterWorkspace />
     }
 </main>
+
+<StandaloneSiteFooter />
 
 @code {
     private bool IsPdfWorkspace { get; set; }

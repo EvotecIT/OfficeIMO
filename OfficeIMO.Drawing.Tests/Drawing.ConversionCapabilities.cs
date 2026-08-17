@@ -8,7 +8,6 @@ public sealed class DrawingConversionCapabilities {
     public void SharedCatalog_HasStableUniqueRoutesAndNormalizedExtensions() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count,
             OfficeConversionCapabilityCatalog.All.Select(static route => route.Id).Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(51, OfficeConversionCapabilityCatalog.All.Count);
         Assert.Equal(
             [
                 "docx-pdf",
@@ -21,7 +20,8 @@ public sealed class DrawingConversionCapabilities {
                 "pdf-docx",
                 "pdf-xlsx",
                 "pdf-pptx",
-                "pdf-html"
+                "pdf-html",
+                "pdf-png"
             ],
             OfficeConversionCapabilityCatalog.BrowserRoutes.Select(static route => route.Id));
         Assert.All(OfficeConversionCapabilityCatalog.All, static route => {

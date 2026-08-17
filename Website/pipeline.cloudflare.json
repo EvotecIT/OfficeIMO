@@ -3,7 +3,33 @@
   "steps": [
     {
       "task": "cloudflare",
+      "id": "purge-site-query-variants",
+      "operation": "purge",
+      "siteConfig": "./site.json",
+      "purgeMode": "hostname",
+      "zoneIdEnv": "CLOUDFLARE_ZONE_ID",
+      "tokenEnv": "CLOUDFLARE_API_TOKEN"
+    },
+    {
+      "task": "exec",
+      "id": "verify-converter-asset-graph",
+      "dependsOn": "purge-site-query-variants",
+      "command": "pwsh",
+      "argsList": [
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ConverterAssetGraph.ps1",
+        "-BaseUri",
+        "https://officeimo.com/apps/officeimo-converter/?embedded=1",
+        "-ExpectedDeploymentIdEnvironment",
+        "GITHUB_SHA"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "cloudflare",
       "id": "verify-cache",
+      "dependsOn": "verify-converter-asset-graph",
       "operation": "verify",
       "siteConfig": "./site.json",
       "warmupRequests": 1,
@@ -15,11 +41,17 @@
         "/agents.json",
         "/.well-known/api-catalog",
         "/apps/officeimo-converter/",
-        "/apps/officeimo-converter/converter.css"
+        "/apps/officeimo-converter/converter.css",
+        "/apps/officeimo-converter/deployment-assets.json"
       ],
       "discoverAssetsFrom": "/apps/officeimo-converter/",
-      "assetPathPatterns": "/apps/officeimo-converter/_framework/blazor.webassembly.*.js",
-      "allowStatuses": "HIT,REVALIDATED,EXPIRED,STALE",
+      "assetPathPatterns": [
+        "/apps/officeimo-converter/_framework/blazor.webassembly.*.js",
+        "/apps/officeimo-converter/_framework/dotnet.*.js",
+        "/apps/officeimo-converter/_framework/dotnet.native.*.js",
+        "/apps/officeimo-converter/_framework/dotnet.runtime.*.js"
+      ],
+      "allowStatuses": "HIT,REVALIDATED,EXPIRED",
       "reportPath": "./_reports/cloudflare-cache.json",
       "summaryPath": "./_reports/cloudflare-cache.md"
     },

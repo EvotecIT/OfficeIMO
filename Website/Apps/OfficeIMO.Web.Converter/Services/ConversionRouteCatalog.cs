@@ -31,6 +31,7 @@ public static class ConversionRouteCatalog {
         "pdf-docx" => "PDF to Word",
         "pdf-xlsx" => "PDF tables to Excel",
         "pdf-pptx" => "PDF to PowerPoint",
+        "pdf-png" => "PDF to PNG images",
         "markdown-docx" => "Markdown to Word",
         _ => route.Source + " to " + route.Target
     };

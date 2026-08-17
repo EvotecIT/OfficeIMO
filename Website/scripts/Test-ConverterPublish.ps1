@@ -94,8 +94,9 @@ if ($index -notmatch "embedded'\)===\'1\'" -or $index -notmatch "classList\.add\
 
 $converterCssPath = Join-Path $converterRoot 'converter.css'
 $converterCss = Get-Content -LiteralPath $converterCssPath -Raw
-if ($converterCss -notmatch '\.ocx-embedded \.ocx-appbar\s*\{\s*display:\s*none') {
-    throw 'Converter stylesheet does not hide the standalone app bar in embedded mode.'
+if ($converterCss -notmatch '\.ocx-embedded \.ocx-site-header' -or
+    $converterCss -notmatch '\.ocx-embedded \.ocx-site-footer\s*\{\s*display:\s*none') {
+    throw 'Converter stylesheet does not hide the standalone site shell in embedded mode.'
 }
 if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
     $converterCss -match '\.ocx-hidden-input\s*\{[^}]*\bpointer-events:\s*none') {
@@ -106,5 +107,7 @@ $module = Get-Content -LiteralPath $modulePath -Raw
 if ($module -notmatch 'export function createObjectUrl' -or $module -notmatch 'export function revokeObjectUrl') {
     throw 'Converter collocated interop module is incomplete.'
 }
+
+& (Join-Path $PSScriptRoot 'Test-ConverterAssetGraph.ps1') -SiteRoot $converterRoot
 
 Write-Output "Converter publish verified: $converterRoot ($([System.IO.Path]::GetFileName($appAssemblyPath)))"
