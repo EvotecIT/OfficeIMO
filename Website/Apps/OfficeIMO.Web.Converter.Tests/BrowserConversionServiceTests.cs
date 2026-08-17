@@ -67,7 +67,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
         var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
-        string[] aliases = [
+        string[] compatibleAliases = [
             "Arial",
             "Helvetica",
             "Calibri",
@@ -80,11 +80,25 @@ public sealed class BrowserConversionServiceTests {
             "ui-sans-serif",
             "system-ui",
             "-apple-system",
-            "BlinkMacSystemFont"
+            "BlinkMacSystemFont",
+            "Times",
+            "Times Roman",
+            "Times-Roman",
+            "Times New Roman",
+            "serif",
+            "Courier",
+            "Courier New",
+            "monospace",
+            "ui-monospace"
+        ];
+        string[] symbolAliases = [
+            "Symbol",
+            "ZapfDingbats",
+            "Zapf Dingbats"
         ];
 
         Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
-        Assert.Equal(6 + aliases.Length * 4, options.Fonts.Faces.Count);
+        Assert.Equal(6 + compatibleAliases.Length * 4 + symbolAliases.Length, options.Fonts.Faces.Count);
         Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
@@ -101,7 +115,7 @@ public sealed class BrowserConversionServiceTests {
             OfficeFontStyle.Regular,
             out double defaultWidth));
         Assert.True(defaultWidth > 0D);
-        foreach (string alias in aliases) {
+        foreach (string alias in compatibleAliases) {
             Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == alias));
             Assert.True(options.Fonts.TryMeasureText(
                 "Layout boundary",
@@ -111,13 +125,23 @@ public sealed class BrowserConversionServiceTests {
                 out double aliasWidth));
             Assert.Equal(defaultWidth, aliasWidth, 10);
         }
+        foreach (string alias in symbolAliases) {
+            Assert.Single(options.Fonts.Faces, face => face.FamilyName == alias);
+            Assert.True(options.Fonts.TryMeasureText(
+                "⌚",
+                16D,
+                alias,
+                OfficeFontStyle.Regular,
+                out double symbolWidth));
+            Assert.True(symbolWidth > 0D);
+        }
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
             "Latin العربية ⌚",
             options.DefaultFontFamily,
             OfficeFontStyle.Regular);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
-        foreach (string alias in aliases) {
+        foreach (string alias in compatibleAliases) {
             IReadOnlyList<OfficeFontFallbackRun> aliasFallbackRuns = options.Fonts.PlanFallbackRuns(
                 "Latin العربية ⌚",
                 alias,

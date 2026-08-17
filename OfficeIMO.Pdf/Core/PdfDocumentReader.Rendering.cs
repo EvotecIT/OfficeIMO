@@ -4,6 +4,26 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentReader {
+    /// <summary>Projects a one-based PDF page into the shared editable drawing scene.</summary>
+    public OfficeDrawing Drawing(int pageNumber, PdfReadOptions? readOptions = null) {
+        PdfReadDocument document = ReadDocument(readOptions);
+        if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
+        }
+        return document.Pages[pageNumber - 1].ToDrawing();
+    }
+
+    /// <summary>Returns managed-renderer capability diagnostics for a one-based PDF page.</summary>
+    public IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderCapabilityDiagnostics(
+        int pageNumber,
+        PdfReadOptions? readOptions = null) {
+        PdfReadDocument document = ReadDocument(readOptions);
+        if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
+        }
+        return document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
+    }
+
     /// <summary>
     /// Exports all pages or a caller-ordered selection through the shared image-export contract.
     /// </summary>

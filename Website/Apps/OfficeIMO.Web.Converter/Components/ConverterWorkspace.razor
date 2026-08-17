@@ -68,6 +68,20 @@
                     </details>
                 }
 
+                @if (IsPowerPointImportRoute) {
+                    <details class="ocx-settings" open>
+                        <summary>
+                            <span class="ocx-settings__icon" aria-hidden="true">⚙</span>
+                            <span><strong>PowerPoint conversion mode</strong><small>@SelectedPowerPointImportProfile.Label · @SelectedPowerPointImportProfile.FidelityStatus</small></span>
+                            <span class="ocx-settings__chevron" aria-hidden="true"></span>
+                        </summary>
+                        <div class="ocx-settings__body">
+                            <label for="powerpoint-import-profile"><span>Slide content</span><select id="powerpoint-import-profile" @bind="SelectedPowerPointImportProfileId" @bind:after="HandlePowerPointImportProfileChangedAsync">@foreach (BrowserPowerPointImportProfile profile in PowerPointImportProfiles) { <option value="@profile.Id">@profile.Label</option> }</select></label>
+                            <p>@SelectedPowerPointImportProfile.Description</p>
+                        </div>
+                    </details>
+                }
+
                 <div class="ocx-mobile-action">
                     <button type="button" class="ocx-convert-button" data-mobile-convert-route="@ActiveRoute.Id" disabled="@(!CanConvert)" @onclick="ConvertAsync">
                         <span>@(IsBusy ? "Converting locally…" : $"Convert to {ActiveRoute.Target}")</span>

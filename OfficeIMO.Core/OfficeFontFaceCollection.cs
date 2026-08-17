@@ -295,7 +295,12 @@ public sealed class OfficeFontFaceCollection {
         return this;
     }
 
-    internal OfficeFontFaceCollection AddRangePreservingExisting(OfficeFontFaceCollection? fonts) {
+    /// <summary>
+    /// Adds independent copies of faces from another collection without replacing faces already
+    /// registered under the same family, resource family, and style. Added faces are considered
+    /// before existing fallback families, while existing document-scoped faces retain precedence.
+    /// </summary>
+    public OfficeFontFaceCollection AddRangePreservingExisting(OfficeFontFaceCollection? fonts) {
         if (fonts == null || ReferenceEquals(fonts, this)) {
             return this;
         }

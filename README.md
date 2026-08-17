@@ -1061,7 +1061,7 @@ flowchart LR
     PowerPoint["PowerPoint: PPT/POT/PPS/PPTX"] <--> HTML
     PowerPoint <--> ODP["OpenDocument: ODP"]
     PowerPoint -->|"layout export"| PDF
-    PDF -->|"visual pages or editable tables"| PowerPoint
+    PDF -->|"editable objects, visual pages, hybrid, or tables"| PowerPoint
     OneNote["OneNote: ONE/ONETOC2/ONEPKG"] -->|"semantic adapter"| Markdown
     OneNote -->|"semantic adapter"| HTML
     OneNote -->|"semantic or visual adapter"| PDF

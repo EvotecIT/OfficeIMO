@@ -97,12 +97,16 @@ internal static partial class PdfPageImageRenderer {
         OfficeColor? background,
         IOfficeRasterImageCodec? imageCodec = null,
         long maximumRasterPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        IOfficeTextShapingProvider? textShapingProvider = null,
+        string? textShapingLanguage = null,
         CancellationToken cancellationToken = default) {
         EnsureRasterImagesCanRender(drawing, imageCodec, cancellationToken);
         return OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             Background = background ?? OfficeColor.White,
             ImageCodec = imageCodec,
+            TextShapingProvider = textShapingProvider,
+            TextShapingLanguage = textShapingLanguage,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
@@ -12,12 +13,15 @@ using OfficeIMO.Word.Pdf;
 namespace OfficeIMO.Web.Converter.Services;
 
 public sealed partial class BrowserConversionService {
-    private static ConversionResult ConvertPdfFile(ConversionRoute route, SelectedDocument file) {
+    private static ConversionResult ConvertPdfFile(
+        ConversionRoute route,
+        SelectedDocument file,
+        PdfPowerPointImportMode pdfPowerPointMode) {
         var stopwatch = Stopwatch.StartNew();
         PdfImportPayload payload = route.Id switch {
             "pdf-docx" => ConvertPdfToWord(file),
             "pdf-xlsx" => ConvertPdfToExcel(file),
-            "pdf-pptx" => ConvertPdfToPowerPoint(file),
+            "pdf-pptx" => ConvertPdfToPowerPoint(file, pdfPowerPointMode),
             "pdf-html" => ConvertPdfToHtml(file),
             _ => throw new NotSupportedException($"The route '{route.Id}' is not available in the browser workspace.")
         };
@@ -25,7 +29,9 @@ public sealed partial class BrowserConversionService {
 
         string fileName = Path.GetFileNameWithoutExtension(file.Name) + payload.Extension;
         IReadOnlyList<ConversionWarningView> structuredWarnings = payload.Warnings.Select(CreateWarningView).ToArray();
-        string fidelity = payload.HasLoss ? "Degraded" : "Complete";
+        string fidelity = payload.HasLoss && payload.FidelityStatus == "Reconstructed"
+            ? "Degraded"
+            : payload.FidelityStatus;
         BrowserConversionArtifact report = CreatePdfImportReport(
             route,
             file,
@@ -64,7 +70,8 @@ public sealed partial class BrowserConversionService {
             pdf.Inspect().PageCount,
             $"Editable DOCX generated: {FormatBytes(bytes.Length)}.",
             null,
-            "logical-content");
+            "logical-content",
+            conversion.HasLoss ? "Degraded" : "Reconstructed");
     }
 
     private static PdfImportPayload ConvertPdfToExcel(SelectedDocument file) {
@@ -96,14 +103,33 @@ public sealed partial class BrowserConversionService {
             pdf.Inspect().PageCount,
             $"Editable XLSX generated with {conversion.Report.Entries.Count} detected table{(conversion.Report.Entries.Count == 1 ? string.Empty : "s")}.",
             null,
-            "detected-tables");
+            "detected-tables",
+            "Partial");
     }
 
-    private static PdfImportPayload ConvertPdfToPowerPoint(SelectedDocument file) {
+    private static PdfImportPayload ConvertPdfToPowerPoint(
+        SelectedDocument file,
+        PdfPowerPointImportMode mode) {
         PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult();
+        BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(mode);
+        var options = new PdfPowerPointImportOptions {
+            Mode = profile.Mode,
+            RenderFonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance
+        };
+        PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(options);
         using var presentation = conversion.Value;
         byte[] bytes = presentation.ToBytes();
+        string summary = profile.Mode switch {
+            PdfPowerPointImportMode.VisualPages =>
+                $"Visual PPTX generated: {FormatBytes(bytes.Length)}. Each slide contains one page image; its text, shapes, charts, and tables are not editable.",
+            PdfPowerPointImportMode.HybridVisualAndEditableTables =>
+                $"Hybrid PPTX generated: {FormatBytes(bytes.Length)}. Page images preserve appearance and {conversion.Report.TableEntries.Count} detected table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")} remain editable.",
+            PdfPowerPointImportMode.EditableTables =>
+                $"Tables-only PPTX generated with {conversion.Report.TableEntries.Count} editable table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}.",
+            _ =>
+                $"Editable-content PPTX generated with {conversion.Report.EditablePages.Sum(static page => page.TextBoxCount)} text box{(conversion.Report.EditablePages.Sum(static page => page.TextBoxCount) == 1 ? string.Empty : "es")}, {conversion.Report.TableEntries.Count} table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}, {conversion.Report.EditablePages.Sum(static page => page.ShapeCount)} shape{(conversion.Report.EditablePages.Sum(static page => page.ShapeCount) == 1 ? string.Empty : "s")}, and {conversion.Report.EditablePages.Sum(static page => page.ImageCount)} separate image{(conversion.Report.EditablePages.Sum(static page => page.ImageCount) == 1 ? string.Empty : "s")}.",
+        };
         return new PdfImportPayload(
             bytes,
             ".pptx",
@@ -111,9 +137,10 @@ public sealed partial class BrowserConversionService {
             conversion.Warnings,
             conversion.HasLoss || conversion.HasOmittedPageContent,
             pdf.Inspect().PageCount,
-            $"Editable PPTX generated: {FormatBytes(bytes.Length)}.",
+            summary,
             null,
-            "editable-slides");
+            profile.Projection,
+            profile.FidelityStatus);
     }
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
@@ -129,7 +156,8 @@ public sealed partial class BrowserConversionService {
             conversion.Summary.SourcePageCount,
             conversion.Value,
             conversion.Value,
-            conversion.Summary.ProfileId);
+            conversion.Summary.ProfileId,
+            conversion.HasLoss ? "Degraded" : "Reconstructed");
     }
 
     private static BrowserConversionArtifact CreatePdfImportReport(
@@ -187,5 +215,6 @@ public sealed partial class BrowserConversionService {
         int PageCount,
         string? Text,
         string? HtmlPreview,
-        string Projection);
+        string Projection,
+        string FidelityStatus);
 }

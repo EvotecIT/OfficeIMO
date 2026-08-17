@@ -55,6 +55,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private bool GenerateDebugOverlay { get; set; }
     private bool IncludeDocumentContentInSupportBundle { get; set; }
     private string SelectedProfileId { get; set; } = BrowserPdfProfileCatalog.Faithful.Id;
+    private string SelectedPowerPointImportProfileId { get; set; } = BrowserPowerPointImportProfileCatalog.Editable.Id;
     private bool PreviewOutput { get; set; } = true;
     private bool IsBusy { get; set; }
     private long ElapsedMilliseconds { get; set; }
@@ -63,7 +64,10 @@ This **Markdown** becomes a browser preview or an editable Word document.
     private static IReadOnlyList<ConversionRoute> Routes => ConversionRouteCatalog.All;
     private static IReadOnlyList<BrowserPdfProfile> PdfProfiles => BrowserPdfProfileCatalog.All;
     private BrowserPdfProfile SelectedProfile => BrowserPdfProfileCatalog.Find(SelectedProfileId);
+    private static IReadOnlyList<BrowserPowerPointImportProfile> PowerPointImportProfiles => BrowserPowerPointImportProfileCatalog.All;
+    private BrowserPowerPointImportProfile SelectedPowerPointImportProfile => BrowserPowerPointImportProfileCatalog.Find(SelectedPowerPointImportProfileId);
     private bool IsPdfRoute => string.Equals(ActiveRoute.Target, "PDF", StringComparison.OrdinalIgnoreCase);
+    private bool IsPowerPointImportRoute => string.Equals(ActiveRoute.Id, "pdf-pptx", StringComparison.Ordinal);
     private IReadOnlyList<ConversionWarningView> ReviewWarnings =>
         Output?.StructuredWarnings
             .Where(static warning =>
@@ -178,7 +182,8 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     SelectedFile!,
                     LimitExcelRows,
                     SelectedProfile,
-                    GenerateDebugOverlay)
+                    GenerateDebugOverlay,
+                    SelectedPowerPointImportProfile.Mode)
                 : ConversionService.ConvertText(
                     ActiveRoute,
                     TextInput,
@@ -201,7 +206,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     Output.DebugOverlay.ContentType);
             }
             string fidelity = Output.FidelityStatus ?? "Complete";
-            string tone = string.Equals(fidelity, "Degraded", StringComparison.Ordinal) ? "ocx-dot--warn" : "ocx-dot--good";
+            string tone = fidelity is "Complete" or "Reconstructed" ? "ocx-dot--good" : "ocx-dot--warn";
             Diagnostics.Add(new($"{fidelity} conversion", $"Created {Output.FileName} locally in {ElapsedLabel}. {Output.ProvenanceSummary}", tone));
         } catch (Exception ex) {
             stopwatch.Stop();
@@ -214,6 +219,17 @@ This **Markdown** becomes a browser preview or an editable Word document.
 
     private static bool IsHtmlInputRoute(ConversionRoute route) =>
         route.Id is "html-markdown" or "html-pdf";
+
+    private async Task HandlePowerPointImportProfileChangedAsync() {
+        await ResetOutputAsync();
+        Diagnostics.Clear();
+        if (SelectedFile is not null) {
+            Diagnostics.Add(new(
+                "Mode changed",
+                $"{SelectedPowerPointImportProfile.Label} is selected. Convert again to create a matching PPTX and report.",
+                "ocx-dot--good"));
+        }
+    }
 
     private async Task PrepareSupportBundleAsync() {
         if (_interop is null || Output is null) {

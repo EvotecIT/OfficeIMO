@@ -655,7 +655,7 @@
       "targetExtension":".pptx",
       "packageId":"OfficeIMO.PowerPoint.Pdf",
       "api":"PdfDocument.Open(stream).ToPowerPointPresentationResult(options)",
-      "description":"Import PDF pages into an editable presentation profile with diagnostics.",
+      "description":"Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics.",
       "fidelity":"Editable",
       "resultContract":"PdfPowerPointConversionResult",
       "browserAvailable":true,

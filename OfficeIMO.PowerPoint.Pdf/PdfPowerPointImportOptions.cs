@@ -9,7 +9,9 @@ public enum PdfPowerPointImportMode {
     /// <summary>Reconstructs detected tables as editable PowerPoint tables.</summary>
     EditableTables,
     /// <summary>Keeps a rendered visual page and overlays detected tables as editable PowerPoint tables.</summary>
-    HybridVisualAndEditableTables
+    HybridVisualAndEditableTables,
+    /// <summary>Reconstructs text, detected tables, safe vector primitives, and supported images as editable slide objects.</summary>
+    EditableContent
 }
 
 /// <summary>
@@ -19,13 +21,13 @@ public sealed class PdfPowerPointImportOptions {
     /// <summary>Import strategy. Defaults to one visual slide per PDF page.</summary>
     public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.VisualPages;
 
-    /// <summary>Optional caller-ordered page selection used by visual-page import.</summary>
+    /// <summary>Optional caller-ordered page selection used by all import modes.</summary>
     public OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
 
     /// <summary>Raster resolution used by visual-page import.</summary>
     public double Dpi { get; set; } = 144D;
 
-    /// <summary>Maximum pages rendered by one visual-page import.</summary>
+    /// <summary>Maximum pages processed by one import.</summary>
     public int MaxPages { get; set; } = 100;
 
     /// <summary>Maximum output pixels for one rendered PDF page.</summary>
@@ -46,6 +48,26 @@ public sealed class PdfPowerPointImportOptions {
     public static PdfPowerPointImportOptions CreateHybrid() => new PdfPowerPointImportOptions {
         Mode = PdfPowerPointImportMode.HybridVisualAndEditableTables
     };
+
+    /// <summary>Creates the semantic editable-content reconstruction profile.</summary>
+    public static PdfPowerPointImportOptions CreateEditableContent() => new PdfPowerPointImportOptions {
+        Mode = PdfPowerPointImportMode.EditableContent
+    };
+
+    /// <summary>
+    /// Caller-supplied deterministic fonts used by visual and hybrid page rasterization when the
+    /// source PDF does not contain a supported embedded font program.
+    /// </summary>
+    public OfficeIMO.Drawing.OfficeFontFaceCollection RenderFonts { get; set; } = new();
+
+    /// <summary>Optional text shaper used by visual and hybrid page rasterization.</summary>
+    public OfficeIMO.Drawing.IOfficeTextShapingProvider? TextShapingProvider { get; set; }
+
+    /// <summary>Optional BCP 47 language hint passed to <see cref="TextShapingProvider"/>.</summary>
+    public string? TextShapingLanguage { get; set; }
+
+    /// <summary>Maximum editable text boxes, vector shapes, images, and tables created for one source page.</summary>
+    public int MaxEditableObjectsPerPage { get; set; } = 5_000;
 
     /// <summary>
     /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.

@@ -13,7 +13,7 @@ meta.primary_label: "Convert PDF to PowerPoint in the browser"
 meta.secondary_url: "/docs/pdf/conversion/"
 meta.secondary_label: "Read the conversion guide"
 meta.summary_title: "PDF to PowerPoint summary"
-meta.limit: "The adapter creates an editable presentation profile; it cannot recover original themes, animations, notes, or source objects."
+meta.limit: "Editable mode reconstructs supported page objects; visual mode creates page images. Neither mode can recover original themes, animations, notes, charts, groups, or authoring intent."
 meta.related_url: "/pdf/"
 meta.related_label: "Browse PDF tools and imports"
 meta.howto.name: "Import PDF pages into an editable presentation"
@@ -36,7 +36,8 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 
 PdfDocument pdf = PdfDocument.Open("briefing.pdf");
-PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult();
+PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult(
+    PdfPowerPointImportOptions.CreateEditableContent());
 using var presentation = result.Value;
 
 File.WriteAllBytes("briefing.pptx", presentation.ToBytes());
@@ -45,7 +46,14 @@ foreach (PdfConversionWarning warning in result.Warnings) {
 }
 ```
 
-The browser uses the same projection and reports fidelity as degraded when the adapter records loss or omitted page content.
+The browser defaults to editable-content reconstruction and also exposes three explicit alternatives:
+
+- **Editable content** creates native text boxes, detected tables, safe basic shapes, and separate supported images.
+- **Visual pages** creates one page-sized image per slide. Its text, shapes, charts, and tables are not editable.
+- **Visual + editable tables** keeps the page image and overlays detected native tables.
+- **Tables only** creates native tables and intentionally omits other page content.
+
+The companion report names the selected projection, surfaces renderer capability diagnostics, and reports fidelity as degraded or partial when content is omitted or simplified.
 
 ## Use the result as a new deck
 

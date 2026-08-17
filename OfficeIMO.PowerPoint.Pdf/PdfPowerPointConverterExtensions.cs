@@ -24,9 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfPowerPointImportOptions operation = options ?? new PdfPowerPointImportOptions();
         if (operation.Mode == PdfPowerPointImportMode.EditableTables) {
-            PdfCore.PdfLogicalDocument logical = operation.PageSelection == null
-                ? document.Read.Logical()
-                : document.Read.Logical(operation.PageSelection);
+            PdfCore.PdfLogicalDocument logical = ReadBoundedLogicalDocument(document, operation);
             return logical.ToPowerPointPresentationResult(operation);
         }
 
@@ -34,7 +32,40 @@ public static partial class PowerPointPdfConverterExtensions {
             return ImportHybridPages(document, operation);
         }
 
+        if (operation.Mode == PdfPowerPointImportMode.EditableContent) {
+            return ImportEditableContent(document, operation);
+        }
+
         return ImportVisualPages(document, operation);
+    }
+
+    private static PdfCore.PdfLogicalDocument ReadBoundedLogicalDocument(
+        PdfCore.PdfDocument document,
+        PdfPowerPointImportOptions options) {
+        if (options.MaxPages <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxPages), "The page limit must be positive.");
+        }
+
+        int selectedPageCount = options.PageSelection?.PageCount ?? document.Inspect().PageCount;
+        if (selectedPageCount > options.MaxPages) {
+            throw new InvalidOperationException(
+                $"PDF import page count {selectedPageCount} exceeded the configured limit of {options.MaxPages}.");
+        }
+
+        PdfCore.PdfLogicalDocument logical = options.PageSelection == null
+            ? document.Read.Logical()
+            : document.Read.Logical(options.PageSelection);
+        ValidateLogicalPageCount(logical, options);
+        return logical;
+    }
+
+    private static void ValidateLogicalPageCount(
+        PdfCore.PdfLogicalDocument logical,
+        PdfPowerPointImportOptions options) {
+        if (logical.Pages.Count > options.MaxPages) {
+            throw new InvalidOperationException(
+                $"PDF import page count {logical.Pages.Count} exceeded the configured limit of {options.MaxPages}.");
+        }
     }
 
     /// <summary>Converts an opened PDF and saves the PowerPoint presentation to a file.</summary>
@@ -136,6 +167,10 @@ public static partial class PowerPointPdfConverterExtensions {
         if (operation.Mode != PdfPowerPointImportMode.EditableTables) {
             throw new InvalidOperationException("Visual PDF page import requires the opened PdfDocument so page rendering can use the original PDF bytes.");
         }
+        if (operation.MaxPages <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(operation.MaxPages), "The page limit must be positive.");
+        }
+        ValidateLogicalPageCount(document, operation);
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         IReadOnlyList<PdfPowerPointTableImportEntry> entries = ImportTables(document, presentation, operation);
         PdfCore.PdfTableExtractionScopeReport sourceScope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(document);
@@ -421,7 +456,10 @@ public static partial class PowerPointPdfConverterExtensions {
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxOutputBytesPerPage,
             MaxTotalOutputBytes = options.MaxTotalOutputBytes,
-            ContinueOnError = true
+            ContinueOnError = true,
+            Fonts = options.RenderFonts.Clone(),
+            TextShapingProvider = options.TextShapingProvider,
+            TextShapingLanguage = options.TextShapingLanguage
         };
         return document.Read.RenderPages(
             options.PageSelection,

@@ -113,7 +113,60 @@ public sealed class PdfPowerPointTableImportEntry {
     public bool HeaderRowIncluded { get; }
 }
 
-/// <summary>Reports a PDF-to-PowerPoint conversion in visual-page or editable-table mode.</summary>
+/// <summary>Describes editable objects reconstructed for one source PDF page.</summary>
+public sealed class PdfPowerPointEditablePageEntry {
+    internal PdfPowerPointEditablePageEntry(
+        int pageNumber,
+        int slideIndex,
+        int textBoxCount,
+        int tableCount,
+        int shapeCount,
+        int imageCount,
+        int omittedTextCount,
+        int omittedTableCount,
+        int omittedVectorCount,
+        int omittedImageCount) {
+        PageNumber = pageNumber;
+        SlideIndex = slideIndex;
+        TextBoxCount = textBoxCount;
+        TableCount = tableCount;
+        ShapeCount = shapeCount;
+        ImageCount = imageCount;
+        OmittedTextCount = omittedTextCount;
+        OmittedTableCount = omittedTableCount;
+        OmittedVectorCount = omittedVectorCount;
+        OmittedImageCount = omittedImageCount;
+    }
+
+    /// <summary>One-based source PDF page number.</summary>
+    public int PageNumber { get; }
+    /// <summary>Zero-based primary destination slide index.</summary>
+    public int SlideIndex { get; }
+    /// <summary>Editable text boxes created from non-table PDF text blocks.</summary>
+    public int TextBoxCount { get; }
+    /// <summary>Native PowerPoint tables created on the primary slide.</summary>
+    public int TableCount { get; }
+    /// <summary>Safe vector primitives reconstructed as PowerPoint shapes.</summary>
+    public int ShapeCount { get; }
+    /// <summary>Supported source image placements retained as separate pictures.</summary>
+    public int ImageCount { get; }
+    /// <summary>Text blocks omitted because the configured editable object limit was reached.</summary>
+    public int OmittedTextCount { get; }
+    /// <summary>Table segments omitted because the configured editable object limit was reached.</summary>
+    public int OmittedTableCount { get; }
+    /// <summary>Vector primitives that could not be represented safely as PowerPoint shapes.</summary>
+    public int OmittedVectorCount { get; }
+    /// <summary>Image resources or placements that could not be represented safely as PowerPoint pictures.</summary>
+    public int OmittedImageCount { get; }
+    /// <summary>Whether this page omitted supported semantic object categories.</summary>
+    public bool HasOmittedContent =>
+        OmittedTextCount > 0 ||
+        OmittedTableCount > 0 ||
+        OmittedVectorCount > 0 ||
+        OmittedImageCount > 0;
+}
+
+/// <summary>Reports a PDF-to-PowerPoint conversion in visual, hybrid, table, or editable-content mode.</summary>
 public sealed class PdfPowerPointConversionReport {
     private readonly bool _hasOmittedPageContent;
 
@@ -124,6 +177,7 @@ public sealed class PdfPowerPointConversionReport {
         TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         VisualPages = Array.Empty<PdfPowerPointVisualPageEntry>();
+        EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
         _hasOmittedPageContent = SourceScope.HasOmittedPageContent;
         Warnings = CreateProjectionWarnings(SourceScope, failedVisualScope: null, hasFailedVisualPages: false);
     }
@@ -132,8 +186,9 @@ public sealed class PdfPowerPointConversionReport {
         Mode = PdfPowerPointImportMode.VisualPages;
         TableEntries = Array.Empty<PdfPowerPointTableImportEntry>();
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
+        EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
         _hasOmittedPageContent = false;
-        Warnings = Array.Empty<OfficeIMO.Pdf.PdfConversionWarning>();
+        Warnings = CreateVisualPageWarnings(VisualPages);
     }
 
     internal PdfPowerPointConversionReport(
@@ -144,15 +199,36 @@ public sealed class PdfPowerPointConversionReport {
         Mode = PdfPowerPointImportMode.HybridVisualAndEditableTables;
         TableEntries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
+        EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
         if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
         _hasOmittedPageContent = hasFailedVisualPages &&
             (failedVisualScope.HasOmittedPageContent || SourceScope.OptionalContentGroupCount > 0);
-        Warnings = CreateProjectionWarnings(
+        var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning>(CreateProjectionWarnings(
             SourceScope,
             failedVisualScope,
-            hasFailedVisualPages);
+            hasFailedVisualPages));
+        AddRendererWarnings(warnings, VisualPages);
+        Warnings = warnings.AsReadOnly();
+    }
+
+    internal PdfPowerPointConversionReport(
+        IReadOnlyList<PdfPowerPointEditablePageEntry> editablePages,
+        IReadOnlyList<PdfPowerPointTableImportEntry> tableEntries,
+        OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope,
+        IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> warnings) {
+        Mode = PdfPowerPointImportMode.EditableContent;
+        EditablePages = Array.AsReadOnly((editablePages ?? throw new ArgumentNullException(nameof(editablePages))).ToArray());
+        TableEntries = Array.AsReadOnly((tableEntries ?? throw new ArgumentNullException(nameof(tableEntries))).ToArray());
+        SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
+        VisualPages = Array.Empty<PdfPowerPointVisualPageEntry>();
+        Warnings = Array.AsReadOnly((warnings ?? throw new ArgumentNullException(nameof(warnings))).ToArray());
+        _hasOmittedPageContent = EditablePages.Any(static page => page.HasOmittedContent)
+            || Warnings.Any(static warning =>
+                warning.Severity != OfficeIMO.Pdf.PdfConversionWarningSeverity.Information
+                && warning.Details.TryGetValue("Disposition", out string? disposition)
+                && string.Equals(disposition, "Omitted", StringComparison.Ordinal));
     }
 
     /// <summary>Gets the conversion strategy used for this operation.</summary>
@@ -163,6 +239,9 @@ public sealed class PdfPowerPointConversionReport {
 
     /// <summary>Gets a snapshot of visual page-to-slide mappings.</summary>
     public IReadOnlyList<PdfPowerPointVisualPageEntry> VisualPages { get; }
+
+    /// <summary>Gets editable object counts for semantic page projections.</summary>
+    public IReadOnlyList<PdfPowerPointEditablePageEntry> EditablePages { get; }
 
     /// <summary>Gets source-page content that was outside this table-only import.</summary>
     public OfficeIMO.Pdf.PdfTableExtractionScopeReport? SourceScope { get; }
@@ -179,10 +258,55 @@ public sealed class PdfPowerPointConversionReport {
     /// <summary>Gets whether table reconstruction truncated data or visual rendering reported a failure/simplification.</summary>
     public bool HasLoss =>
         TableEntries.Any(static entry => entry.Truncated) ||
+        EditablePages.Any(static page => page.HasOmittedContent) ||
         VisualPages.Any(static page =>
             !page.Succeeded ||
             page.CapabilityDiagnostics.Any(static diagnostic =>
                 diagnostic.SupportLevel != OfficeIMO.Pdf.PdfRenderSupportLevel.Supported));
+
+    private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateVisualPageWarnings(
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+        var warnings = new List<OfficeIMO.Pdf.PdfConversionWarning> {
+            new(
+                "OfficeIMO.PowerPoint.Pdf",
+                "PdfVisualPageSlidesNotEditable",
+                "Slide content",
+                "Each PDF page is retained as one page-sized image. Text, shapes, charts, and tables are not editable PowerPoint objects in this mode.",
+                details: new Dictionary<string, string> {
+                    ["Disposition"] = "VisualOnly",
+                    ["construct"] = "Visual page slides"
+                })
+        };
+        AddRendererWarnings(warnings, visualPages);
+        return warnings.AsReadOnly();
+    }
+
+    private static void AddRendererWarnings(
+        ICollection<OfficeIMO.Pdf.PdfConversionWarning> warnings,
+        IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages) {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < visualPages.Count; pageIndex++) {
+            PdfPowerPointVisualPageEntry page = visualPages[pageIndex];
+            for (int diagnosticIndex = 0; diagnosticIndex < page.CapabilityDiagnostics.Count; diagnosticIndex++) {
+                OfficeIMO.Pdf.PdfRenderCapabilityDiagnostic diagnostic = page.CapabilityDiagnostics[diagnosticIndex];
+                string key = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\0" + diagnostic.Code + "\0" + diagnostic.Subject;
+                if (!seen.Add(key)) continue;
+                warnings.Add(new OfficeIMO.Pdf.PdfConversionWarning(
+                    "OfficeIMO.PowerPoint.Pdf",
+                    diagnostic.Code,
+                    "PDF page " + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    diagnostic.Message,
+                    diagnostic.SupportLevel == OfficeIMO.Pdf.PdfRenderSupportLevel.Unsupported
+                        ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning
+                        : OfficeIMO.Pdf.PdfConversionWarningSeverity.Information,
+                    details: new Dictionary<string, string> {
+                        ["pageNumber"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["construct"] = diagnostic.Capability.Feature,
+                        ["supportLevel"] = diagnostic.SupportLevel.ToString()
+                    }));
+            }
+        }
+    }
 
     /// <summary>Throws when the conversion reported possible content loss.</summary>
     public void RequireNoLoss() {
