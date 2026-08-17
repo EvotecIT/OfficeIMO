@@ -1223,6 +1223,49 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasTable_EmitsNestedTableRowAndCellStructure() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
+            })
+            .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
+                .Table(new[] {
+                    new[] { PdfTableCell.Span("Summary", 2) },
+                    new[] { PdfTableCell.Merge("OfficeIMO", rowSpan: 2), PdfTableCell.TextCell("Ready") },
+                    new[] { PdfTableCell.TextCell("Released") }
+                }, 30, 30, 180, 90, new PdfTableStyle {
+                    HeaderRowCount = 1,
+                    AlternativeText = "Release summary"
+                })
+                .Text("After table", 30, 130, 180, 20)))
+            .ToBytes();
+
+        PdfReadDocument pdf = PdfReadDocument.Open(bytes);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(pdf.TaggedContent);
+        PdfStructureElementInfo section = Assert.Single(tagged.StructureElements, element => element.StructureType == "Sect");
+        PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
+        PdfStructureElementInfo[] rows = tagged.StructureElements.Where(element => element.StructureType == "TR").ToArray();
+        PdfStructureElementInfo header = Assert.Single(tagged.StructureElements, element => element.StructureType == "TH");
+        PdfStructureElementInfo[] cells = tagged.StructureElements.Where(element => element.StructureType == "TD").ToArray();
+        PdfStructureElementInfo afterTable = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
+
+        Assert.Equal("Release summary", table.AlternateText);
+        Assert.Contains(table.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Contains(afterTable.ObjectNumber, section.ChildElementObjectNumbers);
+        Assert.Equal(3, rows.Length);
+        Assert.All(rows, row => Assert.Contains(row.ObjectNumber, table.ChildElementObjectNumbers));
+        Assert.Contains(header.ObjectNumber, rows[0].ChildElementObjectNumbers);
+        Assert.Equal(2, rows[1].ChildElementObjectNumbers.Count);
+        Assert.All(rows[1].ChildElementObjectNumbers, cell => Assert.Contains(cell, cells.Select(element => element.ObjectNumber)));
+        Assert.Single(rows[2].ChildElementObjectNumbers);
+        Assert.Contains(rows[2].ChildElementObjectNumbers[0], cells.Select(element => element.ObjectNumber));
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Scope /Column", raw, StringComparison.Ordinal);
+        Assert.Contains("/ColSpan 2", raw, StringComparison.Ordinal);
+        Assert.Contains("/RowSpan 2", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasTable_ReportsClippedCellContentDuringRender() {
         var diagnostics = new List<PdfLayoutDiagnostic>();
         PdfDocument document = PdfDocument.Create(new PdfOptions {

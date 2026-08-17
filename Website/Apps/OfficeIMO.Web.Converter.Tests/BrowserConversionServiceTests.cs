@@ -569,6 +569,36 @@ public sealed class BrowserConversionServiceTests {
     }
 
     [Fact]
+    public void ExcelSample_ContainsAStructuredTableAndRendersItOnOnePdfPage() {
+        string samplePath = Path.Combine(AppContext.BaseDirectory, "samples", "basic.xlsx");
+        byte[] bytes = File.ReadAllBytes(samplePath);
+        using (ExcelDocument workbook = ExcelDocument.Load(new MemoryStream(bytes))) {
+            ExcelTableInfo table = Assert.Single(workbook.GetTables());
+            Assert.Equal("DeliveryOverview", table.Name);
+            Assert.Equal("A4:E10", table.Range);
+            Assert.Equal(
+                ["Workstream", "Owner", "Status", "Budget", "Target date"],
+                table.Columns.Select(static column => column.Name).ToArray());
+        }
+
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("xlsx-pdf"),
+            new SelectedDocument("OfficeIMO-Table.xlsx", ".xlsx", "XLSX", bytes.LongLength, bytes),
+            limitExcelRows: false);
+
+        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        Assert.Single(pdf.Pages);
+        Assert.Contains("OfficeIMO delivery overview", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("PDF workbench", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Production rollout", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.True(pdf.HasTaggedContent);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(pdf.TaggedContent);
+        Assert.Contains("Table", tagged.StructureTypes);
+        Assert.Contains("TH", tagged.StructureTypes);
+        Assert.Contains("TD", tagged.StructureTypes);
+    }
+
+    [Fact]
     public void PowerPointConversion_UsesThePortableTaggedPdfProfile() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Delivery readiness", 36, 36, 320, 64);
