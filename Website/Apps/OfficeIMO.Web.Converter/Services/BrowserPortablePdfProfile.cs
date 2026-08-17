@@ -30,6 +30,27 @@ internal static class BrowserPortablePdfProfile {
         "BlinkMacSystemFont"
     ];
 
+    private static readonly string[] PortableSerifAliases = [
+        "Times",
+        "Times Roman",
+        "Times-Roman",
+        "Times New Roman",
+        "serif"
+    ];
+
+    private static readonly string[] PortableMonospaceAliases = [
+        "Courier",
+        "Courier New",
+        "monospace",
+        "ui-monospace"
+    ];
+
+    private static readonly string[] PortableSymbolAliases = [
+        "Symbol",
+        "ZapfDingbats",
+        "Zapf Dingbats"
+    ];
+
     internal const string DefaultFontFamily = "Carlito";
     internal const string ArabicFallbackFontFamily = "Noto Sans Arabic";
     internal const string SymbolFallbackFontFamily = "Noto Sans Symbols 2";
@@ -42,6 +63,8 @@ internal static class BrowserPortablePdfProfile {
     internal static string FontPackFingerprint => Data.Value.Fingerprint;
     internal static IReadOnlyList<PdfFontFamilySubstitution> FontFamilySubstitutions =>
         Data.Value.Substitutions;
+
+    internal static OfficeFontFaceCollection CreateDrawingFonts() => CreateLayoutFonts(Data.Value);
 
     internal static PdfOptions CreateOptions(BrowserPdfProfile profile) {
         ArgumentNullException.ThrowIfNull(profile);
@@ -119,9 +142,18 @@ internal static class BrowserPortablePdfProfile {
         foreach (string alias in PortableSansSerifAliases) {
             fonts.AddAlias(alias, DefaultFontFamily);
         }
+        foreach (string alias in PortableSerifAliases) {
+            fonts.AddAlias(alias, DefaultFontFamily);
+        }
+        foreach (string alias in PortableMonospaceAliases) {
+            fonts.AddAlias(alias, DefaultFontFamily);
+        }
+        fonts.Add(SymbolFallbackFontFamily, data.NotoSansSymbols);
+        foreach (string alias in PortableSymbolAliases) {
+            fonts.AddAlias(alias, SymbolFallbackFontFamily);
+        }
         return fonts
             .Add(ArabicFallbackFontFamily, data.NotoSansArabic)
-            .Add(SymbolFallbackFontFamily, data.NotoSansSymbols)
             .AddFallbackFamily(ArabicFallbackFontFamily)
             .AddFallbackFamily(SymbolFallbackFontFamily);
     }

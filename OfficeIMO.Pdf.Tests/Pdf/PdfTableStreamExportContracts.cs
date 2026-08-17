@@ -44,13 +44,14 @@ public class PdfTableStreamExportContracts {
 
         using var wordDocument = wordResult.RequireNoLoss();
         using var excelDocument = excelResult.RequireNoLoss();
-        using var powerPointPresentation = powerPointResult.RequireNoLoss();
+        Assert.Throws<InvalidOperationException>(() => powerPointResult.RequireNoLoss());
+        using var powerPointPresentation = powerPointResult.Value;
         Assert.NotEmpty(wordDocument.ToBytes());
         Assert.NotEmpty(excelDocument.ToBytes());
         Assert.NotEmpty(powerPointPresentation.ToBytes());
         Assert.False(wordResult.Report.HasLoss);
         Assert.False(excelResult.Report.HasLoss);
-        Assert.False(powerPointResult.Report.HasLoss);
+        Assert.True(powerPointResult.Report.HasLoss);
         Assert.True(excelResult.HasOmittedPageContent);
         Assert.True(powerPointResult.HasOmittedPageContent);
         Assert.Equal(1, excelResult.Report.SourceScope.NonTableTextBlockCount);

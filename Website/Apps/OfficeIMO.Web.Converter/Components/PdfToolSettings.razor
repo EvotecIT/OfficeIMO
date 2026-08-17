@@ -5,9 +5,13 @@
     <section class="pdf-tool-settings" aria-label="PDF tool settings">
         @if (Tool.RequiresPageSelection) {
             <label>
-                <span>Pages</span>
-                <input type="text" value="@PageSelection" @oninput="HandlePageSelection" placeholder="1-3,5,last" />
-                <small>Use pages, ranges, last, odd, even, reverse ranges, or exclusions such as all,!1.</small>
+                <span>@(Tool.Kind == PdfToolKind.Reorder ? "Complete page order" : "Pages")</span>
+                <input type="text" value="@PageSelection" @oninput="HandlePageSelection" placeholder="@(Tool.Kind == PdfToolKind.Reorder ? "3,1,2,4-last" : "1-3,5,last")" />
+                @if (Tool.Kind == PdfToolKind.Reorder) {
+                    <small>Include every source page exactly once; subsets, omissions, and duplicates are rejected.</small>
+                } else {
+                    <small>Use pages, ranges, last, odd, even, reverse ranges, or exclusions such as all,!1.</small>
+                }
             </label>
         }
         @if (Tool.RequiresPagesPerDocument) {

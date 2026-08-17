@@ -2479,18 +2479,30 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        drawing.AddText(
-            span.Text,
-            x,
-            y,
-            width,
-            height,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
-            span.Color ?? OfficeColor.Black,
-            rotationDegrees: -span.RotationDegrees,
-            rotationCenterX: x,
-            rotationCenterY: baselineY,
-            wrapText: false);
+        if (IsEffectivelyUnrotated(span.RotationDegrees) && TryGetSafePositionedAdvance(span, out double textAdvance)) {
+            drawing.AddPositionedText(
+                span.Text,
+                x,
+                y,
+                width,
+                height,
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                span.Color ?? OfficeColor.Black,
+                textAdvanceWidth: textAdvance);
+        } else {
+            drawing.AddText(
+                span.Text,
+                x,
+                y,
+                width,
+                height,
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                span.Color ?? OfficeColor.Black,
+                rotationDegrees: -span.RotationDegrees,
+                rotationCenterX: x,
+                rotationCenterY: baselineY,
+                wrapText: false);
+        }
     }
 
     private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null) {
@@ -2541,22 +2553,47 @@ public sealed partial class PdfReadPage {
 
         double textWidth = Math.Max(1D, width);
         double textHeight = Math.Max(1D, height);
-        drawing.AddClippedText(
-            span.Text,
-            x,
-            y,
-            textWidth,
-            textHeight,
-            clip.X,
-            clip.Y,
-            officeClipPath,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
-            span.Color ?? OfficeColor.Black,
-            rotationDegrees: -span.RotationDegrees,
-            rotationCenterX: x,
-            rotationCenterY: baselineY,
-            wrapText: false);
+        if (IsEffectivelyUnrotated(span.RotationDegrees) && TryGetSafePositionedAdvance(span, out double textAdvance)) {
+            drawing.AddClippedPositionedText(
+                span.Text,
+                x,
+                y,
+                textWidth,
+                textHeight,
+                clip.X,
+                clip.Y,
+                officeClipPath,
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                span.Color ?? OfficeColor.Black,
+                textAdvanceWidth: textAdvance);
+        } else {
+            drawing.AddClippedText(
+                span.Text,
+                x,
+                y,
+                textWidth,
+                textHeight,
+                clip.X,
+                clip.Y,
+                officeClipPath,
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                span.Color ?? OfficeColor.Black,
+                rotationDegrees: -span.RotationDegrees,
+                rotationCenterX: x,
+                rotationCenterY: baselineY,
+                wrapText: false);
+        }
         return true;
+    }
+
+    private static bool IsEffectivelyUnrotated(double rotationDegrees) {
+        double normalized = rotationDegrees % 360D;
+        return Math.Abs(normalized) <= 0.0001D || Math.Abs(Math.Abs(normalized) - 360D) <= 0.0001D;
+    }
+
+    private static bool TryGetSafePositionedAdvance(PdfTextSpan span, out double advance) {
+        advance = span.Advance;
+        return span.CanScaleAggregateAdvance && advance > 0D && !double.IsNaN(advance) && !double.IsInfinity(advance);
     }
 
     private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size, string? drawingFontFamily = null) {

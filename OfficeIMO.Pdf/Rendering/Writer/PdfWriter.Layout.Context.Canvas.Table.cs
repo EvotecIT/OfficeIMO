@@ -57,72 +57,89 @@ internal static partial class PdfWriter {
             }
 
             pageDirty = true;
-            for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
-                double rowTop = topY - GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap);
-                double rowBottom = rowTop - rowHeights[rowIndex];
-                bool rowIsHeader = rowIndex < headerRowCount;
-                bool rowIsFooter = rowIndex >= footerStart;
-                bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(table, rowIndex, columns);
-                DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
+            PageStructElement? previousStructureParent = _canvasStructureParentElement;
+            PageStructElement? tableStructure = RegisterStructureContainer(
+                "Table",
+                previousStructureParent,
+                alternativeText: style.AlternativeText);
+            _canvasStructureParentElement = tableStructure ?? previousStructureParent;
+            try {
+                for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+                    PageStructElement? tableParent = _canvasStructureParentElement;
+                    PageStructElement? rowStructure = RegisterStructureContainer("TR", tableParent);
+                    _canvasStructureParentElement = rowStructure ?? tableParent;
+                    try {
+                        double rowTop = topY - GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap);
+                        double rowBottom = rowTop - rowHeights[rowIndex];
+                        bool rowIsHeader = rowIndex < headerRowCount;
+                        bool rowIsFooter = rowIndex >= footerStart;
+                        bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(table, rowIndex, columns);
+                        DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
 
-                var cells = cellLayoutsByRow[rowIndex];
-                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                    TableCellLayout cell = cells[cellIndex];
-                    double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
-                    double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                    double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
-                    double cellBottom = rowTop - cellHeight;
+                        var cells = cellLayoutsByRow[rowIndex];
+                        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                            TableCellLayout cell = cells[cellIndex];
+                            double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
+                            double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+                            double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
+                            double cellBottom = rowTop - cellHeight;
 
-                    DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
+                            DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
+                        }
+
+                        DrawTableCellDataBars(
+                            sb,
+                            style,
+                            cells,
+                            rowIndex,
+                            columns,
+                            xOrigin,
+                            rowTop,
+                            rowBottom,
+                            rowHeights[rowIndex],
+                            columnWidths,
+                            columnGap,
+                            rowHeights,
+                            rowGap,
+                            wholeRowSegment: true,
+                            startLine: 0,
+                            rowFillSkips,
+                            artifact: true);
+                        DrawTableCellIcons(
+                            sb,
+                            style,
+                            cells,
+                            rowIndex,
+                            columns,
+                            xOrigin,
+                            rowTop,
+                            rowBottom,
+                            rowHeights[rowIndex],
+                            columnWidths,
+                            columnGap,
+                            rowHeights,
+                            rowGap,
+                            wholeRowSegment: true,
+                            startLine: 0,
+                            rowFillSkips,
+                            artifact: true);
+                        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                            TableCellLayout cell = cells[cellIndex];
+                            double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
+                            double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+                            double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
+                            double cellBottom = rowTop - cellHeight;
+                            bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
+
+                            RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
+                            DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
+                        }
+                    } finally {
+                        _canvasStructureParentElement = tableParent;
+                    }
                 }
-
-                DrawTableCellDataBars(
-                    sb,
-                    style,
-                    cells,
-                    rowIndex,
-                    columns,
-                    xOrigin,
-                    rowTop,
-                    rowBottom,
-                    rowHeights[rowIndex],
-                    columnWidths,
-                    columnGap,
-                    rowHeights,
-                    rowGap,
-                    wholeRowSegment: true,
-                    startLine: 0,
-                    rowFillSkips,
-                    artifact: true);
-                DrawTableCellIcons(
-                    sb,
-                    style,
-                    cells,
-                    rowIndex,
-                    columns,
-                    xOrigin,
-                    rowTop,
-                    rowBottom,
-                    rowHeights[rowIndex],
-                    columnWidths,
-                    columnGap,
-                    rowHeights,
-                    rowGap,
-                    wholeRowSegment: true,
-                    startLine: 0,
-                    rowFillSkips,
-                    artifact: true);
-                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                    TableCellLayout cell = cells[cellIndex];
-                    double cellX = xOrigin + GetCanvasTableColumnsOffset(columnWidths, cell.Column, columnGap);
-                    double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                    double cellHeight = GetTableCellHeight(rowHeights, rowIndex, cell.RowSpan, rowGap);
-                    double cellBottom = rowTop - cellHeight;
-                    bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
-
-                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
-                    DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
-                }
+            } finally {
+                _canvasStructureParentElement = previousStructureParent;
             }
 
             if (style.BorderColor is not null && style.BorderWidth > 0D) {
@@ -315,7 +332,12 @@ internal static partial class PdfWriter {
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
-            int? markedContentId = RegisterTextStructureElement(rowIsHeader ? "TH" : "TD", _canvasStructureParentElement);
+            int? markedContentId = RegisterTextStructureElement(
+                rowIsHeader ? "TH" : "TD",
+                _canvasStructureParentElement,
+                rowIsHeader ? "Column" : string.Empty,
+                cell.ColumnSpan,
+                cell.RowSpan);
             WriteClippedRichParagraph(
                 sb,
                 paragraph,

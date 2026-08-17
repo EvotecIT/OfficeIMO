@@ -49,6 +49,8 @@ $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'convert\doc-d
 $comparisonHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'comparisons\officeimo-vs-closedxml-epplus\index.html')
 $compatibilityHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'compatibility\index.html')
 $productCss = Get-RequiredText -Path (Join-Path $siteRootPath 'css\product.css')
+$pdfWorkflowCatalogPath = Join-Path $sourceRootPath 'data\pdf_workflows.json'
+$pdfWorkflowCatalog = Get-Content -LiteralPath $pdfWorkflowCatalogPath -Raw | ConvertFrom-Json -Depth 20
 
 Assert-ContainsLiteral -Text $solutionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'solution prose styling'
 Assert-ContainsLiteral -Text $conversionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'conversion prose styling'
@@ -65,6 +67,22 @@ if ($compatibilityHtml -match 'imo-capability-card__version' -or
     $compatibilityHtml -match 'Package\s+\d+\.\d+\.\d+' -or
     $compatibilityHtml -match 'Package line') {
     throw 'Compatibility presentation still binds the current source contract to a fixed package version.'
+}
+
+$pdfHubHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'pdf\index.html')
+Assert-ContainsLiteral -Text $pdfHubHtml -Expected 'PDF tools for browsers and .NET' -Contract 'PDF workflow hub'
+
+foreach ($operation in @($pdfWorkflowCatalog.operations)) {
+    $operationHtml = Get-RequiredText -Path (Join-Path $siteRootPath "pdf\$($operation.slug)\index.html")
+    $expectedUrl = "$($pdfWorkflowCatalog.browserBaseUrl)$($operation.id)"
+    Assert-ContainsLiteral -Text $operationHtml -Expected $expectedUrl -Contract "PDF operation handoff '$($operation.id)'"
+    Assert-ContainsLiteral -Text $operationHtml -Expected '/css/product.css' -Contract "PDF operation styling '$($operation.id)'"
+}
+
+foreach ($conversion in @($pdfWorkflowCatalog.browserConversions)) {
+    $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath "convert\$($conversion.slug)\index.html")
+    $expectedUrl = "/apps/officeimo-converter/?workspace=convert&route=$($conversion.routeId)"
+    Assert-ContainsLiteral -Text $conversionHtml -Expected $expectedUrl -Contract "PDF conversion handoff '$($conversion.routeId)'"
 }
 
 Write-Host 'Website presentation contracts validated.'

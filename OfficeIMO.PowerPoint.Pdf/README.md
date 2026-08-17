@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint.Pdf)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf)
 
-`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. In the reverse direction it creates one rendered PDF page per slide by default, with an explicit editable-table reconstruction mode.
+`OfficeIMO.PowerPoint.Pdf` exports `OfficeIMO.PowerPoint` presentations to PDF through the first-party `OfficeIMO.Pdf` engine. In the reverse direction it reconstructs supported text, tables, safe shapes, and images as editable slide objects by default, with explicit visual, hybrid, and tables-only profiles.
 
 ## Install
 
@@ -123,19 +123,36 @@ result.Report.RequireNoErrorWarnings();
 
 ## Import PDF pages
 
-The general PDF route creates one visual slide per selected PDF page. Each page image is movable and resizable as a slide object; text and vectors inside the page image are not claimed as editable PowerPoint objects.
+The general PDF route reconstructs supported page content as native slide objects. This is a new semantic projection, not recovery of the original slide deck: unsupported or ambiguous content remains explicit in the conversion report.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
 PdfDocument pdf = PdfDocument.Open("handout.pdf");
-PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout.pptx");
+PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx");
 
-foreach (var page in report.VisualPages) {
+foreach (var page in report.EditablePages) {
+    Console.WriteLine(
+        $"Page {page.PageNumber}: {page.TextBoxCount} text boxes, " +
+        $"{page.TableCount} tables, {page.ShapeCount} shapes, {page.ImageCount} images");
+}
+```
+
+Use the explicit visual profile when a page image is the intended result. Each image is movable and resizable, but text, vectors, charts, and tables inside it are not editable:
+
+```csharp
+var visual = PdfPowerPointImportOptions.CreateVisualPages();
+PdfPowerPointConversionReport visualReport = pdf.SaveAsPowerPoint(
+    "handout-visual.pptx",
+    visual);
+
+foreach (var page in visualReport.VisualPages) {
     Console.WriteLine($"PDF page {page.PageNumber}, slide {page.SlideIndex + 1}");
 }
 ```
+
+This is a new semantic projection, not recovery of the original slide deck. Original charts, groups, themes, animations, notes, and authoring intent cannot be recovered reliably from arbitrary PDFs; omissions and simplifications remain explicit warnings.
 
 Use hybrid mode when the original page must remain visible while detected tables stay editable. Row and column caps split a large overlay across duplicate visual-page slides, and each overlay keeps the same centered, aspect-preserving page geometry as its background:
 
@@ -174,10 +191,12 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 ## Current limits
 
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
-- Opened-PDF import defaults to `PdfPowerPointImportMode.VisualPages`. Managed-renderer capability diagnostics report page failures or simplifications.
+- `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfLogicalDocument` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
+- `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.
-- Arbitrary text, images, navigation, vectors, groups, forms/controls, annotations, and interactive media/animations are not claimed as editable slide objects; stable report warnings identify their visual-only or unsupported disposition.
+- The visual and hybrid modes accept caller-supplied fallback fonts for Base-14 and other unembedded font programs. Renderer capability diagnostics remain visible because a fallback is still a substitution, not the source font program.
+- Navigation, groups, forms/controls, annotations, interactive media/animations, and complex vector or image placements are not claimed as editable slide objects; stable report warnings identify their visual-only, simplified, or omitted disposition.
 
 ## Related packages
 

@@ -69,6 +69,15 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "pdf-workflows",
+      "Input": "content/pdf-workflows",
+      "Output": "/pdf",
+      "DefaultLayout": "conversion",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "solutions",
       "Input": "content/solutions",
       "Output": "/solutions",
@@ -289,7 +298,7 @@
     "Cache": {
       "EdgeTtlSeconds": 604800
     },
-    "PurgeMode": "incremental",
+    "PurgeMode": "hostname",
     "SmartTieredCache": true
   },
   "EditLinks": {
@@ -325,6 +334,7 @@
       { "Match": "/", "Bundles": ["global", "home", "experience"] },
       { "Match": "/products/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/compatibility/", "Bundles": ["global", "product", "experience"] },
+      { "Match": "/pdf/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/convert/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/solutions/**", "Bundles": ["global", "product", "experience"] },
       { "Match": "/comparison/", "Bundles": ["global", "product", "experience"] },

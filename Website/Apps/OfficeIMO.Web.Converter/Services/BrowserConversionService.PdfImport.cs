@@ -1,8 +1,11 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
@@ -12,20 +15,28 @@ using OfficeIMO.Word.Pdf;
 namespace OfficeIMO.Web.Converter.Services;
 
 public sealed partial class BrowserConversionService {
-    private static ConversionResult ConvertPdfFile(ConversionRoute route, SelectedDocument file) {
+    private const long MaximumPngArchiveBytes = BrowserPdfPolicy.MaxOutputBytes / 2L;
+
+    private static ConversionResult ConvertPdfFile(
+        ConversionRoute route,
+        SelectedDocument file,
+        PdfPowerPointImportMode pdfPowerPointMode) {
         var stopwatch = Stopwatch.StartNew();
         PdfImportPayload payload = route.Id switch {
             "pdf-docx" => ConvertPdfToWord(file),
             "pdf-xlsx" => ConvertPdfToExcel(file),
-            "pdf-pptx" => ConvertPdfToPowerPoint(file),
+            "pdf-pptx" => ConvertPdfToPowerPoint(file, pdfPowerPointMode),
             "pdf-html" => ConvertPdfToHtml(file),
+            "pdf-png" => ConvertPdfToPng(file),
             _ => throw new NotSupportedException($"The route '{route.Id}' is not available in the browser workspace.")
         };
         stopwatch.Stop();
 
         string fileName = Path.GetFileNameWithoutExtension(file.Name) + payload.Extension;
         IReadOnlyList<ConversionWarningView> structuredWarnings = payload.Warnings.Select(CreateWarningView).ToArray();
-        string fidelity = payload.HasLoss ? "Degraded" : "Complete";
+        string fidelity = payload.HasLoss && payload.FidelityStatus == "Reconstructed"
+            ? "Degraded"
+            : payload.FidelityStatus;
         BrowserConversionArtifact report = CreatePdfImportReport(
             route,
             file,
@@ -41,7 +52,7 @@ public sealed partial class BrowserConversionService {
             payload.HtmlPreview,
             payload.Warnings.Select(static warning => warning.ToString()).ToArray()) {
             FidelityStatus = fidelity,
-            ProvenanceSummary = route.EnginePath + " · logical PDF import",
+            ProvenanceSummary = route.EnginePath + " · " + DescribePdfProjection(payload.Projection),
             CompanionReport = report,
             StructuredWarnings = structuredWarnings,
             PageCount = payload.PageCount,
@@ -64,7 +75,8 @@ public sealed partial class BrowserConversionService {
             pdf.Inspect().PageCount,
             $"Editable DOCX generated: {FormatBytes(bytes.Length)}.",
             null,
-            "logical-content");
+            "logical-content",
+            conversion.HasLoss ? "Degraded" : "Reconstructed");
     }
 
     private static PdfImportPayload ConvertPdfToExcel(SelectedDocument file) {
@@ -96,14 +108,33 @@ public sealed partial class BrowserConversionService {
             pdf.Inspect().PageCount,
             $"Editable XLSX generated with {conversion.Report.Entries.Count} detected table{(conversion.Report.Entries.Count == 1 ? string.Empty : "s")}.",
             null,
-            "detected-tables");
+            "detected-tables",
+            "Partial");
     }
 
-    private static PdfImportPayload ConvertPdfToPowerPoint(SelectedDocument file) {
+    private static PdfImportPayload ConvertPdfToPowerPoint(
+        SelectedDocument file,
+        PdfPowerPointImportMode mode) {
         PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult();
+        BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(mode);
+        var options = new PdfPowerPointImportOptions {
+            Mode = profile.Mode,
+            RenderFonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance
+        };
+        PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(options);
         using var presentation = conversion.Value;
         byte[] bytes = presentation.ToBytes();
+        string summary = profile.Mode switch {
+            PdfPowerPointImportMode.VisualPages =>
+                $"Visual PPTX generated: {FormatBytes(bytes.Length)}. Each slide contains one page image; its text, shapes, charts, and tables are not editable.",
+            PdfPowerPointImportMode.HybridVisualAndEditableTables =>
+                $"Hybrid PPTX generated: {FormatBytes(bytes.Length)}. Page images preserve appearance and {conversion.Report.TableEntries.Count} detected table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")} remain editable.",
+            PdfPowerPointImportMode.EditableTables =>
+                $"Tables-only PPTX generated with {conversion.Report.TableEntries.Count} editable table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}.",
+            _ =>
+                $"Editable-content PPTX generated with {conversion.Report.EditablePages.Sum(static page => page.TextBoxCount)} text box{(conversion.Report.EditablePages.Sum(static page => page.TextBoxCount) == 1 ? string.Empty : "es")}, {conversion.Report.TableEntries.Count} table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}, {conversion.Report.EditablePages.Sum(static page => page.ShapeCount)} shape{(conversion.Report.EditablePages.Sum(static page => page.ShapeCount) == 1 ? string.Empty : "s")}, and {conversion.Report.EditablePages.Sum(static page => page.ImageCount)} separate image{(conversion.Report.EditablePages.Sum(static page => page.ImageCount) == 1 ? string.Empty : "s")}.",
+        };
         return new PdfImportPayload(
             bytes,
             ".pptx",
@@ -111,9 +142,10 @@ public sealed partial class BrowserConversionService {
             conversion.Warnings,
             conversion.HasLoss || conversion.HasOmittedPageContent,
             pdf.Inspect().PageCount,
-            $"Editable PPTX generated: {FormatBytes(bytes.Length)}.",
+            summary,
             null,
-            "editable-slides");
+            profile.Projection,
+            profile.FidelityStatus);
     }
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
@@ -129,8 +161,121 @@ public sealed partial class BrowserConversionService {
             conversion.Summary.SourcePageCount,
             conversion.Value,
             conversion.Value,
-            conversion.Summary.ProfileId);
+            conversion.Summary.ProfileId,
+            conversion.HasLoss ? "Degraded" : "Reconstructed");
     }
+
+    private static PdfImportPayload ConvertPdfToPng(SelectedDocument file) {
+        PdfDocument pdf = BrowserPdfPolicy.Open(file);
+        int pageCount = pdf.Inspect().PageCount;
+        if (pageCount == 0) {
+            throw new InvalidOperationException("The PDF did not contain a renderable page.");
+        }
+        var options = new PdfImageExportOptions {
+            TargetDpi = 144D,
+            Fonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            MaximumOutputCount = BrowserPdfPolicy.MaxPages,
+            MaximumTotalRasterPixels = 250_000_000L,
+            MaximumTotalEncodedBytes = pageCount == 1
+                ? BrowserPdfPolicy.MaxOutputBytes
+                : MaximumPngArchiveBytes,
+            RenderTimeout = TimeSpan.FromSeconds(30),
+            MaximumDegreeOfParallelism = 1
+        };
+        if (pageCount == 1) {
+            OfficeImageExportResult image = pdf.ToImages(options).AsPng().Export().Single();
+            IReadOnlyList<PdfConversionWarning> warnings = MapImageDiagnostics(image, 1);
+            return new PdfImportPayload(
+                image.Bytes,
+                ".png",
+                image.MimeType,
+                warnings,
+                HasMaterialImageLoss(warnings),
+                1,
+                $"Detailed 144 DPI PNG generated at {image.Width} × {image.Height} pixels.",
+                null,
+                "visual-page-images",
+                HasMaterialImageLoss(warnings) ? "Degraded" : "Visual");
+        }
+
+        (byte[] Archive, IReadOnlyList<PdfConversionWarning> Warnings) archive =
+            CreatePngArchive(file.Name, pageCount, pdf, options);
+        bool hasLoss = HasMaterialImageLoss(archive.Warnings);
+        return new PdfImportPayload(
+            archive.Archive,
+            ".zip",
+            "application/zip",
+            archive.Warnings,
+            hasLoss,
+            pageCount,
+            $"{pageCount} detailed 144 DPI page PNGs generated in one ZIP archive.",
+            null,
+            "visual-page-images",
+            hasLoss ? "Degraded" : "Visual");
+    }
+
+    private static (byte[] Archive, IReadOnlyList<PdfConversionWarning> Warnings) CreatePngArchive(
+        string sourceFileName,
+        int pageCount,
+        PdfDocument pdf,
+        PdfImageExportOptions options) {
+        string baseName = Path.GetFileNameWithoutExtension(sourceFileName);
+        int digits = Math.Max(3, pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);
+        int nextPageNumber = 1;
+        var warnings = new List<PdfConversionWarning>();
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            pdf.ToImages(options).AsPng().ExportEach(image => {
+                int pageNumberValue = nextPageNumber++;
+                string pageNumber = pageNumberValue.ToString(
+                    new string('0', digits),
+                    System.Globalization.CultureInfo.InvariantCulture);
+                ZipArchiveEntry entry = archive.CreateEntry(
+                    $"{baseName}.page-{pageNumber}.png",
+                    CompressionLevel.NoCompression);
+                entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                using Stream entryStream = entry.Open();
+                byte[] bytes = image.Bytes;
+                entryStream.Write(bytes, 0, bytes.Length);
+                warnings.AddRange(MapImageDiagnostics(image, pageNumberValue));
+                if (output.Length > MaximumPngArchiveBytes) {
+                    throw new InvalidDataException(
+                        $"The PNG archive exceeds the browser output limit of {FormatBytes(MaximumPngArchiveBytes)}.");
+                }
+            });
+        }
+        if (output.Length > MaximumPngArchiveBytes) {
+            throw new InvalidDataException(
+                $"The PNG archive exceeds the browser output limit of {FormatBytes(MaximumPngArchiveBytes)}.");
+        }
+        return (output.ToArray(), warnings.AsReadOnly());
+    }
+
+    private static IReadOnlyList<PdfConversionWarning> MapImageDiagnostics(
+        OfficeImageExportResult image,
+        int pageNumber) =>
+        image.Diagnostics.Select(diagnostic => new PdfConversionWarning(
+            "OfficeIMO.Pdf",
+            diagnostic.Code,
+            $"page {pageNumber}",
+            diagnostic.Message,
+            diagnostic.Severity switch {
+                OfficeImageExportDiagnosticSeverity.Error => PdfConversionWarningSeverity.Error,
+                OfficeImageExportDiagnosticSeverity.Warning => PdfConversionWarningSeverity.Warning,
+                _ => PdfConversionWarningSeverity.Information
+            })).ToArray();
+
+    private static bool HasMaterialImageLoss(IReadOnlyList<PdfConversionWarning> warnings) =>
+        warnings.Any(static warning => warning.Severity != PdfConversionWarningSeverity.Information);
+
+    private static string DescribePdfProjection(string projection) => projection switch {
+        "visual-page-images" => "visual PDF page rendering",
+        "visual-page-slides" => "visual PDF page slides",
+        "hybrid-visual-table-slides" => "hybrid PDF page and table reconstruction",
+        "editable-table-slides" or "detected-tables" => "detected PDF table reconstruction",
+        _ => "semantic PDF reconstruction"
+    };
 
     private static BrowserConversionArtifact CreatePdfImportReport(
         ConversionRoute route,
@@ -187,5 +332,6 @@ public sealed partial class BrowserConversionService {
         int PageCount,
         string? Text,
         string? HtmlPreview,
-        string Projection);
+        string Projection,
+        string FidelityStatus);
 }

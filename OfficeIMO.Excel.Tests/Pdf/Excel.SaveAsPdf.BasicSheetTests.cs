@@ -42,6 +42,91 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_SkipsTrulyEmptyWorksheets() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipEmptyWorksheets.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+            ExcelSheet delivery = document.Sheets[0];
+            delivery.Cell(1, 1, "Workstream");
+            delivery.Cell(1, 2, "Status");
+            delivery.Cell(2, 1, "PDF workbench");
+            delivery.Cell(2, 2, "Ready");
+            delivery.AddTable("A1:B2", hasHeader: true, name: "DeliveryTable", style: ExcelTableStyle.TableStyleMedium2);
+            document.AddWorksheet("Empty one");
+            document.AddWorksheet("Empty two");
+            document.Save();
+
+            bytes = document.ToPdf();
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        Assert.Single(info.Pages);
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("PDF workbench", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_SkipsTableOutsideAnEmptyPrintArea() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipTableOutsidePrintArea.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+            ExcelSheet delivery = document.Sheets[0];
+            delivery.Cell(1, 1, "Workstream");
+            delivery.Cell(2, 1, "PDF workbench");
+
+            ExcelSheet excluded = document.AddWorksheet("Excluded");
+            excluded.Cell(10, 1, "Owner");
+            excluded.Cell(10, 2, "Status");
+            excluded.Cell(11, 1, "OfficeIMO");
+            excluded.Cell(11, 2, "Ready");
+            excluded.AddTable("A10:B11", hasHeader: true, name: "ExcludedTable", style: ExcelTableStyle.TableStyleMedium2);
+            document.SetPrintArea(excluded, "A1:B2", save: false);
+            document.Save();
+
+            bytes = document.ToPdf(new ExcelPdfSaveOptions { UseWorksheetPrintAreas = true });
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        Assert.Single(info.Pages);
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("PDF workbench", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OfficeIMO", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_SkipsExplicitEmptyDefaultStyleCell() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSkipExplicitEmptyCell.xlsx");
+
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Delivery")) {
+            ExcelSheet delivery = document.Sheets[0];
+            delivery.Cell(1, 1, "PDF workbench");
+            document.AddWorksheet("Empty cell");
+            document.Save();
+        }
+
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(workbookPath, true)) {
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            Sheet emptySheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name == "Empty cell");
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(emptySheet.Id!);
+            SheetData sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            sheetData.Append(new Row(new Cell { CellReference = "A1" }) { RowIndex = 1U });
+            worksheetPart.Worksheet.Save();
+        }
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
+            bytes = document.ToPdf();
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        Assert.Single(info.Pages);
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("PDF workbench", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_RendersWithExplicitMappedDefaultFontFamily() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfExplicitSerif.xlsx");
 

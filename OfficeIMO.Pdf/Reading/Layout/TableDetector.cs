@@ -16,25 +16,33 @@ internal static class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
-    public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines) {
+    public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines, double? pageHeight = null) {
         var rows = new List<string[]>();
-        foreach (var match in DetectLineRows(lines)) {
+        foreach (var match in DetectLineRows(lines, pageHeight)) {
             rows.Add(match.Cells);
         }
         return rows;
     }
 
-    public static List<(TextLayoutEngine.TextLine Line, string[] Cells)> DetectLineRows(List<TextLayoutEngine.TextLine> lines) {
+    public static List<(TextLayoutEngine.TextLine Line, string[] Cells)> DetectLineRows(
+        List<TextLayoutEngine.TextLine> lines,
+        double? pageHeight = null) {
         var rows = new List<(TextLayoutEngine.TextLine Line, string[] Cells)>();
         foreach (var ln in lines) {
-            if (ln.Spans.Count < 2) continue;
+            if (!CanRecoverTableLine(ln, pageHeight) || ln.Spans.Count < 2) continue;
             var cells = SplitByGaps(ln);
             if (cells.Length >= 2 && LooksTabular(cells)) rows.Add((ln, cells));
         }
         return rows;
     }
 
-    public static List<StructuredTable> DetectTablesFromBands(List<List<TextLayoutEngine.TextLine>> bands) {
+    public static List<StructuredTable> DetectTablesFromBands(
+        List<List<TextLayoutEngine.TextLine>> bands,
+        double? pageHeight = null) {
+        bands = bands
+            .Select(band => band.Where(line => CanRecoverTableLine(line, pageHeight)).ToList())
+            .Where(static band => band.Count > 0)
+            .ToList();
         var tables = new List<StructuredTable>();
         // Leader-dominated bands should become leader tables, not generic band tables
         foreach (var band in bands) {
@@ -63,7 +71,7 @@ internal static class TableDetector {
             .Where(line => !IsCoveredByDetectedTable(line, tables))
             .Take(MaximumPositionedRecoveryLines)
             .ToList();
-        tables.AddRange(DetectPositionedCellTables(unmatchedLines));
+        tables.AddRange(DetectPositionedCellTables(unmatchedLines, pageHeight));
         return tables;
     }
 
@@ -88,13 +96,20 @@ internal static class TableDetector {
         return false;
     }
 
-    internal static List<StructuredTable> DetectPositionedCellTables(IReadOnlyList<TextLayoutEngine.TextLine> lines) {
+    internal static List<StructuredTable> DetectPositionedCellTables(
+        IReadOnlyList<TextLayoutEngine.TextLine> lines,
+        double? pageHeight = null) {
         var result = new List<StructuredTable>();
         var group = new List<PositionedRow>();
         int inspectedLines = 0;
         int inspectedCells = 0;
         foreach (TextLayoutEngine.TextLine line in lines.OrderByDescending(static line => line.Y)) {
             if (inspectedLines++ == MaximumPositionedRecoveryLines) break;
+            if (!CanRecoverTableLine(line, pageHeight)) {
+                AddPositionedGroup(result, group);
+                group.Clear();
+                continue;
+            }
             PositionedRow? row = TryCreatePositionedRow(line);
             if (row == null || inspectedCells + row.Cells.Count > MaximumPositionedRecoveryCells) {
                 AddPositionedGroup(result, group);
@@ -434,8 +449,13 @@ internal static class TableDetector {
         return table.Rows.Count > 0 ? table : null;
     }
 
-    public static StructuredTable? DetectLeaderTable(List<TextLayoutEngine.TextLine> lines) {
-        var candidates = lines.Where(l => !string.IsNullOrWhiteSpace(l.Text)).ToList();
+    public static StructuredTable? DetectLeaderTable(
+        List<TextLayoutEngine.TextLine> lines,
+        double? pageHeight = null) {
+        var candidates = lines
+            .Where(line => CanRecoverTableLine(line, pageHeight))
+            .Where(static line => !string.IsNullOrWhiteSpace(line.Text))
+            .ToList();
         if (candidates.Count == 0) return null;
         var rows = new List<string[]>();
         double leftMin = double.MaxValue, leftMax = double.MinValue;
@@ -465,14 +485,19 @@ internal static class TableDetector {
     /// Band-aware detection that first infers stable column split positions within each band,
     /// then splits lines consistently into those columns.
     /// </summary>
-    public static List<string[]> DetectFromBands(List<List<TextLayoutEngine.TextLine>> bands) {
+    public static List<string[]> DetectFromBands(
+        List<List<TextLayoutEngine.TextLine>> bands,
+        double? pageHeight = null) {
         var all = new List<string[]>();
         foreach (var band in bands) {
-            if (band.Count == 0) continue;
-            var splits = InferSplits(band);
+            List<TextLayoutEngine.TextLine> recoverable = band
+                .Where(line => CanRecoverTableLine(line, pageHeight))
+                .ToList();
+            if (recoverable.Count == 0) continue;
+            var splits = InferSplits(recoverable);
             if (splits.Count == 0) {
                 // fallback to per-line gap splitting
-                foreach (var ln in band) {
+                foreach (var ln in recoverable) {
                     if (ln.Spans.Count < 2) continue;
                     var cells = SplitByGaps(ln);
                     if (cells.Length >= 2 && LooksTabular(cells)) all.Add(cells);
@@ -481,7 +506,7 @@ internal static class TableDetector {
             }
             // Consistent splitting using inferred splits
             int cols = splits.Count + 1;
-            foreach (var ln in band) {
+            foreach (var ln in recoverable) {
                 var cells = SplitBySplits(ln, splits);
                 if (cells.Length == cols) {
                     bool any = false; for (int i = 0; i < cells.Length; i++) if (!string.IsNullOrWhiteSpace(cells[i])) { any = true; break; }
@@ -491,6 +516,10 @@ internal static class TableDetector {
         }
         return all;
     }
+
+    private static bool CanRecoverTableLine(TextLayoutEngine.TextLine line, double? pageHeight) =>
+        line.Spans.Count > 0 &&
+        line.Spans.All(span => span.CanProjectCompleteText(pageHeight));
 
     private static List<double> InferSplits(List<TextLayoutEngine.TextLine> lines) {
         // Collect candidate split X positions as midpoints of large gaps between adjacent spans

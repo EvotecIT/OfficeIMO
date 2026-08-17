@@ -84,8 +84,21 @@
     },
     {
       "task": "exec",
-      "id": "test-discovery-evidence",
+      "id": "test-pdf-workflow-content",
       "dependsOn": ["test-capability-claims"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-PdfWorkflowContent.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-discovery-evidence",
+      "dependsOn": ["test-pdf-workflow-content"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
@@ -1387,8 +1400,25 @@
     },
     {
       "task": "exec",
-      "id": "verify-browser-converter",
+      "id": "write-browser-converter-deployment-manifest",
       "dependsOn": "overlay-browser-converter",
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Write-ConverterDeploymentManifest.ps1",
+        "-ConverterRoot",
+        "./_site/apps/officeimo-converter",
+        "-DeploymentIdEnvironment",
+        "GITHUB_SHA"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "verify-browser-converter",
+      "dependsOn": "write-browser-converter-deployment-manifest",
       "command": "pwsh",
       "argsList": [
         "-NoLogo",

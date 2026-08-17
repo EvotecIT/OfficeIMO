@@ -742,7 +742,7 @@ The 3.1 PDF adapters use destination-shaped names for general conversion and exp
 
 Excel remains explicitly table-shaped because its PDF adapter recovers detected tables rather than arbitrary page content. Keep using `PdfExcelTableImportOptions`, `PdfExcelTableImportReport`, `PdfExcelTableImportResult`, `ImportTablesToExcelDocument`, and `SaveTablesAsExcel`.
 
-PowerPoint behavior broadens in 3.1: an opened `PdfDocument` creates one rendered page per slide by default. Use `PdfPowerPointImportOptions.CreateEditableTables()` when editable table recovery is the intended result. The visual route does not claim that arbitrary PDF text, vectors, groups, clipping, forms, or annotations become editable PowerPoint objects.
+PowerPoint behavior broadens in 3.1: an opened `PdfDocument` now reconstructs supported text, detected tables, safe vector primitives, and images as editable slide objects by default. `PdfPowerPointImportOptions.Mode` defaults to `Auto`, which resolves an opened PDF to `EditableContent` and an already reduced `PdfLogicalDocument` to `EditableTables`. This intentionally changes the no-options behavior of `ToPowerPointPresentation*`, `SaveAsPowerPoint*`, and the opened-PDF-to-ODP bridge. Use `PdfPowerPointImportOptions.CreateVisualPages()` to retain the previous one-rendered-page-image-per-slide behavior. Use `CreateHybrid()` for visual pages with editable table overlays or `CreateEditableTables()` for detected tables only. None of these profiles claims recovery of original themes, masters, charts, groups, animations, notes, or authoring intent.
 
 Use `PdfWordImportOptions.CreateTablesOnly()` for narrow Word table recovery. PowerPoint table details remain available through `PdfPowerPointConversionReport.TableEntries` when the editable-table profile is selected.
 
@@ -774,12 +774,13 @@ The reverse-route boundaries are:
 | --- | --- | --- |
 | PDF to Word | Semantic headings, paragraphs, lists, tables, supported images, and links | Not fixed-layout page reconstruction |
 | PDF to Excel | Detected tables and structured data | Non-table page content is reported rather than placed on a worksheet canvas |
-| PDF to PowerPoint | One rendered PDF page per slide | The slide image is movable, but its internals are not editable |
+| PDF to PowerPoint | Native text boxes, detected tables, safe basic shapes, and supported images | Unsupported or ambiguous page content is simplified or omitted with diagnostics |
+| PDF to PowerPoint with `VisualPages` | One rendered PDF page per slide | The slide image is movable, but its internals are not editable |
 | PDF to PowerPoint with `EditableTables` | Detected tables on editable slides | Other page content is reported as omitted |
 | PDF to RTF | Semantic text, lists, page breaks, and detected run styling | Unsupported tables, images, links, and widgets produce loss diagnostics |
 | PDF to HTML | Semantic or positioned review HTML | Neither profile claims browser-clone fidelity for arbitrary PDFs |
 | PDF to Markdown | Logical readable text through `pdf.Read.Markdown(...)` | Portable text rather than visual fidelity |
-| PDF to ODT, ODS, or ODP | Composed Word, Excel-table, or PowerPoint-visual routes | Inspect both conversion stages and their loss reports |
+| PDF to ODT, ODS, or ODP | Composed Word-semantic, Excel-table, or PowerPoint-editable routes | Inspect both conversion stages and their loss reports; logical PDF input remains table-shaped for ODP |
 
 `PdfResourcePolicy.CreateDefault()` is the balanced adapter default: installed and document fonts are available while arbitrary local-file and remote-resource access remains denied. Use `PdfResourcePolicy.CreatePortableDeterministic()` for untrusted or reproducible conversion. Use `PdfResourcePolicy.CreateTrustedHost()` only when the operation intentionally resolves host or remote resources.
 

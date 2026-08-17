@@ -33,11 +33,12 @@ public sealed partial class BrowserConversionService {
         SelectedDocument file,
         bool limitExcelRows,
         BrowserPdfProfile? profile = null,
-        bool generateDebugOverlay = false) {
+        bool generateDebugOverlay = false,
+        PdfPowerPointImportMode pdfPowerPointMode = PdfPowerPointImportMode.EditableContent) {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(file);
         if (string.Equals(route.Source, "PDF", StringComparison.OrdinalIgnoreCase)) {
-            return ConvertPdfFile(route, file);
+            return ConvertPdfFile(route, file, pdfPowerPointMode);
         }
         BrowserPdfProfile effectiveProfile = profile ?? BrowserPdfProfileCatalog.Faithful;
         var stopwatch = Stopwatch.StartNew();

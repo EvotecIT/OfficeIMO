@@ -583,7 +583,9 @@ public partial class Excel {
 
         IReadOnlyList<PdfCore.PdfTextSpan> spans = logical.Pages[0].TextBlocks.SelectMany(static block => block.Spans).ToArray();
         List<PdfCore.TextLayoutEngine.TextLine> lines = PdfCore.TextLayoutEngine.BuildLines(spans);
-        List<PdfCore.StructuredTable> recovered = PdfCore.TableDetector.DetectPositionedCellTables(lines);
+        List<PdfCore.StructuredTable> recovered = PdfCore.TableDetector.DetectPositionedCellTables(
+            lines,
+            logical.Pages[0].Height);
         PdfCore.StructuredTable positionedTable = Assert.Single(recovered);
         Assert.Equal("positioned-cells-bounded", positionedTable.Kind);
         Assert.Equal(3, positionedTable.Rows.Count);

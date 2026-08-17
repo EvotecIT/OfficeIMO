@@ -17,7 +17,7 @@ public sealed class BrowserConversionServiceTests {
 
     [Fact]
     public void RouteCatalog_HasUniqueCustomerRoutes() {
-        Assert.Equal(11, ConversionRouteCatalog.All.Count);
+        Assert.Equal(12, ConversionRouteCatalog.All.Count);
         Assert.Equal(
             ConversionRouteCatalog.All.Count,
             ConversionRouteCatalog.All.Select(static route => route.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
@@ -67,7 +67,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void HtmlPdfProfile_UsesThePinnedFacesForLayoutAndPdfPainting() {
         var options = BrowserPortablePdfProfile.CreateHtmlOptions(BrowserPdfProfileCatalog.Faithful);
-        string[] aliases = [
+        string[] compatibleAliases = [
             "Arial",
             "Helvetica",
             "Calibri",
@@ -80,11 +80,25 @@ public sealed class BrowserConversionServiceTests {
             "ui-sans-serif",
             "system-ui",
             "-apple-system",
-            "BlinkMacSystemFont"
+            "BlinkMacSystemFont",
+            "Times",
+            "Times Roman",
+            "Times-Roman",
+            "Times New Roman",
+            "serif",
+            "Courier",
+            "Courier New",
+            "monospace",
+            "ui-monospace"
+        ];
+        string[] symbolAliases = [
+            "Symbol",
+            "ZapfDingbats",
+            "Zapf Dingbats"
         ];
 
         Assert.Equal(BrowserPortablePdfProfile.DefaultLayoutFontFamilies, options.DefaultFontFamily);
-        Assert.Equal(6 + aliases.Length * 4, options.Fonts.Faces.Count);
+        Assert.Equal(6 + compatibleAliases.Length * 4 + symbolAliases.Length, options.Fonts.Faces.Count);
         Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == BrowserPortablePdfProfile.DefaultFontFamily));
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Single(options.Fonts.Faces, face => face.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
@@ -101,7 +115,7 @@ public sealed class BrowserConversionServiceTests {
             OfficeFontStyle.Regular,
             out double defaultWidth));
         Assert.True(defaultWidth > 0D);
-        foreach (string alias in aliases) {
+        foreach (string alias in compatibleAliases) {
             Assert.Equal(4, options.Fonts.Faces.Count(face => face.FamilyName == alias));
             Assert.True(options.Fonts.TryMeasureText(
                 "Layout boundary",
@@ -111,13 +125,23 @@ public sealed class BrowserConversionServiceTests {
                 out double aliasWidth));
             Assert.Equal(defaultWidth, aliasWidth, 10);
         }
+        foreach (string alias in symbolAliases) {
+            Assert.Single(options.Fonts.Faces, face => face.FamilyName == alias);
+            Assert.True(options.Fonts.TryMeasureText(
+                "⌚",
+                16D,
+                alias,
+                OfficeFontStyle.Regular,
+                out double symbolWidth));
+            Assert.True(symbolWidth > 0D);
+        }
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = options.Fonts.PlanFallbackRuns(
             "Latin العربية ⌚",
             options.DefaultFontFamily,
             OfficeFontStyle.Regular);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.ArabicFallbackFontFamily);
         Assert.Contains(fallbackRuns, run => run.FamilyName == BrowserPortablePdfProfile.SymbolFallbackFontFamily);
-        foreach (string alias in aliases) {
+        foreach (string alias in compatibleAliases) {
             IReadOnlyList<OfficeFontFallbackRun> aliasFallbackRuns = options.Fonts.PlanFallbackRuns(
                 "Latin العربية ⌚",
                 alias,
@@ -566,6 +590,36 @@ public sealed class BrowserConversionServiceTests {
         Assert.Equal(
             "maxRowsPerSheet=250;mode=requested-browser-preview",
             limitedManifest.RootElement.GetProperty("engine").GetProperty("optionProfile").GetString());
+    }
+
+    [Fact]
+    public void ExcelSample_ContainsAStructuredTableAndRendersItOnOnePdfPage() {
+        string samplePath = Path.Combine(AppContext.BaseDirectory, "samples", "basic.xlsx");
+        byte[] bytes = File.ReadAllBytes(samplePath);
+        using (ExcelDocument workbook = ExcelDocument.Load(new MemoryStream(bytes))) {
+            ExcelTableInfo table = Assert.Single(workbook.GetTables());
+            Assert.Equal("DeliveryOverview", table.Name);
+            Assert.Equal("A4:E10", table.Range);
+            Assert.Equal(
+                ["Workstream", "Owner", "Status", "Budget", "Target date"],
+                table.Columns.Select(static column => column.Name).ToArray());
+        }
+
+        ConversionResult result = _service.ConvertFile(
+            ConversionRouteCatalog.Find("xlsx-pdf"),
+            new SelectedDocument("OfficeIMO-Table.xlsx", ".xlsx", "XLSX", bytes.LongLength, bytes),
+            limitExcelRows: false);
+
+        PdfReadDocument pdf = PdfReadDocument.Open(result.Bytes);
+        Assert.Single(pdf.Pages);
+        Assert.Contains("OfficeIMO delivery overview", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("PDF workbench", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Production rollout", pdf.ExtractText(), StringComparison.Ordinal);
+        Assert.True(pdf.HasTaggedContent);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(pdf.TaggedContent);
+        Assert.Contains("Table", tagged.StructureTypes);
+        Assert.Contains("TH", tagged.StructureTypes);
+        Assert.Contains("TD", tagged.StructureTypes);
     }
 
     [Fact]

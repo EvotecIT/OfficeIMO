@@ -985,7 +985,8 @@ internal static class TextContentParser {
                     textRenderingMode,
                     canRestamp && visibleGlyphsMatchLogicalText,
                     restampFontSize,
-                    paintedText));
+                    paintedText,
+                    Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

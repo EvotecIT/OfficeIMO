@@ -227,7 +227,10 @@ internal static class ContentStructureExtractor {
         "er", "ers", "ed", "ly", "ology", "ologies"
     };
 
-    public static StructuredPage Extract(IReadOnlyList<PdfTextSpan> spans, TextLayoutEngine.Options opts) {
+    public static StructuredPage Extract(
+        IReadOnlyList<PdfTextSpan> spans,
+        TextLayoutEngine.Options opts,
+        double? pageHeight = null) {
         var page = new StructuredPage();
         var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
         var lines = TextLayoutEngine.BuildLines(spans, opts);
@@ -285,7 +288,7 @@ internal static class ContentStructureExtractor {
         }
 
         // Table detection: prefer banded column inference; fallback to per-line
-        var tables = TableDetector.DetectTablesFromBands(bands);
+        var tables = TableDetector.DetectTablesFromBands(bands, pageHeight);
         if (tables.Count > 0) {
             // Clean leaders and add
             foreach (var t in tables) {
@@ -319,7 +322,7 @@ internal static class ContentStructureExtractor {
             }
         } else {
             // Try a page-level leader-based table (TOC-like)
-            var leaderTbl = TableDetector.DetectLeaderTable(nonEmpty);
+            var leaderTbl = TableDetector.DetectLeaderTable(nonEmpty, pageHeight);
             if (leaderTbl is not null) {
                 if (string.Equals(leaderTbl.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < leaderTbl.Rows.Count; r++) if (leaderTbl.Rows[r].Length >= 2) {
@@ -330,7 +333,7 @@ internal static class ContentStructureExtractor {
                 page.TablesDetailed.Add(leaderTbl);
                 foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
-                var rows = TableDetector.DetectLineRows(lines);
+                var rows = TableDetector.DetectLineRows(lines, pageHeight);
                 if (rows.Count > 0) {
                     foreach (var row in rows) {
                         var r = row.Cells;

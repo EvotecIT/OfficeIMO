@@ -33,4 +33,30 @@ public partial class DrawingRasterTests {
             OfficeDrawingRasterRenderer.Render(bounded),
             OfficeDrawingRasterRenderer.Render(positioned));
     }
+
+    [Fact]
+    public void OfficeDrawing_ClippedPositionedTextRetainsSourceAdvance() {
+        const string text = "Quarterly Operations Dashboard";
+        var drawing = new OfficeDrawing(180D, 40D).AddClippedPositionedText(
+            text,
+            0D,
+            0D,
+            160D,
+            32D,
+            0D,
+            0D,
+            OfficeClipPath.Rectangle(120D, 32D),
+            new OfficeFontInfo("Arial", 20D),
+            OfficeColor.Black,
+            textAdvanceWidth: 150D);
+
+        OfficeDrawingGroup group = Assert.IsType<OfficeDrawingGroup>(Assert.Single(drawing.Elements));
+        OfficeDrawingText positioned = Assert.IsType<OfficeDrawingText>(Assert.Single(group.Drawing.Elements));
+        Assert.Equal(text, positioned.Text);
+        Assert.Equal(OfficeTextOverflowBehavior.Clip, positioned.OverflowBehavior);
+        Assert.Equal(150D, positioned.TextAdvanceWidth);
+
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.True(rendered.GetPixels().Any(static value => value != 0));
+    }
 }

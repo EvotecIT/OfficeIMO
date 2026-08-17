@@ -1,0 +1,21 @@
+<div>
+    <p class="ocx-site-footer__heading">@Heading</p>
+    <ul class="ocx-site-footer__links">
+        @foreach ((string label, string url, bool external) in ResolveLinks(Links)) {
+            <li><a href="@url" target="@(external ? "_blank" : "_top")" rel="@(external ? "noopener" : null)">@label</a></li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Heading { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Links { get; set; } = string.Empty;
+
+    private static IReadOnlyList<(string Label, string Url, bool External)> ResolveLinks(string group) => group switch {
+        "Products" => [("Word", "/products/word/", false), ("Excel", "/products/excel/", false), ("PowerPoint", "/products/powerpoint/", false), ("PDF", "/products/pdf/", false), ("All packages", "/downloads/", false)],
+        "Documentation" => [("Getting Started", "/docs/getting-started/", false), ("Workflow Finder", "/docs/workflows/", false), ("PDF Docs", "/docs/pdf/", false), ("API Reference", "/api/", false), ("Conversion Guides", "/convert/guides/", false)],
+        "Resources" => [("Compatibility", "/compatibility/", false), ("Downloads", "/downloads/", false), ("Benchmarks", "/benchmarks/", false), ("Support", "/pricing/", false), ("Blog", "/blog/", false)],
+        "Community" => [("GitHub", "https://github.com/EvotecIT/OfficeIMO", true), ("NuGet", "https://www.nuget.org/packages?q=OfficeIMO", true), ("PowerShell Gallery", "https://www.powershellgallery.com/packages/PSWriteOffice", true), ("Discord", "https://evo.yt/discord", true), ("Report Issue", "https://github.com/EvotecIT/OfficeIMO/issues", true)],
+        _ => []
+    };
+}

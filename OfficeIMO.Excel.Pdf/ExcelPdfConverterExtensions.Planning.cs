@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel.Pdf {
                 object?[,] values = exportData.Values;
                 int rows = values.GetLength(0);
                 int columns = values.GetLength(1);
-                bool hasTable = rows > 0 && columns > 0;
+                bool hasTable = rows > 0 && columns > 0 && HasWorksheetTableContent(exportData);
                 int exportedRows = options.MaxRowsPerSheet.HasValue
                     ? Math.Min(rows, options.MaxRowsPerSheet.Value)
                     : rows;
@@ -311,6 +311,56 @@ namespace OfficeIMO.Excel.Pdf {
 
             return plans;
         }
+
+        private static bool HasWorksheetTableContent(SheetExportData exportData) {
+            object?[,] values = exportData.Values;
+            for (int row = 0; row < values.GetLength(0); row++) {
+                for (int column = 0; column < values.GetLength(1); column++) {
+                    object? value = values[row, column];
+                    if (value is string text ? text.Length > 0 : value != null) {
+                        return true;
+                    }
+                }
+            }
+
+            ExcelCellStyleSnapshot?[,]? styles = exportData.Styles;
+            if (styles != null) {
+                for (int row = 0; row < styles.GetLength(0); row++) {
+                    for (int column = 0; column < styles.GetLength(1); column++) {
+                        if (styles[row, column] is ExcelCellStyleSnapshot style && HasVisibleBlankCellStyle(style)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            string?[,]? cellReferences = exportData.CellReferences;
+            if (cellReferences == null || exportData.StructuredTables.Count == 0) {
+                return false;
+            }
+
+            for (int row = 0; row < cellReferences.GetLength(0); row++) {
+                for (int column = 0; column < cellReferences.GetLength(1); column++) {
+                    if (GetStructuredTableCellVisual(exportData.StructuredTables, cellReferences, row, column) != null) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasVisibleBlankCellStyle(ExcelCellStyleSnapshot style) =>
+            style.FillColorArgb != null ||
+            style.FillPatternType != null ||
+            style.FillPatternForegroundColorArgb != null ||
+            style.FillPatternBackgroundColorArgb != null ||
+            style.FillGradientUnsupported ||
+            style.FillGradientStartColorArgb != null ||
+            style.FillGradientEndColorArgb != null ||
+            style.FillGradientStops.Count > 0 ||
+            style.FillGradientDegree.HasValue ||
+            style.Border != null;
 
         private static int GetRangeRowCount(string normalizedRange) {
             return A1.TryParseRange(normalizedRange, out int firstRow, out _, out int lastRow, out _)

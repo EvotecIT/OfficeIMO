@@ -35,6 +35,14 @@ public sealed record BrowserPdfProfile(
     string Label,
     string Description);
 
+public sealed record BrowserPowerPointImportProfile(
+    OfficeIMO.PowerPoint.Pdf.PdfPowerPointImportMode Mode,
+    string Id,
+    string Label,
+    string Description,
+    string FidelityStatus,
+    string Projection);
+
 public sealed record ConversionWarningView(
     string Code,
     string Source,

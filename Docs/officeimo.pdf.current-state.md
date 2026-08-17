@@ -57,7 +57,7 @@ Every adapter returns stable conversion evidence. `Faithful`, `FaithfulWithSubst
 | Normalized Reader result to PDF | Pages, blocks, tables, assets, links, forms, and diagnostics project through one explicit policy and merged evidence contract |
 | PDF to Word | Metadata, page breaks, headings, paragraphs, lists, logical tables, links, supported images, and form placeholders are recovered when represented by the logical model. Stable warnings identify non-reconstructed outlines, tagged trees, optional-content groups, catalog/page actions, vectors, and non-link annotations. |
 | PDF to Excel | Adjacent compatible tables can continue across pages with repeated multi-row headers suppressed; optional Boolean, date, percentage, and numeric typing is column-consistent. Bounded positioned-cell recovery is used only when tabular evidence is strong, and unrelated fixed-layout content remains explicit in the scope report rather than becoming editable cells. |
-| PDF to PowerPoint | `PdfPowerPointImportOptions` defaults to `VisualPages`. `CreateEditableTables()` / `EditableTables` reconstructs detected tables, while `CreateHybrid()` retains each successfully rendered page as a visual layer and overlays editable tables at source-relative geometry. Reports distinguish visual-only content from omitted non-table page content, including failed hybrid page renders, and expose stable warnings for text, images, navigation, vectors, groups, forms/controls, annotations, and interactive media/animations. |
+| PDF to PowerPoint | The `Auto` default reconstructs text blocks that are visible and not clipped, detected tables, safe basic vectors, and supported source images as native objects when the original `PdfDocument` is available. An already reduced `PdfLogicalDocument` resolves `Auto` to tables-only. `CreateVisualPages()` explicitly creates non-editable page-image slides, `CreateEditableTables()` keeps tables only, and `CreateHybrid()` retains each successfully rendered page as a visual layer with editable table overlays at source-relative geometry. Reports surface renderer capability diagnostics and distinguish reconstructed, visual-only, simplified, and omitted content. Original charts, groups, themes, animations, notes, and authoring intent are not claimed as recoverable. |
 | PDF to HTML | Semantic and positioned-review profiles share the PDF logical/read model |
 | PDF to PNG, JPEG, TIFF, WebP, or SVG | One page-to-Drawing projection serves authored and loaded documents, batches, and source-conversion results with budgets and diagnostics |
 
@@ -74,10 +74,10 @@ Web View, PDF 2.0, PDF/A and PDF/UA evidence, forms, annotations, structured
 readback, and loss-aware format adapters. The remaining gap is mostly depth and
 producer fidelity rather than a missing second API for the same operation.
 
-The highest-value open areas are tracked in [ROADMAP.md](ROADMAP.md): difficult
-remaining difficult Type 3 programs and color/pattern/transparency rendering, broader native Office layout,
-externally proven standards and producer corpora, stronger hybrid editable
-PDF-to-Office reconstruction, and optional provider packages for capabilities
+The highest-value open areas are tracked in [ROADMAP.md](ROADMAP.md): remaining
+difficult Type 3 programs and color/pattern/transparency rendering, broader native Office layout,
+externally proven standards and producer corpora, deeper semantic PDF-to-Office
+reconstruction, and optional provider packages for capabilities
 that should not become core runtime dependencies. Browser JavaScript, TeX
 execution, XFA execution, and automatic whole-document editable reconstruction
 remain explicit non-contracts unless a separately owned, testable product shape

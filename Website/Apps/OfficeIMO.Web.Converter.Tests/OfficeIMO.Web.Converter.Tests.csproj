@@ -17,4 +17,12 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Web.Converter\OfficeIMO.Web.Converter.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OfficeIMO.Web.Converter\wwwroot\samples\basic.xlsx"
+          Link="samples\basic.xlsx"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\static\downloads\showcase\pdf\showcase-dashboard.pdf"
+          Link="samples\showcase-dashboard.pdf"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

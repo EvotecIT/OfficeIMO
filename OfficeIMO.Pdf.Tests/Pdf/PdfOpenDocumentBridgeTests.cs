@@ -1,6 +1,7 @@
 using OfficeIMO.OpenDocument.Odp.Pdf;
 using OfficeIMO.OpenDocument.Ods.Pdf;
 using OfficeIMO.OpenDocument.Odt.Pdf;
+using OfficeIMO.OpenDocument;
 using OfficeIMO.PowerPoint.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
@@ -64,9 +65,27 @@ public sealed class PdfOpenDocumentBridgeTests {
     }
 
     [Fact]
-    public void PdfToOdp_DefaultsToOneVisualSlidePerPageAndProducesValidOdfPackage() {
-        byte[] source = PdfCore.PdfDocument.Create()
+    public void PdfToOdp_DefaultsToEditableContentAndProducesValidOdfPackage() {
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
             .H1("First page")
+            .Table(new[] {
+                new[] { "Metric", "Value", "Status" },
+                new[] { "Ready", "Yes", "Current" },
+                new[] { "Loss", "Reported", "Current" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 100, 100, 120 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
             .PageBreak()
             .H1("Second page")
             .ToBytes();
@@ -74,10 +93,19 @@ public sealed class PdfOpenDocumentBridgeTests {
 
         PdfOdpConversionResult result = pdf.ToOdpPresentationResult();
 
-        Assert.Equal(PdfPowerPointImportMode.VisualPages, result.Report.PdfReport.Mode);
+        Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.PdfReport.Mode);
         Assert.Equal(2, result.Value.Slides.Count);
-        Assert.Equal(2, result.Report.PdfReport.VisualPages.Count);
-        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(result.Value.ToBytes(), 0, 2));
+        Assert.Equal(2, result.Report.PdfReport.EditablePages.Count);
+        Assert.All(result.Report.PdfReport.EditablePages, page => Assert.True(page.TextBoxCount >= 1));
+        byte[] artifact = result.Value.ToBytes();
+        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(artifact, 0, 2));
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(artifact));
+        Assert.Contains(reopened.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>(),
+            textBox => textBox.Paragraphs.Any(paragraph => paragraph.Text.Contains("First page", StringComparison.Ordinal)));
+        OdpTable table = Assert.Single(reopened.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTable>());
+        Assert.Equal("Ready", table.Cell(1, 0).Text);
+        Assert.Equal("Yes", table.Cell(1, 1).Text);
     }
 
     [Theory]

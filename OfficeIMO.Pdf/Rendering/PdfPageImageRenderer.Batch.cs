@@ -135,6 +135,7 @@ internal static partial class PdfPageImageRenderer {
             cancellationToken.ThrowIfCancellationRequested();
             capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
             OfficeDrawing drawing = RenderPage(document, pageNumber);
+            drawing.Fonts.AddRangePreservingExisting(options.Fonts);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
             int height = checked((int)Math.Ceiling(drawing.Height * scale));
@@ -145,7 +146,15 @@ internal static partial class PdfPageImageRenderer {
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = options.Format == PdfPageRenderFormat.Png
-                ? RenderDrawingAsPng(drawing, scale, options.Background, options.ImageCodec, options.MaxPixelsPerPage, cancellationToken)
+                ? RenderDrawingAsPng(
+                    drawing,
+                    scale,
+                    options.Background,
+                    options.ImageCodec,
+                    options.MaxPixelsPerPage,
+                    options.TextShapingProvider,
+                    options.TextShapingLanguage,
+                    cancellationToken)
                 : OfficeDrawingSvgExporter.ToSvgBytes(
                     drawing,
                     scale,
