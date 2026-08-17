@@ -1,0 +1,10 @@
+.pdf-workbench-shell{min-height:0}
+.pdf-workbench{display:flex;width:min(100% - 2rem,1312px);min-width:0;min-height:0;margin:0 auto;overflow:hidden;border:1px solid var(--ocx-border);border-radius:17px;background:var(--ocx-panel);box-shadow:0 22px 58px rgba(20,33,58,.12);flex-direction:column}
+.pdf-workbench__grid{display:grid;grid-template-columns:minmax(310px,.9fr) minmax(360px,1.1fr);gap:1px;min-height:0;flex:1;background:var(--ocx-border)}
+.pdf-workbench__description{margin:-4px 0 18px;color:var(--ocx-muted);line-height:1.55}
+.pdf-workbench__mobile-run{display:none;width:100%;margin-top:16px}
+.pdf-workbench .ocx-input-panel{background:var(--ocx-panel)}
+.pdf-workbench .ocx-actionbar>span{display:grid;gap:.1rem}
+.pdf-workbench .ocx-actionbar>span small{font-size:.7rem;font-weight:600}
+@media(max-width:900px){.pdf-workbench__grid{grid-template-columns:1fr}}
+@media(max-width:720px){.pdf-workbench{width:min(100% - 1rem,1312px)}.pdf-workbench__grid{display:block}.pdf-workbench__mobile-run{display:flex}.pdf-workbench .ocx-actionbar{display:none}}

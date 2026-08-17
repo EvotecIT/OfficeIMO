@@ -21,7 +21,8 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Expand native Word, Excel, and PowerPoint reference corpora around DrawingML, SmartArt, chart variants, floating and grouped objects, headers and footers, print layout, and theme inheritance. Keep each improvement in the shared Drawing or PDF owner when more than one adapter needs it.
 - [ ] Add exact-artifact external validation lanes for every supported PDF/A-2, PDF/A-3, PDF/A-4, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD profile across representative generated artifacts and at least one independent producer corpus.
 - [ ] Extend PDF-to-Office hybrid reconstruction beyond detected tables with bounded positioned text, image, and vector layers that remain visibly aligned while reports distinguish editable, visual-only, approximated, and omitted content.
-- [ ] Publish optional provider adapters for OCR and other heavyweight engines only where the provider contract, resource limits, provenance, and warning merge are stable; keep `OfficeIMO.Pdf` dependency-light.
+- [ ] Publish optional provider adapters for OCR and searchable-PDF text-layer output only where the provider contract, resource limits, provenance, warning merge, and artifact verification are stable; keep `OfficeIMO.Pdf` dependency-light.
+- [ ] Define an explicit lossy scan-compression product with image-selection, downsampling, quality, color, metadata, accessibility, signature-invalidation, and measurable visual-difference policies. Keep it separate from the deterministic lossless optimizer.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
 
 ## Security and protected content

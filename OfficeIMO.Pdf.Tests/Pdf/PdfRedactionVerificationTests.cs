@@ -62,6 +62,19 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Verify_CaseInsensitiveProfileFindsDifferentlyCasedEncodedResidue() {
+        PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
+        byte[] rewrittenWithEncodedResidue = AppendPdfHexStringResidue(proof.Redacted, "PAY-SECRET-2026");
+        var options = new PdfRedactionVerificationOptions { MatchCase = false };
+        options.RequireRemovedText("pay-secret-2026");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(rewrittenWithEncodedResidue, options);
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RemovedEncodedMarker" && issue.Marker == "pay-secret-2026");
+    }
+
+    [Fact]
     public void Verify_ReportsRemovedMarkersThatRemainInEscapedPdfLiteralBytes() {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
         byte[] rewrittenWithEncodedResidue = AppendPdfLiteralStringResidue(proof.Redacted, "PAY\\055SECRET\\0552026");

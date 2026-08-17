@@ -26,6 +26,9 @@ public sealed class PdfRedactionVerificationOptions {
     /// <summary>True when redaction verification should fail if a PDF stream cannot be decoded while decoded stream checks are enabled.</summary>
     public bool FailOnUndecodablePdfStreams { get; set; } = true;
 
+    /// <summary>True to compare removed and retained text markers with ordinal casing; false to use ordinal case-insensitive comparison.</summary>
+    public bool MatchCase { get; set; } = true;
+
     /// <summary>Render every page through the managed renderer and fail when a page cannot produce output.</summary>
     public bool CheckManagedRendering { get; set; }
 

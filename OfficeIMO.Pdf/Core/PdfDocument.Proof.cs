@@ -190,14 +190,14 @@ public sealed partial class PdfDocument {
     /// Verifies that configured redaction markers were removed and retained markers remain readable in this PDF.
     /// </summary>
     internal PdfRedactionVerificationReport VerifyRedactions(PdfRedactionVerificationOptions options) {
-        return PdfRedactionVerification.Verify(GetBytesForOperation(), options);
+        return PdfRedactionVerification.Verify(GetBytesForOperation(), options, ReadOptions);
     }
 
     /// <summary>
     /// Verifies configured redaction markers and throws when removed content remains or retained content disappeared.
     /// </summary>
     internal PdfRedactionVerificationReport AssertRedactionsVerified(PdfRedactionVerificationOptions options) {
-        return PdfRedactionVerification.AssertVerified(GetBytesForOperation(), options);
+        return PdfRedactionVerification.AssertVerified(GetBytesForOperation(), options, ReadOptions);
     }
 
     private PdfRewritePreservationMatrixScenario CreateRewritePreservationMatrixScenario(

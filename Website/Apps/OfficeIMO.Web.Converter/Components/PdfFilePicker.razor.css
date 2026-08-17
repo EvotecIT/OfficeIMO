@@ -1,0 +1,91 @@
+.pdf-file-picker {
+    display: grid;
+    gap: .8rem;
+}
+
+.pdf-file-picker:has(.pdf-file-list) .ocx-dropzone {
+    min-height: 210px;
+}
+
+.pdf-file-picker__icon {
+    background: #fff0f0;
+    color: #b42318;
+}
+
+.pdf-file-list {
+    display: grid;
+    gap: .4rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.pdf-file-list li {
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e4e9f1;
+    border-radius: .65rem;
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: .55rem .65rem;
+}
+
+.pdf-file-list__order {
+    align-items: center;
+    background: #eaf5ff;
+    border-radius: 50%;
+    color: #1264a3;
+    display: flex;
+    font-size: .72rem;
+    font-weight: 800;
+    height: 1.7rem;
+    justify-content: center;
+    width: 1.7rem;
+}
+
+.pdf-file-list li > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+}
+
+.pdf-file-list strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdf-file-list small {
+    color: #667085;
+}
+
+.pdf-file-list li > div {
+    display: flex;
+    gap: .25rem;
+}
+
+.pdf-file-list button {
+    background: #fff;
+    border: 1px solid #d8dee8;
+    border-radius: .35rem;
+    color: #475467;
+    cursor: pointer;
+    height: 1.8rem;
+    width: 1.8rem;
+}
+
+.pdf-file-list button:disabled {
+    cursor: default;
+    opacity: .35;
+}
+
+:global([data-theme="dark"]) .pdf-file-list li {
+    background: #172231;
+    border-color: #344256;
+}
+
+:global([data-theme="dark"]) .pdf-file-list button {
+    background: #101926;
+    border-color: #435166;
+    color: #d8e2ef;
+}

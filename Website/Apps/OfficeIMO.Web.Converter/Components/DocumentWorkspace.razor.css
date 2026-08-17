@@ -1,0 +1,44 @@
+.ocx-mode-switch {
+    align-items: center;
+    background: var(--ocx-surface, #f5f7fb);
+    border: 1px solid var(--ocx-border, #dfe5ef);
+    border-radius: 999px;
+    display: flex;
+    gap: .25rem;
+    padding: .25rem;
+}
+
+.ocx-mode-switch button {
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    color: var(--ocx-muted, #667085);
+    cursor: pointer;
+    font: inherit;
+    font-size: .85rem;
+    font-weight: 700;
+    padding: .55rem .9rem;
+}
+
+.ocx-mode-switch button.is-active {
+    background: #fff;
+    box-shadow: 0 1px 4px rgb(15 23 42 / 12%);
+    color: #1264a3;
+}
+
+.ocx-product-heading > div:first-child {
+    display: grid;
+    gap: .35rem;
+}
+
+.ocx-product-heading .ocx-mode-switch {
+    margin-left: auto;
+}
+
+@media (max-width: 720px) {
+    .ocx-mode-switch {
+        align-self: stretch;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}

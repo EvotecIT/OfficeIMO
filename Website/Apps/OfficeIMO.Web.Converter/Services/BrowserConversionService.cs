@@ -18,7 +18,7 @@ using OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.Web.Converter.Services;
 
-public sealed class BrowserConversionService {
+public sealed partial class BrowserConversionService {
     public const long MaxPackageBytes = 25L * 1024L * 1024L;
     public const int MaxTextInputChars = 500_000;
     internal const long MaxFullWorksheetCells = 50_000L;
@@ -36,6 +36,9 @@ public sealed class BrowserConversionService {
         bool generateDebugOverlay = false) {
         ArgumentNullException.ThrowIfNull(route);
         ArgumentNullException.ThrowIfNull(file);
+        if (string.Equals(route.Source, "PDF", StringComparison.OrdinalIgnoreCase)) {
+            return ConvertPdfFile(route, file);
+        }
         BrowserPdfProfile effectiveProfile = profile ?? BrowserPdfProfileCatalog.Faithful;
         var stopwatch = Stopwatch.StartNew();
         PdfConversionPayload payload = route.Id switch {

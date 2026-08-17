@@ -1,0 +1,64 @@
+@namespace OfficeIMO.Web.Converter.Components
+@implements IAsyncDisposable
+
+<div class="pdf-workbench-shell" data-pdf-workbench-ready="true" data-active-tool="@ActiveTool.Id">
+    <PdfToolRail Tools="PdfToolCatalog.All" ActiveTool="ActiveTool" OnSelected="SelectToolAsync" />
+
+    <section class="pdf-workbench" aria-label="@ActiveTool.Label">
+        <div class="pdf-workbench__grid">
+            <section class="ocx-input-panel" aria-labelledby="pdf-input-title">
+                <div class="ocx-panel-heading">
+                    <div><p>@ActiveTool.Group</p><h2 id="pdf-input-title">@ActiveTool.Label</h2></div>
+                    <span>Up to @ConverterWorkspace.FormatBytes(BrowserConversionService.MaxPackageBytes) each</span>
+                </div>
+                <p class="pdf-workbench__description">@ActiveTool.Description</p>
+
+                <PdfFilePicker @key="ActiveTool.Id"
+                               Tool="ActiveTool"
+                               Files="Files"
+                               OnFilesSelected="HandleFilesSelectedAsync"
+                               OnRemove="RemoveFileAsync"
+                               OnMove="MoveFileAsync" />
+
+                <div class="ocx-input-actions">
+                    <button type="button" class="ocx-text-action" data-load-pdf-sample="@ActiveTool.Id" @onclick="LoadSampleAsync">Try a product sample</button>
+                    @if (Files.Count > 0) {
+                        <button type="button" class="ocx-text-action" @onclick="ClearFilesAsync">Clear files</button>
+                    }
+                </div>
+
+                <PdfToolSettings Tool="ActiveTool"
+                                 @bind-PageSelection="PageSelection"
+                                 @bind-PagesPerDocument="PagesPerDocument"
+                                 @bind-RotationDegrees="RotationDegrees"
+                                 @bind-OptimizationProfile="OptimizationProfile"
+                                 @bind-UserPassword="UserPassword"
+                                 @bind-OwnerPassword="OwnerPassword"
+                                 @bind-RedactionText="RedactionText"
+                                 @bind-DestructiveActionConfirmed="DestructiveActionConfirmed" />
+
+                <div class="ocx-diagnostics" aria-live="polite">
+                    @foreach (ConversionDiagnostic diagnostic in Diagnostics) {
+                        <div @key="diagnostic" class="ocx-diagnostic"><span class="ocx-dot @diagnostic.ToneClass"></span><div><strong>@diagnostic.Title</strong><span>@diagnostic.Message</span></div></div>
+                    }
+                </div>
+
+                <button type="button" class="ocx-button ocx-button--primary pdf-workbench__mobile-run" disabled="@(!CanRun)" @onclick="RunAsync">@ActiveTool.ActionLabel</button>
+            </section>
+
+            <PdfToolResultPanel Tool="ActiveTool" Result="Result" ArtifactUrl="@ArtifactUrl" ReportUrl="@ReportUrl" IsBusy="IsBusy" />
+        </div>
+
+        <footer class="ocx-actionbar">
+            <span><strong>Browser-local PDF engine</strong><small>@InputSummary</small></span>
+            <button type="button" class="ocx-convert-button" data-run-pdf-tool="@ActiveTool.Id" disabled="@(!CanRun)" @onclick="RunAsync"><span>@ActiveTool.ActionLabel</span><b aria-hidden="true">↻</b></button>
+        </footer>
+    </section>
+
+    <section class="ocx-utility-rail" aria-label="PDF workbench facts">
+        <div><span class="ocx-utility-icon ocx-utility-icon--private" aria-hidden="true">✓</span><span><strong>Browser-local</strong><small>No upload, account, credits, or queue</small></span></div>
+        <div><span class="ocx-utility-icon" aria-hidden="true">□</span><span><strong>Bounded workflow</strong><small>25 MB each · 75 MB combined · 500 pages</small></span></div>
+        <div><span class="ocx-utility-icon" aria-hidden="true">&lt;/&gt;</span><span><strong>OfficeIMO.Pdf engine</strong><small>First-party APIs and operation reports</small></span></div>
+        <a href="/products/pdf/" target="_top"><strong>Need the .NET API?</strong><span>PDF capabilities and limits →</span></a>
+    </section>
+</div>

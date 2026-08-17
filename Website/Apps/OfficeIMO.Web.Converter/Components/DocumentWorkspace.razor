@@ -1,0 +1,63 @@
+@namespace OfficeIMO.Web.Converter.Components
+@inject NavigationManager Navigation
+
+<main class="ocx-shell" data-workspace-ready="true" data-workspace="@WorkspaceId">
+    <header class="ocx-appbar">
+        <a class="ocx-brand" href="/" target="_top" aria-label="OfficeIMO home">
+            <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
+            <span>OfficeIMO</span>
+        </a>
+        <nav aria-label="Workspace links"><a href="/products/pdf/" target="_top">PDF</a><a href="/docs/" target="_top">Docs</a><a href="/api/" target="_top">API</a><a href="/downloads/" target="_top">Packages</a><a class="ocx-nav-cta" href="https://github.com/EvotecIT/OfficeIMO" target="_blank" rel="noopener">GitHub</a></nav>
+    </header>
+
+    <section class="ocx-product-heading" aria-labelledby="workspace-title">
+        <div>
+            <h1 id="workspace-title">@(IsPdfWorkspace ? "Work with PDFs" : "Convert documents")</h1>
+            <p><span class="ocx-local-dot" aria-hidden="true"></span>Runs locally in this tab</p>
+        </div>
+        <nav class="ocx-mode-switch" aria-label="Choose workspace">
+            <button type="button" class="@(!IsPdfWorkspace ? "is-active" : null)" aria-pressed="@(!IsPdfWorkspace)" @onclick="() => SelectWorkspace(false)">Convert</button>
+            <button type="button" class="@(IsPdfWorkspace ? "is-active" : null)" aria-pressed="@IsPdfWorkspace" @onclick="() => SelectWorkspace(true)">PDF tools</button>
+        </nav>
+    </section>
+
+    @if (IsPdfWorkspace) {
+        <PdfWorkbench />
+    } else {
+        <ConverterWorkspace />
+    }
+</main>
+
+@code {
+    private bool IsPdfWorkspace { get; set; }
+    private string WorkspaceId => IsPdfWorkspace ? "pdf" : "convert";
+
+    protected override void OnInitialized() {
+        IsPdfWorkspace = string.Equals(GetQueryValue("workspace"), "pdf", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void SelectWorkspace(bool pdf) {
+        if (IsPdfWorkspace == pdf) {
+            return;
+        }
+        IsPdfWorkspace = pdf;
+        var values = new Dictionary<string, object?> {
+            ["workspace"] = pdf ? "pdf" : null,
+            ["tool"] = pdf ? PdfToolCatalog.Default.Id : null,
+            ["route"] = pdf ? null : ConversionRouteCatalog.Default.Id
+        };
+        Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(values), replace: true);
+    }
+
+    private string GetQueryValue(string name) {
+        string query = new Uri(Navigation.Uri).Query;
+        if (query.Length <= 1) return string.Empty;
+        foreach (string pair in query[1..].Split('&', StringSplitOptions.RemoveEmptyEntries)) {
+            string[] parts = pair.Split('=', 2);
+            if (string.Equals(Uri.UnescapeDataString(parts[0]), name, StringComparison.OrdinalIgnoreCase)) {
+                return parts.Length == 2 ? Uri.UnescapeDataString(parts[1].Replace("+", " ")) : string.Empty;
+            }
+        }
+        return string.Empty;
+    }
+}

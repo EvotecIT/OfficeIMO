@@ -28,6 +28,9 @@ public static class ConversionRouteCatalog {
         "docx-pdf" => "Word to PDF",
         "xlsx-pdf" => "Excel to PDF",
         "pptx-pdf" => "PowerPoint to PDF",
+        "pdf-docx" => "PDF to Word",
+        "pdf-xlsx" => "PDF tables to Excel",
+        "pdf-pptx" => "PDF to PowerPoint",
         "markdown-docx" => "Markdown to Word",
         _ => route.Source + " to " + route.Target
     };
@@ -36,6 +39,7 @@ public static class ConversionRouteCatalog {
         "DOCX" => "ocx-route-card--word",
         "XLSX" => "ocx-route-card--excel",
         "PPTX" => "ocx-route-card--powerpoint",
+        "PDF" => "ocx-route-card--pdf",
         "Markdown" => "ocx-route-card--markdown",
         _ => "ocx-route-card--html"
     };
