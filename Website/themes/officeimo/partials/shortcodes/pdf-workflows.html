@@ -1,0 +1,27 @@
+{{ catalog = data.pdf_workflows }}
+<div class="imo-showcase-grid">
+{{~ for workflow in catalog.operations ~}}
+  <article class="imo-showcase-card">
+    <div class="imo-showcase-card-body">
+      <span class="imo-section__eyebrow">{{ workflow.category }}</span>
+      <h2><a href="/pdf/{{ workflow.slug }}/">{{ workflow.title }}</a></h2>
+      <p>{{ workflow.summary }}</p>
+      <a href="/pdf/{{ workflow.slug }}/">Open the {{ workflow.title }} guide <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+{{~ end ~}}
+</div>
+
+<h2>Convert PDF content into editable formats</h2>
+<div class="imo-showcase-grid">
+{{~ for item in catalog.browserConversions ~}}
+  <article class="imo-showcase-card">
+    <div class="imo-showcase-card-body">
+      <span class="imo-section__eyebrow">Browser and .NET</span>
+      <h3><a href="/convert/{{ item.slug }}/">{{ item.title }}</a></h3>
+      <p>{{ item.summary }}</p>
+      <a href="/convert/{{ item.slug }}/">Review the {{ item.title }} conversion <span aria-hidden="true">→</span></a>
+    </div>
+  </article>
+{{~ end ~}}
+</div>

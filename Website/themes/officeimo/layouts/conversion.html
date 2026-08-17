@@ -30,8 +30,8 @@
           <h1>{{ page.title }}</h1>
           {{ if page.description }}<p class="imo-intent-hero__lead">{{ page.description }}</p>{{ end }}
           <div class="imo-intent-hero__actions">
-            <a class="imo-btn imo-btn-primary" href="{{ page.meta.package_url ?? "/downloads/" }}">Get the package</a>
-            <a class="imo-btn imo-btn-ghost" href="/compatibility/">Check format support</a>
+            <a class="imo-btn imo-btn-primary" href="{{ page.meta.primary_url ?? page.meta.package_url ?? "/downloads/" }}">{{ page.meta.primary_label ?? "Get the package" }}</a>
+            <a class="imo-btn imo-btn-ghost" href="{{ page.meta.secondary_url ?? "/compatibility/" }}">{{ page.meta.secondary_label ?? "Check format support" }}</a>
           </div>
         </div>
         <aside class="imo-intent-proof" aria-label="Conversion route">
@@ -60,14 +60,15 @@
 {{ content }}
       </div>
       <aside class="imo-intent-sidebar">
-        <h2>Route summary</h2>
+        <h2>{{ page.meta.summary_title ?? "Route summary" }}</h2>
         <dl>
           <div><dt>Package</dt><dd>{{ page.meta.package ?? "Focused OfficeIMO package" }}</dd></div>
           <div><dt>Runs on</dt><dd>{{ page.meta.runtime ?? ".NET and PowerShell" }}</dd></div>
           <div><dt>Microsoft Office</dt><dd>Not required</dd></div>
           <div><dt>License</dt><dd>MIT</dd></div>
         </dl>
-        <a href="/convert/guides/">Browse all conversion routes</a>
+        {{ if page.meta.limit }}<p>{{ page.meta.limit }}</p>{{ end }}
+        <a href="{{ page.meta.related_url ?? "/convert/guides/" }}">{{ page.meta.related_label ?? "Browse all conversion routes" }}</a>
       </aside>
     </div>
   </main>

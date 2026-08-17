@@ -84,8 +84,21 @@
     },
     {
       "task": "exec",
-      "id": "test-discovery-evidence",
+      "id": "test-pdf-workflow-content",
       "dependsOn": ["test-capability-claims"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-PdfWorkflowContent.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-discovery-evidence",
+      "dependsOn": ["test-pdf-workflow-content"],
       "command": "pwsh",
       "argsList": [
         "-NoLogo",

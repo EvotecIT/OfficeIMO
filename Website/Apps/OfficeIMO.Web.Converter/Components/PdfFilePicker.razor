@@ -1,8 +1,13 @@
 @namespace OfficeIMO.Web.Converter.Components
 
 <div class="pdf-file-picker">
-    <label class="ocx-dropzone">
-        <InputFile class="ocx-hidden-input" OnChange="OnFilesSelected" accept=".pdf,application/pdf" multiple="@AllowsMultiple" />
+    <label class="ocx-dropzone" for="@FileInputId">
+        <InputFile id="@FileInputId"
+                   class="ocx-hidden-input"
+                   OnChange="OnFilesSelected"
+                   accept=".pdf,application/pdf"
+                   multiple="@AllowsMultiple"
+                   aria-label="@(AllowsMultiple ? "Choose PDF files" : "Choose a PDF file")" />
         <span class="ocx-dropzone__icon pdf-file-picker__icon"><i></i><b>PDF</b></span>
         <strong>@DropzoneTitle</strong>
         <small>Files stay in this browser tab · up to @ConverterWorkspace.FormatBytes(MaxFileBytes) each</small>
@@ -39,6 +44,7 @@
     [Parameter] public EventCallback<PdfFileMoveRequest> OnMove { get; set; }
 
     private bool AllowsMultiple => Tool.InputMode != PdfToolInputMode.Single;
+    private string FileInputId => $"pdf-file-input-{Tool.Id}";
     private string DropzoneTitle => Tool.InputMode switch {
         PdfToolInputMode.Pair => Files.Count == 0 ? "Choose the expected and actual PDFs" : $"{Files.Count} of 2 PDFs selected",
         PdfToolInputMode.Multiple => Files.Count == 0 ? "Choose two or more PDFs" : $"{Files.Count} PDFs selected",

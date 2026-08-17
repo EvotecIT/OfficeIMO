@@ -50,18 +50,18 @@ The [browser document workspace](/apps/officeimo-converter/?workspace=pdf&tool=i
 
 | Browser task | Result |
 |---|---|
-| Inspect | Page, encryption, form, annotation, attachment, active-content, signature-marker, and rewrite-readiness evidence |
-| Organize | Merge, split, extract, delete, reorder, and rotate without changing the selected source files |
-| Optimize | Deterministic lossless optimization and Fast Web View profiles without rasterizing pages |
-| Protect or unlock | AES-256 Standard password protection, or a separate unprotected copy |
-| Redact | Literal text removal followed by checks of extracted text, encoded strings, and decoded streams |
-| Compare | A self-contained visual gallery with expected, actual, and highlighted page differences |
+| [Inspect](/pdf/inspect/) | Page, encryption, form, annotation, attachment, active-content, signature-marker, and rewrite-readiness evidence |
+| Organize | [Merge PDFs](/pdf/merge/), [split PDFs](/pdf/split/), [extract PDF pages](/pdf/extract-pages/), [delete PDF pages](/pdf/delete-pages/), [reorder PDF pages](/pdf/reorder-pages/), and [rotate PDF pages](/pdf/rotate-pages/) without changing the selected source files |
+| [Optimize](/pdf/optimize/) | Deterministic lossless optimization and Fast Web View profiles without rasterizing pages |
+| Protect or unlock | [AES-256 Standard password protection](/pdf/protect/), or a [separate unprotected copy](/pdf/unlock/) |
+| [Redact](/pdf/redact/) | Literal text removal followed by checks of extracted text, encoded strings, and decoded streams |
+| [Compare](/pdf/compare/) | A self-contained visual gallery with expected, actual, and highlighted page differences |
 
-[Open PDF tools](/apps/officeimo-converter/?workspace=pdf&tool=inspect) or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
+[Browse every PDF workflow](/pdf/), [open PDF tools](/apps/officeimo-converter/?workspace=pdf&tool=inspect), or download the [showcase PDF](/downloads/showcase/pdf/showcase-dashboard.pdf) used by the built-in samples.
 
 ## Convert PDF content into editable formats
 
-The workspace also exposes PDF to DOCX, XLSX, PPTX, and HTML. These are logical imports, not a promise that every fixed-position page can become the original editable source. Word reconstructs semantic content, Excel imports detected tables, PowerPoint applies its editable page projection, and HTML creates reviewable semantic output. Each download includes diagnostics that identify approximated, visual-only, truncated, or omitted content where the selected adapter reports it.
+The workspace also exposes [PDF to DOCX](/convert/pdf-to-word/), [detected PDF tables to XLSX](/convert/pdf-tables-to-excel/), [PDF to PPTX](/convert/pdf-to-powerpoint/), and [PDF to HTML](/convert/pdf-to-html/). These are logical imports, not a promise that every fixed-position page can become the original editable source. Word reconstructs semantic content, Excel imports detected tables, PowerPoint applies its editable page projection, and HTML creates reviewable semantic output. Each download includes diagnostics that identify approximated, visual-only, truncated, or omitted content where the selected adapter reports it.
 
 For application code, use the focused adapter that owns the target:
 

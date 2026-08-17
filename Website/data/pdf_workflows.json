@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "browserBaseUrl": "/apps/officeimo-converter/?workspace=pdf&tool=",
+  "operations": [
+    { "id": "inspect", "slug": "inspect", "category": "Understand", "title": "Inspect PDF", "summary": "Read page, security, form, signature-marker, active-content, and rewrite-readiness evidence without changing the file." },
+    { "id": "compare", "slug": "compare", "category": "Understand", "title": "Compare PDFs", "summary": "Render two PDFs and produce a self-contained gallery with expected, actual, and highlighted page differences." },
+    { "id": "merge", "slug": "merge", "category": "Organize", "title": "Merge PDFs", "summary": "Combine two to ten PDFs in the selected order and download a separate merged document plus operation evidence." },
+    { "id": "split", "slug": "split", "category": "Organize", "title": "Split PDF", "summary": "Create consecutive PDF parts with a selected page count and download the results together as a ZIP archive." },
+    { "id": "extract", "slug": "extract-pages", "category": "Organize", "title": "Extract PDF pages", "summary": "Create a new PDF from one-based page selections such as 1-3,5,last while leaving the source unchanged." },
+    { "id": "delete", "slug": "delete-pages", "category": "Organize", "title": "Delete PDF pages", "summary": "Create a separate PDF without selected pages after explicit confirmation; the source file is never changed." },
+    { "id": "reorder", "slug": "reorder-pages", "category": "Organize", "title": "Reorder PDF pages", "summary": "Create a new PDF with every source page exactly once in the supplied one-based order." },
+    { "id": "rotate", "slug": "rotate-pages", "category": "Organize", "title": "Rotate PDF pages", "summary": "Rotate selected pages by 90, 180, or 270 degrees and download a separate PDF." },
+    { "id": "optimize", "slug": "optimize", "category": "Publish", "title": "Optimize PDF", "summary": "Apply deterministic lossless compression, deduplication, or Fast Web View without rasterizing pages." },
+    { "id": "protect", "slug": "protect", "category": "Secure", "title": "Protect PDF", "summary": "Encrypt a PDF with AES-256 Standard security and return preservation evidence with the protected copy." },
+    { "id": "unlock", "slug": "unlock", "category": "Secure", "title": "Unlock PDF", "summary": "Remove Standard password security with the owner password and download a separate unprotected copy." },
+    { "id": "redact", "slug": "redact", "category": "Secure", "title": "Redact PDF text", "summary": "Remove literal text matches and verify the rewritten content, encoded strings, and decoded streams before download." }
+  ],
+  "browserConversions": [
+    { "routeId": "pdf-docx", "slug": "pdf-to-word", "title": "PDF to DOCX", "summary": "Import PDF logical content into an editable Word document with diagnostics." },
+    { "routeId": "pdf-xlsx", "slug": "pdf-tables-to-excel", "title": "PDF to XLSX", "summary": "Import detected PDF tables into an editable workbook with diagnostics." },
+    { "routeId": "pdf-pptx", "slug": "pdf-to-powerpoint", "title": "PDF to PPTX", "summary": "Import PDF pages into an editable presentation profile with diagnostics." },
+    { "routeId": "pdf-html", "slug": "pdf-to-html", "title": "PDF to HTML", "summary": "Project PDF logical content into reviewable HTML." }
+  ]
+}

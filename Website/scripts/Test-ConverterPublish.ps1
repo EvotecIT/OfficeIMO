@@ -97,6 +97,10 @@ $converterCss = Get-Content -LiteralPath $converterCssPath -Raw
 if ($converterCss -notmatch '\.ocx-embedded \.ocx-appbar\s*\{\s*display:\s*none') {
     throw 'Converter stylesheet does not hide the standalone app bar in embedded mode.'
 }
+if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
+    $converterCss -match '\.ocx-hidden-input\s*\{[^}]*\bpointer-events:\s*none') {
+    throw 'Converter file inputs do not cover the visible dropzone as native click targets.'
+}
 
 $module = Get-Content -LiteralPath $modulePath -Raw
 if ($module -notmatch 'export function createObjectUrl' -or $module -notmatch 'export function revokeObjectUrl') {

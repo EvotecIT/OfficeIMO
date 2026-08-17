@@ -79,6 +79,7 @@ This **Markdown** becomes a browser preview or an editable Word document.
                     string.Equals(warning.Severity, "Information", StringComparison.OrdinalIgnoreCase))
             ?? Enumerable.Empty<ConversionWarningView>());
     private bool CanConvert => !IsBusy && (ActiveRoute.InputKind == ConversionInputKind.File ? SelectedFile is not null : !string.IsNullOrWhiteSpace(TextInput));
+    private string FileInputId => $"conversion-file-input-{ActiveRoute.Id}";
     private string OutputHeading => Output?.FileName ?? $"{ActiveRoute.Target} output";
     private string ElapsedLabel => ElapsedMilliseconds < 1000 ? $"{ElapsedMilliseconds} ms" : $"{ElapsedMilliseconds / 1000d:0.0} s";
 

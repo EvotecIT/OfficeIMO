@@ -31,10 +31,11 @@ public sealed class BrowserPdfImportTests {
 
         ConversionResult result = _service.ConvertFile(ConversionRouteCatalog.Find(routeId), source, limitExcelRows: false);
 
-        Assert.EndsWith(extension, result.FileName, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("report" + extension, result.FileName);
         Assert.NotEmpty(result.Bytes);
         Assert.Equal(1, result.PageCount);
         Assert.NotNull(result.CompanionReport);
+        Assert.Equal("report.officeimo-report.json", result.CompanionReport!.FileName);
         using JsonDocument report = JsonDocument.Parse(result.CompanionReport!.Bytes);
         Assert.Equal(routeId, report.RootElement.GetProperty("route").GetString());
         Assert.True(report.RootElement.GetProperty("browserLocal").GetBoolean());

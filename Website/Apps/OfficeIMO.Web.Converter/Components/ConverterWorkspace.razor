@@ -29,8 +29,12 @@
                 </div>
 
                 @if (ActiveRoute.InputKind == ConversionInputKind.File) {
-                    <label class="ocx-dropzone" @key="ActiveRoute.Id">
-                        <InputFile class="ocx-hidden-input" OnChange="HandleFileSelectedAsync" accept="@ActiveRoute.Accept" />
+                    <label class="ocx-dropzone" for="@FileInputId" @key="ActiveRoute.Id">
+                        <InputFile id="@FileInputId"
+                                   class="ocx-hidden-input"
+                                   OnChange="HandleFileSelectedAsync"
+                                   accept="@ActiveRoute.Accept"
+                                   aria-label="@($"Choose a {ActiveRoute.Source} file")" />
                         <span class="ocx-dropzone__icon @ActiveRoute.AccentClass"><i></i><b>@ActiveRoute.Source</b></span>
                         <strong>@(SelectedFile is null ? $"Drop a {ActiveRoute.Source} file here" : SelectedFile.Name)</strong>
                         <small>@(SelectedFile is null ? "or choose one from your device" : $"{SelectedFile.FormatLabel} · {FormatBytes(SelectedFile.Size)} · ready locally")</small>
