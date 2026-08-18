@@ -4,9 +4,8 @@ using ExcelReader.Core.Writer;
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
-/// Measures the same public, plain-tabular write contract for OfficeIMO's two
-/// native binary workbook formats. This is a throughput/allocation lane, not a
-/// cross-format ranking: XLS and XLSB are different physical contracts.
+/// Measures equivalent public, high-throughput tabular write contracts for
+/// OfficeIMO's native binary workbook formats and ExcelReader.NET.
 /// </summary>
 [MemoryDiagnoser]
 public class ExcelNativeBinaryWriteBenchmarks {
@@ -15,8 +14,10 @@ public class ExcelNativeBinaryWriteBenchmarks {
     [Params(2_500, 25_000)]
     public int RowCount { get; set; }
 
-    // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from its XLSB
-    // output, so only its structurally valid XLS writer participates here.
+    // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from XLSB.
+    // Its XLS writer also omits the BIFF8 Index/Row/DBCell cell-table structure,
+    // so this XLS comparison is a diagnostic throughput lane rather than a
+    // format-conformance-equivalent result.
     [Params(ExcelFileFormat.Xls)]
     public ExcelFileFormat Format { get; set; }
 
@@ -47,23 +48,22 @@ public class ExcelNativeBinaryWriteBenchmarks {
     private byte[] WriteWorkbook() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.CellValue(1, 1, "Id");
-        sheet.CellValue(1, 2, "Region");
-        sheet.CellValue(1, 3, "Owner");
-        sheet.CellValue(1, 4, "Amount");
-        sheet.CellValue(1, 5, "Active");
+        sheet.InsertObjects(
+            _rows,
+            ("Id", static row => row.Id),
+            ("Region", static row => row.Region),
+            ("Owner", static row => row.Owner),
+            ("Amount", static row => row.Amount),
+            ("Active", static row => row.Active));
 
-        for (int index = 0; index < _rows.Length; index++) {
-            int row = index + 2;
-            BinaryWriteRow value = _rows[index];
-            sheet.CellValue(row, 1, value.Id);
-            sheet.CellValue(row, 2, value.Region);
-            sheet.CellValue(row, 3, value.Owner);
-            sheet.CellValue(row, 4, value.Amount);
-            sheet.CellValue(row, 5, value.Active);
+        byte[] workbook = document.ToBytes(Format);
+        if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.NativeBinaryDirectPackage) {
+            throw new InvalidOperationException(
+                $"OfficeIMO {Format} benchmark did not use the native direct tabular writer: "
+                + document.LastSaveDiagnostics.FastPackageSkipReason);
         }
 
-        return document.ToBytes(Format);
+        return workbook;
     }
 
     private byte[] WriteExcelReaderWorkbook() => Format switch {

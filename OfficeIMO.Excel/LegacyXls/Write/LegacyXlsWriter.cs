@@ -37,13 +37,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
             ExcelSheet[] sheets = [sheet];
 
-            if (!TryExtractDirectCells(source, cancellationToken, out List<LegacyXlsCell>? directCells)) {
+            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan? directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
             ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
-            byte[] workbookStream = BuildDirectTabularWorkbookStream(document, sheet, directCells);
+            DirectTabularWorkbookStream workbookStream = BuildDirectTabularWorkbookStream(document, sheet, directPlan);
             ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
             workbookBytes = BuildCompoundFile(document, workbookStream);
             ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
@@ -64,9 +64,36 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream) {
+            return BuildCompoundFile(
+                document,
+                new OfficeCompoundStream(
+                    GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile),
+                    workbookStream));
+        }
+
+        private static byte[] BuildCompoundFile(
+            ExcelDocument document,
+            DirectTabularWorkbookStream workbookStream) {
+            if (document.LegacyXlsSourceCompoundFile != null) {
+                return BuildCompoundFile(document, workbookStream.ToArray());
+            }
+
+            byte[] buffer = workbookStream.Buffer;
+            int length = workbookStream.Length;
+            return BuildCompoundFile(
+                document,
+                new OfficeCompoundStream(
+                    GetWorkbookStreamName(sourceCompoundFile: null),
+                    length,
+                    () => new MemoryStream(buffer, 0, length, writable: false)));
+        }
+
+        private static byte[] BuildCompoundFile(
+            ExcelDocument document,
+            OfficeCompoundStream workbookStream) {
             IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
             var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
-                new OfficeCompoundStream(GetWorkbookStreamName(document.LegacyXlsSourceCompoundFile), workbookStream)
+                workbookStream
             };
             streams.AddRange(propertyStreams);
             OfficeCompoundFile? sourceCompoundFile = document.LegacyXlsSourceCompoundFile;
@@ -216,73 +243,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 stream.Position = currentPosition;
             }
             return stream.ToArray();
-        }
-
-        private static bool TryExtractDirectCells(
-            ExcelDirectTabularSource source,
-            CancellationToken cancellationToken,
-            out List<LegacyXlsCell> cells) {
-            const ushort DefaultDirectCellStyleIndex = 15;
-            IExcelSheetTabularRowSource rows = source.Rows;
-            int rowOffset = source.IncludeHeaders ? 1 : 0;
-            int totalRows = checked(rows.RowCount + rowOffset);
-            if (totalRows > 65_536 || rows.ColumnCount > 256) {
-                throw new NotSupportedException("Native XLS saving supports the BIFF8 worksheet limit of 65,536 rows and 256 columns.");
-            }
-
-            int capacity = Math.Min(checked(totalRows * rows.ColumnCount), 1_048_576);
-            cells = new List<LegacyXlsCell>(capacity);
-            if (source.IncludeHeaders) {
-                for (int column = 0; column < rows.ColumnCount; column++) {
-                    cells.Add(LegacyXlsCell.Text(
-                        row: 0,
-                        column: checked((ushort)column),
-                        styleIndex: DefaultDirectCellStyleIndex,
-                        rows.GetColumnName(column)));
-                }
-            }
-
-            for (int row = 0; row < rows.RowCount; row++) {
-                if ((row & 1023) == 0) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-
-                ushort legacyRow = checked((ushort)(row + rowOffset));
-                for (int column = 0; column < rows.ColumnCount; column++) {
-                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rows.GetValue(row, column));
-                    ushort legacyColumn = checked((ushort)column);
-                    switch (value.Kind) {
-                        case ExcelDirectTabularValueKind.Empty:
-                            break;
-                        case ExcelDirectTabularValueKind.Text:
-                            cells.Add(LegacyXlsCell.Text(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Text ?? string.Empty));
-                            break;
-                        case ExcelDirectTabularValueKind.Boolean:
-                            cells.Add(LegacyXlsCell.Boolean(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Boolean));
-                            break;
-                        case ExcelDirectTabularValueKind.Number:
-                            cells.Add(LegacyXlsCell.Number(legacyRow, legacyColumn, DefaultDirectCellStyleIndex, value.Number));
-                            break;
-                        default:
-                            cells = null!;
-                            return false;
-                    }
-                }
-            }
-
-            if (totalRows != 0 && rows.ColumnCount != 0) {
-                ushort lastRow = checked((ushort)(totalRows - 1));
-                ushort lastColumn = checked((ushort)(rows.ColumnCount - 1));
-                if (cells.Count == 0 || cells[0].Row != 0 || cells[0].Column != 0) {
-                    cells.Insert(0, LegacyXlsCell.Blank(0, 0, DefaultDirectCellStyleIndex));
-                }
-                if ((lastRow != 0 || lastColumn != 0)
-                    && (cells[cells.Count - 1].Row != lastRow || cells[cells.Count - 1].Column != lastColumn)) {
-                    cells.Add(LegacyXlsCell.Blank(lastRow, lastColumn, DefaultDirectCellStyleIndex));
-                }
-            }
-
-            return true;
         }
 
         private static void WriteWorksheet(
