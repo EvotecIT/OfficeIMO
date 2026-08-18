@@ -5,15 +5,15 @@ These files are generated from the public format and capability catalogs. Do not
 Regenerate:
 
 ```powershell
-dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated
+dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --converter-sample Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/conversion-proof.pptx
 ```
 
-Use the [conversion route catalog](conversion-routes.md) to find the focused package, representative API, fidelity model, browser availability, and result type for each route.
+Use the [conversion route catalog](conversion-routes.md) to find the focused package, output model, proven support level, known limits, browser availability, and result type for each route.
 
 Verify:
 
 ```powershell
-dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --verify
+dotnet run --framework net8.0 --project Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj -- --output Docs/Compatibility/generated --converter-sample Website/Apps/OfficeIMO.Web.Converter/wwwroot/samples/conversion-proof.pptx --verify
 ```
 
 | Contract | Schema | Rows | JSON | Markdown |

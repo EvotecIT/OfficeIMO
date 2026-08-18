@@ -13,6 +13,8 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Expand cross-producer fixture corpora with producer/version provenance and stable package or semantic diff policies.
 - [ ] Add reproducible correctness, file-size, elapsed-time, peak-memory, allocation, cancellation, and deterministic-output evidence for representative workloads on every supported operating system.
 - [ ] Add shared conversion reports and strict no-loss policies wherever an adapter can simplify, omit, rasterize, or preserve unsupported content.
+- [ ] Promote conversion routes from Targeted to Established, Advanced, or ReferenceVerified only when the owning package adds the required reopen, realistic-fixture, visual or structural regression, and independent-producer evidence. Prioritize reverse PDF adapters, OpenDocument bridges, and OneNote, AsciiDoc, LaTeX, MHTML, and Visio routes that remain Targeted in the generated conversion catalog.
+- [ ] Link every conversion support assessment to either an open roadmap outcome or an explicit intentional boundary, and expose that linkage in the generated route matrix. Fail catalog verification when any route gains a non-intentional limitation without an owner.
 
 ## PDF engine and conversion fidelity
 
@@ -21,11 +23,23 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Expand native Word, Excel, and PowerPoint reference corpora around DrawingML, SmartArt, chart variants, floating and grouped objects, headers and footers, print layout, and theme inheritance. Keep each improvement in the shared Drawing or PDF owner when more than one adapter needs it.
 - [ ] Add exact-artifact external validation lanes for every supported PDF/A-2, PDF/A-3, PDF/A-4, PDF/UA-1, PDF/UA-2, Factur-X, and ZUGFeRD profile across representative generated artifacts and at least one independent producer corpus.
 - [ ] Deepen PDF-to-PowerPoint and PDF-to-ODP semantic reconstruction beyond the current native text boxes, detected tables, safe basic shapes, and supported images. Add bounded support for clipping-aware placement, mixed-rotation text lines, multi-column reading order, richer vector paths, transparency and z-order, links and navigation, annotations, and embedded assets while preserving explicit reconstructed, visual-only, approximated, and omitted evidence.
+- [ ] Deepen PDF-to-DOCX, PDF-to-ODT, and PDF-to-RTF reconstruction for multi-column reading order, clipping-aware text, page regions, images and supported drawings, links, annotations, headers and footers, and explicit page-break hints. Preserve semantic editability and diagnostics rather than promising exact source pagination.
+- [ ] Deepen PDF-to-XLSX and PDF-to-ODS table recovery for multi-page tables, merged and spanning cells, repeated headers, row and column geometry, typed dates and numbers, border and fill evidence, and confidence-scored table boundaries. Keep free-form page layout and invented formulas outside the spreadsheet contract.
+- [ ] Deepen PDF-to-HTML positioned-review output for clipping, rotations, z-order, transparency, supported vector paths, optional-content state, annotations, form appearance, and deterministic resource placement. Keep semantic and positioned-review profiles separate, with visual-distance fixtures for the latter.
 - [ ] Define format-appropriate editable, visual, hybrid, and narrow-data profiles across every reverse PDF adapter. Keep Word semantic, Excel table-shaped, PowerPoint/ODP slide-shaped, and HTML review-shaped, but use consistent selection, limits, page geometry, strict-loss behavior, warning codes, and report vocabulary so no route implies editability it did not produce.
 - [ ] Add cross-producer reverse-conversion gates that reopen DOCX, XLSX, PPTX, ODT, ODS, ODP, HTML, and image outputs; assert native editability for promised objects; compare readable text, table structure, page geometry, and visual distance; and pin deterministic loss reports for digital, scanned, malformed, encrypted, and mixed-content PDFs.
 - [ ] Publish optional provider adapters for OCR and searchable-PDF text-layer output only where the provider contract, resource limits, provenance, warning merge, and artifact verification are stable; keep `OfficeIMO.Pdf` dependency-light.
 - [ ] Define an explicit lossy scan-compression product with image-selection, downsampling, quality, color, metadata, accessibility, signature-invalidation, and measurable visual-difference policies. Keep it separate from the deterministic lossless optimizer.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
+
+## HTML, RTF, and lightweight markup
+
+- [ ] Define the next static HTML/CSS fidelity tier shared by HTML-to-PDF and HTML-to-Office adapters: paged-media rules, bounded flex and grid layout, positioned elements, transforms, pseudo-elements, SVG, font fallback, and print-specific styling. Keep JavaScript, remote execution, and live browser application behavior outside the managed converter.
+- [ ] Improve HTML-to-DOCX, HTML-to-XLSX, HTML-to-PPTX, and HTML-to-RTF mappings for supported CSS styles, nested and spanning tables, images, links, lists, page or slide breaks, and destination-native layout choices, with per-construct simplify-or-omit diagnostics.
+- [ ] Expand DOCX/XLSX/PPTX-to-HTML review profiles for floating objects, tracked-change policy, fields, charts, pivots, masters, notes, SmartArt fallbacks, media poster frames, and advanced effects while keeping semantic review output distinct from a full Office renderer.
+- [ ] Expand RTF parsing and writing for complex tables, fields, embedded pictures and objects, destination groups, Unicode and code-page edge cases, lists, and producer-specific controls using independent Word, WordPad, and Outlook fixtures with deterministic preservation diagnostics.
+- [ ] Define named Markdown, AsciiDoc, and LaTeX profiles so extensions are opt-in and testable. Add safe AsciiDoc includes through a bounded resolver, attributes, tables, admonitions, cross-references, and common macros; add typed LaTeX mathematics, citations, references, figures, tables, and safe local macro definitions without arbitrary TeX package or command execution.
+- [ ] Harden MHTML-to-PDF for malformed multipart recovery, legacy encodings, nested related resources, duplicate content identifiers, `Content-Location` resolution, redirects, and bounded remote-resource policy. Reuse the managed HTML/CSS tier and continue to reject script execution.
 
 ## Security and protected content
 
@@ -43,9 +57,15 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 
 ## Document-format depth
 
+- [ ] Improve DOCX-to-PDF rendering for floating and wrapped drawings, section-specific headers and footers, fields, footnotes and endnotes, SmartArt fallbacks, and pagination controls using Word-produced fixtures and page-level visual comparisons.
+- [ ] Improve XLSX-to-PDF rendering for charts, pivot-table snapshots, conditional formatting, print titles and areas, manual page breaks, repeated rows and columns, external-link cached values, and advanced page setup using Excel-produced fixtures.
+- [ ] Improve PPTX-to-PDF rendering for SmartArt fallbacks, master and theme inheritance, grouped and uncommon DrawingML, media poster frames, transitions' stable visual state, shadows, transparency, and advanced effects using PowerPoint-produced fixtures. Do not imply animation or media playback in static PDF output.
 - [ ] Extend Excel/ODS conversion beyond the current typed formula, value, annotation, number-format, and validation subsets to date/time/custom-formula validations, conditional formatting, charts, pivot tables, and producer-backed advanced style fidelity.
 - [ ] Add recursive typed ODT and ODP inline syntax with inherited-style resolution so nested spans and hyperlinks can convert without the current explicit flattening approximation.
 - [ ] Expand Word/ODT and PowerPoint/ODP conversion for fields, notes, section/master-specific layout, advanced drawing geometry, media, and animation timing with producer fixtures and strict loss evidence.
+- [ ] Improve ODT/ODS/ODP-to-PDF rendering for inherited styles, page and master layout, advanced drawings, charts, media poster frames, nested inline content, and office-suite-produced pagination evidence.
+- [ ] Deepen OneNote section import, editing, and export for ink, embedded files, rich positioning, page metadata, internal links, attachments, and independently produced `.one` fixtures. Keep unsupported binary records preserved or diagnosed instead of silently flattening them.
+- [ ] Deepen Visio-to-PDF rendering for masters and instances, grouped shapes, layers and visibility, themes, data graphics, connector routing, embedded objects, and page backgrounds using Visio-produced fixtures and page-level visual comparisons.
 
 ## Completion rule
 

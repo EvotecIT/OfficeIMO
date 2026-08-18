@@ -24,9 +24,21 @@ public enum OfficeConversionFidelityKind {
     Semantic
 }
 
+/// <summary>Describes how deeply a conversion route is proven beyond its output model.</summary>
+public enum OfficeConversionSupportLevel {
+    /// <summary>A bounded subset is implemented and tested; callers must review the documented limitations.</summary>
+    Targeted,
+    /// <summary>Representative business documents and result artifacts are covered by repeatable tests.</summary>
+    Established,
+    /// <summary>Complex fixtures, diagnostics, and visual or structural regression evidence cover the route.</summary>
+    Advanced,
+    /// <summary>Advanced coverage is supplemented by pinned independent-producer or reference-renderer comparisons.</summary>
+    ReferenceVerified
+}
+
 /// <summary>One package-neutral conversion route exposed by OfficeIMO.</summary>
 public sealed class OfficeConversionCapability {
-    /// <summary>Creates a conversion capability.</summary>
+    /// <summary>Creates a conversion capability using conservative support defaults.</summary>
     public OfficeConversionCapability(
         string id,
         string source,
@@ -40,7 +52,44 @@ public sealed class OfficeConversionCapability {
         OfficeConversionFidelityKind fidelity,
         string resultContract,
         bool browserAvailable = false,
-        bool agentDiscoverable = true) {
+        bool agentDiscoverable = true)
+        : this(
+            id,
+            source,
+            target,
+            inputKind,
+            sourceExtensions,
+            targetExtension,
+            packageId,
+            api,
+            description,
+            fidelity,
+            resultContract,
+            browserAvailable,
+            agentDiscoverable,
+            OfficeConversionSupportLevel.Targeted,
+            "No route-specific evidence summary was supplied.",
+            "Review the conversion report and package documentation before relying on unsupported constructs.") {
+    }
+
+    /// <summary>Creates a conversion capability with an explicit evidence-based support assessment.</summary>
+    public OfficeConversionCapability(
+        string id,
+        string source,
+        string target,
+        OfficeConversionInputKind inputKind,
+        IEnumerable<string> sourceExtensions,
+        string targetExtension,
+        string packageId,
+        string api,
+        string description,
+        OfficeConversionFidelityKind fidelity,
+        string resultContract,
+        bool browserAvailable,
+        bool agentDiscoverable,
+        OfficeConversionSupportLevel supportLevel,
+        string supportEvidence,
+        string knownLimitations) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Route id cannot be empty.", nameof(id));
         if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("Source label cannot be empty.", nameof(source));
         if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("Target label cannot be empty.", nameof(target));
@@ -70,6 +119,13 @@ public sealed class OfficeConversionCapability {
         ResultContract = resultContract.Trim();
         BrowserAvailable = browserAvailable;
         AgentDiscoverable = agentDiscoverable;
+        SupportLevel = supportLevel;
+        SupportEvidence = string.IsNullOrWhiteSpace(supportEvidence)
+            ? throw new ArgumentException("Support evidence cannot be empty.", nameof(supportEvidence))
+            : supportEvidence.Trim();
+        KnownLimitations = string.IsNullOrWhiteSpace(knownLimitations)
+            ? throw new ArgumentException("Known limitations cannot be empty.", nameof(knownLimitations))
+            : knownLimitations.Trim();
     }
 
     /// <summary>Gets the stable route identifier.</summary>
@@ -98,6 +154,12 @@ public sealed class OfficeConversionCapability {
     public bool BrowserAvailable { get; }
     /// <summary>Gets whether the route is advertised through agent capability discovery.</summary>
     public bool AgentDiscoverable { get; }
+    /// <summary>Gets the depth of repeatable evidence behind the route.</summary>
+    public OfficeConversionSupportLevel SupportLevel { get; }
+    /// <summary>Gets a concise summary of the evidence supporting the assigned level.</summary>
+    public string SupportEvidence { get; }
+    /// <summary>Gets the important unsupported or intentionally simplified scope.</summary>
+    public string KnownLimitations { get; }
 
     private static string NormalizeExtension(string extension) {
         if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extensions cannot be empty.", nameof(extension));
@@ -109,7 +171,7 @@ public sealed class OfficeConversionCapability {
 /// <summary>The shared OfficeIMO conversion route catalog used by packages, agents, and browser surfaces.</summary>
 public static class OfficeConversionCapabilityCatalog {
     /// <summary>Gets the capability schema version.</summary>
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     /// <summary>Gets all focused, public document-conversion routes in stable order.</summary>
     public static IReadOnlyList<OfficeConversionCapability> All { get; } =
@@ -140,18 +202,21 @@ public static class OfficeConversionCapabilityCatalog {
         var markdown = new StringBuilder();
         markdown.AppendLine("# OfficeIMO conversion routes");
         markdown.AppendLine();
-        markdown.AppendLine("Use this table to find the focused package, representative API, fidelity model, and result type for a source-to-target conversion.");
+        markdown.AppendLine("Use this table to find the focused package, output model, proven support level, known limits, and result type for a source-to-target conversion.");
         markdown.AppendLine();
         markdown.Append("Schema version: ").Append(SchemaVersion).AppendLine();
         markdown.AppendLine();
-        markdown.AppendLine("| Route | Source | Target | Package | Fidelity | Browser | API | Result type | What it does |");
-        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+        markdown.AppendLine("| Route | Source | Target | Package | Output model | Support | Evidence | Known limits | Browser | API | Result type | What it does |");
+        markdown.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
         foreach (OfficeConversionCapability route in All) {
             markdown.Append("| ").Append(EscapeMarkdown(route.Id))
                 .Append(" | ").Append(EscapeMarkdown(route.Source))
                 .Append(" | ").Append(EscapeMarkdown(route.Target))
                 .Append(" | ").Append(EscapeMarkdown(route.PackageId))
                 .Append(" | ").Append(route.Fidelity)
+                .Append(" | ").Append(route.SupportLevel)
+                .Append(" | ").Append(EscapeMarkdown(route.SupportEvidence))
+                .Append(" | ").Append(EscapeMarkdown(route.KnownLimitations))
                 .Append(" | ").Append(route.BrowserAvailable ? "Yes" : "No")
                 .Append(" | `").Append(EscapeMarkdown(route.Api)).Append("`")
                 .Append(" | ").Append(EscapeMarkdown(route.ResultContract))
@@ -190,6 +255,9 @@ public static class OfficeConversionCapabilityCatalog {
                 .Append(i3).Append("\"api\":\"").Append(EscapeJson(route.Api)).Append("\",").Append(newline)
                 .Append(i3).Append("\"description\":\"").Append(EscapeJson(route.Description)).Append("\",").Append(newline)
                 .Append(i3).Append("\"fidelity\":\"").Append(route.Fidelity).Append("\",").Append(newline)
+                .Append(i3).Append("\"supportLevel\":\"").Append(route.SupportLevel).Append("\",").Append(newline)
+                .Append(i3).Append("\"supportEvidence\":\"").Append(EscapeJson(route.SupportEvidence)).Append("\",").Append(newline)
+                .Append(i3).Append("\"knownLimitations\":\"").Append(EscapeJson(route.KnownLimitations)).Append("\",").Append(newline)
                 .Append(i3).Append("\"resultContract\":\"").Append(EscapeJson(route.ResultContract)).Append("\",").Append(newline)
                 .Append(i3).Append("\"browserAvailable\":").Append(route.BrowserAvailable ? "true" : "false").Append(',').Append(newline)
                 .Append(i3).Append("\"agentDiscoverable\":").Append(route.AgentDiscoverable ? "true" : "false").Append(newline)
@@ -246,7 +314,7 @@ public static class OfficeConversionCapabilityCatalog {
         Route("pdf-docx", "PDF", "DOCX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".docx", "OfficeIMO.Word.Pdf", "PdfDocument.Open(stream).ToWordDocumentResult(options)", "Import PDF logical content into an editable Word document with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfWordConversionResult", browser: true),
         Route("pdf-xlsx", "PDF", "XLSX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".xlsx", "OfficeIMO.Excel.Pdf", "PdfDocument.Open(stream).ImportTablesToExcelDocumentResult(options)", "Import detected PDF tables into an editable workbook with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfExcelTableImportResult", browser: true),
         Route("pdf-pptx", "PDF", "PPTX", OfficeConversionInputKind.File, new[] { ".pdf" }, ".pptx", "OfficeIMO.PowerPoint.Pdf", "PdfDocument.Open(stream).ToPowerPointPresentationResult(options)", "Reconstruct supported PDF content as native slide objects, or select explicit visual, hybrid, and tables-only projections with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfPowerPointConversionResult", browser: true),
-        Route("pdf-html", "PDF", "HTML", OfficeConversionInputKind.File, new[] { ".pdf" }, ".html", "OfficeIMO.Html.Pdf", "PdfDocument.Open(stream).ToHtmlResult(options)", "Project PDF logical content into reviewable HTML.", OfficeConversionFidelityKind.Semantic, "PdfHtmlConversionResult", browser: true),
+        Route("pdf-html", "PDF", "HTML", OfficeConversionInputKind.File, new[] { ".pdf" }, ".html", "OfficeIMO.Html.Pdf", "PdfDocument.Open(stream).ToHtmlResult(options)", "Project PDF content into semantic or positioned-review HTML with explicit diagnostics.", OfficeConversionFidelityKind.Semantic, "PdfHtmlConversionResult", browser: true),
         Route("pdf-png", "PDF", "PNG", OfficeConversionInputKind.File, new[] { ".pdf" }, ".png", "OfficeIMO.Pdf", "PdfDocument.Open(stream).Read.ExportImages(OfficeImageExportFormat.Png, options)", "Render every PDF page as a detailed PNG with page-level diagnostics; multi-page results are packaged as a ZIP.", OfficeConversionFidelityKind.FixedLayout, "IReadOnlyList<OfficeImageExportResult>", browser: true),
         Route("pdf-rtf", "PDF", "RTF", OfficeConversionInputKind.File, new[] { ".pdf" }, ".rtf", "OfficeIMO.Rtf.Pdf", "PdfDocument.Open(stream).ToRtfDocumentResult(options)", "Import PDF logical content into semantic RTF with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfRtfConversionResult"),
         Route("pdf-odt", "PDF", "ODT", OfficeConversionInputKind.File, new[] { ".pdf" }, ".odt", "OfficeIMO.OpenDocument.Odt.Pdf", "PdfDocument.Open(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)", "Import PDF logical content into OpenDocument Text with diagnostics.", OfficeConversionFidelityKind.Editable, "PdfOdtConversionResult"),
@@ -261,8 +329,23 @@ public static class OfficeConversionCapabilityCatalog {
         IEnumerable<string> sourceExtensions, string targetExtension, string packageId,
         string api, string description, OfficeConversionFidelityKind fidelity,
         string resultContract, bool browser = false) =>
-        new OfficeConversionCapability(id, source, target, inputKind, sourceExtensions, targetExtension,
+        CreateRoute(id, source, target, inputKind, sourceExtensions, targetExtension,
             packageId, api, description, fidelity, resultContract, browser);
+
+    private static OfficeConversionCapability CreateRoute(
+        string id, string source, string target, OfficeConversionInputKind inputKind,
+        IEnumerable<string> sourceExtensions, string targetExtension, string packageId,
+        string api, string description, OfficeConversionFidelityKind fidelity,
+        string resultContract, bool browser) {
+        OfficeConversionSupportAssessment support = OfficeConversionSupportAssessments.Get(id);
+        return new OfficeConversionCapability(
+            id, source, target, inputKind, sourceExtensions, targetExtension,
+            packageId, api, description, fidelity, resultContract, browser,
+            agentDiscoverable: true,
+            supportLevel: support.Level,
+            supportEvidence: support.Evidence,
+            knownLimitations: support.KnownLimitations);
+    }
 
     private static string NormalizeExtension(string extension) {
         if (string.IsNullOrWhiteSpace(extension)) throw new ArgumentException("Extension cannot be empty.", nameof(extension));

@@ -61,7 +61,7 @@ The [browser document workspace](/apps/officeimo-converter/?workspace=pdf&tool=i
 
 ## Convert PDF content into editable formats
 
-The workspace also exposes [PDF to DOCX](/convert/pdf-to-word/), [detected PDF tables to XLSX](/convert/pdf-tables-to-excel/), [PDF to PPTX](/convert/pdf-to-powerpoint/), and [PDF to HTML](/convert/pdf-to-html/). These are logical imports, not a promise that every fixed-position page can become the original editable source. Word reconstructs semantic content, Excel imports detected tables, and HTML creates reviewable semantic output. PowerPoint defaults to native text boxes, detected tables, safe basic shapes, and separate supported images, with explicit visual-page, hybrid, and tables-only alternatives. Each download includes diagnostics that identify reconstructed, substituted, visual-only, truncated, or omitted content.
+The workspace also exposes [PDF to DOCX](/convert/pdf-to-word/), [detected PDF tables to XLSX](/convert/pdf-tables-to-excel/), [PDF to PPTX](/convert/pdf-to-powerpoint/), and [PDF to HTML](/convert/pdf-to-html/). These are logical imports, not a promise that every fixed-position page can become the original editable source. Word reconstructs semantic content, Excel imports detected tables, and HTML supports semantic and positioned-review profiles; the browser selects positioned review so page geometry remains inspectable. PowerPoint defaults to native text boxes, detected tables, safe basic shapes, and separate supported images, with explicit visual-page, hybrid, and tables-only alternatives. Each download includes diagnostics that identify reconstructed, substituted, visual-only, truncated, or omitted content.
 
 For application code, use the focused adapter that owns the target:
 

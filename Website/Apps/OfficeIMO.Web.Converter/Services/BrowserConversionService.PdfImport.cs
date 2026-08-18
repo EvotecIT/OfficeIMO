@@ -150,7 +150,11 @@ public sealed partial class BrowserConversionService {
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
         PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfHtmlConversionResult conversion = pdf.ToHtmlResult();
+        PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true,
+            IncludeFormWidgets = true
+        });
         byte[] bytes = Encoding.UTF8.GetBytes(conversion.Value);
         return new PdfImportPayload(
             bytes,
@@ -270,6 +274,7 @@ public sealed partial class BrowserConversionService {
         warnings.Any(static warning => warning.Severity != PdfConversionWarningSeverity.Information);
 
     private static string DescribePdfProjection(string projection) => projection switch {
+        "pdf-html-positioned-review" => "positioned PDF review reconstruction",
         "visual-page-images" => "visual PDF page rendering",
         "visual-page-slides" => "visual PDF page slides",
         "hybrid-visual-table-slides" => "hybrid PDF page and table reconstruction",

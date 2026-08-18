@@ -18,6 +18,14 @@
     </nav>
 
     <section class="ocx-converter" aria-label="@ActiveRoute.Title converter">
+        <aside class="ocx-route-contract" data-support-level="@ActiveRoute.SupportLevel">
+            <span class="ocx-support-badge">@ActiveRoute.SupportLabel</span>
+            <div>
+                <strong>@ActiveRoute.Title</strong>
+                <span>@ActiveRoute.Description</span>
+                <small><b>@ActiveRoute.OutputModel.</b> @ActiveRoute.KnownLimitations</small>
+            </div>
+        </aside>
         <div class="ocx-workspace">
             <section class="ocx-input-panel" aria-labelledby="input-title">
                 <div class="ocx-panel-heading">

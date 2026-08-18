@@ -7,6 +7,12 @@ $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
 
+$siteConfiguration = Get-Content -LiteralPath (Join-Path $SiteRoot 'site.json') -Raw | ConvertFrom-Json
+$contentSecurityPolicy = [string] $siteConfiguration.AgentReadiness.SecurityHeaders.ContentSecurityPolicyValue
+if ($contentSecurityPolicy -notmatch '(?:^|;)\s*img-src\s+[^;]*\bblob:') {
+    Add-Failure 'The site Content Security Policy must allow blob: images so browser-local conversion previews can render.'
+}
+
 function Test-ResponsiveImageRule([string] $Path, [string] $Label) {
     $css = Get-Content -LiteralPath $Path -Raw
     if ($css -notmatch '(?s)(?:^|})\s*img\s*\{[^}]*\bheight\s*:\s*auto\s*;?[^}]*\}') {

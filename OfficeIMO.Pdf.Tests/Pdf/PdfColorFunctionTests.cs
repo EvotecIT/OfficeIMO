@@ -905,7 +905,9 @@ public sealed partial class PdfColorFunctionTests {
             out PdfImageColorSpaceNormalization normalization));
         PdfImageColorConversionBuffer conversionBuffer = normalization.CreateConversionBuffer();
         byte[] sample = { 255 };
-        for (int index = 0; index < 32; index++) {
+        // Cross the tiered-compilation threshold before measuring the steady-state
+        // caller-owned buffer path. Runtime/JIT bookkeeping is not pixel conversion allocation.
+        for (int index = 0; index < 4096; index++) {
             Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
         }
 
