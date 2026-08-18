@@ -534,6 +534,13 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination));
         Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
 
+        // Cross the tiered-compilation threshold before measuring the steady-state
+        // caller-owned buffer paths. Runtime/JIT bookkeeping is not conversion allocation.
+        for (int index = 0; index < 4096; index++) {
+            Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination));
+            Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
         bool succeeded = true;
         for (int index = 0; index < 1000; index++) {
