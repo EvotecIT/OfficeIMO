@@ -897,8 +897,10 @@ namespace OfficeIMO.Excel {
                 _formulaStarts = ArrayPool<int>.Shared.Rent(capacity);
                 _formulaLengths = ArrayPool<int>.Shared.Rent(capacity);
                 int initializedCellCount = checked((_rowCount + 1) * _fieldCount);
-                Array.Fill(_formulaStarts, 0, 0, initializedCellCount);
-                Array.Fill(_formulaLengths, -1, 0, initializedCellCount);
+                Array.Clear(_formulaStarts, 0, initializedCellCount);
+                for (int index = 0; index < initializedCellCount; index++) {
+                    _formulaLengths[index] = -1;
+                }
             }
 
             private void GrowCellKindArray(int capacity, int count) {

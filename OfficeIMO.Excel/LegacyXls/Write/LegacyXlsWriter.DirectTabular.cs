@@ -19,7 +19,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             var firstColumns = new ushort[totalRows];
-            Array.Fill(firstColumns, ushort.MaxValue);
+            for (int row = 0; row < firstColumns.Length; row++) {
+                firstColumns[row] = ushort.MaxValue;
+            }
             var lastColumns = new ushort[totalRows];
             var sharedStrings = new LegacyXlsDirectSharedStringBuilder();
             object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
@@ -289,7 +291,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     output,
                     ref writePosition,
                     firstRowPosition,
-                    firstCellPositions[..blockCount],
+                    firstCellPositions.Slice(0, blockCount),
                     dbCellPosition);
             }
 
