@@ -19,11 +19,60 @@ public partial class Excel {
     [InlineData("0.0000000000000000000001")]
     [InlineData("123456789012345")]
     [InlineData("1.23456789012345")]
+    [InlineData("999999999999999")]
+    [InlineData("0.999999999999999")]
+    [InlineData("0.100000000000005")]
+    [InlineData("-0.0000000000000000000001")]
+    [InlineData("000000000000000000000000000000001.25")]
     public void Utf8NumberParser_CommonFixedPointMatchesGeneralParser(string text) {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
         Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
         Assert.Equal(utf8.Length, consumed);
 
+        Assert.True(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out double actual));
+        Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
+    }
+
+    [Fact]
+    public void Utf8NumberParser_AllSupportedScalesMatchGeneralParserBitForBit() {
+        var random = new Random(0x51CA1E);
+        for (int scale = 1; scale <= 22; scale++) {
+            for (int sample = 0; sample < 1_000; sample++) {
+                int digitCount = random.Next(1, 16);
+                long lowerBound = digitCount == 1
+                    ? 1
+                    : (long)Math.Pow(10, digitCount - 1);
+                long upperBound = digitCount == 15
+                    ? 1_000_000_000_000_000L
+                    : (long)Math.Pow(10, digitCount);
+                long mantissa = random.NextInt64(lowerBound, upperBound);
+                string digits = mantissa.ToString(CultureInfo.InvariantCulture);
+                string unsigned = scale < digits.Length
+                    ? digits.Insert(digits.Length - scale, ".")
+                    : "0." + new string('0', scale - digits.Length) + digits;
+                string text = (sample & 1) == 0 ? unsigned : "-" + unsigned;
+                AssertCommonParserMatchesGeneralParser(text);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("1234567890123456")]
+    [InlineData("0.00000000000000000000001")]
+    [InlineData("1.000000000000000")]
+    public void Utf8NumberParser_AdjacentPrecisionBoundariesUseGeneralFallback(string text) {
+        byte[] utf8 = Encoding.UTF8.GetBytes(text);
+        Assert.False(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out _));
+        Assert.True(ExcelUtf8NumberParser.TryParseDouble(utf8, out double actual));
+        Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
+        Assert.Equal(utf8.Length, consumed);
+        Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
+    }
+
+    private static void AssertCommonParserMatchesGeneralParser(string text) {
+        byte[] utf8 = Encoding.UTF8.GetBytes(text);
+        Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
+        Assert.Equal(utf8.Length, consumed);
         Assert.True(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out double actual));
         Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
     }
