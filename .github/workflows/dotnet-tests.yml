@@ -350,7 +350,9 @@ jobs:
   opendocument-schema:
     name: 'OpenDocument schema and LibreOffice'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Cold Ubuntu mirrors can spend most of the former 20-minute budget fetching
+    # the full Writer/Calc/Impress dependency graph before validation starts.
+    timeout-minutes: 40
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -431,7 +433,9 @@ jobs:
   office-corpus-libreoffice:
     name: 'Office binary corpus and LibreOffice'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Leave room for a cold LibreOffice install plus corpus conversion and the
+    # always-run evidence upload. Slow mirrors must not cancel the proof itself.
+    timeout-minutes: 40
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
