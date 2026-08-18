@@ -1,4 +1,5 @@
 using OfficeIMO.Excel.Benchmarks;
+using OfficeIMO.Excel;
 using OfficeIMO.Benchmarks;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
@@ -15,10 +16,22 @@ bool profileOfficeIMOXls = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xls-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileSylvanXls = args.Length > 0 &&
     string.Equals(args[0], "--profile-markpflug65k-xls-sylvan", StringComparison.OrdinalIgnoreCase);
+bool profileOfficeIMOXlsx = args.Length > 0 &&
+    string.Equals(args[0], "--profile-excelreader-xlsx-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileExcelReaderXlsx = args.Length > 0 &&
+    string.Equals(args[0], "--profile-excelreader-xlsx-competitor", StringComparison.OrdinalIgnoreCase);
 bool comparePairedXlsb = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-xlsb-paired", StringComparison.OrdinalIgnoreCase);
 bool comparePairedXls = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-xls-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderPairedXlsx = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-xlsx-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderPairedXlsb = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-xlsb-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderPairedXls = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-xls-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderWritePaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-write-paired", StringComparison.OrdinalIgnoreCase);
 bool profileOfficeIMODataReaderWrite = args.Length > 0 &&
     string.Equals(args[0], "--profile-datareader-write-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileLargeXlsxDataReaderWrite = args.Length > 0 &&
@@ -37,6 +50,52 @@ if (comparePairedDataTableExecution) {
 
 if (comparePairedXlsb || comparePairedXls) {
     ExcelLegacyReadPairedRunner.Run(args, useXlsb: comparePairedXlsb);
+    return;
+}
+
+if (compareExcelReaderPairedXlsx || compareExcelReaderPairedXlsb || compareExcelReaderPairedXls) {
+    ExcelFileFormat format = compareExcelReaderPairedXlsx
+        ? ExcelFileFormat.Xlsx
+        : compareExcelReaderPairedXlsb ? ExcelFileFormat.Xlsb : ExcelFileFormat.Xls;
+    ExcelReaderComparisonPairedRunner.Run(args, format);
+    return;
+}
+
+if (compareExcelReaderWritePaired) {
+    ExcelReaderWriteComparisonPairedRunner.Run(args);
+    return;
+}
+
+if (profileOfficeIMOXlsx || profileExcelReaderXlsx) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 100;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+    ApplyProcessAffinity(args, argumentIndex: 2);
+    ApplyProcessPriority(args, argumentIndex: 3);
+
+    var benchmark = new MarkPflug65KXlsxBenchmarks();
+    benchmark.Setup();
+    Func<ExcelReadObservation> run = profileOfficeIMOXlsx
+        ? benchmark.OfficeIMO
+        : benchmark.ExcelReaderNet;
+    string implementation = profileOfficeIMOXlsx ? "OfficeIMO" : "ExcelReader.NET";
+    for (int index = 0; index < 16; index++) {
+        run();
+    }
+
+    ExcelReadObservation observation = default;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    for (int index = 0; index < iterations; index++) {
+        observation = run();
+    }
+    stopwatch.Stop();
+
+    Console.WriteLine(
+        $"Profiled {implementation} XLSX {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
+        $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {observation}.");
     return;
 }
 

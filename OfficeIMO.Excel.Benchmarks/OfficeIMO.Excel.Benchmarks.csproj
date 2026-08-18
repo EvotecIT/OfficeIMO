@@ -13,6 +13,8 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="ExcelDataReader" Version="3.9.0" />
+    <!-- Runtime APIs are benchmarked directly. The 2.1.2 source generator targets a newer Roslyn than the .NET 10.0.111 SDK ships. -->
+    <PackageReference Include="ExcelReader.NET" Version="2.1.2" ExcludeAssets="analyzers" />
     <PackageReference Include="EPPlus" Version="8.6.3" />
     <PackageReference Include="LargeXlsx" Version="2.0.1" />
     <PackageReference Include="MiniExcel" Version="1.45.0" />
@@ -29,5 +31,11 @@
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
   </ItemGroup>
+
+  <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="$(NuGetPackageRoot)excelreader.net\2.1.2\analyzers\dotnet\cs\ExcelReader.Generator.dll" />
+    </ItemGroup>
+  </Target>
 
 </Project>

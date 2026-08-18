@@ -41,6 +41,10 @@ bool profileTypedSepParallel = args.Length > 0 &&
     string.Equals(args[0], "--profile-typed-sep-parallel", StringComparison.OrdinalIgnoreCase);
 bool comparePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderPaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderWritePaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-write-paired", StringComparison.OrdinalIgnoreCase);
 bool compareTrimUnescapeStringsPaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-trim-unescape-strings-paired", StringComparison.OrdinalIgnoreCase);
 bool compareTypedSequentialPaired = args.Length > 0 &&
@@ -51,6 +55,16 @@ bool compareDataReaderWritePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-datareader-write-paired", StringComparison.OrdinalIgnoreCase);
 bool compareDataReaderParallelWritePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-datareader-parallel-write-paired", StringComparison.OrdinalIgnoreCase);
+
+if (compareExcelReaderPaired) {
+    CsvExcelReaderComparisonPairedRunner.Run(args);
+    return;
+}
+
+if (compareExcelReaderWritePaired) {
+    CsvExcelReaderWriteComparisonPairedRunner.Run(args);
+    return;
+}
 
 if (compareDataReaderParallelWritePaired) {
     int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)

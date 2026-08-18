@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Data.Common;
 using BenchmarkDotNet.Attributes;
 using CsvHelper.Configuration;
+using ExcelReader.Core.Reader;
+using ExcelReader.Core.ValueObjects;
 using nietras.SeparatedValues;
 using OfficeIMO.Benchmarks;
 using CsvHelperReader = CsvHelper.CsvReader;
@@ -9,6 +11,8 @@ using DataplatCsvDataReader = Dataplat.Dbatools.Csv.Reader.CsvDataReader;
 using LumenWorksCsvReader = CsvReader.CsvReader;
 using SepLib = nietras.SeparatedValues.Sep;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
+using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -32,6 +36,7 @@ public class MarkPflug65KCsvBenchmarks {
             MarkPflug65KFixture.ExpectedCsvCharacters,
             MarkPflug65KFixture.ExpectedCsvChecksum);
         Validate(nameof(OfficeIMO), OfficeIMO());
+        Validate(nameof(ExcelReaderNet), ExcelReaderNet());
         Validate(nameof(Sep), Sep());
         Validate(nameof(Sylvan), Sylvan());
         Validate(nameof(CsvHelper), CsvHelper());
@@ -45,6 +50,32 @@ public class MarkPflug65KCsvBenchmarks {
             MarkPflug65KFixture.CsvPath,
             new CsvLoadOptions { DetectDelimiter = false });
         return Observe(reader);
+    }
+
+    [Benchmark]
+    public CsvReadObservation ExcelReaderNet() {
+        using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsvFile(MarkPflug65KFixture.CsvPath);
+        int rows = 0;
+        int cells = 0;
+        long characters = 0;
+        ulong checksum = ChecksumOffset;
+        bool header = true;
+        foreach (Row row in reader) {
+            if (header) {
+                header = false;
+                continue;
+            }
+
+            rows++;
+            for (int column = 0; column < row.ColumnCount; column++) {
+                cells++;
+                string decoded = row[column].GetString();
+                characters += decoded.Length;
+                AddValue(ref checksum, decoded);
+            }
+        }
+
+        return new CsvReadObservation(rows, cells, characters, checksum);
     }
 
     [Benchmark]

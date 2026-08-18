@@ -2,9 +2,11 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using ExcelReader.Core.Reader;
 using OfficeIMO.Benchmarks;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -30,6 +32,12 @@ public class MarkPflug65KXlsBenchmarks {
             MarkPflug65KFixture.XlsPath,
             new ExcelReadOptions { NumericAsDecimal = true });
         return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
+    }
+
+    [Benchmark]
+    public ExcelReadObservation ExcelReaderNet() {
+        using XlsReader reader = ExcelReaderApi.FromXlsFile(MarkPflug65KFixture.XlsPath);
+        return Validate(nameof(ExcelReaderNet), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
     }
 
     [Benchmark]

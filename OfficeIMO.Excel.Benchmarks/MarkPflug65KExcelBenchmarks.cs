@@ -3,10 +3,13 @@ using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using ClosedXML.Excel;
+using ExcelReader.Core.Reader;
+using ExcelReader.Core.ValueObjects;
 using OfficeIMO.Benchmarks;
 using OfficeIMO.Excel.Xlsb.Read;
 using OfficeOpenXml;
 using MiniExcelApi = MiniExcelLibs.MiniExcel;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
 
@@ -60,6 +63,12 @@ public class MarkPflug65KXlsxBenchmarks {
                 SheetName = null
             });
         return Validate(nameof(OfficeIMO), Observe(reader));
+    }
+
+    [Benchmark]
+    public ExcelReadObservation ExcelReaderNet() {
+        using XlsxReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
+        return Validate(nameof(ExcelReaderNet), ObserveExcelReader(reader));
     }
 
     [Benchmark]
@@ -160,6 +169,99 @@ public class MarkPflug65KXlsxBenchmarks {
         return observation.Build();
     }
 
+    internal static ExcelReadObservation ObserveExcelReader(XlsxReader reader) {
+        var observation = new ExcelObservationAccumulator();
+        bool header = true;
+        bool isDate1904 = reader.IsDate1904;
+        foreach (Row row in reader) {
+            if (header) {
+                header = false;
+                continue;
+            }
+
+            AddRow(ref observation, row, isDate1904);
+        }
+
+        return observation.Build();
+    }
+
+    internal static ExcelReadObservation ObserveExcelReader(XlsbReader reader) {
+        var observation = new ExcelObservationAccumulator();
+        bool header = true;
+        bool isDate1904 = reader.IsDate1904;
+        foreach (Row row in reader) {
+            if (header) {
+                header = false;
+                continue;
+            }
+
+            AddRow(ref observation, row, isDate1904);
+        }
+
+        return observation.Build();
+    }
+
+    internal static ExcelReadObservation ObserveExcelReader(XlsReader reader) {
+        var observation = new ExcelObservationAccumulator();
+        bool header = true;
+        bool isDate1904 = reader.IsDate1904;
+        foreach (Row row in reader) {
+            if (header) {
+                header = false;
+                continue;
+            }
+
+            AddRow(ref observation, row, isDate1904);
+        }
+
+        return observation.Build();
+    }
+
+    private static void AddRow(
+        ref ExcelObservationAccumulator observation,
+        Row row,
+        bool isDate1904) {
+        observation.BeginRow();
+        for (int ordinal = 0; ordinal <= 4; ordinal++) {
+            observation.Add(row[ordinal].GetString());
+        }
+
+        observation.Add(ReadExcelReaderDate(row[5], isDate1904, 5));
+        observation.Add(ReadExcelReaderInteger(row[6], 6));
+        observation.Add(ReadExcelReaderDate(row[7], isDate1904, 7));
+        observation.Add(ReadExcelReaderInteger(row[8], 8));
+        for (int ordinal = 9; ordinal <= 13; ordinal++) {
+            observation.Add(ReadExcelReaderDecimal(row[ordinal], ordinal));
+        }
+    }
+
+    private static DateTime ReadExcelReaderDate(Cell cell, bool isDate1904, int ordinal) {
+        if (cell.TryGetDateTime(isDate1904, out DateTime value)) {
+            return value;
+        }
+
+        throw new InvalidDataException($"ExcelReader.NET did not produce a date at column {ordinal}.");
+    }
+
+    private static int ReadExcelReaderInteger(Cell cell, int ordinal) {
+        if (cell.TryParse(CultureInfo.InvariantCulture, out int value)) {
+            return value;
+        }
+
+        throw new InvalidDataException($"ExcelReader.NET did not produce an integer at column {ordinal}.");
+    }
+
+    private static decimal ReadExcelReaderDecimal(Cell cell, int ordinal) {
+        // The source workbook stores IEEE-754 numbers. Read that value first and
+        // convert it to decimal so the benchmark preserves the intended monetary
+        // precision instead of parsing the binary rendering's trailing digits.
+        if (cell.TryGetDouble(out double value)) {
+            return (decimal)value;
+        }
+
+        throw new InvalidDataException($"ExcelReader.NET did not produce a number at column {ordinal}.");
+    }
+
     private static void AddRow(
         ref ExcelObservationAccumulator observation,
         DbDataReader reader) {
@@ -241,6 +343,12 @@ public class MarkPflug65KXlsbBenchmarks {
             MarkPflug65KFixture.XlsbPath,
             new ExcelReadOptions { NumericAsDecimal = true });
         return Validate(nameof(OfficeIMO), MarkPflug65KXlsxBenchmarks.Observe(reader));
+    }
+
+    [Benchmark]
+    public ExcelReadObservation ExcelReaderNet() {
+        using XlsbReader reader = ExcelReaderApi.FromXlsbFile(MarkPflug65KFixture.XlsbPath);
+        return Validate(nameof(ExcelReaderNet), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
     }
 
     [Benchmark]

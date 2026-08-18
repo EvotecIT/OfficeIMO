@@ -2,7 +2,9 @@
 
 using System.Data.Common;
 using System.Globalization;
+using System.Text;
 using BenchmarkDotNet.Attributes;
+using ExcelReader.Core.Parser;
 using nietras.SeparatedValues;
 using OfficeIMO.Data;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
@@ -18,6 +20,10 @@ using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
 using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
 using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
+using ExcelReaderNetCsvRowWriter = ExcelReader.Core.Writer.CsvRowWriter;
+using ExcelReaderNetCsvWriter = ExcelReader.Core.Writer.CsvWriter;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
+using ExcelReaderNetCsvReader = ExcelReader.Core.Reader.CsvReader;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -42,7 +48,9 @@ public class CsvBenchmarks
     private object?[][] _projectedRows = [];
     private string?[][] _projectedTextRows = [];
     private string _csvText = string.Empty;
+    private byte[] _csvUtf8 = [];
     private int _expectedTypedReadChecksum;
+    private readonly ExcelParser<CsvBenchmarkRow> _excelReaderParser = new();
     private bool _captureWriteOutput;
     private string? _capturedWriteOutput;
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
@@ -68,6 +76,7 @@ public class CsvBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
         _csvText = writer.ToString();
+        _csvUtf8 = Encoding.UTF8.GetBytes(_csvText);
         _expectedTypedReadChecksum = MeasureTypedRows(_rows);
 
         ValidateWriteBenchmarkOutputs();
@@ -79,6 +88,7 @@ public class CsvBenchmarks
         ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsForwardOnly), OfficeIMO_ReadTypedRowsForwardOnly);
         ValidateTypedReadOutput(nameof(OfficeIMO_ReadTypedRowsMaterialized), OfficeIMO_ReadTypedRowsMaterialized);
         ValidateTypedReadOutput(nameof(CsvHelper_ReadTypedRecords), CsvHelper_ReadTypedRecords);
+        ValidateTypedReadOutput(nameof(ExcelReaderNet_ReadTypedRecords), ExcelReaderNet_ReadTypedRecords);
     }
 
     private void ValidateTypedReadOutput(string method, Func<int> read)
@@ -98,6 +108,8 @@ public class CsvBenchmarks
         ValidateWriteOutput(nameof(OfficeIMO_WriteIncrementalProjectedRows), OfficeIMO_WriteIncrementalProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteTypedRecords), CsvHelper_WriteTypedRecords, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTypedRecordsUtf8), OfficeIMO_WriteTypedRecordsUtf8, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(ExcelReaderNet_WriteTypedRecords), ExcelReaderNet_WriteTypedRecords, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows, expectedObjectRows: _projectedRows);
@@ -109,6 +121,7 @@ public class CsvBenchmarks
         ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _projectedTextRows);
         ValidateWriteOutput(nameof(Sep_WriteTextRows), Sep_WriteTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(ExcelReaderNet_WriteTextRows), ExcelReaderNet_WriteTextRows, _projectedTextRows);
     }
 
     private void ValidateWriteOutput(
@@ -157,6 +170,18 @@ public class CsvBenchmarks
         }
 
         return output.Length;
+    }
+
+    private int CompleteUtf8Write(MemoryStream stream)
+    {
+        if (_captureWriteOutput)
+        {
+            string output = Encoding.UTF8.GetString(stream.GetBuffer(), 0, checked((int)stream.Length));
+            _capturedWriteOutput = output;
+            return output.Length;
+        }
+
+        return checked((int)stream.Length);
     }
 
     [Benchmark(Baseline = true)]
@@ -257,6 +282,56 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_WriteTypedRecordsUtf8()
+    {
+        using var stream = new MemoryStream();
+        using (var textWriter = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true))
+        using (var csv = new CsvRowWriter(textWriter, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csv.WriteRow(Headers, _projectedRows[0]);
+            for (int index = 1; index < _projectedRows.Length; index++)
+            {
+                csv.WriteRow(_projectedRows[index]);
+            }
+        }
+
+        return CompleteUtf8Write(stream);
+    }
+
+    [Benchmark]
+    public int ExcelReaderNet_WriteTypedRecords()
+    {
+        using var stream = new MemoryStream();
+        using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        {
+            using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
+            {
+                foreach (string value in Headers)
+                {
+                    header.Write(value);
+                }
+            }
+
+            foreach (CsvBenchmarkRow value in _rows)
+            {
+                using ExcelReaderNetCsvRowWriter row = csv.StartRow();
+                row.Write(value.Id);
+                row.Write(value.Name);
+                row.Write(value.Department);
+                row.Write(value.Region);
+                row.Write(value.IsEnabled);
+                row.Write(value.Created);
+                row.Write(value.Score);
+                row.Write(value.Owner);
+                row.Write(value.TicketCount);
+                row.Write(value.Notes);
+            }
+        }
+
+        return CompleteUtf8Write(stream);
+    }
+
+    [Benchmark]
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -304,6 +379,33 @@ public class CsvBenchmarks
         }
 
         return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int ExcelReaderNet_WriteTextRows()
+    {
+        using var stream = new MemoryStream();
+        using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        {
+            using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
+            {
+                foreach (string value in Headers)
+                {
+                    header.Write(value);
+                }
+            }
+
+            foreach (string?[] values in _projectedTextRows)
+            {
+                using ExcelReaderNetCsvRowWriter row = csv.StartRow();
+                foreach (string? value in values)
+                {
+                    row.Write(value);
+                }
+            }
+        }
+
+        return CompleteUtf8Write(stream);
     }
 
     [Benchmark]
@@ -735,6 +837,19 @@ public class CsvBenchmarks
         using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
         var checksum = 17;
         foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
+        {
+            checksum = AddTypedRowChecksum(checksum, row);
+        }
+
+        return checksum;
+    }
+
+    [Benchmark]
+    public int ExcelReaderNet_ReadTypedRecords()
+    {
+        using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in _excelReaderParser.Parse(reader))
         {
             checksum = AddTypedRowChecksum(checksum, row);
         }

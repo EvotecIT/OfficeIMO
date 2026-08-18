@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using ExcelReader.Core.Writer;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -14,7 +15,9 @@ public class ExcelNativeBinaryWriteBenchmarks {
     [Params(2_500, 25_000)]
     public int RowCount { get; set; }
 
-    [Params(ExcelFileFormat.Xls, ExcelFileFormat.Xlsb)]
+    // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from its XLSB
+    // output, so only its structurally valid XLS writer participates here.
+    [Params(ExcelFileFormat.Xls)]
     public ExcelFileFormat Format { get; set; }
 
     [GlobalSetup]
@@ -31,10 +34,15 @@ public class ExcelNativeBinaryWriteBenchmarks {
 
         byte[] workbook = WriteWorkbook();
         Validate(workbook);
+        byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
+        Validate(excelReaderWorkbook);
     }
 
     [Benchmark]
     public int OfficeIMO_PublicTabularWrite() => WriteWorkbook().Length;
+
+    [Benchmark]
+    public int ExcelReaderNet_PublicTabularWrite() => WriteExcelReaderWorkbook().Length;
 
     private byte[] WriteWorkbook() {
         using ExcelDocument document = ExcelDocument.Create();
@@ -56,6 +64,70 @@ public class ExcelNativeBinaryWriteBenchmarks {
         }
 
         return document.ToBytes(Format);
+    }
+
+    private byte[] WriteExcelReaderWorkbook() => Format switch {
+        ExcelFileFormat.Xls => WriteExcelReaderXlsWorkbook(),
+        ExcelFileFormat.Xlsb => WriteExcelReaderXlsbWorkbook(),
+        _ => throw new InvalidOperationException($"ExcelReader.NET binary benchmark does not support {Format}.")
+    };
+
+    private byte[] WriteExcelReaderXlsWorkbook() {
+        using var stream = new MemoryStream();
+        using XlsWorkbookWriter workbook = XlsWorkbookWriter.Create(stream, leaveOpen: true);
+        workbook.Start();
+        using (XlsSheetWriter sheet = workbook.AddSheet("Data")) {
+            sheet.Start();
+            using (XlsRowWriter header = sheet.StartRow()) {
+                WriteHeaders(header);
+            }
+
+            foreach (BinaryWriteRow value in _rows) {
+                using XlsRowWriter row = sheet.StartRow();
+                WriteRow(row, value);
+            }
+            sheet.End();
+        }
+        workbook.End();
+        return stream.ToArray();
+    }
+
+    private byte[] WriteExcelReaderXlsbWorkbook() {
+        using var stream = new MemoryStream();
+        using XlsbWorkbookWriter workbook = XlsbWorkbookWriter.Create(stream, leaveOpen: true);
+        workbook.Start();
+        using (XlsbSheetWriter sheet = workbook.AddSheet("Data")) {
+            sheet.Start();
+            using (XlsbRowWriter header = sheet.StartRow()) {
+                WriteHeaders(header);
+            }
+
+            foreach (BinaryWriteRow value in _rows) {
+                using XlsbRowWriter row = sheet.StartRow();
+                WriteRow(row, value);
+            }
+            sheet.End();
+        }
+        workbook.End();
+        return stream.ToArray();
+    }
+
+    private static void WriteHeaders<TRow>(TRow row)
+        where TRow : IRowWriter {
+        row.Write("Id");
+        row.Write("Region");
+        row.Write("Owner");
+        row.Write("Amount");
+        row.Write("Active");
+    }
+
+    private static void WriteRow<TRow>(TRow row, BinaryWriteRow value)
+        where TRow : IRowWriter {
+        row.Write(value.Id);
+        row.Write(value.Region);
+        row.Write(value.Owner);
+        row.Write(value.Amount);
+        row.Write(value.Active);
     }
 
     private void Validate(byte[] workbook) {
