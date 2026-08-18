@@ -8,7 +8,13 @@ param(
 
     [string] $ExpectedDeploymentId,
 
-    [string] $ExpectedDeploymentIdEnvironment
+    [string] $ExpectedDeploymentIdEnvironment,
+
+    [ValidateRange(1, 20)]
+    [int] $RemoteVerificationAttempts = 6,
+
+    [ValidateRange(0, 300)]
+    [int] $RemoteVerificationRetryDelaySeconds = 15
 )
 
 $ErrorActionPreference = 'Stop'
@@ -208,7 +214,8 @@ function Get-Sha256Hex {
     return [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
 }
 
-try {
+function Invoke-ConverterDeploymentVerification {
+$assetByteCache.Clear()
 $deploymentManifestBytes = Get-AssetBytes -RelativePath 'deployment-assets.json' -MaximumBytes $maximumDeploymentManifestBytes
 $deploymentManifest = Get-Utf8Text -Bytes $deploymentManifestBytes | ConvertFrom-Json
 if ($deploymentManifest.schemaVersion -ne 1 -or [string] $deploymentManifest.deploymentId -notmatch '^[A-Fa-f0-9]{40}$|^[A-Fa-f0-9]{64}$') {
@@ -373,6 +380,29 @@ if ($verified.Count -lt 10) {
 }
 
 Write-Output "Converter deployment verified: $($manifestPaths.Count) public assets and $($verified.Count) fingerprinted runtime resources for $($deploymentManifest.deploymentId)."
+}
+
+try {
+    $verificationAttempts = if ($isLocal) { 1 } else { $RemoteVerificationAttempts }
+    # A freshly deployed manifest can reach one edge before stable-named assets do. Retry the
+    # complete graph from empty cache; every attempt must still satisfy all length and hash checks.
+    for ($verificationAttempt = 1; $verificationAttempt -le $verificationAttempts; $verificationAttempt++) {
+        try {
+            Invoke-ConverterDeploymentVerification
+            break
+        } catch {
+            if ($verificationAttempt -ge $verificationAttempts) {
+                throw
+            }
+
+            $retryMessage = "Converter deployment verification attempt $verificationAttempt/$verificationAttempts failed: " +
+                "$($_.Exception.Message) Retrying after $RemoteVerificationRetryDelaySeconds second(s)."
+            Write-Warning $retryMessage
+            if ($RemoteVerificationRetryDelaySeconds -gt 0) {
+                Start-Sleep -Seconds $RemoteVerificationRetryDelaySeconds
+            }
+        }
+    }
 } finally {
     if ($null -ne $remoteClient) {
         $remoteClient.Dispose()
