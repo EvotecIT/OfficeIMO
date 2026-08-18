@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
         private readonly Lazy<SharedStringTablePart?> _part;
+        private readonly Func<Stream>? _openPartStream;
         private readonly bool _preferDom;
         private readonly int _maxSharedStringItems;
         private readonly int _maxSharedStringItemCharacters;
@@ -23,6 +24,7 @@ namespace OfficeIMO.Excel {
 
         private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
+            _openPartStream = null;
             _preferDom = preferDom;
             _maxSharedStringItems = options.MaxSharedStringItems;
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
@@ -31,12 +33,51 @@ namespace OfficeIMO.Excel {
             _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
+        private SharedStringCache(Func<Stream> openPartStream, ExcelReadOptions options) {
+            _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
+            _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
+            _preferDom = false;
+            _maxSharedStringItems = options.MaxSharedStringItems;
+            _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
+            _maxSharedStringCharacters = options.MaxSharedStringCharacters;
+            _cancellationToken = options.CancellationToken;
+            _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
+        }
+
+        private SharedStringCache(List<string> items, ExcelReadOptions options) {
+            _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
+            _openPartStream = null;
+            _preferDom = false;
+            _maxSharedStringItems = options.MaxSharedStringItems;
+            _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
+            _maxSharedStringCharacters = options.MaxSharedStringCharacters;
+            _cancellationToken = options.CancellationToken;
+            _loadedItems = items ?? throw new ArgumentNullException(nameof(items));
+            _items = new Lazy<List<string>>(() => items, LazyThreadSafetyMode.ExecutionAndPublication);
+        }
+
         public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReadOptions? options = null) {
             return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReadOptions());
         }
 
+        internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReadOptions options) =>
+            new(openPartStream, options);
+
+        internal static SharedStringCache Empty(ExcelReadOptions options) =>
+            new(new List<string>(), options);
+
         private List<string> LoadItems() {
             _cancellationToken.ThrowIfCancellationRequested();
+            if (_openPartStream != null) {
+                using Stream stream = _openPartStream();
+                if (TryLoadItemsXmlFast(stream, out List<string> nativeItems)) {
+                    return nativeItems;
+                }
+
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "The shared-string table requires the Open XML SDK fallback path.");
+            }
+
             SharedStringTablePart? part = GetSharedStringTablePart();
             if (part == null) return new List<string>();
             if (_preferDom && part.SharedStringTable != null) {
@@ -80,11 +121,15 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
+            using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
+            return TryLoadItemsXmlFast(stream, out items);
+        }
+
+        private bool TryLoadItemsXmlFast(Stream stream, out List<string> items) {
             items = new List<string>();
             long totalCharacters = 0;
 
             try {
-                using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, SharedStringXmlReaderSettings);
                 int nodesRead = 0;
                 while (reader.Read()) {

@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
                         StringComparison.OrdinalIgnoreCase);
             }
 
-            private void ValidateIndexedCell(
+            private int ValidateIndexedCell(
                 int rowIndex,
                 int columnIndex,
                 Utf8CellKind kind,
@@ -222,6 +222,7 @@ namespace OfficeIMO.Excel {
                 bool hasCachedValue,
                 int valueStart,
                 int valueLength) {
+                int validatedSharedStringIndex = -1;
                 if (styleIndex >= 0 && (uint)styleIndex >= (uint)_owner.Styles.CellFormatCount) {
                     string reference = A1.CellReference(rowIndex, columnIndex);
                     throw new InvalidDataException(
@@ -244,6 +245,8 @@ namespace OfficeIMO.Excel {
                         throw new InvalidDataException(
                             $"Worksheet '{_owner._sheetName}' cell {reference} references a missing shared string.");
                     }
+
+                    validatedSharedStringIndex = index;
                 }
 
                 if (sharedFormulaFollower
@@ -254,6 +257,8 @@ namespace OfficeIMO.Excel {
                         $"'{_owner._sheetName}'!{reference}. Read the workbook through ExcelDocument when resolved " +
                         "shared-formula text is required.");
                 }
+
+                return validatedSharedStringIndex;
             }
         }
     }

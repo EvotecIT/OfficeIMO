@@ -18,6 +18,8 @@ namespace OfficeIMO.Excel {
             "http://purl.oclc.org/ooxml/spreadsheetml/main";
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
+        private readonly string _worksheetPartName;
+        private readonly bool _hasSdkWorksheetPart;
         private readonly SharedStringCache _sst;
         private readonly StylesCacheProvider _styles;
         private readonly ExcelReadOptions _opt;
@@ -46,12 +48,35 @@ namespace OfficeIMO.Excel {
             OpenXmlPackagePartBufferReader? partBufferReader = null) {
             _sheetName = sheetName;
             _wsPart = wsPart;
+            _worksheetPartName = wsPart.Uri.OriginalString;
+            _hasSdkWorksheetPart = true;
             _sst = sst;
             _styles = styles;
             _opt = opt;
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
             _partBufferReader = partBufferReader;
+        }
+
+        internal ExcelSheetReader(
+            string sheetName,
+            string worksheetPartName,
+            SharedStringCache sst,
+            StylesCacheProvider styles,
+            ExcelReadOptions opt,
+            ExcelDateSystem dateSystem,
+            OpenXmlPackagePartBufferReader partBufferReader) {
+            _sheetName = sheetName;
+            _wsPart = null!;
+            _worksheetPartName = worksheetPartName;
+            _hasSdkWorksheetPart = false;
+            _sst = sst;
+            _styles = styles;
+            _opt = opt;
+            _dateSystem = dateSystem;
+            _canStreamWorksheetPart = true;
+            _partBufferReader = partBufferReader;
+            _hasWorksheetPartStreamContent = true;
         }
 
         private bool TryReadWorksheetPartBuffer(
@@ -63,11 +88,18 @@ namespace OfficeIMO.Excel {
             length = 0;
             return _partBufferReader != null
                 && _partBufferReader.TryRead(
-                _wsPart.Uri,
+                _worksheetPartName,
                 maximumBytes,
                 cancellationToken,
                 out buffer,
                 out length);
+        }
+
+        private void RequireSdkWorksheetPart() {
+            if (!_hasSdkWorksheetPart) {
+                throw new XlsxTabularFastPathNotSupportedException(
+                    $"Worksheet '{_sheetName}' requires the Open XML SDK fallback path.");
+            }
         }
 
         private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);

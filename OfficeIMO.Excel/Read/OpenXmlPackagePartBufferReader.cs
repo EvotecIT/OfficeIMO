@@ -12,11 +12,13 @@ namespace OfficeIMO.Excel {
     internal sealed class OpenXmlPackagePartBufferReader : IDisposable {
         private readonly Stream _stream;
         private readonly ZipArchive _archive;
+        private readonly Dictionary<string, ZipArchiveEntry> _entries;
         private bool _disposed;
 
         private OpenXmlPackagePartBufferReader(Stream stream) {
             _stream = stream;
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+            _entries = BuildEntryIndex(_archive);
         }
 
         /// <summary>
@@ -68,14 +70,31 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             buffer = null;
             length = 0;
-            string partName = partUri.OriginalString.TrimStart('/').Replace('\\', '/');
-            ZipArchiveEntry? entry = null;
-            foreach (ZipArchiveEntry candidate in _archive.Entries) {
-                if (string.Equals(candidate.FullName, partName, StringComparison.OrdinalIgnoreCase)) {
-                    entry = candidate;
-                    break;
-                }
+            return TryRead(
+                partUri.OriginalString,
+                maximumBytes,
+                cancellationToken,
+                out buffer,
+                out length);
+        }
+
+        internal bool TryRead(
+            string partName,
+            int maximumBytes,
+            CancellationToken cancellationToken,
+            out byte[]? buffer,
+            out int length) {
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
+            if (maximumBytes < 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            buffer = null;
+            length = 0;
+            string normalizedPartName = NormalizePartName(partName);
+            _entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry);
             if (entry == null || entry.Length < 0 || entry.Length > maximumBytes || entry.Length > int.MaxValue) {
                 return false;
             }
@@ -90,14 +109,14 @@ namespace OfficeIMO.Excel {
                     int read = input.Read(output, offset, length - offset);
                     if (read == 0) {
                         throw new EndOfStreamException(
-                            $"Package part '{partName}' ended after {offset} of {length} declared bytes.");
+                            $"Package part '{normalizedPartName}' ended after {offset} of {length} declared bytes.");
                     }
                     offset += read;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input.ReadByte() >= 0) {
                     throw new InvalidDataException(
-                        $"Package part '{partName}' exceeds its declared decompressed length of {length} bytes.");
+                        $"Package part '{normalizedPartName}' exceeds its declared decompressed length of {length} bytes.");
                 }
                 buffer = output;
                 return true;
@@ -107,6 +126,68 @@ namespace OfficeIMO.Excel {
                 length = 0;
                 throw;
             }
+        }
+
+        internal bool ContainsPart(string partName) {
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+            }
+
+            return _entries.ContainsKey(NormalizePartName(partName));
+        }
+
+        internal Stream OpenPart(string partName, int maximumBytes) {
+            if (_disposed) {
+                throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
+            }
+            if (maximumBytes < 0) {
+                throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            }
+
+            string normalizedPartName = NormalizePartName(partName);
+            if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
+                throw new InvalidDataException($"Package part '{normalizedPartName}' is missing.");
+            }
+            if (entry.Length < 0 || entry.Length > maximumBytes || entry.Length > int.MaxValue) {
+                throw new InvalidDataException(
+                    $"Package part '{normalizedPartName}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
+            }
+
+            return entry.Open();
+        }
+
+        private static Dictionary<string, ZipArchiveEntry> BuildEntryIndex(ZipArchive archive) {
+            var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (ZipArchiveEntry entry in archive.Entries) {
+                if (string.IsNullOrEmpty(entry.Name)) {
+                    continue;
+                }
+
+                string normalized = NormalizePartName(entry.FullName);
+                if (entries.ContainsKey(normalized)) {
+                    throw new InvalidDataException($"The Open XML package contains duplicate part name '{normalized}'.");
+                }
+
+                entries.Add(normalized, entry);
+            }
+
+            return entries;
+        }
+
+        private static string NormalizePartName(string partName) {
+            if (string.IsNullOrWhiteSpace(partName)) {
+                throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
+            }
+            if (partName.IndexOf('\\') >= 0) {
+                throw new InvalidDataException($"Package part name '{partName}' contains a backslash.");
+            }
+
+            string normalized = partName.TrimStart('/');
+            if (normalized.Split('/').Any(static segment => segment == "..")) {
+                throw new InvalidDataException($"Package part name '{partName}' is not safe.");
+            }
+
+            return normalized;
         }
 
         public void Dispose() {

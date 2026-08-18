@@ -22,6 +22,8 @@ namespace OfficeIMO.Excel {
                 return indexedReader!;
             }
 
+            RequireSdkWorksheetPart();
+
             if (TryGetWorksheetCellPresence(out bool hasCells, ct) && !hasCells) {
                 return new ExcelRangeDataReader(
                     Array.Empty<RangeChunk>(),
