@@ -55,8 +55,10 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
         (Func<int> RunOfficeIMO, Func<int> RunExcelReader) = operations;
         if (format == ExcelFileFormat.Xls) {
             Console.WriteLine(
-                "XLS timing is diagnostic only: ExcelReader.NET 2.1.2 omits the BIFF8 " +
+                "XLS write comparison is unranked because ExcelReader.NET 2.1.2 omits the BIFF8 " +
                 "Index/Row/DBCell cell-table structure emitted by OfficeIMO.");
+            RunOfficeOnly(format, rowCount, iterations, invocationsPerLeg, affinity, priority);
+            return;
         }
         for (int index = 0; index < WarmupIterations; index++) {
             ValidateResult(format, $"OfficeIMO warmup {index}", RunOfficeIMO());
