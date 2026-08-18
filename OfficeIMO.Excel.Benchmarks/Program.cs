@@ -36,6 +36,8 @@ bool compareExcelReaderPairedXls = args.Length > 0 &&
     string.Equals(args[0], "--compare-excelreader-xls-paired", StringComparison.OrdinalIgnoreCase);
 bool compareExcelReaderWritePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-excelreader-write-paired", StringComparison.OrdinalIgnoreCase);
+bool validateExcelReaderWrite = args.Length > 0 &&
+    string.Equals(args[0], "--validate-excelreader-write", StringComparison.OrdinalIgnoreCase);
 bool profileOfficeIMODataReaderWrite = args.Length > 0 &&
     string.Equals(args[0], "--profile-datareader-write-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileLargeXlsxDataReaderWrite = args.Length > 0 &&
@@ -67,6 +69,21 @@ if (compareExcelReaderPairedXlsx || compareExcelReaderPairedXlsb || compareExcel
 
 if (compareExcelReaderWritePaired) {
     ExcelReaderWriteComparisonPairedRunner.Run(args);
+    return;
+}
+
+if (validateExcelReaderWrite) {
+    int rowCount = args.Length > 1 && int.TryParse(args[1], out int parsedRowCount)
+        ? parsedRowCount
+        : 1_000_000;
+    if (rowCount <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(rowCount));
+    }
+
+    var benchmark = new ExcelGeneratedRowStreamingBenchmarks { RowCount = rowCount };
+    benchmark.Setup();
+    Console.WriteLine(
+        $"Validated OfficeIMO and ExcelReader.NET XLSX writes at the measured scale of {rowCount:N0} rows.");
     return;
 }
 

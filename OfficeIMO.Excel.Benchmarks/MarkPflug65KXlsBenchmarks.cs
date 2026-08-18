@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
@@ -61,12 +60,7 @@ public class MarkPflug65KXlsBenchmarks {
 
         var observation = new ExcelObservationAccumulator();
         while (reader.Read()) {
-            MarkPflug65KXlsxBenchmarks.AddRow(
-                ref observation,
-                ordinal => Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => MarkPflug65KXlsxBenchmarks.ReadDate(reader.GetValue(ordinal)),
-                ordinal => Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
+            MarkPflug65KXlsxBenchmarks.AddExcelDataReaderRow(ref observation, reader);
         }
 
         return Validate(nameof(ExcelDataReader), observation.Build());

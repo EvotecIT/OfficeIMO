@@ -41,8 +41,8 @@ internal static class CsvExcelReaderWriteComparisonPairedRunner {
         var benchmark = new CsvBenchmarks { RowCount = rowCount, Shape = shape };
         benchmark.Setup();
         for (int index = 0; index < WarmupIterations; index++) {
-            ValidateResult($"OfficeIMO warmup {index}", benchmark.OfficeIMO_WriteTypedRecordsUtf8());
-            ValidateResult($"ExcelReader.NET warmup {index}", benchmark.ExcelReaderNet_WriteTypedRecords());
+            ValidateResult($"OfficeIMO warmup {index}", benchmark.OfficeIMO_WriteProjectedRowsUtf8());
+            ValidateResult($"ExcelReader.NET warmup {index}", benchmark.ExcelReaderNet_WriteProjectedRows());
         }
 
         var officeSamples = new double[iterations];
@@ -54,15 +54,15 @@ internal static class CsvExcelReaderWriteComparisonPairedRunner {
             (double Milliseconds, int Result) excelReaderFirst;
             (double Milliseconds, int Result) excelReaderSecond;
             if ((index & 1) == 0) {
-                officeFirst = Measure(benchmark.OfficeIMO_WriteTypedRecordsUtf8, invocationsPerLeg);
-                excelReaderFirst = Measure(benchmark.ExcelReaderNet_WriteTypedRecords, invocationsPerLeg);
-                excelReaderSecond = Measure(benchmark.ExcelReaderNet_WriteTypedRecords, invocationsPerLeg);
-                officeSecond = Measure(benchmark.OfficeIMO_WriteTypedRecordsUtf8, invocationsPerLeg);
+                officeFirst = Measure(benchmark.OfficeIMO_WriteProjectedRowsUtf8, invocationsPerLeg);
+                excelReaderFirst = Measure(benchmark.ExcelReaderNet_WriteProjectedRows, invocationsPerLeg);
+                excelReaderSecond = Measure(benchmark.ExcelReaderNet_WriteProjectedRows, invocationsPerLeg);
+                officeSecond = Measure(benchmark.OfficeIMO_WriteProjectedRowsUtf8, invocationsPerLeg);
             } else {
-                excelReaderFirst = Measure(benchmark.ExcelReaderNet_WriteTypedRecords, invocationsPerLeg);
-                officeFirst = Measure(benchmark.OfficeIMO_WriteTypedRecordsUtf8, invocationsPerLeg);
-                officeSecond = Measure(benchmark.OfficeIMO_WriteTypedRecordsUtf8, invocationsPerLeg);
-                excelReaderSecond = Measure(benchmark.ExcelReaderNet_WriteTypedRecords, invocationsPerLeg);
+                excelReaderFirst = Measure(benchmark.ExcelReaderNet_WriteProjectedRows, invocationsPerLeg);
+                officeFirst = Measure(benchmark.OfficeIMO_WriteProjectedRowsUtf8, invocationsPerLeg);
+                officeSecond = Measure(benchmark.OfficeIMO_WriteProjectedRowsUtf8, invocationsPerLeg);
+                excelReaderSecond = Measure(benchmark.ExcelReaderNet_WriteProjectedRows, invocationsPerLeg);
             }
 
             ValidateResult($"OfficeIMO sample {index} first", officeFirst.Result);
@@ -77,7 +77,7 @@ internal static class CsvExcelReaderWriteComparisonPairedRunner {
         double officeMedian = Median(officeSamples);
         double excelReaderMedian = Median(excelReaderSamples);
         Console.WriteLine(FormattableString.Invariant(
-            $"Paired CSV write comparison ({shape}, {rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
+            $"Paired projected-row CSV write comparison ({shape}, {rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
     }
 
     private static (double Milliseconds, int Result) Measure(Func<int> operation, int invocationCount) {

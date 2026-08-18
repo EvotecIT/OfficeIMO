@@ -61,8 +61,8 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             return;
         }
         for (int index = 0; index < WarmupIterations; index++) {
-            ValidateResult(format, $"OfficeIMO warmup {index}", RunOfficeIMO());
-            ValidateResult(format, $"ExcelReader.NET warmup {index}", RunExcelReader());
+            ValidateResult(format, rowCount, $"OfficeIMO warmup {index}", RunOfficeIMO());
+            ValidateResult(format, rowCount, $"ExcelReader.NET warmup {index}", RunExcelReader());
         }
 
         var officeSamples = new double[iterations];
@@ -85,10 +85,10 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
                 excelReaderSecond = Measure(RunExcelReader, invocationsPerLeg);
             }
 
-            ValidateResult(format, $"OfficeIMO sample {index} first", officeFirst.Result);
-            ValidateResult(format, $"OfficeIMO sample {index} second", officeSecond.Result);
-            ValidateResult(format, $"ExcelReader.NET sample {index} first", excelReaderFirst.Result);
-            ValidateResult(format, $"ExcelReader.NET sample {index} second", excelReaderSecond.Result);
+            ValidateResult(format, rowCount, $"OfficeIMO sample {index} first", officeFirst.Result);
+            ValidateResult(format, rowCount, $"OfficeIMO sample {index} second", officeSecond.Result);
+            ValidateResult(format, rowCount, $"ExcelReader.NET sample {index} first", excelReaderFirst.Result);
+            ValidateResult(format, rowCount, $"ExcelReader.NET sample {index} second", excelReaderSecond.Result);
             officeSamples[index] = (officeFirst.Milliseconds + officeSecond.Milliseconds) / 2d;
             excelReaderSamples[index] = (excelReaderFirst.Milliseconds + excelReaderSecond.Milliseconds) / 2d;
             pairedRatios[index] = officeSamples[index] / excelReaderSamples[index];
@@ -140,7 +140,7 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
         };
         benchmark.SetupOfficeIMOOnly();
         for (int index = 0; index < WarmupIterations; index++) {
-            ValidateResult(format, $"OfficeIMO warmup {index}", benchmark.OfficeIMO_PublicTabularWrite());
+            ValidateResult(format, rowCount, $"OfficeIMO warmup {index}", benchmark.OfficeIMO_PublicTabularWrite());
         }
 
         var samples = new double[iterations];
@@ -148,7 +148,7 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             (double milliseconds, int result) = Measure(
                 benchmark.OfficeIMO_PublicTabularWrite,
                 invocationsPerSample);
-            ValidateResult(format, $"OfficeIMO sample {index}", result);
+            ValidateResult(format, rowCount, $"OfficeIMO sample {index}", result);
             samples[index] = milliseconds;
         }
 
@@ -156,7 +156,12 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             $"OfficeIMO validated {format.ToString().ToUpperInvariant()} write ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} samples, {invocationsPerSample} invocations per sample, affinity {affinity}, priority {priority}): median {Median(samples):F3} ms (P25 {Percentile(samples, 0.25d):F3}, P75 {Percentile(samples, 0.75d):F3})."));
     }
 
-    private static void ValidateResult(ExcelFileFormat format, string sample, int result) {
+    private static void ValidateResult(ExcelFileFormat format, int expectedRowCount, string sample, int result) {
+        if (format == ExcelFileFormat.Xlsx && result != expectedRowCount) {
+            throw new InvalidDataException(
+                $"{format} {sample} reported {result} rows instead of {expectedRowCount}.");
+        }
+
         if (result <= 0) {
             throw new InvalidDataException($"{format} {sample} produced an invalid result of {result}.");
         }

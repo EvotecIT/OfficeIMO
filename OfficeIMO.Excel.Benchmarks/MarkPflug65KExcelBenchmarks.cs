@@ -92,12 +92,7 @@ public class MarkPflug65KXlsxBenchmarks {
 
         var observation = new ExcelObservationAccumulator();
         while (reader.Read()) {
-            AddRow(
-                ref observation,
-                ordinal => Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => ReadDate(reader.GetValue(ordinal)),
-                ordinal => Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
+            AddExcelDataReaderRow(ref observation, reader);
         }
 
         return Validate(nameof(ExcelDataReader), observation.Build());
@@ -110,12 +105,7 @@ public class MarkPflug65KXlsxBenchmarks {
         int lastRow = worksheet.LastRowUsed()?.RowNumber() ?? 0;
         var observation = new ExcelObservationAccumulator();
         for (int row = 2; row <= lastRow; row++) {
-            AddRow(
-                ref observation,
-                ordinal => worksheet.Cell(row, ordinal + 1).GetString(),
-                ordinal => worksheet.Cell(row, ordinal + 1).GetDateTime(),
-                ordinal => worksheet.Cell(row, ordinal + 1).GetValue<int>(),
-                ordinal => worksheet.Cell(row, ordinal + 1).GetValue<decimal>());
+            AddClosedXmlRow(ref observation, worksheet, row);
         }
 
         return Validate(nameof(ClosedXML), observation.Build());
@@ -128,12 +118,7 @@ public class MarkPflug65KXlsxBenchmarks {
         int lastRow = worksheet.Dimension?.End.Row ?? 0;
         var observation = new ExcelObservationAccumulator();
         for (int row = 2; row <= lastRow; row++) {
-            AddRow(
-                ref observation,
-                ordinal => Convert.ToString(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => ReadDate(worksheet.Cells[row, ordinal + 1].Value),
-                ordinal => Convert.ToInt32(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture));
+            AddEpplusRow(ref observation, worksheet, row);
         }
 
         return Validate(nameof(EPPlus), observation.Build());
@@ -149,12 +134,7 @@ public class MarkPflug65KXlsxBenchmarks {
         var observation = new ExcelObservationAccumulator();
         foreach (object item in rows) {
             var row = (IDictionary<string, object?>)item;
-            AddRow(
-                ref observation,
-                ordinal => Convert.ToString(row[Headers[ordinal]], CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => ReadDate(row[Headers[ordinal]]),
-                ordinal => Convert.ToInt32(row[Headers[ordinal]], CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(row[Headers[ordinal]], CultureInfo.InvariantCulture));
+            AddMiniExcelRow(ref observation, row);
         }
 
         return Validate(nameof(MiniExcel), observation.Build());
@@ -278,22 +258,69 @@ public class MarkPflug65KXlsxBenchmarks {
         }
     }
 
-    internal static void AddRow(
+    internal static void AddExcelDataReaderRow(
         ref ExcelObservationAccumulator observation,
-        Func<int, string> text,
-        Func<int, DateTime> date,
-        Func<int, int> integer,
-        Func<int, decimal> number) {
+        global::ExcelDataReader.IExcelDataReader reader) {
         observation.BeginRow();
         for (int ordinal = 0; ordinal <= 4; ordinal++) {
-            observation.Add(text(ordinal));
+            observation.Add(Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty);
         }
-        observation.Add(date(5));
-        observation.Add(integer(6));
-        observation.Add(date(7));
-        observation.Add(integer(8));
+        observation.Add(ReadDate(reader.GetValue(5)));
+        observation.Add(Convert.ToInt32(reader.GetValue(6), CultureInfo.InvariantCulture));
+        observation.Add(ReadDate(reader.GetValue(7)));
+        observation.Add(Convert.ToInt32(reader.GetValue(8), CultureInfo.InvariantCulture));
         for (int ordinal = 9; ordinal <= 13; ordinal++) {
-            observation.Add(number(ordinal));
+            observation.Add(Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
+        }
+    }
+
+    private static void AddClosedXmlRow(
+        ref ExcelObservationAccumulator observation,
+        IXLWorksheet worksheet,
+        int row) {
+        observation.BeginRow();
+        for (int ordinal = 0; ordinal <= 4; ordinal++) {
+            observation.Add(worksheet.Cell(row, ordinal + 1).GetString());
+        }
+        observation.Add(worksheet.Cell(row, 6).GetDateTime());
+        observation.Add(worksheet.Cell(row, 7).GetValue<int>());
+        observation.Add(worksheet.Cell(row, 8).GetDateTime());
+        observation.Add(worksheet.Cell(row, 9).GetValue<int>());
+        for (int ordinal = 9; ordinal <= 13; ordinal++) {
+            observation.Add(worksheet.Cell(row, ordinal + 1).GetValue<decimal>());
+        }
+    }
+
+    private static void AddEpplusRow(
+        ref ExcelObservationAccumulator observation,
+        ExcelWorksheet worksheet,
+        int row) {
+        observation.BeginRow();
+        for (int ordinal = 0; ordinal <= 4; ordinal++) {
+            observation.Add(Convert.ToString(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+        observation.Add(ReadDate(worksheet.Cells[row, 6].Value));
+        observation.Add(Convert.ToInt32(worksheet.Cells[row, 7].Value, CultureInfo.InvariantCulture));
+        observation.Add(ReadDate(worksheet.Cells[row, 8].Value));
+        observation.Add(Convert.ToInt32(worksheet.Cells[row, 9].Value, CultureInfo.InvariantCulture));
+        for (int ordinal = 9; ordinal <= 13; ordinal++) {
+            observation.Add(Convert.ToDecimal(worksheet.Cells[row, ordinal + 1].Value, CultureInfo.InvariantCulture));
+        }
+    }
+
+    private static void AddMiniExcelRow(
+        ref ExcelObservationAccumulator observation,
+        IDictionary<string, object?> row) {
+        observation.BeginRow();
+        for (int ordinal = 0; ordinal <= 4; ordinal++) {
+            observation.Add(Convert.ToString(row[Headers[ordinal]], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+        observation.Add(ReadDate(row[Headers[5]]));
+        observation.Add(Convert.ToInt32(row[Headers[6]], CultureInfo.InvariantCulture));
+        observation.Add(ReadDate(row[Headers[7]]));
+        observation.Add(Convert.ToInt32(row[Headers[8]], CultureInfo.InvariantCulture));
+        for (int ordinal = 9; ordinal <= 13; ordinal++) {
+            observation.Add(Convert.ToDecimal(row[Headers[ordinal]], CultureInfo.InvariantCulture));
         }
     }
 
@@ -372,12 +399,7 @@ public class MarkPflug65KXlsbBenchmarks {
 
         var observation = new ExcelObservationAccumulator();
         while (reader.Read()) {
-            MarkPflug65KXlsxBenchmarks.AddRow(
-                ref observation,
-                ordinal => Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
-                ordinal => MarkPflug65KXlsxBenchmarks.ReadDate(reader.GetValue(ordinal)),
-                ordinal => Convert.ToInt32(reader.GetValue(ordinal), CultureInfo.InvariantCulture),
-                ordinal => Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture));
+            MarkPflug65KXlsxBenchmarks.AddExcelDataReaderRow(ref observation, reader);
         }
 
         return Validate(nameof(ExcelDataReader), observation.Build());

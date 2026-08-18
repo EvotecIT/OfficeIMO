@@ -52,10 +52,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 int directRow = row + rowOffset;
+                object?[]? bufferedRow = flatValues == null
+                    && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
+                    && candidateRow?.Length == columnCount
+                        ? candidateRow
+                        : null;
                 for (int column = 0; column < columnCount; column++) {
-                    object? rawValue = flatValues == null
-                        ? rows.GetValue(row, column)
-                        : flatValues[checked((row * columnCount) + column)];
+                    object? rawValue = flatValues != null
+                        ? flatValues[checked((row * columnCount) + column)]
+                        : bufferedRow != null
+                            ? bufferedRow[column]
+                            : rows.GetValue(row, column);
                     ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(rawValue);
                     if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {
                         plan = null!;
@@ -345,12 +352,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             IExcelSheetTabularRowSource rows = plan.Source.Rows;
             bool headerRow = plan.Source.IncludeHeaders && directRow == 0;
             int sourceRow = directRow - (plan.Source.IncludeHeaders ? 1 : 0);
+            object?[]? bufferedRow = !headerRow
+                && plan.FlatValues == null
+                && rows.TryGetBufferedRow(sourceRow, out object?[]? candidateRow)
+                && candidateRow?.Length == plan.ColumnCount
+                    ? candidateRow
+                    : null;
             for (int column = 0; column < plan.ColumnCount; column++) {
                 ExcelDirectTabularValue value = headerRow
                     ? ExcelDirectTabularValue.Normalize(rows.GetColumnName(column))
-                    : ExcelDirectTabularValue.Normalize(plan.FlatValues == null
-                        ? rows.GetValue(sourceRow, column)
-                        : plan.FlatValues[checked((sourceRow * plan.ColumnCount) + column)]);
+                    : ExcelDirectTabularValue.Normalize(plan.FlatValues != null
+                        ? plan.FlatValues[checked((sourceRow * plan.ColumnCount) + column)]
+                        : bufferedRow != null
+                            ? bufferedRow[column]
+                            : rows.GetValue(sourceRow, column));
                 ushort legacyColumn = checked((ushort)column);
                 switch (value.Kind) {
                     case ExcelDirectTabularValueKind.Empty:

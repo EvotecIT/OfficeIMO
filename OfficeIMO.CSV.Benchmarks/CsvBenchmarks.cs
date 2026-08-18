@@ -108,6 +108,8 @@ public class CsvBenchmarks
         ValidateWriteOutput(nameof(OfficeIMO_WriteIncrementalProjectedRows), OfficeIMO_WriteIncrementalProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteTypedRecords), CsvHelper_WriteTypedRecords, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRowsUtf8), OfficeIMO_WriteProjectedRowsUtf8, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(ExcelReaderNet_WriteProjectedRows), ExcelReaderNet_WriteProjectedRows, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteTypedRecordsUtf8), OfficeIMO_WriteTypedRecordsUtf8, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(ExcelReaderNet_WriteTypedRecords), ExcelReaderNet_WriteTypedRecords, expectedObjectRows: _projectedRows);
         ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _projectedRows);
@@ -282,7 +284,7 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
-    public int OfficeIMO_WriteTypedRecordsUtf8()
+    public int OfficeIMO_WriteProjectedRowsUtf8()
     {
         using var stream = new MemoryStream();
         using (var textWriter = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true))
@@ -292,6 +294,55 @@ public class CsvBenchmarks
             for (int index = 1; index < _projectedRows.Length; index++)
             {
                 csv.WriteRow(_projectedRows[index]);
+            }
+        }
+
+        return CompleteUtf8Write(stream);
+    }
+
+    [Benchmark]
+    public int ExcelReaderNet_WriteProjectedRows()
+    {
+        using var stream = new MemoryStream();
+        using (ExcelReaderNetCsvWriter csv = ExcelReaderNetCsvWriter.Create(stream, leaveOpen: true))
+        {
+            using (ExcelReaderNetCsvRowWriter header = csv.StartRow())
+            {
+                foreach (string value in Headers)
+                {
+                    header.Write(value);
+                }
+            }
+
+            foreach (object?[] value in _projectedRows)
+            {
+                using ExcelReaderNetCsvRowWriter row = csv.StartRow();
+                row.Write((int)value[0]!);
+                row.Write((string?)value[1]);
+                row.Write((string?)value[2]);
+                row.Write((string?)value[3]);
+                row.Write((bool)value[4]!);
+                row.Write((DateTime)value[5]!);
+                row.Write((decimal)value[6]!);
+                row.Write((string?)value[7]);
+                row.Write((int)value[8]!);
+                row.Write((string?)value[9]);
+            }
+        }
+
+        return CompleteUtf8Write(stream);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteTypedRecordsUtf8()
+    {
+        using var stream = new MemoryStream();
+        using (var textWriter = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false), leaveOpen: true))
+        using (var csv = new CsvRowWriter(textWriter, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            foreach (CsvBenchmarkRow row in _rows)
+            {
+                csv.WriteObject(row);
             }
         }
 

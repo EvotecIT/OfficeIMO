@@ -148,10 +148,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (rows.ColumnCount != 0) {
                     WriteDirectRowHeader(writer, zeroBasedRow, rows.ColumnCount);
                 }
+                object?[]? bufferedRow = flatValues == null
+                    && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
+                    && candidateRow?.Length == rows.ColumnCount
+                        ? candidateRow
+                        : null;
                 for (int column = 0; column < rows.ColumnCount; column++) {
-                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(flatValues == null
-                        ? rows.GetValue(row, column)
-                        : flatValues[checked((row * rows.ColumnCount) + column)]);
+                    ExcelDirectTabularValue value = ExcelDirectTabularValue.Normalize(flatValues != null
+                        ? flatValues[checked((row * rows.ColumnCount) + column)]
+                        : bufferedRow != null
+                            ? bufferedRow[column]
+                            : rows.GetValue(row, column));
                     switch (value.Kind) {
                         case ExcelDirectTabularValueKind.Empty:
                             break;

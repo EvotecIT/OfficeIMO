@@ -35,8 +35,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            ExcelSheet[] sheets = [sheet];
-
             if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan? directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;

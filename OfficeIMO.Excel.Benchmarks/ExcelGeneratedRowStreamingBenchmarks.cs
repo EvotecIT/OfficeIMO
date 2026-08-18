@@ -17,32 +17,98 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        GeneratedRow[] rows = GenerateRows(32).ToArray();
+        string officePath = CreatePreflightPath("officeimo");
+        string excelReaderPath = CreatePreflightPath("excelreader");
+        string officeAsyncPath = CreatePreflightPath("officeimo-async");
+        string excelReaderAsyncPath = CreatePreflightPath("excelreader-async");
+        try {
+            using (var officeStream = new FileStream(
+                officePath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                256 * 1024,
+                FileOptions.SequentialScan)) {
+                ExcelDataSetImportResult result = ExcelDocument.WriteRows(
+                    officeStream,
+                    GenerateRows(RowCount),
+                    Headers,
+                    static (writer, row) => writer
+                        .Write(row.Id)
+                        .Write(row.Amount)
+                        .Write(row.CreatedOn)
+                        .Write(row.Active),
+                    CompactWriteOptions);
+                if (result.RowCount != RowCount) {
+                    throw new InvalidDataException(
+                        $"OfficeIMO reported {result.RowCount} rows instead of {RowCount} during write preflight.");
+                }
+            }
+            ValidateWorkbook(nameof(WriteRowsGenerated), officePath, RowCount);
 
-        using var officeStream = new MemoryStream();
-        ExcelDataSetImportResult result = ExcelDocument.WriteRows(
-            officeStream,
-            rows,
-            Headers,
-            static (writer, row) => writer
-                .Write(row.Id)
-                .Write(row.Amount)
-                .Write(row.CreatedOn)
-                .Write(row.Active),
-            CompactWriteOptions);
-        if (result.RowCount != rows.Length) {
-            throw new InvalidDataException(
-                $"OfficeIMO reported {result.RowCount} rows instead of {rows.Length} during write preflight.");
-        }
-        ValidateWorkbook(nameof(WriteRowsGenerated), officeStream.ToArray(), rows);
+            using (var excelReaderStream = new FileStream(
+                excelReaderPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                256 * 1024,
+                FileOptions.SequentialScan)) {
+                int excelReaderRows = WriteExcelReaderRows(
+                    excelReaderStream,
+                    GenerateRows(RowCount));
+                if (excelReaderRows != RowCount) {
+                    throw new InvalidDataException(
+                        $"ExcelReader.NET reported {excelReaderRows} rows instead of {RowCount} during write preflight.");
+                }
+            }
+            ValidateWorkbook(nameof(ExcelReaderNetWriteRowsGenerated), excelReaderPath, RowCount);
 
-        using var excelReaderStream = new MemoryStream();
-        int excelReaderRows = WriteExcelReaderRows(excelReaderStream, rows);
-        if (excelReaderRows != rows.Length) {
-            throw new InvalidDataException(
-                $"ExcelReader.NET reported {excelReaderRows} rows instead of {rows.Length} during write preflight.");
+            using (var officeAsyncStream = new FileStream(
+                officeAsyncPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                256 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                ExcelDataSetImportResult result = ExcelDocument.WriteRowsAsync(
+                    officeAsyncStream,
+                    GenerateRowsAsync(RowCount),
+                    Headers,
+                    static (writer, row) => writer
+                        .Write(row.Id)
+                        .Write(row.Amount)
+                        .Write(row.CreatedOn)
+                        .Write(row.Active),
+                    CompactWriteOptions).GetAwaiter().GetResult();
+                if (result.RowCount != RowCount) {
+                    throw new InvalidDataException(
+                        $"OfficeIMO async reported {result.RowCount} rows instead of {RowCount} during write preflight.");
+                }
+            }
+            ValidateWorkbook(nameof(WriteRowsAsyncGenerated), officeAsyncPath, RowCount);
+
+            using (var excelReaderAsyncStream = new FileStream(
+                excelReaderAsyncPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                256 * 1024,
+                FileOptions.Asynchronous | FileOptions.SequentialScan)) {
+                int excelReaderRows = WriteExcelReaderRowsAsync(
+                    excelReaderAsyncStream,
+                    GenerateRowsAsync(RowCount)).GetAwaiter().GetResult();
+                if (excelReaderRows != RowCount) {
+                    throw new InvalidDataException(
+                        $"ExcelReader.NET async reported {excelReaderRows} rows instead of {RowCount} during write preflight.");
+                }
+            }
+            ValidateWorkbook(nameof(ExcelReaderNetWriteRowsAsyncGenerated), excelReaderAsyncPath, RowCount);
+        } finally {
+            File.Delete(officePath);
+            File.Delete(excelReaderPath);
+            File.Delete(officeAsyncPath);
+            File.Delete(excelReaderAsyncPath);
         }
-        ValidateWorkbook(nameof(ExcelReaderNetWriteRowsGenerated), excelReaderStream.ToArray(), rows);
     }
 
     [Params(1_000_000)]
@@ -149,10 +215,10 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
     private static void ValidateWorkbook(
         string method,
-        byte[] workbook,
-        IReadOnlyList<GeneratedRow> expectedRows) {
+        string workbookPath,
+        int expectedRowCount) {
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
-            workbook,
+            workbookPath,
             new ExcelReadOptions { NumericAsDecimal = true });
         if (reader.FieldCount != Headers.Length) {
             throw new InvalidDataException(
@@ -167,11 +233,11 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
         int index = 0;
         while (reader.Read()) {
-            if (index >= expectedRows.Count) {
+            if (index >= expectedRowCount) {
                 throw new InvalidDataException($"{method} emitted extra rows.");
             }
 
-            GeneratedRow expected = expectedRows[index];
+            GeneratedRow expected = CreateRow(index);
             if (reader.GetInt32(0) != expected.Id
                 || reader.GetDecimal(1) != expected.Amount
                 || reader.GetDateTime(2) != expected.CreatedOn
@@ -181,33 +247,33 @@ public class ExcelGeneratedRowStreamingBenchmarks {
             index++;
         }
 
-        if (index != expectedRows.Count || reader.NextResult()) {
+        if (index != expectedRowCount || reader.NextResult()) {
             throw new InvalidDataException($"{method} did not round-trip the exact single-sheet row set.");
         }
     }
 
     private static IEnumerable<GeneratedRow> GenerateRows(int count) {
-        var start = new DateTime(2026, 1, 1);
         for (int index = 0; index < count; index++) {
-            yield return new GeneratedRow(
-                index + 1,
-                index * 1.25m,
-                start.AddMinutes(index),
-                (index & 1) == 0);
+            yield return CreateRow(index);
         }
     }
 
     private static async IAsyncEnumerable<GeneratedRow> GenerateRowsAsync(int count) {
         await Task.CompletedTask;
-        var start = new DateTime(2026, 1, 1);
         for (int index = 0; index < count; index++) {
-            yield return new GeneratedRow(
-                index + 1,
-                index * 1.25m,
-                start.AddMinutes(index),
-                (index & 1) == 0);
+            yield return CreateRow(index);
         }
     }
+
+    private static GeneratedRow CreateRow(int index) => new(
+        index + 1,
+        index * 1.25m,
+        new DateTime(2026, 1, 1).AddMinutes(index),
+        (index & 1) == 0);
+
+    private static string CreatePreflightPath(string implementation) => Path.Combine(
+        Path.GetTempPath(),
+        $"OfficeIMO.Excel.Benchmarks.{implementation}.{Guid.NewGuid():N}.xlsx");
 
     private readonly record struct GeneratedRow(
         int Id,

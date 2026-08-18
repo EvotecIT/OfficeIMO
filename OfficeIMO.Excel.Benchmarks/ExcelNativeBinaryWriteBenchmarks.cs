@@ -4,24 +4,21 @@ using ExcelReader.Core.Writer;
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
-/// Measures equivalent public, high-throughput tabular write contracts for
-/// OfficeIMO's native binary workbook formats and ExcelReader.NET.
+/// Provides a diagnostic scenario for OfficeIMO's native binary workbook
+/// formats and ExcelReader.NET. The competitor output is not exposed as a
+/// BenchmarkDotNet result because it fails the required XLS/XLSB structures.
 /// </summary>
-[MemoryDiagnoser]
-public class ExcelNativeBinaryWriteBenchmarks {
+internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private BinaryWriteRow[] _rows = null!;
 
-    [Params(2_500, 25_000)]
     public int RowCount { get; set; }
 
     // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from XLSB.
     // Its XLS writer also omits the BIFF8 Index/Row/DBCell cell-table structure,
     // so this XLS comparison is a diagnostic throughput lane rather than a
     // format-conformance-equivalent result.
-    [Params(ExcelFileFormat.Xls)]
     public ExcelFileFormat Format { get; set; }
 
-    [GlobalSetup]
     public void Setup() {
         SetupOfficeIMOOnly();
         byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
@@ -43,10 +40,8 @@ public class ExcelNativeBinaryWriteBenchmarks {
         Validate(workbook);
     }
 
-    [Benchmark]
     public int OfficeIMO_PublicTabularWrite() => WriteWorkbook().Length;
 
-    [Benchmark]
     public int ExcelReaderNet_DiagnosticWrite() => WriteExcelReaderWorkbook().Length;
 
     private byte[] WriteWorkbook() {
