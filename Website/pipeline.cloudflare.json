@@ -22,7 +22,11 @@
         "-BaseUri",
         "https://officeimo.com/apps/officeimo-converter/?embedded=1",
         "-ExpectedDeploymentIdEnvironment",
-        "GITHUB_SHA"
+        "GITHUB_SHA",
+        "-RemoteVerificationAttempts",
+        "12",
+        "-RemoteVerificationRetryDelaySeconds",
+        "30"
       ],
       "workingDirectory": "."
     },
