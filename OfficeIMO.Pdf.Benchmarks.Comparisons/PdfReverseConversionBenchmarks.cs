@@ -4,6 +4,10 @@ using System.Net;
 using System.Text.RegularExpressions;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Odp.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -68,6 +72,31 @@ public class PdfReverseConversionBenchmarks {
         }
     }
 
+    [Benchmark]
+    public int PdfToOdt() {
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        return logical.ToOdtDocumentResult().Value.ToBytes().Length;
+    }
+
+    [Benchmark]
+    public int PdfToOds() {
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        return logical.ToOdsDocumentResult().Value.ToBytes().Length;
+    }
+
+    [Benchmark]
+    public int PdfToOdp() {
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        return logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent()).Value.ToBytes().Length;
+    }
+
+    [Benchmark]
+    public int PdfToPng() {
+        IReadOnlyList<PdfCore.PdfPageRenderResult> pages = PdfCore.PdfDocument.Open(_source).Read.RenderPages(
+            options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
+        return checked(pages.Sum(static page => page.Bytes?.Length ?? 0));
+    }
+
     private void ValidateOutputs() {
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
         using (OfficeIMO.Word.WordDocument document = logical.ToWordDocument()) {
@@ -97,6 +126,22 @@ public class PdfReverseConversionBenchmarks {
             if (slideCount != _scenario.PageCount) throw new InvalidOperationException($"PPTX reverse conversion produced {slideCount} of {_scenario.PageCount} slides.");
             ValidateContent(string.Join(" ", package.PresentationPart!.SlideParts.SelectMany(static slide => slide.Slide?.Descendants<A.Text>() ?? Enumerable.Empty<A.Text>()).Select(static text => text.Text)), "PPTX");
         }
+        byte[] odt = logical.ToOdtDocumentResult().Value.ToBytes();
+        _ = OdtDocument.Load(new MemoryStream(odt));
+        ValidateContent(ReadOpenDocumentText(odt), "ODT");
+        byte[] ods = logical.ToOdsDocumentResult().Value.ToBytes();
+        OdsDocument odsDocument = OdsDocument.Load(new MemoryStream(ods));
+        if (odsDocument.Sheets.Count == 0) throw new InvalidOperationException("ODS reverse conversion did not produce a sheet.");
+        PdfBenchmarkValidation.ValidateTableScenarioContent(ReadOpenDocumentText(ods), _scenario, Producer + " " + Scale + " ODS");
+        byte[] odp = logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent()).Value.ToBytes();
+        OdpPresentation odpDocument = OdpPresentation.Load(new MemoryStream(odp));
+        if (odpDocument.Slides.Count != _scenario.PageCount) throw new InvalidOperationException($"ODP reverse conversion produced {odpDocument.Slides.Count} of {_scenario.PageCount} slides.");
+        ValidateContent(ReadOpenDocumentText(odp), "ODP");
+        IReadOnlyList<PdfCore.PdfPageRenderResult> pngPages = PdfCore.PdfDocument.Open(_source).Read.RenderPages(
+            options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
+        if (pngPages.Count != _scenario.PageCount || pngPages.Any(static page => !page.Succeeded || page.Bytes is null || page.Bytes.Length <= 24)) {
+            throw new InvalidOperationException("PNG reverse conversion did not produce one valid visual artifact per source page.");
+        }
     }
 
     private void ValidateContent(string text, string target) =>
@@ -120,5 +165,13 @@ public class PdfReverseConversionBenchmarks {
             }
         }
         return string.Join(" ", values);
+    }
+
+    private static string ReadOpenDocumentText(byte[] artifact) {
+        using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(artifact), System.IO.Compression.ZipArchiveMode.Read);
+        System.IO.Compression.ZipArchiveEntry content = archive.GetEntry("content.xml")
+            ?? throw new InvalidDataException("OpenDocument package did not contain content.xml.");
+        using var reader = new StreamReader(content.Open());
+        return Regex.Replace(reader.ReadToEnd(), "<[^>]+>", " ");
     }
 }

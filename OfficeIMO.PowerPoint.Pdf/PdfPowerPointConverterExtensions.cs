@@ -167,11 +167,14 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
-        if (operation.Mode != PdfPowerPointImportMode.EditableTables &&
-            operation.Mode != PdfPowerPointImportMode.Auto) {
+        if (operation.Mode == PdfPowerPointImportMode.EditableContent) {
+            ValidateLogicalPageCount(document, operation);
+            return ImportEditableContent(document, operation);
+        }
+        if (operation.Mode != PdfPowerPointImportMode.EditableTables && operation.Mode != PdfPowerPointImportMode.Auto) {
             throw new InvalidOperationException(
-                "The logical PDF model supports Auto (resolved to editable tables) or EditableTables. " +
-                "Visual, hybrid, and editable-content projections require the opened PdfDocument and its original page content.");
+                "The logical PDF model supports Auto (resolved to editable tables), EditableTables, or EditableContent. " +
+                "Visual and hybrid projections require the opened PdfDocument and its original rendered page content.");
         }
         if (operation.MaxPages <= 0) {
             throw new ArgumentOutOfRangeException(nameof(operation.MaxPages), "The page limit must be positive.");

@@ -4,7 +4,18 @@ namespace OfficeIMO.Pdf;
 /// Line-level text block extracted from a PDF page.
 /// </summary>
 public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
-    internal PdfLogicalTextBlock(int pageNumber, PdfLogicalElementKind kind, string text, double xStart, double xEnd, double baselineY, double fontSize, IReadOnlyList<PdfTextSpan> spans) {
+    internal PdfLogicalTextBlock(
+        int pageNumber,
+        PdfLogicalElementKind kind,
+        string text,
+        double xStart,
+        double xEnd,
+        double baselineY,
+        double fontSize,
+        IReadOnlyList<PdfTextSpan> spans,
+        PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
+        double confidence = 1D,
+        PdfLogicalVisualBounds? visualBounds = null) {
         PageNumber = pageNumber;
         Kind = kind;
         Text = text;
@@ -14,6 +25,9 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         FontSize = fontSize;
         Spans = Array.AsReadOnly((spans ?? throw new ArgumentNullException(nameof(spans))).ToArray());
         Runs = BuildRuns(text, Spans);
+        SourceKind = sourceKind;
+        Confidence = PdfInference.Clamp(confidence);
+        VisualBounds = visualBounds;
     }
 
     /// <inheritdoc />
@@ -45,6 +59,18 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
     /// Whitespace synthesized by layout analysis is retained in the adjacent run.
     /// </summary>
     public IReadOnlyList<PdfLogicalTextRun> Runs { get; }
+
+    /// <summary>Whether the block came from native PDF text or an external OCR provider.</summary>
+    public PdfLogicalContentSourceKind SourceKind { get; }
+
+    /// <summary>Normalized extraction or provider confidence from 0 through 1.</summary>
+    public double Confidence { get; }
+
+    /// <summary>
+    /// Direct top-left visual geometry when the source already supplied normalized page coordinates.
+    /// Native text normally derives this geometry from PDF user-space spans on demand.
+    /// </summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
 
     /// <summary>Number of text spans merged into this block.</summary>
     public int SpanCount => Spans.Count;
@@ -353,5 +379,23 @@ public sealed class PdfLogicalParagraph {
             paragraph.XEnd,
             paragraph.YTop,
             paragraph.YBottom);
+    }
+
+    internal static PdfLogicalParagraph FromOcr(int pageNumber, PdfLogicalTextBlock line) {
+        Guard.NotNull(line, nameof(line));
+        return FromOcr(pageNumber, new[] { line });
+    }
+
+    internal static PdfLogicalParagraph FromOcr(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
+        Guard.NotNull(lines, nameof(lines));
+        if (lines.Count == 0) throw new ArgumentException("At least one OCR line is required.", nameof(lines));
+        return new PdfLogicalParagraph(
+            pageNumber,
+            string.Join(" ", lines.Select(static line => line.Text)),
+            lines.ToArray(),
+            lines.Min(static line => line.XStart),
+            lines.Max(static line => line.XEnd),
+            lines.Max(static line => line.BaselineY),
+            lines.Min(static line => line.BaselineY));
     }
 }

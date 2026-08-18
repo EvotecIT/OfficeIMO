@@ -183,7 +183,15 @@ $definitions = [ordered]@{
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High')) {
                 foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
-                    foreach ($route in @('PdfToDocx', 'PdfToHtml', 'PdfToXlsx', 'PdfToPptx')) {
+                    foreach ($route in @(
+                        'PdfToDocx',
+                        'PdfToHtml',
+                        'PdfToXlsx',
+                        'PdfToPptx',
+                        'PdfToOdt',
+                        'PdfToOds',
+                        'PdfToOdp',
+                        'PdfToPng')) {
                         "$route|Producer=$producer&Scale=$scale"
                     }
                 }

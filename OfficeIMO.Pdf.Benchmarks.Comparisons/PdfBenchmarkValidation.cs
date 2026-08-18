@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
@@ -115,12 +116,23 @@ internal static class PdfBenchmarkValidation {
         actual = Normalize(actual);
         for (int page = 1; page <= scenario.PageCount; page++) {
             foreach (string[] row in scenario.TableRows(page).Skip(1)) {
-                string fragment = Normalize(string.Concat(row));
-                if (!actual.Contains(fragment, StringComparison.Ordinal)) {
-                    throw new InvalidDataException($"{engine} did not preserve required table row '{fragment}'.");
+                string exactFragment = Normalize(string.Concat(row));
+                string semanticFragment = string.Concat(row.Select(NormalizeTableCell));
+                if (!actual.Contains(exactFragment, StringComparison.Ordinal) &&
+                    !actual.Contains(semanticFragment, StringComparison.Ordinal)) {
+                    throw new InvalidDataException(
+                        $"{engine} did not preserve required table row '{exactFragment}'.");
                 }
             }
         }
+    }
+
+    private static string NormalizeTableCell(string value) {
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal number)) {
+            return Normalize(number.ToString("G29", CultureInfo.InvariantCulture));
+        }
+
+        return Normalize(value);
     }
 
     internal static string Normalize(string value) {

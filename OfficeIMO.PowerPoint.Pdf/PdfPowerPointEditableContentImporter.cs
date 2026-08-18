@@ -8,18 +8,34 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocument document,
         PdfPowerPointImportOptions options) {
+        PdfCore.PdfLogicalDocument logical = ReadBoundedLogicalDocument(document, options);
+        return ImportEditableContent(logical, options, document);
+    }
+
+    private static PdfPowerPointConversionResult ImportEditableContent(
+        PdfCore.PdfLogicalDocument logical,
+        PdfPowerPointImportOptions options) => ImportEditableContent(logical, options, sourceDocument: null);
+
+    private static PdfPowerPointConversionResult ImportEditableContent(
+        PdfCore.PdfLogicalDocument logical,
+        PdfPowerPointImportOptions options,
+        PdfCore.PdfDocument? sourceDocument) {
         if (options.MaxEditableObjectsPerPage <= 0) {
             throw new ArgumentOutOfRangeException(
                 nameof(options.MaxEditableObjectsPerPage),
                 "The editable object limit must be positive.");
         }
 
-        PdfCore.PdfLogicalDocument logical = ReadBoundedLogicalDocument(document, options);
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
-        OfficeDrawing? referenceDrawing = logical.Pages.Count == 0
+        OfficeDrawing? referenceDrawing = logical.Pages.Count == 0 || sourceDocument == null
             ? null
-            : document.Read.Drawing(logical.Pages[0].PageNumber);
-        ConfigureEditableSlideSize(presentation, referenceDrawing);
+            : sourceDocument.Read.Drawing(logical.Pages[0].PageNumber);
+        if (referenceDrawing != null) {
+            ConfigureEditableSlideSize(presentation, referenceDrawing);
+        } else if (logical.Pages.Count > 0) {
+            (double width, double height) = logical.Pages[0].GetVisualPageSize();
+            ConfigureEditableSlideSize(presentation, width, height);
+        }
 
         Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
             PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
@@ -33,14 +49,16 @@ public static partial class PowerPointPdfConverterExtensions {
 
         for (int pageIndex = 0; pageIndex < logical.Pages.Count; pageIndex++) {
             PdfCore.PdfLogicalPage page = logical.Pages[pageIndex];
-            OfficeDrawing drawing = pageIndex == 0 && referenceDrawing != null
-                ? referenceDrawing
-                : document.Read.Drawing(page.PageNumber);
+            OfficeDrawing? drawing = sourceDocument == null
+                ? null
+                : pageIndex == 0 && referenceDrawing != null
+                    ? referenceDrawing
+                    : sourceDocument.Read.Drawing(page.PageNumber);
             int slideIndex = presentation.Slides.Count;
             PptCore.PowerPointSlide slide = presentation.AddSlide();
             EditablePagePlacement placement = GetEditablePagePlacement(
-                drawing.Width,
-                drawing.Height,
+                drawing?.Width ?? page.GetVisualPageSize().Width,
+                drawing?.Height ?? page.GetVisualPageSize().Height,
                 presentation.SlideSize.WidthPoints,
                 presentation.SlideSize.HeightPoints);
             IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables =
@@ -50,12 +68,12 @@ public static partial class PowerPointPdfConverterExtensions {
             List<EditableBounds> tableBounds = GetEditableTableBounds(page, tables, placement);
             int remainingObjects = options.MaxEditableObjectsPerPage;
 
-            EditableImportCount shapeImport = ImportEditableShapes(
-                drawing,
-                slide,
-                placement,
-                tableBounds,
-                remainingObjects);
+            EditableImportCount shapeImport = drawing == null
+                ? new EditableImportCount(
+                    0,
+                    Math.Max(0, page.VectorPrimitiveCount - page.UnrepresentedVectorPrimitiveCount),
+                    false)
+                : ImportEditableShapes(drawing, slide, placement, tableBounds, remainingObjects);
             remainingObjects -= shapeImport.Imported;
             EditableImportCount imageImport = ImportEditableImages(
                 page,
@@ -101,10 +119,12 @@ public static partial class PowerPointPdfConverterExtensions {
                 omittedVectors,
                 imageImport.Omitted,
                 shapeImport.LimitReached || imageImport.LimitReached || textImport.LimitReached || tableImport.LimitReached);
-            AddEditableRendererWarnings(
-                warnings,
-                page.PageNumber,
-                document.Read.RenderCapabilityDiagnostics(page.PageNumber));
+            if (sourceDocument != null) {
+                AddEditableRendererWarnings(
+                    warnings,
+                    page.PageNumber,
+                    sourceDocument.Read.RenderCapabilityDiagnostics(page.PageNumber));
+            }
         }
 
         if (logical.Pages.Count == 0) {
@@ -124,13 +144,21 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointPresentation presentation,
         OfficeDrawing? drawing) {
         if (drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return;
+        ConfigureEditableSlideSize(presentation, drawing.Width, drawing.Height);
+    }
+
+    private static void ConfigureEditableSlideSize(
+        PptCore.PowerPointPresentation presentation,
+        double sourceWidth,
+        double sourceHeight) {
+        if (sourceWidth <= 0D || sourceHeight <= 0D) return;
         const double maximumSlideDimensionPoints = 720D;
-        double width = drawing.Width >= drawing.Height
+        double width = sourceWidth >= sourceHeight
             ? maximumSlideDimensionPoints
-            : maximumSlideDimensionPoints * drawing.Width / drawing.Height;
-        double height = drawing.Height >= drawing.Width
+            : maximumSlideDimensionPoints * sourceWidth / sourceHeight;
+        double height = sourceHeight >= sourceWidth
             ? maximumSlideDimensionPoints
-            : maximumSlideDimensionPoints * drawing.Height / drawing.Width;
+            : maximumSlideDimensionPoints * sourceHeight / sourceWidth;
         presentation.SlideSize.SetSizePoints(width, height);
     }
 
@@ -311,11 +339,13 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
             double fontSize = Math.Max(1D, block.FontSize);
-            PdfCore.PdfVisualBounds visual = page.TransformBoundsToVisual(
-                block.XStart,
-                block.BaselineY - fontSize * 0.3D,
-                Math.Max(block.XStart + 1D, block.XEnd),
-                block.BaselineY + fontSize * 0.9D);
+            PdfCore.PdfVisualBounds visual = block.VisualBounds is PdfCore.PdfLogicalVisualBounds direct
+                ? new PdfCore.PdfVisualBounds(direct.Left, direct.Top, direct.Right, direct.Bottom)
+                : page.TransformBoundsToVisual(
+                    block.XStart,
+                    block.BaselineY - fontSize * 0.3D,
+                    Math.Max(block.XStart + 1D, block.XEnd),
+                    block.BaselineY + fontSize * 0.9D);
             EditableBounds bounds = placement.Map(
                 visual.Left,
                 visual.Top,
@@ -346,8 +376,8 @@ public static partial class PowerPointPdfConverterExtensions {
     private static bool CanReconstructEditableTextBlock(
         PdfCore.PdfLogicalTextBlock block,
         double pageHeight) =>
-        block.Spans.Count > 0 &&
-        block.Spans.All(span => span.CanProjectCompleteText(pageHeight));
+        block.VisualBounds != null ||
+        (block.Spans.Count > 0 && block.Spans.All(span => span.CanProjectCompleteText(pageHeight)));
 
     private static void ApplyEditableTextRuns(
         PptCore.PowerPointTextBox textBox,
@@ -482,6 +512,9 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalTable table,
         EditablePagePlacement placement) {
+        if (table.VisualBounds is PdfCore.PdfLogicalVisualBounds direct) {
+            return placement.Map(direct.Left, direct.Top, direct.Width, direct.Height);
+        }
         double left = table.Columns.Min(static column => column.From);
         double right = table.Columns.Max(static column => column.To);
         PdfCore.PdfVisualBounds visual = page.TransformBoundsToVisual(
@@ -497,6 +530,14 @@ public static partial class PowerPointPdfConverterExtensions {
         IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables) {
         for (int i = 0; i < tables.Count; i++) {
             PdfCore.PdfLogicalTable table = tables[i].Table;
+            if (block.VisualBounds is PdfCore.PdfLogicalVisualBounds blockBounds &&
+                table.VisualBounds is PdfCore.PdfLogicalVisualBounds tableBounds) {
+                double centerX = (blockBounds.Left + blockBounds.Right) / 2D;
+                double centerY = (blockBounds.Top + blockBounds.Bottom) / 2D;
+                if (centerX >= tableBounds.Left && centerX <= tableBounds.Right &&
+                    centerY >= tableBounds.Top && centerY <= tableBounds.Bottom) return true;
+                continue;
+            }
             if (table.Columns.Count == 0 ||
                 block.BaselineY < table.YBottom ||
                 block.BaselineY > table.YTop) continue;

@@ -148,6 +148,30 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public void LogicalPowerPointEditableContent_CountsEachOmittedVectorOnce() {
+        byte[] source = PdfDocument.Create()
+            .Rectangle(
+                120,
+                40,
+                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeWidth: 2,
+                fillColor: PdfColor.FromRgb(204, 238, 255))
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
+            PdfPowerPointImportOptions.CreateEditableContent());
+
+        using (result.Value) {
+            Assert.Equal(1, logical.Pages.Count);
+            Assert.True(logical.Pages[0].VectorPrimitiveCount > 0);
+            Assert.Equal(
+                logical.Pages[0].VectorPrimitiveCount,
+                result.Report.EditablePages[0].OmittedVectorCount);
+        }
+    }
+
+    [Fact]
     public void TableConversions_IgnoreInvisibleVectorGraphics() {
         byte[][] sources = {
             BuildSingleStreamPdf("1 0 0 rg\n300 300 40 40 re\nf"),

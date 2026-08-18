@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Logical view of a single PDF page.
 /// </summary>
-public sealed class PdfLogicalPage {
+public sealed partial class PdfLogicalPage {
     private IReadOnlyDictionary<PdfLogicalElementKind, IReadOnlyList<IPdfLogicalElement>>? _elementsByKind;
 
     private PdfLogicalPage(
@@ -102,6 +102,9 @@ public sealed class PdfLogicalPage {
 
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
         PdfVisualCoordinateMapper.TransformBounds(GetVisualBoundaryBox(), RotationDegrees, left, bottom, right, top);
+
+    internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
+        PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetVisualBoundaryBox(), RotationDegrees, left, top, right, bottom);
 
     private PdfPageBox GetVisualBoundaryBox() =>
         CropBox ?? MediaBox ?? new PdfPageBox("MediaBox", 0D, 0D, Width, Height);

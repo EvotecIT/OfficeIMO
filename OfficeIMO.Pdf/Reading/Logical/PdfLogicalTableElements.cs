@@ -34,7 +34,9 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         double yBottom,
         IReadOnlyList<PdfLogicalTableColumn> columns,
         IReadOnlyList<IReadOnlyList<string>> rows,
-        IReadOnlyList<PdfLogicalTableCell> cells) {
+        IReadOnlyList<PdfLogicalTableCell> cells,
+        PdfLogicalContentSourceKind sourceKind = PdfLogicalContentSourceKind.Native,
+        PdfLogicalVisualBounds? visualBounds = null) {
         PageNumber = pageNumber;
         DetectionKind = kind;
         YTop = yTop;
@@ -42,10 +44,12 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
         Columns = columns;
         Rows = rows;
         Cells = cells;
+        SourceKind = sourceKind;
+        VisualBounds = visualBounds;
         int expectedCells = rows.Count * columns.Count;
         int filledCells = rows.Sum(static row => row.Count(static cell => !string.IsNullOrWhiteSpace(cell)));
         double completeness = expectedCells == 0 ? 0D : (double)filledCells / expectedCells;
-        Confidence = PdfInference.Clamp((columns.Count > 1 ? 0.45D : 0.2D) + (completeness * 0.45D) + (yTop > yBottom ? 0.1D : 0D));
+        Confidence = PdfInference.Clamp((columns.Count > 1 ? 0.45D : 0.2D) + (completeness * 0.45D) + (visualBounds is not null || yTop > yBottom ? 0.1D : 0D));
         Evidence = new[] {
             new PdfInferenceEvidence("table.detection-kind", "The table was produced by the " + kind + " detector.", 0.5D),
             new PdfInferenceEvidence("table.cell-completeness", "Filled-cell completeness is " + completeness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (completeness * 2D) - 1D),
@@ -76,6 +80,10 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
 
     /// <summary>Extracted table cells with row and column indexes.</summary>
     public IReadOnlyList<PdfLogicalTableCell> Cells { get; }
+    /// <summary>Whether table evidence came from native PDF operations or accepted OCR geometry.</summary>
+    public PdfLogicalContentSourceKind SourceKind { get; }
+    /// <summary>Direct top-left visual geometry when the detector operates on rendered OCR coordinates.</summary>
+    public PdfLogicalVisualBounds? VisualBounds { get; }
     /// <summary>Normalized table-detection confidence.</summary>
     public double Confidence { get; }
     /// <summary>Evidence supporting the table detection.</summary>
@@ -106,6 +114,34 @@ public sealed class PdfLogicalTable : IPdfLogicalElement {
             columns.AsReadOnly(),
             rows.AsReadOnly(),
             cells.AsReadOnly());
+    }
+
+    internal static PdfLogicalTable FromOcr(
+        int pageNumber,
+        double top,
+        double bottom,
+        IReadOnlyList<(double From, double To)> columnBounds,
+        IReadOnlyList<IReadOnlyList<string>> sourceRows) {
+        var columns = columnBounds.Select(static column => new PdfLogicalTableColumn(column.From, column.To)).ToArray();
+        var rows = sourceRows.Select(static row => (IReadOnlyList<string>)Array.AsReadOnly(row.ToArray())).ToArray();
+        var cells = new List<PdfLogicalTableCell>(rows.Length * columns.Length);
+        for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < rows[rowIndex].Count; columnIndex++) {
+                cells.Add(new PdfLogicalTableCell(pageNumber, rowIndex, columnIndex, rows[rowIndex][columnIndex], columns[columnIndex]));
+            }
+        }
+        double left = columnBounds.Min(static column => column.From);
+        double right = columnBounds.Max(static column => column.To);
+        return new PdfLogicalTable(
+            pageNumber,
+            "OcrAlignedColumns",
+            top,
+            bottom,
+            columns,
+            rows,
+            cells.AsReadOnly(),
+            PdfLogicalContentSourceKind.Ocr,
+            new PdfLogicalVisualBounds(left, top, right, bottom));
     }
 }
 

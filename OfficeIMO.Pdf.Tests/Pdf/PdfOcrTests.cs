@@ -1,6 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.OpenDocument.Ods.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -34,6 +41,12 @@ public class PdfOcrTests {
         Assert.Contains("Native text", page.Text, StringComparison.Ordinal);
         Assert.Contains("Scanned", page.Text, StringComparison.Ordinal);
         Assert.Same(result.NativeDocument.Pages[0], Assert.Single(result.NativeDocument.Pages));
+        PdfLogicalTextBlock ocrBlock = Assert.Single(result.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.Equal("Scanned", ocrBlock.Text);
+        Assert.NotNull(ocrBlock.VisualBounds);
+        Assert.InRange(ocrBlock.Confidence, 0.94D, 0.96D);
+        Assert.True(result.HasAcceptedOcrContent);
+        Assert.Equal(1, result.AcceptedWordCount);
     }
 
     [Fact]
@@ -58,6 +71,27 @@ public class PdfOcrTests {
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             PdfOcr.RecognizeAndMergeAsync(pdf, provider, cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_PreservesDuplicateCallerOrderedPages() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Repeated", 30, 90, 50, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider, new PdfOcrMergeOptions {
+            Selection = PdfPageSelection.From(1, 1),
+            DetectAlignedTables = false
+        });
+
+        Assert.Equal(2, provider.CallCount);
+        Assert.Equal(new[] { 1, 1 }, result.Pages.Select(static page => page.PageNumber));
+        Assert.Equal(new[] { 1, 1 }, result.EnrichedDocument.Pages.Select(static page => page.PageNumber));
+        Assert.All(result.EnrichedDocument.Pages, page =>
+            Assert.Single(page.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr));
     }
 
     [Fact]
@@ -131,6 +165,178 @@ public class PdfOcrTests {
     public void PdfReadLimitKind_PreservesExistingInteractionRegionsValue() {
         Assert.Equal(20, (int)PdfReadLimitKind.InteractionRegions);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public async Task EnrichedDocument_PreservesOcrVisualGeometryAcrossPageRotation(int rotation) {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        pdf = PdfPageEditor.SetCropBox(pdf, 20, 40, 500, 700);
+        pdf = PdfPageEditor.RotatePages(pdf, rotation);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "OCR", 24, 180, 42, 12),
+            At(request, "geometry", 72, 180, 64, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+        PdfLogicalTextBlock block = Assert.Single(result.EnrichedDocument.TextBlocks, candidate => candidate.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        PdfLogicalVisualBounds bounds = Assert.IsType<PdfLogicalVisualBounds>(block.VisualBounds);
+        Assert.Equal(24D, bounds.Left, 3);
+        Assert.Equal(180D, bounds.Top, 3);
+        Assert.Equal("OCR geometry", block.Text);
+        PdfLogicalPage logicalPage = result.EnrichedDocument.Pages[0];
+        PdfLogicalReadingOrderItem entry = Assert.Single(
+            PdfLogicalReadingOrderAnalysis.Analyze(logicalPage),
+            candidate => candidate.Kind == PdfLogicalReadingOrderKind.Paragraph &&
+                logicalPage.Paragraphs[candidate.SourceIndex].Text.Contains("OCR geometry", StringComparison.Ordinal));
+        Assert.Equal(24D, entry.Left, 3);
+        Assert.Equal(180D, entry.Top, 3);
+    }
+
+    [Fact]
+    public async Task EnrichedDocument_InfersOnlyRepeatedAlignedOcrRowsAsEditableTable() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Item", 30, 220, 34, 12), At(request, "Value", 150, 220, 38, 12),
+            At(request, "Alpha", 30, 245, 38, 12), At(request, "10", 150, 245, 18, 12),
+            At(request, "Beta", 30, 270, 32, 12), At(request, "20", 150, 270, 18, 12),
+            At(request, "Narrative", 30, 320, 58, 12), At(request, "continues", 94, 320, 52, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+        PdfLogicalTable table = Assert.Single(result.EnrichedDocument.Tables, candidate => candidate.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.Equal("OcrAlignedColumns", table.DetectionKind);
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "Alpha", "10" }, table.Rows[1]);
+        Assert.DoesNotContain(table.Rows, row => row.Contains("Narrative"));
+
+        PdfExcelTableImportResult excelResult = result.EnrichedDocument.ImportTablesToExcelDocumentResult();
+        using (excelResult.Value) Assert.Single(excelResult.Report.Entries);
+        PdfOdsConversionResult odsResult = result.EnrichedDocument.ToOdsDocumentResult();
+        Assert.Single(odsResult.Value.Sheets);
+
+        PdfPowerPointConversionResult presentationResult = result.EnrichedDocument
+            .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
+        using (presentationResult.Value) {
+            Assert.Single(presentationResult.Report.EditablePages);
+            Assert.Equal(1, presentationResult.Report.EditablePages[0].TableCount);
+        }
+
+        string html = result.EnrichedDocument.ToHtml();
+        Assert.Equal(1, html.Split(new[] { "Alpha" }, StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
+    public async Task EnrichedDocument_KeepsAlignedNarrativeColumnsOutOfTableInference() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Alpha", 30, 50, 30, 10), At(request, "project", 65, 50, 42, 10), At(request, "overview", 112, 50, 48, 10),
+            At(request, "Delta", 300, 50, 30, 10), At(request, "project", 335, 50, 42, 10), At(request, "overview", 382, 50, 48, 10),
+            At(request, "continues", 30, 90, 48, 10), At(request, "with", 83, 90, 24, 10), At(request, "details", 112, 90, 36, 10),
+            At(request, "continues", 300, 90, 48, 10), At(request, "with", 353, 90, 24, 10), At(request, "details", 382, 90, 36, 10),
+            At(request, "for", 30, 130, 18, 10), At(request, "each", 53, 130, 24, 10), At(request, "audience", 82, 130, 48, 10),
+            At(request, "for", 300, 130, 18, 10), At(request, "each", 323, 130, 24, 10), At(request, "audience", 352, 130, 48, 10)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+        PdfLogicalPage page = Assert.Single(result.EnrichedDocument.Pages);
+
+        Assert.Empty(page.Tables);
+        Assert.Equal(6, page.Paragraphs.Count);
+        Assert.Equal(
+            new[] {
+                "Alpha project overview",
+                "continues with details",
+                "for each audience",
+                "Delta project overview",
+                "continues with details",
+                "for each audience"
+            },
+            PdfLogicalReadingOrderAnalysis.Analyze(page)
+                .Where(static item => item.Kind == PdfLogicalReadingOrderKind.Paragraph)
+                .Select(item => page.Paragraphs[item.SourceIndex].Text));
+    }
+
+    [Fact]
+    public void EnrichedDocument_BoundsMaximumSameLineWordProjectionAndHonorsCancellation() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        PdfLogicalDocument native = PdfLogicalDocument.Load(pdf);
+        PdfRecognizedWord[] words = Enumerable.Range(0, 50_000)
+            .Select(static _ => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D))
+            .ToArray();
+        var pageMerge = new PdfOcrPageMergeResult(1, words, 0, 0, Array.Empty<string>(), string.Empty);
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+
+        PdfLogicalDocument enriched = PdfOcrLogicalDocumentBuilder.Build(
+            native,
+            new[] { pageMerge },
+            new PdfOcrMergeOptions(),
+            CancellationToken.None);
+        timer.Stop();
+
+        Assert.Single(enriched.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.True(
+            timer.Elapsed < TimeSpan.FromSeconds(5),
+            "Maximum same-line OCR projection exceeded the bounded contract: " + timer.Elapsed + ".");
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfOcrLogicalDocumentBuilder.Build(
+            native,
+            new[] { pageMerge },
+            new PdfOcrMergeOptions(),
+            cancellation.Token));
+    }
+
+    [Fact]
+    public async Task EnrichedDocument_ProjectsOcrHeadingsListsAndParagraphsThroughSemanticAdapters() {
+        byte[] pdf = PdfDocument.Create().Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120).ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Quarterly", 30, 90, 86, 24), At(request, "review", 124, 90, 54, 24),
+            At(request, "Summary", 30, 140, 54, 12), At(request, "narrative", 90, 140, 60, 12),
+            At(request, "-", 30, 170, 6, 12), At(request, "Ready", 42, 170, 38, 12),
+            At(request, "Closing", 30, 200, 42, 12), At(request, "note", 78, 200, 28, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+        Assert.Contains(result.EnrichedDocument.Headings, heading => heading.Text == "Quarterly review");
+        Assert.Contains(result.EnrichedDocument.ListItems, item => item.Marker == "-" && item.Text == "Ready");
+        Assert.Contains(result.EnrichedDocument.Paragraphs, paragraph => paragraph.Text.Contains("Summary narrative", StringComparison.Ordinal));
+
+        using (OfficeIMO.Word.WordDocument word = result.EnrichedDocument.ToWordDocument()) {
+            Assert.True(word.ToBytes().Length > 100);
+        }
+        string html = result.EnrichedDocument.ToHtml();
+        Assert.Contains("Quarterly review", html, StringComparison.Ordinal);
+        Assert.Contains("Ready", html, StringComparison.Ordinal);
+        Assert.Contains("Summary narrative", result.EnrichedDocument.ToRtfDocument().ToRtf(), StringComparison.Ordinal);
+        PdfOdtConversionResult odtResult = result.EnrichedDocument.ToOdtDocumentResult();
+        Assert.Contains(odtResult.Value.Paragraphs, paragraph => paragraph.Text.Contains("Summary narrative", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task EnrichedDocument_CanDisableSemanticProjectionWithoutChangingMergeEvidence() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] { At(request, "OCR", 30, 250, 30, 12) }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider, new PdfOcrMergeOptions {
+            BuildEnrichedLogicalDocument = false
+        });
+
+        Assert.Single(result.Pages[0].Words);
+        Assert.Same(result.NativeDocument, result.EnrichedDocument);
+        Assert.DoesNotContain(result.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
+        Assert.True(result.HasAcceptedOcrContent);
+    }
+
+    private static PdfOcrWord At(PdfOcrRequest request, string text, double x, double y, double width, double height, double confidence = 0.95D) =>
+        new PdfOcrWord(text, x * request.Scale, y * request.Scale, width * request.Scale, height * request.Scale, confidence);
 
     private sealed class StubOcrProvider : IPdfOcrProvider {
         private readonly Func<PdfOcrRequest, PdfOcrResponse> _response;

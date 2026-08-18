@@ -1,13 +1,26 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Normalized OCR merge result alongside the unchanged native logical document.</summary>
+/// <summary>Normalized OCR merge result with both native and OCR-enriched logical documents.</summary>
 public sealed class PdfOcrMergeResult {
-    internal PdfOcrMergeResult(PdfLogicalDocument nativeDocument, IReadOnlyList<PdfOcrPageMergeResult> pages) {
+    internal PdfOcrMergeResult(PdfLogicalDocument nativeDocument, PdfLogicalDocument enrichedDocument, IReadOnlyList<PdfOcrPageMergeResult> pages) {
         NativeDocument = nativeDocument;
+        EnrichedDocument = enrichedDocument;
         Pages = pages;
     }
     /// <summary>Native parser logical model used for overlap decisions.</summary>
     public PdfLogicalDocument NativeDocument { get; }
+    /// <summary>
+    /// Logical model containing accepted OCR text and conservative OCR table inference in addition to native content.
+    /// Pass this model directly to the Word, Excel, PowerPoint, HTML, RTF, or OpenDocument reverse converters.
+    /// </summary>
+    public PdfLogicalDocument EnrichedDocument { get; }
+    /// <summary>Number of accepted OCR words across all requested pages.</summary>
+    public int AcceptedWordCount => Pages.Sum(static page => page.Words.Count);
+    /// <summary>
+    /// True when at least one OCR word passed merge filtering. This remains merge evidence when
+    /// <see cref="PdfOcrMergeOptions.BuildEnrichedLogicalDocument"/> disables logical-model projection.
+    /// </summary>
+    public bool HasAcceptedOcrContent => AcceptedWordCount > 0;
     /// <summary>OCR merge reports in requested page order.</summary>
     public IReadOnlyList<PdfOcrPageMergeResult> Pages { get; }
     /// <summary>Combined page text separated by blank lines.</summary>

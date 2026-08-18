@@ -453,6 +453,36 @@ PdfDocument visualTextPdf = PdfDocument.Open("spreadsheet-export.pdf", new PdfRe
 IReadOnlyList<string> visualTextByPage = visualTextPdf.Read.TextByPage();
 ```
 
+Image-only and mixed pages can be enriched through a caller-owned OCR provider
+without adding an OCR runtime to `OfficeIMO.Pdf`. Accepted words are normalized
+to cropped, rotated visual page coordinates, de-duplicated against native text,
+and projected into the same logical model used by reverse converters:
+
+```csharp
+static async Task<PdfLogicalDocument> ReadWithOcrAsync(
+    string path,
+    IPdfOcrProvider provider) {
+    PdfOcrMergeResult ocr = await PdfDocument
+        .Open(path)
+        .Read.OcrAsync(provider, new PdfOcrMergeOptions {
+            MinimumConfidence = 0.75,
+            DetectAlignedTables = true
+        });
+
+    Console.WriteLine(ocr.AcceptedWordCount);
+    return ocr.EnrichedDocument;
+}
+```
+
+`NativeDocument` retains the parser-only view for comparison. Every enriched
+text block and inferred table exposes native-or-OCR provenance; OCR text also
+retains provider confidence and direct visual bounds. Table inference requires
+repeated aligned rows plus typed-value evidence (or a wider repeated grid), so
+ordinary two-column prose remains separate reading-order content. The work is
+bounded by the merge options. Word, Excel,
+PowerPoint, HTML, RTF, ODT, ODS, and ODP packages consume
+`EnrichedDocument` directly through their existing logical-PDF overloads.
+
 ### Split and extract pages
 
 ```csharp
