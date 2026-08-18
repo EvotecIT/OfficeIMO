@@ -578,6 +578,9 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
                         if (tag.IsEnd && IsUnprefixedTag(tag) && LocalNameEquals(tag, "row")) {
+                            if (ContainsNonWhitespace(originalPosition, tag.Start)) {
+                                _sheetDataSupportsFastValidation = false;
+                            }
                             UpdateUsedBounds(rowIndex, previousColumn);
                             return true;
                         }
