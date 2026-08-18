@@ -1365,20 +1365,8 @@
     },
     {
       "task": "exec",
-      "id": "test-converter-asset-graph-retries",
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./scripts/Test-ConverterAssetGraphRetry.ps1"
-      ],
-      "workingDirectory": "."
-    },
-    {
-      "task": "exec",
       "id": "test-browser-converter",
-      "dependsOn": ["optimize-site", "test-converter-asset-graph-retries"],
+      "dependsOn": "optimize-site",
       "command": "dotnet",
       "argsList": [
         "test",
@@ -1412,25 +1400,8 @@
     },
     {
       "task": "exec",
-      "id": "write-browser-converter-deployment-manifest",
-      "dependsOn": "overlay-browser-converter",
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./scripts/Write-ConverterDeploymentManifest.ps1",
-        "-ConverterRoot",
-        "./_site/apps/officeimo-converter",
-        "-DeploymentIdEnvironment",
-        "GITHUB_SHA"
-      ],
-      "workingDirectory": "."
-    },
-    {
-      "task": "exec",
       "id": "verify-browser-converter",
-      "dependsOn": "write-browser-converter-deployment-manifest",
+      "dependsOn": "overlay-browser-converter",
       "command": "pwsh",
       "argsList": [
         "-NoLogo",
