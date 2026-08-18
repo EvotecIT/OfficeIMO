@@ -42,6 +42,9 @@ namespace OfficeIMO.Excel {
             } catch (NotSupportedException) {
                 stream.Dispose();
                 return null;
+            } catch (ArgumentException) {
+                stream.Dispose();
+                return null;
             }
         }
 
@@ -53,6 +56,9 @@ namespace OfficeIMO.Excel {
                 stream = null;
                 return reader;
             } catch (InvalidDataException) {
+                stream?.Dispose();
+                return null;
+            } catch (ArgumentException) {
                 stream?.Dispose();
                 return null;
             }
