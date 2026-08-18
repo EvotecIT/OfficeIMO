@@ -1365,8 +1365,20 @@
     },
     {
       "task": "exec",
+      "id": "test-converter-asset-graph-retries",
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ConverterAssetGraphRetry.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "test-browser-converter",
-      "dependsOn": "optimize-site",
+      "dependsOn": ["optimize-site", "test-converter-asset-graph-retries"],
       "command": "dotnet",
       "argsList": [
         "test",

@@ -14,7 +14,9 @@ param(
     [int] $RemoteVerificationAttempts = 6,
 
     [ValidateRange(0, 300)]
-    [int] $RemoteVerificationRetryDelaySeconds = 15
+    [int] $RemoteVerificationRetryDelaySeconds = 15,
+
+    [string] $ReportPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,6 +30,13 @@ $remoteRetryDelayMilliseconds = 250
 $assetByteCache = [System.Collections.Generic.Dictionary[string, byte[]]]::new([System.StringComparer]::Ordinal)
 $remoteHandler = $null
 $remoteClient = $null
+$remoteVerificationSessionId = [guid]::NewGuid().ToString('N')
+$remoteVerificationCacheToken = $null
+$lastRemoteObservation = $null
+$verificationAttemptReports = [System.Collections.Generic.List[object]]::new()
+$verificationSucceeded = $false
+$completedVerificationAttempt = 0
+$lastVerificationError = $null
 
 if (-not $isLocal) {
     if (-not $BaseUri.IsAbsoluteUri -or $BaseUri.Scheme -notin @('https', 'http')) {
@@ -45,6 +54,11 @@ if (-not $isLocal) {
     $remoteHandler.AllowAutoRedirect = $false
     $remoteHandler.AutomaticDecompression = [System.Net.DecompressionMethods]::GZip -bor [System.Net.DecompressionMethods]::Brotli
     $remoteClient = [System.Net.Http.HttpClient]::new($remoteHandler)
+    $remoteClient.DefaultRequestHeaders.CacheControl = [System.Net.Http.Headers.CacheControlHeaderValue]::new()
+    $remoteClient.DefaultRequestHeaders.CacheControl.NoCache = $true
+    $remoteClient.DefaultRequestHeaders.CacheControl.NoStore = $true
+    $remoteClient.DefaultRequestHeaders.CacheControl.MaxAge = [TimeSpan]::Zero
+    $remoteClient.DefaultRequestHeaders.Pragma.ParseAdd('no-cache')
 }
 
 if ([string]::IsNullOrWhiteSpace($ExpectedDeploymentId) -and -not [string]::IsNullOrWhiteSpace($ExpectedDeploymentIdEnvironment)) {
@@ -54,17 +68,74 @@ if ([string]::IsNullOrWhiteSpace($ExpectedDeploymentId) -and -not [string]::IsNu
     }
 }
 
+function Get-RemoteRequestUri {
+    param([Parameter(Mandatory)][uri] $Uri)
+
+    if ([string]::IsNullOrWhiteSpace($remoteVerificationCacheToken)) {
+        return $Uri
+    }
+
+    $builder = [System.UriBuilder]::new($Uri)
+    $verificationQuery = '_officeimo_verify=' + [uri]::EscapeDataString($remoteVerificationCacheToken)
+    $existingQuery = $builder.Query.TrimStart('?')
+    $builder.Query = if ([string]::IsNullOrWhiteSpace($existingQuery)) {
+        $verificationQuery
+    } else {
+        $existingQuery + '&' + $verificationQuery
+    }
+    return $builder.Uri
+}
+
+function Get-ResponseHeaderValue {
+    param(
+        [Parameter(Mandatory)][System.Net.Http.HttpResponseMessage] $Response,
+        [Parameter(Mandatory)][string] $Name
+    )
+
+    [System.Collections.Generic.IEnumerable[string]] $values = $null
+    if ($Response.Headers.TryGetValues($Name, [ref] $values) -or
+        $Response.Content.Headers.TryGetValues($Name, [ref] $values)) {
+        return ($values -join ', ')
+    }
+    return $null
+}
+
 function Get-RemoteBytes {
     param(
         [Parameter(Mandatory)][uri] $Uri,
         [Parameter(Mandatory)][long] $MaximumBytes
     )
 
+    $requestUri = Get-RemoteRequestUri -Uri $Uri
     for ($attempt = 1; $attempt -le $maximumRemoteAttempts; $attempt++) {
         $response = $null
         $retryableFailure = $true
         try {
-            $response = $remoteClient.GetAsync($Uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+            $script:lastRemoteObservation = [ordered]@{
+                Uri = [string] $Uri
+                RequestUri = [string] $requestUri
+                DownloadAttempt = $attempt
+                StatusCode = $null
+                ContentLength = $null
+                ContentType = $null
+                ContentEncoding = $null
+                CacheStatus = $null
+                CacheAge = $null
+                CacheRay = $null
+                ETag = $null
+                LastModified = $null
+                DownloadedBytes = $null
+            }
+            $response = $remoteClient.GetAsync($requestUri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+            $script:lastRemoteObservation.StatusCode = [int] $response.StatusCode
+            $script:lastRemoteObservation.ContentLength = if ($response.Content.Headers.ContentLength.HasValue) { $response.Content.Headers.ContentLength.Value } else { $null }
+            $script:lastRemoteObservation.ContentType = [string] $response.Content.Headers.ContentType
+            $script:lastRemoteObservation.ContentEncoding = ($response.Content.Headers.ContentEncoding -join ', ')
+            $script:lastRemoteObservation.CacheStatus = Get-ResponseHeaderValue -Response $response -Name 'CF-Cache-Status'
+            $script:lastRemoteObservation.CacheAge = Get-ResponseHeaderValue -Response $response -Name 'Age'
+            $script:lastRemoteObservation.CacheRay = Get-ResponseHeaderValue -Response $response -Name 'CF-Ray'
+            $script:lastRemoteObservation.ETag = Get-ResponseHeaderValue -Response $response -Name 'ETag'
+            $script:lastRemoteObservation.LastModified = Get-ResponseHeaderValue -Response $response -Name 'Last-Modified'
             if (-not $response.IsSuccessStatusCode) {
                 $statusCode = [int] $response.StatusCode
                 if ($attempt -lt $maximumRemoteAttempts -and $statusCode -in @(408, 425, 429, 500, 502, 503, 504)) {
@@ -86,10 +157,12 @@ function Get-RemoteBytes {
                     $buffer = [byte[]]::new(81920)
                     while (($read = $input.Read($buffer, 0, $buffer.Length)) -gt 0) {
                         if ($output.Length -gt $MaximumBytes - $read) {
+                            $script:lastRemoteObservation.DownloadedBytes = $output.Length + $read
                             throw "Converter asset '$Uri' exceeded the permitted $MaximumBytes bytes while downloading."
                         }
                         $output.Write($buffer, 0, $read)
                     }
+                    $script:lastRemoteObservation.DownloadedBytes = $output.Length
                     return $output.ToArray()
                 } finally {
                     $output.Dispose()
@@ -110,6 +183,30 @@ function Get-RemoteBytes {
     }
 
     throw "Converter asset '$Uri' could not be downloaded after $maximumRemoteAttempts attempts."
+}
+
+function Write-VerificationReport {
+    if ([string]::IsNullOrWhiteSpace($ReportPath)) {
+        return
+    }
+
+    $resolvedReportPath = [System.IO.Path]::GetFullPath($ReportPath)
+    $reportDirectory = Split-Path -Parent $resolvedReportPath
+    if (-not [string]::IsNullOrWhiteSpace($reportDirectory)) {
+        [System.IO.Directory]::CreateDirectory($reportDirectory) | Out-Null
+    }
+    $report = [ordered]@{
+        schemaVersion = 1
+        outcome = if ($verificationSucceeded) { 'success' } else { 'failure' }
+        mode = if ($isLocal) { 'local' } else { 'remote' }
+        baseUri = if ($isLocal) { $null } else { [string] $BaseUri }
+        expectedDeploymentId = $ExpectedDeploymentId
+        attemptsConfigured = if ($isLocal) { 1 } else { $RemoteVerificationAttempts }
+        attemptsCompleted = $completedVerificationAttempt
+        lastError = if ($verificationSucceeded) { $null } else { $lastVerificationError }
+        attempts = @($verificationAttemptReports)
+    }
+    $report | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $resolvedReportPath -Encoding utf8
 }
 
 function ConvertTo-CanonicalAssetPath {
@@ -384,14 +481,37 @@ Write-Output "Converter deployment verified: $($manifestPaths.Count) public asse
 
 try {
     $verificationAttempts = if ($isLocal) { 1 } else { $RemoteVerificationAttempts }
-    # A freshly deployed manifest can reach one edge before stable-named assets do. Retry the
-    # complete graph from empty cache; every attempt must still satisfy all length and hash checks.
+    # A freshly deployed manifest can reach one edge before every referenced asset is available.
+    # Give each complete-graph attempt a fresh cache identity while preserving every integrity check.
     for ($verificationAttempt = 1; $verificationAttempt -le $verificationAttempts; $verificationAttempt++) {
+        $completedVerificationAttempt = $verificationAttempt
+        $remoteVerificationCacheToken = if ($isLocal) {
+            $null
+        } else {
+            "$remoteVerificationSessionId-$verificationAttempt"
+        }
         try {
             Invoke-ConverterDeploymentVerification
+            $verificationSucceeded = $true
+            $verificationAttemptReports.Add([pscustomobject]@{
+                attempt = $verificationAttempt
+                cacheToken = $remoteVerificationCacheToken
+                outcome = 'success'
+                error = $null
+                lastResponse = $lastRemoteObservation
+            })
             break
         } catch {
+            $lastVerificationError = $_.Exception.Message
+            $verificationAttemptReports.Add([pscustomobject]@{
+                attempt = $verificationAttempt
+                cacheToken = $remoteVerificationCacheToken
+                outcome = 'failure'
+                error = $lastVerificationError
+                lastResponse = $lastRemoteObservation
+            })
             if ($verificationAttempt -ge $verificationAttempts) {
+                Write-Output "Converter deployment verification failed after $verificationAttempts attempt(s). Last failure: $lastVerificationError"
                 throw
             }
 
@@ -404,6 +524,7 @@ try {
         }
     }
 } finally {
+    Write-VerificationReport
     if ($null -ne $remoteClient) {
         $remoteClient.Dispose()
         $remoteHandler.Dispose()
