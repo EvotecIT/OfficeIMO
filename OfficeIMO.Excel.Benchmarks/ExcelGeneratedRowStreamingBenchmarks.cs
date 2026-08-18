@@ -10,6 +10,10 @@ namespace OfficeIMO.Excel.Benchmarks;
 [MemoryDiagnoser]
 public class ExcelGeneratedRowStreamingBenchmarks {
     private static readonly string[] Headers = ["Id", "Amount", "CreatedOn", "Active"];
+    private static readonly ExcelTabularWriteOptions CompactWriteOptions = new() {
+        IncludeCellReferences = false,
+        UseSharedStrings = false
+    };
 
     [GlobalSetup]
     public void Setup() {
@@ -24,7 +28,8 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 .Write(row.Id)
                 .Write(row.Amount)
                 .Write(row.CreatedOn)
-                .Write(row.Active));
+                .Write(row.Active),
+            CompactWriteOptions);
         if (result.RowCount != rows.Length) {
             throw new InvalidDataException(
                 $"OfficeIMO reported {result.RowCount} rows instead of {rows.Length} during write preflight.");
@@ -53,7 +58,8 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 .Write(row.Id)
                 .Write(row.Amount)
                 .Write(row.CreatedOn)
-                .Write(row.Active));
+                .Write(row.Active),
+            CompactWriteOptions);
         return result.RowCount;
     }
 
@@ -71,7 +77,8 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                 .Write(row.Id)
                 .Write(row.Amount)
                 .Write(row.CreatedOn)
-                .Write(row.Active));
+                .Write(row.Active),
+            CompactWriteOptions);
         return result.RowCount;
     }
 

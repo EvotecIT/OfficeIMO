@@ -15,6 +15,8 @@ namespace OfficeIMO.Excel {
             private const int MaximumIndexedCells = 1_000_000;
             private const int StringCacheSize = 256;
             private const int MaximumCachedStringBytes = 256;
+            private const byte DateStyleCellKindFlag = 0x80;
+            private const byte CellKindMask = 0x7F;
 
             private readonly ExcelSheetReader _owner;
             private readonly ExcelReadOptions _options;
@@ -27,7 +29,6 @@ namespace OfficeIMO.Excel {
             private int[]? _valueLengths;
             private int[]? _formulaStarts;
             private int[]? _formulaLengths;
-            private int[]? _styleIndexes;
             private byte[]? _cellKinds;
             private int _length;
             private int _rowCount;
@@ -82,9 +83,6 @@ namespace OfficeIMO.Excel {
                 int cellCapacity = checked(rowCapacity * fieldCount);
                 _valueStarts = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _valueLengths = ArrayPool<int>.Shared.Rent(cellCapacity);
-                _formulaStarts = ArrayPool<int>.Shared.Rent(cellCapacity);
-                _formulaLengths = ArrayPool<int>.Shared.Rent(cellCapacity);
-                _styleIndexes = ArrayPool<int>.Shared.Rent(cellCapacity);
                 _cellKinds = ArrayPool<byte>.Shared.Rent(cellCapacity);
             }
 
@@ -274,11 +272,14 @@ namespace OfficeIMO.Excel {
                 objectValue = null;
 
                 int cellIndex = _currentRowOffset + ordinal;
-                if ((Utf8CellKind)_cellKinds![cellIndex] == Utf8CellKind.Missing) {
+                byte encodedCellKind = _cellKinds![cellIndex];
+                Utf8CellKind cellKind = (Utf8CellKind)(encodedCellKind & CellKindMask);
+                if (cellKind == Utf8CellKind.Missing) {
                     return;
                 }
 
-                bool useFormula = _formulaLengths![cellIndex] >= 0
+                bool useFormula = _formulaLengths != null
+                    && _formulaLengths[cellIndex] >= 0
                     && (!_options.UseCachedFormulaResult || _valueLengths![cellIndex] < 0);
                 int start = useFormula ? _formulaStarts![cellIndex] : _valueStarts![cellIndex];
                 int length = useFormula ? _formulaLengths![cellIndex] : _valueLengths![cellIndex];
@@ -293,7 +294,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadOnlySpan<byte> value = _buffer!.AsSpan(start, length);
-                switch ((Utf8CellKind)_cellKinds![cellIndex]) {
+                switch (cellKind) {
                     case Utf8CellKind.SharedString:
                         if (TryParseInt32(value, out int sharedStringIndex)) {
                             objectValue = _owner.GetSharedString(sharedStringIndex);
@@ -333,10 +334,11 @@ namespace OfficeIMO.Excel {
                         objectValue = DecodeString(start, length);
                         return;
                     case Utf8CellKind.Number:
+                        bool dateStyle = (encodedCellKind & DateStyleCellKindFlag) != 0;
                         deferObjectMaterialization =
                             targetKind == XmlDataReaderTargetKind.Numeric
-                            && IsDateStyle(_styleIndexes![cellIndex]);
-                        ReadNumberValue(cellIndex, value, targetKind, out primitiveKind, out doubleValue, out dateTimeValue, out objectValue);
+                            && dateStyle;
+                        ReadNumberValue(cellIndex, value, dateStyle, targetKind, out primitiveKind, out doubleValue, out dateTimeValue, out objectValue);
                         return;
                     default:
                         return;
@@ -360,7 +362,6 @@ namespace OfficeIMO.Excel {
                 ReturnRowArray(ref _valueLengths);
                 ReturnRowArray(ref _formulaStarts);
                 ReturnRowArray(ref _formulaLengths);
-                ReturnRowArray(ref _styleIndexes);
                 if (_cellKinds != null) {
                     ArrayPool<byte>.Shared.Return(_cellKinds);
                     _cellKinds = null;
@@ -568,10 +569,6 @@ namespace OfficeIMO.Excel {
                     int cellIndex = rowOffset >= 0 && (uint)ordinal < (uint)_fieldCount
                         ? rowOffset + ordinal
                         : -1;
-                    if (cellIndex >= 0) {
-                        _cellKinds![cellIndex] = (byte)kind;
-                        _styleIndexes![cellIndex] = styleIndex;
-                    }
 
                     bool sharedFormulaFollower = false;
                     bool hasCachedValue = false;
@@ -609,6 +606,9 @@ namespace OfficeIMO.Excel {
                         hasCachedValue,
                         valueStart,
                         valueLength);
+                    if (cellIndex >= 0) {
+                        _cellKinds![cellIndex] = EncodeCellKind(kind, styleIndex);
+                    }
                 }
 
                 return false;
@@ -677,6 +677,7 @@ namespace OfficeIMO.Excel {
             private void ReadNumberValue(
                 int ordinal,
                 ReadOnlySpan<byte> value,
+                bool dateStyle,
                 XmlDataReaderTargetKind targetKind,
                 out XmlDataReaderPrimitiveKind primitiveKind,
                 out double doubleValue,
@@ -687,7 +688,6 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
-                bool dateStyle = IsDateStyle(_styleIndexes![ordinal]);
                 if (targetKind == XmlDataReaderTargetKind.String) {
                     if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
                         objectValue = _owner.FromExcelSerialDate(serialDate).ToString(_options.Culture);
@@ -860,9 +860,10 @@ namespace OfficeIMO.Excel {
                 int nextCellCapacity = checked(nextCapacity * _fieldCount);
                 GrowRowArray(ref _valueStarts, nextCellCapacity, currentCellCount);
                 GrowRowArray(ref _valueLengths, nextCellCapacity, currentCellCount);
-                GrowRowArray(ref _formulaStarts, nextCellCapacity, currentCellCount);
-                GrowRowArray(ref _formulaLengths, nextCellCapacity, currentCellCount);
-                GrowRowArray(ref _styleIndexes, nextCellCapacity, currentCellCount);
+                if (_formulaStarts != null) {
+                    GrowRowArray(ref _formulaStarts, nextCellCapacity, currentCellCount);
+                    GrowRowArray(ref _formulaLengths, nextCellCapacity, currentCellCount);
+                }
                 GrowCellKindArray(nextCellCapacity, currentCellCount);
             }
 
@@ -872,10 +873,32 @@ namespace OfficeIMO.Excel {
                     _cellKinds![i] = (byte)Utf8CellKind.Missing;
                     _valueStarts![i] = 0;
                     _valueLengths![i] = -1;
-                    _formulaStarts![i] = 0;
-                    _formulaLengths![i] = -1;
-                    _styleIndexes![i] = -1;
+                    if (_formulaStarts != null) {
+                        _formulaStarts[i] = 0;
+                        _formulaLengths![i] = -1;
+                    }
                 }
+            }
+
+            private byte EncodeCellKind(Utf8CellKind kind, int styleIndex) {
+                byte encoded = (byte)kind;
+                if (kind == Utf8CellKind.Number && styleIndex >= 0 && IsDateStyle(styleIndex)) {
+                    encoded |= DateStyleCellKindFlag;
+                }
+                return encoded;
+            }
+
+            private void EnsureFormulaMetadata() {
+                if (_formulaStarts != null) {
+                    return;
+                }
+
+                int capacity = _valueStarts!.Length;
+                _formulaStarts = ArrayPool<int>.Shared.Rent(capacity);
+                _formulaLengths = ArrayPool<int>.Shared.Rent(capacity);
+                int initializedCellCount = checked((_rowCount + 1) * _fieldCount);
+                Array.Fill(_formulaStarts, 0, 0, initializedCellCount);
+                Array.Fill(_formulaLengths, -1, 0, initializedCellCount);
             }
 
             private void GrowCellKindArray(int capacity, int count) {

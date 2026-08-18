@@ -20,6 +20,10 @@ bool profileOfficeIMOXlsx = args.Length > 0 &&
     string.Equals(args[0], "--profile-excelreader-xlsx-officeimo", StringComparison.OrdinalIgnoreCase);
 bool profileExcelReaderXlsx = args.Length > 0 &&
     string.Equals(args[0], "--profile-excelreader-xlsx-competitor", StringComparison.OrdinalIgnoreCase);
+bool profileOfficeIMOXlsxWrite = args.Length > 0 &&
+    string.Equals(args[0], "--profile-excelreader-write-xlsx-officeimo", StringComparison.OrdinalIgnoreCase);
+bool profileExcelReaderXlsxWrite = args.Length > 0 &&
+    string.Equals(args[0], "--profile-excelreader-write-xlsx-competitor", StringComparison.OrdinalIgnoreCase);
 bool comparePairedXlsb = args.Length > 0 &&
     string.Equals(args[0], "--compare-markpflug65k-xlsb-paired", StringComparison.OrdinalIgnoreCase);
 bool comparePairedXls = args.Length > 0 &&
@@ -96,6 +100,45 @@ if (profileOfficeIMOXlsx || profileExcelReaderXlsx) {
     Console.WriteLine(
         $"Profiled {implementation} XLSX {iterations} times in {stopwatch.Elapsed.TotalMilliseconds:F2} ms " +
         $"({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {observation}.");
+    return;
+}
+
+if (profileOfficeIMOXlsxWrite || profileExcelReaderXlsxWrite) {
+    int iterations = args.Length > 1 && int.TryParse(args[1], out int parsedIterations)
+        ? parsedIterations
+        : 100;
+    int rowCount = args.Length > 2 && int.TryParse(args[2], out int parsedRowCount)
+        ? parsedRowCount
+        : 25_000;
+    if (iterations <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(iterations));
+    }
+    if (rowCount <= 0) {
+        throw new ArgumentOutOfRangeException(nameof(rowCount));
+    }
+    ApplyProcessAffinity(args, argumentIndex: 3);
+    ApplyProcessPriority(args, argumentIndex: 4);
+
+    var benchmark = new ExcelGeneratedRowStreamingBenchmarks { RowCount = rowCount };
+    benchmark.Setup();
+    Func<int> run = profileOfficeIMOXlsxWrite
+        ? benchmark.WriteRowsGenerated
+        : benchmark.ExcelReaderNetWriteRowsGenerated;
+    string implementation = profileOfficeIMOXlsxWrite ? "OfficeIMO" : "ExcelReader.NET";
+    for (int index = 0; index < 16; index++) {
+        run();
+    }
+
+    int result = 0;
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    for (int index = 0; index < iterations; index++) {
+        result = run();
+    }
+    stopwatch.Stop();
+
+    Console.WriteLine(
+        $"Profiled {implementation} XLSX write of {rowCount:N0} rows {iterations} times in " +
+        $"{stopwatch.Elapsed.TotalMilliseconds:F2} ms ({stopwatch.Elapsed.TotalMilliseconds / iterations:F3} ms/iteration): {result:N0} rows.");
     return;
 }
 
@@ -548,6 +591,8 @@ static void WriteUsage() {
     Console.WriteLine("  --profile-datareader-write-officeimo [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-datareader-write-largexlsx [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
+    Console.WriteLine("  --profile-excelreader-write-xlsx-officeimo [iterations] [row-count] [affinity-mask] [priority]");
+    Console.WriteLine("  --profile-excelreader-write-xlsx-competitor [iterations] [row-count] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-datareader-write-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");

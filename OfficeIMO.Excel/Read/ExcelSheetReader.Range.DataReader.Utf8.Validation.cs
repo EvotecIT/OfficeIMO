@@ -147,6 +147,7 @@ namespace OfficeIMO.Excel {
                                 _valueStarts![cellIndex] = tag.End;
                                 _valueLengths![cellIndex] = 0;
                             } else {
+                                EnsureFormulaMetadata();
                                 _formulaStarts![cellIndex] = tag.End;
                                 _formulaLengths![cellIndex] = 0;
                             }
@@ -176,6 +177,7 @@ namespace OfficeIMO.Excel {
                             _valueStarts![cellIndex] = contentStart;
                             _valueLengths![cellIndex] = contentLength;
                         } else {
+                            EnsureFormulaMetadata();
                             _formulaStarts![cellIndex] = contentStart;
                             _formulaLengths![cellIndex] = contentLength;
                         }

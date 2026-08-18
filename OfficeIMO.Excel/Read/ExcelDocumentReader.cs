@@ -65,6 +65,7 @@ namespace OfficeIMO.Excel {
             var effectiveOptions = options ?? new ExcelReadOptions();
             SharedReadOnlyFileSnapshot? snapshot = null;
             Stream? documentStream = null;
+            Package? package = null;
             SpreadsheetDocument? document = null;
             OpenXmlPackagePartBufferReader? partBufferReader = null;
             bool packageOpenAttempted = false;
@@ -77,22 +78,26 @@ namespace OfficeIMO.Excel {
 
                 documentStream = snapshot.CreateView();
                 packageOpenAttempted = true;
-                document = SpreadsheetDocument.Open(documentStream, isEditable: false);
+                package = Package.Open(documentStream, FileMode.Open, FileAccess.Read);
+                document = SpreadsheetDocument.Open(package);
                 partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
                 ExcelDocumentReader reader = new ExcelDocumentReader(
                     document,
                     effectiveOptions,
                     owns: true,
+                    ownedPackage: package,
                     ownedStream: documentStream,
                     partBufferReader: partBufferReader,
                     ownedResource: snapshot);
                 snapshot = null;
                 documentStream = null;
+                package = null;
                 partBufferReader = null;
                 return reader;
             } catch (Exception ex) {
                 partBufferReader?.Dispose();
                 document?.Dispose();
+                package?.Close();
                 documentStream?.Dispose();
                 if (!packageOpenAttempted || !IsRecoverableOpenException(ex)) {
                     snapshot?.Dispose();
