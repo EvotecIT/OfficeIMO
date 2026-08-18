@@ -17,6 +17,11 @@ $maximumDeploymentManifestBytes = 2L * 1024L * 1024L
 $maximumAssetCount = 1024
 $maximumAssetBytes = 64L * 1024L * 1024L
 $maximumAggregateAssetBytes = 256L * 1024L * 1024L
+$maximumRemoteAttempts = 3
+$remoteRetryDelayMilliseconds = 250
+$assetByteCache = [System.Collections.Generic.Dictionary[string, byte[]]]::new([System.StringComparer]::Ordinal)
+$remoteHandler = $null
+$remoteClient = $null
 
 if (-not $isLocal) {
     if (-not $BaseUri.IsAbsoluteUri -or $BaseUri.Scheme -notin @('https', 'http')) {
@@ -29,6 +34,11 @@ if (-not $isLocal) {
         $converterRootBuilder.Path += '/'
     }
     $converterRootUri = $converterRootBuilder.Uri
+
+    $remoteHandler = [System.Net.Http.HttpClientHandler]::new()
+    $remoteHandler.AllowAutoRedirect = $false
+    $remoteHandler.AutomaticDecompression = [System.Net.DecompressionMethods]::GZip -bor [System.Net.DecompressionMethods]::Brotli
+    $remoteClient = [System.Net.Http.HttpClient]::new($remoteHandler)
 }
 
 if ([string]::IsNullOrWhiteSpace($ExpectedDeploymentId) -and -not [string]::IsNullOrWhiteSpace($ExpectedDeploymentIdEnvironment)) {
@@ -44,14 +54,18 @@ function Get-RemoteBytes {
         [Parameter(Mandatory)][long] $MaximumBytes
     )
 
-    $handler = [System.Net.Http.HttpClientHandler]::new()
-    $handler.AllowAutoRedirect = $false
-    $handler.AutomaticDecompression = [System.Net.DecompressionMethods]::GZip -bor [System.Net.DecompressionMethods]::Brotli
-    $client = [System.Net.Http.HttpClient]::new($handler)
-    try {
-        $response = $client.GetAsync($Uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+    for ($attempt = 1; $attempt -le $maximumRemoteAttempts; $attempt++) {
+        $response = $null
+        $retryableFailure = $true
         try {
+            $response = $remoteClient.GetAsync($Uri, [System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
             if (-not $response.IsSuccessStatusCode) {
+                $statusCode = [int] $response.StatusCode
+                if ($attempt -lt $maximumRemoteAttempts -and $statusCode -in @(408, 425, 429, 500, 502, 503, 504)) {
+                    Start-Sleep -Milliseconds ($remoteRetryDelayMilliseconds * $attempt)
+                    continue
+                }
+                $retryableFailure = $false
                 throw "Converter asset '$Uri' returned HTTP $([int]$response.StatusCode)."
             }
             if ($response.Content.Headers.ContentLength.HasValue -and
@@ -77,13 +91,19 @@ function Get-RemoteBytes {
             } finally {
                 $input.Dispose()
             }
+        } catch {
+            if (-not $retryableFailure -or $attempt -ge $maximumRemoteAttempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds ($remoteRetryDelayMilliseconds * $attempt)
         } finally {
-            $response.Dispose()
+            if ($null -ne $response) {
+                $response.Dispose()
+            }
         }
-    } finally {
-        $client.Dispose()
-        $handler.Dispose()
     }
+
+    throw "Converter asset '$Uri' could not be downloaded after $maximumRemoteAttempts attempts."
 }
 
 function ConvertTo-CanonicalAssetPath {
@@ -121,6 +141,14 @@ function Get-AssetBytes {
     )
 
     $canonical = ConvertTo-CanonicalAssetPath -RelativePath $RelativePath
+    [byte[]] $cachedBytes = $null
+    if ($assetByteCache.TryGetValue($canonical, [ref] $cachedBytes)) {
+        if ($cachedBytes.LongLength -gt $MaximumBytes) {
+            throw "Converter asset '$RelativePath' exceeds the permitted $MaximumBytes bytes."
+        }
+        return $cachedBytes
+    }
+
     $normalized = $canonical -replace '/', [System.IO.Path]::DirectorySeparatorChar
     if ($isLocal) {
         $root = [System.IO.Path]::GetFullPath($SiteRoot)
@@ -135,7 +163,9 @@ function Get-AssetBytes {
         if ($length -gt $MaximumBytes) {
             throw "Converter asset '$path' exceeds the permitted $MaximumBytes bytes."
         }
-        return [System.IO.File]::ReadAllBytes($path)
+        $bytes = [System.IO.File]::ReadAllBytes($path)
+        $assetByteCache[$canonical] = $bytes
+        return $bytes
     }
 
     $assetUri = if ($canonical -eq 'index.html') {
@@ -148,7 +178,9 @@ function Get-AssetBytes {
         -not $assetUri.AbsolutePath.StartsWith($converterRootUri.AbsolutePath, [StringComparison]::Ordinal)) {
         throw "Converter asset path '$RelativePath' resolves outside '$converterRootUri'."
     }
-    return Get-RemoteBytes -Uri $assetUri -MaximumBytes $MaximumBytes
+    $bytes = Get-RemoteBytes -Uri $assetUri -MaximumBytes $MaximumBytes
+    $assetByteCache[$canonical] = $bytes
+    return $bytes
 }
 
 function Get-Utf8Text {
@@ -176,6 +208,7 @@ function Get-Sha256Hex {
     return [Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()
 }
 
+try {
 $deploymentManifestBytes = Get-AssetBytes -RelativePath 'deployment-assets.json' -MaximumBytes $maximumDeploymentManifestBytes
 $deploymentManifest = Get-Utf8Text -Bytes $deploymentManifestBytes | ConvertFrom-Json
 if ($deploymentManifest.schemaVersion -ne 1 -or [string] $deploymentManifest.deploymentId -notmatch '^[A-Fa-f0-9]{40}$|^[A-Fa-f0-9]{64}$') {
@@ -340,3 +373,9 @@ if ($verified.Count -lt 10) {
 }
 
 Write-Output "Converter deployment verified: $($manifestPaths.Count) public assets and $($verified.Count) fingerprinted runtime resources for $($deploymentManifest.deploymentId)."
+} finally {
+    if ($null -ne $remoteClient) {
+        $remoteClient.Dispose()
+        $remoteHandler.Dispose()
+    }
+}
