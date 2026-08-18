@@ -222,6 +222,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                owner.RequireSdkWorksheetPart();
                 using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 return TryReadWorksheetBuffer(stream, ct, out buffer, out length);

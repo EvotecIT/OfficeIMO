@@ -52,7 +52,8 @@ namespace OfficeIMO.Excel {
         private readonly SharedStringCache _sharedStrings;
         private readonly StylesCacheProvider _styles;
         private readonly ExcelReadOptions _options;
-        private readonly XDocument _contentTypes;
+        private readonly Dictionary<string, string> _contentTypeOverrides;
+        private readonly Dictionary<string, string> _contentTypeDefaults;
         private readonly XlsxTabularSheet[] _sheets;
         private readonly string[] _tableNames;
         private bool _disposed;
@@ -66,7 +67,7 @@ namespace OfficeIMO.Excel {
             _options = options;
             options.CancellationToken.ThrowIfCancellationRequested();
 
-            _contentTypes = ReadContentTypes();
+            (_contentTypeOverrides, _contentTypeDefaults) = ReadContentTypes();
             string workbookPartName = ReadWorkbookPartName();
             ValidatePartContentType(
                 workbookPartName,
@@ -198,36 +199,19 @@ namespace OfficeIMO.Excel {
         }
 
         private string ReadWorkbookPartName() {
-            XDocument relationships = ReadXmlPart("_rels/.rels", MaximumMetadataPartBytes);
-            XNamespace ns = PackageRelationshipsNamespace;
-            if (relationships.Root?.Name != ns + "Relationships") {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The package root relationship namespace is not supported by the native path.");
-            }
-
-            var candidates = relationships.Root
-                .Elements(ns + "Relationship")
-                .Select(element => new {
-                    Element = element,
-                    IsExternal = ReadRelationshipTargetMode(element)
-                })
-                .Where(candidate =>
-                    IsOfficeRelationship(
-                        (string?)candidate.Element.Attribute("Type"),
-                        "/officeDocument"))
+            IReadOnlyDictionary<string, PackageRelationship> relationships =
+                ReadRelationships(string.Empty);
+            PackageRelationship[] candidates = relationships.Values
+                .Where(relationship => IsOfficeRelationship(
+                    relationship.Type,
+                    "/officeDocument"))
                 .ToArray();
             if (candidates.Length != 1 || candidates[0].IsExternal) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The package does not contain one internal Office workbook relationship.");
             }
 
-            string? target = (string?)candidates[0].Element.Attribute("Target");
-            if (string.IsNullOrWhiteSpace(target)) {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The package workbook relationship has no target.");
-            }
-
-            string workbookPartName = ResolveTarget(string.Empty, target!);
+            string workbookPartName = ResolveTarget(string.Empty, candidates[0].Target);
             if (!_parts.ContainsPart(workbookPartName)) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The package workbook relationship target is missing.");
@@ -236,7 +220,8 @@ namespace OfficeIMO.Excel {
             return workbookPartName;
         }
 
-        private XDocument ReadContentTypes() {
+        private (Dictionary<string, string> Overrides, Dictionary<string, string> Defaults)
+            ReadContentTypes() {
             XDocument contentTypes = ReadXmlPart("[Content_Types].xml", MaximumMetadataPartBytes);
             XNamespace ns = PackageContentTypesNamespace;
             if (contentTypes.Root?.Name != ns + "Types") {
@@ -244,7 +229,43 @@ namespace OfficeIMO.Excel {
                     "The package content-type manifest namespace is not supported by the native path.");
             }
 
-            return contentTypes;
+            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XElement element in contentTypes.Root.Elements()) {
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                if (element.Name == ns + "Override") {
+                    string? rawPartName = (string?)element.Attribute("PartName");
+                    string? contentType = (string?)element.Attribute("ContentType");
+                    string normalizedPartName = NormalizeContentTypePartName(rawPartName);
+                    if (normalizedPartName.Length == 0
+                        || rawPartName![0] != '/'
+                        || !IsValidContentType(contentType)
+                        || overrides.ContainsKey(normalizedPartName)) {
+                        throw new XlsxTabularFastPathNotSupportedException(
+                            "The package content-type overrides require the Open XML SDK fallback path.");
+                    }
+                    overrides.Add(normalizedPartName, contentType!);
+                    continue;
+                }
+
+                if (element.Name == ns + "Default") {
+                    string? extension = (string?)element.Attribute("Extension");
+                    string? contentType = (string?)element.Attribute("ContentType");
+                    if (!IsValidContentTypeExtension(extension)
+                        || !IsValidContentType(contentType)
+                        || defaults.ContainsKey(extension!)) {
+                        throw new XlsxTabularFastPathNotSupportedException(
+                            "The package content-type defaults require the Open XML SDK fallback path.");
+                    }
+                    defaults.Add(extension!, contentType!);
+                    continue;
+                }
+
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "The package content-type manifest requires the Open XML SDK fallback path.");
+            }
+
+            return (overrides, defaults);
         }
 
         private void ValidatePartContentType(
@@ -268,25 +289,9 @@ namespace OfficeIMO.Excel {
         }
 
         private string? GetPartContentType(string partName) {
-            XNamespace ns = PackageContentTypesNamespace;
-            XElement root = _contentTypes.Root!;
-
             string expectedPartName = "/" + partName.TrimStart('/');
-            string?[] matches = root
-                .Elements(ns + "Override")
-                .Where(element => string.Equals(
-                    NormalizeContentTypePartName((string?)element.Attribute("PartName")),
-                    expectedPartName,
-                    StringComparison.OrdinalIgnoreCase))
-                .Select(element => (string?)element.Attribute("ContentType"))
-                .Take(2)
-                .ToArray();
-            if (matches.Length > 1) {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "Duplicate package content-type overrides require the Open XML SDK fallback path.");
-            }
-            if (matches.Length == 1) {
-                return matches[0];
+            if (_contentTypeOverrides.TryGetValue(expectedPartName, out string? contentType)) {
+                return contentType;
             }
 
             int extensionSeparator = partName.LastIndexOf('.');
@@ -295,21 +300,9 @@ namespace OfficeIMO.Excel {
             }
 
             string extension = partName.Substring(extensionSeparator + 1);
-            matches = root
-                .Elements(ns + "Default")
-                .Where(element => string.Equals(
-                    (string?)element.Attribute("Extension"),
-                    extension,
-                    StringComparison.OrdinalIgnoreCase))
-                .Select(element => (string?)element.Attribute("ContentType"))
-                .Take(2)
-                .ToArray();
-            if (matches.Length > 1) {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "Duplicate package content-type defaults require the Open XML SDK fallback path.");
-            }
-
-            return matches.Length == 1 ? matches[0] : null;
+            return _contentTypeDefaults.TryGetValue(extension, out contentType)
+                ? contentType
+                : null;
         }
 
         private IReadOnlyDictionary<string, PackageRelationship> ReadRelationships(
@@ -321,21 +314,28 @@ namespace OfficeIMO.Excel {
             XNamespace ns = PackageRelationshipsNamespace;
             if (relationships.Root?.Name != ns + "Relationships") {
                 throw new XlsxTabularFastPathNotSupportedException(
-                    "The workbook relationship namespace is not supported by the native path.");
+                    "The package relationship namespace is not supported by the native path.");
             }
 
             var result = new Dictionary<string, PackageRelationship>(StringComparer.Ordinal);
-            foreach (XElement element in relationships.Root.Elements(ns + "Relationship")) {
+            foreach (XElement element in relationships.Root.Elements()) {
                 _options.CancellationToken.ThrowIfCancellationRequested();
+                if (element.Name != ns + "Relationship") {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        "The package relationships require the Open XML SDK fallback path.");
+                }
+
                 string? id = (string?)element.Attribute("Id");
                 string? type = (string?)element.Attribute("Type");
                 string? target = (string?)element.Attribute("Target");
                 if (string.IsNullOrWhiteSpace(id)
                     || string.IsNullOrWhiteSpace(type)
                     || string.IsNullOrWhiteSpace(target)
+                    || !IsValidRelationshipId(id!)
+                    || !Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out _)
                     || result.ContainsKey(id!)) {
                     throw new XlsxTabularFastPathNotSupportedException(
-                        "The workbook relationships require the Open XML SDK fallback path.");
+                        "The package relationships require the Open XML SDK fallback path.");
                 }
 
                 result.Add(
@@ -380,10 +380,21 @@ namespace OfficeIMO.Excel {
                     "The workbook has no sheets collection.");
             }
 
+            XElement[] workbookSheets = sheetsElement.Elements(spreadsheet + "sheet").ToArray();
+            if (string.IsNullOrWhiteSpace(_options.SheetName)
+                && !_options.SheetIndex.HasValue
+                && workbookSheets.Length > 1) {
+                // The public multi-result reader still uses the SDK path. Stop before
+                // resolving every sheet and optional global part so that fallback does
+                // not pay the complete native metadata probe first.
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "Multi-result XLSX reads retain the complete Open XML SDK path.");
+            }
+
             XNamespace transitionalRelationships = TransitionalOfficeRelationshipsNamespace;
             XNamespace strictRelationships = StrictOfficeRelationshipsNamespace;
             var sheets = new List<XlsxTabularSheet>();
-            foreach (XElement sheet in sheetsElement.Elements(spreadsheet + "sheet")) {
+            foreach (XElement sheet in workbookSheets) {
                 _options.CancellationToken.ThrowIfCancellationRequested();
                 string? name = (string?)sheet.Attribute("name");
                 string? relationshipId = (string?)sheet.Attribute(transitionalRelationships + "id")
@@ -518,11 +529,78 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeContentTypePartName(string? partName) {
-            if (string.IsNullOrWhiteSpace(partName) || partName!.IndexOf('\\') >= 0) {
+            if (string.IsNullOrWhiteSpace(partName)
+                || !partName!.StartsWith("/", StringComparison.Ordinal)
+                || partName.StartsWith("//", StringComparison.Ordinal)
+                || partName.EndsWith("/", StringComparison.Ordinal)
+                || partName!.IndexOf('\\') >= 0
+                || partName.IndexOf('?') >= 0
+                || partName.IndexOf('#') >= 0
+                || partName.Any(static character => !IsNativeContentTypePartNameCharacter(character))) {
                 return string.Empty;
             }
 
-            return "/" + partName.TrimStart('/');
+            string[] segments = partName.Split('/');
+            if (segments.Length < 2
+                || segments.Skip(1).Any(static segment =>
+                    segment.Length == 0 || segment == "." || segment == "..")) {
+                return string.Empty;
+            }
+
+            return partName;
+        }
+
+        private static bool IsNativeContentTypePartNameCharacter(char character) =>
+            character is >= 'a' and <= 'z'
+            || character is >= 'A' and <= 'Z'
+            || character is >= '0' and <= '9'
+            || character is '/' or '-' or '_' or '.' or '~';
+
+        private static bool IsValidContentType(string? contentType) {
+            if (string.IsNullOrWhiteSpace(contentType)
+                || !string.Equals(contentType, contentType!.Trim(), StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int separator = contentType.IndexOf('/');
+            return separator > 0
+                && separator == contentType.LastIndexOf('/')
+                && separator < contentType.Length - 1
+                && IsContentTypeToken(contentType, 0, separator)
+                && IsContentTypeToken(contentType, separator + 1, contentType.Length);
+        }
+
+        private static bool IsContentTypeToken(string contentType, int start, int end) {
+            for (int index = start; index < end; index++) {
+                if (!IsContentTypeTokenCharacter(contentType[index])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool IsContentTypeTokenCharacter(char character) =>
+            character is >= 'a' and <= 'z'
+            || character is >= 'A' and <= 'Z'
+            || character is >= '0' and <= '9'
+            || character is '!' or '#' or '$' or '%' or '&' or '\'' or '*'
+                or '+' or '-' or '.' or '^' or '_' or '`' or '|' or '~';
+
+        private static bool IsValidContentTypeExtension(string? extension) =>
+            !string.IsNullOrWhiteSpace(extension)
+            && extension!.All(static character =>
+                character is >= 'a' and <= 'z'
+                || character is >= 'A' and <= 'Z'
+                || character is >= '0' and <= '9'
+                || character is '-' or '_');
+
+        private static bool IsValidRelationshipId(string id) {
+            try {
+                XmlConvert.VerifyNCName(id);
+                return true;
+            } catch (XmlException) {
+                return false;
+            }
         }
 
         private static bool ReadRelationshipTargetMode(XElement relationship) {
