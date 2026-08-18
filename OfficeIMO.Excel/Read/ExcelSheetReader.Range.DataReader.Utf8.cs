@@ -994,7 +994,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool TryParseDouble(ReadOnlySpan<byte> value, out double result) {
-                return Utf8Parser.TryParse(value, out result, out int consumed) && consumed == value.Length;
+                return ExcelUtf8NumberParser.TryParseDouble(value, out result);
             }
 
             private static bool TryParseInt32(ReadOnlySpan<byte> value, out int result) {
