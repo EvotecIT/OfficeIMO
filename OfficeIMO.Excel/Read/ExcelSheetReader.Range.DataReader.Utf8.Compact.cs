@@ -282,7 +282,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    ValidateIndexedCell(
+                    int sharedStringIndex = ValidateIndexedCell(
                         rowIndex,
                         columnIndex,
                         kind,
@@ -291,6 +291,10 @@ namespace OfficeIMO.Excel {
                         hasCachedValue,
                         valueStart,
                         valueLength);
+                    if (sharedStringIndex >= 0) {
+                        _valueStarts![cellIndex] = sharedStringIndex;
+                        _valueLengths![cellIndex] = SharedStringIndexValueLength;
+                    }
                     _cellKinds![cellIndex] = EncodeCellKind(kind, styleIndex);
                 }
 

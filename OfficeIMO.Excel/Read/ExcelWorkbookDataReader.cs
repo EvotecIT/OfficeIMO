@@ -70,11 +70,30 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        internal static ExcelWorkbookDataReader OpenOpenXml(string path, ExcelReadOptions options) =>
-            CreateOpenXml(ExcelDocumentReader.Open(path, options), options);
+        internal static ExcelWorkbookDataReader OpenOpenXml(string path, ExcelReadOptions options) {
+            if (CanUseNativeOpenXmlPath(options)
+                && string.Equals(Path.GetExtension(path), ".xlsx", StringComparison.OrdinalIgnoreCase)) {
+                try {
+                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(path, options), options);
+                } catch (XlsxTabularFastPathNotSupportedException) {
+                    // Unusual package and worksheet shapes retain the complete SDK path.
+                }
+            }
 
-        internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReadOptions options) =>
-            CreateOpenXml(ExcelDocumentReader.Open(bytes, options), options);
+            return CreateOpenXml(ExcelDocumentReader.Open(path, options), options);
+        }
+
+        internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReadOptions options) {
+            if (CanUseNativeOpenXmlPath(options)) {
+                try {
+                    return CreateNativeOpenXml(XlsxTabularWorkbook.Open(bytes, options), options);
+                } catch (XlsxTabularFastPathNotSupportedException) {
+                    // Unusual package and worksheet shapes retain the complete SDK path.
+                }
+            }
+
+            return CreateOpenXml(ExcelDocumentReader.Open(bytes, options), options);
+        }
 
         internal static ExcelWorkbookDataReader WrapOpenXml(ExcelDocumentReader owner, ExcelReadOptions options) =>
             CreateOpenXml(owner, options);
@@ -289,6 +308,40 @@ namespace OfficeIMO.Excel {
                 throw;
             }
         }
+
+        private static ExcelWorkbookDataReader CreateNativeOpenXml(
+            XlsxTabularWorkbook owner,
+            ExcelReadOptions options) {
+            try {
+                ValidateUniqueSheetNames(owner.TableNames, options.CancellationToken);
+                IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
+                if (sheets.Count != 1) {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        "Multi-result XLSX reads retain the complete Open XML SDK path.");
+                }
+
+                return new ExcelWorkbookDataReader(
+                    sheets,
+                    index => owner.OpenTable(
+                        sheets[index].Name,
+                        options.HasHeaderRow,
+                        options.CancellationToken),
+                    owner,
+                    options.Culture,
+                    options.TypeConverter,
+                    options.StrictTypedMapping,
+                    options.MappingErrorValuePolicy,
+                    options.CancellationToken);
+            } catch {
+                owner.Dispose();
+                throw;
+            }
+        }
+
+        private static bool CanUseNativeOpenXmlPath(ExcelReadOptions options) =>
+            !options.InferSchema
+            && string.IsNullOrWhiteSpace(options.A1Range)
+            && options.CellValueConverter == null;
 
         private static DbDataReader OpenOpenXmlSheet(
             ExcelDocumentReader owner,

@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
             private const int MaximumCachedStringBytes = 256;
             private const byte DateStyleCellKindFlag = 0x80;
             private const byte CellKindMask = 0x7F;
+            private const int SharedStringIndexValueLength = -2;
 
             private readonly ExcelSheetReader _owner;
             private readonly ExcelReadOptions _options;
@@ -221,6 +222,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
+                owner.RequireSdkWorksheetPart();
                 using var stream = owner._wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 return TryReadWorksheetBuffer(stream, ct, out buffer, out length);
@@ -283,9 +285,17 @@ namespace OfficeIMO.Excel {
 
                 bool useFormula = _formulaLengths != null
                     && _formulaLengths[cellIndex] >= 0
-                    && (!_options.UseCachedFormulaResult || _valueLengths![cellIndex] < 0);
+                    && (!_options.UseCachedFormulaResult
+                        || (_valueLengths![cellIndex] < 0
+                            && _valueLengths[cellIndex] != SharedStringIndexValueLength));
                 int start = useFormula ? _formulaStarts![cellIndex] : _valueStarts![cellIndex];
                 int length = useFormula ? _formulaLengths![cellIndex] : _valueLengths![cellIndex];
+                if (!useFormula
+                    && cellKind == Utf8CellKind.SharedString
+                    && length == SharedStringIndexValueLength) {
+                    objectValue = _owner.GetSharedString(start);
+                    return;
+                }
                 if (length < 0) {
                     return;
                 }
@@ -638,7 +648,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    ValidateIndexedCell(
+                    int sharedStringIndex = ValidateIndexedCell(
                         rowIndex,
                         columnIndex,
                         kind,
@@ -648,6 +658,10 @@ namespace OfficeIMO.Excel {
                         valueStart,
                         valueLength);
                     if (cellIndex >= 0) {
+                        if (sharedStringIndex >= 0) {
+                            _valueStarts![cellIndex] = sharedStringIndex;
+                            _valueLengths![cellIndex] = SharedStringIndexValueLength;
+                        }
                         _cellKinds![cellIndex] = EncodeCellKind(kind, styleIndex);
                     }
                 }

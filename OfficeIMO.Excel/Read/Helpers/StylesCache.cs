@@ -6,12 +6,22 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed class StylesCacheProvider {
-        private readonly SpreadsheetDocument _doc;
+        private readonly SpreadsheetDocument? _doc;
+        private readonly Func<Stream>? _openPartStream;
         private readonly object _gate = new();
         private StylesCache? _value;
 
         public StylesCacheProvider(SpreadsheetDocument doc) {
             _doc = doc;
+            _openPartStream = null;
+        }
+
+        internal StylesCacheProvider(Func<Stream> openPartStream) {
+            _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
+        }
+
+        internal StylesCacheProvider(StylesCache value) {
+            _value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public StylesCache Value {
@@ -22,7 +32,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 lock (_gate) {
-                    return _value ??= StylesCache.Build(_doc);
+                    if (_value != null) {
+                        return _value;
+                    }
+
+                    if (_openPartStream != null) {
+                        using Stream stream = _openPartStream();
+                        return _value = StylesCache.Build(stream);
+                    }
+
+                    return _value = StylesCache.Build(_doc!);
                 }
             }
         }
@@ -102,13 +121,29 @@ namespace OfficeIMO.Excel {
             return cache;
         }
 
+        internal static StylesCache Build(Stream stream) {
+            var cache = new StylesCache();
+            if (!TryBuildXmlFast(stream, cache)) {
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "The styles part requires the Open XML SDK fallback path.");
+            }
+
+            return cache;
+        }
+
+        internal static StylesCache Empty() => new();
+
         public bool IsDateLike(uint styleIndex) => styleIndex < (uint)_dateStyleIndexes.Length && _dateStyleIndexes[styleIndex];
 
         public bool IsDateSystemShiftStyle(uint styleIndex) => styleIndex < (uint)_dateSystemShiftStyleIndexes.Length && _dateSystemShiftStyleIndexes[styleIndex];
 
         private static bool TryBuildXmlFast(WorkbookStylesPart sp, StylesCache cache) {
+            using var stream = sp.GetStream(FileMode.Open, FileAccess.Read);
+            return TryBuildXmlFast(stream, cache);
+        }
+
+        private static bool TryBuildXmlFast(Stream stream, StylesCache cache) {
             try {
-                using var stream = sp.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, StylesXmlReaderSettings);
                 Dictionary<uint, string>? nf = null;
 
